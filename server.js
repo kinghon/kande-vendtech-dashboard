@@ -5334,7 +5334,7 @@ const originalRequireAuth = requireAuth;
 
 // ===== INSTANTLY.AI OUTREACH INTEGRATION =====
 // Proxy endpoints to Instantly API — never expose API key to frontend
-const INSTANTLY_API_KEY = process.env.INSTANTLY_API_KEY || '';
+const INSTANTLY_API_KEY = process.env.INSTANTLY_API_KEY || 'YTRmZmE5OWEtOWQ0OS00NjAwLWJiNzQtNjlmZWFiZGJkYzhiOmJITmlEYVNES0pCRg==';
 const INSTANTLY_BASE = 'https://api.instantly.ai/api/v2';
 
 // Generic Instantly proxy helper
