@@ -19,6 +19,7 @@ const PORT = process.env.PORT || 3000;
 
 // Admin password from environment (set in Railway)
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'kande2026';
+const VALID_PASSWORDS = [ADMIN_PASSWORD, process.env.SALES_PASSWORD || 'jvending1#'];
 
 // Generate session tokens
 const activeSessions = new Set();
@@ -83,7 +84,7 @@ function requireAuth(req, res, next) {
   
   // Check for API key in header (for programmatic access)
   const apiKey = req.headers['x-api-key'] || req.headers['authorization']?.replace('Bearer ', '');
-  if (apiKey === ADMIN_PASSWORD) {
+  if (VALID_PASSWORDS.includes(apiKey)) {
     return next();
   }
   
@@ -128,7 +129,7 @@ app.post('/api/auth/login', (req, res) => {
 
   const { password } = req.body;
   
-  if (password === ADMIN_PASSWORD) {
+  if (VALID_PASSWORDS.includes(password)) {
     const token = generateToken();
     activeSessions.add(token);
     
