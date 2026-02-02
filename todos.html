@@ -469,10 +469,81 @@
 
     async function toggleComplete(id, e) {
       e.stopPropagation();
+      const todo = todos.find(t => t.id === id);
+      if (!todo) return;
+      
+      // If already completed, just uncomplete
+      if (todo.completed) {
+        const updated = await apiToggle(id);
+        const idx = todos.findIndex(t => t.id === id);
+        if (idx >= 0) todos[idx] = updated;
+        render();
+        return;
+      }
+      
+      // Show completion modal
+      document.getElementById('complete-modal').style.display = 'flex';
+      document.getElementById('complete-task-id').value = id;
+      document.getElementById('complete-task-name').textContent = todo.title;
+      document.getElementById('complete-notes').value = '';
+      document.getElementById('complete-next-action').value = '';
+      document.getElementById('complete-followup-date').value = '';
+      document.getElementById('complete-notes').focus();
+    }
+
+    async function submitCompletion() {
+      const id = parseInt(document.getElementById('complete-task-id').value);
+      const notes = document.getElementById('complete-notes').value;
+      const nextAction = document.getElementById('complete-next-action').value;
+      const followupDate = document.getElementById('complete-followup-date').value;
+      
+      // Complete the task
       const updated = await apiToggle(id);
       const idx = todos.findIndex(t => t.id === id);
-      if (idx >= 0) todos[idx] = updated;
+      if (idx >= 0) {
+        todos[idx] = updated;
+        if (notes) todos[idx].completion_notes = notes;
+        if (nextAction) todos[idx].next_action = nextAction;
+        if (followupDate) todos[idx].followup_date = followupDate;
+        await apiSave(todos[idx]);
+      }
+
+      // If there's a prospect, log the activity
+      const todo = todos[idx];
+      if (todo && todo.prospect_id) {
+        try {
+          await fetch(`/api/prospects/${todo.prospect_id}/activities`, {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ type: 'task_completed', description: `✅ ${todo.title}${notes ? ' — ' + notes : ''}`, next_action: nextAction || null })
+          });
+        } catch(e) {}
+      }
+
+      // Create follow-up task if next action selected
+      if (nextAction && nextAction !== 'none') {
+        const newTask = {
+          title: nextAction === 'other' ? 'Follow up' : nextAction,
+          description: notes ? 'Previous notes: ' + notes : '',
+          category: todo ? todo.category : 'Sales',
+          priority: 'high',
+          due_date: followupDate || null,
+          prospect_id: todo ? todo.prospect_id : null,
+          prospect_name: todo ? todo.prospect_name : null,
+          status: 'pending'
+        };
+        try {
+          const res = await fetch('/api/todos', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(newTask) });
+          const created = await res.json();
+          todos.push(created);
+        } catch(e) {}
+      }
+
+      closeCompleteModal();
       render();
+    }
+
+    function closeCompleteModal() {
+      document.getElementById('complete-modal').style.display = 'none';
     }
 
     async function setStatus(id, status, e) {
@@ -595,6 +666,43 @@
     // ─── INIT ────────────────────────────────────────
     fetchTodos();
   </script>
+
+  <!-- Completion Modal -->
+  <div id="complete-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center; padding:20px;">
+    <div style="background:#fff; border-radius:16px; padding:28px; max-width:480px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,0.15);">
+      <h3 style="margin-bottom:4px; font-size:1.1rem;">✅ Task Completed</h3>
+      <p id="complete-task-name" style="color:#718096; font-size:0.85rem; margin-bottom:20px;"></p>
+      <input type="hidden" id="complete-task-id">
+      
+      <label style="font-size:0.8rem; font-weight:600; color:#4a5568; display:block; margin-bottom:6px;">Sales Notes</label>
+      <textarea id="complete-notes" placeholder="What happened? Key details, outcomes, next steps..." style="width:100%; padding:10px 14px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.88rem; resize:vertical; min-height:80px; margin-bottom:16px; font-family:inherit;"></textarea>
+      
+      <label style="font-size:0.8rem; font-weight:600; color:#4a5568; display:block; margin-bottom:6px;">Next Action</label>
+      <select id="complete-next-action" style="width:100%; padding:10px 14px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.88rem; margin-bottom:16px; background:#fff;">
+        <option value="">No follow-up needed</option>
+        <option value="Follow-up call">📞 Follow-up call</option>
+        <option value="Follow-up email">📧 Follow-up email</option>
+        <option value="Send proposal">📄 Send proposal</option>
+        <option value="Schedule site survey">📋 Schedule site survey</option>
+        <option value="Send contract">📝 Send contract</option>
+        <option value="Pop-in visit">🚶 Pop-in visit</option>
+        <option value="Send gift basket">🎁 Send gift basket</option>
+        <option value="Schedule meeting">🤝 Schedule meeting</option>
+        <option value="Check in with decision maker">👤 Check in with decision maker</option>
+        <option value="Research location">🔍 Research location</option>
+        <option value="other">✏️ Other</option>
+      </select>
+
+      <label style="font-size:0.8rem; font-weight:600; color:#4a5568; display:block; margin-bottom:6px;">Follow-up Date</label>
+      <input type="date" id="complete-followup-date" style="width:100%; padding:10px 14px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.88rem; margin-bottom:24px;">
+
+      <div style="display:flex; gap:12px; justify-content:flex-end;">
+        <button onclick="closeCompleteModal()" style="padding:10px 20px; border:1px solid #e2e8f0; border-radius:8px; background:#fff; font-size:0.85rem; font-weight:600; cursor:pointer;">Cancel</button>
+        <button onclick="submitCompletion()" style="padding:10px 24px; border:none; border-radius:8px; background:#38a169; color:#fff; font-size:0.85rem; font-weight:600; cursor:pointer;">Complete & Save</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/nav.js"></script>
 </body>
 </html>
