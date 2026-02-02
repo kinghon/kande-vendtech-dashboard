@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>AI Office — Multi-Agent Orchestration</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
+      --muted: #718096; --accent: #3182ce; --hot: #e53e3e; --warn: #dd6b20;
+      --success: #38a169; --purple: #7b2cbf;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+    /* Nav */
+    .top-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .top-nav .logo { height: 40px; }
+    .top-nav a { color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500; padding: 6px 12px; border-radius: 6px; transition: all 0.2s; }
+    .top-nav a:hover, .top-nav a.active { color: var(--accent); background: rgba(49,130,206,0.08); }
+    .nav-spacer { flex: 1; }
+    .nav-brand { font-size: 0.9rem; font-weight: 600; color: var(--text); margin-right: 8px; }
+
+    /* Hero */
+    .hero { text-align: center; margin-bottom: 40px; }
+    .hero h1 { font-size: 2rem; font-weight: 700; background: linear-gradient(90deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+    .hero p { color: var(--muted); font-size: 1rem; max-width: 600px; margin: 0 auto; }
+
+    /* Section titles */
+    .section-title { font-size: 1.3rem; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+    .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* Architecture Diagram */
+    .arch-diagram { background: var(--card); border-radius: 16px; padding: 32px; border: 1px solid var(--border); margin-bottom: 40px; overflow-x: auto; }
+    .arch-flow { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; padding: 20px 0; }
+    .arch-node { background: var(--bg); border: 2px solid var(--border); border-radius: 12px; padding: 14px 20px; text-align: center; min-width: 120px; transition: all 0.3s; }
+    .arch-node:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(49,130,206,0.12); }
+    .arch-node .node-icon { font-size: 1.6rem; margin-bottom: 6px; }
+    .arch-node .node-label { font-size: 0.8rem; font-weight: 600; }
+    .arch-node .node-sub { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+    .arch-node.highlight { border-color: var(--accent); background: rgba(49,130,206,0.04); }
+    .arch-arrow { font-size: 1.4rem; color: var(--muted); flex-shrink: 0; }
+    .arch-arrow.down { transform: rotate(90deg); }
+
+    /* Parallel group */
+    .parallel-group { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+    .parallel-label { font-size: 0.65rem; color: var(--accent); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .parallel-nodes { display: flex; gap: 8px; }
+
+    /* Feedback loop */
+    .feedback-loop { position: relative; display: flex; align-items: center; gap: 8px; }
+    .loop-label { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 0.65rem; color: var(--hot); font-weight: 600; white-space: nowrap; }
+
+    /* Roles Grid */
+    .roles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 40px; }
+    .role-card { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); transition: all 0.2s; }
+    .role-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(49,130,206,0.08); }
+    .role-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .role-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
+    .role-name { font-size: 1.05rem; font-weight: 600; }
+    .role-type { font-size: 0.75rem; color: var(--muted); }
+    .role-desc { font-size: 0.85rem; color: var(--muted); line-height: 1.6; }
+    .role-capabilities { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .role-cap { padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; background: rgba(49,130,206,0.08); color: var(--accent); font-weight: 500; }
+
+    /* Icon backgrounds */
+    .icon-planner { background: linear-gradient(135deg, #3182ce, #2c5282); }
+    .icon-researcher { background: linear-gradient(135deg, #38a169, #276749); }
+    .icon-builder { background: linear-gradient(135deg, #dd6b20, #c05621); }
+    .icon-writer { background: linear-gradient(135deg, #9f7aea, #6b46c1); }
+    .icon-critic { background: linear-gradient(135deg, #e53e3e, #c53030); }
+    .icon-synthesizer { background: linear-gradient(135deg, #00b5d8, #0987a0); }
+
+    /* How It Works */
+    .how-it-works { background: var(--card); border-radius: 16px; padding: 32px; border: 1px solid var(--border); margin-bottom: 40px; }
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; margin-top: 20px; }
+    .step { position: relative; padding-left: 48px; }
+    .step-num { position: absolute; left: 0; top: 0; width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem; }
+    .step h4 { font-size: 0.95rem; margin-bottom: 6px; }
+    .step p { font-size: 0.83rem; color: var(--muted); line-height: 1.5; }
+
+    /* Principles */
+    .principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-top: 20px; }
+    .principle { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border-radius: 8px; background: var(--bg); }
+    .principle-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
+    .principle h5 { font-size: 0.85rem; margin-bottom: 2px; }
+    .principle p { font-size: 0.78rem; color: var(--muted); line-height: 1.4; }
+
+    /* Runs Table */
+    .runs-section { margin-bottom: 40px; }
+    .runs-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .refresh-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
+    .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .runs-list { display: flex; flex-direction: column; gap: 12px; }
+    .run-card { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); transition: all 0.2s; cursor: pointer; }
+    .run-card:hover { border-color: var(--accent); }
+    .run-card.expanded { border-color: var(--accent); }
+    .run-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .run-task { font-weight: 600; font-size: 1rem; }
+    .run-meta { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .run-time { font-size: 0.78rem; color: var(--muted); }
+
+    .status-badge { padding: 3px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; }
+    .status-planning { background: rgba(49,130,206,0.12); color: var(--accent); }
+    .status-executing { background: rgba(221,107,32,0.12); color: var(--warn); }
+    .status-reviewing { background: rgba(159,122,234,0.12); color: #9f7aea; }
+    .status-complete { background: rgba(56,161,105,0.12); color: var(--success); }
+    .status-failed { background: rgba(229,62,62,0.12); color: var(--hot); }
+
+    .run-details { display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+    .run-card.expanded .run-details { display: block; }
+
+    .subtasks-list { display: flex; flex-direction: column; gap: 8px; }
+    .subtask-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 8px; background: var(--bg); font-size: 0.85rem; }
+    .subtask-id { font-weight: 700; color: var(--accent); min-width: 28px; }
+    .subtask-name { flex: 1; font-weight: 500; }
+    .subtask-role { font-size: 0.75rem; color: var(--muted); min-width: 80px; }
+    .subtask-retries { font-size: 0.75rem; color: var(--muted); }
+
+    .run-output { margin-top: 12px; padding: 14px; border-radius: 8px; background: var(--bg); font-size: 0.85rem; line-height: 1.6; color: var(--muted); }
+    .run-output strong { color: var(--text); }
+
+    .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
+    .empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty-state h3 { font-size: 1.1rem; color: var(--text); margin-bottom: 6px; }
+    .empty-state p { font-size: 0.9rem; }
+
+    footer { text-align: center; padding: 30px; color: var(--muted); font-size: 0.85rem; }
+    footer a { color: var(--accent); text-decoration: none; }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 1.5rem; }
+      .arch-flow { flex-direction: column; }
+      .arch-arrow { transform: rotate(90deg) !important; }
+      .parallel-nodes { flex-direction: column; }
+      .roles-grid { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: 1fr; }
+      .principles { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <nav class="top-nav">
+      <a href="/"><img src="/logo.png" alt="Kande VendTech" class="logo"></a>
+      <span class="nav-brand">Operations</span>
+      <a href="/">Dashboard</a>
+      <a href="/crm">CRM</a>
+      <a href="/machines">Machines</a>
+      <a href="/inventory">Inventory</a>
+      <a href="/finance">Finance</a>
+      <a href="/restock">Restock</a>
+      <a href="/map">Map</a>
+      <a href="/ai-office" class="active">AI Office</a>
+    </nav>
+
+    <div class="hero">
+      <h1>🏢 AI Office</h1>
+      <p>Multi-agent orchestration framework — complex tasks decomposed, executed in parallel, reviewed adversarially, and synthesized into polished deliverables.</p>
+    </div>
+
+    <!-- Architecture Diagram -->
+    <h2 class="section-title">Architecture</h2>
+    <div class="arch-diagram">
+      <div class="arch-flow">
+        <div class="arch-node highlight">
+          <div class="node-icon">👤</div>
+          <div class="node-label">User Task</div>
+          <div class="node-sub">Complex request</div>
+        </div>
+
+        <div class="arch-arrow">→</div>
+
+        <div class="arch-node highlight">
+          <div class="node-icon">🎯</div>
+          <div class="node-label">Coordinator</div>
+          <div class="node-sub">Main agent</div>
+        </div>
+
+        <div class="arch-arrow">→</div>
+
+        <div class="arch-node">
+          <div class="node-icon">📋</div>
+          <div class="node-label">Planner</div>
+          <div class="node-sub">DAG + criteria</div>
+        </div>
+
+        <div class="arch-arrow">→</div>
+
+        <div class="parallel-group">
+          <div class="parallel-label">Parallel Execution</div>
+          <div class="parallel-nodes">
+            <div class="arch-node">
+              <div class="node-icon">🔬</div>
+              <div class="node-label">Researcher</div>
+            </div>
+            <div class="arch-node">
+              <div class="node-icon">🏗️</div>
+              <div class="node-label">Builder</div>
+            </div>
+            <div class="arch-node">
+              <div class="node-icon">✍️</div>
+              <div class="node-label">Writer</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="arch-arrow">→</div>
+
+        <div class="feedback-loop">
+          <div class="loop-label">↻ Reject → Retry (max 3×)</div>
+          <div class="arch-node" style="border-color: var(--hot);">
+            <div class="node-icon">🔍</div>
+            <div class="node-label">Critic</div>
+            <div class="node-sub">Veto power</div>
+          </div>
+        </div>
+
+        <div class="arch-arrow">→</div>
+
+        <div class="arch-node">
+          <div class="node-icon">🧩</div>
+          <div class="node-label">Synthesizer</div>
+          <div class="node-sub">Final output</div>
+        </div>
+
+        <div class="arch-arrow">→</div>
+
+        <div class="arch-node highlight">
+          <div class="node-icon">✅</div>
+          <div class="node-label">Deliverable</div>
+          <div class="node-sub">Polished result</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Roles -->
+    <h2 class="section-title">Agent Roles</h2>
+    <div class="roles-grid">
+      <div class="role-card">
+        <div class="role-header">
+          <div class="role-icon icon-planner">📋</div>
+          <div>
+            <div class="role-name">Planner</div>
+            <div class="role-type">Strategic Decomposition</div>
+          </div>
+        </div>
+        <div class="role-desc">Breaks complex tasks into a directed acyclic graph (DAG) of subtasks. Sets acceptance criteria before execution begins — ensuring objectivity.</div>
+        <div class="role-capabilities">
+          <span class="role-cap">Task decomposition</span>
+          <span class="role-cap">Dependency mapping</span>
+          <span class="role-cap">Criteria setting</span>
+        </div>
+      </div>
+
+      <div class="role-card">
+        <div class="role-header">
+          <div class="role-icon icon-researcher">🔬</div>
+          <div>
+            <div class="role-name">Researcher</div>
+            <div class="role-type">Information Gathering</div>
+          </div>
+        </div>
+        <div class="role-desc">Conducts web research, data gathering, and analysis. Explores options, cites sources, and returns structured findings with evidence.</div>
+        <div class="role-capabilities">
+          <span class="role-cap">Web research</span>
+          <span class="role-cap">Data analysis</span>
+          <span class="role-cap">Source citation</span>
+        </div>
+      </div>
+
+      <div class="role-card">
+        <div class="role-header">
+          <div class="role-icon icon-builder">🏗️</div>
+          <div>
+            <div class="role-name">Builder</div>
+            <div class="role-type">Implementation</div>
+          </div>
+        </div>
+        <div class="role-desc">Writes code, creates files, implements features. Follows Planner specs, self-tests, and commits with clear messages.</div>
+        <div class="role-capabilities">
+          <span class="role-cap">Code generation</span>
+          <span class="role-cap">File creation</span>
+          <span class="role-cap">Testing</span>
+        </div>
+      </div>
+
+      <div class="role-card">
+        <div class="role-header">
+          <div class="role-icon icon-writer">✍️</div>
+          <div>
+            <div class="role-name">Writer</div>
+            <div class="role-type">Content Production</div>
+          </div>
+        </div>
+        <div class="role-desc">Produces written content, strategies, and reports. Follows brand voice, structures information clearly, and includes actionable recommendations.</div>
+        <div class="role-capabilities">
+          <span class="role-cap">Content writing</span>
+          <span class="role-cap">Strategy docs</span>
+          <span class="role-cap">Reports</span>
+        </div>
+      </div>
+
+      <div class="role-card">
+        <div class="role-header">
+          <div class="role-icon icon-critic">🔍</div>
+          <div>
+            <div class="role-name">Critic</div>
+            <div class="role-type">Adversarial Review</div>
+          </div>
+        </div>
+        <div class="role-desc">Reviews outputs against pre-declared criteria with <strong>veto power</strong>. Can reject and trigger retries. Checks correctness, completeness, and quality. Does NOT produce — only reviews.</div>
+        <div class="role-capabilities">
+          <span class="role-cap">Veto authority</span>
+          <span class="role-cap">Quality gates</span>
+          <span class="role-cap">Rejection feedback</span>
+        </div>
+      </div>
+
+      <div class="role-card">
+        <div class="role-header">
+          <div class="role-icon icon-synthesizer">🧩</div>
+          <div>
+            <div class="role-name">Synthesizer</div>
+            <div class="role-type">Final Assembly</div>
+          </div>
+        </div>
+        <div class="role-desc">Combines all approved outputs into a cohesive final deliverable. Resolves inconsistencies, formats for user consumption, and adds executive summary.</div>
+        <div class="role-capabilities">
+          <span class="role-cap">Integration</span>
+          <span class="role-cap">Formatting</span>
+          <span class="role-cap">Executive summary</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- How It Works -->
+    <h2 class="section-title">How It Works</h2>
+    <div class="how-it-works">
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h4>Plan</h4>
+          <p>The Planner decomposes the task into subtasks with dependencies, assigns specialist roles, and sets acceptance criteria <em>before</em> any work begins.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h4>Execute</h4>
+          <p>Independent subtasks run in parallel via spawned sub-agents. Each specialist (Researcher, Builder, Writer) works on their assigned piece.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h4>Review</h4>
+          <p>The Critic reviews each output against acceptance criteria. Rejected work gets specific feedback and retries (max 3×). This adversarial review catches errors.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <h4>Synthesize</h4>
+          <p>All approved outputs flow to the Synthesizer, who combines them into a polished final deliverable with executive summary.</p>
+        </div>
+      </div>
+
+      <h3 style="font-size: 1rem; margin-top: 28px; margin-bottom: 12px;">Core Principles</h3>
+      <div class="principles">
+        <div class="principle">
+          <div class="principle-icon">🛡️</div>
+          <div>
+            <h5>Errors Die in Committee</h5>
+            <p>Critics intercept errors before user exposure. Multiple imperfect layers (Swiss cheese defense) catch what others miss.</p>
+          </div>
+        </div>
+        <div class="principle">
+          <div class="principle-icon">⚔️</div>
+          <div>
+            <h5>Opposing Incentives</h5>
+            <p>Builders want to ship. Critics want correctness. This tension produces higher quality than either alone.</p>
+          </div>
+        </div>
+        <div class="principle">
+          <div class="principle-icon">🚫</div>
+          <div>
+            <h5>Veto Authority</h5>
+            <p>Critics can reject outright — not advisory, not voting. Real authority forces real accountability.</p>
+          </div>
+        </div>
+        <div class="principle">
+          <div class="principle-icon">📏</div>
+          <div>
+            <h5>Pre-Declared Criteria</h5>
+            <p>Success criteria are set BEFORE execution, not after. No moving goalposts.</p>
+          </div>
+        </div>
+        <div class="principle">
+          <div class="principle-icon">🔒</div>
+          <div>
+            <h5>Data Isolation</h5>
+            <p>Raw data stays in the execution layer. Agents get summaries, keeping scope clean and focused.</p>
+          </div>
+        </div>
+        <div class="principle">
+          <div class="principle-icon">🧠</div>
+          <div>
+            <h5>Cognitive Diversity</h5>
+            <p>Different models/prompts for different roles. The Critic uses a different model than the Builder when possible.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Runs -->
+    <div class="runs-section">
+      <div class="runs-header">
+        <h2 class="section-title" style="margin-bottom: 0;">Recent Runs</h2>
+        <button class="refresh-btn" onclick="loadRuns()">↻ Refresh</button>
+      </div>
+      <div class="runs-list" id="runs-list">
+        <div class="empty-state">
+          <div class="empty-icon">🏢</div>
+          <h3>No runs yet</h3>
+          <p>AI Office runs will appear here when triggered. Use the orchestration CLI or ask the main agent to start one.</p>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>AI Office — Multi-Agent Orchestration Framework</p>
+      <p style="margin-top:6px;">Based on <a href="https://arxiv.org/abs/2601.14351" target="_blank">"If You Want Coherence, Orchestrate a Team of Rivals"</a></p>
+    </footer>
+  </div>
+
+  <script>
+    const roleIcons = {
+      planner: '📋', researcher: '🔬', builder: '🏗️',
+      writer: '✍️', critic: '🔍', synthesizer: '🧩'
+    };
+
+    function timeAgo(dateStr) {
+      if (!dateStr) return '';
+      const diff = Date.now() - new Date(dateStr).getTime();
+      const mins = Math.floor(diff / 60000);
+      if (mins < 1) return 'just now';
+      if (mins < 60) return `${mins}m ago`;
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return `${hrs}h ago`;
+      const days = Math.floor(hrs / 24);
+      return `${days}d ago`;
+    }
+
+    function renderRuns(runs) {
+      const list = document.getElementById('runs-list');
+
+      if (!runs || runs.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">🏢</div>
+            <h3>No runs yet</h3>
+            <p>AI Office runs will appear here when triggered. Use the orchestration CLI or ask the main agent to start one.</p>
+          </div>`;
+        return;
+      }
+
+      list.innerHTML = runs.map(run => {
+        const subtasksHtml = (run.subtasks || []).map(st => `
+          <div class="subtask-row">
+            <span class="subtask-id">${st.id}</span>
+            <span style="font-size:1.1rem">${roleIcons[st.role] || '⚙️'}</span>
+            <span class="subtask-name">${st.name}</span>
+            <span class="subtask-role">${st.role}</span>
+            <span class="status-badge status-${st.status}">${st.status}</span>
+            ${st.retries > 0 ? `<span class="subtask-retries">↻ ${st.retries}</span>` : ''}
+          </div>
+        `).join('');
+
+        return `
+          <div class="run-card" onclick="this.classList.toggle('expanded')">
+            <div class="run-top">
+              <span class="run-task">${run.task}</span>
+              <div class="run-meta">
+                <span class="run-time">${timeAgo(run.created_at)}</span>
+                <span class="status-badge status-${run.status}">${run.status}</span>
+              </div>
+            </div>
+            <div class="run-details">
+              ${subtasksHtml ? `<div class="subtasks-list">${subtasksHtml}</div>` : '<p style="color:var(--muted);font-size:0.85rem;">No subtasks recorded</p>'}
+              ${run.final_output ? `<div class="run-output"><strong>Final Output:</strong> ${run.final_output}</div>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    async function loadRuns() {
+      try {
+        const runs = await fetch('/api/ai-office/runs').then(r => r.json());
+        renderRuns(runs);
+      } catch (e) {
+        console.error('Failed to load runs:', e);
+      }
+    }
+
+    loadRuns();
+    setInterval(loadRuns, 30000);
+  </script>
+<script src="/nav.js"></script>
+</body>
+</html>

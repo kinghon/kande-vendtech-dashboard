@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Conversion Funnel — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa; --card: #ffffff; --card-hover: #f7fafc; --border: #e2e8f0;
+      --text: #1a202c; --muted: #718096; --accent: #3182ce; --accent-dim: rgba(49,130,206,0.1);
+      --success: #38a169; --success-dim: rgba(56,161,105,0.1);
+      --warn: #dd6b20; --warn-dim: rgba(221,107,32,0.1);
+      --hot: #e53e3e; --hot-dim: rgba(229,62,62,0.1);
+      --purple: #7b2cbf; --purple-dim: rgba(123,44,191,0.1);
+      --pink: #d53f8c; --pink-dim: rgba(213,63,140,0.1);
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .container { max-width: 1360px; margin: 0 auto; padding: 32px 24px; }
+
+    .page-header { margin-bottom: 32px; }
+    .page-header h1 { font-size: 2rem; font-weight: 700; background: linear-gradient(90deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 6px; }
+    .page-header p { color: var(--muted); font-size: 0.95rem; }
+
+    /* Controls */
+    .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 28px; }
+    .period-tabs { display: flex; gap: 4px; }
+    .period-tab { padding: 8px 18px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-size: 0.82rem; font-weight: 500; transition: all 0.2s; }
+    .period-tab:hover { border-color: var(--accent); color: var(--accent); }
+    .period-tab.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+    select { padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; background: var(--bg); color: var(--text); outline: none; }
+    select:focus { border-color: var(--accent); }
+    select option { background: var(--card); }
+
+    /* Summary */
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 32px; }
+    .summary-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; text-align: center; transition: all 0.2s; }
+    .summary-card:hover { border-color: rgba(49,130,206,0.2); transform: translateY(-2px); }
+    .summary-card .value { font-size: 2.2rem; font-weight: 700; line-height: 1.1; }
+    .summary-card .label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; margin-top: 6px; }
+    .summary-card .sub { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+    .v-accent { color: var(--accent); } .v-success { color: var(--success); } .v-warn { color: var(--warn); }
+    .v-hot { color: var(--hot); } .v-purple { color: var(--purple); } .v-pink { color: var(--pink); }
+
+    /* Funnel Container */
+    .funnel-section { margin-bottom: 32px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin-bottom: 20px; }
+    .card h2 { font-size: 1.15rem; font-weight: 600; margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
+
+    /* CSS Funnel */
+    .funnel { display: flex; flex-direction: column; align-items: center; gap: 0; max-width: 700px; margin: 0 auto; }
+    .funnel-stage { position: relative; display: flex; align-items: center; width: 100%; min-height: 80px; }
+    .funnel-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; }
+    .funnel-bar { height: 64px; border-radius: 10px; display: flex; align-items: center; justify-content: center; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); position: relative; min-width: 100px; cursor: default; }
+    .funnel-bar:hover { filter: brightness(1.15); }
+    .funnel-bar-inner { text-align: center; z-index: 1; }
+    .funnel-bar-count { font-size: 1.5rem; font-weight: 700; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+    .funnel-bar-label { font-size: 0.78rem; font-weight: 500; color: rgba(0,0,0,0.85); }
+
+    .funnel-stage-label { position: absolute; left: 0; width: 100px; text-align: right; padding-right: 16px; }
+    .funnel-stage-name { font-size: 0.88rem; font-weight: 600; }
+    .funnel-stage-icon { font-size: 1.1rem; margin-bottom: 2px; }
+
+    .funnel-stage-stats { position: absolute; right: 0; width: 120px; padding-left: 16px; }
+    .funnel-stage-rate { font-size: 1.1rem; font-weight: 700; }
+    .funnel-stage-drop { font-size: 0.72rem; color: var(--muted); }
+
+    /* Funnel colors */
+    .fb-1 { background: linear-gradient(135deg, #3182ce, #2b6cb0); }
+    .fb-2 { background: linear-gradient(135deg, #7b2cbf, #6b21a8); }
+    .fb-3 { background: linear-gradient(135deg, #dd6b20, #c05621); }
+    .fb-4 { background: linear-gradient(135deg, #38a169, #2f855a); }
+
+    /* Drop-off arrows */
+    .funnel-arrow { display: flex; align-items: center; justify-content: center; height: 32px; position: relative; }
+    .funnel-arrow-line { width: 2px; height: 100%; background: var(--border); }
+    .funnel-arrow-badge { position: absolute; right: calc(50% - 120px); background: var(--hot-dim); color: var(--hot); font-size: 0.72rem; font-weight: 600; padding: 2px 10px; border-radius: 10px; white-space: nowrap; }
+
+    /* Grids */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+    /* Horizontal Bars */
+    .hbar-chart { display: flex; flex-direction: column; gap: 12px; }
+    .hbar-row { display: flex; align-items: center; gap: 10px; }
+    .hbar-label { width: 120px; font-size: 0.82rem; font-weight: 500; text-align: right; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: capitalize; }
+    .hbar-track { flex: 1; height: 28px; background: rgba(0,0,0,0.03); border-radius: 8px; overflow: hidden; }
+    .hbar-fill { height: 100%; border-radius: 8px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; padding-left: 10px; font-size: 0.75rem; font-weight: 600; color: var(--bg); min-width: fit-content; }
+    .hbar-value { width: 60px; font-size: 0.82rem; font-weight: 600; flex-shrink: 0; }
+
+    /* Property type badges */
+    .type-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 600; text-transform: capitalize; }
+    .type-apartments { background: var(--accent-dim); color: var(--accent); }
+    .type-senior_living { background: var(--purple-dim); color: var(--purple); }
+    .type-healthcare { background: var(--success-dim); color: var(--success); }
+    .type-industrial { background: var(--warn-dim); color: var(--warn); }
+    .type-office { background: var(--pink-dim); color: var(--pink); }
+    .type-unknown { background: rgba(0,0,0,0.05); color: var(--muted); }
+
+    /* Property Type Matrix */
+    .matrix-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .matrix-table th { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 0.7rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
+    .matrix-table td { padding: 10px 12px; border-bottom: 1px solid rgba(0,0,0,0.03); }
+    .matrix-table tr:hover td { background: rgba(0,0,0,0.02); }
+
+    /* Insight pill */
+    .insight { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: var(--accent-dim); border: 1px solid rgba(49,130,206,0.15); border-radius: 20px; font-size: 0.82rem; color: var(--accent); font-weight: 500; margin-bottom: 20px; }
+    .insight-warn { background: var(--hot-dim); border-color: rgba(248,113,113,0.2); color: var(--hot); }
+
+    /* Empty / Loading */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty-state .emoji { font-size: 3rem; margin-bottom: 12px; }
+    .empty-state h3 { font-size: 1.2rem; color: var(--text); margin-bottom: 6px; }
+    .loading { display: flex; align-items: center; justify-content: center; padding: 60px; color: var(--muted); gap: 10px; }
+    .spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Recommendations */
+    .rec-list { display: flex; flex-direction: column; gap: 10px; }
+    .rec-item { display: flex; gap: 12px; padding: 14px; background: rgba(0,0,0,0.02); border-radius: 10px; border: 1px solid transparent; transition: all 0.2s; }
+    .rec-item:hover { border-color: var(--border); background: rgba(0,0,0,0.04); }
+    .rec-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+    .rec-content { flex: 1; }
+    .rec-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 2px; }
+    .rec-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.4; }
+
+    @media (max-width: 1024px) { .grid-2 { grid-template-columns: 1fr; } .grid-3 { grid-template-columns: 1fr; } }
+    @media (max-width: 768px) {
+      .summary-grid { grid-template-columns: repeat(2, 1fr); }
+      .container { padding: 20px 14px; }
+      .page-header h1 { font-size: 1.5rem; }
+      .funnel-stage-label, .funnel-stage-stats { display: none; }
+      .funnel-bar { min-width: 80px; }
+      .hbar-label { width: 80px; font-size: 0.75rem; }
+    }
+    @media (max-width: 480px) { .summary-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="page-header">
+      <h1>🔻 Conversion Funnel</h1>
+      <p>Track your sales pipeline: Pop-in → Call → Proposal → Signed</p>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="period-tabs">
+        <button class="period-tab" data-days="30" onclick="setDays(30)">30 Days</button>
+        <button class="period-tab" data-days="60" onclick="setDays(60)">60 Days</button>
+        <button class="period-tab" data-days="90" onclick="setDays(90)">90 Days</button>
+        <button class="period-tab active" data-days="all" onclick="setDays('all')">All Time</button>
+      </div>
+      <select id="filterType" onchange="loadData()">
+        <option value="all">All Property Types</option>
+        <option value="apartments">Apartments</option>
+        <option value="senior_living">Senior Living</option>
+        <option value="healthcare">Healthcare</option>
+        <option value="industrial">Industrial</option>
+        <option value="office">Office</option>
+      </select>
+    </div>
+
+    <div id="content">
+      <div class="loading"><div class="spinner"></div> Loading funnel data…</div>
+    </div>
+  </div>
+
+  <script src="/nav.js"></script>
+  <script>
+    let currentDays = 'all';
+    let funnelData = null;
+
+    function setDays(d) {
+      currentDays = d;
+      document.querySelectorAll('.period-tab').forEach(t => t.classList.toggle('active', String(t.dataset.days) === String(d)));
+      loadData();
+    }
+
+    async function loadData() {
+      const type = document.getElementById('filterType').value;
+      const params = new URLSearchParams();
+      if (currentDays !== 'all') params.set('days', currentDays);
+      if (type !== 'all') params.set('property_type', type);
+      try {
+        const res = await fetch(`/api/analytics/funnel?${params}`);
+        funnelData = await res.json();
+        render(funnelData);
+      } catch (e) {
+        document.getElementById('content').innerHTML = `<div class="empty-state"><div class="emoji">⚠️</div><h3>Error Loading Data</h3><p>${e.message}</p></div>`;
+      }
+    }
+
+    function render(data) {
+      const el = document.getElementById('content');
+      const f = data.funnel;
+      const r = data.rates;
+
+      let html = '';
+
+      // Insights
+      if (data.biggest_drop && data.biggest_drop.stage !== 'N/A') {
+        html += `<div class="insight insight-warn">⚠️ Biggest drop-off: <strong>${data.biggest_drop.stage}</strong> — ${data.biggest_drop.dropRate}% lost (${data.biggest_drop.lost} prospects)</div> `;
+      }
+      if (r.overall_rate > 0) {
+        html += `<div class="insight">📊 Overall conversion: <strong>${r.overall_rate}%</strong> of prospects become signed clients</div>`;
+      }
+
+      // Summary Cards
+      html += `
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="value v-accent">${f.total}</div>
+          <div class="label">Total Prospects</div>
+        </div>
+        <div class="summary-card">
+          <div class="value v-purple">${f.pop_ins}</div>
+          <div class="label">Pop-ins Done</div>
+          <div class="sub">${r.pop_in_rate}% of total</div>
+        </div>
+        <div class="summary-card">
+          <div class="value v-warn">${f.calls}</div>
+          <div class="label">Calls Made</div>
+          <div class="sub">${r.call_rate}% of pop-ins</div>
+        </div>
+        <div class="summary-card">
+          <div class="value v-pink">${f.proposals}</div>
+          <div class="label">Proposals Sent</div>
+          <div class="sub">${r.proposal_rate}% of calls</div>
+        </div>
+        <div class="summary-card">
+          <div class="value v-success">${f.signed}</div>
+          <div class="label">Signed</div>
+          <div class="sub">${r.close_rate}% of proposals</div>
+        </div>
+        <div class="summary-card">
+          <div class="value" style="color:${r.overall_rate >= 10 ? 'var(--success)' : r.overall_rate >= 5 ? 'var(--warn)' : 'var(--hot)'}">${r.overall_rate}%</div>
+          <div class="label">Overall Close Rate</div>
+        </div>
+      </div>`;
+
+      // Funnel Visualization
+      html += `<div class="card">
+        <h2><span style="font-size:1.2rem">🔻</span> Sales Funnel</h2>
+        <div class="funnel">`;
+
+      const stages = [
+        { label: 'Prospects', icon: '🎯', count: f.total, color: 'fb-1', rateLabel: '', rate: '' },
+        { label: 'Pop-ins', icon: '🚶', count: f.pop_ins, color: 'fb-2', rateLabel: 'Pop-in rate', rate: r.pop_in_rate + '%' },
+        { label: 'Calls', icon: '📞', count: f.calls, color: 'fb-3', rateLabel: 'Call rate', rate: r.call_rate + '%' },
+        { label: 'Proposals', icon: '📋', count: f.proposals, color: 'fb-3', rateLabel: 'Proposal rate', rate: r.proposal_rate + '%' },
+        { label: 'Signed', icon: '✅', count: f.signed, color: 'fb-4', rateLabel: 'Close rate', rate: r.close_rate + '%' }
+      ];
+
+      const maxCount = Math.max(f.total, 1);
+
+      stages.forEach((s, i) => {
+        const widthPct = Math.max((s.count / maxCount) * 100, 12);
+        const dropCount = i > 0 ? stages[i-1].count - s.count : 0;
+        const dropPct = i > 0 && stages[i-1].count > 0 ? ((dropCount / stages[i-1].count) * 100).toFixed(1) : 0;
+
+        if (i > 0) {
+          html += `<div class="funnel-arrow">
+            <div class="funnel-arrow-line"></div>
+            ${dropCount > 0 ? `<div class="funnel-arrow-badge">↓ ${dropCount} lost (${dropPct}%)</div>` : ''}
+          </div>`;
+        }
+
+        html += `<div class="funnel-stage">
+          <div class="funnel-stage-label">
+            <div class="funnel-stage-icon">${s.icon}</div>
+            <div class="funnel-stage-name">${s.label}</div>
+          </div>
+          <div class="funnel-bar-wrap">
+            <div class="funnel-bar ${s.color}" style="width:${widthPct}%">
+              <div class="funnel-bar-inner">
+                <div class="funnel-bar-count">${s.count}</div>
+                <div class="funnel-bar-label">${s.label}</div>
+              </div>
+            </div>
+          </div>
+          <div class="funnel-stage-stats">
+            ${s.rate ? `<div class="funnel-stage-rate" style="color:${parseFloat(s.rate) >= 50 ? 'var(--success)' : parseFloat(s.rate) >= 20 ? 'var(--warn)' : 'var(--hot)'}">${s.rate}</div><div class="funnel-stage-drop">${s.rateLabel}</div>` : ''}
+          </div>
+        </div>`;
+      });
+
+      html += `</div></div>`;
+
+      // Two-column: Property Type Breakdown + Recommendations
+      html += `<div class="grid-2">`;
+
+      // Property Type Breakdown
+      const ptData = data.by_property_type || {};
+      const ptKeys = Object.keys(ptData).filter(k => ptData[k].total > 0);
+
+      html += `<div class="card">
+        <h2><span style="font-size:1.2rem">🏢</span> By Property Type</h2>`;
+
+      if (ptKeys.length === 0) {
+        html += `<div class="empty-state" style="padding:30px"><p>No property type data — add property types to prospects</p></div>`;
+      } else {
+        html += `<div style="overflow-x:auto"><table class="matrix-table">
+          <thead><tr>
+            <th>Type</th><th>Total</th><th>Pop-ins</th><th>Calls</th><th>Proposals</th><th>Signed</th><th>Close %</th>
+          </tr></thead><tbody>`;
+
+        ptKeys.sort((a,b) => (ptData[b].rates?.overall_rate||0) - (ptData[a].rates?.overall_rate||0));
+        ptKeys.forEach(pt => {
+          const d = ptData[pt];
+          const rates = d.rates || {};
+          const typeKey = pt.toLowerCase().replace(/\s+/g, '_');
+          const label = pt.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          html += `<tr>
+            <td><span class="type-badge type-${typeKey}">${label}</span></td>
+            <td><strong>${d.total}</strong></td>
+            <td>${d.pop_ins} <span style="color:var(--muted);font-size:0.72rem">(${rates.pop_in_rate||0}%)</span></td>
+            <td>${d.calls} <span style="color:var(--muted);font-size:0.72rem">(${rates.call_rate||0}%)</span></td>
+            <td>${d.proposals} <span style="color:var(--muted);font-size:0.72rem">(${rates.proposal_rate||0}%)</span></td>
+            <td><strong style="color:var(--success)">${d.signed}</strong></td>
+            <td><strong style="color:${rates.overall_rate >= 10 ? 'var(--success)' : rates.overall_rate >= 5 ? 'var(--warn)' : 'var(--hot)'}">${rates.overall_rate||0}%</strong></td>
+          </tr>`;
+        });
+        html += `</tbody></table></div>`;
+      }
+      html += `</div>`;
+
+      // Recommendations
+      html += `<div class="card">
+        <h2><span style="font-size:1.2rem">💡</span> Insights & Recommendations</h2>
+        <div class="rec-list">`;
+
+      const recs = generateRecommendations(data);
+      recs.forEach(rec => {
+        html += `<div class="rec-item">
+          <div class="rec-icon" style="background:${rec.bg}">${rec.icon}</div>
+          <div class="rec-content">
+            <div class="rec-title">${rec.title}</div>
+            <div class="rec-desc">${rec.desc}</div>
+          </div>
+        </div>`;
+      });
+
+      html += `</div></div></div>`;
+
+      // Conversion Rate Comparison Bars
+      if (ptKeys.length > 1) {
+        html += `<div class="card">
+          <h2><span style="font-size:1.2rem">📊</span> Overall Close Rate by Property Type</h2>
+          <div class="hbar-chart">`;
+
+        const barColors = ['linear-gradient(90deg, var(--accent), #2b6cb0)', 'linear-gradient(90deg, var(--purple), #6b21a8)', 'linear-gradient(90deg, var(--success), #2f855a)', 'linear-gradient(90deg, var(--pink), #d53f8c)', 'linear-gradient(90deg, var(--warn), #c05621)'];
+        const maxRate = Math.max(...ptKeys.map(k => ptData[k].rates?.overall_rate || 0), 1);
+
+        ptKeys.forEach((pt, i) => {
+          const rate = ptData[pt].rates?.overall_rate || 0;
+          const pct = Math.max((rate / maxRate) * 100, 6);
+          const label = pt.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          html += `<div class="hbar-row">
+            <div class="hbar-label">${label}</div>
+            <div class="hbar-track">
+              <div class="hbar-fill" style="width:${pct}%;background:${barColors[i % barColors.length]}">${rate}%</div>
+            </div>
+            <div class="hbar-value">${ptData[pt].signed}/${ptData[pt].total}</div>
+          </div>`;
+        });
+
+        html += `</div></div>`;
+      }
+
+      // Stage-by-stage conversion bars
+      html += `<div class="card">
+        <h2><span style="font-size:1.2rem">📉</span> Stage-by-Stage Conversion Rates</h2>
+        <div class="hbar-chart">`;
+
+      const stageRates = [
+        { label: 'Total → Pop-in', rate: r.pop_in_rate, color: 'linear-gradient(90deg, var(--accent), #2b6cb0)' },
+        { label: 'Pop-in → Call', rate: r.call_rate, color: 'linear-gradient(90deg, var(--purple), #6b21a8)' },
+        { label: 'Call → Proposal', rate: r.proposal_rate, color: 'linear-gradient(90deg, var(--warn), #c05621)' },
+        { label: 'Proposal → Signed', rate: r.close_rate, color: 'linear-gradient(90deg, var(--success), #2f855a)' }
+      ];
+
+      stageRates.forEach(s => {
+        const pct = Math.max(parseFloat(s.rate) || 0, 3);
+        html += `<div class="hbar-row">
+          <div class="hbar-label">${s.label}</div>
+          <div class="hbar-track">
+            <div class="hbar-fill" style="width:${pct}%;background:${s.color}">${s.rate}%</div>
+          </div>
+          <div class="hbar-value" style="color:${parseFloat(s.rate) >= 50 ? 'var(--success)' : parseFloat(s.rate) >= 25 ? 'var(--warn)' : 'var(--hot)'}">${s.rate}%</div>
+        </div>`;
+      });
+
+      html += `</div></div>`;
+
+      el.innerHTML = html;
+
+      // Animate bars & funnel
+      requestAnimationFrame(() => {
+        document.querySelectorAll('.funnel-bar, .hbar-fill').forEach(bar => {
+          const w = bar.style.width;
+          bar.style.width = '0%';
+          requestAnimationFrame(() => { bar.style.width = w; });
+        });
+      });
+    }
+
+    function generateRecommendations(data) {
+      const recs = [];
+      const f = data.funnel;
+      const r = data.rates;
+      const bd = data.biggest_drop;
+
+      // No pop-ins
+      if (f.total > 0 && f.pop_ins === 0) {
+        recs.push({ icon: '🚶', bg: 'var(--accent-dim)', title: 'Start doing pop-ins!', desc: `You have ${f.total} prospects but zero pop-in visits logged. Pop-ins are the #1 way to start the sales cycle. Aim for 5+ per day.` });
+      }
+
+      // Low pop-in rate
+      if (parseFloat(r.pop_in_rate) > 0 && parseFloat(r.pop_in_rate) < 40) {
+        recs.push({ icon: '📍', bg: 'var(--accent-dim)', title: 'More pop-ins needed', desc: `Only ${r.pop_in_rate}% of prospects have been visited. Increase pop-in volume to fill the top of funnel.` });
+      }
+
+      // Pop-in → Call drop-off
+      if (f.pop_ins > 3 && parseFloat(r.call_rate) < 30) {
+        recs.push({ icon: '📞', bg: 'var(--purple-dim)', title: 'Follow up after pop-ins', desc: `Only ${r.call_rate}% of pop-ins convert to calls. Follow up within 48 hours with a phone call referencing your visit.` });
+      }
+
+      // Call → Proposal drop-off
+      if (f.calls > 3 && parseFloat(r.proposal_rate) < 40) {
+        recs.push({ icon: '📋', bg: 'var(--warn-dim)', title: 'Send more proposals', desc: `Only ${r.proposal_rate}% of calls lead to proposals. Have your proposal PDF ready and send it the same day you talk to a PM.` });
+      }
+
+      // Proposal → Signed drop-off
+      if (f.proposals > 2 && parseFloat(r.close_rate) < 30) {
+        recs.push({ icon: '✍️', bg: 'var(--hot-dim)', title: 'Improve close rate', desc: `Only ${r.close_rate}% of proposals convert to signed deals. Consider offering a trial period, better revenue share, or addressing common objections.` });
+      }
+
+      // Biggest drop-off
+      if (bd && bd.stage !== 'N/A' && bd.dropRate > 50) {
+        recs.push({ icon: '⚠️', bg: 'var(--hot-dim)', title: `Fix: ${bd.stage}`, desc: `Your biggest bottleneck is ${bd.stage} with ${bd.dropRate}% drop-off (${bd.lost} prospects lost). Focus improvement efforts here for maximum impact.` });
+      }
+
+      // Property type insight
+      const pt = data.by_property_type || {};
+      const bestType = Object.entries(pt)
+        .filter(([k,v]) => v.signed > 0)
+        .sort((a,b) => (b[1].rates?.overall_rate||0) - (a[1].rates?.overall_rate||0))[0];
+      if (bestType) {
+        const label = bestType[0].replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        recs.push({ icon: '🏆', bg: 'var(--success-dim)', title: `${label} converts best`, desc: `${label} has ${bestType[1].rates.overall_rate}% close rate. Consider focusing more prospecting effort on this property type.` });
+      }
+
+      // Good overall rate
+      if (parseFloat(r.overall_rate) >= 15) {
+        recs.push({ icon: '🎉', bg: 'var(--success-dim)', title: 'Strong conversion!', desc: `${r.overall_rate}% overall close rate is excellent. Keep up the momentum and focus on increasing volume at the top of funnel.` });
+      }
+
+      if (recs.length === 0) {
+        recs.push({ icon: '📊', bg: 'var(--accent-dim)', title: 'Keep adding data', desc: 'Log more activities (pop-ins, calls, proposals) against your prospects to see actionable insights here.' });
+      }
+
+      return recs.slice(0, 5);
+    }
+
+    loadData();
+  </script>
+</body>
+</html>

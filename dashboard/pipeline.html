@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Sales Pipeline — Kande VendTech</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      color: #fff;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 40px;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .nav-link {
+      color: #8892b0;
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .nav-link:hover {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .stat-card .number {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    .stat-card .label {
+      color: #8892b0;
+      font-size: 0.85rem;
+      margin-top: 5px;
+    }
+
+    .stat-card.hot .number { color: #ff6b6b; }
+    .stat-card.active .number { color: #00d4ff; }
+    .stat-card.pending .number { color: #ffc107; }
+    .stat-card.closed .number { color: #6c757d; }
+
+    .filters {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #8892b0;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.9rem;
+    }
+
+    .filter-btn:hover, .filter-btn.active {
+      background: rgba(0,212,255,0.2);
+      border-color: rgba(0,212,255,0.5);
+      color: #00d4ff;
+    }
+
+    .search-box {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 8px;
+      width: 250px;
+      font-size: 0.9rem;
+    }
+
+    .search-box::placeholder {
+      color: #5a6a8a;
+    }
+
+    .pipeline-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    .pipeline-table th {
+      text-align: left;
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.05);
+      color: #8892b0;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .pipeline-table td {
+      padding: 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      vertical-align: top;
+    }
+
+    .pipeline-table tr:hover {
+      background: rgba(255,255,255,0.03);
+    }
+
+    .prospect-name {
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .prospect-type {
+      font-size: 0.8rem;
+      color: #8892b0;
+    }
+
+    .contact-info {
+      font-size: 0.9rem;
+    }
+
+    .contact-name {
+      color: #00d4ff;
+      font-weight: 500;
+    }
+
+    .contact-role {
+      color: #8892b0;
+      font-size: 0.8rem;
+    }
+
+    .contact-email, .contact-phone {
+      color: #a8b2d1;
+      font-size: 0.85rem;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-hot { background: rgba(255,107,107,0.2); color: #ff6b6b; }
+    .status-warm { background: rgba(255,193,7,0.2); color: #ffc107; }
+    .status-cold { background: rgba(108,117,125,0.2); color: #adb5bd; }
+    .status-new { background: rgba(0,212,255,0.2); color: #00d4ff; }
+    .status-closed { background: rgba(220,53,69,0.2); color: #dc3545; }
+
+    .next-action {
+      font-size: 0.9rem;
+      color: #a8b2d1;
+    }
+
+    .notes-preview {
+      font-size: 0.85rem;
+      color: #8892b0;
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .notes-preview.hot-note {
+      color: #ff6b6b;
+      font-weight: 500;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 60px;
+      color: #8892b0;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top-color: #00d4ff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .hot-lead-indicator {
+      display: inline-block;
+      margin-left: 8px;
+      font-size: 0.9rem;
+    }
+
+    .address {
+      font-size: 0.85rem;
+      color: #6c757d;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎯 Sales Pipeline</h1>
+      <a href="/" class="nav-link">← Back to Dashboard</a>
+    </header>
+
+    <div class="stats-row">
+      <div class="stat-card hot">
+        <div class="number" id="hotCount">-</div>
+        <div class="label">Hot Leads</div>
+      </div>
+      <div class="stat-card active">
+        <div class="number" id="activeCount">-</div>
+        <div class="label">In Progress</div>
+      </div>
+      <div class="stat-card pending">
+        <div class="number" id="pendingCount">-</div>
+        <div class="label">Need Follow-up</div>
+      </div>
+      <div class="stat-card closed">
+        <div class="number" id="closedCount">-</div>
+        <div class="label">Closed/Lost</div>
+      </div>
+      <div class="stat-card">
+        <div class="number" id="totalCount">-</div>
+        <div class="label">Total Prospects</div>
+      </div>
+    </div>
+
+    <div class="filters">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="hot">🔥 Hot Leads</button>
+      <button class="filter-btn" data-filter="apartments">Apartments</button>
+      <button class="filter-btn" data-filter="condos">Condos</button>
+      <button class="filter-btn" data-filter="needsAction">Needs Action</button>
+      <input type="text" class="search-box" id="searchBox" placeholder="Search prospects...">
+    </div>
+
+    <div id="pipelineContent">
+      <div class="loading">
+        <div class="loading-spinner"></div>
+        <p>Loading pipeline data...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1Lf1cU8N2H1TiRXh7n73r1bTUDJ1mGSkL-aNUoVNeHu8/export?format=csv';
+    
+    let allProspects = [];
+
+    async function loadPipeline() {
+      try {
+        const response = await fetch(SHEET_URL);
+        const csv = await response.text();
+        const prospects = parseCSV(csv);
+        allProspects = prospects;
+        updateStats(prospects);
+        renderTable(prospects);
+        setupFilters();
+      } catch (error) {
+        document.getElementById('pipelineContent').innerHTML = `
+          <div class="loading">
+            <p>Error loading data. Make sure the sheet is shared publicly.</p>
+            <p style="font-size: 0.8rem; margin-top: 10px; color: #6c757d;">${error.message}</p>
+          </div>
+        `;
+      }
+    }
+
+    function parseCSV(csv) {
+      const lines = csv.split('\n');
+      const headers = parseCSVLine(lines[0]);
+      const prospects = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const values = parseCSVLine(lines[i]);
+        const prospect = {};
+        headers.forEach((header, index) => {
+          prospect[header.trim()] = values[index] || '';
+        });
+        if (prospect['Prospect']) {
+          prospects.push(prospect);
+        }
+      }
+      return prospects;
+    }
+
+    function parseCSVLine(line) {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      result.push(current.trim());
+      return result;
+    }
+
+    function isHotLead(prospect) {
+      const notes = (prospect['Notes'] || '').toLowerCase();
+      return notes.includes('hot lead') || 
+             notes.includes('very interested') || 
+             notes.includes('eager') ||
+             notes.includes('please hook me up');
+    }
+
+    function isClosed(prospect) {
+      const notes = (prospect['Notes'] || '').toLowerCase();
+      return notes.includes('not interested') || 
+             notes.includes('will not approve') ||
+             notes.includes('board not interested');
+    }
+
+    function getStatus(prospect) {
+      if (isClosed(prospect)) return 'closed';
+      if (isHotLead(prospect)) return 'hot';
+      
+      const status = (prospect['Outreach Status'] || '').toLowerCase();
+      if (status.includes('email') || status.includes('proposal')) return 'warm';
+      if (status.includes('call') || status.includes('pop in')) return 'new';
+      return 'new';
+    }
+
+    function updateStats(prospects) {
+      const hot = prospects.filter(p => isHotLead(p)).length;
+      const closed = prospects.filter(p => isClosed(p)).length;
+      const active = prospects.filter(p => !isClosed(p) && !isHotLead(p)).length;
+      const needsAction = prospects.filter(p => {
+        const action = p['Next Action (date)'] || '';
+        return action && !isClosed(p);
+      }).length;
+
+      document.getElementById('hotCount').textContent = hot;
+      document.getElementById('activeCount').textContent = active;
+      document.getElementById('pendingCount').textContent = needsAction;
+      document.getElementById('closedCount').textContent = closed;
+      document.getElementById('totalCount').textContent = prospects.length;
+    }
+
+    function renderTable(prospects) {
+      const html = `
+        <table class="pipeline-table">
+          <thead>
+            <tr>
+              <th>Prospect</th>
+              <th>Contact</th>
+              <th>Status</th>
+              <th>Next Action</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${prospects.map(p => renderRow(p)).join('')}
+          </tbody>
+        </table>
+      `;
+      document.getElementById('pipelineContent').innerHTML = html;
+    }
+
+    function renderRow(prospect) {
+      const status = getStatus(prospect);
+      const statusLabels = {
+        hot: 'Hot Lead',
+        warm: 'Warm',
+        new: 'New',
+        closed: 'Closed'
+      };
+
+      const isHot = isHotLead(prospect);
+      const notes = prospect['Notes'] || prospect['Kurtis Notes'] || '';
+
+      return `
+        <tr>
+          <td>
+            <div class="prospect-name">
+              ${prospect['Prospect']}
+              ${isHot ? '<span class="hot-lead-indicator">🔥</span>' : ''}
+            </div>
+            <div class="prospect-type">${prospect['Property Type'] || 'Unknown'}</div>
+            <div class="address">${prospect['Address'] || ''}</div>
+          </td>
+          <td class="contact-info">
+            ${prospect['Contact Person'] ? `<div class="contact-name">${prospect['Contact Person']}</div>` : ''}
+            ${prospect['Role'] ? `<div class="contact-role">${prospect['Role']}</div>` : ''}
+            ${prospect['Email'] ? `<div class="contact-email">${prospect['Email']}</div>` : ''}
+            ${prospect['Phone'] ? `<div class="contact-phone">${prospect['Phone']}</div>` : ''}
+          </td>
+          <td>
+            <span class="status-badge status-${status}">${statusLabels[status]}</span>
+            <div style="margin-top: 8px; font-size: 0.8rem; color: #8892b0;">
+              ${prospect['Outreach Status'] || ''}
+            </div>
+          </td>
+          <td class="next-action">${prospect['Next Action (date)'] || '-'}</td>
+          <td>
+            <div class="notes-preview ${isHot ? 'hot-note' : ''}" title="${notes}">
+              ${notes.substring(0, 100)}${notes.length > 100 ? '...' : ''}
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
+    function setupFilters() {
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          filterProspects(btn.dataset.filter);
+        });
+      });
+
+      document.getElementById('searchBox').addEventListener('input', (e) => {
+        const search = e.target.value.toLowerCase();
+        const filtered = allProspects.filter(p => {
+          return p['Prospect'].toLowerCase().includes(search) ||
+                 (p['Contact Person'] || '').toLowerCase().includes(search) ||
+                 (p['Address'] || '').toLowerCase().includes(search);
+        });
+        renderTable(filtered);
+      });
+    }
+
+    function filterProspects(filter) {
+      let filtered = allProspects;
+      
+      switch(filter) {
+        case 'hot':
+          filtered = allProspects.filter(p => isHotLead(p));
+          break;
+        case 'apartments':
+          filtered = allProspects.filter(p => 
+            (p['Property Type'] || '').toLowerCase().includes('appartment') ||
+            (p['Property Type'] || '').toLowerCase().includes('apartment')
+          );
+          break;
+        case 'condos':
+          filtered = allProspects.filter(p => 
+            (p['Property Type'] || '').toLowerCase().includes('condo')
+          );
+          break;
+        case 'needsAction':
+          filtered = allProspects.filter(p => 
+            p['Next Action (date)'] && !isClosed(p)
+          );
+          break;
+      }
+      
+      renderTable(filtered);
+    }
+
+    // Load on page load
+    loadPipeline();
+  </script>
+<script src="/nav.js"></script>
+</body>
+</html>

@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Contracts & Documents — Kande VendTech</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{--bg:#f7fafc;--card:#fff;--text:#1a202c;--muted:#718096;--dim:#a0aec0;--border:#e2e8f0;--accent:#3182ce;--accent-bg:rgba(49,130,206,.08);--purple:#6B2FA0;--purple-bg:rgba(107,47,160,.08);--success:#38a169;--success-bg:rgba(56,161,105,.08);--warn:#d69e2e;--warn-bg:rgba(214,158,46,.1);--hot:#e53e3e;--hot-bg:rgba(229,62,62,.08);--gold:#D4A843;--gradient:linear-gradient(135deg,#6B2FA0,#3182ce)}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    .app{max-width:1600px;margin:0 auto;padding:24px 20px 60px}
+
+    /* Header */
+    .page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+    .page-header h1{font-size:1.5rem;font-weight:700}
+    .header-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+    /* Buttons */
+    .btn{padding:9px 18px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:.84rem;font-weight:500;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;font-family:inherit}
+    .btn:hover{border-color:var(--accent);color:var(--accent)}
+    .btn-primary{background:var(--purple);color:#fff;border:none;font-weight:600}
+    .btn-primary:hover{background:#5a2688;box-shadow:0 2px 8px rgba(107,47,160,.25)}
+    .btn-accent{background:var(--accent);color:#fff;border:none;font-weight:600}
+    .btn-accent:hover{background:#2c6cb0}
+    .btn-success{background:var(--success);color:#fff;border:none;font-weight:600}
+    .btn-success:hover{background:#2f8a59}
+    .btn-danger{color:var(--hot);border-color:rgba(229,62,62,.3)}
+    .btn-danger:hover{background:var(--hot);color:#fff}
+    .btn-sm{padding:6px 12px;font-size:.78rem}
+    .btn-ghost{background:transparent;border:none;color:var(--muted);padding:6px 10px}
+    .btn-ghost:hover{color:var(--text);background:rgba(0,0,0,.04)}
+
+    /* Main Tabs */
+    .main-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:24px;overflow-x:auto}
+    .main-tab{padding:14px 24px;font-size:.9rem;font-weight:600;color:var(--muted);background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;cursor:pointer;transition:all .15s;white-space:nowrap;font-family:inherit;display:flex;align-items:center;gap:8px}
+    .main-tab:hover{color:var(--text)}
+    .main-tab.active{color:var(--purple);border-bottom-color:var(--purple)}
+    .main-tab .count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:10px;font-size:.7rem;font-weight:700;background:var(--accent-bg);color:var(--accent)}
+    .main-tab .count.alert{background:var(--hot-bg);color:var(--hot)}
+    .tab-panel{display:none}
+    .tab-panel.active{display:block}
+
+    /* Stats Row */
+    .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px}
+    .stat-card{background:var(--card);border-radius:12px;padding:18px;border:1px solid var(--border);text-align:center;transition:all .15s}
+    .stat-card:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.06)}
+    .stat-label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:6px}
+    .stat-value{font-size:1.8rem;font-weight:700}
+    .stat-sub{font-size:.75rem;color:var(--dim);margin-top:4px}
+    .sc-accent{color:var(--accent)}.sc-success{color:var(--success)}.sc-warn{color:var(--warn)}.sc-hot{color:var(--hot)}.sc-purple{color:var(--purple)}
+
+    /* Alert Banners */
+    .alerts-section{margin-bottom:24px}
+    .alert-banner{display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:10px;margin-bottom:8px;font-size:.88rem;font-weight:500;cursor:pointer;transition:all .15s}
+    .alert-banner:hover{transform:translateX(4px)}
+    .alert-hot{background:var(--hot-bg);border-left:4px solid var(--hot);color:var(--hot)}
+    .alert-warn{background:var(--warn-bg);border-left:4px solid var(--warn);color:#92600e}
+    .alert-info{background:var(--accent-bg);border-left:4px solid var(--accent);color:var(--accent)}
+    .alert-icon{font-size:1.3rem}
+    .alert-text{flex:1}
+    .alert-badge{padding:3px 10px;border-radius:6px;font-size:.72rem;font-weight:700;background:rgba(255,255,255,.5)}
+
+    /* Contract Cards Grid */
+    .contracts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;margin-bottom:24px}
+    .contract-card{background:var(--card);border-radius:12px;padding:20px;border:1px solid var(--border);transition:all .15s;cursor:pointer;position:relative;overflow:hidden}
+    .contract-card:hover{border-color:var(--accent);box-shadow:0 4px 16px rgba(0,0,0,.08);transform:translateY(-2px)}
+    .contract-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+    .contract-card.s-draft::before{background:#a0aec0}
+    .contract-card.s-sent::before{background:var(--accent)}
+    .contract-card.s-viewed::before{background:var(--purple)}
+    .contract-card.s-signed::before{background:var(--success)}
+    .contract-card.s-active::before{background:var(--gradient)}
+    .contract-card.s-expired::before{background:var(--hot)}
+
+    .cc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+    .cc-name{font-size:1rem;font-weight:600;line-height:1.3}
+    .cc-badge{padding:3px 10px;border-radius:8px;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+    .badge-draft{background:rgba(160,174,192,.15);color:#718096}
+    .badge-sent{background:var(--accent-bg);color:var(--accent)}
+    .badge-viewed{background:var(--purple-bg);color:var(--purple)}
+    .badge-signed{background:var(--success-bg);color:var(--success)}
+    .badge-active{background:var(--success-bg);color:var(--success)}
+    .badge-expired{background:var(--hot-bg);color:var(--hot)}
+
+    .cc-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+    .cc-meta-item{display:flex;flex-direction:column}
+    .cc-meta-label{font-size:.68rem;color:var(--dim);text-transform:uppercase;letter-spacing:.3px;font-weight:600;margin-bottom:2px}
+    .cc-meta-value{font-size:.84rem;font-weight:500}
+
+    .cc-revenue{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);border-radius:8px;margin-bottom:10px}
+    .cc-rev-amount{font-size:1.4rem;font-weight:700;color:var(--purple)}
+    .cc-rev-label{font-size:.72rem;color:var(--muted);line-height:1.3}
+
+    .cc-footer{display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid var(--border)}
+    .cc-days{font-size:.78rem;font-weight:600}
+    .cc-days.urgent{color:var(--hot)}
+    .cc-days.warning{color:var(--warn)}
+    .cc-days.ok{color:var(--success)}
+    .cc-actions{display:flex;gap:4px}
+
+    /* Status Pipeline */
+    .pipeline{display:flex;gap:2px;margin-bottom:24px;overflow-x:auto}
+    .pipeline-stage{flex:1;min-width:120px;text-align:center;padding:12px 8px;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:all .15s;position:relative}
+    .pipeline-stage:first-child{border-radius:8px 0 0 8px}
+    .pipeline-stage:last-child{border-radius:0 8px 8px 0}
+    .pipeline-stage:hover{background:var(--accent-bg)}
+    .pipeline-stage.active{background:var(--purple-bg);border-color:var(--purple)}
+    .pipeline-stage .stage-count{font-size:1.6rem;font-weight:700;display:block}
+    .pipeline-stage .stage-label{font-size:.7rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+
+    /* Templates Grid */
+    .templates-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:24px}
+    .template-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px;cursor:pointer;transition:all .15s;position:relative}
+    .template-card:hover{border-color:var(--purple);box-shadow:0 4px 16px rgba(107,47,160,.1);transform:translateY(-2px)}
+    .template-card .t-icon{font-size:2rem;margin-bottom:10px}
+    .template-card .t-name{font-size:1.05rem;font-weight:600;margin-bottom:6px}
+    .template-card .t-desc{font-size:.82rem;color:var(--muted);line-height:1.5;margin-bottom:14px}
+    .template-card .t-footer{display:flex;gap:8px}
+
+    /* Builder Layout */
+    .builder-layout{display:grid;grid-template-columns:380px 1fr;gap:24px;align-items:start}
+    .builder-panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;position:sticky;top:68px;max-height:calc(100vh - 84px);overflow-y:auto}
+    .builder-preview{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+    .preview-toolbar{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--border);background:var(--bg)}
+    .preview-body{padding:40px;min-height:400px;font-size:.92rem;line-height:1.7}
+    .preview-body h1{font-size:1.3rem;margin-bottom:8px}
+    .preview-body h3{font-size:1rem;margin:20px 0 8px;color:var(--purple);border-bottom:1px solid var(--border);padding-bottom:4px}
+    .preview-body ul,.preview-body ol{margin:8px 0 8px 20px}
+    .preview-body li{margin-bottom:4px}
+    .preview-body table{width:100%;border-collapse:collapse;margin:12px 0}
+    .preview-body td,.preview-body th{padding:8px;border:1px solid var(--border);text-align:left;font-size:.85rem}
+
+    /* Document Library */
+    .doc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+    .doc-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;transition:all .15s;cursor:pointer}
+    .doc-card:hover{border-color:var(--accent);box-shadow:0 4px 12px rgba(0,0,0,.06)}
+    .doc-card .d-icon{font-size:2rem;margin-bottom:8px}
+    .doc-card .d-title{font-size:.92rem;font-weight:600;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .doc-card .d-meta{font-size:.75rem;color:var(--muted);margin-bottom:8px}
+    .doc-card .d-tags{display:flex;gap:4px;flex-wrap:wrap}
+    .doc-card .d-tag{padding:2px 8px;border-radius:4px;font-size:.68rem;font-weight:600;background:var(--accent-bg);color:var(--accent)}
+
+    /* Filter Bar */
+    .filter-bar{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+    .filter-bar input,.filter-bar select{padding:9px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:.85rem;font-family:inherit}
+    .filter-bar input{flex:1;min-width:200px}
+    .filter-bar input:focus,.filter-bar select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+
+    /* Form */
+    .form-group{margin-bottom:14px}
+    .form-group label{display:block;font-size:.76rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px}
+    .form-group input,.form-group select,.form-group textarea{width:100%;padding:9px 14px;border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--text);font-size:.88rem;font-family:inherit}
+    .form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+    .form-group textarea{min-height:70px;resize:vertical}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .form-section{margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+    .form-section:last-child{border-bottom:none}
+    .form-section h3{font-size:.85rem;font-weight:600;color:var(--purple);text-transform:uppercase;letter-spacing:.04em;margin-bottom:12px}
+
+    /* Modal */
+    .modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;padding:20px}
+    .modal-overlay.active{display:flex}
+    .modal{background:var(--card);border:1px solid var(--border);border-radius:14px;max-width:640px;width:100%;max-height:90vh;overflow-y:auto;padding:28px}
+    .modal-wide{max-width:900px}
+    .modal h2{font-size:1.2rem;font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+    .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+
+    /* Revenue Summary Table */
+    .rev-table{width:100%;border-collapse:collapse;margin-top:14px}
+    .rev-table th{text-align:left;padding:10px 14px;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:600;border-bottom:2px solid var(--border)}
+    .rev-table td{padding:10px 14px;border-bottom:1px solid var(--border);font-size:.88rem}
+    .rev-table tr:hover{background:var(--bg)}
+
+    /* Upload Zone */
+    .upload-zone{border:2px dashed var(--border);border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:16px}
+    .upload-zone:hover,.upload-zone.dragover{border-color:var(--accent);background:var(--accent-bg)}
+    .upload-zone .uz-icon{font-size:2.5rem;margin-bottom:8px}
+    .upload-zone .uz-text{font-size:.9rem;color:var(--muted);font-weight:500}
+    .upload-zone .uz-hint{font-size:.75rem;color:var(--dim);margin-top:4px}
+
+    /* Calendar */
+    .calendar-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px}
+    .cal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+    .cal-title{font-size:1rem;font-weight:600}
+    .cal-nav{display:flex;gap:8px;align-items:center}
+    .cal-nav button{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:6px;cursor:pointer;font-family:inherit}
+    .cal-nav button:hover{border-color:var(--accent)}
+    .cal-month{font-size:.92rem;font-weight:600;min-width:150px;text-align:center}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+    .cal-day-header{text-align:center;font-size:.7rem;color:var(--muted);font-weight:600;text-transform:uppercase;padding:8px}
+    .cal-day{min-height:72px;padding:6px;border-radius:6px;background:var(--bg);border:1px solid transparent;transition:all .15s}
+    .cal-day:hover{border-color:var(--border)}
+    .cal-day.today{border-color:var(--accent);background:var(--accent-bg)}
+    .cal-day.other-month{opacity:.25}
+    .cal-day-num{font-size:.75rem;font-weight:600;color:var(--muted);margin-bottom:4px}
+    .cal-event{font-size:.6rem;padding:2px 5px;border-radius:4px;margin-bottom:2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+    .cal-event.renewal{background:var(--warn-bg);color:#92600e}
+    .cal-event.expiry{background:var(--hot-bg);color:var(--hot)}
+    .cal-event.start{background:var(--success-bg);color:var(--success)}
+
+    .empty-state{text-align:center;padding:60px 20px;color:var(--muted)}
+    .empty-state .e-icon{font-size:3rem;margin-bottom:12px}
+    .loading{text-align:center;padding:60px;color:var(--muted)}
+    .toast{position:fixed;bottom:24px;right:24px;background:#1a202c;color:#fff;padding:14px 24px;border-radius:10px;font-size:.88rem;font-weight:500;z-index:11000;transform:translateY(100px);opacity:0;transition:all .3s;display:flex;align-items:center;gap:8px}
+    .toast.show{transform:translateY(0);opacity:1}
+
+    @media(max-width:1100px){.builder-layout{grid-template-columns:1fr}}
+    @media(max-width:768px){
+      .contracts-grid{grid-template-columns:1fr}
+      .templates-grid{grid-template-columns:1fr}
+      .doc-grid{grid-template-columns:1fr}
+      .form-row{grid-template-columns:1fr}
+      .stats-row{grid-template-columns:repeat(2,1fr)}
+      .pipeline{flex-wrap:wrap}
+      .pipeline-stage{min-width:80px}
+      .cal-day{min-height:48px;padding:3px}
+    }
+  </style>
+</head>
+<body>
+<script src="/nav.js"></script>
+<div class="app">
+  <div class="page-header">
+    <h1>📋 Contracts & Documents</h1>
+    <div class="header-actions">
+      <button class="btn" onclick="loadAll()">🔄 Refresh</button>
+      <button class="btn btn-accent" onclick="showUploadModal()">📎 Upload Document</button>
+      <button class="btn btn-primary" onclick="openContractModal()">+ New Contract</button>
+    </div>
+  </div>
+
+  <!-- Main Tabs -->
+  <div class="main-tabs">
+    <button class="main-tab active" data-tab="dashboard" onclick="switchMainTab('dashboard')">📊 Dashboard</button>
+    <button class="main-tab" data-tab="contracts" onclick="switchMainTab('contracts')">📋 Contracts <span class="count" id="cntContracts">0</span></button>
+    <button class="main-tab" data-tab="templates" onclick="switchMainTab('templates')">📝 Templates</button>
+    <button class="main-tab" data-tab="builder" onclick="switchMainTab('builder')">🔨 Builder</button>
+    <button class="main-tab" data-tab="documents" onclick="switchMainTab('documents')">📂 Documents <span class="count" id="cntDocs">0</span></button>
+    <button class="main-tab" data-tab="calendar" onclick="switchMainTab('calendar')">📅 Calendar</button>
+  </div>
+
+  <!-- ==================== DASHBOARD TAB ==================== -->
+  <div class="tab-panel active" id="panel-dashboard">
+    <div id="dashStats" class="stats-row"></div>
+    <div id="dashAlerts" class="alerts-section"></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
+      <div>
+        <h3 style="font-size:1rem;font-weight:600;margin-bottom:14px">📊 Revenue Share Summary</h3>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+          <table class="rev-table" id="revTable">
+            <thead><tr><th>Client</th><th>Type</th><th>Rev Share</th><th>Est. Monthly</th><th>Status</th></tr></thead>
+            <tbody id="revTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div>
+        <h3 style="font-size:1rem;font-weight:600;margin-bottom:14px">🕐 Recent Activity</h3>
+        <div id="recentActivity" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== CONTRACTS TAB ==================== -->
+  <div class="tab-panel" id="panel-contracts">
+    <div class="pipeline" id="statusPipeline"></div>
+    <div class="filter-bar">
+      <input type="text" id="searchContracts" placeholder="🔍 Search contracts..." oninput="renderContractCards()">
+      <select id="filterType" onchange="renderContractCards()">
+        <option value="all">All Types</option>
+        <option value="rev-share">Revenue Share</option>
+        <option value="flat-fee">Flat Fee</option>
+        <option value="pilot">Pilot Program</option>
+        <option value="standard">Standard</option>
+      </select>
+      <select id="filterStatus" onchange="renderContractCards()">
+        <option value="all">All Statuses</option>
+        <option value="draft">Draft</option>
+        <option value="sent">Sent</option>
+        <option value="viewed">Viewed</option>
+        <option value="signed">Signed</option>
+        <option value="active">Active</option>
+        <option value="expired">Expired</option>
+      </select>
+    </div>
+    <div id="contractsGrid" class="contracts-grid"></div>
+  </div>
+
+  <!-- ==================== TEMPLATES TAB ==================== -->
+  <div class="tab-panel" id="panel-templates">
+    <p style="color:var(--muted);margin-bottom:20px;font-size:.9rem">Professional contract templates pre-filled with industry best practices. Select a template to start building a contract.</p>
+    <div id="templatesGrid" class="templates-grid"></div>
+  </div>
+
+  <!-- ==================== BUILDER TAB ==================== -->
+  <div class="tab-panel" id="panel-builder">
+    <div class="builder-layout">
+      <div class="builder-panel" id="builderPanel">
+        <h3 style="font-size:1rem;font-weight:600;margin-bottom:16px">🔨 Contract Builder</h3>
+        <div class="form-section">
+          <h3>Template & Prospect</h3>
+          <div class="form-group">
+            <label>Select Template</label>
+            <select id="bTemplate" onchange="onTemplateSelect()">
+              <option value="">— Choose a template —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Auto-Fill from Prospect</label>
+            <select id="bProspect" onchange="onProspectSelect()">
+              <option value="">— Select prospect (optional) —</option>
+            </select>
+          </div>
+        </div>
+        <div id="builderFields"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px">
+          <button class="btn btn-primary" onclick="renderPreview()">👁️ Preview</button>
+          <button class="btn btn-accent" onclick="saveAsContract()">💾 Save as Contract</button>
+          <button class="btn" onclick="printPreview()">🖨️ Print / PDF</button>
+        </div>
+      </div>
+      <div class="builder-preview">
+        <div class="preview-toolbar">
+          <span style="font-weight:600;font-size:.9rem">📄 Contract Preview</span>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm" onclick="printPreview()">🖨️ Print/PDF</button>
+          </div>
+        </div>
+        <div class="preview-body" id="previewBody">
+          <div class="empty-state">
+            <div class="e-icon">📝</div>
+            <p>Select a template and fill in the details to see a live preview.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== DOCUMENTS TAB ==================== -->
+  <div class="tab-panel" id="panel-documents">
+    <div class="filter-bar">
+      <input type="text" id="searchDocs" placeholder="🔍 Search documents..." oninput="renderDocuments()">
+      <select id="filterDocType" onchange="renderDocuments()">
+        <option value="all">All Types</option>
+        <option value="signed_contract">Signed Contracts</option>
+        <option value="proposal">Proposals</option>
+        <option value="site_photo">Site Photos</option>
+        <option value="insurance">Insurance</option>
+        <option value="permit">Permits</option>
+        <option value="other">Other</option>
+      </select>
+      <select id="filterDocProspect" onchange="renderDocuments()">
+        <option value="all">All Prospects</option>
+      </select>
+      <button class="btn btn-accent" onclick="showUploadModal()">📎 Upload</button>
+    </div>
+    <div id="docsGrid" class="doc-grid"></div>
+  </div>
+
+  <!-- ==================== CALENDAR TAB ==================== -->
+  <div class="tab-panel" id="panel-calendar">
+    <div id="calendarView" class="calendar-wrap"></div>
+  </div>
+</div>
+
+<!-- Contract Form Modal -->
+<div class="modal-overlay" id="contractModal">
+  <div class="modal modal-wide">
+    <h2 id="cmTitle">📋 New Contract</h2>
+    <input type="hidden" id="cmId">
+    <div class="form-section">
+      <h3>Client & Property</h3>
+      <div class="form-row">
+        <div class="form-group"><label>Client Name</label><input type="text" id="cmClientName" placeholder="e.g. Luxury Pines Apartments"></div>
+        <div class="form-group"><label>Property Address</label><input type="text" id="cmProperty" placeholder="e.g. 123 Main St, Henderson"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Link to Prospect</label><select id="cmProspect"><option value="">— None —</option></select></div>
+        <div class="form-group"><label>Contract Status</label>
+          <select id="cmStatus">
+            <option value="draft">📝 Draft</option>
+            <option value="sent">📤 Sent</option>
+            <option value="viewed">👁️ Viewed</option>
+            <option value="signed">✍️ Signed</option>
+            <option value="active" selected>✅ Active</option>
+            <option value="expired">⛔ Expired</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="form-section">
+      <h3>Agreement Terms</h3>
+      <div class="form-row">
+        <div class="form-group"><label>Contract Type</label>
+          <select id="cmType">
+            <option value="rev-share">Revenue Share</option>
+            <option value="flat-fee">Flat Fee</option>
+            <option value="pilot">Pilot Program</option>
+            <option value="standard">Standard</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Revenue Share %</label><input type="number" id="cmRevShare" placeholder="e.g. 5" min="0" max="100" step="0.5" value="5"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Start Date</label><input type="date" id="cmStart"></div>
+        <div class="form-group"><label>End Date</label><input type="date" id="cmEnd"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Renewal Date</label><input type="date" id="cmRenewal"></div>
+        <div class="form-group"><label>Machines</label><input type="number" id="cmMachines" placeholder="e.g. 2" min="0"></div>
+      </div>
+      <div class="form-group"><label>Est. Monthly Revenue ($)</label><input type="number" id="cmRevenue" placeholder="e.g. 2000" step="0.01"></div>
+    </div>
+    <div class="form-group"><label>Terms / Notes</label><textarea id="cmNotes" placeholder="Contract terms, special conditions..."></textarea></div>
+    <div class="form-group"><label>Contract Body (HTML from builder)</label><textarea id="cmBody" rows="3" placeholder="Paste rendered contract HTML here, or use the Builder tab to generate"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeContractModal()">Cancel</button>
+      <button class="btn btn-danger" id="cmDelete" style="display:none" onclick="deleteContract()">🗑️ Delete</button>
+      <button class="btn btn-primary" onclick="saveContract()">💾 Save Contract</button>
+    </div>
+  </div>
+</div>
+
+<!-- Upload Document Modal -->
+<div class="modal-overlay" id="uploadModal">
+  <div class="modal">
+    <h2>📎 Upload Document</h2>
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+      <div class="uz-icon">📄</div>
+      <div class="uz-text">Click or drag files here to upload</div>
+      <div class="uz-hint">PDF, images, documents — up to 10MB</div>
+      <input type="file" id="fileInput" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx" onchange="handleFileSelect(this)">
+    </div>
+    <div id="selectedFile" style="display:none;padding:10px;background:var(--bg);border-radius:8px;margin-bottom:14px;font-size:.85rem"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Title</label><input type="text" id="udTitle" placeholder="Document title"></div>
+      <div class="form-group"><label>Document Type</label>
+        <select id="udType">
+          <option value="signed_contract">Signed Contract</option>
+          <option value="proposal">Proposal</option>
+          <option value="site_photo">Site Photo</option>
+          <option value="insurance">Insurance Document</option>
+          <option value="permit">Permit / License</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Link to Prospect</label><select id="udProspect"><option value="">— None —</option></select></div>
+      <div class="form-group"><label>Link to Contract</label><select id="udContract"><option value="">— None —</option></select></div>
+    </div>
+    <div class="form-group"><label>Description</label><textarea id="udDesc" placeholder="Brief description..."></textarea></div>
+    <div class="form-group"><label>Tags (comma-separated)</label><input type="text" id="udTags" placeholder="e.g. henderson, pilot, luxury"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeUploadModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="uploadDocument()">📤 Upload</button>
+    </div>
+  </div>
+</div>
+
+<!-- Document Viewer Modal -->
+<div class="modal-overlay" id="docViewModal">
+  <div class="modal modal-wide">
+    <h2 id="dvTitle">📄 Document</h2>
+    <div id="dvContent" style="min-height:200px"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeDocView()">Close</button>
+      <button class="btn btn-danger" id="dvDelete" onclick="deleteDocument()">🗑️ Delete</button>
+      <a class="btn btn-accent" id="dvDownload" href="#" download>⬇️ Download</a>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== STATE =====
+let contracts = [], prospects = [], templates = [], documents = [];
+let calMonth = new Date().getMonth(), calYear = new Date().getFullYear();
+let selectedFile = null, viewingDocId = null;
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+// ===== API =====
+async function api(url, opts = {}) {
+  const r = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || 'API error'); }
+  return r.json();
+}
+
+function toast(msg, dur = 3000) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+// ===== LOAD ALL =====
+async function loadAll() {
+  try {
+    [contracts, prospects, templates, documents] = await Promise.all([
+      api('/api/contracts'),
+      api('/api/prospects'),
+      api('/api/contract-templates'),
+      api('/api/contract-documents')
+    ]);
+    populateSelects();
+    renderDashboard();
+    renderContractCards();
+    renderTemplates();
+    renderDocuments();
+    renderCalendar();
+    populateBuilderSelects();
+  } catch (e) { console.error('Load error:', e); }
+}
+
+function populateSelects() {
+  // Prospect selects
+  const pOpts = '<option value="">— None —</option>' + prospects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  $('#cmProspect').innerHTML = pOpts;
+  $('#udProspect').innerHTML = pOpts;
+  $('#filterDocProspect').innerHTML = '<option value="all">All Prospects</option>' + prospects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+
+  // Contract selects for docs
+  const cOpts = '<option value="">— None —</option>' + contracts.map(c => `<option value="${c.id}">${c.client_name || 'Contract #' + c.id}</option>`).join('');
+  $('#udContract').innerHTML = cOpts;
+
+  // Counts
+  $('#cntContracts').textContent = contracts.length;
+  $('#cntDocs').textContent = documents.length;
+}
+
+// ===== TAB SWITCHING =====
+function switchMainTab(tab) {
+  $$('.main-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  $$('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
+  if (tab === 'calendar') renderCalendar();
+}
+
+// ===== DASHBOARD =====
+function getStatus(c) {
+  if (c.contract_status && c.contract_status !== 'active') return c.contract_status;
+  const now = new Date(); now.setHours(0,0,0,0);
+  const daysToEnd = c.end_date ? Math.ceil((new Date(c.end_date+'T00:00:00') - now) / 864e5) : Infinity;
+  if (daysToEnd < 0) return 'expired';
+  return c.contract_status || 'active';
+}
+
+function getDaysLeft(c) {
+  const now = new Date(); now.setHours(0,0,0,0);
+  const daysToEnd = c.end_date ? Math.ceil((new Date(c.end_date+'T00:00:00') - now) / 864e5) : Infinity;
+  const daysToRenewal = c.renewal_date ? Math.ceil((new Date(c.renewal_date+'T00:00:00') - now) / 864e5) : Infinity;
+  return Math.min(daysToEnd, daysToRenewal);
+}
+
+function renderDashboard() {
+  const now = new Date();
+  let stats = { total: 0, active: 0, signed: 0, draft: 0, sent: 0, expired: 0, expiring: 0, totalRev: 0, totalMachines: 0, revShareSum: 0, revShareCount: 0 };
+  const alerts30 = [], alerts60 = [], alerts90 = [];
+
+  contracts.forEach(c => {
+    stats.total++;
+    const s = getStatus(c);
+    const days = getDaysLeft(c);
+
+    if (s === 'expired') stats.expired++;
+    else if (s === 'draft') stats.draft++;
+    else if (s === 'sent') stats.sent++;
+    else if (s === 'signed') stats.signed++;
+    else stats.active++;
+
+    if (days >= 0 && days <= 30) { stats.expiring++; alerts30.push({ ...c, days }); }
+    else if (days > 30 && days <= 60) alerts60.push({ ...c, days });
+    else if (days > 60 && days <= 90) alerts90.push({ ...c, days });
+
+    if (s !== 'expired' && s !== 'draft') {
+      stats.totalRev += c.monthly_revenue || 0;
+      stats.totalMachines += c.machines_count || 0;
+    }
+    if (c.contract_type === 'rev-share' && c.revenue_share_percent) {
+      stats.revShareSum += c.revenue_share_percent;
+      stats.revShareCount++;
+    }
+  });
+
+  const avgRevShare = stats.revShareCount > 0 ? (stats.revShareSum / stats.revShareCount).toFixed(1) : '—';
+
+  $('#dashStats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total Contracts</div><div class="stat-value sc-accent">${stats.total}</div></div>
+    <div class="stat-card"><div class="stat-label">Active</div><div class="stat-value sc-success">${stats.active}</div></div>
+    <div class="stat-card"><div class="stat-label">Signed / Pending</div><div class="stat-value sc-purple">${stats.signed}</div></div>
+    <div class="stat-card"><div class="stat-label">Drafts</div><div class="stat-value" style="color:var(--dim)">${stats.draft}</div></div>
+    <div class="stat-card"><div class="stat-label">Expiring ≤30d</div><div class="stat-value sc-hot">${stats.expiring}</div></div>
+    <div class="stat-card"><div class="stat-label">Monthly Revenue</div><div class="stat-value sc-purple">$${stats.totalRev.toLocaleString()}</div></div>
+    <div class="stat-card"><div class="stat-label">Avg Rev Share</div><div class="stat-value sc-accent">${avgRevShare}%</div></div>
+    <div class="stat-card"><div class="stat-label">Documents</div><div class="stat-value sc-accent">${documents.length}</div></div>
+  `;
+
+  // Alerts
+  let alertsHtml = '';
+  alerts30.sort((a, b) => a.days - b.days).forEach(c => {
+    alertsHtml += `<div class="alert-banner alert-hot" onclick="openContractModal(${c.id})">
+      <span class="alert-icon">🚨</span>
+      <span class="alert-text"><strong>${c.client_name || 'Contract #' + c.id}</strong> — expires in ${c.days} days (${c.end_date})</span>
+      <span class="alert-badge">${c.days}d</span>
+    </div>`;
+  });
+  alerts60.sort((a, b) => a.days - b.days).forEach(c => {
+    alertsHtml += `<div class="alert-banner alert-warn" onclick="openContractModal(${c.id})">
+      <span class="alert-icon">⚠️</span>
+      <span class="alert-text"><strong>${c.client_name || 'Contract #' + c.id}</strong> — renews/expires in ${c.days} days</span>
+      <span class="alert-badge">${c.days}d</span>
+    </div>`;
+  });
+  alerts90.sort((a, b) => a.days - b.days).forEach(c => {
+    alertsHtml += `<div class="alert-banner alert-info" onclick="openContractModal(${c.id})">
+      <span class="alert-icon">📅</span>
+      <span class="alert-text"><strong>${c.client_name || 'Contract #' + c.id}</strong> — renews/expires in ${c.days} days</span>
+      <span class="alert-badge">${c.days}d</span>
+    </div>`;
+  });
+  if (!alertsHtml) alertsHtml = '<div class="alert-banner alert-info"><span class="alert-icon">✅</span><span class="alert-text">No upcoming renewals or expirations in the next 90 days.</span></div>';
+  $('#dashAlerts').innerHTML = '<h3 style="font-size:1rem;font-weight:600;margin-bottom:12px">🔔 Renewal & Expiration Alerts</h3>' + alertsHtml;
+
+  // Revenue table
+  const activeContracts = contracts.filter(c => getStatus(c) !== 'expired' && getStatus(c) !== 'draft');
+  $('#revTableBody').innerHTML = activeContracts.length === 0
+    ? '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No active contracts yet</td></tr>'
+    : activeContracts.map(c => {
+      const s = getStatus(c);
+      const badgeCls = 'badge-' + s;
+      return `<tr>
+        <td style="font-weight:600">${c.client_name || '—'}</td>
+        <td>${(c.contract_type || 'standard').replace('-', ' ')}</td>
+        <td>${c.contract_type === 'rev-share' ? c.revenue_share_percent + '%' : '—'}</td>
+        <td style="font-weight:600;color:var(--purple)">$${(c.monthly_revenue || 0).toLocaleString()}</td>
+        <td><span class="cc-badge ${badgeCls}" style="font-size:.68rem">${s}</span></td>
+      </tr>`;
+    }).join('');
+
+  // Recent activity
+  const recent = [...contracts].sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at)).slice(0, 8);
+  $('#recentActivity').innerHTML = recent.length === 0
+    ? '<div style="text-align:center;color:var(--muted);padding:20px">No activity yet</div>'
+    : recent.map(c => {
+      const s = getStatus(c);
+      const d = new Date(c.updated_at || c.created_at);
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openContractModal(${c.id})">
+        <span class="cc-badge badge-${s}" style="font-size:.65rem;min-width:60px;text-align:center">${s}</span>
+        <span style="flex:1;font-size:.85rem;font-weight:500">${c.client_name || 'Contract #' + c.id}</span>
+        <span style="font-size:.75rem;color:var(--muted)">${d.toLocaleDateString()}</span>
+      </div>`;
+    }).join('');
+}
+
+// ===== CONTRACTS LIST =====
+function renderContractCards() {
+  const q = ($('#searchContracts')?.value || '').toLowerCase();
+  const typeFilter = $('#filterType')?.value || 'all';
+  const statusFilter = $('#filterStatus')?.value || 'all';
+
+  let filtered = contracts.filter(c => {
+    const name = (c.client_name || '').toLowerCase();
+    const prop = (c.property || '').toLowerCase();
+    if (q && !name.includes(q) && !prop.includes(q)) return false;
+    if (typeFilter !== 'all' && c.contract_type !== typeFilter) return false;
+    if (statusFilter !== 'all' && getStatus(c) !== statusFilter) return false;
+    return true;
+  });
+
+  // Status pipeline
+  const counts = { draft: 0, sent: 0, viewed: 0, signed: 0, active: 0, expired: 0 };
+  contracts.forEach(c => { const s = getStatus(c); if (counts[s] !== undefined) counts[s]++; });
+  const stages = [
+    { key: 'draft', label: 'Draft', emoji: '📝' },
+    { key: 'sent', label: 'Sent', emoji: '📤' },
+    { key: 'viewed', label: 'Viewed', emoji: '👁️' },
+    { key: 'signed', label: 'Signed', emoji: '✍️' },
+    { key: 'active', label: 'Active', emoji: '✅' },
+    { key: 'expired', label: 'Expired', emoji: '⛔' }
+  ];
+  $('#statusPipeline').innerHTML = stages.map(s =>
+    `<div class="pipeline-stage${statusFilter === s.key ? ' active' : ''}" onclick="document.getElementById('filterStatus').value='${statusFilter === s.key ? 'all' : s.key}';renderContractCards()">
+      <span class="stage-count">${counts[s.key]}</span>
+      <span class="stage-label">${s.emoji} ${s.label}</span>
+    </div>`
+  ).join('');
+
+  if (filtered.length === 0) {
+    $('#contractsGrid').innerHTML = '<div class="empty-state"><div class="e-icon">📋</div><p>No contracts found. Click "+ New Contract" to add one.</p></div>';
+    return;
+  }
+
+  $('#contractsGrid').innerHTML = filtered.map(c => {
+    const s = getStatus(c);
+    const days = getDaysLeft(c);
+    const pName = c.client_name || prospects.find(p => p.id === c.prospect_id)?.name || 'Unknown Client';
+    const typeLabel = { 'rev-share': `Rev-Share ${c.revenue_share_percent || 0}%`, 'flat-fee': 'Flat Fee', 'pilot': 'Pilot Program', 'standard': 'Standard' }[c.contract_type] || 'Standard';
+    const daysLabel = s === 'expired' ? `Expired ${Math.abs(days)}d ago` : days === Infinity ? 'No end date' : `${days} days remaining`;
+    const daysCls = days <= 30 ? 'urgent' : days <= 60 ? 'warning' : 'ok';
+
+    return `<div class="contract-card s-${s}" onclick="openContractModal(${c.id})">
+      <div class="cc-header">
+        <div class="cc-name">${pName}</div>
+        <span class="cc-badge badge-${s}">${s}</span>
+      </div>
+      <div class="cc-meta">
+        <div class="cc-meta-item"><span class="cc-meta-label">Property</span><span class="cc-meta-value">${c.property || '—'}</span></div>
+        <div class="cc-meta-item"><span class="cc-meta-label">Type</span><span class="cc-meta-value">${typeLabel}</span></div>
+        <div class="cc-meta-item"><span class="cc-meta-label">Start</span><span class="cc-meta-value">${c.start_date || '—'}</span></div>
+        <div class="cc-meta-item"><span class="cc-meta-label">End</span><span class="cc-meta-value">${c.end_date || '—'}</span></div>
+        <div class="cc-meta-item"><span class="cc-meta-label">Machines</span><span class="cc-meta-value">${c.machines_count || 0}</span></div>
+        <div class="cc-meta-item"><span class="cc-meta-label">Renewal</span><span class="cc-meta-value">${c.renewal_date || '—'}</span></div>
+      </div>
+      ${c.monthly_revenue ? `<div class="cc-revenue">
+        <div class="cc-rev-amount">$${(c.monthly_revenue || 0).toLocaleString()}</div>
+        <div class="cc-rev-label">Est. Monthly<br>Revenue</div>
+      </div>` : ''}
+      <div class="cc-footer">
+        <span class="cc-days ${daysCls}">${daysLabel}</span>
+        <div class="cc-actions">
+          <button class="btn btn-sm btn-ghost" onclick="event.stopPropagation();openContractModal(${c.id})" title="Edit">✏️</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== CONTRACT MODAL =====
+function openContractModal(id) {
+  const m = $('#contractModal');
+  if (id) {
+    const c = contracts.find(x => x.id === id);
+    if (!c) return;
+    $('#cmTitle').textContent = '✏️ Edit Contract';
+    $('#cmId').value = c.id;
+    $('#cmClientName').value = c.client_name || '';
+    $('#cmProperty').value = c.property || '';
+    $('#cmProspect').value = c.prospect_id || '';
+    $('#cmStatus').value = c.contract_status || 'active';
+    $('#cmType').value = c.contract_type || 'standard';
+    $('#cmRevShare').value = c.revenue_share_percent || '';
+    $('#cmStart').value = c.start_date || '';
+    $('#cmEnd').value = c.end_date || '';
+    $('#cmRenewal').value = c.renewal_date || '';
+    $('#cmMachines').value = c.machines_count || '';
+    $('#cmRevenue').value = c.monthly_revenue || '';
+    $('#cmNotes').value = c.terms || c.notes || '';
+    $('#cmBody').value = c.contract_body || '';
+    $('#cmDelete').style.display = 'inline-flex';
+  } else {
+    $('#cmTitle').textContent = '📋 New Contract';
+    $('#cmId').value = '';
+    $$('#contractModal input, #contractModal textarea').forEach(el => el.value = '');
+    $$('#contractModal select').forEach(el => el.selectedIndex = 0);
+    $('#cmStatus').value = 'draft';
+    $('#cmRevShare').value = '5';
+    $('#cmDelete').style.display = 'none';
+  }
+  m.classList.add('active');
+}
+function closeContractModal() { $('#contractModal').classList.remove('active'); }
+
+async function saveContract() {
+  const id = $('#cmId').value;
+  const data = {
+    client_name: $('#cmClientName').value,
+    property: $('#cmProperty').value,
+    prospect_id: $('#cmProspect').value ? parseInt($('#cmProspect').value) : null,
+    contract_status: $('#cmStatus').value,
+    contract_type: $('#cmType').value,
+    revenue_share_percent: parseFloat($('#cmRevShare').value) || 0,
+    start_date: $('#cmStart').value || null,
+    end_date: $('#cmEnd').value || null,
+    renewal_date: $('#cmRenewal').value || null,
+    machines_count: parseInt($('#cmMachines').value) || 0,
+    monthly_revenue: parseFloat($('#cmRevenue').value) || 0,
+    terms: $('#cmNotes').value,
+    notes: $('#cmNotes').value,
+    contract_body: $('#cmBody').value || null
+  };
+
+  try {
+    if (id) {
+      await api(`/api/contracts/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+      toast('✅ Contract updated');
+    } else {
+      await api('/api/contracts', { method: 'POST', body: JSON.stringify(data) });
+      toast('✅ Contract created');
+    }
+    closeContractModal();
+    loadAll();
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
+async function deleteContract() {
+  const id = $('#cmId').value;
+  if (!id || !confirm('Delete this contract? This cannot be undone.')) return;
+  try {
+    await api(`/api/contracts/${id}`, { method: 'DELETE' });
+    toast('🗑️ Contract deleted');
+    closeContractModal();
+    loadAll();
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
+// ===== TEMPLATES =====
+function renderTemplates() {
+  const icons = { 'rev-share': '💰', 'flat-fee': '💵', 'pilot': '🚀', 'sla': '🤝' };
+  $('#templatesGrid').innerHTML = templates.map(t => {
+    const icon = icons[t.slug] || '📄';
+    return `<div class="template-card" onclick="useTemplate(${t.id})">
+      <div class="t-icon">${icon}</div>
+      <div class="t-name">${t.name}</div>
+      <div class="t-desc">${t.description}</div>
+      <div class="t-footer">
+        <button class="btn btn-sm btn-primary" onclick="event.stopPropagation();useTemplate(${t.id})">📝 Use Template</button>
+        <button class="btn btn-sm" onclick="event.stopPropagation();previewTemplate(${t.id})">👁️ Preview</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function useTemplate(id) {
+  switchMainTab('builder');
+  $('#bTemplate').value = id;
+  onTemplateSelect();
+}
+
+function previewTemplate(id) {
+  const t = templates.find(x => x.id === id);
+  if (!t) return;
+  switchMainTab('builder');
+  $('#bTemplate').value = id;
+  onTemplateSelect();
+  renderPreview();
+}
+
+// ===== BUILDER =====
+function populateBuilderSelects() {
+  $('#bTemplate').innerHTML = '<option value="">— Choose a template —</option>' + templates.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+  $('#bProspect').innerHTML = '<option value="">— Select prospect (optional) —</option>' + prospects.map(p => `<option value="${p.id}">${p.name}${p.address ? ' — ' + p.address : ''}</option>`).join('');
+}
+
+function onTemplateSelect() {
+  const tid = parseInt($('#bTemplate').value);
+  const tmpl = templates.find(t => t.id === tid);
+  if (!tmpl) { $('#builderFields').innerHTML = ''; return; }
+
+  let html = '<div class="form-section"><h3>Fill In Details</h3>';
+  (tmpl.fields || []).forEach(f => {
+    const val = f.default || '';
+    if (f.type === 'textarea') {
+      html += `<div class="form-group"><label>${f.label}</label><textarea id="bf_${f.key}" placeholder="${f.label}">${val}</textarea></div>`;
+    } else if (f.type === 'date') {
+      html += `<div class="form-group"><label>${f.label}</label><input type="date" id="bf_${f.key}" value="${val}"></div>`;
+    } else if (f.type === 'number') {
+      html += `<div class="form-group"><label>${f.label}</label><input type="number" id="bf_${f.key}" value="${val}" placeholder="${f.label}"></div>`;
+    } else {
+      html += `<div class="form-group"><label>${f.label}</label><input type="text" id="bf_${f.key}" value="${val}" placeholder="${f.label}"></div>`;
+    }
+  });
+  html += '</div>';
+  $('#builderFields').innerHTML = html;
+
+  // Auto-generate contract number
+  const numField = $(`#bf_contract_number`);
+  if (numField && !numField.value) {
+    numField.value = 'KV-' + new Date().getFullYear() + '-' + String(contracts.length + 1).padStart(3, '0');
+  }
+
+  // Auto-fill start date
+  const dateField = $(`#bf_start_date`);
+  if (dateField && !dateField.value) {
+    dateField.value = new Date().toISOString().split('T')[0];
+  }
+}
+
+function onProspectSelect() {
+  const pid = parseInt($('#bProspect').value);
+  const p = prospects.find(x => x.id === pid);
+  if (!p) return;
+
+  // Auto-fill from prospect data
+  const c = (p.contacts || []).find(c => c.is_primary) || p.contacts?.[0];
+  const fills = {
+    client_name: p.name || '',
+    property_address: p.address || '',
+    contact_name: c?.name || p.primary_contact || '',
+    contact_phone: c?.phone || p.phone || '',
+    contact_email: c?.email || p.email || ''
+  };
+
+  Object.entries(fills).forEach(([key, val]) => {
+    const el = $(`#bf_${key}`);
+    if (el && val) el.value = val;
+  });
+
+  // Also fill rev share from prospect data if available
+  if (p.revenue_share_percent) {
+    const rsEl = $(`#bf_rev_share_percent`);
+    if (rsEl) rsEl.value = p.revenue_share_percent;
+  }
+}
+
+function getBuilderValues() {
+  const tid = parseInt($('#bTemplate').value);
+  const tmpl = templates.find(t => t.id === tid);
+  if (!tmpl) return {};
+  const vals = {};
+  (tmpl.fields || []).forEach(f => {
+    const el = $(`#bf_${f.key}`);
+    vals[f.key] = el ? el.value : f.default || '';
+  });
+  return vals;
+}
+
+function renderPreview() {
+  const tid = parseInt($('#bTemplate').value);
+  const tmpl = templates.find(t => t.id === tid);
+  if (!tmpl) { toast('⚠️ Select a template first'); return; }
+
+  const vals = getBuilderValues();
+  let body = tmpl.body;
+
+  // Replace all {{key}} tokens
+  Object.entries(vals).forEach(([key, val]) => {
+    const re = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+    body = body.replace(re, val || `<span style="color:red">[${key}]</span>`);
+  });
+
+  // Replace any remaining unreplaced tokens
+  body = body.replace(/\{\{(\w+)\}\}/g, '<span style="color:var(--dim);font-style:italic">[_$1_]</span>');
+
+  $('#previewBody').innerHTML = body;
+}
+
+function printPreview() {
+  const content = $('#previewBody').innerHTML;
+  if (!content || content.includes('empty-state')) { toast('⚠️ Generate a preview first'); return; }
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Contract — Kande VendTech</title>
+    <style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:40px;max-width:800px;margin:0 auto;color:#1a202c;font-size:14px;line-height:1.7}
+    h1{font-size:18px;margin-bottom:4px}h3{font-size:14px;margin:20px 0 8px;border-bottom:1px solid #ddd;padding-bottom:4px}
+    ul,ol{margin:8px 0 8px 20px}li{margin-bottom:4px}table{width:100%;border-collapse:collapse}td,th{padding:8px;border:1px solid #ddd;text-align:left;font-size:13px}
+    @media print{body{padding:20px}}</style></head><body>${content}</body></html>`);
+  w.document.close();
+  setTimeout(() => w.print(), 500);
+}
+
+async function saveAsContract() {
+  const tid = parseInt($('#bTemplate').value);
+  const tmpl = templates.find(t => t.id === tid);
+  if (!tmpl) { toast('⚠️ Select a template first'); return; }
+
+  renderPreview();
+  const vals = getBuilderValues();
+  const pid = parseInt($('#bProspect').value) || null;
+
+  const data = {
+    client_name: vals.client_name || '',
+    property: vals.property_address || '',
+    prospect_id: pid,
+    contract_status: 'draft',
+    contract_type: tmpl.slug === 'rev-share' ? 'rev-share' : tmpl.slug === 'flat-fee' ? 'flat-fee' : tmpl.slug === 'pilot' ? 'pilot' : 'standard',
+    revenue_share_percent: parseFloat(vals.rev_share_percent) || 0,
+    start_date: vals.start_date || null,
+    end_date: null,
+    renewal_date: null,
+    machines_count: parseInt(vals.machine_count) || 0,
+    monthly_revenue: parseFloat(vals.estimated_monthly_revenue) || 0,
+    terms: vals.additional_terms || '',
+    notes: `Generated from template: ${tmpl.name}`,
+    contract_body: $('#previewBody').innerHTML,
+    template_id: tmpl.id
+  };
+
+  // Calculate end date if term_years provided
+  if (vals.term_years && vals.start_date) {
+    const start = new Date(vals.start_date);
+    start.setFullYear(start.getFullYear() + parseInt(vals.term_years));
+    data.end_date = start.toISOString().split('T')[0];
+    // Renewal 60 days before end
+    const renew = new Date(start);
+    renew.setDate(renew.getDate() - 60);
+    data.renewal_date = renew.toISOString().split('T')[0];
+  }
+
+  try {
+    await api('/api/contracts', { method: 'POST', body: JSON.stringify(data) });
+    toast('✅ Contract saved as draft!');
+    loadAll();
+    switchMainTab('contracts');
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
+// ===== DOCUMENTS =====
+function renderDocuments() {
+  const q = ($('#searchDocs')?.value || '').toLowerCase();
+  const typeFilter = $('#filterDocType')?.value || 'all';
+  const prospectFilter = $('#filterDocProspect')?.value || 'all';
+
+  let filtered = documents.filter(d => {
+    if (q && !(d.title || '').toLowerCase().includes(q) && !(d.description || '').toLowerCase().includes(q) && !(d.file_name || '').toLowerCase().includes(q)) return false;
+    if (typeFilter !== 'all' && d.doc_type !== typeFilter) return false;
+    if (prospectFilter !== 'all' && d.prospect_id !== parseInt(prospectFilter)) return false;
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    $('#docsGrid').innerHTML = '<div class="empty-state"><div class="e-icon">📂</div><p>No documents found. Upload your first document.</p></div>';
+    return;
+  }
+
+  const typeIcons = { signed_contract: '📑', proposal: '📝', site_photo: '📸', insurance: '🛡️', permit: '📜', other: '📄' };
+  const typeLabels = { signed_contract: 'Signed Contract', proposal: 'Proposal', site_photo: 'Site Photo', insurance: 'Insurance', permit: 'Permit', other: 'Other' };
+
+  $('#docsGrid').innerHTML = filtered.map(d => {
+    const icon = typeIcons[d.doc_type] || '📄';
+    const pName = d.prospect_id ? prospects.find(p => p.id === d.prospect_id)?.name || '' : '';
+    const date = new Date(d.created_at).toLocaleDateString();
+    const size = d.file_size ? formatSize(d.file_size) : '';
+
+    return `<div class="doc-card" onclick="viewDocument(${d.id})">
+      <div class="d-icon">${icon}</div>
+      <div class="d-title">${d.title || d.file_name || 'Untitled'}</div>
+      <div class="d-meta">${typeLabels[d.doc_type] || d.doc_type} ${pName ? '• ' + pName : ''} • ${date} ${size ? '• ' + size : ''}</div>
+      ${d.version > 1 ? `<div class="d-meta" style="color:var(--accent)">v${d.version}</div>` : ''}
+      <div class="d-tags">
+        ${(d.tags || []).map(t => `<span class="d-tag">${t}</span>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+// Upload
+function showUploadModal() {
+  $('#uploadModal').classList.add('active');
+  selectedFile = null;
+  $('#selectedFile').style.display = 'none';
+  $('#fileInput').value = '';
+  $('#udTitle').value = '';
+  $('#udDesc').value = '';
+  $('#udTags').value = '';
+}
+function closeUploadModal() { $('#uploadModal').classList.remove('active'); }
+
+function handleFileSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) { toast('⚠️ File too large (max 10MB)'); return; }
+  selectedFile = file;
+  $('#selectedFile').style.display = 'block';
+  $('#selectedFile').innerHTML = `📎 <strong>${file.name}</strong> (${formatSize(file.size)})`;
+  if (!$('#udTitle').value) $('#udTitle').value = file.name.replace(/\.[^.]+$/, '');
+}
+
+// Drag & drop
+const uz = document.getElementById('uploadZone');
+if (uz) {
+  uz.addEventListener('dragover', e => { e.preventDefault(); uz.classList.add('dragover'); });
+  uz.addEventListener('dragleave', () => uz.classList.remove('dragover'));
+  uz.addEventListener('drop', e => {
+    e.preventDefault(); uz.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) { document.getElementById('fileInput').files = e.dataTransfer.files; handleFileSelect(document.getElementById('fileInput')); }
+  });
+}
+
+async function uploadDocument() {
+  const title = $('#udTitle').value.trim();
+  if (!title) { toast('⚠️ Please enter a title'); return; }
+
+  const data = {
+    title,
+    doc_type: $('#udType').value,
+    prospect_id: $('#udProspect').value ? parseInt($('#udProspect').value) : null,
+    contract_id: $('#udContract').value ? parseInt($('#udContract').value) : null,
+    description: $('#udDesc').value,
+    tags: $('#udTags').value.split(',').map(t => t.trim()).filter(Boolean),
+    file_name: selectedFile?.name || null,
+    file_type: selectedFile?.type || null,
+    file_size: selectedFile?.size || 0
+  };
+
+  // Read file as base64
+  if (selectedFile) {
+    data.file_data = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.readAsDataURL(selectedFile);
+    });
+  }
+
+  try {
+    await api('/api/contract-documents', { method: 'POST', body: JSON.stringify(data) });
+    toast('✅ Document uploaded!');
+    closeUploadModal();
+    loadAll();
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
+async function viewDocument(id) {
+  viewingDocId = id;
+  try {
+    const doc = await api(`/api/contract-documents/${id}`);
+    $('#dvTitle').textContent = '📄 ' + (doc.title || 'Document');
+    $('#dvDelete').onclick = () => deleteDocument(id);
+
+    let content = `<div style="margin-bottom:14px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.85rem">
+        <div><strong>Type:</strong> ${doc.doc_type}</div>
+        <div><strong>Uploaded:</strong> ${new Date(doc.created_at).toLocaleString()}</div>
+        ${doc.file_name ? `<div><strong>File:</strong> ${doc.file_name}</div>` : ''}
+        ${doc.file_size ? `<div><strong>Size:</strong> ${formatSize(doc.file_size)}</div>` : ''}
+        ${doc.version > 1 ? `<div><strong>Version:</strong> v${doc.version}</div>` : ''}
+      </div>
+      ${doc.description ? `<p style="margin-top:10px;color:var(--muted)">${doc.description}</p>` : ''}
+    </div>`;
+
+    if (doc.file_data) {
+      if (doc.file_type && doc.file_type.startsWith('image/')) {
+        content += `<div style="text-align:center"><img src="data:${doc.file_type};base64,${doc.file_data}" style="max-width:100%;max-height:500px;border-radius:8px;border:1px solid var(--border)"></div>`;
+      } else if (doc.file_type === 'application/pdf') {
+        content += `<iframe src="data:application/pdf;base64,${doc.file_data}" style="width:100%;height:500px;border:1px solid var(--border);border-radius:8px"></iframe>`;
+      }
+      $('#dvDownload').href = `/api/contract-documents/${id}/download`;
+      $('#dvDownload').download = doc.file_name || 'document';
+      $('#dvDownload').style.display = 'inline-flex';
+    } else {
+      $('#dvDownload').style.display = 'none';
+    }
+
+    $('#dvContent').innerHTML = content;
+    $('#docViewModal').classList.add('active');
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
+function closeDocView() { $('#docViewModal').classList.remove('active'); }
+
+async function deleteDocument(id) {
+  id = id || viewingDocId;
+  if (!id || !confirm('Delete this document?')) return;
+  try {
+    await api(`/api/contract-documents/${id}`, { method: 'DELETE' });
+    toast('🗑️ Document deleted');
+    closeDocView();
+    loadAll();
+  } catch (e) { toast('❌ ' + e.message); }
+}
+
+// ===== CALENDAR =====
+function renderCalendar() {
+  const cal = $('#calendarView');
+  if (!cal) return;
+  const firstDay = new Date(calYear, calMonth, 1);
+  const lastDay = new Date(calYear, calMonth + 1, 0);
+  const startPad = firstDay.getDay();
+  const totalDays = lastDay.getDate();
+  const monthName = firstDay.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  const events = {};
+  contracts.forEach(c => {
+    [
+      { date: c.start_date, type: 'start', label: '🟢 Start' },
+      { date: c.end_date, type: 'expiry', label: '🔴 Expires' },
+      { date: c.renewal_date, type: 'renewal', label: '🟡 Renewal' }
+    ].forEach(e => {
+      if (!e.date) return;
+      const d = new Date(e.date + 'T00:00:00');
+      if (d.getMonth() === calMonth && d.getFullYear() === calYear) {
+        const key = d.getDate();
+        if (!events[key]) events[key] = [];
+        events[key].push({ ...e, name: c.client_name || 'Contract #' + c.id, contractId: c.id });
+      }
+    });
+  });
+
+  let html = `<div class="cal-header">
+    <div class="cal-title">📅 Contract Calendar</div>
+    <div class="cal-nav">
+      <button onclick="navCal(-1)">◀</button>
+      <span class="cal-month">${monthName}</span>
+      <button onclick="navCal(1)">▶</button>
+    </div>
+  </div><div class="cal-grid">`;
+
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => html += `<div class="cal-day-header">${d}</div>`);
+
+  for (let i = 0; i < startPad; i++) {
+    const d = new Date(calYear, calMonth, -startPad + i + 1);
+    html += `<div class="cal-day other-month"><div class="cal-day-num">${d.getDate()}</div></div>`;
+  }
+  for (let d = 1; d <= totalDays; d++) {
+    const date = new Date(calYear, calMonth, d);
+    const isToday = date.getTime() === today.getTime();
+    const dayEvents = events[d] || [];
+    html += `<div class="cal-day${isToday ? ' today' : ''}"><div class="cal-day-num">${d}</div>
+      ${dayEvents.map(e => `<div class="cal-event ${e.type}" onclick="openContractModal(${e.contractId})" title="${e.name}: ${e.label}">${e.label.split(' ')[0]} ${e.name.slice(0, 10)}</div>`).join('')}
+    </div>`;
+  }
+  const endPad = (7 - (startPad + totalDays) % 7) % 7;
+  for (let i = 1; i <= endPad; i++) html += `<div class="cal-day other-month"><div class="cal-day-num">${i}</div></div>`;
+  html += '</div>';
+  cal.innerHTML = html;
+}
+
+function navCal(dir) {
+  calMonth += dir;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCalendar();
+}
+
+// Modal close on overlay click
+$$('.modal-overlay').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); }));
+
+// Init
+loadAll();
+</script>
+</body>
+</html>

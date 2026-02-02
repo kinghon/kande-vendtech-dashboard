@@ -1,0 +1,485 @@
+<!-- Department Tracking Widget — Include at top of any dashboard page -->
+<style>
+.dept-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.dept-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+.dept-card:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102,126,234,0.15);
+}
+.dept-card.active {
+  border-color: rgba(102,126,234,0.5);
+  box-shadow: 0 0 20px rgba(102,126,234,0.1);
+}
+.dept-card.active::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+}
+.dept-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.dept-emoji { font-size: 1.4rem; }
+.dept-name { font-size: 0.85rem; font-weight: 700; color: #1f2937; }
+.dept-stats {
+  display: flex;
+  gap: 16px;
+}
+.dept-stat {
+  text-align: center;
+}
+.dept-stat-num {
+  font-size: 1.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.dept-card:not(.active) .dept-stat-num {
+  background: none;
+  -webkit-text-fill-color: #9ca3af;
+  color: #9ca3af;
+}
+.dept-stat-label {
+  font-size: 0.7rem;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.dept-agents {
+  margin-top: 10px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 8px;
+}
+.dept-agent {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+.dept-agent-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.dept-task {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  padding-left: 12px;
+  font-style: italic;
+}
+.dept-summary {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1));
+  border: 1px solid rgba(102,126,234,0.2);
+  border-radius: 10px;
+}
+.dept-summary-stat {
+  text-align: center;
+}
+.dept-summary-num {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #1f2937;
+}
+.dept-summary-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.dept-idle-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  background: rgba(75,85,99,0.2);
+  color: #6b7280;
+  margin-top: 4px;
+}
+.dept-active-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  background: rgba(34,197,94,0.15);
+  color: #22c55e;
+  margin-top: 4px;
+}
+
+/* Modal Styles */
+.dept-modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.dept-modal-overlay.show {
+  display: flex;
+}
+.dept-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.dept-modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  z-index: 1;
+}
+.dept-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+.dept-modal-title .emoji { font-size: 1.5rem; }
+.dept-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.dept-modal-close:hover {
+  background: #f3f4f6;
+  color: #1f2937;
+}
+.dept-modal-body {
+  padding: 24px;
+}
+.dept-section {
+  margin-bottom: 24px;
+}
+.dept-section:last-child {
+  margin-bottom: 0;
+}
+.dept-section-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dept-section-title .count {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+}
+.dept-item {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+}
+.dept-item:last-child {
+  margin-bottom: 0;
+}
+.dept-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.dept-item-title {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.95rem;
+}
+.dept-item-badge {
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.dept-item-badge.in-progress {
+  background: rgba(59,130,246,0.15);
+  color: #3b82f6;
+}
+.dept-item-badge.completed {
+  background: rgba(34,197,94,0.15);
+  color: #22c55e;
+}
+.dept-item-meta {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+.dept-item-agent {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dept-empty {
+  text-align: center;
+  padding: 20px;
+  color: #9ca3af;
+  font-style: italic;
+}
+</style>
+
+<div id="dept-widget">
+  <div class="dept-summary" id="dept-summary">
+    <div class="dept-summary-stat">
+      <div class="dept-summary-num" id="total-agents">0</div>
+      <div class="dept-summary-label">Active Agents</div>
+    </div>
+    <div class="dept-summary-stat">
+      <div class="dept-summary-num" id="total-tasks">0</div>
+      <div class="dept-summary-label">Tasks In Progress</div>
+    </div>
+    <div class="dept-summary-stat">
+      <div class="dept-summary-num" id="total-completed">0</div>
+      <div class="dept-summary-label">Completed Today</div>
+    </div>
+    <div class="dept-summary-stat">
+      <div class="dept-summary-num" id="active-depts">0</div>
+      <div class="dept-summary-label">Active Departments</div>
+    </div>
+  </div>
+  <div class="dept-grid" id="dept-grid"></div>
+</div>
+
+<!-- Department Detail Modal -->
+<div class="dept-modal-overlay" id="dept-modal-overlay" onclick="if(event.target===this)closeDeptModal()">
+  <div class="dept-modal">
+    <div class="dept-modal-header">
+      <div class="dept-modal-title">
+        <span class="emoji" id="modal-emoji"></span>
+        <span id="modal-title"></span>
+      </div>
+      <button class="dept-modal-close" onclick="closeDeptModal()">&times;</button>
+    </div>
+    <div class="dept-modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+let deptData = {};
+
+async function loadDepartments() {
+  try {
+    const res = await fetch('/api/departments');
+    deptData = await res.json();
+    const grid = document.getElementById('dept-grid');
+    let totalAgents = 0, totalTasks = 0, totalCompleted = 0, activeDepts = 0;
+
+    grid.innerHTML = '';
+    for (const [key, dept] of Object.entries(deptData)) {
+      const isActive = dept.activeAgentCount > 0 || dept.activeTaskCount > 0;
+      if (isActive) activeDepts++;
+      totalAgents += dept.activeAgentCount;
+      totalTasks += dept.activeTaskCount;
+      totalCompleted += dept.completedTaskCount;
+
+      const card = document.createElement('div');
+      card.className = `dept-card ${isActive ? 'active' : ''}`;
+      card.onclick = () => openDeptModal(key);
+      
+      let agentsHtml = '';
+      if (dept.activeAgents && dept.activeAgents.length > 0) {
+        agentsHtml = '<div class="dept-agents">';
+        for (const agent of dept.activeAgents.slice(0, 2)) {
+          agentsHtml += `<div class="dept-agent"><span class="dept-agent-dot"></span> ${agent.agentName}</div>`;
+        }
+        if (dept.activeAgents.length > 2) {
+          agentsHtml += `<div class="dept-agent" style="color:#667eea;">+${dept.activeAgents.length - 2} more</div>`;
+        }
+        agentsHtml += '</div>';
+      }
+
+      card.innerHTML = `
+        <div class="dept-header">
+          <span class="dept-emoji">${dept.emoji}</span>
+          <span class="dept-name">${dept.name}</span>
+          ${isActive ? '<span class="dept-active-badge">ACTIVE</span>' : '<span class="dept-idle-badge">IDLE</span>'}
+        </div>
+        <div class="dept-stats">
+          <div class="dept-stat">
+            <div class="dept-stat-num">${dept.activeAgentCount}</div>
+            <div class="dept-stat-label">Agents</div>
+          </div>
+          <div class="dept-stat">
+            <div class="dept-stat-num">${dept.activeTaskCount}</div>
+            <div class="dept-stat-label">Tasks</div>
+          </div>
+          <div class="dept-stat">
+            <div class="dept-stat-num">${dept.completedTaskCount}</div>
+            <div class="dept-stat-label">Done</div>
+          </div>
+        </div>
+        ${agentsHtml}
+      `;
+      grid.appendChild(card);
+    }
+
+    document.getElementById('total-agents').textContent = totalAgents;
+    document.getElementById('total-tasks').textContent = totalTasks;
+    document.getElementById('total-completed').textContent = totalCompleted;
+    document.getElementById('active-depts').textContent = activeDepts;
+  } catch (e) {
+    console.error('Failed to load departments:', e);
+  }
+}
+
+function openDeptModal(deptKey) {
+  const dept = deptData[deptKey];
+  if (!dept) return;
+
+  document.getElementById('modal-emoji').textContent = dept.emoji;
+  document.getElementById('modal-title').textContent = dept.name;
+
+  let html = '';
+
+  // Active Agents Section
+  html += `<div class="dept-section">
+    <div class="dept-section-title">
+      🟢 Active Agents <span class="count">${dept.activeAgentCount}</span>
+    </div>`;
+  if (dept.activeAgents && dept.activeAgents.length > 0) {
+    for (const agent of dept.activeAgents) {
+      const checkedIn = agent.checkedInAt ? new Date(agent.checkedInAt).toLocaleTimeString() : '';
+      html += `<div class="dept-item">
+        <div class="dept-item-header">
+          <span class="dept-item-title">${agent.agentName}</span>
+          <span class="dept-item-badge in-progress">WORKING</span>
+        </div>
+        <div class="dept-item-meta">${agent.task || 'No task description'}</div>
+        ${checkedIn ? `<div class="dept-item-meta" style="margin-top:4px;font-size:0.75rem;">Checked in: ${checkedIn}</div>` : ''}
+      </div>`;
+    }
+  } else {
+    html += '<div class="dept-empty">No agents currently active</div>';
+  }
+  html += '</div>';
+
+  // Tasks In Progress Section
+  const inProgressTasks = (dept.tasks || []).filter(t => t.status === 'in-progress');
+  html += `<div class="dept-section">
+    <div class="dept-section-title">
+      ⏳ Tasks In Progress <span class="count">${inProgressTasks.length}</span>
+    </div>`;
+  if (inProgressTasks.length > 0) {
+    for (const task of inProgressTasks.slice(-10)) {
+      const started = task.startedAt ? new Date(task.startedAt).toLocaleString() : '';
+      html += `<div class="dept-item">
+        <div class="dept-item-header">
+          <span class="dept-item-title">${task.title}</span>
+          <span class="dept-item-badge in-progress">IN PROGRESS</span>
+        </div>
+        <div class="dept-item-meta" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          ${task.agentName ? `<span style="background:#dbeafe;padding:2px 8px;border-radius:6px;font-weight:500;color:#1d4ed8;">🤖 ${task.agentName}</span>` : '<span style="color:#9ca3af;">No agent</span>'}
+          ${started ? `<span style="color:#9ca3af;">• Started: ${started}</span>` : ''}
+        </div>
+      </div>`;
+    }
+  } else {
+    html += '<div class="dept-empty">No tasks in progress</div>';
+  }
+  html += '</div>';
+
+  // Completed Tasks Section
+  const completedTasks = (dept.tasks || []).filter(t => t.status === 'completed');
+  html += `<div class="dept-section">
+    <div class="dept-section-title">
+      ✅ Completed Tasks <span class="count">${completedTasks.length}</span>
+    </div>`;
+  if (completedTasks.length > 0) {
+    // Show most recent first, limit to 15
+    const sorted = [...completedTasks].sort((a, b) => new Date(b.completedAt || b.startedAt) - new Date(a.completedAt || a.startedAt));
+    for (const task of sorted.slice(0, 15)) {
+      const completed = task.completedAt ? new Date(task.completedAt).toLocaleString() : (task.startedAt ? new Date(task.startedAt).toLocaleString() : '');
+      html += `<div class="dept-item">
+        <div class="dept-item-header">
+          <span class="dept-item-title">${task.title}</span>
+          <span class="dept-item-badge completed">DONE</span>
+        </div>
+        <div class="dept-item-meta" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          ${task.agentName ? `<span style="background:#f3f4f6;padding:2px 8px;border-radius:6px;font-weight:500;">🤖 ${task.agentName}</span>` : '<span style="color:#9ca3af;">No agent</span>'}
+          ${completed ? `<span style="color:#9ca3af;">• ${completed}</span>` : ''}
+        </div>
+      </div>`;
+    }
+    if (completedTasks.length > 15) {
+      html += `<div class="dept-empty">+ ${completedTasks.length - 15} more completed tasks</div>`;
+    }
+  } else {
+    html += '<div class="dept-empty">No completed tasks yet</div>';
+  }
+  html += '</div>';
+
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('dept-modal-overlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDeptModal() {
+  document.getElementById('dept-modal-overlay').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+// Close on Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeDeptModal();
+});
+
+// Load immediately and refresh every 15 seconds
+loadDepartments();
+setInterval(loadDepartments, 15000);
+</script>

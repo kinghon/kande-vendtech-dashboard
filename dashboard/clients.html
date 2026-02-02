@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Client CRM — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
+      --muted: #718096; --accent: #3182ce; --hot: #e53e3e; --warn: #dd6b20;
+      --success: #38a169; --purple: #7b2cbf;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+    /* Nav */
+    .top-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .top-nav .logo { height: 40px; }
+    .top-nav a { color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500; padding: 6px 12px; border-radius: 6px; transition: all 0.2s; }
+    .top-nav a:hover, .top-nav a.active { color: var(--accent); background: rgba(49,130,206,0.08); }
+    .nav-brand { font-size: 0.9rem; font-weight: 600; color: var(--text); margin-right: 8px; }
+
+    /* Header */
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .page-header h1 { font-size: 1.6rem; font-weight: 700; }
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* Buttons */
+    .btn { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+    .btn-primary:hover { background: #2b6cb0; }
+    .btn-danger { color: var(--hot); border-color: var(--hot); }
+    .btn-danger:hover { background: var(--hot); color: white; }
+    .btn-success { color: var(--success); border-color: var(--success); }
+    .btn-success:hover { background: var(--success); color: white; }
+    .btn-warn { color: var(--warn); border-color: var(--warn); }
+    .btn-warn:hover { background: var(--warn); color: white; }
+    .btn-sm { padding: 4px 10px; font-size: 0.78rem; }
+
+    /* Stats Grid */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat-card { background: var(--card); border-radius: 12px; padding: 18px; border: 1px solid var(--border); text-align: center; }
+    .stat-card .value { font-size: 2rem; font-weight: 700; }
+    .stat-card .label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; font-weight: 600; }
+    .value.accent { color: var(--accent); }
+    .value.success { color: var(--success); }
+    .value.warn { color: var(--warn); }
+    .value.hot { color: var(--hot); }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
+    .tab { padding: 10px 20px; font-size: 0.9rem; font-weight: 500; color: var(--muted); background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* Tab Content */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Cards */
+    .card { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); margin-bottom: 16px; }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { text-align: left; padding: 10px 12px; font-weight: 600; color: var(--muted); border-bottom: 2px solid var(--border); font-size: 0.75rem; text-transform: uppercase; }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    tr:hover { background: rgba(49,130,206,0.03); }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+    .badge-active { background: rgba(56,161,105,0.15); color: var(--success); }
+    .badge-inactive { background: rgba(113,128,150,0.15); color: var(--muted); }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: flex-start; padding: 40px 20px; overflow-y: auto; }
+    .modal-overlay.show { display: flex; }
+    .modal { background: var(--card); border-radius: 12px; padding: 24px; width: 100%; max-width: 600px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .modal h2 { font-size: 1.2rem; margin-bottom: 20px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; font-family: inherit; }
+    .form-group textarea { min-height: 80px; resize: vertical; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+    /* Health Score */
+    .health-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; }
+    .health-excellent { background: var(--success); }
+    .health-good { background: #48bb78; }
+    .health-fair { background: var(--warn); }
+    .health-poor { background: var(--hot); }
+    .health-label { font-size: 0.78rem; font-weight: 600; }
+
+    /* Reminder badges */
+    .reminder-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 8px; font-size: 0.7rem; font-weight: 600; margin: 2px; }
+    .reminder-checkin { background: rgba(49,130,206,0.12); color: var(--accent); }
+    .reminder-renewal { background: rgba(221,107,32,0.12); color: var(--warn); }
+    .reminder-nocontact { background: rgba(229,62,62,0.12); color: var(--hot); }
+
+    /* Client Detail */
+    .detail-section { margin-bottom: 20px; }
+    .detail-section h3 { font-size: 0.95rem; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+    /* Touchpoint & Issue cards */
+    .touchpoint-card { display: flex; gap: 12px; padding: 10px 14px; border-left: 3px solid var(--accent); margin-bottom: 8px; background: rgba(49,130,206,0.03); border-radius: 0 8px 8px 0; }
+    .touchpoint-icon { font-size: 1.2rem; flex-shrink: 0; }
+    .touchpoint-body { flex: 1; }
+    .touchpoint-meta { font-size: 0.75rem; color: var(--muted); }
+    .touchpoint-text { font-size: 0.85rem; margin-top: 4px; }
+
+    .issue-card { padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; }
+    .issue-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .issue-type { font-weight: 600; font-size: 0.9rem; }
+    .issue-status { padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+    .issue-open { background: rgba(229,62,62,0.12); color: var(--hot); }
+    .issue-in-progress { background: rgba(221,107,32,0.12); color: var(--warn); }
+    .issue-resolved { background: rgba(56,161,105,0.12); color: var(--success); }
+    .issue-desc { font-size: 0.85rem; color: var(--muted); }
+    .issue-date { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+
+    /* Client list cards (mobile friendly) */
+    .client-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
+    .client-card { background: var(--card); border-radius: 12px; padding: 16px; border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; }
+    .client-card:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(49,130,206,0.08); }
+    .client-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .client-card-name { font-weight: 600; font-size: 1rem; }
+    .client-card-address { font-size: 0.8rem; color: var(--muted); margin-bottom: 8px; }
+    .client-card-details { display: flex; gap: 12px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); margin-bottom: 8px; }
+    .client-card-details span { display: flex; align-items: center; gap: 4px; }
+    .client-card-reminders { display: flex; flex-wrap: wrap; gap: 4px; }
+
+    .empty-state { text-align: center; padding: 40px; color: var(--muted); }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+
+    /* Filters */
+    .filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .filter-bar input, .filter-bar select { padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; }
+
+    @media (max-width: 768px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .client-cards { grid-template-columns: 1fr; }
+      .form-row, .form-row-3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <nav class="top-nav">
+      <a href="/"><img src="/logo.png" alt="Kande VendTech" class="logo"></a>
+      <span class="nav-brand">Operations</span>
+      <a href="/">Dashboard</a>
+      <a href="/crm">CRM</a>
+      <a href="/machines">Machines</a>
+      <a href="/inventory">Inventory</a>
+      <a href="/finance">Finance</a>
+      <a href="/restock">Restock</a>
+      <a href="/staff">Staff</a>
+      <a href="/clients" class="active">Clients</a>
+      <a href="/map">Map</a>
+    </nav>
+
+    <div class="page-header">
+      <h1>🤝 Client Relationships</h1>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="openAddClient()">+ Add Client</button>
+        <button class="btn" onclick="openAddIssue()">⚠️ Report Issue</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card"><div class="value accent" id="stat-clients">0</div><div class="label">Active Clients</div></div>
+      <div class="stat-card"><div class="value success" id="stat-avg-share">0%</div><div class="label">Avg Revenue Share</div></div>
+      <div class="stat-card"><div class="value hot" id="stat-issues">0</div><div class="label">Open Issues</div></div>
+      <div class="stat-card"><div class="value warn" id="stat-checkins">0</div><div class="label">Check-ins Due</div></div>
+      <div class="stat-card"><div class="value accent" id="stat-renewals">0</div><div class="label">Renewals (60 days)</div></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('clients')">Clients</button>
+      <button class="tab" onclick="switchTab('issues')">Issues <span id="issue-count-badge" style="background:var(--hot);color:white;border-radius:10px;padding:1px 6px;font-size:0.7rem;margin-left:4px;display:none;">0</span></button>
+      <button class="tab" onclick="switchTab('timeline')">Activity Timeline</button>
+    </div>
+
+    <!-- Clients Tab -->
+    <div id="tab-clients" class="tab-content active">
+      <div class="filter-bar">
+        <input type="text" id="search-clients" placeholder="🔍 Search clients..." oninput="renderClients()">
+        <select id="filter-health" onchange="renderClients()">
+          <option value="">All Health</option>
+          <option value="excellent">Excellent</option>
+          <option value="good">Good</option>
+          <option value="fair">Fair</option>
+          <option value="poor">Poor</option>
+        </select>
+      </div>
+      <div class="client-cards" id="clients-list"></div>
+      <div id="clients-empty" class="empty-state" style="display:none;">
+        <div class="icon">🤝</div>
+        <p>No clients yet. Add your first signed location!</p>
+      </div>
+    </div>
+
+    <!-- Issues Tab -->
+    <div id="tab-issues" class="tab-content">
+      <div class="filter-bar">
+        <select id="filter-issue-status" onchange="renderIssues()">
+          <option value="">All Status</option>
+          <option value="open">Open</option>
+          <option value="in-progress">In Progress</option>
+          <option value="resolved">Resolved</option>
+        </select>
+        <select id="filter-issue-type" onchange="renderIssues()">
+          <option value="">All Types</option>
+          <option value="machine_down">Machine Down</option>
+          <option value="product_complaint">Product Complaint</option>
+          <option value="access_problem">Access Problem</option>
+          <option value="billing">Billing</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div id="issues-list"></div>
+      <div id="issues-empty" class="empty-state" style="display:none;">
+        <div class="icon">✅</div>
+        <p>No issues! All clients are happy.</p>
+      </div>
+    </div>
+
+    <!-- Timeline Tab -->
+    <div id="tab-timeline" class="tab-content">
+      <div id="timeline-list"></div>
+      <div id="timeline-empty" class="empty-state" style="display:none;">
+        <div class="icon">📅</div>
+        <p>No touchpoints logged yet.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Client Modal -->
+  <div class="modal-overlay" id="client-modal">
+    <div class="modal">
+      <h2 id="client-modal-title">Add Client</h2>
+      <input type="hidden" id="client-id">
+      <div class="form-group">
+        <label>Property Name *</label>
+        <input type="text" id="client-name" placeholder="e.g., Sunrise Apartments">
+      </div>
+      <div class="form-group">
+        <label>Address</label>
+        <input type="text" id="client-address" placeholder="123 Main St, Las Vegas, NV">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Contact Name</label>
+          <input type="text" id="client-contact" placeholder="Property manager">
+        </div>
+        <div class="form-group">
+          <label>Contact Phone</label>
+          <input type="tel" id="client-phone" placeholder="(555) 123-4567">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Contact Email</label>
+        <input type="email" id="client-email" placeholder="manager@property.com">
+      </div>
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>Contract Start</label>
+          <input type="date" id="client-contract-start">
+        </div>
+        <div class="form-group">
+          <label>Term (months)</label>
+          <input type="number" id="client-term" placeholder="12">
+        </div>
+        <div class="form-group">
+          <label>Revenue Share %</label>
+          <input type="number" id="client-share" step="0.5" placeholder="10">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Placement Spot</label>
+        <input type="text" id="client-placement" placeholder="e.g., Lobby near mailboxes, Laundry room">
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="client-notes" placeholder="Access codes, special instructions, contact preferences..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('client-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveClient()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Client Detail Modal -->
+  <div class="modal-overlay" id="detail-modal">
+    <div class="modal" style="max-width:700px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h2 id="detail-title">Client</h2>
+        <div>
+          <button class="btn btn-sm" onclick="editCurrentClient()">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteCurrentClient()">Delete</button>
+        </div>
+      </div>
+      <div id="detail-content"></div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button class="btn btn-success btn-sm" onclick="openTouchpoint()">+ Log Touchpoint</button>
+        <button class="btn btn-warn btn-sm" onclick="openIssueForClient()">⚠️ Report Issue</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('detail-modal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Touchpoint Modal -->
+  <div class="modal-overlay" id="touchpoint-modal">
+    <div class="modal">
+      <h2>Log Touchpoint</h2>
+      <div class="form-group">
+        <label>Client</label>
+        <select id="tp-client"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Type *</label>
+          <select id="tp-type">
+            <option value="visit">🚶 Visit</option>
+            <option value="call">📞 Call</option>
+            <option value="email">📧 Email</option>
+            <option value="text">💬 Text</option>
+            <option value="issue">⚠️ Issue Reported</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="tp-date">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes *</label>
+        <textarea id="tp-notes" placeholder="What was discussed, any follow-ups needed..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('touchpoint-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveTouchpoint()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Issue Modal -->
+  <div class="modal-overlay" id="issue-modal">
+    <div class="modal">
+      <h2 id="issue-modal-title">Report Issue</h2>
+      <input type="hidden" id="issue-id">
+      <div class="form-group">
+        <label>Client *</label>
+        <select id="issue-client"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Type *</label>
+          <select id="issue-type">
+            <option value="machine_down">🔧 Machine Down</option>
+            <option value="product_complaint">📦 Product Complaint</option>
+            <option value="access_problem">🔑 Access Problem</option>
+            <option value="billing">💳 Billing</option>
+            <option value="other">📋 Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Priority</label>
+          <select id="issue-priority">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="issue-status">
+          <option value="open">Open</option>
+          <option value="in-progress">In Progress</option>
+          <option value="resolved">Resolved</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Description *</label>
+        <textarea id="issue-desc" placeholder="Describe the issue..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Resolution Notes</label>
+        <textarea id="issue-resolution" placeholder="How was it resolved? (fill in when closing)"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('issue-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveIssue()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let clients = [];
+    let touchpoints = [];
+    let issues = [];
+    let currentDetailClient = null;
+
+    // --- Load ---
+    async function loadData() {
+      try {
+        const [c, t, i] = await Promise.all([
+          fetch('/api/clients').then(r => r.json()),
+          fetch('/api/touchpoints').then(r => r.json()),
+          fetch('/api/issues').then(r => r.json())
+        ]);
+        clients = c;
+        touchpoints = t;
+        issues = i;
+        renderAll();
+      } catch (e) { console.error('Failed to load:', e); }
+    }
+
+    function renderAll() {
+      renderStats();
+      renderClients();
+      renderIssues();
+      renderTimeline();
+    }
+
+    // --- Health Score ---
+    function getHealthScore(client) {
+      let score = 100;
+      const now = new Date();
+
+      // Last contact (max -40)
+      const clientTouchpoints = touchpoints.filter(t => t.client_id === client.id)
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+      if (clientTouchpoints.length > 0) {
+        const lastContact = new Date(clientTouchpoints[0].date);
+        const daysSince = (now - lastContact) / (1000 * 60 * 60 * 24);
+        if (daysSince > 60) score -= 40;
+        else if (daysSince > 30) score -= 20;
+        else if (daysSince > 14) score -= 5;
+      } else {
+        score -= 30; // No touchpoints at all
+      }
+
+      // Open issues (max -30)
+      const openIssues = issues.filter(i => i.client_id === client.id && i.status !== 'resolved');
+      score -= Math.min(openIssues.length * 15, 30);
+
+      // Contract status (max -30)
+      if (client.contract_start && client.term_months) {
+        const end = new Date(client.contract_start);
+        end.setMonth(end.getMonth() + client.term_months);
+        const daysToRenewal = (end - now) / (1000 * 60 * 60 * 24);
+        if (daysToRenewal < 0) score -= 30;
+        else if (daysToRenewal < 15) score -= 20;
+        else if (daysToRenewal < 30) score -= 10;
+      }
+
+      return Math.max(0, Math.min(100, score));
+    }
+
+    function getHealthLabel(score) {
+      if (score >= 80) return { label: 'Excellent', class: 'health-excellent' };
+      if (score >= 60) return { label: 'Good', class: 'health-good' };
+      if (score >= 40) return { label: 'Fair', class: 'health-fair' };
+      return { label: 'Poor', class: 'health-poor' };
+    }
+
+    // --- Reminders ---
+    function getReminders(client) {
+      const reminders = [];
+      const now = new Date();
+
+      // Monthly check-in due
+      const clientTPs = touchpoints.filter(t => t.client_id === client.id)
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+      if (clientTPs.length === 0) {
+        reminders.push({ type: 'nocontact', text: 'Never contacted' });
+      } else {
+        const lastContact = new Date(clientTPs[0].date);
+        const daysSince = Math.floor((now - lastContact) / (1000 * 60 * 60 * 24));
+        if (daysSince >= 30) {
+          reminders.push({ type: 'nocontact', text: `No contact ${daysSince}d` });
+        } else if (daysSince >= 25) {
+          reminders.push({ type: 'checkin', text: 'Check-in due soon' });
+        }
+      }
+
+      // Contract renewal
+      if (client.contract_start && client.term_months) {
+        const end = new Date(client.contract_start);
+        end.setMonth(end.getMonth() + client.term_months);
+        const daysToRenewal = Math.floor((end - now) / (1000 * 60 * 60 * 24));
+        if (daysToRenewal <= 0) {
+          reminders.push({ type: 'renewal', text: 'Contract expired!' });
+        } else if (daysToRenewal <= 15) {
+          reminders.push({ type: 'renewal', text: `Renewal in ${daysToRenewal}d` });
+        } else if (daysToRenewal <= 30) {
+          reminders.push({ type: 'renewal', text: `Renewal in ${daysToRenewal}d` });
+        } else if (daysToRenewal <= 60) {
+          reminders.push({ type: 'checkin', text: `Renewal in ${daysToRenewal}d` });
+        }
+      }
+
+      // Open issues
+      const openIssues = issues.filter(i => i.client_id === client.id && i.status !== 'resolved');
+      if (openIssues.length > 0) {
+        reminders.push({ type: 'nocontact', text: `${openIssues.length} open issue${openIssues.length > 1 ? 's' : ''}` });
+      }
+
+      return reminders;
+    }
+
+    // --- Stats ---
+    function renderStats() {
+      const now = new Date();
+      const activeClients = clients.length;
+      const avgShare = clients.length > 0
+        ? (clients.reduce((sum, c) => sum + (c.revenue_share || 0), 0) / clients.length).toFixed(1)
+        : 0;
+      const openIssues = issues.filter(i => i.status !== 'resolved').length;
+
+      let checkInsDue = 0;
+      let renewalsSoon = 0;
+      clients.forEach(c => {
+        const reminders = getReminders(c);
+        if (reminders.some(r => r.type === 'nocontact' || r.type === 'checkin')) checkInsDue++;
+        if (reminders.some(r => r.type === 'renewal')) renewalsSoon++;
+      });
+
+      document.getElementById('stat-clients').textContent = activeClients;
+      document.getElementById('stat-avg-share').textContent = avgShare + '%';
+      document.getElementById('stat-issues').textContent = openIssues;
+      document.getElementById('stat-checkins').textContent = checkInsDue;
+      document.getElementById('stat-renewals').textContent = renewalsSoon;
+
+      // Issue badge
+      const badge = document.getElementById('issue-count-badge');
+      if (openIssues > 0) {
+        badge.textContent = openIssues;
+        badge.style.display = '';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    // --- Clients ---
+    function renderClients() {
+      const search = (document.getElementById('search-clients').value || '').toLowerCase();
+      const healthFilter = document.getElementById('filter-health').value;
+
+      let filtered = clients.filter(c => {
+        if (search && !c.name.toLowerCase().includes(search) && !(c.address || '').toLowerCase().includes(search) && !(c.contact_name || '').toLowerCase().includes(search)) return false;
+        if (healthFilter) {
+          const score = getHealthScore(c);
+          const health = getHealthLabel(score);
+          if (health.label.toLowerCase() !== healthFilter) return false;
+        }
+        return true;
+      });
+
+      const container = document.getElementById('clients-list');
+      const empty = document.getElementById('clients-empty');
+
+      if (filtered.length === 0) {
+        container.innerHTML = '';
+        empty.style.display = clients.length === 0 ? '' : 'none';
+        if (clients.length > 0 && filtered.length === 0) {
+          container.innerHTML = '<div class="empty-state"><p>No clients match your filters.</p></div>';
+        } else {
+          empty.style.display = '';
+        }
+        return;
+      }
+      empty.style.display = 'none';
+
+      container.innerHTML = filtered.sort((a, b) => {
+        // Sort poor health first
+        return getHealthScore(a) - getHealthScore(b);
+      }).map(c => {
+        const score = getHealthScore(c);
+        const health = getHealthLabel(score);
+        const reminders = getReminders(c);
+        const contractEnd = c.contract_start && c.term_months
+          ? (() => { const d = new Date(c.contract_start); d.setMonth(d.getMonth() + c.term_months); return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }); })()
+          : null;
+
+        return `
+          <div class="client-card" onclick="viewClient(${c.id})">
+            <div class="client-card-header">
+              <div class="client-card-name">${esc(c.name)}</div>
+              <div>
+                <span class="health-dot ${health.class}"></span>
+                <span class="health-label" style="color:${health.class === 'health-excellent' ? 'var(--success)' : health.class === 'health-good' ? '#48bb78' : health.class === 'health-fair' ? 'var(--warn)' : 'var(--hot)'}">${health.label}</span>
+              </div>
+            </div>
+            ${c.address ? `<div class="client-card-address">📍 ${esc(c.address)}</div>` : ''}
+            <div class="client-card-details">
+              ${c.contact_name ? `<span>👤 ${esc(c.contact_name)}</span>` : ''}
+              ${c.revenue_share ? `<span>💰 ${c.revenue_share}% share</span>` : ''}
+              ${contractEnd ? `<span>📋 Until ${contractEnd}</span>` : ''}
+              ${c.placement ? `<span>📍 ${esc(c.placement)}</span>` : ''}
+            </div>
+            ${reminders.length > 0 ? `
+              <div class="client-card-reminders">
+                ${reminders.map(r => `<span class="reminder-badge reminder-${r.type}">${r.text}</span>`).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // --- View Client Detail ---
+    function viewClient(id) {
+      const client = clients.find(c => c.id === id);
+      if (!client) return;
+      currentDetailClient = client;
+
+      const score = getHealthScore(client);
+      const health = getHealthLabel(score);
+      const clientTPs = touchpoints.filter(t => t.client_id === id).sort((a, b) => new Date(b.date) - new Date(a.date));
+      const clientIssues = issues.filter(i => i.client_id === id).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+      const contractEnd = client.contract_start && client.term_months
+        ? (() => { const d = new Date(client.contract_start); d.setMonth(d.getMonth() + client.term_months); return d; })()
+        : null;
+
+      document.getElementById('detail-title').textContent = client.name;
+      document.getElementById('detail-content').innerHTML = `
+        <div class="detail-section">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px;">
+            <div class="stat-card" style="padding:12px;">
+              <div class="value" style="font-size:1.4rem;">
+                <span class="health-dot ${health.class}"></span>${score}
+              </div>
+              <div class="label">Health Score</div>
+            </div>
+            <div class="stat-card" style="padding:12px;">
+              <div class="value accent" style="font-size:1.4rem;">${client.revenue_share || 0}%</div>
+              <div class="label">Rev Share</div>
+            </div>
+            <div class="stat-card" style="padding:12px;">
+              <div class="value" style="font-size:1.4rem;">${clientTPs.length}</div>
+              <div class="label">Touchpoints</div>
+            </div>
+            <div class="stat-card" style="padding:12px;">
+              <div class="value ${clientIssues.filter(i => i.status !== 'resolved').length > 0 ? 'hot' : 'success'}" style="font-size:1.4rem;">${clientIssues.filter(i => i.status !== 'resolved').length}</div>
+              <div class="label">Open Issues</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <h3>📋 Details</h3>
+          <div class="card" style="margin-bottom:0;">
+            <p><strong>Address:</strong> ${esc(client.address || '—')}</p>
+            <p><strong>Contact:</strong> ${esc(client.contact_name || '—')} ${client.contact_phone ? '· ' + esc(client.contact_phone) : ''}</p>
+            ${client.contact_email ? `<p><strong>Email:</strong> ${esc(client.contact_email)}</p>` : ''}
+            <p><strong>Placement:</strong> ${esc(client.placement || '—')}</p>
+            <p><strong>Contract:</strong> ${client.contract_start ? new Date(client.contract_start).toLocaleDateString() : '—'} ${client.term_months ? '· ' + client.term_months + ' months' : ''} ${contractEnd ? '· Ends ' + contractEnd.toLocaleDateString() : ''}</p>
+            ${client.notes ? `<p><strong>Notes:</strong> ${esc(client.notes)}</p>` : ''}
+          </div>
+        </div>
+
+        ${clientIssues.length > 0 ? `
+          <div class="detail-section">
+            <h3>⚠️ Issues (${clientIssues.filter(i => i.status !== 'resolved').length} open)</h3>
+            ${clientIssues.map(i => `
+              <div class="issue-card">
+                <div class="issue-header">
+                  <span class="issue-type">${getIssueIcon(i.type)} ${formatIssueType(i.type)}</span>
+                  <div style="display:flex;gap:6px;align-items:center;">
+                    <span class="issue-status issue-${i.status}">${i.status}</span>
+                    ${i.status !== 'resolved' ? `<button class="btn btn-sm" onclick="editIssue(${i.id})">Edit</button>` : ''}
+                  </div>
+                </div>
+                <div class="issue-desc">${esc(i.description)}</div>
+                ${i.resolution ? `<div class="issue-desc" style="color:var(--success);margin-top:4px;">✅ ${esc(i.resolution)}</div>` : ''}
+                <div class="issue-date">${new Date(i.created_at).toLocaleDateString()}</div>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+
+        <div class="detail-section">
+          <h3>📅 Touchpoints</h3>
+          ${clientTPs.length > 0 ? clientTPs.map(tp => `
+            <div class="touchpoint-card">
+              <div class="touchpoint-icon">${getTouchpointIcon(tp.type)}</div>
+              <div class="touchpoint-body">
+                <div class="touchpoint-meta">${esc(tp.type)} · ${new Date(tp.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                <div class="touchpoint-text">${esc(tp.notes)}</div>
+              </div>
+            </div>
+          `).join('') : '<p style="color:var(--muted);font-size:0.85rem;">No touchpoints logged yet.</p>'}
+        </div>
+      `;
+
+      document.getElementById('detail-modal').classList.add('show');
+    }
+
+    function getTouchpointIcon(type) {
+      const icons = { visit: '🚶', call: '📞', email: '📧', text: '💬', issue: '⚠️' };
+      return icons[type] || '📌';
+    }
+    function getIssueIcon(type) {
+      const icons = { machine_down: '🔧', product_complaint: '📦', access_problem: '🔑', billing: '💳', other: '📋' };
+      return icons[type] || '📋';
+    }
+    function formatIssueType(type) {
+      return (type || '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    // --- Issues Tab ---
+    function renderIssues() {
+      const statusFilter = document.getElementById('filter-issue-status').value;
+      const typeFilter = document.getElementById('filter-issue-type').value;
+
+      let filtered = issues;
+      if (statusFilter) filtered = filtered.filter(i => i.status === statusFilter);
+      if (typeFilter) filtered = filtered.filter(i => i.type === typeFilter);
+      filtered = filtered.sort((a, b) => {
+        // Open first, then by date
+        const statusOrder = { open: 0, 'in-progress': 1, resolved: 2 };
+        const sd = (statusOrder[a.status] || 0) - (statusOrder[b.status] || 0);
+        if (sd !== 0) return sd;
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+
+      const container = document.getElementById('issues-list');
+      const empty = document.getElementById('issues-empty');
+
+      if (filtered.length === 0) {
+        container.innerHTML = '';
+        empty.style.display = '';
+        return;
+      }
+      empty.style.display = 'none';
+
+      container.innerHTML = filtered.map(i => {
+        const client = clients.find(c => c.id === i.client_id);
+        return `
+          <div class="issue-card">
+            <div class="issue-header">
+              <span class="issue-type">${getIssueIcon(i.type)} ${formatIssueType(i.type)} — ${esc(client?.name || 'Unknown')}</span>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <span class="issue-status issue-${i.status}">${i.status}</span>
+                <button class="btn btn-sm" onclick="editIssue(${i.id})">Edit</button>
+              </div>
+            </div>
+            <div class="issue-desc">${esc(i.description)}</div>
+            ${i.resolution ? `<div class="issue-desc" style="color:var(--success);margin-top:4px;">✅ ${esc(i.resolution)}</div>` : ''}
+            <div class="issue-date">${new Date(i.created_at).toLocaleDateString()} ${i.priority ? '· Priority: ' + i.priority : ''}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // --- Timeline ---
+    function renderTimeline() {
+      const all = touchpoints.sort((a, b) => new Date(b.date) - new Date(a.date));
+      const container = document.getElementById('timeline-list');
+      const empty = document.getElementById('timeline-empty');
+
+      if (all.length === 0) {
+        container.innerHTML = '';
+        empty.style.display = '';
+        return;
+      }
+      empty.style.display = 'none';
+
+      container.innerHTML = all.slice(0, 50).map(tp => {
+        const client = clients.find(c => c.id === tp.client_id);
+        return `
+          <div class="touchpoint-card">
+            <div class="touchpoint-icon">${getTouchpointIcon(tp.type)}</div>
+            <div class="touchpoint-body">
+              <div class="touchpoint-meta">
+                <strong>${esc(client?.name || 'Unknown')}</strong> · ${esc(tp.type)} · ${new Date(tp.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+              </div>
+              <div class="touchpoint-text">${esc(tp.notes)}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // --- Tabs ---
+    function switchTab(name) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      event.target.closest('.tab').classList.add('active');
+      document.getElementById('tab-' + name).classList.add('active');
+    }
+
+    // --- Modals ---
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('show');
+    }
+
+    function populateClientDropdown(selectId, selectedId) {
+      const select = document.getElementById(selectId);
+      select.innerHTML = clients.map(c =>
+        `<option value="${c.id}" ${c.id === selectedId ? 'selected' : ''}>${esc(c.name)}</option>`
+      ).join('');
+      if (clients.length === 0) select.innerHTML = '<option value="">No clients — add one first</option>';
+    }
+
+    // --- Client CRUD ---
+    function openAddClient() {
+      document.getElementById('client-modal-title').textContent = 'Add Client';
+      document.getElementById('client-id').value = '';
+      document.getElementById('client-name').value = '';
+      document.getElementById('client-address').value = '';
+      document.getElementById('client-contact').value = '';
+      document.getElementById('client-phone').value = '';
+      document.getElementById('client-email').value = '';
+      document.getElementById('client-contract-start').value = new Date().toISOString().split('T')[0];
+      document.getElementById('client-term').value = '12';
+      document.getElementById('client-share').value = '10';
+      document.getElementById('client-placement').value = '';
+      document.getElementById('client-notes').value = '';
+      document.getElementById('client-modal').classList.add('show');
+    }
+
+    function editCurrentClient() {
+      if (!currentDetailClient) return;
+      const c = currentDetailClient;
+      closeModal('detail-modal');
+      document.getElementById('client-modal-title').textContent = 'Edit Client';
+      document.getElementById('client-id').value = c.id;
+      document.getElementById('client-name').value = c.name || '';
+      document.getElementById('client-address').value = c.address || '';
+      document.getElementById('client-contact').value = c.contact_name || '';
+      document.getElementById('client-phone').value = c.contact_phone || '';
+      document.getElementById('client-email').value = c.contact_email || '';
+      document.getElementById('client-contract-start').value = c.contract_start || '';
+      document.getElementById('client-term').value = c.term_months || '';
+      document.getElementById('client-share').value = c.revenue_share || '';
+      document.getElementById('client-placement').value = c.placement || '';
+      document.getElementById('client-notes').value = c.notes || '';
+      document.getElementById('client-modal').classList.add('show');
+    }
+
+    async function saveClient() {
+      const id = document.getElementById('client-id').value;
+      const data = {
+        name: document.getElementById('client-name').value.trim(),
+        address: document.getElementById('client-address').value.trim(),
+        contact_name: document.getElementById('client-contact').value.trim(),
+        contact_phone: document.getElementById('client-phone').value.trim(),
+        contact_email: document.getElementById('client-email').value.trim(),
+        contract_start: document.getElementById('client-contract-start').value,
+        term_months: parseInt(document.getElementById('client-term').value) || null,
+        revenue_share: parseFloat(document.getElementById('client-share').value) || 0,
+        placement: document.getElementById('client-placement').value.trim(),
+        notes: document.getElementById('client-notes').value.trim()
+      };
+      if (!data.name) return alert('Property name is required');
+
+      if (id) {
+        await fetch(`/api/clients/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      } else {
+        await fetch('/api/clients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      }
+      closeModal('client-modal');
+      loadData();
+    }
+
+    async function deleteCurrentClient() {
+      if (!currentDetailClient) return;
+      if (!confirm(`Delete ${currentDetailClient.name}? All touchpoints and issues will be removed.`)) return;
+      await fetch(`/api/clients/${currentDetailClient.id}`, { method: 'DELETE' });
+      closeModal('detail-modal');
+      loadData();
+    }
+
+    // --- Touchpoint CRUD ---
+    function openTouchpoint() {
+      populateClientDropdown('tp-client', currentDetailClient?.id);
+      document.getElementById('tp-type').value = 'visit';
+      document.getElementById('tp-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('tp-notes').value = '';
+      document.getElementById('touchpoint-modal').classList.add('show');
+    }
+
+    async function saveTouchpoint() {
+      const data = {
+        client_id: parseInt(document.getElementById('tp-client').value),
+        type: document.getElementById('tp-type').value,
+        date: document.getElementById('tp-date').value,
+        notes: document.getElementById('tp-notes').value.trim()
+      };
+      if (!data.client_id || !data.notes) return alert('Client and notes are required');
+
+      await fetch('/api/touchpoints', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      closeModal('touchpoint-modal');
+      closeModal('detail-modal');
+      await loadData();
+      if (currentDetailClient) viewClient(currentDetailClient.id);
+    }
+
+    // --- Issue CRUD ---
+    function openAddIssue() {
+      document.getElementById('issue-modal-title').textContent = 'Report Issue';
+      document.getElementById('issue-id').value = '';
+      populateClientDropdown('issue-client');
+      document.getElementById('issue-type').value = 'machine_down';
+      document.getElementById('issue-priority').value = 'medium';
+      document.getElementById('issue-status').value = 'open';
+      document.getElementById('issue-desc').value = '';
+      document.getElementById('issue-resolution').value = '';
+      document.getElementById('issue-modal').classList.add('show');
+    }
+
+    function openIssueForClient() {
+      document.getElementById('issue-modal-title').textContent = 'Report Issue';
+      document.getElementById('issue-id').value = '';
+      populateClientDropdown('issue-client', currentDetailClient?.id);
+      document.getElementById('issue-type').value = 'machine_down';
+      document.getElementById('issue-priority').value = 'medium';
+      document.getElementById('issue-status').value = 'open';
+      document.getElementById('issue-desc').value = '';
+      document.getElementById('issue-resolution').value = '';
+      document.getElementById('issue-modal').classList.add('show');
+    }
+
+    function editIssue(id) {
+      const issue = issues.find(i => i.id === id);
+      if (!issue) return;
+      document.getElementById('issue-modal-title').textContent = 'Edit Issue';
+      document.getElementById('issue-id').value = issue.id;
+      populateClientDropdown('issue-client', issue.client_id);
+      document.getElementById('issue-type').value = issue.type || 'other';
+      document.getElementById('issue-priority').value = issue.priority || 'medium';
+      document.getElementById('issue-status').value = issue.status || 'open';
+      document.getElementById('issue-desc').value = issue.description || '';
+      document.getElementById('issue-resolution').value = issue.resolution || '';
+      document.getElementById('issue-modal').classList.add('show');
+    }
+
+    async function saveIssue() {
+      const id = document.getElementById('issue-id').value;
+      const data = {
+        client_id: parseInt(document.getElementById('issue-client').value),
+        type: document.getElementById('issue-type').value,
+        priority: document.getElementById('issue-priority').value,
+        status: document.getElementById('issue-status').value,
+        description: document.getElementById('issue-desc').value.trim(),
+        resolution: document.getElementById('issue-resolution').value.trim()
+      };
+      if (!data.client_id || !data.description) return alert('Client and description required');
+
+      if (id) {
+        await fetch(`/api/issues/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      } else {
+        await fetch('/api/issues', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      }
+      closeModal('issue-modal');
+      closeModal('detail-modal');
+      await loadData();
+      if (currentDetailClient) viewClient(currentDetailClient.id);
+    }
+
+    // --- Util ---
+    function esc(s) {
+      if (!s) return '';
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    // Close modals on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(el => {
+      el.addEventListener('click', e => { if (e.target === el) el.classList.remove('show'); });
+    });
+
+    // Init
+    loadData();
+    setInterval(loadData, 60000);
+  </script>
+<script src="/nav.js"></script>
+</body>
+</html>

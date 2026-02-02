@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Financials — Kandé VendTech</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <nav class="sidebar">
+    <div class="logo">
+      <h2>🏪 Kandé<br>VendTech</h2>
+    </div>
+    <ul class="nav-links">
+      <li><a href="/">📊 Overview</a></li>
+      <li><a href="/financials" class="active">💰 Financials</a></li>
+    </ul>
+    <div style="padding:1rem 1.5rem;margin-top:auto;border-top:1px solid var(--border);">
+      <button class="btn btn-primary w-full" onclick="seedData()">🌱 Load Demo Data</button>
+    </div>
+  </nav>
+
+  <main class="content">
+    <!-- Page Header -->
+    <div class="flex justify-between items-center mb-2">
+      <div>
+        <h1>💰 Financial Dashboard</h1>
+        <p class="text-muted">Revenue • Costs • Profit • Commissions</p>
+      </div>
+      <div class="period-selector" id="globalPeriod">
+        <button class="period-btn" data-period="week">Week</button>
+        <button class="period-btn active" data-period="month">Month</button>
+        <button class="period-btn" data-period="year">Year</button>
+      </div>
+    </div>
+
+    <!-- Underperforming Alert -->
+    <div id="alertBanner"></div>
+
+    <!-- ====== QUICK STATS ====== -->
+    <div class="stat-cards" id="quickStats">
+      <div class="stat-card green">
+        <div class="label">Today's Revenue</div>
+        <div class="value" id="statToday">$0</div>
+      </div>
+      <div class="stat-card accent">
+        <div class="label">This Month's Revenue</div>
+        <div class="value" id="statMonth">$0</div>
+        <div class="sub" id="statMonthChange"></div>
+      </div>
+      <div class="stat-card blue">
+        <div class="label">Avg / Machine</div>
+        <div class="value" id="statAvg">$0</div>
+        <div class="sub" id="statMachineCount"></div>
+      </div>
+      <div class="stat-card green">
+        <div class="label">Best Machine</div>
+        <div class="value" id="statBest">-</div>
+        <div class="sub" id="statBestAmt"></div>
+      </div>
+      <div class="stat-card red">
+        <div class="label">Worst Machine</div>
+        <div class="value" id="statWorst">-</div>
+        <div class="sub" id="statWorstAmt"></div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="label">Profit Margin</div>
+        <div class="value" id="statMargin">0%</div>
+        <div class="sub" id="statCosts"></div>
+      </div>
+    </div>
+
+    <!-- ====== TABS ====== -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="revenue">📈 Revenue</button>
+      <button class="tab-btn" data-tab="costs">💸 Costs</button>
+      <button class="tab-btn" data-tab="profit">📊 Profit</button>
+      <button class="tab-btn" data-tab="commissions">🤝 Commissions</button>
+      <button class="tab-btn" data-tab="manage">⚙️ Manage</button>
+    </div>
+
+    <!-- ============ TAB: REVENUE ============ -->
+    <div class="tab-panel active" id="tab-revenue">
+      <!-- Revenue Trend Chart -->
+      <div class="section">
+        <div class="section-header">
+          <h2>📈 Revenue Trend</h2>
+          <div id="periodComparison" class="change"></div>
+        </div>
+        <div class="chart-container">
+          <canvas id="revenueTrendChart" height="80"></canvas>
+        </div>
+      </div>
+
+      <!-- Revenue by Machine -->
+      <div class="section">
+        <div class="section-header">
+          <h2>🏧 Revenue by Machine</h2>
+        </div>
+        <div class="chart-row">
+          <div class="chart-container">
+            <canvas id="machineBarChart" height="120"></canvas>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Machine</th><th class="text-right">Revenue</th></tr></thead>
+              <tbody id="machineRevenueTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Revenue by Location -->
+      <div class="section">
+        <div class="section-header">
+          <h2>📍 Revenue by Location</h2>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Location</th><th class="text-right">Revenue</th><th class="text-right">Minimum</th><th>Status</th></tr></thead>
+            <tbody id="locationRevenueTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Revenue by Route -->
+      <div class="section">
+        <div class="section-header">
+          <h2>🚗 Revenue by Route</h2>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Route</th><th>Driver</th><th class="text-right">Revenue</th></tr></thead>
+            <tbody id="routeRevenueTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Add Revenue -->
+      <div class="section">
+        <div class="section-header">
+          <h2>➕ Log Revenue</h2>
+        </div>
+        <div class="card">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Machine</label>
+              <select id="revMachine"></select>
+            </div>
+            <div class="form-group">
+              <label>Amount ($)</label>
+              <input type="number" id="revAmount" step="0.01" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="revDate">
+            </div>
+            <div class="form-group">
+              <label>Notes</label>
+              <input type="text" id="revNotes" placeholder="Optional">
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="addRevenue()">Add Revenue</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ TAB: COSTS ============ -->
+    <div class="tab-panel" id="tab-costs">
+      <!-- Cost Breakdown Chart -->
+      <div class="section">
+        <div class="section-header">
+          <h2>💸 Cost Breakdown</h2>
+        </div>
+        <div class="chart-row">
+          <div class="chart-container">
+            <canvas id="costPieChart" height="120"></canvas>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Category</th><th class="text-right">Amount</th><th class="text-right">% of Total</th></tr></thead>
+              <tbody id="costBreakdownTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- COGS by Machine -->
+      <div class="section">
+        <div class="section-header">
+          <h2>📦 COGS by Machine</h2>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Machine</th><th>Location</th><th class="text-right">Product Costs</th></tr></thead>
+            <tbody id="cogsTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Fuel by Route -->
+      <div class="section">
+        <div class="section-header">
+          <h2>⛽ Fuel Costs by Route</h2>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Route</th><th>Driver</th><th class="text-right">Fuel Cost</th></tr></thead>
+            <tbody id="fuelTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Labor Costs -->
+      <div class="section">
+        <div class="section-header">
+          <h2>👷 Labor Costs</h2>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Worker</th><th>Role</th><th class="text-right">Hours</th><th class="text-right">Rate</th><th class="text-right">Total</th><th>Date</th></tr></thead>
+            <tbody id="laborTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Add Expense Form -->
+      <div class="section">
+        <div class="section-header">
+          <h2>➕ Add Expense</h2>
+        </div>
+        <div class="card">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Category</label>
+              <select id="expCategory">
+                <option value="COGS">COGS (Product)</option>
+                <option value="Fuel">Fuel</option>
+                <option value="Maintenance">Maintenance</option>
+                <option value="Insurance">Insurance</option>
+                <option value="Software">Software/Tech</option>
+                <option value="Marketing">Marketing</option>
+                <option value="Supplies">Supplies</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Amount ($)</label>
+              <input type="number" id="expAmount" step="0.01" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="expDate">
+            </div>
+            <div class="form-group">
+              <label>Machine (optional)</label>
+              <select id="expMachine"><option value="">— None —</option></select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Route (optional)</label>
+              <select id="expRoute"><option value="">— None —</option></select>
+            </div>
+            <div class="form-group">
+              <label>Location (optional)</label>
+              <select id="expLocation"><option value="">— None —</option></select>
+            </div>
+            <div class="form-group">
+              <label>Description</label>
+              <input type="text" id="expDesc" placeholder="Details...">
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="addExpense()">Add Expense</button>
+        </div>
+      </div>
+
+      <!-- Add Labor -->
+      <div class="section">
+        <div class="section-header">
+          <h2>➕ Log Labor</h2>
+        </div>
+        <div class="card">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Worker Name</label>
+              <input type="text" id="labWorker" placeholder="Name">
+            </div>
+            <div class="form-group">
+              <label>Role</label>
+              <select id="labRole">
+                <option value="driver">Driver</option>
+                <option value="packer">Packer</option>
+                <option value="technician">Technician</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Hours</label>
+              <input type="number" id="labHours" step="0.25" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label>Rate ($/hr)</label>
+              <input type="number" id="labRate" step="0.01" placeholder="25.00">
+            </div>
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="labDate">
+            </div>
+            <div class="form-group">
+              <label>Route (optional)</label>
+              <select id="labRoute"><option value="">— None —</option></select>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="addLabor()">Log Labor</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ TAB: PROFIT ============ -->
+    <div class="tab-panel" id="tab-profit">
+      <!-- Gross Margin by Location -->
+      <div class="section">
+        <div class="section-header">
+          <h2>📍 Gross Margin by Location</h2>
+        </div>
+        <div class="chart-container">
+          <canvas id="locationProfitChart" height="80"></canvas>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Location</th><th class="text-right">Revenue</th><th class="text-right">Expenses</th><th class="text-right">Commission</th><th class="text-right">Gross Profit</th><th class="text-right">Margin</th><th>Status</th></tr></thead>
+            <tbody id="profitLocationTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Net Margin by Route -->
+      <div class="section">
+        <div class="section-header">
+          <h2>🚗 Net Margin by Route</h2>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Route</th><th>Driver</th><th class="text-right">Revenue</th><th class="text-right">Expenses</th><th class="text-right">Labor</th><th class="text-right">Net Profit</th><th class="text-right">Margin</th></tr></thead>
+            <tbody id="profitRouteTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Break-Even / ROI per Machine -->
+      <div class="section">
+        <div class="section-header">
+          <h2>🏧 Machine ROI & Break-Even</h2>
+        </div>
+        <div class="chart-container">
+          <canvas id="roiChart" height="80"></canvas>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Machine</th><th class="text-right">Cost</th><th class="text-right">Cumulative Rev</th><th class="text-right">Cumulative Exp</th><th class="text-right">Net Profit</th><th class="text-right">ROI</th><th class="text-right">Break-Even</th><th>Status</th></tr></thead>
+            <tbody id="roiTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ TAB: COMMISSIONS ============ -->
+    <div class="tab-panel" id="tab-commissions">
+      <!-- Commission Calculator -->
+      <div class="section">
+        <div class="section-header">
+          <h2>🧮 Commission Calculator</h2>
+        </div>
+        <div class="chart-container">
+          <canvas id="commissionChart" height="80"></canvas>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Location</th><th class="text-right">Rev Share %</th><th class="text-right">Revenue</th><th class="text-right">Commission Due</th></tr></thead>
+            <tbody id="commissionCalcTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Commission History -->
+      <div class="section">
+        <div class="section-header">
+          <h2>📋 Commission History</h2>
+          <button class="btn btn-primary btn-sm" onclick="openRecordCommission()">+ Record Payment</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Location</th><th>Period</th><th class="text-right">Amount</th><th>Status</th><th>Paid Date</th><th>Actions</th></tr></thead>
+            <tbody id="commissionHistoryTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Invoice Generator -->
+      <div class="section">
+        <div class="section-header">
+          <h2>🧾 Invoice Generator</h2>
+        </div>
+        <div class="card">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Location</label>
+              <select id="invoiceLocation"></select>
+            </div>
+            <div class="form-group">
+              <label>Period Start</label>
+              <input type="date" id="invoiceStart">
+            </div>
+            <div class="form-group">
+              <label>Period End</label>
+              <input type="date" id="invoiceEnd">
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="generateInvoice()">Generate Invoice</button>
+        </div>
+        <div id="invoicePreview" style="display:none;margin-top:1.5rem;"></div>
+      </div>
+    </div>
+
+    <!-- ============ TAB: MANAGE ============ -->
+    <div class="tab-panel" id="tab-manage">
+      <!-- Machines -->
+      <div class="section">
+        <div class="section-header">
+          <h2>🏧 Machines</h2>
+          <button class="btn btn-primary btn-sm" onclick="openAddMachine()">+ Add Machine</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Type</th><th>Location</th><th class="text-right">Cost</th><th>Installed</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="machinesTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Locations -->
+      <div class="section">
+        <div class="section-header">
+          <h2>📍 Locations</h2>
+          <button class="btn btn-primary btn-sm" onclick="openAddLocation()">+ Add Location</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Address</th><th>Contact</th><th class="text-right">Rev Share</th><th class="text-right">Min/Month</th><th>Actions</th></tr></thead>
+            <tbody id="locationsTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Routes -->
+      <div class="section">
+        <div class="section-header">
+          <h2>🚗 Routes</h2>
+          <button class="btn btn-primary btn-sm" onclick="openAddRoute()">+ Add Route</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Driver</th><th>Locations</th><th>Actions</th></tr></thead>
+            <tbody id="routesTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ====== MODALS ====== -->
+  <!-- Add Machine Modal -->
+  <div class="modal-overlay" id="modalMachine">
+    <div class="modal">
+      <h3>Add Machine</h3>
+      <div class="form-row">
+        <div class="form-group"><label>Name</label><input type="text" id="mName" placeholder="e.g. HAHA-005"></div>
+        <div class="form-group"><label>Type</label>
+          <select id="mType"><option value="smart_cooler">Smart Cooler</option><option value="combo">Combo</option><option value="snack">Snack</option><option value="drink">Drink</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Location</label><select id="mLocation"></select></div>
+        <div class="form-group"><label>Purchase Cost ($)</label><input type="number" id="mCost" step="0.01"></div>
+        <div class="form-group"><label>Install Date</label><input type="date" id="mDate"></div>
+      </div>
+      <div class="flex gap-1 mt-2">
+        <button class="btn btn-primary" onclick="saveMachine()">Save</button>
+        <button class="btn btn-ghost" onclick="closeModal('modalMachine')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Location Modal -->
+  <div class="modal-overlay" id="modalLocation">
+    <div class="modal">
+      <h3>Add Location</h3>
+      <div class="form-row">
+        <div class="form-group"><label>Name</label><input type="text" id="lName" placeholder="e.g. Sunset Apartments"></div>
+        <div class="form-group"><label>Address</label><input type="text" id="lAddress"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Contact Name</label><input type="text" id="lContact"></div>
+        <div class="form-group"><label>Email</label><input type="email" id="lEmail"></div>
+        <div class="form-group"><label>Phone</label><input type="tel" id="lPhone"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Rev Share %</label><input type="number" id="lRevShare" step="0.1" value="5" min="0" max="100"></div>
+        <div class="form-group"><label>Monthly Minimum ($)</label><input type="number" id="lMinimum" value="2000"></div>
+      </div>
+      <div class="flex gap-1 mt-2">
+        <button class="btn btn-primary" onclick="saveLocation()">Save</button>
+        <button class="btn btn-ghost" onclick="closeModal('modalLocation')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Route Modal -->
+  <div class="modal-overlay" id="modalRoute">
+    <div class="modal">
+      <h3>Add Route</h3>
+      <div class="form-row">
+        <div class="form-group"><label>Name</label><input type="text" id="rName" placeholder="e.g. North Loop"></div>
+        <div class="form-group"><label>Driver</label><input type="text" id="rDriver"></div>
+      </div>
+      <div class="form-group mb-2">
+        <label>Locations (hold Ctrl/Cmd to select multiple)</label>
+        <select id="rLocations" multiple style="height:120px;"></select>
+      </div>
+      <div class="flex gap-1">
+        <button class="btn btn-primary" onclick="saveRoute()">Save</button>
+        <button class="btn btn-ghost" onclick="closeModal('modalRoute')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Record Commission Modal -->
+  <div class="modal-overlay" id="modalCommission">
+    <div class="modal">
+      <h3>Record Commission Payment</h3>
+      <div class="form-row">
+        <div class="form-group"><label>Location</label><select id="cLocation"></select></div>
+        <div class="form-group"><label>Amount ($)</label><input type="number" id="cAmount" step="0.01"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Period Start</label><input type="date" id="cStart"></div>
+        <div class="form-group"><label>Period End</label><input type="date" id="cEnd"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Status</label>
+          <select id="cStatus"><option value="pending">Pending</option><option value="paid">Paid</option></select>
+        </div>
+        <div class="form-group"><label>Notes</label><input type="text" id="cNotes"></div>
+      </div>
+      <div class="flex gap-1 mt-2">
+        <button class="btn btn-primary" onclick="saveCommission()">Save</button>
+        <button class="btn btn-ghost" onclick="closeModal('modalCommission')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/financials.js"></script>
+</body>
+</html>

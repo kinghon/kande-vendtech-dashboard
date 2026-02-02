@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Smart Machines — Kande VendTech</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa;
+      --card: #ffffff;
+      --card-hover: #f7fafc;
+      --border: #e2e8f0;
+      --text: #1a202c;
+      --muted: #718096;
+      --accent: #3182ce;
+      --accent-dim: rgba(49,130,206,0.1);
+      --success: #38a169;
+      --success-dim: rgba(56,161,105,0.1);
+      --warn: #dd6b20;
+      --warn-dim: rgba(221,107,32,0.1);
+      --hot: #e53e3e;
+      --hot-dim: rgba(229,62,62,0.1);
+      --purple: #7b2cbf;
+      --purple-dim: rgba(123,44,191,0.1);
+      --pink: #d53f8c;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .app { max-width: 1500px; margin: 0 auto; padding: 20px; }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--accent), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-danger { background: var(--hot); color: #fff; }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+    .btn-success { background: var(--success); color: #000; }
+
+    /* Stats Row */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .stat {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 20px;
+      border: 1px solid var(--border);
+      text-align: center;
+      transition: border-color 0.2s;
+    }
+    .stat:hover { border-color: var(--accent); }
+    .stat-icon { font-size: 1.4rem; margin-bottom: 6px; }
+    .stat-value { font-size: 2rem; font-weight: 700; }
+    .stat-value.accent { color: var(--accent); }
+    .stat-value.success { color: var(--success); }
+    .stat-value.warn { color: var(--warn); }
+    .stat-value.hot { color: var(--hot); }
+    .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Alerts Banner */
+    .alerts-banner {
+      background: var(--hot-dim);
+      border: 1px solid rgba(248,113,113,0.3);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: none;
+    }
+    .alerts-banner.visible { display: block; }
+    .alerts-banner h3 { color: var(--hot); font-size: 0.9rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .alert-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(248,113,113,0.15);
+      font-size: 0.85rem;
+    }
+    .alert-item:last-child { border-bottom: none; }
+    .alert-badge {
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .alert-inventory { background: var(--warn-dim); color: var(--warn); }
+    .alert-temp { background: var(--hot-dim); color: var(--hot); }
+    .alert-offline { background: rgba(100,116,139,0.2); color: var(--muted); }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+      border-bottom: 2px solid var(--border);
+    }
+    .tab {
+      padding: 12px 20px;
+      cursor: pointer;
+      font-weight: 500;
+      color: var(--muted);
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+      background: none;
+      font-size: 0.9rem;
+    }
+    .tab:hover { color: var(--accent); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* Machine Cards Grid */
+    .machines-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .machine-card {
+      background: var(--card);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 20px;
+      transition: all 0.25s;
+      cursor: pointer;
+    }
+    .machine-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .machine-card.alert { border-color: var(--hot); }
+
+    .mc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+    .mc-title { font-size: 1.05rem; font-weight: 600; }
+    .mc-serial { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+    .mc-vendor {
+      padding: 3px 10px;
+      border-radius: 8px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .vendor-vendmax { background: var(--accent-dim); color: var(--accent); }
+    .vendor-cantaloupe { background: var(--success-dim); color: var(--success); }
+    .vendor-nayax { background: var(--purple-dim); color: var(--purple); }
+    .vendor-usa-technologies { background: var(--warn-dim); color: var(--warn); }
+    .vendor-crane { background: rgba(244,114,182,0.15); color: var(--pink); }
+    .vendor-usi { background: rgba(100,116,139,0.2); color: #94a3b8; }
+    .vendor-default { background: rgba(100,116,139,0.2); color: var(--muted); }
+
+    .mc-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .mc-metric {
+      background: rgba(0,0,0,0.03);
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .mc-metric-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; }
+    .mc-metric-value { font-size: 1.15rem; font-weight: 600; margin-top: 4px; }
+
+    .mc-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .mc-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .status-dot.online { background: var(--success); box-shadow: 0 0 6px var(--success); }
+    .status-dot.offline { background: var(--muted); }
+    .status-dot.warning { background: var(--warn); box-shadow: 0 0 6px var(--warn); }
+
+    .mc-sync { font-size: 0.78rem; color: var(--muted); }
+
+    /* Inventory Bar */
+    .inv-bar-wrap {
+      height: 6px;
+      background: rgba(0,0,0,0.06);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    .inv-bar {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.5s ease;
+    }
+    .inv-high { background: var(--success); }
+    .inv-mid { background: var(--warn); }
+    .inv-low { background: var(--hot); }
+
+    /* Table View */
+    .table-container {
+      background: var(--card);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      background: rgba(0,0,0,0.03);
+      padding: 14px 16px;
+      text-align: left;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.88rem;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--card-hover); }
+
+    /* Detail Panel */
+    .detail-panel {
+      display: none;
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 520px;
+      max-width: 95vw;
+      height: 100vh;
+      background: var(--card);
+      border-left: 1px solid var(--border);
+      z-index: 1000;
+      overflow-y: auto;
+      padding: 24px;
+      box-shadow: -4px 0 20px rgba(0,0,0,0.5);
+    }
+    .detail-panel.open { display: block; }
+    .detail-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 999;
+    }
+    .detail-overlay.open { display: block; }
+
+    .dp-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+    }
+    .dp-close {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 4px;
+    }
+    .dp-close:hover { color: var(--text); }
+
+    .dp-section {
+      margin-bottom: 24px;
+    }
+    .dp-section h3 {
+      font-size: 0.85rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+    .dp-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .dp-item {
+      background: rgba(0,0,0,0.03);
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .dp-item-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; }
+    .dp-item-value { font-size: 1.1rem; font-weight: 600; margin-top: 4px; }
+
+    .chart-container {
+      background: rgba(0,0,0,0.03);
+      border-radius: 12px;
+      padding: 16px;
+      height: 220px;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 28px;
+      max-width: 560px;
+      width: 95%;
+      max-height: 90vh;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+    }
+    .modal h2 {
+      font-size: 1.25rem;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: var(--text);
+      background: var(--bg);
+    }
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--muted);
+    }
+    .empty-state .icon { font-size: 3.5rem; margin-bottom: 16px; }
+    .empty-state h3 { font-size: 1.1rem; color: var(--text); margin-bottom: 8px; }
+
+    /* Hide sections */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .machines-grid { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .form-row { grid-template-columns: 1fr; }
+      .mc-metrics { grid-template-columns: 1fr; }
+      .header { flex-direction: column; align-items: flex-start; }
+      .dp-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <script src="/nav.js"></script>
+  <div class="app">
+    <!-- Header -->
+    <div class="header">
+      <h1>📡 Smart Machine Integration</h1>
+      <div class="header-actions">
+        <button class="btn btn-secondary" onclick="generateMockData()">🎲 Generate Mock Data</button>
+        <button class="btn btn-primary" onclick="openAddModal()">➕ Register Machine</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats" id="stats">
+      <div class="stat">
+        <div class="stat-icon">📡</div>
+        <div class="stat-value accent" id="stat-total">0</div>
+        <div class="stat-label">Smart Machines</div>
+      </div>
+      <div class="stat">
+        <div class="stat-icon">🟢</div>
+        <div class="stat-value success" id="stat-online">0</div>
+        <div class="stat-label">Online</div>
+      </div>
+      <div class="stat">
+        <div class="stat-icon">⚠️</div>
+        <div class="stat-value warn" id="stat-alerts">0</div>
+        <div class="stat-label">Active Alerts</div>
+      </div>
+      <div class="stat">
+        <div class="stat-icon">📦</div>
+        <div class="stat-value accent" id="stat-avg-inv">—</div>
+        <div class="stat-label">Avg Inventory</div>
+      </div>
+      <div class="stat">
+        <div class="stat-icon">🌡️</div>
+        <div class="stat-value" id="stat-avg-temp">—</div>
+        <div class="stat-label">Avg Temperature</div>
+      </div>
+      <div class="stat">
+        <div class="stat-icon">💰</div>
+        <div class="stat-value success" id="stat-last-sale">—</div>
+        <div class="stat-label">Last Sale</div>
+      </div>
+    </div>
+
+    <!-- Alerts -->
+    <div class="alerts-banner" id="alerts-banner">
+      <h3>🚨 Active Alerts</h3>
+      <div id="alerts-list"></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="cards" onclick="switchTab('cards')">📊 Card View</button>
+      <button class="tab" data-tab="table" onclick="switchTab('table')">📋 Table View</button>
+      <button class="tab" data-tab="telemetry" onclick="switchTab('telemetry')">📈 Telemetry Overview</button>
+    </div>
+
+    <!-- Card View -->
+    <div class="section active" id="section-cards">
+      <div class="machines-grid" id="machines-grid"></div>
+      <div class="empty-state" id="empty-cards" style="display:none;">
+        <div class="icon">📡</div>
+        <h3>No Smart Machines Registered</h3>
+        <p>Register a smart vending machine to see real-time telemetry data.</p>
+        <br>
+        <button class="btn btn-primary" onclick="openAddModal()">➕ Register Machine</button>
+      </div>
+    </div>
+
+    <!-- Table View -->
+    <div class="section" id="section-table">
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Machine</th>
+              <th>Serial</th>
+              <th>Vendor</th>
+              <th>Location</th>
+              <th>Inventory</th>
+              <th>Temperature</th>
+              <th>Last Sale</th>
+              <th>Door</th>
+              <th>Status</th>
+              <th>Last Sync</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="machines-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Telemetry Overview -->
+    <div class="section" id="section-telemetry">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+        <div class="chart-container" style="height:300px;">
+          <canvas id="chart-inventory"></canvas>
+        </div>
+        <div class="chart-container" style="height:300px;">
+          <canvas id="chart-temperature"></canvas>
+        </div>
+      </div>
+      <div class="chart-container" style="height:300px; margin-bottom: 20px;">
+        <canvas id="chart-sales"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Side Panel -->
+  <div class="detail-overlay" id="detail-overlay" onclick="closeDetail()"></div>
+  <div class="detail-panel" id="detail-panel">
+    <div class="dp-header">
+      <div>
+        <h2 id="dp-title" style="font-size:1.2rem;"></h2>
+        <div id="dp-subtitle" style="color:var(--muted); font-size:0.85rem;"></div>
+      </div>
+      <button class="dp-close" onclick="closeDetail()">✕</button>
+    </div>
+
+    <div class="dp-section">
+      <h3>Current Status</h3>
+      <div class="dp-grid" id="dp-metrics"></div>
+    </div>
+
+    <div class="dp-section">
+      <h3>Inventory History (24h)</h3>
+      <div class="chart-container">
+        <canvas id="chart-detail-inv"></canvas>
+      </div>
+    </div>
+
+    <div class="dp-section">
+      <h3>Temperature History (24h)</h3>
+      <div class="chart-container">
+        <canvas id="chart-detail-temp"></canvas>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:20px;">
+      <button class="btn btn-danger btn-sm" onclick="deleteMachine(currentMachineId)">🗑️ Delete</button>
+    </div>
+  </div>
+
+  <!-- Add Machine Modal -->
+  <div class="modal-overlay" id="add-modal">
+    <div class="modal">
+      <h2>📡 Register Smart Machine</h2>
+      <div class="form-group">
+        <label>Machine Name / Label</label>
+        <input type="text" id="fm-name" placeholder="e.g., Lobby Machine #1">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Machine Serial</label>
+          <input type="text" id="fm-serial" placeholder="e.g., VM-2024-001">
+        </div>
+        <div class="form-group">
+          <label>Vendor / Platform</label>
+          <select id="fm-vendor">
+            <option value="VendMax">VendMax</option>
+            <option value="Cantaloupe">Cantaloupe</option>
+            <option value="Nayax">Nayax</option>
+            <option value="USA Technologies">USA Technologies</option>
+            <option value="Crane">Crane</option>
+            <option value="USI">USI</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Location</label>
+          <select id="fm-location">
+            <option value="">— No location —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Machine Type</label>
+          <select id="fm-type">
+            <option value="standard">Standard</option>
+            <option value="refrigerated">Refrigerated</option>
+            <option value="frozen">Frozen</option>
+            <option value="combo">Combo</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>API Key / Integration Token</label>
+        <input type="text" id="fm-apikey" placeholder="Paste vendor API key...">
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="closeAddModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveMachine()">Register Machine</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== STATE =====
+    let smartMachines = [];
+    let locations = [];
+    let currentMachineId = null;
+    let detailCharts = {};
+    let overviewCharts = {};
+
+    // ===== INIT =====
+    async function init() {
+      await Promise.all([loadMachines(), loadLocations()]);
+      render();
+    }
+
+    async function loadMachines() {
+      try {
+        const res = await fetch('/api/smart-machines');
+        smartMachines = await res.json();
+      } catch (e) { console.error('Load machines error:', e); smartMachines = []; }
+    }
+
+    async function loadLocations() {
+      try {
+        const res = await fetch('/api/locations');
+        locations = await res.json();
+      } catch (e) { locations = []; }
+    }
+
+    // ===== RENDER =====
+    function render() {
+      renderStats();
+      renderAlerts();
+      renderCards();
+      renderTable();
+      renderOverviewCharts();
+      populateLocationDropdown();
+    }
+
+    function renderStats() {
+      const total = smartMachines.length;
+      const online = smartMachines.filter(m => m.status === 'online').length;
+      const telemetryMachines = smartMachines.filter(m => m.latest_telemetry);
+
+      let alerts = 0;
+      telemetryMachines.forEach(m => {
+        const t = m.latest_telemetry;
+        if (t.inventory_level < 20) alerts++;
+        if (t.temperature !== null && (t.temperature > 45 || t.temperature < 30)) alerts++;
+      });
+
+      const avgInv = telemetryMachines.length > 0
+        ? Math.round(telemetryMachines.reduce((s, m) => s + (m.latest_telemetry.inventory_level || 0), 0) / telemetryMachines.length)
+        : null;
+
+      const tempMachines = telemetryMachines.filter(m => m.machine_type === 'refrigerated' || m.machine_type === 'frozen');
+      const avgTemp = tempMachines.length > 0
+        ? (tempMachines.reduce((s, m) => s + (m.latest_telemetry.temperature || 0), 0) / tempMachines.length).toFixed(1)
+        : null;
+
+      // Find most recent sale
+      let lastSale = null;
+      telemetryMachines.forEach(m => {
+        if (m.latest_telemetry.last_sale) {
+          if (!lastSale || new Date(m.latest_telemetry.last_sale) > new Date(lastSale)) {
+            lastSale = m.latest_telemetry.last_sale;
+          }
+        }
+      });
+
+      document.getElementById('stat-total').textContent = total;
+      document.getElementById('stat-online').textContent = online;
+      document.getElementById('stat-alerts').textContent = alerts;
+      document.getElementById('stat-avg-inv').textContent = avgInv !== null ? avgInv + '%' : '—';
+      document.getElementById('stat-avg-temp').textContent = avgTemp !== null ? avgTemp + '°F' : '—';
+      document.getElementById('stat-last-sale').textContent = lastSale ? timeAgo(lastSale) : '—';
+
+      // Color avg temp
+      const tempEl = document.getElementById('stat-avg-temp');
+      if (avgTemp !== null) {
+        if (avgTemp > 42 || avgTemp < 32) tempEl.className = 'stat-value hot';
+        else if (avgTemp > 40 || avgTemp < 34) tempEl.className = 'stat-value warn';
+        else tempEl.className = 'stat-value success';
+      }
+    }
+
+    function renderAlerts() {
+      const alerts = [];
+      smartMachines.forEach(m => {
+        const t = m.latest_telemetry;
+        if (!t) return;
+
+        if (t.inventory_level < 20) {
+          alerts.push({
+            type: 'inventory',
+            machine: m.name || m.machine_serial,
+            message: `Inventory critically low at ${t.inventory_level}%`,
+            id: m.id
+          });
+        }
+        if (t.temperature !== null && t.temperature > 45) {
+          alerts.push({
+            type: 'temp',
+            machine: m.name || m.machine_serial,
+            message: `Temperature high at ${t.temperature}°F`,
+            id: m.id
+          });
+        }
+        if (t.temperature !== null && t.temperature < 30) {
+          alerts.push({
+            type: 'temp',
+            machine: m.name || m.machine_serial,
+            message: `Temperature too low at ${t.temperature}°F`,
+            id: m.id
+          });
+        }
+        if (m.status === 'offline') {
+          alerts.push({
+            type: 'offline',
+            machine: m.name || m.machine_serial,
+            message: `Machine offline — last seen ${m.last_sync ? timeAgo(m.last_sync) : 'never'}`,
+            id: m.id
+          });
+        }
+      });
+
+      const banner = document.getElementById('alerts-banner');
+      const list = document.getElementById('alerts-list');
+      if (alerts.length === 0) {
+        banner.classList.remove('visible');
+        return;
+      }
+
+      banner.classList.add('visible');
+      list.innerHTML = alerts.map(a => `
+        <div class="alert-item" onclick="openDetail(${a.id})" style="cursor:pointer;">
+          <span class="alert-badge alert-${a.type}">${a.type === 'inventory' ? '📦 LOW' : a.type === 'temp' ? '🌡️ TEMP' : '📡 OFFLINE'}</span>
+          <strong>${a.machine}</strong>
+          <span style="color:var(--muted);">${a.message}</span>
+        </div>
+      `).join('');
+    }
+
+    function renderCards() {
+      const grid = document.getElementById('machines-grid');
+      const empty = document.getElementById('empty-cards');
+
+      if (smartMachines.length === 0) {
+        grid.style.display = 'none';
+        empty.style.display = 'block';
+        return;
+      }
+      grid.style.display = 'grid';
+      empty.style.display = 'none';
+
+      grid.innerHTML = smartMachines.map(m => {
+        const t = m.latest_telemetry || {};
+        const inv = t.inventory_level ?? '—';
+        const temp = t.temperature !== null && t.temperature !== undefined ? t.temperature + '°F' : 'N/A';
+        const lastSale = t.last_sale ? timeAgo(t.last_sale) : 'No sales';
+        const door = t.door_status || 'closed';
+        const vendorClass = 'vendor-' + (m.vendor || 'default').toLowerCase().replace(/\s+/g, '-');
+        const hasAlert = (t.inventory_level < 20) || (t.temperature !== null && (t.temperature > 45 || t.temperature < 30));
+        const statusClass = m.status === 'online' ? 'online' : m.status === 'warning' ? 'warning' : 'offline';
+
+        const invColor = inv === '—' ? 'var(--muted)' : inv >= 50 ? 'var(--success)' : inv >= 20 ? 'var(--warn)' : 'var(--hot)';
+        const invBarClass = inv === '—' ? '' : inv >= 50 ? 'inv-high' : inv >= 20 ? 'inv-mid' : 'inv-low';
+
+        const locName = m.location_name || locations.find(l => l.id === m.location_id)?.name || 'Unassigned';
+
+        return `
+          <div class="machine-card ${hasAlert ? 'alert' : ''}" onclick="openDetail(${m.id})">
+            <div class="mc-header">
+              <div>
+                <div class="mc-title">${m.name || m.machine_serial}</div>
+                <div class="mc-serial">${m.machine_serial} · ${locName}</div>
+              </div>
+              <span class="mc-vendor ${vendorClass}">${m.vendor || 'Unknown'}</span>
+            </div>
+
+            <div class="mc-metrics">
+              <div class="mc-metric">
+                <div class="mc-metric-label">📦 Inventory</div>
+                <div class="mc-metric-value" style="color:${invColor}">${inv !== '—' ? inv + '%' : '—'}</div>
+                ${inv !== '—' ? `<div class="inv-bar-wrap"><div class="inv-bar ${invBarClass}" style="width:${inv}%"></div></div>` : ''}
+              </div>
+              <div class="mc-metric">
+                <div class="mc-metric-label">🌡️ Temperature</div>
+                <div class="mc-metric-value">${temp}</div>
+              </div>
+              <div class="mc-metric">
+                <div class="mc-metric-label">💰 Last Sale</div>
+                <div class="mc-metric-value" style="font-size:0.9rem;">${lastSale}</div>
+              </div>
+              <div class="mc-metric">
+                <div class="mc-metric-label">🚪 Door</div>
+                <div class="mc-metric-value" style="color:${door === 'open' ? 'var(--warn)' : 'var(--success)'}">${door}</div>
+              </div>
+            </div>
+
+            <div class="mc-footer">
+              <div class="mc-status">
+                <span class="status-dot ${statusClass}"></span>
+                ${m.status || 'unknown'}
+              </div>
+              <div class="mc-sync">${m.last_sync ? 'Synced ' + timeAgo(m.last_sync) : 'Never synced'}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('machines-tbody');
+      tbody.innerHTML = smartMachines.map(m => {
+        const t = m.latest_telemetry || {};
+        const inv = t.inventory_level ?? '—';
+        const temp = t.temperature !== null && t.temperature !== undefined ? t.temperature + '°F' : 'N/A';
+        const lastSale = t.last_sale ? new Date(t.last_sale).toLocaleString() : '—';
+        const door = t.door_status || '—';
+        const vendorClass = 'vendor-' + (m.vendor || 'default').toLowerCase().replace(/\s+/g, '-');
+        const statusClass = m.status === 'online' ? 'online' : m.status === 'warning' ? 'warning' : 'offline';
+        const locName = m.location_name || locations.find(l => l.id === m.location_id)?.name || '—';
+        const invColor = inv === '—' ? 'var(--muted)' : inv >= 50 ? 'var(--success)' : inv >= 20 ? 'var(--warn)' : 'var(--hot)';
+
+        return `
+          <tr style="cursor:pointer;" onclick="openDetail(${m.id})">
+            <td><strong>${m.name || m.machine_serial}</strong></td>
+            <td style="color:var(--muted);font-size:0.82rem;">${m.machine_serial}</td>
+            <td><span class="mc-vendor ${vendorClass}">${m.vendor}</span></td>
+            <td>${locName}</td>
+            <td style="color:${invColor};font-weight:600;">${inv !== '—' ? inv + '%' : '—'}</td>
+            <td>${temp}</td>
+            <td style="font-size:0.82rem;">${lastSale}</td>
+            <td style="color:${door === 'open' ? 'var(--warn)' : 'var(--success)'}">${door}</td>
+            <td><span class="mc-status"><span class="status-dot ${statusClass}"></span> ${m.status}</span></td>
+            <td style="font-size:0.8rem;color:var(--muted);">${m.last_sync ? timeAgo(m.last_sync) : '—'}</td>
+            <td>
+              <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteMachine(${m.id})">🗑️</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderOverviewCharts() {
+      const machinesWithTelemetry = smartMachines.filter(m => m.latest_telemetry);
+      if (machinesWithTelemetry.length === 0) return;
+
+      // Inventory chart
+      if (overviewCharts.inv) overviewCharts.inv.destroy();
+      const invCtx = document.getElementById('chart-inventory').getContext('2d');
+      overviewCharts.inv = new Chart(invCtx, {
+        type: 'bar',
+        data: {
+          labels: machinesWithTelemetry.map(m => m.name || m.machine_serial),
+          datasets: [{
+            label: 'Inventory %',
+            data: machinesWithTelemetry.map(m => m.latest_telemetry.inventory_level),
+            backgroundColor: machinesWithTelemetry.map(m => {
+              const inv = m.latest_telemetry.inventory_level;
+              return inv >= 50 ? 'rgba(52,211,153,0.7)' : inv >= 20 ? 'rgba(251,191,36,0.7)' : 'rgba(229,62,62,0.7)';
+            }),
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: { display: true, text: 'Inventory Levels by Machine', color: '#e2e8f0', font: { size: 14 } },
+            legend: { display: false }
+          },
+          scales: {
+            y: { max: 100, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#64748b', callback: v => v + '%' } },
+            x: { grid: { display: false }, ticks: { color: '#64748b', maxRotation: 45 } }
+          }
+        }
+      });
+
+      // Temperature chart
+      const tempMachines = machinesWithTelemetry.filter(m => m.latest_telemetry.temperature !== null);
+      if (tempMachines.length > 0) {
+        if (overviewCharts.temp) overviewCharts.temp.destroy();
+        const tempCtx = document.getElementById('chart-temperature').getContext('2d');
+        overviewCharts.temp = new Chart(tempCtx, {
+          type: 'bar',
+          data: {
+            labels: tempMachines.map(m => m.name || m.machine_serial),
+            datasets: [{
+              label: 'Temperature °F',
+              data: tempMachines.map(m => m.latest_telemetry.temperature),
+              backgroundColor: tempMachines.map(m => {
+                const t = m.latest_telemetry.temperature;
+                return (t > 42 || t < 32) ? 'rgba(229,62,62,0.7)' : 'rgba(49,130,206,0.7)';
+              }),
+              borderRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              title: { display: true, text: 'Machine Temperatures', color: '#e2e8f0', font: { size: 14 } },
+              legend: { display: false },
+              annotation: {
+                annotations: {
+                  safeLow: { type: 'line', yMin: 34, yMax: 34, borderColor: 'rgba(52,211,153,0.5)', borderDash: [5,5] },
+                  safeHigh: { type: 'line', yMin: 40, yMax: 40, borderColor: 'rgba(251,191,36,0.5)', borderDash: [5,5] }
+                }
+              }
+            },
+            scales: {
+              y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#64748b', callback: v => v + '°F' } },
+              x: { grid: { display: false }, ticks: { color: '#64748b', maxRotation: 45 } }
+            }
+          }
+        });
+      }
+
+      // Sales timeline mock
+      if (overviewCharts.sales) overviewCharts.sales.destroy();
+      const salesCtx = document.getElementById('chart-sales').getContext('2d');
+      const hours = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+      const datasets = machinesWithTelemetry.slice(0, 6).map((m, idx) => {
+        const colors = ['#3182ce', '#38a169', '#dd6b20', '#e53e3e', '#7b2cbf', '#d53f8c'];
+        return {
+          label: m.name || m.machine_serial,
+          data: hours.map(() => Math.floor(Math.random() * 8)),
+          borderColor: colors[idx],
+          backgroundColor: 'transparent',
+          tension: 0.4,
+          pointRadius: 2
+        };
+      });
+      overviewCharts.sales = new Chart(salesCtx, {
+        type: 'line',
+        data: { labels: hours, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: { display: true, text: 'Sales Activity (Today - Simulated)', color: '#e2e8f0', font: { size: 14 } },
+            legend: { labels: { color: '#64748b', usePointStyle: true, pointStyle: 'circle' } }
+          },
+          scales: {
+            y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#64748b' } },
+            x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#64748b' } }
+          }
+        }
+      });
+    }
+
+    // ===== DETAIL PANEL =====
+    async function openDetail(id) {
+      currentMachineId = id;
+      const machine = smartMachines.find(m => m.id === id);
+      if (!machine) return;
+
+      document.getElementById('dp-title').textContent = machine.name || machine.machine_serial;
+      document.getElementById('dp-subtitle').textContent = `${machine.machine_serial} · ${machine.vendor} · ${machine.machine_type || 'standard'}`;
+
+      const t = machine.latest_telemetry || {};
+      const locName = machine.location_name || locations.find(l => l.id === machine.location_id)?.name || 'Unassigned';
+
+      document.getElementById('dp-metrics').innerHTML = `
+        <div class="dp-item">
+          <div class="dp-item-label">📦 Inventory</div>
+          <div class="dp-item-value" style="color:${(t.inventory_level ?? 0) >= 50 ? 'var(--success)' : (t.inventory_level ?? 0) >= 20 ? 'var(--warn)' : 'var(--hot)'}">${t.inventory_level !== undefined ? t.inventory_level + '%' : '—'}</div>
+        </div>
+        <div class="dp-item">
+          <div class="dp-item-label">🌡️ Temperature</div>
+          <div class="dp-item-value">${t.temperature !== null && t.temperature !== undefined ? t.temperature + '°F' : 'N/A'}</div>
+        </div>
+        <div class="dp-item">
+          <div class="dp-item-label">💰 Last Sale</div>
+          <div class="dp-item-value" style="font-size:0.95rem;">${t.last_sale ? new Date(t.last_sale).toLocaleString() : '—'}</div>
+        </div>
+        <div class="dp-item">
+          <div class="dp-item-label">🚪 Door</div>
+          <div class="dp-item-value" style="color:${t.door_status === 'open' ? 'var(--warn)' : 'var(--success)'}">${t.door_status || 'closed'}</div>
+        </div>
+        <div class="dp-item">
+          <div class="dp-item-label">📍 Location</div>
+          <div class="dp-item-value" style="font-size:0.95rem;">${locName}</div>
+        </div>
+        <div class="dp-item">
+          <div class="dp-item-label">📡 Status</div>
+          <div class="dp-item-value" style="color:${machine.status === 'online' ? 'var(--success)' : 'var(--muted)'}">${machine.status}</div>
+        </div>
+      `;
+
+      // Load telemetry history
+      try {
+        const res = await fetch(`/api/smart-machines/${id}/telemetry`);
+        const telemetry = await res.json();
+        renderDetailCharts(telemetry);
+      } catch (e) {
+        console.error('Telemetry load error:', e);
+      }
+
+      document.getElementById('detail-overlay').classList.add('open');
+      document.getElementById('detail-panel').classList.add('open');
+    }
+
+    function closeDetail() {
+      document.getElementById('detail-overlay').classList.remove('open');
+      document.getElementById('detail-panel').classList.remove('open');
+      currentMachineId = null;
+    }
+
+    function renderDetailCharts(telemetry) {
+      if (telemetry.length === 0) return;
+
+      const labels = telemetry.map(t => {
+        const d = new Date(t.timestamp);
+        return d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+      });
+
+      // Inventory chart
+      if (detailCharts.inv) detailCharts.inv.destroy();
+      const invCtx = document.getElementById('chart-detail-inv').getContext('2d');
+      detailCharts.inv = new Chart(invCtx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Inventory %',
+            data: telemetry.map(t => t.inventory_level),
+            borderColor: '#3182ce',
+            backgroundColor: 'rgba(49,130,206,0.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { max: 100, min: 0, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#64748b', callback: v => v + '%' } },
+            x: { grid: { display: false }, ticks: { color: '#64748b', maxTicksLimit: 12 } }
+          }
+        }
+      });
+
+      // Temperature chart
+      const tempData = telemetry.filter(t => t.temperature !== null);
+      if (tempData.length > 0) {
+        if (detailCharts.temp) detailCharts.temp.destroy();
+        const tempCtx = document.getElementById('chart-detail-temp').getContext('2d');
+        detailCharts.temp = new Chart(tempCtx, {
+          type: 'line',
+          data: {
+            labels: tempData.map(t => {
+              const d = new Date(t.timestamp);
+              return d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+            }),
+            datasets: [{
+              label: 'Temperature °F',
+              data: tempData.map(t => t.temperature),
+              borderColor: '#d53f8c',
+              backgroundColor: 'rgba(213,63,140,0.1)',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#64748b', callback: v => v + '°F' } },
+              x: { grid: { display: false }, ticks: { color: '#64748b', maxTicksLimit: 12 } }
+            }
+          }
+        });
+      }
+    }
+
+    // ===== TABS =====
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.getElementById('section-' + tab).classList.add('active');
+
+      if (tab === 'telemetry') renderOverviewCharts();
+    }
+
+    // ===== ADD/DELETE =====
+    function openAddModal() {
+      document.getElementById('fm-name').value = '';
+      document.getElementById('fm-serial').value = '';
+      document.getElementById('fm-apikey').value = '';
+      document.getElementById('add-modal').classList.add('open');
+    }
+
+    function closeAddModal() {
+      document.getElementById('add-modal').classList.remove('open');
+    }
+
+    function populateLocationDropdown() {
+      const sel = document.getElementById('fm-location');
+      sel.innerHTML = '<option value="">— No location —</option>' +
+        locations.map(l => `<option value="${l.id}">${l.prospect_name || l.name || 'Location #' + l.id}</option>`).join('');
+    }
+
+    async function saveMachine() {
+      const data = {
+        name: document.getElementById('fm-name').value.trim(),
+        machine_serial: document.getElementById('fm-serial').value.trim(),
+        vendor: document.getElementById('fm-vendor').value,
+        location_id: document.getElementById('fm-location').value ? parseInt(document.getElementById('fm-location').value) : null,
+        machine_type: document.getElementById('fm-type').value,
+        api_key: document.getElementById('fm-apikey').value.trim()
+      };
+
+      if (!data.machine_serial) return alert('Machine serial is required.');
+
+      try {
+        await fetch('/api/smart-machines', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        closeAddModal();
+        await loadMachines();
+        render();
+      } catch (e) {
+        alert('Error registering machine: ' + e.message);
+      }
+    }
+
+    async function deleteMachine(id) {
+      if (!confirm('Delete this smart machine? This will also remove its telemetry data.')) return;
+      try {
+        await fetch(`/api/smart-machines/${id}`, { method: 'DELETE' });
+        closeDetail();
+        await loadMachines();
+        render();
+      } catch (e) {
+        alert('Error deleting machine.');
+      }
+    }
+
+    // ===== MOCK DATA =====
+    async function generateMockData() {
+      if (!confirm('Generate 6 demo smart machines with simulated telemetry?')) return;
+
+      const vendors = ['VendMax', 'Cantaloupe', 'Nayax', 'USA Technologies', 'Crane', 'USI'];
+      const types = ['standard', 'refrigerated', 'refrigerated', 'combo', 'standard', 'frozen'];
+      const names = [
+        'Lobby Refreshments', 'Break Room Snacks', 'Pool Area Drinks',
+        'Gym Fuel Station', 'Office Pantry', 'Frozen Treats'
+      ];
+      const serials = ['VM-2024-001', 'VM-2024-002', 'VM-2024-003', 'VM-2024-004', 'VM-2024-005', 'VM-2024-006'];
+
+      for (let i = 0; i < 6; i++) {
+        try {
+          const res = await fetch('/api/smart-machines', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: names[i],
+              machine_serial: serials[i] + '-' + Date.now().toString(36).slice(-3),
+              vendor: vendors[i],
+              machine_type: types[i],
+              location_id: locations[i] ? locations[i].id : null,
+              api_key: 'mock_' + Math.random().toString(36).slice(2, 14),
+              generate_telemetry: true
+            })
+          });
+        } catch (e) { console.error('Mock gen error:', e); }
+      }
+
+      await loadMachines();
+      render();
+    }
+
+    // ===== UTILITIES =====
+    function timeAgo(dateStr) {
+      const diff = Date.now() - new Date(dateStr).getTime();
+      if (diff < 60000) return 'just now';
+      if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+      if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+      return Math.floor(diff / 86400000) + 'd ago';
+    }
+
+    // Auto-refresh every 30s
+    setInterval(async () => {
+      await loadMachines();
+      renderStats();
+      renderAlerts();
+      renderCards();
+      renderTable();
+    }, 30000);
+
+    // ===== GO =====
+    init();
+  </script>
+</body>
+</html>

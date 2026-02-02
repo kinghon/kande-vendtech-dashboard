@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Kande VendTech — Operations Platform</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f5f7; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
+      --muted: #718096; --accent: #3182ce; --hot: #e53e3e; --warn: #dd6b20;
+      --success: #38a169; --purple: #7b2cbf;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+    /* Nav */
+    .top-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .top-nav .logo { height: 40px; }
+    .top-nav a { color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500; padding: 6px 12px; border-radius: 6px; transition: all 0.2s; }
+    .top-nav a:hover, .top-nav a.active { color: var(--accent); background: rgba(49,130,206,0.08); }
+    .nav-spacer { flex: 1; }
+    .nav-brand { font-size: 0.9rem; font-weight: 600; color: var(--text); margin-right: 8px; }
+
+    /* Hero */
+    .hero { text-align: center; margin-bottom: 40px; }
+    .hero h1 { font-size: 2rem; font-weight: 700; background: linear-gradient(90deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+    .hero p { color: var(--muted); font-size: 1rem; }
+
+    /* Health Bar */
+    .health-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 32px; }
+    .health-card { background: var(--card); border-radius: 12px; padding: 18px; border: 1px solid var(--border); text-align: center; transition: transform 0.2s; }
+    .health-card:hover { transform: translateY(-2px); }
+    .health-card .value { font-size: 2rem; font-weight: 700; }
+    .health-card .label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; font-weight: 600; }
+    .value.accent { color: var(--accent); }
+    .value.success { color: var(--success); }
+    .value.warn { color: var(--warn); }
+    .value.hot { color: var(--hot); }
+
+    /* Section Title */
+    .section-title { font-size: 1.3rem; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+    .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* Org Summary Bar */
+    .org-summary {
+      display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 24px;
+      padding: 16px 24px; background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+    .org-summary-stat { text-align: center; }
+    .org-summary-num { font-size: 1.8rem; font-weight: 800; color: var(--text); }
+    .org-summary-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Division Cards */
+    .divisions-container { display: flex; flex-direction: column; gap: 16px; margin-bottom: 40px; }
+
+    .division-card {
+      background: var(--card); border-radius: 14px; border: 1px solid var(--border);
+      overflow: hidden; transition: all 0.25s ease;
+    }
+    .division-card:hover { border-color: var(--accent); box-shadow: 0 4px 16px rgba(49,130,206,0.08); }
+    .division-card.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(49,130,206,0.15); }
+
+    .division-header {
+      display: flex; align-items: center; gap: 16px; padding: 20px 24px;
+      cursor: pointer; user-select: none; transition: background 0.15s;
+    }
+    .division-header:hover { background: rgba(49,130,206,0.03); }
+
+    .division-emoji { font-size: 2rem; flex-shrink: 0; }
+    .division-info { flex: 1; min-width: 0; }
+    .division-name { font-size: 1.15rem; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+    .division-mission { font-size: 0.85rem; color: var(--muted); line-height: 1.4; }
+
+    .division-badges { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
+    .division-badge {
+      display: flex; flex-direction: column; align-items: center; padding: 6px 14px;
+      background: #f7fafc; border-radius: 10px; min-width: 60px;
+    }
+    .division-badge-num { font-size: 1.25rem; font-weight: 800; color: var(--accent); line-height: 1; }
+    .division-badge-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; }
+    .division-badge.has-activity .division-badge-num { color: var(--success); }
+
+    .division-chevron {
+      width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+      border-radius: 50%; background: #f7fafc; color: var(--muted); font-size: 0.9rem;
+      transition: transform 0.3s ease; flex-shrink: 0;
+    }
+    .division-card.expanded .division-chevron { transform: rotate(180deg); }
+
+    /* Teams Panel */
+    .division-teams {
+      max-height: 0; overflow: hidden; transition: max-height 0.4s ease;
+      background: #fafbfc; border-top: 0 solid var(--border);
+    }
+    .division-card.expanded .division-teams {
+      max-height: 2000px; border-top-width: 1px;
+    }
+    .division-teams-inner { padding: 16px 24px 20px; }
+
+    .teams-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px;
+    }
+
+    .team-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px 16px; transition: all 0.2s; cursor: pointer;
+    }
+    .team-card:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(49,130,206,0.08); }
+    .team-card.has-activity { border-left: 3px solid var(--success); }
+
+    .team-name { font-size: 0.9rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .team-lead { font-size: 0.78rem; color: var(--muted); margin-bottom: 8px; }
+    .team-lead .bot-name { color: var(--accent); font-weight: 600; }
+
+    .team-stats { display: flex; gap: 12px; }
+    .team-stat { font-size: 0.78rem; color: var(--muted); }
+    .team-stat strong { color: var(--text); font-weight: 700; }
+    .team-stat.active strong { color: var(--success); }
+
+    .team-agents-list { margin-top: 8px; padding-top: 8px; border-top: 1px solid #edf2f7; }
+    .team-agent-row { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: #4a5568; margin-bottom: 3px; }
+    .agent-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); flex-shrink: 0; animation: pulse-dot 2s ease-in-out infinite; }
+    @keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .agent-task { color: var(--muted); font-style: italic; margin-left: auto; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Division Detail Modal */
+    .div-modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.45); z-index: 1000; align-items: center;
+      justify-content: center; padding: 20px;
+    }
+    .div-modal-overlay.show { display: flex; }
+    .div-modal {
+      background: var(--card); border-radius: 16px; max-width: 640px; width: 100%;
+      max-height: 82vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    }
+    .div-modal-header {
+      padding: 20px 24px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; background: var(--card); z-index: 1;
+    }
+    .div-modal-title { display: flex; align-items: center; gap: 12px; font-size: 1.2rem; font-weight: 700; }
+    .div-modal-close {
+      background: none; border: none; font-size: 1.5rem; color: var(--muted);
+      cursor: pointer; padding: 4px 8px; border-radius: 6px;
+    }
+    .div-modal-close:hover { background: #f3f4f6; color: var(--text); }
+    .div-modal-body { padding: 24px; }
+
+    .modal-section { margin-bottom: 20px; }
+    .modal-section:last-child { margin-bottom: 0; }
+    .modal-section-title {
+      font-size: 0.8rem; font-weight: 600; color: var(--muted); text-transform: uppercase;
+      letter-spacing: 0.5px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+    }
+    .modal-section-title .count {
+      background: var(--accent); color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem;
+    }
+    .modal-item {
+      background: #f9fafb; border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 16px; margin-bottom: 8px;
+    }
+    .modal-item:last-child { margin-bottom: 0; }
+    .modal-item-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    .modal-item-title { font-weight: 600; color: var(--text); font-size: 0.9rem; }
+    .modal-badge { padding: 2px 8px; border-radius: 8px; font-size: 0.7rem; font-weight: 600; }
+    .modal-badge.working { background: rgba(49,130,206,0.12); color: var(--accent); }
+    .modal-badge.done { background: rgba(56,161,105,0.12); color: var(--success); }
+    .modal-item-meta { font-size: 0.8rem; color: var(--muted); }
+    .modal-empty { text-align: center; padding: 16px; color: var(--muted); font-style: italic; font-size: 0.85rem; }
+
+    /* Phase Indicator */
+    .phase-bar { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); margin-bottom: 40px; }
+    .phase-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .phase-header h3 { font-size: 1.1rem; }
+    .phase-track { display: flex; gap: 4px; }
+    .phase-dot { width: 100%; height: 8px; border-radius: 4px; background: var(--border); flex: 1; }
+    .phase-dot.active { background: var(--accent); }
+    .phase-dot.current { background: var(--success); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .phase-labels { display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.75rem; color: var(--muted); }
+
+    /* Phase Detail Cards */
+    .phase-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 40px; }
+    .phase-card { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); transition: all 0.2s; }
+    .phase-card.current { border-color: var(--success); box-shadow: 0 0 0 3px rgba(56,161,105,0.15); }
+    .phase-card.completed { opacity: 0.7; }
+    .phase-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .phase-number { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; background: var(--border); color: var(--muted); }
+    .phase-card.current .phase-number { background: var(--success); color: #fff; }
+    .phase-card.completed .phase-number { background: var(--accent); color: #fff; }
+    .phase-card-title { font-size: 1rem; font-weight: 600; }
+    .phase-card-timeline { font-size: 0.75rem; color: var(--muted); margin-left: auto; }
+    .phase-section { margin-bottom: 12px; }
+    .phase-section-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
+    .phase-list { list-style: none; padding: 0; margin: 0; }
+    .phase-list li { font-size: 0.85rem; padding: 4px 0; padding-left: 18px; position: relative; color: #4a5568; }
+    .phase-list li::before { content: '•'; position: absolute; left: 0; color: var(--accent); font-weight: bold; }
+    .phase-kpi { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+    .phase-kpi:last-child { border-bottom: none; }
+    .phase-kpi-label { color: var(--muted); }
+    .phase-kpi-value { font-weight: 600; color: var(--text); }
+
+    footer { text-align: center; padding: 30px; color: var(--muted); font-size: 0.85rem; }
+    footer a { color: var(--accent); text-decoration: none; }
+
+    @media (max-width: 768px) {
+      .health-grid { grid-template-columns: repeat(2, 1fr); }
+      .teams-grid { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 1.5rem; }
+      .division-badges { display: none; }
+      .org-summary { gap: 16px; }
+      .org-summary-num { font-size: 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <nav class="top-nav">
+      <a href="/"><img src="/logo.png" alt="Kande VendTech" class="logo"></a>
+      <span class="nav-brand">Operations</span>
+      <a href="/" class="active">Dashboard</a>
+      <a href="/crm">CRM</a>
+      <a href="/machines">Machines</a>
+      <a href="/inventory">Inventory</a>
+      <a href="/finance">Finance</a>
+      <a href="/restock">Restock</a>
+      <a href="/staff">Staff</a>
+      <a href="/clients">Clients</a>
+      <a href="/map">Map</a>
+      <a href="/performance">Performance</a>
+      <a href="/planogram">Planogram</a>
+      <a href="/ai-office">AI Office</a>
+      <a href="/analytics">Analytics</a>
+      <a href="/leaderboard">Leaderboard</a>
+      <a href="/client-portal">Client Portal</a>
+      <a href="/driver">🚐 Driver</a>
+      <a href="/strategy.html">Strategy</a>
+      <a href="#" onclick="logout()" style="margin-left:auto;color:#ef4444;">Logout</a>
+    </nav>
+    <script>
+      async function logout() {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        window.location.href = '/login';
+      }
+    </script>
+
+    <div class="hero">
+      <h1>Kande VendTech Operations</h1>
+      <p>Smart vending management — sales to service, all in one place</p>
+    </div>
+
+    <!-- Live Stats -->
+    <div class="health-grid" id="health-grid">
+      <div class="health-card"><div class="value accent">—</div><div class="label">Prospects</div></div>
+      <div class="health-card"><div class="value success">—</div><div class="label">Machines</div></div>
+      <div class="health-card"><div class="value warn">—</div><div class="label">Deployed</div></div>
+      <div class="health-card"><div class="value accent">—</div><div class="label">Locations</div></div>
+      <div class="health-card"><div class="value success">—</div><div class="label">Products</div></div>
+      <div class="health-card"><div class="value accent">—</div><div class="label">Month Revenue</div></div>
+    </div>
+
+    <!-- Organization Summary -->
+    <h2 class="section-title">Organization</h2>
+    <div class="org-summary" id="org-summary">
+      <div class="org-summary-stat"><div class="org-summary-num" id="org-divisions">0</div><div class="org-summary-label">Divisions</div></div>
+      <div class="org-summary-stat"><div class="org-summary-num" id="org-teams">0</div><div class="org-summary-label">Teams</div></div>
+      <div class="org-summary-stat"><div class="org-summary-num" id="org-agents">0</div><div class="org-summary-label">Active Agents</div></div>
+      <div class="org-summary-stat"><div class="org-summary-num" id="org-tasks">0</div><div class="org-summary-label">Tasks Active</div></div>
+      <div class="org-summary-stat"><div class="org-summary-num" id="org-completed">0</div><div class="org-summary-label">Completed</div></div>
+    </div>
+
+    <!-- Divisions -->
+    <div class="divisions-container" id="divisions-container"></div>
+
+    <!-- Division/Team Detail Modal -->
+    <div class="div-modal-overlay" id="div-modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="div-modal">
+        <div class="div-modal-header">
+          <div class="div-modal-title"><span id="modal-emoji"></span><span id="modal-title"></span></div>
+          <button class="div-modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="div-modal-body" id="modal-body"></div>
+      </div>
+    </div>
+
+    <!-- Phase Progress -->
+    <div class="phase-bar">
+      <div class="phase-header">
+        <h3>📈 Growth Phase</h3>
+        <span style="font-size:0.9rem;color:var(--accent);font-weight:600;">Phase 1: Launch & Blitz</span>
+      </div>
+      <div class="phase-track">
+        <div class="phase-dot current"></div>
+        <div class="phase-dot"></div>
+        <div class="phase-dot"></div>
+        <div class="phase-dot"></div>
+      </div>
+      <div class="phase-labels">
+        <span>Launch & Blitz</span>
+        <span>Systems + Warehouse</span>
+        <span>Ops Manager</span>
+        <span>Scale to $75K+/mo</span>
+      </div>
+    </div>
+
+    <!-- Phase Detail Cards -->
+    <div class="phase-details">
+      <div class="phase-card current">
+        <div class="phase-card-header">
+          <div class="phase-number">1</div>
+          <div class="phase-card-title">Launch & Blitz</div>
+          <div class="phase-card-timeline">Month 1-2</div>
+        </div>
+        <div class="phase-section">
+          <div class="phase-section-title">🎯 Goals</div>
+          <ul class="phase-list">
+            <li>Deploy first 3-5 machines</li>
+            <li>Sign 10+ property agreements</li>
+            <li>Establish sales blitz rhythm</li>
+            <li>Validate $54 rent premium pitch</li>
+          </ul>
+        </div>
+        <div class="phase-section">
+          <div class="phase-section-title">🏁 Milestones</div>
+          <ul class="phase-list">
+            <li>First machine generating revenue</li>
+            <li>CRM with 50+ prospects</li>
+            <li>Sales playbook tested & refined</li>
+          </ul>
+        </div>
+        <div class="phase-section">
+          <div class="phase-section-title">📊 KPIs</div>
+          <div class="phase-kpi"><span class="phase-kpi-label">Machines Deployed</span><span class="phase-kpi-value">3-5</span></div>
+          <div class="phase-kpi"><span class="phase-kpi-label">Monthly Revenue</span><span class="phase-kpi-value">$2K-5K</span></div>
+          <div class="phase-kpi"><span class="phase-kpi-label">Signed Locations</span><span class="phase-kpi-value">10+</span></div>
+        </div>
+      </div>
+      <div class="phase-card">
+        <div class="phase-card-header">
+          <div class="phase-number">2</div>
+          <div class="phase-card-title">Systems + Warehouse</div>
+          <div class="phase-card-timeline">Month 2-3</div>
+        </div>
+        <div class="phase-section">
+          <div class="phase-section-title">🎯 Goals</div>
+          <ul class="phase-list">
+            <li>Secure warehouse/storage space</li>
+            <li>Build inventory management system</li>
+            <li>Establish supplier relationships</li>
+            <li>Standardize restock workflows</li>
+          </ul>
+        </div>
+        <div class="phase-section">
+          <div class="phase-section-title">🏁 Milestones</div>
+          <ul class="phase-list">
+            <li>Warehouse operational</li>
+            <li>10+ machines in rotation</li>
+            <li>Route optimization working</li>
+          </ul>
+        </div>
+        <div class="phase-section">
+          <div class="phase-section-title">📊 KPIs</div>
+          <div class="phase-kpi"><span class="phase-kpi-label">Machines Deployed</span><span class="phase-kpi-value">10-15</span></div>
+          <div class="phase-kpi"><span class="phase-kpi-label">Monthly Revenue</span><span class="phase-kpi-value">$10K-20K</span></div>
+          <div class="phase-kpi"><span class="phase-kpi-label">Restock Efficiency</span><span class="phase-kpi-value">8 machines/day</span></div>
+        </div>
+      </div>
+      <div class="phase-card">
+        <div class="phase-card-header">
+          <div class="phase-number">3</div>
+          <div class="phase-card-title">Ops Manager</div>
+          <div class="phase-card-timeline">Month 3-4</div>
+        </div>
+        <div class="phase-section">
+          <div class="phase-section-title">🎯 Goals</div>
+          <ul class="phase-list">
+            <li>Hire first operations manager</li>
+            <li>Document all SOPs</li>
+            <li>Remove yourself from daily ops</li>
+            <li>Focus on growth & partnerships</li>
+          </ul>
+        </div>
+        <div class="phase-section">
+          <div class="phase-section-title">🏁 Milestones</div>
+          <ul class="phase-list">
+            <li>Ops manager running daily routes</li>
+            <li>$3,500 revenue per 8 labor hours</li>
+            <li>Owner time freed for sales</li>
+          </ul>
+        </div>
+        <div class="phase-section">
+          <div class="phase-section-title">📊 KPIs</div>
+          <div class="phase-kpi"><span class="phase-kpi-label">Machines Deployed</span><span class="phase-kpi-value">20-30</span></div>
+          <div class="phase-kpi"><span class="phase-kpi-label">Monthly Revenue</span><span class="phase-kpi-value">$30K-50K</span></div>
+          <div class="phase-kpi"><span class="phase-kpi-label">Labor Efficiency</span><span class="phase-kpi-value">$3,500/8hrs</span></div>
+        </div>
+      </div>
+      <div class="phase-card">
+        <div class="phase-card-header">
+          <div class="phase-number">4</div>
+          <div class="phase-card-title">Scale to $75K+/mo</div>
+          <div class="phase-card-timeline">Month 5-6</div>
+        </div>
+        <div class="phase-section">
+          <div class="phase-section-title">🎯 Goals</div>
+          <ul class="phase-list">
+            <li>Expand to 50+ machines</li>
+            <li>Add second ops team member</li>
+            <li>Enterprise/bulk accounts</li>
+            <li>Multi-route daily operations</li>
+          </ul>
+        </div>
+        <div class="phase-section">
+          <div class="phase-section-title">🏁 Milestones</div>
+          <ul class="phase-list">
+            <li>$75K+ monthly revenue</li>
+            <li>Profitable after all labor costs</li>
+            <li>Scalable repeatable system</li>
+          </ul>
+        </div>
+        <div class="phase-section">
+          <div class="phase-section-title">📊 KPIs</div>
+          <div class="phase-kpi"><span class="phase-kpi-label">Machines Deployed</span><span class="phase-kpi-value">50+</span></div>
+          <div class="phase-kpi"><span class="phase-kpi-label">Monthly Revenue</span><span class="phase-kpi-value">$75K+</span></div>
+          <div class="phase-kpi"><span class="phase-kpi-label">Net Margin</span><span class="phase-kpi-value">30%+</span></div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>Kande VendTech Operations Platform v2.0 — Built with 🤖</p>
+      <p style="margin-top:6px;"><a href="/pricing-reference.xlsx">📄 Pricing Reference</a></p>
+    </footer>
+  </div>
+
+  <script>
+    // ===== Division Data =====
+    let divisionData = {};
+
+    const DIVISION_ORDER = ['revenue', 'growth', 'operations', 'technology', 'intelligence', 'corporate'];
+
+    async function loadDivisions() {
+      try {
+        const res = await fetch('/api/divisions');
+        divisionData = await res.json();
+        renderDivisions();
+      } catch (e) {
+        console.error('Failed to load divisions:', e);
+      }
+    }
+
+    function renderDivisions() {
+      const container = document.getElementById('divisions-container');
+      const existing = {};
+      // remember which divisions are expanded
+      container.querySelectorAll('.division-card.expanded').forEach(el => {
+        existing[el.dataset.divKey] = true;
+      });
+
+      let totalTeams = 0, totalAgents = 0, totalTasks = 0, totalCompleted = 0;
+      const divKeys = DIVISION_ORDER.filter(k => divisionData[k]);
+      // append any keys not in the fixed order
+      for (const k of Object.keys(divisionData)) {
+        if (!divKeys.includes(k)) divKeys.push(k);
+      }
+
+      container.innerHTML = '';
+
+      for (const divKey of divKeys) {
+        const div = divisionData[divKey];
+        const teamEntries = Object.entries(div.teams || {});
+        totalTeams += teamEntries.length;
+        totalAgents += div.totalActiveAgents;
+        totalTasks += div.totalActiveTasks;
+        totalCompleted += div.totalCompletedTasks;
+
+        const isExpanded = existing[divKey] || false;
+        const hasActivity = div.totalActiveAgents > 0 || div.totalActiveTasks > 0;
+
+        const card = document.createElement('div');
+        card.className = `division-card${isExpanded ? ' expanded' : ''}${hasActivity ? ' active' : ''}`;
+        card.dataset.divKey = divKey;
+
+        // Build teams HTML
+        let teamsHtml = '';
+        for (const [teamKey, team] of teamEntries) {
+          const teamActive = team.activeAgentCount > 0;
+          let agentsHtml = '';
+          if (team.activeAgents && team.activeAgents.length > 0) {
+            agentsHtml = '<div class="team-agents-list">';
+            for (const agent of team.activeAgents.slice(0, 3)) {
+              agentsHtml += `<div class="team-agent-row">
+                <span class="agent-dot"></span>
+                <span>${agent.name || agent.agentName || agent.id}</span>
+                ${agent.currentTask ? `<span class="agent-task" title="${agent.currentTask}">${agent.currentTask}</span>` : ''}
+              </div>`;
+            }
+            if (team.activeAgents.length > 3) {
+              agentsHtml += `<div class="team-agent-row" style="color:var(--accent);">+${team.activeAgents.length - 3} more</div>`;
+            }
+            agentsHtml += '</div>';
+          }
+
+          teamsHtml += `
+            <div class="team-card${teamActive ? ' has-activity' : ''}" onclick="event.stopPropagation(); openTeamModal('${divKey}','${teamKey}')">
+              <div class="team-name">${team.name}</div>
+              <div class="team-lead">Lead: <span class="bot-name">🤖 ${team.lead || '—'}</span></div>
+              <div class="team-stats">
+                <span class="team-stat${teamActive ? ' active' : ''}"><strong>${team.activeAgentCount}</strong> agents</span>
+                <span class="team-stat"><strong>${team.activeTaskCount}</strong> active</span>
+                <span class="team-stat"><strong>${team.completedTaskCount}</strong> done</span>
+              </div>
+              ${agentsHtml}
+            </div>`;
+        }
+
+        card.innerHTML = `
+          <div class="division-header" onclick="toggleDivision(this)">
+            <span class="division-emoji">${div.emoji}</span>
+            <div class="division-info">
+              <div class="division-name">${div.name}</div>
+              <div class="division-mission">${div.mission}</div>
+            </div>
+            <div class="division-badges">
+              <div class="division-badge${div.totalActiveAgents > 0 ? ' has-activity' : ''}">
+                <span class="division-badge-num">${div.totalActiveAgents}</span>
+                <span class="division-badge-label">Agents</span>
+              </div>
+              <div class="division-badge">
+                <span class="division-badge-num">${teamEntries.length}</span>
+                <span class="division-badge-label">Teams</span>
+              </div>
+              <div class="division-badge">
+                <span class="division-badge-num">${div.totalCompletedTasks}</span>
+                <span class="division-badge-label">Done</span>
+              </div>
+            </div>
+            <div class="division-chevron">▼</div>
+          </div>
+          <div class="division-teams">
+            <div class="division-teams-inner">
+              <div class="teams-grid">${teamsHtml}</div>
+            </div>
+          </div>`;
+
+        container.appendChild(card);
+      }
+
+      // Update org summary
+      document.getElementById('org-divisions').textContent = divKeys.length;
+      document.getElementById('org-teams').textContent = totalTeams;
+      document.getElementById('org-agents').textContent = totalAgents;
+      document.getElementById('org-tasks').textContent = totalTasks;
+      document.getElementById('org-completed').textContent = totalCompleted;
+    }
+
+    function toggleDivision(header) {
+      const card = header.closest('.division-card');
+      card.classList.toggle('expanded');
+    }
+
+    // ===== Team Detail Modal =====
+    function openTeamModal(divKey, teamKey) {
+      const div = divisionData[divKey];
+      if (!div) return;
+      const team = div.teams[teamKey];
+      if (!team) return;
+
+      document.getElementById('modal-emoji').textContent = div.emoji;
+      document.getElementById('modal-title').textContent = `${div.name} → ${team.name}`;
+
+      let html = '';
+
+      // Lead
+      html += `<div style="margin-bottom:16px;padding:10px 14px;background:#f7fafc;border-radius:10px;font-size:0.9rem;">
+        <strong>Team Lead:</strong> <span style="color:var(--accent);font-weight:600;">🤖 ${team.lead || '—'}</span>
+      </div>`;
+
+      // Active Agents
+      html += `<div class="modal-section">
+        <div class="modal-section-title">🟢 Active Agents <span class="count">${team.activeAgentCount}</span></div>`;
+      if (team.activeAgents && team.activeAgents.length > 0) {
+        for (const agent of team.activeAgents) {
+          const name = agent.name || agent.agentName || agent.id;
+          const checkedIn = agent.checkedInAt ? new Date(agent.checkedInAt).toLocaleTimeString() : '';
+          html += `<div class="modal-item">
+            <div class="modal-item-header">
+              <span class="modal-item-title">${name}</span>
+              <span class="modal-badge working">WORKING</span>
+            </div>
+            <div class="modal-item-meta">${agent.currentTask || 'No task description'}</div>
+            ${checkedIn ? `<div class="modal-item-meta" style="margin-top:4px;font-size:0.75rem;">Checked in: ${checkedIn}</div>` : ''}
+          </div>`;
+        }
+      } else {
+        html += '<div class="modal-empty">No agents currently active</div>';
+      }
+      html += '</div>';
+
+      // In-Progress Tasks
+      const inProgress = (team.tasks || []).filter(t => t.status === 'in-progress');
+      html += `<div class="modal-section">
+        <div class="modal-section-title">⏳ In Progress <span class="count">${inProgress.length}</span></div>`;
+      if (inProgress.length > 0) {
+        for (const task of inProgress.slice(-10)) {
+          html += `<div class="modal-item">
+            <div class="modal-item-header">
+              <span class="modal-item-title">${task.title}</span>
+              <span class="modal-badge working">IN PROGRESS</span>
+            </div>
+            <div class="modal-item-meta">${task.agentName ? `🤖 ${task.agentName}` : '—'}${task.startedAt ? ` • Started: ${new Date(task.startedAt).toLocaleString()}` : ''}</div>
+          </div>`;
+        }
+      } else {
+        html += '<div class="modal-empty">No tasks in progress</div>';
+      }
+      html += '</div>';
+
+      // Completed Tasks
+      const completed = (team.tasks || []).filter(t => t.status === 'completed');
+      html += `<div class="modal-section">
+        <div class="modal-section-title">✅ Completed <span class="count">${completed.length}</span></div>`;
+      if (completed.length > 0) {
+        const sorted = [...completed].sort((a, b) => new Date(b.completedAt || b.startedAt) - new Date(a.completedAt || a.startedAt));
+        for (const task of sorted.slice(0, 15)) {
+          const when = task.completedAt ? new Date(task.completedAt).toLocaleString() : '';
+          html += `<div class="modal-item">
+            <div class="modal-item-header">
+              <span class="modal-item-title">${task.title}</span>
+              <span class="modal-badge done">DONE</span>
+            </div>
+            <div class="modal-item-meta">${task.agentName ? `🤖 ${task.agentName}` : '—'}${when ? ` • ${when}` : ''}</div>
+          </div>`;
+        }
+        if (completed.length > 15) {
+          html += `<div class="modal-empty">+ ${completed.length - 15} more</div>`;
+        }
+      } else {
+        html += '<div class="modal-empty">No completed tasks yet</div>';
+      }
+      html += '</div>';
+
+      document.getElementById('modal-body').innerHTML = html;
+      document.getElementById('div-modal-overlay').classList.add('show');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      document.getElementById('div-modal-overlay').classList.remove('show');
+      document.body.style.overflow = '';
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    // ===== Stats =====
+    async function loadStats() {
+      try {
+        const stats = await fetch('/api/stats').then(r => r.json());
+        const fmt = n => '$' + (n || 0).toLocaleString();
+        document.getElementById('health-grid').innerHTML = `
+          <div class="health-card"><div class="value accent">${stats.prospects}</div><div class="label">Prospects</div></div>
+          <div class="health-card"><div class="value success">${stats.machines}</div><div class="label">Machines</div></div>
+          <div class="health-card"><div class="value warn">${stats.machinesDeployed}</div><div class="label">Deployed</div></div>
+          <div class="health-card"><div class="value accent">${stats.locations}</div><div class="label">Locations</div></div>
+          <div class="health-card"><div class="value success">${stats.products}</div><div class="label">Products</div></div>
+          <div class="health-card"><div class="value ${stats.monthRevenue > 0 ? 'success' : ''}">${fmt(stats.monthRevenue)}</div><div class="label">Month Revenue</div></div>
+        `;
+      } catch (e) {
+        console.error('Failed to load stats:', e);
+      }
+    }
+
+    // ===== Boot =====
+    loadStats();
+    loadDivisions();
+    setInterval(loadStats, 60000);
+    setInterval(loadDivisions, 15000);
+  </script>
+<script src="/nav.js"></script>
+</body>
+</html>

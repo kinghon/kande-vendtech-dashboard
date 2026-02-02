@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lead Review — Kande VendTech</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --surface: #ffffff;
+      --surface2: #f0f2f5;
+      --border: #e2e8f0;
+      --text: #1a202c;
+      --text2: #718096;
+      --accent: #3182ce;
+      --green: #38a169;
+      --yellow: #d69e2e;
+      --red: #e53e3e;
+      --orange: #dd6b20;
+      --radius: 12px;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+    }
+    .page-wrap { max-width: 1400px; margin: 0 auto; padding: 20px 16px 80px; }
+    h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 4px; }
+    h1 span { color: var(--accent); }
+    .subtitle { color: var(--text2); font-size: 0.9rem; margin-bottom: 20px; }
+
+    /* Stats bar */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-card .val { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+    .stat-card .lbl { font-size: 0.75rem; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+    /* Map */
+    #map-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 20px;
+      height: 280px;
+    }
+    #lead-map { height: 100%; width: 100%; }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+      align-items: center;
+    }
+    .controls input, .controls select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .controls input:focus, .controls select:focus {
+      border-color: var(--accent);
+    }
+    .controls input { flex: 1; min-width: 200px; }
+    .controls select { min-width: 130px; }
+
+    /* Section tabs */
+    .section-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .section-tab {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text2);
+      padding: 8px 18px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .section-tab:hover { border-color: var(--accent); color: var(--text); }
+    .section-tab.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+    .section-tab .badge {
+      display: inline-block;
+      background: rgba(0,0,0,0.08);
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      margin-left: 6px;
+    }
+    .section-tab.active .badge { background: rgba(0,0,0,0.2); }
+
+    /* Cards grid */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    /* Lead card */
+    .lead-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      overflow: hidden;
+      position: relative;
+      border: 1px solid var(--border);
+    }
+    .lead-card.score-high { border-image: linear-gradient(135deg, var(--green), var(--accent)) 1; }
+    .lead-card.score-mid { border-image: linear-gradient(135deg, var(--yellow), var(--orange)) 1; }
+    .lead-card.score-low { border-image: linear-gradient(135deg, var(--red), var(--orange)) 1; }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 16px 16px 12px;
+      gap: 12px;
+    }
+    .card-header .info { flex: 1; }
+    .card-header .name { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+    .card-header .address { font-size: 0.8rem; color: var(--text2); margin-bottom: 4px; }
+    .card-header .type-badge {
+      display: inline-block;
+      background: rgba(49,130,206,0.1);
+      color: var(--accent);
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .score-circle {
+      width: 62px; height: 62px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      font-weight: 800;
+      flex-shrink: 0;
+      color: #000;
+    }
+    .score-circle.high { background: var(--green); }
+    .score-circle.mid { background: var(--yellow); }
+    .score-circle.low { background: var(--red); color: #fff; }
+
+    .card-body { padding: 0 16px 16px; }
+
+    /* Criteria checklist */
+    .criteria-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px 12px;
+      margin-bottom: 14px;
+      font-size: 0.82rem;
+    }
+    .criteria-item { display: flex; align-items: flex-start; gap: 6px; }
+    .criteria-item .icon { flex-shrink: 0; font-size: 0.85rem; }
+    .criteria-item .txt { color: var(--text2); line-height: 1.3; }
+    .criteria-item .txt strong { color: var(--text); font-weight: 600; }
+
+    /* Revenue estimate */
+    .revenue-est {
+      background: rgba(49,130,206,0.08);
+      border: 1px solid rgba(49,130,206,0.15);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+      font-size: 0.85rem;
+    }
+    .revenue-est .val { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+
+    /* Pros & Cons */
+    .pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+    .pros-cons .section { font-size: 0.82rem; }
+    .pros-cons .section h4 { font-size: 0.75rem; text-transform: uppercase; color: var(--text2); margin-bottom: 6px; letter-spacing: 0.5px; }
+    .pros-cons .pro { color: var(--green); }
+    .pros-cons .con { color: var(--red); }
+    .pros-cons ul { list-style: none; padding: 0; }
+    .pros-cons li { padding: 2px 0; line-height: 1.3; }
+    .pros-cons li::before { margin-right: 6px; }
+    .pros-cons .pro li::before { content: '✓'; color: var(--green); font-weight: 700; }
+    .pros-cons .con li::before { content: '✕'; color: var(--red); font-weight: 700; }
+
+    /* Reasoning */
+    .reasoning {
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      color: var(--text2);
+      margin-bottom: 14px;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+    .reasoning::-webkit-scrollbar { width: 4px; }
+    .reasoning::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* Review Links */
+    /* Contact Card */
+    .contact-card {
+      font-size: 0.85rem;
+      padding: 12px 14px;
+      background: rgba(49,130,206,0.08);
+      border: 1px solid rgba(49,130,206,0.2);
+      border-radius: 8px;
+      margin-bottom: 14px;
+    }
+    .contact-card.empty {
+      background: rgba(113,128,150,0.08);
+      border-color: rgba(113,128,150,0.2);
+    }
+    .contact-card strong { color: var(--accent); }
+    .contact-details { margin-top: 8px; }
+    .contact-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 6px; }
+    .contact-title { font-weight: 400; color: var(--text2); }
+    .contact-line { margin-bottom: 3px; }
+    .contact-line a { color: var(--accent); text-decoration: none; }
+    .contact-line a:hover { text-decoration: underline; }
+
+    .review-links {
+      font-size: 0.82rem;
+      padding: 10px 12px;
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 8px;
+      margin-bottom: 14px;
+    }
+    .review-links strong { color: var(--red); }
+    .review-links ul { margin: 8px 0 0 0; padding-left: 18px; }
+    .review-links li { margin-bottom: 4px; }
+    .review-links a { color: var(--accent); text-decoration: none; word-break: break-all; }
+    .review-links a:hover { text-decoration: underline; }
+
+    /* Source & meta */
+    .meta-line {
+      font-size: 0.75rem;
+      color: var(--text2);
+      margin-bottom: 14px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .meta-line span { display: flex; align-items: center; gap: 4px; }
+
+    /* Action buttons */
+    .card-actions {
+      display: flex;
+      gap: 10px;
+      padding: 0 16px 16px;
+    }
+    .btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-approve {
+      background: var(--green);
+      color: #000;
+    }
+    .btn-approve:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn-reject {
+      background: rgba(239,68,68,0.15);
+      color: var(--red);
+      border: 1px solid rgba(239,68,68,0.3);
+    }
+    .btn-reject:hover { background: rgba(239,68,68,0.25); }
+    .btn-delete {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text2);
+      flex: 0;
+      padding: 12px 14px;
+    }
+    .btn-delete:hover { border-color: var(--red); color: var(--red); }
+
+    /* Status badges on cards */
+    .status-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 3px 10px;
+      border-radius: 12px;
+    }
+    .status-badge.approved { background: rgba(34,197,94,0.15); color: var(--green); }
+    .status-badge.rejected { background: rgba(239,68,68,0.15); color: var(--red); }
+
+    /* Reject reason */
+    .reject-reason {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin: 0 16px 16px;
+      font-size: 0.8rem;
+      color: var(--red);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--green);
+      color: #000;
+      padding: 14px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      z-index: 10000;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.error { background: var(--red); color: #fff; }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      width: 90%;
+      max-width: 420px;
+    }
+    .modal h3 { margin-bottom: 12px; font-size: 1.1rem; }
+    .modal textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 0.9rem;
+      min-height: 80px;
+      resize: vertical;
+      outline: none;
+      margin-bottom: 14px;
+    }
+    .modal textarea:focus { border-color: var(--accent); }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .modal .btn-sm {
+      padding: 8px 18px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .modal .btn-cancel { background: var(--surface2); color: var(--text2); }
+    .modal .btn-confirm { background: var(--red); color: #fff; }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text2);
+    }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty-state p { font-size: 0.95rem; }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 60px;
+      color: var(--text2);
+    }
+    .loading::after {
+      content: '';
+      display: inline-block;
+      width: 24px; height: 24px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Collapsed section */
+    .section-group { margin-bottom: 24px; }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .section-header h2 { font-size: 1.1rem; font-weight: 600; }
+    .section-header .toggle { color: var(--text2); transition: transform 0.2s; }
+    .section-header .toggle.collapsed { transform: rotate(-90deg); }
+    .section-group.collapsed .cards-grid { display: none; }
+
+    /* Tier badges */
+    .tier-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 6px;
+    }
+    .tier-1 { background: rgba(34,197,94,0.15); color: var(--green); }
+    .tier-2 { background: rgba(234,179,8,0.15); color: var(--yellow); }
+    .tier-3 { background: rgba(249,115,22,0.15); color: var(--orange); }
+
+    /* Responsive */
+    @media(max-width:600px) {
+      .criteria-list { grid-template-columns: 1fr; }
+      .pros-cons { grid-template-columns: 1fr; }
+      .stats-bar { grid-template-columns: repeat(2, 1fr); }
+      .card-actions { flex-direction: column; }
+      .btn-delete { flex: 1; }
+      h1 { font-size: 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <h1>🔍 <span>Lead Review</span></h1>
+    <p class="subtitle">Vet and approve proposed leads from research agents before adding to CRM</p>
+
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat-card"><div class="val" id="stat-total">—</div><div class="lbl">Total Proposed</div></div>
+      <div class="stat-card"><div class="val" id="stat-pending">—</div><div class="lbl">Pending Review</div></div>
+      <div class="stat-card"><div class="val" id="stat-approved" style="color:var(--green)">—</div><div class="lbl">Approved</div></div>
+      <div class="stat-card"><div class="val" id="stat-rejected" style="color:var(--red)">—</div><div class="lbl">Rejected</div></div>
+      <div class="stat-card"><div class="val" id="stat-avg-score">—</div><div class="lbl">Avg Score</div></div>
+    </div>
+
+    <!-- Map -->
+    <div id="map-container">
+      <div id="lead-map"></div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <input type="text" id="search-input" placeholder="Search by name or address...">
+      <select id="filter-type">
+        <option value="">All Types</option>
+        <option value="apartments">Apartments</option>
+        <option value="senior_living">Senior Living</option>
+        <option value="healthcare">Healthcare</option>
+        <option value="industrial">Industrial</option>
+        <option value="office">Office</option>
+        <option value="business">Business</option>
+      </select>
+      <select id="filter-tier">
+        <option value="">All Tiers</option>
+        <option value="1">Tier 1</option>
+        <option value="2">Tier 2</option>
+        <option value="3">Tier 3</option>
+      </select>
+      <select id="sort-by">
+        <option value="score">Sort: Score ↓</option>
+        <option value="distance">Sort: Distance ↑</option>
+        <option value="revenue">Sort: Revenue ↓</option>
+        <option value="date">Sort: Newest First</option>
+      </select>
+    </div>
+
+    <!-- Section tabs -->
+    <div class="section-tabs">
+      <div class="section-tab active" data-status="pending">⏳ Pending <span class="badge" id="tab-pending-count">0</span></div>
+      <div class="section-tab" data-status="approved">✅ Approved <span class="badge" id="tab-approved-count">0</span></div>
+      <div class="section-tab" data-status="rejected">❌ Rejected <span class="badge" id="tab-rejected-count">0</span></div>
+      <div class="section-tab" data-status="all">📋 All</div>
+    </div>
+
+    <!-- Cards -->
+    <div id="cards-container">
+      <div class="loading">Loading leads...</div>
+    </div>
+  </div>
+
+  <!-- Reject Modal -->
+  <div class="modal-overlay" id="reject-modal">
+    <div class="modal">
+      <h3>❌ Reject Lead</h3>
+      <p style="color:var(--text2);font-size:0.85rem;margin-bottom:12px;">Optionally provide a reason for rejection:</p>
+      <textarea id="reject-reason" placeholder="Not enough units, too far from base, existing vendor contract..."></textarea>
+      <div class="modal-actions">
+        <button class="btn-sm btn-cancel" onclick="closeRejectModal()">Cancel</button>
+        <button class="btn-sm btn-confirm" onclick="confirmReject()">Reject Lead</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script src="/nav.js"></script>
+  <script>
+    const API = '/api/proposed-leads';
+    let allLeads = [];
+    let activeStatus = 'pending';
+    let rejectingId = null;
+    let map, markersLayer;
+
+    // ── Init ──
+    async function init() {
+      initMap();
+      await loadLeads();
+      bindEvents();
+    }
+
+    // ── Map ──
+    function initMap() {
+      map = L.map('lead-map', { scrollWheelZoom: false }).setView([36.0085, -115.0370], 11);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '©OpenStreetMap ©CARTO',
+        maxZoom: 18
+      }).addTo(map);
+      markersLayer = L.layerGroup().addTo(map);
+
+      // West Henderson base marker
+      const baseIcon = L.divIcon({
+        className: 'base-marker',
+        html: '<div style="font-size:24px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5))">⭐</div>',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+      L.marker([36.0085, -115.0370], { icon: baseIcon })
+        .bindPopup('<b>🏠 West Henderson Base</b>')
+        .addTo(map);
+    }
+
+    function updateMapMarkers(leads) {
+      markersLayer.clearLayers();
+      const colors = { 1: '#38a169', 2: '#d69e2e', 3: '#dd6b20' };
+      leads.forEach(lead => {
+        if (!lead.lat && !lead.lng) return;
+        const lat = lead.lat || 36.0 + Math.random() * 0.05;
+        const lng = lead.lng || -115.0 - Math.random() * 0.1;
+        const color = colors[lead.tier] || '#a1a1aa';
+        const icon = L.divIcon({
+          className: 'lead-pin',
+          html: `<div style="width:14px;height:14px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>`,
+          iconSize: [14, 14],
+          iconAnchor: [7, 7]
+        });
+        L.marker([lat, lng], { icon })
+          .bindPopup(`<b>${esc(lead.name)}</b><br>${esc(lead.address||'')}<br>Score: ${lead.score || '—'}`)
+          .addTo(markersLayer);
+      });
+    }
+
+    // ── Load ──
+    async function loadLeads() {
+      try {
+        const res = await fetch(API);
+        allLeads = await res.json();
+        renderAll();
+      } catch(e) {
+        document.getElementById('cards-container').innerHTML =
+          '<div class="empty-state"><div class="icon">⚠️</div><p>Failed to load leads</p></div>';
+      }
+    }
+
+    // ── Render ──
+    function renderAll() {
+      updateStats();
+      const filtered = getFiltered();
+      updateMapMarkers(filtered.filter(l => l.status === 'pending' || activeStatus === 'all'));
+      renderCards(filtered);
+    }
+
+    function updateStats() {
+      const total = allLeads.length;
+      const pending = allLeads.filter(l => l.status === 'pending').length;
+      const approved = allLeads.filter(l => l.status === 'approved').length;
+      const rejected = allLeads.filter(l => l.status === 'rejected').length;
+      const scores = allLeads.filter(l => l.score != null).map(l => l.score);
+      const avg = scores.length ? Math.round(scores.reduce((a,b) => a+b, 0) / scores.length) : 0;
+
+      document.getElementById('stat-total').textContent = total;
+      document.getElementById('stat-pending').textContent = pending;
+      document.getElementById('stat-approved').textContent = approved;
+      document.getElementById('stat-rejected').textContent = rejected;
+      document.getElementById('stat-avg-score').textContent = avg || '—';
+      document.getElementById('tab-pending-count').textContent = pending;
+      document.getElementById('tab-approved-count').textContent = approved;
+      document.getElementById('tab-rejected-count').textContent = rejected;
+    }
+
+    function getFiltered() {
+      const search = document.getElementById('search-input').value.toLowerCase();
+      const type = document.getElementById('filter-type').value;
+      const tier = document.getElementById('filter-tier').value;
+      const sort = document.getElementById('sort-by').value;
+
+      let leads = allLeads.filter(l => {
+        if (activeStatus !== 'all' && l.status !== activeStatus) return false;
+        if (search && !(l.name||'').toLowerCase().includes(search) && !(l.address||'').toLowerCase().includes(search)) return false;
+        if (type && l.property_type !== type) return false;
+        if (tier && String(l.tier) !== tier) return false;
+        return true;
+      });
+
+      leads.sort((a, b) => {
+        switch(sort) {
+          case 'score': return (b.score||0) - (a.score||0);
+          case 'distance': return (a.distance_from_base_miles||999) - (b.distance_from_base_miles||999);
+          case 'revenue': return parseRevenue(b.estimated_monthly_revenue) - parseRevenue(a.estimated_monthly_revenue);
+          case 'date': return new Date(b.researched_at||b.created_at||0) - new Date(a.researched_at||a.created_at||0);
+          default: return 0;
+        }
+      });
+
+      return leads;
+    }
+
+    function parseRevenue(val) {
+      if (!val) return 0;
+      const s = String(val).replace(/[^0-9.-]/g, '');
+      return parseFloat(s) || 0;
+    }
+
+    function renderCards(leads) {
+      const container = document.getElementById('cards-container');
+      if (!leads.length) {
+        const msg = activeStatus === 'all' ? 'No proposed leads yet' :
+          activeStatus === 'pending' ? 'No pending leads to review' :
+          activeStatus === 'approved' ? 'No approved leads' : 'No rejected leads';
+        container.innerHTML = `<div class="empty-state"><div class="icon">${activeStatus==='pending'?'📋':'📭'}</div><p>${msg}</p></div>`;
+        return;
+      }
+      container.innerHTML = '<div class="cards-grid">' + leads.map(renderCard).join('') + '</div>';
+    }
+
+    function renderCard(lead) {
+      const scoreClass = lead.score >= 80 ? 'high' : lead.score >= 60 ? 'mid' : 'low';
+      const cardClass = lead.score >= 80 ? 'score-high' : lead.score >= 60 ? 'score-mid' : 'score-low';
+      const tierClass = `tier-${lead.tier || 3}`;
+
+      const criteria = buildCriteria(lead);
+      const pros = (lead.pros || []).map(p => `<li>${esc(p)}</li>`).join('');
+      const cons = (lead.cons || []).map(c => `<li>${esc(c)}</li>`).join('');
+
+      const statusBadge = lead.status === 'approved'
+        ? '<div class="status-badge approved">✅ Approved</div>'
+        : lead.status === 'rejected'
+        ? '<div class="status-badge rejected">❌ Rejected</div>'
+        : '';
+
+      const rejectReasonHtml = lead.status === 'rejected' && lead.reject_reason
+        ? `<div class="reject-reason">Rejection reason: ${esc(lead.reject_reason)}</div>` : '';
+
+      const actions = lead.status === 'pending' ? `
+        <div class="card-actions">
+          <button class="btn btn-approve" onclick="approveLead(${lead.id})">✅ APPROVE</button>
+          <button class="btn btn-reject" onclick="openRejectModal(${lead.id})">❌ REJECT</button>
+          <button class="btn btn-delete" onclick="deleteLead(${lead.id})" title="Delete">🗑️</button>
+        </div>` : `
+        <div class="card-actions">
+          <button class="btn btn-delete" onclick="deleteLead(${lead.id})" title="Delete" style="flex:1">🗑️ Remove</button>
+        </div>`;
+
+      const typeLabel = (lead.property_type || 'unknown').replace(/_/g, ' ');
+
+      return `
+        <div class="lead-card ${cardClass}" id="card-${lead.id}">
+          ${statusBadge}
+          <div class="card-header">
+            <div class="info">
+              <div class="name">${esc(lead.name || 'Unknown Property')}</div>
+              <div class="address">${esc(lead.address || 'No address')}</div>
+              <span class="type-badge">${esc(typeLabel)}</span>
+              <span class="tier-badge ${tierClass}">T${lead.tier || '?'}</span>
+            </div>
+            <div class="score-circle ${scoreClass}">${lead.score || '?'}</div>
+          </div>
+          <div class="card-body">
+            <div class="criteria-list">${criteria}</div>
+            <div class="revenue-est">
+              <span style="color:var(--text2);font-size:0.8rem;">Est. Monthly Revenue/Machine:</span><br>
+              <span class="val">${esc(lead.estimated_monthly_revenue || 'N/A')}</span>
+            </div>
+            <div class="pros-cons">
+              <div class="section pro">
+                <h4>👍 Pros</h4>
+                <ul>${pros || '<li style="color:var(--text2)">None listed</li>'}</ul>
+              </div>
+              <div class="section con">
+                <h4>👎 Cons</h4>
+                <ul>${cons || '<li style="color:var(--text2)">None listed</li>'}</ul>
+              </div>
+            </div>
+            ${lead.contact_name ? `
+            <div class="contact-card">
+              <strong>👤 Decision Maker:</strong>
+              <div class="contact-details">
+                <div class="contact-name">${esc(lead.contact_name)}${lead.contact_title ? ` — <span class="contact-title">${esc(lead.contact_title)}</span>` : ''}</div>
+                ${lead.contact_phone ? `<div class="contact-line">📞 <a href="tel:${esc(lead.contact_phone)}">${esc(lead.contact_phone)}</a></div>` : ''}
+                ${lead.contact_email ? `<div class="contact-line">✉️ <a href="mailto:${esc(lead.contact_email)}">${esc(lead.contact_email)}</a></div>` : ''}
+                ${lead.contact_linkedin ? `<div class="contact-line">🔗 <a href="${esc(lead.contact_linkedin)}" target="_blank" rel="noopener">LinkedIn Profile</a></div>` : ''}
+                ${lead.contact_notes ? `<div class="contact-line" style="color:var(--text2);font-style:italic;margin-top:4px;">${esc(lead.contact_notes)}</div>` : ''}
+              </div>
+            </div>` : '<div class="contact-card empty"><strong>👤 Decision Maker:</strong> <span style="color:var(--text2)">Not yet researched</span></div>'}
+            ${lead.reasoning ? `<div class="reasoning">${esc(lead.reasoning)}</div>` : ''}
+            ${(lead.review_links && lead.review_links.length) ? `
+            <div class="review-links">
+              <strong>📝 Competitor Review Evidence:</strong>
+              <ul>${lead.review_links.map(url => `<li><a href="${esc(url)}" target="_blank" rel="noopener">${esc(url.length > 60 ? url.substring(0, 60) + '...' : url)}</a></li>`).join('')}</ul>
+            </div>` : ''}
+            <div class="meta-line">
+              <span>📡 ${esc(lead.source || 'Unknown source')}</span>
+              <span>🕐 ${lead.researched_at ? new Date(lead.researched_at).toLocaleDateString() : '—'}</span>
+              ${lead.distance_from_base_miles ? `<span>📍 ${lead.distance_from_base_miles} mi / ${lead.distance_from_base_minutes || '?'} min</span>` : ''}
+              ${lead.phone ? `<span>📞 ${esc(lead.phone)}</span>` : ''}
+            </div>
+          </div>
+          ${rejectReasonHtml}
+          ${actions}
+        </div>`;
+    }
+
+    function buildCriteria(l) {
+      const items = [];
+      const check = (ok, label) => {
+        if (ok === true) return `<div class="criteria-item"><span class="icon">✅</span><div class="txt">${label}</div></div>`;
+        if (ok === false) return `<div class="criteria-item"><span class="icon">❌</span><div class="txt">${label}</div></div>`;
+        return `<div class="criteria-item"><span class="icon">❓</span><div class="txt">${label}</div></div>`;
+      };
+
+      items.push(check(l.meets_minimum_size,
+        `<strong>Size:</strong> ${l.unit_count || '?'} ${l.property_type==='apartments'||l.property_type==='senior_living' ? 'units' : 'employees'} ${l.meets_minimum_size ? '(meets minimum)' : l.meets_minimum_size === false ? '(below minimum)' : '(unknown)'}`));
+      items.push(check(l.meets_building_type,
+        `<strong>Building:</strong> ${esc(l.building_type||'Unknown')} ${l.meets_building_type ? '(preferred)' : ''}`));
+
+      const tierLabel = l.tier === 1 ? 'Tier 1 🟢' : l.tier === 2 ? 'Tier 2 🟡' : l.tier === 3 ? 'Tier 3 🟠' : '?';
+      items.push(check(l.meets_location,
+        `<strong>Distance:</strong> ${l.distance_from_base_minutes||'?'} min (${tierLabel})`));
+      items.push(check(l.meets_location,
+        `<strong>Location:</strong> ${l.meets_location ? 'Within service area' : l.meets_location === false ? 'Outside service area' : 'Unknown'}`));
+
+      // no_existing_vending: true is good
+      const vendOk = l.no_existing_vending === true ? true : l.no_existing_vending === false ? false : null;
+      items.push(check(vendOk,
+        `<strong>Existing vending:</strong> ${l.no_existing_vending === true ? 'No existing vendors' : l.no_existing_vending === false ? 'Has existing vending' : 'Unknown'}`));
+
+      // near_food_options: false is BETTER
+      const foodOk = l.near_food_options === false ? true : l.near_food_options === true ? false : null;
+      items.push(check(foodOk,
+        `<strong>Food options:</strong> ${l.near_food_options === false ? 'Limited nearby (more demand)' : l.near_food_options === true ? 'Many nearby (less demand)' : 'Unknown'}`));
+
+      items.push(check(l.has_common_areas,
+        `<strong>Common areas:</strong> ${l.has_common_areas ? 'Yes (lobby, gym, etc.)' : l.has_common_areas === false ? 'None found' : 'Unknown'}`));
+      items.push(check(l.community_recommended_type,
+        `<strong>Community rec\'d:</strong> ${l.community_recommended_type ? 'Recommended by Skool operators' : l.community_recommended_type === false ? 'Not recommended' : 'Unknown'}`));
+
+      return items.join('');
+    }
+
+    // ── Actions ──
+    async function approveLead(id) {
+      try {
+        const res = await fetch(`${API}/${id}/approve`, { method: 'PUT' });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        const idx = allLeads.findIndex(l => l.id === id);
+        if (idx >= 0) allLeads[idx].status = 'approved';
+        renderAll();
+        showToast('✅ Lead approved and added to CRM!');
+      } catch(e) {
+        showToast('Failed to approve: ' + e.message, true);
+      }
+    }
+
+    function openRejectModal(id) {
+      rejectingId = id;
+      document.getElementById('reject-reason').value = '';
+      document.getElementById('reject-modal').classList.add('show');
+    }
+
+    function closeRejectModal() {
+      rejectingId = null;
+      document.getElementById('reject-modal').classList.remove('show');
+    }
+
+    async function confirmReject() {
+      const reason = document.getElementById('reject-reason').value.trim();
+      try {
+        const res = await fetch(`${API}/${rejectingId}/reject`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reject_reason: reason })
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        const idx = allLeads.findIndex(l => l.id === rejectingId);
+        if (idx >= 0) {
+          allLeads[idx].status = 'rejected';
+          allLeads[idx].reject_reason = reason;
+        }
+        closeRejectModal();
+        renderAll();
+        showToast('❌ Lead rejected');
+      } catch(e) {
+        showToast('Failed to reject: ' + e.message, true);
+      }
+    }
+
+    async function deleteLead(id) {
+      if (!confirm('Remove this proposed lead?')) return;
+      try {
+        await fetch(`${API}/${id}`, { method: 'DELETE' });
+        allLeads = allLeads.filter(l => l.id !== id);
+        renderAll();
+        showToast('🗑️ Lead removed');
+      } catch(e) {
+        showToast('Failed to delete: ' + e.message, true);
+      }
+    }
+
+    // ── Helpers ──
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s || '';
+      return d.innerHTML;
+    }
+
+    function showToast(msg, isError) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast' + (isError ? ' error' : '');
+      requestAnimationFrame(() => t.classList.add('show'));
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // ── Events ──
+    function bindEvents() {
+      document.getElementById('search-input').addEventListener('input', renderAll);
+      document.getElementById('filter-type').addEventListener('change', renderAll);
+      document.getElementById('filter-tier').addEventListener('change', renderAll);
+      document.getElementById('sort-by').addEventListener('change', renderAll);
+
+      document.querySelectorAll('.section-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.section-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          activeStatus = tab.dataset.status;
+          renderAll();
+        });
+      });
+
+      // Close modal on backdrop click
+      document.getElementById('reject-modal').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) closeRejectModal();
+      });
+    }
+
+    // Go
+    init();
+  </script>
+</body>
+</html>

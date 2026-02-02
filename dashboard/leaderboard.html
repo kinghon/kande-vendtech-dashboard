@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Leaderboard - Kande VendTech</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f7;
+      color: #1f2937;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .header img { height: 40px; border-radius: 8px; }
+    .header h1 {
+      font-size: 1.5rem;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .back-link {
+      margin-left: auto;
+      color: #667eea;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    .back-link:hover { text-decoration: underline; }
+    
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .tab {
+      padding: 10px 20px;
+      border: none;
+      background: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #6b7280;
+      cursor: pointer;
+      border-radius: 8px 8px 0 0;
+      transition: all 0.2s;
+    }
+    .tab:hover { color: #1f2937; background: #f3f4f6; }
+    .tab.active {
+      color: #667eea;
+      background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1));
+    }
+    
+    .achievement-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      color: white;
+      margin-right: 4px;
+      margin-bottom: 4px;
+    }
+    .rivalry-info {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+    .rivalry-ahead { color: #22c55e; }
+    .rivalry-behind { color: #ef4444; }
+    
+    .mvp-section {
+      background: linear-gradient(135deg, rgba(251,191,36,0.15), rgba(245,158,11,0.15));
+      border: 1px solid rgba(251,191,36,0.3);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+    .mvp-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #92400e;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .mvp-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+    }
+    .mvp-card {
+      background: white;
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+      border: 1px solid rgba(251,191,36,0.3);
+    }
+    .mvp-dept { font-size: 0.7rem; color: #6b7280; text-transform: uppercase; }
+    .mvp-name { font-weight: 700; color: #1f2937; margin-top: 4px; }
+    .mvp-score { font-size: 0.85rem; color: #92400e; }
+    
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .summary-card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+    .summary-value {
+      font-size: 2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .summary-label {
+      font-size: 0.8rem;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .leaderboard {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .leaderboard-header {
+      display: grid;
+      grid-template-columns: 50px 1fr 70px 70px 70px 70px 80px;
+      padding: 16px 20px;
+      background: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .leaderboard-row {
+      display: grid;
+      grid-template-columns: 50px 1fr 70px 70px 70px 70px 80px;
+      padding: 16px 20px;
+      border-bottom: 1px solid #f3f4f6;
+      align-items: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .leaderboard-row:hover { background: #f9fafb; }
+    .leaderboard-row:last-child { border-bottom: none; }
+    
+    .rank {
+      font-size: 1.25rem;
+      font-weight: 800;
+    }
+    .rank-1 { color: #fbbf24; }
+    .rank-2 { color: #9ca3af; }
+    .rank-3 { color: #d97706; }
+    
+    .agent-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .agent-name {
+      font-weight: 600;
+      color: #1f2937;
+    }
+    .agent-depts {
+      font-size: 0.8rem;
+      color: #6b7280;
+    }
+    
+    .score {
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+    .score.high { color: #22c55e; }
+    .score.medium { color: #f59e0b; }
+    .score.low { color: #ef4444; }
+    
+    .tier-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-align: center;
+    }
+    .tier-Diamond { background: linear-gradient(135deg, #a855f7, #6366f1); color: white; }
+    .tier-Gold { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: white; }
+    .tier-Silver { background: linear-gradient(135deg, #9ca3af, #6b7280); color: white; }
+    .tier-Bronze { background: linear-gradient(135deg, #d97706, #b45309); color: white; }
+    
+    .dept-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .dept-card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .dept-card:hover {
+      border-color: #667eea;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102,126,234,0.15);
+    }
+    .dept-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .dept-emoji { font-size: 1.5rem; }
+    .dept-name { font-weight: 700; font-size: 1.1rem; }
+    .dept-efficiency {
+      margin-left: auto;
+      font-size: 1.5rem;
+      font-weight: 800;
+    }
+    .dept-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #e5e7eb;
+    }
+    .dept-stat {
+      text-align: center;
+    }
+    .dept-stat-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #1f2937;
+    }
+    .dept-stat-label {
+      font-size: 0.7rem;
+      color: #6b7280;
+      text-transform: uppercase;
+    }
+    .dept-agents {
+      margin-top: 12px;
+      font-size: 0.85rem;
+      color: #6b7280;
+    }
+    
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: #ffffff;
+      border-radius: 16px;
+      max-width: 600px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      background: #ffffff;
+    }
+    .modal-title { font-size: 1.25rem; font-weight: 700; }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: #9ca3af;
+      cursor: pointer;
+    }
+    .modal-close:hover { color: #1f2937; }
+    .modal-body { padding: 24px; }
+    
+    .agent-scores {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .agent-score-card {
+      background: #f9fafb;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+    }
+    .agent-score-value {
+      font-size: 2rem;
+      font-weight: 800;
+    }
+    .agent-score-label {
+      font-size: 0.75rem;
+      color: #6b7280;
+      text-transform: uppercase;
+    }
+    
+    .metrics-section {
+      background: #f9fafb;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .metrics-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+    }
+    .metric-item {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+    .metric-value {
+      font-size: 1.5rem;
+      font-weight: 800;
+    }
+    .metric-label {
+      font-size: 0.7rem;
+      color: #6b7280;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+    .metric-bar {
+      height: 4px;
+      background: #e5e7eb;
+      border-radius: 2px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+    .metric-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+    .metric-bar-fill.high { background: linear-gradient(90deg, #22c55e, #16a34a); }
+    .metric-bar-fill.medium { background: linear-gradient(90deg, #f59e0b, #d97706); }
+    .metric-bar-fill.low { background: linear-gradient(90deg, #ef4444, #dc2626); }
+    
+    .task-list {
+      margin-top: 16px;
+    }
+    .task-item {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+    }
+    .task-title { font-weight: 600; margin-bottom: 4px; }
+    .task-meta { font-size: 0.8rem; color: #6b7280; }
+    .task-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+    .task-badge.completed { background: rgba(34,197,94,0.15); color: #22c55e; }
+    .task-badge.in-progress { background: rgba(59,130,246,0.15); color: #3b82f6; }
+    
+    .section-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #6b7280;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .hidden { display: none !important; }
+    
+    @media (max-width: 768px) {
+      .leaderboard-header, .leaderboard-row {
+        grid-template-columns: 40px 1fr 50px 60px;
+      }
+      .leaderboard-header > *:nth-child(4),
+      .leaderboard-header > *:nth-child(5),
+      .leaderboard-header > *:nth-child(6),
+      .leaderboard-row > *:nth-child(4),
+      .leaderboard-row > *:nth-child(5),
+      .leaderboard-row > *:nth-child(6) {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="/logo.png" alt="Kande VendTech">
+    <h1>🏆 Agent Leaderboard</h1>
+    <a href="/" class="back-link">← Back to Dashboard</a>
+  </div>
+  
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('leaderboard')">🏆 Leaderboard</button>
+    <button class="tab" onclick="showTab('departments')">🏢 Department Reports</button>
+  </div>
+  
+  <div id="leaderboard-tab">
+    <div class="summary-grid" id="summary-grid"></div>
+    <div class="mvp-section" id="mvp-section"></div>
+    <div class="leaderboard">
+      <div class="leaderboard-header">
+        <div>Rank</div>
+        <div>Agent</div>
+        <div>Tasks</div>
+        <div>Quality</div>
+        <div>Insight</div>
+        <div>Effic.</div>
+        <div>Tier</div>
+      </div>
+      <div id="leaderboard-body"></div>
+    </div>
+  </div>
+  
+  <div id="departments-tab" class="hidden">
+    <div class="summary-grid" id="dept-summary-grid"></div>
+    <div class="dept-grid" id="dept-grid"></div>
+  </div>
+  
+  <!-- Agent Detail Modal -->
+  <div class="modal-overlay" id="agent-modal" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-agent-name"></div>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+  
+  <script>
+    let leaderboardData = null;
+    let departmentData = null;
+    
+    async function loadLeaderboard() {
+      const res = await fetch('/api/leaderboard');
+      leaderboardData = await res.json();
+      renderLeaderboard();
+    }
+    
+    async function loadDepartments() {
+      const res = await fetch('/api/efficiency/departments');
+      departmentData = await res.json();
+      renderDepartments();
+    }
+    
+    function renderLeaderboard() {
+      const { leaderboard, totalAgents, departmentMVPs } = leaderboardData;
+      
+      // Summary
+      const totalTasks = leaderboard.reduce((s, a) => s + a.tasksCompleted, 0);
+      const avgScore = leaderboard.length > 0 
+        ? Math.round(leaderboard.reduce((s, a) => s + a.overallScore, 0) / leaderboard.length)
+        : 0;
+      const diamondCount = leaderboard.filter(a => a.tier === 'Diamond').length;
+      
+      document.getElementById('summary-grid').innerHTML = `
+        <div class="summary-card">
+          <div class="summary-value">${totalAgents}</div>
+          <div class="summary-label">Total Bots</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-value">${totalTasks}</div>
+          <div class="summary-label">Tasks Done</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-value">${avgScore}</div>
+          <div class="summary-label">Avg Score</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-value">${diamondCount}</div>
+          <div class="summary-label">💎 Diamond</div>
+        </div>
+      `;
+      
+      // Department MVPs
+      const deptNames = {
+        sales: '🎯 Sales', operations: '📦 Ops', marketing: '📣 Marketing', 
+        finance: '💰 Finance', research: '🔬 Research', technology: '🖥️ Tech',
+        legal: '⚖️ Legal', hr: '👥 HR', website: '🌐 Web', database: '🗄️ Data'
+      };
+      
+      if (departmentMVPs && Object.keys(departmentMVPs).length > 0) {
+        document.getElementById('mvp-section').innerHTML = `
+          <div class="mvp-title">🏆 Department MVPs — Top Performers</div>
+          <div class="mvp-grid">
+            ${Object.entries(departmentMVPs).map(([dept, mvp]) => `
+              <div class="mvp-card">
+                <div class="mvp-dept">${deptNames[dept] || dept}</div>
+                <div class="mvp-name">🤖 ${mvp.name}</div>
+                <div class="mvp-score">${mvp.score} pts</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+      
+      // Leaderboard rows
+      const body = document.getElementById('leaderboard-body');
+      body.innerHTML = leaderboard.map(agent => {
+        const sc = s => s >= 75 ? 'high' : s >= 50 ? 'medium' : 'low';
+        const achievements = (agent.achievements || []).slice(0, 3);
+        
+        // Find rivalry info
+        let rivalryHtml = '';
+        if (agent.deptRankings) {
+          const deptInfo = Object.entries(agent.deptRankings)[0];
+          if (deptInfo) {
+            const [dept, info] = deptInfo;
+            if (info.isTopPerformer) {
+              rivalryHtml = `<span class="rivalry-info rivalry-ahead">👑 Leading ${deptNames[dept] || dept}</span>`;
+            } else if (info.leaderGap) {
+              rivalryHtml = `<span class="rivalry-info rivalry-behind">📈 ${info.leaderGap} pts behind ${info.leaderName}</span>`;
+            }
+          }
+        }
+        
+        return `
+          <div class="leaderboard-row" onclick="openAgentModal('${agent.name}')">
+            <div class="rank rank-${agent.rank}">#${agent.rank}</div>
+            <div class="agent-info">
+              <div class="agent-name">🤖 ${agent.name}</div>
+              <div class="agent-depts">
+                ${agent.departments.length} dept${agent.departments.length !== 1 ? 's' : ''} • ${agent.overallScore} pts
+                ${rivalryHtml}
+              </div>
+              ${achievements.length > 0 ? `<div style="margin-top:4px;">${achievements.map(a => `<span class="achievement-badge">${a}</span>`).join('')}</div>` : ''}
+            </div>
+            <div class="score ${sc(agent.tasksCompleted * 10)}">${agent.tasksCompleted}</div>
+            <div class="score ${sc(agent.qualityScore)}">${agent.qualityScore}</div>
+            <div class="score ${sc(agent.insightScore || 0)}">${agent.insightScore || 0}</div>
+            <div class="score ${sc(agent.efficiencyScore)}">${agent.efficiencyScore}</div>
+            <div><span class="tier-badge tier-${agent.tier}">${agent.tierEmoji || ''}</span></div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    function renderDepartments() {
+      const { departments, summary } = departmentData;
+      
+      // Summary
+      document.getElementById('dept-summary-grid').innerHTML = `
+        <div class="summary-card">
+          <div class="summary-value">${summary.totalDepartments}</div>
+          <div class="summary-label">Departments</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-value">${summary.totalCompleted}</div>
+          <div class="summary-label">Tasks Done</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-value">${summary.overallCompletionRate}%</div>
+          <div class="summary-label">Completion Rate</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-value">${summary.avgEfficiencyScore}</div>
+          <div class="summary-label">Avg Efficiency</div>
+        </div>
+      `;
+      
+      // Department cards
+      const grid = document.getElementById('dept-grid');
+      grid.innerHTML = departments.map(dept => {
+        const scoreClass = dept.efficiencyScore >= 75 ? 'high' : dept.efficiencyScore >= 50 ? 'medium' : 'low';
+        return `
+          <div class="dept-card">
+            <div class="dept-header">
+              <span class="dept-emoji">${dept.emoji}</span>
+              <span class="dept-name">${dept.name}</span>
+              <span class="dept-efficiency score ${scoreClass}">${dept.efficiencyScore}</span>
+            </div>
+            <div class="dept-stats">
+              <div class="dept-stat">
+                <div class="dept-stat-value">${dept.completedTasks}</div>
+                <div class="dept-stat-label">Completed</div>
+              </div>
+              <div class="dept-stat">
+                <div class="dept-stat-value">${dept.inProgressTasks}</div>
+                <div class="dept-stat-label">In Progress</div>
+              </div>
+              <div class="dept-stat">
+                <div class="dept-stat-value">${dept.completionRate}%</div>
+                <div class="dept-stat-label">Rate</div>
+              </div>
+            </div>
+            <div class="dept-agents">
+              👤 ${dept.uniqueAgents} agent${dept.uniqueAgents !== 1 ? 's' : ''}: ${dept.agentNames.slice(0, 3).join(', ')}${dept.agentNames.length > 3 ? '...' : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    async function openAgentModal(name) {
+      const res = await fetch(`/api/efficiency/agent/${encodeURIComponent(name)}`);
+      const agent = await res.json();
+      
+      document.getElementById('modal-agent-name').textContent = `🤖 ${agent.name}`;
+      
+      const scoreClass = s => s >= 75 ? 'high' : s >= 50 ? 'medium' : 'low';
+      const barClass = s => s >= 75 ? 'high' : s >= 50 ? 'medium' : 'low';
+      
+      const m = agent.metrics || { efficiency: {}, quality: {}, productivity: {} };
+      
+      let html = `
+        <div style="text-align:center;margin-bottom:20px;">
+          <span class="tier-badge tier-${agent.tier}" style="font-size:1rem;padding:8px 20px;">${agent.tierEmoji || ''} ${agent.tier} Tier</span>
+        </div>
+        
+        <div class="agent-scores" style="grid-template-columns: repeat(4, 1fr);">
+          <div class="agent-score-card">
+            <div class="agent-score-value score ${scoreClass(agent.overallScore)}">${agent.overallScore}</div>
+            <div class="agent-score-label">Overall</div>
+          </div>
+          <div class="agent-score-card" style="background: linear-gradient(135deg, rgba(34,197,94,0.1), rgba(22,163,74,0.1));">
+            <div class="agent-score-value score ${scoreClass(agent.qualityScore)}">${agent.qualityScore}</div>
+            <div class="agent-score-label">Quality</div>
+          </div>
+          <div class="agent-score-card" style="background: linear-gradient(135deg, rgba(168,85,247,0.1), rgba(99,102,241,0.1));">
+            <div class="agent-score-value score ${scoreClass(agent.insightScore || 0)}">${agent.insightScore || 0}</div>
+            <div class="agent-score-label">Insight</div>
+          </div>
+          <div class="agent-score-card">
+            <div class="agent-score-value score ${scoreClass(agent.efficiencyScore)}">${agent.efficiencyScore}</div>
+            <div class="agent-score-label">Efficiency</div>
+          </div>
+        </div>
+        
+        <!-- Efficiency Metrics -->
+        <div class="metrics-section">
+          <div class="metrics-title">⚡ Efficiency Breakdown</div>
+          <div class="metrics-grid">
+            <div class="metric-item">
+              <div class="metric-value score ${scoreClass(m.efficiency.speed || 0)}">${m.efficiency.speed || 0}</div>
+              <div class="metric-label">Speed</div>
+              <div class="metric-bar"><div class="metric-bar-fill ${barClass(m.efficiency.speed || 0)}" style="width:${m.efficiency.speed || 0}%"></div></div>
+            </div>
+            <div class="metric-item">
+              <div class="metric-value score ${scoreClass(m.efficiency.throughput || 0)}">${m.efficiency.throughput || 0}</div>
+              <div class="metric-label">Throughput</div>
+              <div class="metric-bar"><div class="metric-bar-fill ${barClass(m.efficiency.throughput || 0)}" style="width:${m.efficiency.throughput || 0}%"></div></div>
+            </div>
+            <div class="metric-item">
+              <div class="metric-value score ${scoreClass(m.efficiency.volume || 0)}">${m.efficiency.volume || 0}</div>
+              <div class="metric-label">Volume</div>
+              <div class="metric-bar"><div class="metric-bar-fill ${barClass(m.efficiency.volume || 0)}" style="width:${m.efficiency.volume || 0}%"></div></div>
+            </div>
+            <div class="metric-item">
+              <div class="metric-value score ${scoreClass(m.efficiency.versatility || 0)}">${m.efficiency.versatility || 0}</div>
+              <div class="metric-label">Versatility</div>
+              <div class="metric-bar"><div class="metric-bar-fill ${barClass(m.efficiency.versatility || 0)}" style="width:${m.efficiency.versatility || 0}%"></div></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Quality Metrics -->
+        <div class="metrics-section">
+          <div class="metrics-title">✨ Quality Breakdown</div>
+          <div class="metrics-grid">
+            <div class="metric-item">
+              <div class="metric-value score ${scoreClass(m.quality.successRate || 0)}">${m.quality.successRate || 0}</div>
+              <div class="metric-label">Success Rate</div>
+              <div class="metric-bar"><div class="metric-bar-fill ${barClass(m.quality.successRate || 0)}" style="width:${m.quality.successRate || 0}%"></div></div>
+            </div>
+            <div class="metric-item">
+              <div class="metric-value score ${scoreClass(m.quality.errorFree || 0)}">${m.quality.errorFree || 0}</div>
+              <div class="metric-label">Error-Free</div>
+              <div class="metric-bar"><div class="metric-bar-fill ${barClass(m.quality.errorFree || 0)}" style="width:${m.quality.errorFree || 0}%"></div></div>
+            </div>
+            <div class="metric-item">
+              <div class="metric-value score ${scoreClass(m.quality.reliability || 0)}">${m.quality.reliability || 0}</div>
+              <div class="metric-label">Reliability</div>
+              <div class="metric-bar"><div class="metric-bar-fill ${barClass(m.quality.reliability || 0)}" style="width:${m.quality.reliability || 0}%"></div></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Insight Metrics (Above & Beyond) -->
+        <div class="metrics-section" style="background: linear-gradient(135deg, rgba(168,85,247,0.1), rgba(99,102,241,0.1)); border-color: rgba(168,85,247,0.2);">
+          <div class="metrics-title" style="color: #7c3aed;">🧠 Insight & Depth (Going Above & Beyond)</div>
+          <div class="metrics-grid">
+            <div class="metric-item">
+              <div class="metric-value score ${scoreClass(m.insight?.aboveBeyond || 0)}">${m.insight?.aboveBeyond || 0}</div>
+              <div class="metric-label">Above & Beyond</div>
+              <div class="metric-bar"><div class="metric-bar-fill ${barClass(m.insight?.aboveBeyond || 0)}" style="width:${m.insight?.aboveBeyond || 0}%"></div></div>
+            </div>
+            <div class="metric-item">
+              <div class="metric-value score ${scoreClass(m.quality.thoroughness || 0)}">${m.quality.thoroughness || 0}</div>
+              <div class="metric-label">Thoroughness</div>
+              <div class="metric-bar"><div class="metric-bar-fill ${barClass(m.quality.thoroughness || 0)}" style="width:${m.quality.thoroughness || 0}%"></div></div>
+            </div>
+            <div class="metric-item">
+              <div class="metric-value score ${scoreClass(m.insight?.outputQuality || 0)}">${m.insight?.outputQuality || 0}</div>
+              <div class="metric-label">Output Quality</div>
+              <div class="metric-bar"><div class="metric-bar-fill ${barClass(m.insight?.outputQuality || 0)}" style="width:${m.insight?.outputQuality || 0}%"></div></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Stats -->
+        <div class="summary-grid" style="margin-bottom:20px;">
+          <div class="summary-card">
+            <div class="summary-value" style="font-size:1.5rem;">${agent.tasksCompleted}</div>
+            <div class="summary-label">Completed</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-value" style="font-size:1.5rem;">${agent.tasksInProgress}</div>
+            <div class="summary-label">In Progress</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-value" style="font-size:1.5rem;">${agent.avgCompletionTimeMin || '—'}${agent.avgCompletionTimeMin ? 'm' : ''}</div>
+            <div class="summary-label">Avg Time</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-value" style="font-size:1.5rem;">${agent.departmentCount}</div>
+            <div class="summary-label">Depts</div>
+          </div>
+        </div>
+        
+        <div class="section-title">Recent Tasks</div>
+        <div class="task-list">
+      `;
+      
+      for (const task of (agent.taskHistory || []).slice(0, 10)) {
+        const date = task.completedAt || task.startedAt;
+        const dateStr = date ? new Date(date).toLocaleString() : '';
+        html += `
+          <div class="task-item">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div class="task-title">${task.title}</div>
+              <span class="task-badge ${task.status}">${task.status === 'completed' ? 'Done' : 'In Progress'}</span>
+            </div>
+            <div class="task-meta">${task.departmentName} • ${dateStr}</div>
+          </div>
+        `;
+      }
+      
+      html += '</div>';
+      
+      document.getElementById('modal-body').innerHTML = html;
+      document.getElementById('agent-modal').classList.add('show');
+    }
+    
+    function closeModal() {
+      document.getElementById('agent-modal').classList.remove('show');
+    }
+    
+    function showTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`.tab[onclick*="${tab}"]`).classList.add('active');
+      
+      document.getElementById('leaderboard-tab').classList.toggle('hidden', tab !== 'leaderboard');
+      document.getElementById('departments-tab').classList.toggle('hidden', tab !== 'departments');
+    }
+    
+    // Load data
+    loadLeaderboard();
+    loadDepartments();
+    
+    // Refresh every 30 seconds
+    setInterval(() => {
+      loadLeaderboard();
+      loadDepartments();
+    }, 30000);
+  </script>
+</body>
+</html>

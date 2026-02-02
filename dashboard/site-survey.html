@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-sales-32.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon-sales.png">
+  <title>Site Survey — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f8fafc; --card: #fff; --border: #e2e8f0; --text: #1e293b;
+      --muted: #64748b; --accent: #3b82f6; --danger: #ef4444;
+      --success: #22c55e; --warn: #f59e0b; --orange: #f97316;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text); padding-bottom: 120px;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    /* ── Mobile-first layout ─────────────────────── */
+    .app { max-width: 640px; margin: 0 auto; padding: 12px; }
+
+    /* ── Header ───────────────────────────────────── */
+    .survey-header {
+      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+      color: #fff; border-radius: 16px; padding: 20px; margin-bottom: 16px;
+      position: relative; overflow: hidden;
+    }
+    .survey-header::after {
+      content: '📋'; position: absolute; right: 16px; top: 50%;
+      transform: translateY(-50%); font-size: 3rem; opacity: 0.2;
+    }
+    .survey-header h1 { font-size: 1.3rem; margin-bottom: 4px; }
+    .survey-header p { font-size: 0.82rem; opacity: 0.85; }
+    .gps-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.15); border-radius: 20px;
+      padding: 4px 12px; font-size: 0.75rem; margin-top: 8px;
+    }
+    .gps-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    /* ── Prospect Selector ────────────────────────── */
+    .prospect-select-wrap {
+      background: var(--card); border-radius: 12px; border: 1px solid var(--border);
+      padding: 16px; margin-bottom: 16px;
+    }
+    .prospect-select-wrap label { font-size: 0.82rem; font-weight: 600; color: var(--muted); display: block; margin-bottom: 8px; }
+    .prospect-select-wrap select {
+      width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 10px;
+      font-size: 1rem; background: var(--bg); appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%2364748b'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center;
+    }
+    .prospect-info {
+      margin-top: 12px; padding: 10px; background: #eff6ff; border-radius: 8px;
+      font-size: 0.82rem; display: none;
+    }
+    .prospect-info.visible { display: block; }
+    .prospect-info .info-row { display: flex; justify-content: space-between; padding: 3px 0; }
+    .prospect-info .info-label { color: var(--muted); }
+
+    /* ── Score Display ────────────────────────────── */
+    .score-display {
+      background: var(--card); border-radius: 12px; border: 2px solid var(--border);
+      padding: 16px; margin-bottom: 16px; text-align: center;
+      transition: border-color 0.3s;
+    }
+    .score-display.grade-a { border-color: var(--success); }
+    .score-display.grade-b { border-color: var(--accent); }
+    .score-display.grade-c { border-color: var(--warn); }
+    .score-display.grade-d { border-color: var(--orange); }
+    .score-display.grade-f { border-color: var(--danger); }
+    .score-grade { font-size: 2.5rem; font-weight: 800; line-height: 1; }
+    .score-label { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+    .score-number { font-size: 1.1rem; font-weight: 600; margin-top: 2px; }
+    .score-breakdown {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+      margin-top: 12px; text-align: left;
+    }
+    .score-item { font-size: 0.72rem; color: var(--muted); padding: 4px 8px; background: var(--bg); border-radius: 6px; }
+    .score-item span { float: right; font-weight: 600; color: var(--text); }
+    .revenue-estimate { margin-top: 10px; padding: 8px; background: #f0fdf4; border-radius: 8px; font-size: 0.82rem; color: #166534; font-weight: 500; }
+
+    /* ── Section Cards ────────────────────────────── */
+    .section {
+      background: var(--card); border-radius: 12px; border: 1px solid var(--border);
+      margin-bottom: 12px; overflow: hidden;
+    }
+    .section-header {
+      padding: 14px 16px; display: flex; align-items: center; gap: 8px;
+      cursor: pointer; user-select: none; border-bottom: 1px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .section-header.open { border-bottom-color: var(--border); }
+    .section-header .icon { font-size: 1.1rem; }
+    .section-header h3 { font-size: 0.9rem; flex: 1; }
+    .section-header .chevron { transition: transform 0.2s; color: var(--muted); }
+    .section-header.open .chevron { transform: rotate(180deg); }
+    .section-header .badge {
+      font-size: 0.7rem; background: var(--bg); color: var(--muted);
+      padding: 2px 8px; border-radius: 10px; font-weight: 500;
+    }
+    .section-header .badge.filled { background: #dbeafe; color: var(--accent); }
+    .section-body { padding: 16px; display: none; }
+    .section-body.open { display: block; }
+
+    /* ── Form Fields ──────────────────────────────── */
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block; font-size: 0.78rem; font-weight: 600;
+      color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .field input, .field select, .field textarea {
+      width: 100%; padding: 11px 14px; border: 1px solid var(--border);
+      border-radius: 10px; font-size: 0.95rem; background: var(--bg);
+      transition: border-color 0.2s;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      outline: none; border-color: var(--accent); background: #fff;
+    }
+    .field textarea { min-height: 80px; resize: vertical; }
+    .field .hint { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+    .field select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%2364748b'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center;
+    }
+
+    /* Inline row (2 fields side by side) */
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+    /* Toggle pills */
+    .toggle-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .toggle-pill {
+      padding: 8px 14px; border-radius: 20px; font-size: 0.82rem;
+      border: 1px solid var(--border); background: var(--bg);
+      cursor: pointer; transition: all 0.15s; user-select: none;
+    }
+    .toggle-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .toggle-pill:active { transform: scale(0.97); }
+
+    /* Star rating */
+    .star-rating { display: flex; gap: 8px; }
+    .star {
+      font-size: 2rem; cursor: pointer; opacity: 0.25;
+      transition: opacity 0.15s, transform 0.1s;
+      user-select: none; -webkit-tap-highlight-color: transparent;
+    }
+    .star.active { opacity: 1; }
+    .star:active { transform: scale(1.2); }
+    .interest-label { font-size: 0.82rem; color: var(--muted); margin-top: 4px; }
+
+    /* Yes/No toggle */
+    .yn-toggle { display: flex; gap: 8px; }
+    .yn-btn {
+      flex: 1; padding: 12px; text-align: center; border-radius: 10px;
+      border: 2px solid var(--border); font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; transition: all 0.15s; user-select: none;
+    }
+    .yn-btn.yes.active { border-color: var(--success); background: #f0fdf4; color: #166534; }
+    .yn-btn.no.active { border-color: var(--danger); background: #fef2f2; color: #991b1b; }
+
+    /* Photo upload */
+    .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .photo-slot {
+      aspect-ratio: 1; border-radius: 10px; border: 2px dashed var(--border);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.15s; overflow: hidden; position: relative;
+      background: var(--bg);
+    }
+    .photo-slot:active { transform: scale(0.97); }
+    .photo-slot .plus { font-size: 1.5rem; color: var(--muted); }
+    .photo-slot .label { font-size: 0.65rem; color: var(--muted); margin-top: 2px; }
+    .photo-slot img {
+      width: 100%; height: 100%; object-fit: cover;
+      position: absolute; top: 0; left: 0;
+    }
+    .photo-slot .remove-photo {
+      position: absolute; top: 4px; right: 4px; width: 22px; height: 22px;
+      border-radius: 50%; background: rgba(0,0,0,0.6); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem; cursor: pointer; z-index: 2;
+    }
+
+    /* ── Submit Button ────────────────────────────── */
+    .submit-wrap {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      padding: 12px 16px; background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px); border-top: 1px solid var(--border);
+      z-index: 100;
+    }
+    .submit-btn {
+      width: 100%; padding: 14px; border: none; border-radius: 12px;
+      font-size: 1rem; font-weight: 700; color: #fff; cursor: pointer;
+      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+      transition: all 0.2s; box-shadow: 0 4px 14px rgba(59,130,246,0.3);
+    }
+    .submit-btn:active { transform: scale(0.98); }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .submit-btn .spinner {
+      display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite;
+      vertical-align: middle; margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Toast ─────────────────────────────────────── */
+    .toast {
+      position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+      padding: 12px 20px; border-radius: 10px; font-size: 0.85rem;
+      font-weight: 500; z-index: 9999; opacity: 0;
+      transition: opacity 0.3s, transform 0.3s;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.success { background: #166534; color: #fff; }
+    .toast.error { background: #991b1b; color: #fff; }
+
+    /* ── Previous Surveys ─────────────────────────── */
+    .prev-survey {
+      padding: 12px; border: 1px solid var(--border); border-radius: 10px;
+      margin-bottom: 8px; background: var(--bg); cursor: pointer;
+    }
+    .prev-survey:active { background: #e2e8f0; }
+    .prev-survey .row { display: flex; justify-content: space-between; align-items: center; }
+    .prev-survey .date { font-size: 0.78rem; color: var(--muted); }
+    .prev-survey .grade-pill {
+      padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 700;
+    }
+    .grade-a { background: #dcfce7; color: #166534; }
+    .grade-b { background: #dbeafe; color: #1e40af; }
+    .grade-c { background: #fef3c7; color: #92400e; }
+    .grade-d { background: #ffedd5; color: #9a3412; }
+    .grade-f { background: #fecaca; color: #991b1b; }
+
+    /* ── Red flag warnings ────────────────────────── */
+    .red-flags {
+      margin-top: 10px; padding: 10px; background: #fef2f2;
+      border-radius: 8px; display: none;
+    }
+    .red-flags.visible { display: block; }
+    .red-flags h4 { font-size: 0.78rem; color: #991b1b; margin-bottom: 6px; }
+    .red-flag-item { font-size: 0.75rem; color: #dc2626; padding: 2px 0; }
+
+    /* ── Competitor section ────────────────────────── */
+    .competitor-card {
+      padding: 10px; border: 1px solid var(--border); border-radius: 8px;
+      margin-bottom: 8px; background: var(--bg);
+    }
+    .competitor-card .field { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <script src="/nav.js"></script>
+  <div class="app">
+
+    <!-- Header -->
+    <div class="survey-header">
+      <h1>📋 Site Survey</h1>
+      <p>Smart market location assessment</p>
+      <div class="gps-badge">
+        <div class="gps-dot" id="gpsDot"></div>
+        <span id="gpsStatus">Acquiring GPS…</span>
+      </div>
+    </div>
+
+    <!-- Prospect Selector -->
+    <div class="prospect-select-wrap">
+      <label>Select Prospect</label>
+      <select id="prospectSelect">
+        <option value="">— Choose a prospect —</option>
+      </select>
+      <div class="prospect-info" id="prospectInfo">
+        <div class="info-row"><span class="info-label">Address</span><span id="piAddress">—</span></div>
+        <div class="info-row"><span class="info-label">Type</span><span id="piType">—</span></div>
+        <div class="info-row"><span class="info-label">Units</span><span id="piUnits">—</span></div>
+        <div class="info-row"><span class="info-label">Status</span><span id="piStatus">—</span></div>
+        <div class="info-row"><span class="info-label">Contact</span><span id="piContact">—</span></div>
+      </div>
+      <!-- Previous surveys for this prospect -->
+      <div id="prevSurveys" style="margin-top:12px;display:none;">
+        <label style="font-size:0.78rem;font-weight:600;color:var(--muted);margin-bottom:8px;display:block;">PREVIOUS SURVEYS</label>
+        <div id="prevSurveyList"></div>
+      </div>
+    </div>
+
+    <!-- Live Score -->
+    <div class="score-display" id="scoreDisplay">
+      <div class="score-grade" id="scoreGrade">—</div>
+      <div class="score-label">LOCATION SCORE</div>
+      <div class="score-number" id="scoreNumber">Fill out the survey to calculate</div>
+      <div class="score-breakdown" id="scoreBreakdown"></div>
+      <div class="revenue-estimate" id="revenueEstimate" style="display:none;"></div>
+      <div class="red-flags" id="redFlags">
+        <h4>⚠️ Red Flags</h4>
+        <div id="redFlagList"></div>
+      </div>
+    </div>
+
+    <!-- SECTION: Location Details -->
+    <div class="section">
+      <div class="section-header open" onclick="toggleSection(this)">
+        <span class="icon">🏢</span>
+        <h3>Location Details</h3>
+        <span class="badge" id="badge-location">0/4</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="section-body open">
+        <div class="field">
+          <label>Location Type</label>
+          <div class="toggle-group" id="locationType">
+            <div class="toggle-pill" data-value="apartments" onclick="selectPill(this)">🏠 Apartments</div>
+            <div class="toggle-pill" data-value="senior_living" onclick="selectPill(this)">👴 Senior Living</div>
+            <div class="toggle-pill" data-value="office" onclick="selectPill(this)">🏢 Office</div>
+            <div class="toggle-pill" data-value="healthcare" onclick="selectPill(this)">🏥 Healthcare</div>
+            <div class="toggle-pill" data-value="industrial" onclick="selectPill(this)">🏭 Industrial</div>
+            <div class="toggle-pill" data-value="hotel" onclick="selectPill(this)">🏨 Hotel</div>
+            <div class="toggle-pill" data-value="rec_center" onclick="selectPill(this)">🏊 Rec Center</div>
+            <div class="toggle-pill" data-value="school" onclick="selectPill(this)">🎓 School</div>
+            <div class="toggle-pill" data-value="warehouse" onclick="selectPill(this)">📦 Warehouse</div>
+            <div class="toggle-pill" data-value="other" onclick="selectPill(this)">📍 Other</div>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Employees / Residents</label>
+            <input type="number" id="populationCount" placeholder="e.g. 200" inputmode="numeric" oninput="recalcScore()">
+            <div class="hint">Minimum 50 recommended</div>
+          </div>
+          <div class="field">
+            <label>Daily Foot Traffic</label>
+            <input type="number" id="footTraffic" placeholder="e.g. 300" inputmode="numeric" oninput="recalcScore()">
+          </div>
+        </div>
+        <div class="field">
+          <label>Shift Breakdown</label>
+          <div class="toggle-group" id="shiftBreakdown">
+            <div class="toggle-pill" data-value="day_only" onclick="selectPill(this)">☀️ Day Only</div>
+            <div class="toggle-pill" data-value="day_night" onclick="selectPill(this)">🌗 Day + Night</div>
+            <div class="toggle-pill" data-value="24hr" onclick="selectPill(this)">🕐 24hr / 3 Shifts</div>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Building Access Hours</label>
+            <input type="text" id="accessHours" placeholder="e.g. 6am-10pm">
+          </div>
+          <div class="field">
+            <label>Nearest Competitor Amenities</label>
+            <input type="text" id="nearestAmenities" placeholder="e.g. 7-Eleven 0.3mi">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION: Existing Vending / Competition -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <span class="icon">🏁</span>
+        <h3>Existing Vending</h3>
+        <span class="badge" id="badge-vending">0/3</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="section-body">
+        <div class="field">
+          <label>Competitor Machines Present?</label>
+          <div class="yn-toggle">
+            <div class="yn-btn yes" onclick="ynToggle(this,'competitorPresent','yes')">✅ Yes</div>
+            <div class="yn-btn no" onclick="ynToggle(this,'competitorPresent','no')">❌ No</div>
+          </div>
+        </div>
+        <div id="competitorDetails" style="display:none;">
+          <div class="field-row">
+            <div class="field">
+              <label>Brand(s)</label>
+              <input type="text" id="competitorBrand" placeholder="e.g. Canteen, Royal">
+            </div>
+            <div class="field">
+              <label>Number of Machines</label>
+              <input type="number" id="competitorCount" placeholder="e.g. 2" inputmode="numeric">
+            </div>
+          </div>
+          <div class="field">
+            <label>Machine Condition</label>
+            <div class="toggle-group" id="competitorCondition">
+              <div class="toggle-pill" data-value="poor" onclick="selectPill(this)">😟 Poor</div>
+              <div class="toggle-pill" data-value="fair" onclick="selectPill(this)">😐 Fair</div>
+              <div class="toggle-pill" data-value="good" onclick="selectPill(this)">😊 Good</div>
+              <div class="toggle-pill" data-value="excellent" onclick="selectPill(this)">🤩 Excellent</div>
+            </div>
+            <div class="hint">Poor condition = opportunity to pitch replacement</div>
+          </div>
+          <div class="field">
+            <label>Satisfaction Level</label>
+            <div class="toggle-group" id="competitorSatisfaction">
+              <div class="toggle-pill" data-value="unhappy" onclick="selectPill(this)">😤 Unhappy</div>
+              <div class="toggle-pill" data-value="neutral" onclick="selectPill(this)">😐 Neutral</div>
+              <div class="toggle-pill" data-value="happy" onclick="selectPill(this)">😊 Happy</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION: Infrastructure -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <span class="icon">🔌</span>
+        <h3>Infrastructure</h3>
+        <span class="badge" id="badge-infra">0/4</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="section-body">
+        <div class="field">
+          <label>Power Outlet Available?</label>
+          <div class="yn-toggle">
+            <div class="yn-btn yes" onclick="ynToggle(this,'powerAvailable','yes')">⚡ Yes</div>
+            <div class="yn-btn no" onclick="ynToggle(this,'powerAvailable','no')">❌ No</div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Outlet Location</label>
+          <input type="text" id="outletLocation" placeholder="e.g. Behind breakroom counter, 4ft from wall">
+        </div>
+        <div class="field">
+          <label>WiFi Available?</label>
+          <div class="yn-toggle">
+            <div class="yn-btn yes" onclick="ynToggle(this,'wifiAvailable','yes')">📶 Yes</div>
+            <div class="yn-btn no" onclick="ynToggle(this,'wifiAvailable','no')">❌ No</div>
+          </div>
+        </div>
+        <div id="wifiDetails" style="display:none;">
+          <div class="field">
+            <label>WiFi Signal Strength</label>
+            <div class="toggle-group" id="wifiStrength">
+              <div class="toggle-pill" data-value="weak" onclick="selectPill(this)">📶 Weak</div>
+              <div class="toggle-pill" data-value="moderate" onclick="selectPill(this)">📶📶 Moderate</div>
+              <div class="toggle-pill" data-value="strong" onclick="selectPill(this)">📶📶📶 Strong</div>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Available Space (inches)</label>
+          <div class="field-row-3">
+            <div class="field">
+              <label style="font-size:0.7rem;">Width</label>
+              <input type="number" id="spaceW" placeholder="W" inputmode="numeric">
+            </div>
+            <div class="field">
+              <label style="font-size:0.7rem;">Depth</label>
+              <input type="number" id="spaceD" placeholder="D" inputmode="numeric">
+            </div>
+            <div class="field">
+              <label style="font-size:0.7rem;">Height</label>
+              <input type="number" id="spaceH" placeholder="H" inputmode="numeric">
+            </div>
+          </div>
+          <div class="hint">Standard combo machine: 39"W × 35"D × 72"H</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION: Photos -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <span class="icon">📸</span>
+        <h3>Site Photos</h3>
+        <span class="badge" id="badge-photos">0</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="section-body">
+        <div class="photo-grid" id="photoGrid">
+          <div class="photo-slot" onclick="capturePhoto(0)">
+            <span class="plus">📷</span>
+            <span class="label">Breakroom</span>
+          </div>
+          <div class="photo-slot" onclick="capturePhoto(1)">
+            <span class="plus">📷</span>
+            <span class="label">Lobby</span>
+          </div>
+          <div class="photo-slot" onclick="capturePhoto(2)">
+            <span class="plus">📷</span>
+            <span class="label">Outlet</span>
+          </div>
+          <div class="photo-slot" onclick="capturePhoto(3)">
+            <span class="plus">📷</span>
+            <span class="label">Space</span>
+          </div>
+          <div class="photo-slot" onclick="capturePhoto(4)">
+            <span class="plus">📷</span>
+            <span class="label">Competitor</span>
+          </div>
+          <div class="photo-slot" onclick="capturePhoto(5)">
+            <span class="plus">📷</span>
+            <span class="label">Other</span>
+          </div>
+        </div>
+        <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(this)">
+      </div>
+    </div>
+
+    <!-- SECTION: Relationship & Interest -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <span class="icon">🤝</span>
+        <h3>Relationship & Interest</h3>
+        <span class="badge" id="badge-relationship">0/4</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="section-body">
+        <div class="field">
+          <label>Decision Maker Met?</label>
+          <div class="yn-toggle">
+            <div class="yn-btn yes" onclick="ynToggle(this,'decisionMakerMet','yes')">🤝 Yes</div>
+            <div class="yn-btn no" onclick="ynToggle(this,'decisionMakerMet','no')">❌ Not Yet</div>
+          </div>
+        </div>
+        <div id="dmDetails" style="display:none;">
+          <div class="field">
+            <label>Decision Maker Name</label>
+            <input type="text" id="dmName" placeholder="e.g. Sarah Johnson">
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Title</label>
+              <input type="text" id="dmTitle" placeholder="e.g. Property Manager">
+            </div>
+            <div class="field">
+              <label>Phone / Email</label>
+              <input type="text" id="dmContact" placeholder="e.g. 702-555-1234">
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Gift Basket Delivered?</label>
+          <div class="yn-toggle">
+            <div class="yn-btn yes" onclick="ynToggle(this,'giftBasket','yes')">🎁 Yes</div>
+            <div class="yn-btn no" onclick="ynToggle(this,'giftBasket','no')">❌ No</div>
+          </div>
+          <div class="hint">$5 Costco gift bag = #1 icebreaker (Skool community proven)</div>
+        </div>
+        <div class="field">
+          <label>Interest Level</label>
+          <div class="star-rating" id="interestRating">
+            <span class="star" onclick="setInterest(1)">⭐</span>
+            <span class="star" onclick="setInterest(2)">⭐</span>
+            <span class="star" onclick="setInterest(3)">⭐</span>
+            <span class="star" onclick="setInterest(4)">⭐</span>
+            <span class="star" onclick="setInterest(5)">⭐</span>
+          </div>
+          <div class="interest-label" id="interestLabel">Tap to rate</div>
+        </div>
+        <div class="field">
+          <label>Notes</label>
+          <textarea id="surveyNotes" placeholder="Key observations, next steps, follow-up items...&#10;&#10;Tip: Note what they currently spend on amenities, any complaints about existing vendor, who else to talk to."></textarea>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- .app -->
+
+  <!-- Submit Bar -->
+  <div class="submit-wrap">
+    <button class="submit-btn" id="submitBtn" onclick="submitSurvey()">
+      📋 Submit Site Survey
+    </button>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ===== STATE =====
+    let prospects = [];
+    let selectedProspect = null;
+    let gpsCoords = null;
+    let photos = [null, null, null, null, null, null];
+    let currentPhotoSlot = 0;
+
+    // Toggle values
+    const toggleState = {
+      locationType: null,
+      shiftBreakdown: null,
+      competitorPresent: null,
+      competitorCondition: null,
+      competitorSatisfaction: null,
+      powerAvailable: null,
+      wifiAvailable: null,
+      wifiStrength: null,
+      decisionMakerMet: null,
+      giftBasket: null
+    };
+    let interestLevel = 0;
+
+    const INTEREST_LABELS = ['Tap to rate', '😒 Not Interested', '🤔 Slightly Curious', '😊 Interested', '🔥 Very Interested', '🚀 Eager to Sign'];
+
+    // ===== INIT =====
+    document.addEventListener('DOMContentLoaded', () => {
+      loadProspects();
+      captureGPS();
+    });
+
+    async function loadProspects() {
+      try {
+        const res = await fetch('/api/prospects');
+        prospects = await res.json();
+        const sel = document.getElementById('prospectSelect');
+        // Sort by name
+        prospects.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        prospects.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          const statusIcon = { new: '🆕', active: '🔵', signed: '✅', closed: '⛔' }[p.status] || '⚪';
+          opt.textContent = `${statusIcon} ${p.name}${p.property_type ? ' (' + p.property_type.replace(/_/g, ' ') + ')' : ''}`;
+          sel.appendChild(opt);
+        });
+
+        // Check URL params for pre-selected prospect
+        const params = new URLSearchParams(window.location.search);
+        const pid = params.get('prospect');
+        if (pid) {
+          sel.value = pid;
+          onProspectSelect(pid);
+        }
+      } catch (e) { console.error('Failed to load prospects:', e); }
+    }
+
+    document.getElementById('prospectSelect').addEventListener('change', function() {
+      onProspectSelect(this.value);
+    });
+
+    function onProspectSelect(id) {
+      const info = document.getElementById('prospectInfo');
+      const prevDiv = document.getElementById('prevSurveys');
+      if (!id) {
+        selectedProspect = null;
+        info.classList.remove('visible');
+        prevDiv.style.display = 'none';
+        return;
+      }
+      selectedProspect = prospects.find(p => p.id === parseInt(id));
+      if (!selectedProspect) return;
+
+      // Show info
+      info.classList.add('visible');
+      document.getElementById('piAddress').textContent = selectedProspect.address || '—';
+      document.getElementById('piType').textContent = (selectedProspect.property_type || '—').replace(/_/g, ' ');
+      document.getElementById('piUnits').textContent = selectedProspect.units || '—';
+      document.getElementById('piStatus').textContent = selectedProspect.status || '—';
+      document.getElementById('piContact').textContent = selectedProspect.primary_contact || '—';
+
+      // Pre-fill fields from prospect data
+      prefillFromProspect(selectedProspect);
+
+      // Load previous surveys
+      loadPreviousSurveys(selectedProspect.id);
+    }
+
+    function prefillFromProspect(p) {
+      // Pre-fill location type
+      if (p.property_type) {
+        const pill = document.querySelector(`#locationType .toggle-pill[data-value="${p.property_type}"]`);
+        if (pill) selectPill(pill);
+      }
+      // Pre-fill units/population
+      if (p.units) {
+        document.getElementById('populationCount').value = p.units;
+      }
+    }
+
+    async function loadPreviousSurveys(prospectId) {
+      try {
+        const res = await fetch(`/api/site-surveys/${prospectId}`);
+        const surveys = await res.json();
+        const prevDiv = document.getElementById('prevSurveys');
+        const list = document.getElementById('prevSurveyList');
+        list.innerHTML = '';
+
+        if (surveys.length === 0) {
+          prevDiv.style.display = 'none';
+          return;
+        }
+        prevDiv.style.display = 'block';
+        surveys.forEach(s => {
+          const date = new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          const gradeClass = s.score_grade.startsWith('A') ? 'grade-a' : s.score_grade.startsWith('B') ? 'grade-b' : s.score_grade.startsWith('C') ? 'grade-c' : s.score_grade.startsWith('D') ? 'grade-d' : 'grade-f';
+          const div = document.createElement('div');
+          div.className = 'prev-survey';
+          div.innerHTML = `
+            <div class="row">
+              <span>${date}</span>
+              <span class="grade-pill ${gradeClass}">${s.score_grade} (${s.score_total}/100)</span>
+            </div>
+          `;
+          list.appendChild(div);
+        });
+      } catch (e) { console.error('Failed to load surveys:', e); }
+    }
+
+    // ===== GPS =====
+    function captureGPS() {
+      if (!navigator.geolocation) {
+        document.getElementById('gpsStatus').textContent = 'GPS not available';
+        document.getElementById('gpsDot').style.background = '#ef4444';
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          gpsCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
+          document.getElementById('gpsStatus').textContent = `${gpsCoords.lat.toFixed(5)}, ${gpsCoords.lng.toFixed(5)}`;
+          document.getElementById('gpsDot').style.background = '#4ade80';
+        },
+        (err) => {
+          document.getElementById('gpsStatus').textContent = 'GPS failed — tap to retry';
+          document.getElementById('gpsDot').style.background = '#ef4444';
+          document.querySelector('.gps-badge').onclick = captureGPS;
+        },
+        { enableHighAccuracy: true, timeout: 15000 }
+      );
+    }
+
+    // ===== SECTION TOGGLE =====
+    function toggleSection(header) {
+      header.classList.toggle('open');
+      header.nextElementSibling.classList.toggle('open');
+    }
+
+    // ===== TOGGLE PILLS =====
+    function selectPill(pill) {
+      const group = pill.parentElement;
+      const groupId = group.id;
+      group.querySelectorAll('.toggle-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      toggleState[groupId] = pill.dataset.value;
+      recalcScore();
+      updateBadges();
+    }
+
+    // ===== YES/NO TOGGLES =====
+    function ynToggle(btn, key, value) {
+      const parent = btn.parentElement;
+      parent.querySelectorAll('.yn-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      toggleState[key] = value;
+
+      // Show/hide conditional sections
+      if (key === 'competitorPresent') {
+        document.getElementById('competitorDetails').style.display = value === 'yes' ? 'block' : 'none';
+      }
+      if (key === 'wifiAvailable') {
+        document.getElementById('wifiDetails').style.display = value === 'yes' ? 'block' : 'none';
+      }
+      if (key === 'decisionMakerMet') {
+        document.getElementById('dmDetails').style.display = value === 'yes' ? 'block' : 'none';
+      }
+      recalcScore();
+      updateBadges();
+    }
+
+    // ===== STAR RATING =====
+    function setInterest(level) {
+      interestLevel = level;
+      document.querySelectorAll('#interestRating .star').forEach((s, i) => {
+        s.classList.toggle('active', i < level);
+      });
+      document.getElementById('interestLabel').textContent = INTEREST_LABELS[level];
+      recalcScore();
+      updateBadges();
+    }
+
+    // ===== PHOTO CAPTURE =====
+    function capturePhoto(slot) {
+      currentPhotoSlot = slot;
+      // If already has photo, remove it
+      if (photos[slot]) {
+        photos[slot] = null;
+        renderPhotos();
+        updateBadges();
+        return;
+      }
+      document.getElementById('photoInput').click();
+    }
+
+    function handlePhoto(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      // Compress and store
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const MAX = 800;
+          let w = img.width, h = img.height;
+          if (w > MAX || h > MAX) {
+            if (w > h) { h = h * MAX / w; w = MAX; }
+            else { w = w * MAX / h; h = MAX; }
+          }
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          photos[currentPhotoSlot] = canvas.toDataURL('image/jpeg', 0.6);
+          renderPhotos();
+          updateBadges();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+      input.value = '';
+    }
+
+    function renderPhotos() {
+      const labels = ['Breakroom', 'Lobby', 'Outlet', 'Space', 'Competitor', 'Other'];
+      const grid = document.getElementById('photoGrid');
+      grid.innerHTML = '';
+      photos.forEach((photo, i) => {
+        const slot = document.createElement('div');
+        slot.className = 'photo-slot';
+        slot.onclick = () => capturePhoto(i);
+        if (photo) {
+          slot.innerHTML = `<img src="${photo}" alt="${labels[i]}"><div class="remove-photo">✕</div>`;
+        } else {
+          slot.innerHTML = `<span class="plus">📷</span><span class="label">${labels[i]}</span>`;
+        }
+        grid.appendChild(slot);
+      });
+      document.getElementById('badge-photos').textContent = photos.filter(Boolean).length;
+    }
+
+    // ===== BADGE UPDATES =====
+    function updateBadges() {
+      // Location
+      let locFilled = 0;
+      if (toggleState.locationType) locFilled++;
+      if (document.getElementById('populationCount').value) locFilled++;
+      if (document.getElementById('footTraffic').value) locFilled++;
+      if (toggleState.shiftBreakdown) locFilled++;
+      const locBadge = document.getElementById('badge-location');
+      locBadge.textContent = `${locFilled}/4`;
+      locBadge.classList.toggle('filled', locFilled > 0);
+
+      // Vending
+      let vendFilled = 0;
+      if (toggleState.competitorPresent !== null) vendFilled++;
+      if (toggleState.competitorPresent === 'yes') {
+        if (toggleState.competitorCondition) vendFilled++;
+        if (toggleState.competitorSatisfaction) vendFilled++;
+      } else if (toggleState.competitorPresent === 'no') {
+        vendFilled += 2; // No competitors = fields not needed
+      }
+      const vendBadge = document.getElementById('badge-vending');
+      vendBadge.textContent = `${vendFilled}/3`;
+      vendBadge.classList.toggle('filled', vendFilled > 0);
+
+      // Infrastructure
+      let infraFilled = 0;
+      if (toggleState.powerAvailable !== null) infraFilled++;
+      if (toggleState.wifiAvailable !== null) infraFilled++;
+      if (document.getElementById('spaceW').value) infraFilled++;
+      if (document.getElementById('outletLocation').value) infraFilled++;
+      const infraBadge = document.getElementById('badge-infra');
+      infraBadge.textContent = `${infraFilled}/4`;
+      infraBadge.classList.toggle('filled', infraFilled > 0);
+
+      // Photos
+      const photoBadge = document.getElementById('badge-photos');
+      photoBadge.textContent = photos.filter(Boolean).length;
+      photoBadge.classList.toggle('filled', photos.some(Boolean));
+
+      // Relationship
+      let relFilled = 0;
+      if (toggleState.decisionMakerMet !== null) relFilled++;
+      if (toggleState.giftBasket !== null) relFilled++;
+      if (interestLevel > 0) relFilled++;
+      if (document.getElementById('surveyNotes').value.trim()) relFilled++;
+      const relBadge = document.getElementById('badge-relationship');
+      relBadge.textContent = `${relFilled}/4`;
+      relBadge.classList.toggle('filled', relFilled > 0);
+    }
+
+    // ===== SCORING ALGORITHM =====
+    // Based on Skool insights: Population × foot traffic × hours × interest - competitor penalty
+    // Weighted to 100-point scale with letter grades
+    function recalcScore() {
+      const pop = parseInt(document.getElementById('populationCount').value) || 0;
+      const traffic = parseInt(document.getElementById('footTraffic').value) || 0;
+      const shift = toggleState.shiftBreakdown;
+      const locType = toggleState.locationType;
+      const interest = interestLevel;
+      const competitor = toggleState.competitorPresent;
+      const condition = toggleState.competitorCondition;
+      const satisfaction = toggleState.competitorSatisfaction;
+      const power = toggleState.powerAvailable;
+      const wifi = toggleState.wifiAvailable;
+      const dm = toggleState.decisionMakerMet;
+      const gift = toggleState.giftBasket;
+      const spaceW = parseInt(document.getElementById('spaceW').value) || 0;
+      const spaceD = parseInt(document.getElementById('spaceD').value) || 0;
+      const spaceH = parseInt(document.getElementById('spaceH').value) || 0;
+
+      let totalScore = 0;
+      const breakdown = {};
+      const redFlags = [];
+
+      // 1. POPULATION SCORE (0-25 pts)
+      let popScore = 0;
+      if (pop >= 500) popScore = 25;
+      else if (pop >= 300) popScore = 22;
+      else if (pop >= 200) popScore = 20;
+      else if (pop >= 150) popScore = 17;
+      else if (pop >= 100) popScore = 14;
+      else if (pop >= 50) popScore = 10;
+      else if (pop > 0) { popScore = 5; redFlags.push('⚠️ Under 50 people — below recommended minimum'); }
+      breakdown['Population'] = popScore + '/25';
+      totalScore += popScore;
+
+      // 2. FOOT TRAFFIC (0-20 pts)
+      let trafficScore = 0;
+      if (traffic >= 500) trafficScore = 20;
+      else if (traffic >= 300) trafficScore = 17;
+      else if (traffic >= 200) trafficScore = 14;
+      else if (traffic >= 100) trafficScore = 10;
+      else if (traffic >= 50) trafficScore = 7;
+      else if (traffic > 0) trafficScore = 3;
+      breakdown['Foot Traffic'] = trafficScore + '/20';
+      totalScore += trafficScore;
+
+      // 3. ACCESSIBILITY — shifts + hours (0-15 pts)
+      let accessScore = 0;
+      if (shift === '24hr') accessScore = 15;
+      else if (shift === 'day_night') accessScore = 10;
+      else if (shift === 'day_only') accessScore = 5;
+      breakdown['Accessibility'] = accessScore + '/15';
+      totalScore += accessScore;
+
+      // 4. INTEREST & RELATIONSHIP (0-25 pts)
+      let relScore = 0;
+      relScore += interest * 4; // 0-20 pts
+      if (dm === 'yes') relScore += 3;
+      if (gift === 'yes') relScore += 2;
+      relScore = Math.min(25, relScore);
+      breakdown['Interest'] = relScore + '/25';
+      totalScore += relScore;
+
+      // 5. INFRASTRUCTURE (0-10 pts)
+      let infraScore = 0;
+      if (power === 'yes') infraScore += 5;
+      else if (power === 'no') { infraScore -= 0; redFlags.push('🔌 No power outlet — deal breaker'); }
+      if (wifi === 'yes') infraScore += 3;
+      // Space check — needs to fit a standard machine (39W x 35D x 72H)
+      if (spaceW >= 39 && spaceD >= 35 && spaceH >= 72) infraScore += 2;
+      else if (spaceW > 0 && (spaceW < 39 || spaceD < 35 || spaceH < 72)) {
+        redFlags.push('📏 Space too small for standard combo machine (39"W × 35"D × 72"H)');
+      }
+      infraScore = Math.max(0, Math.min(10, infraScore));
+      breakdown['Infrastructure'] = infraScore + '/10';
+      totalScore += infraScore;
+
+      // 6. COMPETITION ADJUSTMENT (-15 to +5 pts bonus)
+      let compScore = 0;
+      if (competitor === 'no') {
+        compScore = 5; // No competition = bonus
+      } else if (competitor === 'yes') {
+        if (condition === 'poor' || satisfaction === 'unhappy') {
+          compScore = 2; // Opportunity to replace
+        } else if (condition === 'fair' || satisfaction === 'neutral') {
+          compScore = -5;
+        } else if (condition === 'good' || condition === 'excellent' || satisfaction === 'happy') {
+          compScore = -12;
+          redFlags.push('🏁 Strong competitor presence — harder to displace');
+        }
+      }
+      breakdown['Competition'] = (compScore >= 0 ? '+' : '') + compScore;
+      totalScore += compScore;
+
+      // 7. LOCATION TYPE BONUS (-5 to +5 pts)
+      let typeBonus = 0;
+      const tier1 = ['rec_center', 'healthcare', 'school', 'industrial'];
+      const tier2 = ['apartments', 'office', 'hotel', 'warehouse'];
+      const risky = ['other']; // generic "other" = no bonus
+      if (tier1.includes(locType)) typeBonus = 5;
+      else if (tier2.includes(locType)) typeBonus = 3;
+      else if (locType === 'senior_living') typeBonus = 2;
+      if (locType) {
+        breakdown['Location Type'] = (typeBonus >= 0 ? '+' : '') + typeBonus;
+        totalScore += typeBonus;
+      }
+
+      // Clamp score
+      totalScore = Math.max(0, Math.min(100, totalScore));
+
+      // Red flag for low population + low interest
+      if (pop > 0 && pop < 50 && interest <= 2) {
+        redFlags.push('💀 Low population AND low interest — likely unprofitable');
+      }
+
+      // No power = big red flag
+      if (power === 'no') {
+        totalScore = Math.min(totalScore, 30); // Cap at D grade
+      }
+
+      // Grade assignment
+      let grade;
+      if (totalScore >= 90) grade = 'A+';
+      else if (totalScore >= 80) grade = 'A';
+      else if (totalScore >= 70) grade = 'B+';
+      else if (totalScore >= 60) grade = 'B';
+      else if (totalScore >= 50) grade = 'C+';
+      else if (totalScore >= 40) grade = 'C';
+      else if (totalScore >= 30) grade = 'D';
+      else grade = 'F';
+
+      // Determine if enough data
+      const hasData = pop > 0 || traffic > 0 || interest > 0 || shift || locType;
+
+      // Update UI
+      const display = document.getElementById('scoreDisplay');
+      display.className = 'score-display';
+      if (hasData) {
+        const gradeBase = grade.charAt(0).toLowerCase();
+        display.classList.add('grade-' + gradeBase);
+        document.getElementById('scoreGrade').textContent = grade;
+        document.getElementById('scoreNumber').textContent = `${totalScore} / 100`;
+
+        // Breakdown
+        const bdDiv = document.getElementById('scoreBreakdown');
+        bdDiv.innerHTML = '';
+        Object.entries(breakdown).forEach(([k, v]) => {
+          bdDiv.innerHTML += `<div class="score-item">${k}<span>${v}</span></div>`;
+        });
+
+        // Revenue estimate based on Skool insights: $2K/mo minimum for good location
+        const revDiv = document.getElementById('revenueEstimate');
+        if (totalScore >= 60) {
+          const estLow = Math.round(totalScore * 20);
+          const estHigh = Math.round(totalScore * 35);
+          revDiv.style.display = 'block';
+          revDiv.textContent = `💰 Est. Monthly Revenue: $${estLow.toLocaleString()} – $${estHigh.toLocaleString()}`;
+        } else {
+          revDiv.style.display = 'none';
+        }
+
+        // Red flags
+        const rfDiv = document.getElementById('redFlags');
+        const rfList = document.getElementById('redFlagList');
+        if (redFlags.length > 0) {
+          rfDiv.classList.add('visible');
+          rfList.innerHTML = redFlags.map(f => `<div class="red-flag-item">${f}</div>`).join('');
+        } else {
+          rfDiv.classList.remove('visible');
+        }
+      } else {
+        document.getElementById('scoreGrade').textContent = '—';
+        document.getElementById('scoreNumber').textContent = 'Fill out the survey to calculate';
+        document.getElementById('scoreBreakdown').innerHTML = '';
+        document.getElementById('revenueEstimate').style.display = 'none';
+        document.getElementById('redFlags').classList.remove('visible');
+      }
+
+      return { totalScore, grade, breakdown, redFlags };
+    }
+
+    // ===== SUBMIT =====
+    async function submitSurvey() {
+      if (!selectedProspect) {
+        showToast('Please select a prospect first', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Saving…';
+
+      const scoreResult = recalcScore();
+
+      const survey = {
+        prospect_id: selectedProspect.id,
+        // GPS
+        gps_lat: gpsCoords?.lat || null,
+        gps_lng: gpsCoords?.lng || null,
+        gps_accuracy: gpsCoords?.accuracy || null,
+        // Location details
+        location_type: toggleState.locationType,
+        population_count: parseInt(document.getElementById('populationCount').value) || null,
+        foot_traffic: parseInt(document.getElementById('footTraffic').value) || null,
+        shift_breakdown: toggleState.shiftBreakdown,
+        access_hours: document.getElementById('accessHours').value || null,
+        nearest_amenities: document.getElementById('nearestAmenities').value || null,
+        // Competition
+        competitor_present: toggleState.competitorPresent === 'yes',
+        competitor_brand: document.getElementById('competitorBrand').value || null,
+        competitor_count: parseInt(document.getElementById('competitorCount').value) || null,
+        competitor_condition: toggleState.competitorCondition,
+        competitor_satisfaction: toggleState.competitorSatisfaction,
+        // Infrastructure
+        power_available: toggleState.powerAvailable === 'yes',
+        outlet_location: document.getElementById('outletLocation').value || null,
+        wifi_available: toggleState.wifiAvailable === 'yes',
+        wifi_strength: toggleState.wifiStrength,
+        space_width: parseInt(document.getElementById('spaceW').value) || null,
+        space_depth: parseInt(document.getElementById('spaceD').value) || null,
+        space_height: parseInt(document.getElementById('spaceH').value) || null,
+        // Relationship
+        decision_maker_met: toggleState.decisionMakerMet === 'yes',
+        dm_name: document.getElementById('dmName').value || null,
+        dm_title: document.getElementById('dmTitle').value || null,
+        dm_contact: document.getElementById('dmContact').value || null,
+        gift_basket_delivered: toggleState.giftBasket === 'yes',
+        interest_level: interestLevel,
+        notes: document.getElementById('surveyNotes').value || null,
+        // Photos (base64, compressed)
+        photos: photos.filter(Boolean),
+        // Score
+        score_total: scoreResult.totalScore,
+        score_grade: scoreResult.grade,
+        score_breakdown: scoreResult.breakdown,
+        red_flags: scoreResult.redFlags
+      };
+
+      try {
+        const res = await fetch('/api/site-surveys', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(survey)
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Failed to save');
+        }
+
+        const result = await res.json();
+        showToast(`✅ Survey saved! Grade: ${result.survey.score_grade} (${result.survey.score_total}/100)`, 'success');
+
+        // Reset form after a delay
+        setTimeout(() => {
+          if (confirm('Survey saved! Start a new survey?')) {
+            window.location.reload();
+          }
+        }, 1500);
+
+      } catch (e) {
+        showToast('❌ Error: ' + e.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '📋 Submit Site Survey';
+      }
+    }
+
+    // ===== TOAST =====
+    function showToast(msg, type) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = `toast ${type} show`;
+      setTimeout(() => toast.classList.remove('show'), 4000);
+    }
+
+    // Listen for changes to update badges
+    ['populationCount', 'footTraffic', 'accessHours', 'nearestAmenities',
+     'outletLocation', 'spaceW', 'spaceD', 'spaceH', 'surveyNotes',
+     'competitorBrand', 'competitorCount', 'dmName', 'dmTitle', 'dmContact'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', () => { updateBadges(); recalcScore(); });
+    });
+  </script>
+</body>
+</html>

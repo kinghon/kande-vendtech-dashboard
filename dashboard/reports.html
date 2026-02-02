@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weekly Reports — Kande VendTech</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --card: #1a1d2e; --card2: #22263a; --border: #2d3148;
+      --text: #e2e8f0; --muted: #8892a8; --accent: #667eea;
+      --accent2: #764ba2; --success: #48bb78; --warn: #ed8936;
+      --hot: #fc5c65; --blue: #4299e1; --teal: #38b2ac;
+      --gradient: linear-gradient(135deg, #667eea, #764ba2);
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px;
+    }
+    .app { max-width: 1400px; margin: 0 auto; }
+
+    /* Header */
+    .page-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+    .page-header h1 {
+      font-size: 1.6rem; font-weight: 700;
+      background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .header-actions { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+
+    /* Range picker */
+    .range-picker { display: flex; gap: 6px; flex-wrap: wrap; }
+    .range-btn {
+      padding: 7px 14px; border: 1px solid var(--border); background: var(--card);
+      color: var(--muted); border-radius: 8px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s;
+    }
+    .range-btn:hover { border-color: var(--accent); color: var(--text); }
+    .range-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    .btn-export {
+      padding: 7px 16px; background: var(--gradient); color: #fff; border: none;
+      border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: 600; transition: opacity 0.2s;
+    }
+    .btn-export:hover { opacity: 0.85; }
+
+    /* Summary Cards */
+    .summary-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px; margin-bottom: 28px;
+    }
+    .summary-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 20px; position: relative; overflow: hidden; transition: transform 0.2s, border-color 0.2s;
+    }
+    .summary-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+    .summary-card .card-icon { font-size: 1.8rem; margin-bottom: 8px; }
+    .summary-card .card-value { font-size: 2rem; font-weight: 800; line-height: 1.1; }
+    .summary-card .card-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+    .summary-card .card-change {
+      display: inline-block; font-size: 0.75rem; padding: 2px 8px; border-radius: 20px; margin-top: 8px; font-weight: 600;
+    }
+    .change-up { background: rgba(72,187,120,0.15); color: var(--success); }
+    .change-down { background: rgba(252,92,101,0.15); color: var(--hot); }
+    .change-flat { background: rgba(136,146,168,0.15); color: var(--muted); }
+    .val-accent { color: var(--accent); }
+    .val-success { color: var(--success); }
+    .val-warn { color: var(--warn); }
+    .val-hot { color: var(--hot); }
+    .val-blue { color: var(--blue); }
+    .val-teal { color: var(--teal); }
+
+    /* Sections */
+    .section { margin-bottom: 28px; }
+    .section-title {
+      font-size: 1.15rem; font-weight: 700; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* Two-col layout */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* Card panels */
+    .panel {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 20px; margin-bottom: 16px;
+    }
+    .panel-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+    /* Conversion pipeline */
+    .pipeline-flow { display: flex; align-items: center; gap: 0; margin: 16px 0; flex-wrap: wrap; }
+    .pipeline-stage {
+      flex: 1; min-width: 80px; text-align: center; padding: 14px 8px;
+      background: var(--card2); border: 1px solid var(--border); position: relative;
+    }
+    .pipeline-stage:first-child { border-radius: 10px 0 0 10px; }
+    .pipeline-stage:last-child { border-radius: 0 10px 10px 0; }
+    .pipeline-stage .stage-count { font-size: 1.5rem; font-weight: 800; }
+    .pipeline-stage .stage-name { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
+    .pipeline-arrow { color: var(--accent); font-size: 1.2rem; padding: 0 4px; flex-shrink: 0; }
+    .pipeline-stage .stage-rate { font-size: 0.7rem; color: var(--success); margin-top: 4px; font-weight: 600; }
+
+    /* Leaderboard table */
+    .lb-table { width: 100%; border-collapse: collapse; }
+    .lb-table th {
+      text-align: left; font-size: 0.7rem; color: var(--muted); text-transform: uppercase;
+      padding: 8px 12px; border-bottom: 1px solid var(--border); letter-spacing: 0.5px;
+    }
+    .lb-table td {
+      padding: 10px 12px; border-bottom: 1px solid rgba(45,49,72,0.5); font-size: 0.85rem;
+    }
+    .lb-table tr:hover td { background: rgba(102,126,234,0.04); }
+    .lb-rank { font-weight: 800; color: var(--accent); }
+    .lb-bar {
+      height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; min-width: 60px;
+    }
+    .lb-bar-fill { height: 100%; border-radius: 3px; background: var(--gradient); transition: width 0.6s; }
+
+    /* Highlights */
+    .highlights-list { list-style: none; }
+    .highlights-list li {
+      padding: 10px 14px; border-left: 3px solid var(--accent); margin-bottom: 8px;
+      background: var(--card2); border-radius: 0 8px 8px 0; font-size: 0.85rem; line-height: 1.5;
+    }
+    .highlights-list li .hl-icon { margin-right: 8px; }
+    .highlights-list li.hl-success { border-left-color: var(--success); }
+    .highlights-list li.hl-warn { border-left-color: var(--warn); }
+    .highlights-list li.hl-hot { border-left-color: var(--hot); }
+
+    /* CSS Charts */
+    .chart-container { padding: 10px 0; }
+    .chart-label-row { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--muted); margin-bottom: 8px; }
+
+    /* Bar chart */
+    .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 140px; padding-top: 10px; }
+    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+    .bar-fill {
+      width: 100%; border-radius: 4px 4px 0 0; background: var(--gradient);
+      transition: height 0.6s ease; min-height: 2px; position: relative;
+    }
+    .bar-fill:hover { opacity: 0.8; }
+    .bar-fill .bar-tooltip {
+      display: none; position: absolute; top: -24px; left: 50%; transform: translateX(-50%);
+      background: #000; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; white-space: nowrap;
+    }
+    .bar-fill:hover .bar-tooltip { display: block; }
+    .bar-label { font-size: 0.6rem; color: var(--muted); margin-top: 6px; text-align: center; }
+
+    /* Line chart (CSS) */
+    .line-chart { position: relative; height: 120px; margin: 10px 0; }
+    .line-chart-bg {
+      position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .line-chart-bg .grid-line { height: 1px; background: rgba(45,49,72,0.5); }
+    .line-chart-points { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 0; }
+    .line-point-col {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;
+    }
+    .line-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+      border: 2px solid var(--bg); position: relative; z-index: 2; flex-shrink: 0;
+    }
+    .line-dot:hover { transform: scale(1.4); }
+    .line-dot .dot-tooltip {
+      display: none; position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+      background: #000; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; white-space: nowrap;
+    }
+    .line-dot:hover .dot-tooltip { display: block; }
+    .line-stem { width: 2px; background: linear-gradient(to top, transparent, var(--accent)); flex-shrink: 0; }
+
+    /* Avg time badges */
+    .avg-time-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+    .avg-time-badge {
+      background: var(--card2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 16px; text-align: center; flex: 1; min-width: 100px;
+    }
+    .avg-time-badge .atb-days { font-size: 1.4rem; font-weight: 800; color: var(--accent); }
+    .avg-time-badge .atb-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+
+    /* Activity summary */
+    .activity-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; }
+    .activity-stat {
+      background: var(--card2); border-radius: 10px; padding: 14px; text-align: center;
+    }
+    .activity-stat .as-icon { font-size: 1.4rem; }
+    .activity-stat .as-val { font-size: 1.3rem; font-weight: 800; margin-top: 4px; }
+    .activity-stat .as-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+
+    /* Loading */
+    .loading { text-align: center; padding: 60px; color: var(--muted); }
+    .loading .spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Print */
+    @media print {
+      body { background: #fff; color: #1a202c; padding: 10px; }
+      .page-header, .header-actions { display: none; }
+      .panel, .summary-card { border: 1px solid #e2e8f0; background: #fff; break-inside: avoid; }
+      .summary-card .card-value, .pipeline-stage .stage-count, .lb-rank,
+      .avg-time-badge .atb-days, .activity-stat .as-val { color: #1a202c; }
+      .bar-fill { background: #667eea; }
+      .line-dot { background: #667eea; border-color: #fff; }
+      .highlights-list li { background: #f7fafc; }
+      :root { --bg: #fff; --card: #fff; --card2: #f7fafc; --border: #e2e8f0; --text: #1a202c; --muted: #718096; }
+      #kv-nav, #kv-nav-mobile { display: none !important; }
+      body.kv-nav-active { padding-top: 0 !important; }
+      .section-title::after { background: #e2e8f0; }
+      .print-header { display: block !important; text-align: center; margin-bottom: 20px; }
+      .print-header h1 { font-size: 1.5rem; color: #1a202c; }
+      .print-header p { color: #718096; font-size: 0.85rem; }
+    }
+    .print-header { display: none; }
+
+    /* Mobile */
+    @media (max-width: 600px) {
+      .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .summary-card .card-value { font-size: 1.4rem; }
+      .pipeline-flow { flex-direction: column; }
+      .pipeline-stage { border-radius: 8px !important; width: 100%; }
+      .pipeline-arrow { transform: rotate(90deg); }
+      .page-header { flex-direction: column; align-items: flex-start; }
+      .header-actions { margin-left: 0; width: 100%; }
+      .range-picker { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-header">
+    <h1>📊 Kande VendTech — Weekly Performance Report</h1>
+    <p id="printDateRange"></p>
+  </div>
+  <div class="app">
+    <div class="page-header">
+      <h1>📊 Weekly Performance Report</h1>
+      <div class="header-actions">
+        <div class="range-picker">
+          <button class="range-btn active" data-range="thisWeek">This Week</button>
+          <button class="range-btn" data-range="lastWeek">Last Week</button>
+          <button class="range-btn" data-range="last30">Last 30 Days</button>
+          <button class="range-btn" data-range="last90">Last 90 Days</button>
+        </div>
+        <button class="btn-export" onclick="window.print()">🖨 Export PDF</button>
+      </div>
+    </div>
+
+    <div id="content">
+      <div class="loading"><div class="spinner"></div><p style="margin-top:12px">Loading report data…</p></div>
+    </div>
+  </div>
+
+  <script src="/nav.js"></script>
+  <script>
+    let currentRange = 'thisWeek';
+    let reportData = null;
+
+    // Range button handlers
+    document.querySelectorAll('.range-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentRange = btn.dataset.range;
+        loadReport();
+      });
+    });
+
+    function getWeeksParam() {
+      switch (currentRange) {
+        case 'thisWeek': return 1;
+        case 'lastWeek': return 2;
+        case 'last30': return 5;
+        case 'last90': return 13;
+        default: return 1;
+      }
+    }
+
+    async function loadReport() {
+      const weeks = getWeeksParam();
+      try {
+        const res = await fetch(`/api/reports/weekly?weeks=${weeks}`);
+        reportData = await res.json();
+        renderReport(reportData);
+      } catch (err) {
+        document.getElementById('content').innerHTML = `<div class="panel" style="text-align:center;color:var(--hot);">Error loading report: ${err.message}</div>`;
+      }
+    }
+
+    function pctChange(curr, prev) {
+      if (!prev || prev === 0) return curr > 0 ? { val: '+100%', cls: 'change-up' } : { val: '—', cls: 'change-flat' };
+      const pct = ((curr - prev) / prev * 100).toFixed(0);
+      if (pct > 0) return { val: `+${pct}%`, cls: 'change-up' };
+      if (pct < 0) return { val: `${pct}%`, cls: 'change-down' };
+      return { val: '0%', cls: 'change-flat' };
+    }
+
+    function fmt(n) { return typeof n === 'number' ? n.toLocaleString() : '0'; }
+    function fmtMoney(n) { return '$' + (n || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
+
+    function renderReport(data) {
+      const ws = data.weeklyStats || [];
+      const curr = ws[ws.length - 1] || {};
+      const prev = ws.length >= 2 ? ws[ws.length - 2] : {};
+      const conv = data.conversionByType || {};
+      const avg = data.avgTimeInStage || {};
+      const highlights = data.highlights || [];
+      const activity = data.activitySummary || {};
+
+      // Print date range
+      const now = new Date();
+      document.getElementById('printDateRange').textContent = `Generated ${now.toLocaleDateString()} — ${currentRange === 'thisWeek' ? 'This Week' : currentRange === 'lastWeek' ? 'Last Week' : currentRange === 'last30' ? 'Last 30 Days' : 'Last 90 Days'}`;
+
+      // Totals across all weeks
+      const totalNew = ws.reduce((s, w) => s + (w.newProspects || 0), 0);
+      const totalWon = ws.reduce((s, w) => s + (w.wonCount || 0), 0);
+      const totalLost = ws.reduce((s, w) => s + (w.lostCount || 0), 0);
+      const latestPipeline = curr.pipelineValue || 0;
+
+      const prospChange = pctChange(curr.newProspects || 0, prev.newProspects || 0);
+      const wonChange = pctChange(curr.wonCount || 0, prev.wonCount || 0);
+
+      // Win rate
+      const winLossTotal = totalWon + totalLost;
+      const winRate = winLossTotal > 0 ? (totalWon / winLossTotal * 100).toFixed(0) : '—';
+
+      // Conversion rates
+      const totalProspects = Object.values(conv).reduce((s, c) => s + (c.total || 0), 0);
+      const totalSigned = Object.values(conv).reduce((s, c) => s + (c.signed || 0), 0);
+      const overallConvRate = totalProspects > 0 ? (totalSigned / totalProspects * 100).toFixed(1) : '0';
+
+      let html = '';
+
+      // ── Summary Cards ──
+      html += '<div class="summary-grid">';
+      html += `<div class="summary-card">
+        <div class="card-icon">🆕</div>
+        <div class="card-value val-accent">${fmt(curr.newProspects || 0)}</div>
+        <div class="card-label">New Prospects (This Period)</div>
+        <span class="card-change ${prospChange.cls}">${prospChange.val} vs prior</span>
+      </div>`;
+      html += `<div class="summary-card">
+        <div class="card-icon">🎯</div>
+        <div class="card-value val-success">${overallConvRate}%</div>
+        <div class="card-label">Overall Conversion Rate</div>
+        <span class="card-change change-flat">Lead → Signed</span>
+      </div>`;
+      html += `<div class="summary-card">
+        <div class="card-icon">🏆</div>
+        <div class="card-value val-warn">${winRate}${winRate !== '—' ? '%' : ''}</div>
+        <div class="card-label">Win Rate</div>
+        <span class="card-change change-flat">${fmt(totalWon)}W / ${fmt(totalLost)}L</span>
+      </div>`;
+      html += `<div class="summary-card">
+        <div class="card-icon">💰</div>
+        <div class="card-value val-blue">${fmtMoney(latestPipeline)}</div>
+        <div class="card-label">Pipeline Value</div>
+        <span class="card-change change-flat">Active prospects</span>
+      </div>`;
+      html += `<div class="summary-card">
+        <div class="card-icon">📞</div>
+        <div class="card-value val-teal">${fmt(activity.calls || 0)}</div>
+        <div class="card-label">Calls Made</div>
+      </div>`;
+      html += `<div class="summary-card">
+        <div class="card-icon">📧</div>
+        <div class="card-value val-accent">${fmt(activity.emails || 0)}</div>
+        <div class="card-label">Emails Sent</div>
+      </div>`;
+      html += '</div>';
+
+      // ── Conversion Pipeline ──
+      html += '<div class="section"><div class="section-title">📈 Conversion Pipeline</div>';
+      html += '<div class="panel">';
+      const stages = data.pipelineCounts || { new: 0, contacted: 0, proposal: 0, signed: 0 };
+      const stageArr = [
+        { name: 'Lead / New', count: stages.new || 0, color: '--muted' },
+        { name: 'Contacted', count: stages.contacted || 0, color: '--blue' },
+        { name: 'Proposal', count: stages.proposal || 0, color: '--warn' },
+        { name: 'Signed', count: stages.signed || 0, color: '--success' }
+      ];
+      const maxStage = Math.max(...stageArr.map(s => s.count), 1);
+      html += '<div class="pipeline-flow">';
+      stageArr.forEach((s, i) => {
+        const rate = i > 0 && stageArr[i-1].count > 0 ? (s.count / stageArr[i-1].count * 100).toFixed(0) + '%' : '';
+        html += `<div class="pipeline-stage">
+          <div class="stage-count" style="color:var(${s.color})">${fmt(s.count)}</div>
+          <div class="stage-name">${s.name}</div>
+          ${rate ? `<div class="stage-rate">↑ ${rate}</div>` : ''}
+        </div>`;
+        if (i < stageArr.length - 1) html += '<div class="pipeline-arrow">→</div>';
+      });
+      html += '</div></div></div>';
+
+      // ── Two-column: Charts + Highlights ──
+      html += '<div class="two-col">';
+
+      // Left: Charts
+      html += '<div>';
+
+      // Bar chart: Prospects per week
+      html += '<div class="panel"><div class="panel-title">📊 Prospects Added Per Week</div>';
+      if (ws.length > 0) {
+        const maxBar = Math.max(...ws.map(w => w.newProspects || 0), 1);
+        html += '<div class="bar-chart">';
+        ws.forEach(w => {
+          const h = ((w.newProspects || 0) / maxBar * 100);
+          html += `<div class="bar-col">
+            <div class="bar-fill" style="height:${Math.max(h, 2)}%">
+              <span class="bar-tooltip">${w.newProspects || 0} prospects</span>
+            </div>
+            <div class="bar-label">${w.week || ''}</div>
+          </div>`;
+        });
+        html += '</div>';
+      } else {
+        html += '<p style="color:var(--muted);font-size:0.85rem;text-align:center;padding:20px">No data yet</p>';
+      }
+      html += '</div>';
+
+      // Line chart: Pipeline value over time
+      html += '<div class="panel"><div class="panel-title">💰 Pipeline Value Trend</div>';
+      if (ws.length > 0) {
+        const maxPV = Math.max(...ws.map(w => w.pipelineValue || 0), 1);
+        html += `<div class="chart-label-row"><span>${fmtMoney(0)}</span><span>${fmtMoney(maxPV)}</span></div>`;
+        html += '<div class="line-chart">';
+        html += '<div class="line-chart-bg">';
+        for (let i = 0; i < 4; i++) html += '<div class="grid-line"></div>';
+        html += '</div>';
+        html += '<div class="line-chart-points">';
+        ws.forEach(w => {
+          const pct = ((w.pipelineValue || 0) / maxPV * 90);
+          html += `<div class="line-point-col">
+            <div style="flex:1"></div>
+            <div class="line-dot" style="margin-bottom:${pct}%">
+              <span class="dot-tooltip">${fmtMoney(w.pipelineValue)} — ${w.week}</span>
+            </div>
+          </div>`;
+        });
+        html += '</div></div>';
+      } else {
+        html += '<p style="color:var(--muted);font-size:0.85rem;text-align:center;padding:20px">No data yet</p>';
+      }
+      html += '</div>';
+
+      html += '</div>'; // end left
+
+      // Right: Highlights + Activity
+      html += '<div>';
+
+      // Highlights
+      html += '<div class="panel"><div class="panel-title">⚡ Weekly Highlights</div>';
+      if (highlights.length > 0) {
+        html += '<ul class="highlights-list">';
+        highlights.forEach(h => {
+          const cls = h.type === 'success' ? 'hl-success' : h.type === 'warning' ? 'hl-warn' : h.type === 'alert' ? 'hl-hot' : '';
+          const icon = h.type === 'success' ? '✅' : h.type === 'warning' ? '⚠️' : h.type === 'alert' ? '🔴' : '💡';
+          html += `<li class="${cls}"><span class="hl-icon">${icon}</span>${h.text}</li>`;
+        });
+        html += '</ul>';
+      } else {
+        html += '<p style="color:var(--muted);font-size:0.85rem;text-align:center;padding:20px">No notable events this period</p>';
+      }
+      html += '</div>';
+
+      // Activity Summary
+      html += '<div class="panel"><div class="panel-title">📋 Activity Summary</div>';
+      html += '<div class="activity-grid">';
+      html += `<div class="activity-stat"><div class="as-icon">📞</div><div class="as-val">${fmt(activity.calls)}</div><div class="as-label">Calls</div></div>`;
+      html += `<div class="activity-stat"><div class="as-icon">📧</div><div class="as-val">${fmt(activity.emails)}</div><div class="as-label">Emails</div></div>`;
+      html += `<div class="activity-stat"><div class="as-icon">📝</div><div class="as-val">${fmt(activity.proposals)}</div><div class="as-label">Proposals</div></div>`;
+      html += `<div class="activity-stat"><div class="as-icon">🤝</div><div class="as-val">${fmt(activity.meetings)}</div><div class="as-label">Meetings</div></div>`;
+      html += '</div></div>';
+
+      html += '</div>'; // end right
+      html += '</div>'; // end two-col
+
+      // ── Average Time in Stage ──
+      html += '<div class="section"><div class="section-title">⏱ Average Time in Each Stage</div>';
+      html += '<div class="avg-time-grid">';
+      const stageNames = { new: 'New / Lead', contacted: 'Contacted', proposal: 'Proposal', signed: 'Signed', active: 'Active' };
+      Object.entries(avg).forEach(([stage, days]) => {
+        html += `<div class="avg-time-badge">
+          <div class="atb-days">${days.toFixed(1)}</div>
+          <div class="atb-label">${stageNames[stage] || stage} (days)</div>
+        </div>`;
+      });
+      if (Object.keys(avg).length === 0) {
+        html += '<div style="color:var(--muted);font-size:0.85rem;padding:10px">No stage duration data available</div>';
+      }
+      html += '</div></div>';
+
+      // ── Property Type Leaderboard ──
+      html += '<div class="section"><div class="section-title">🏢 Property Type Leaderboard</div>';
+      html += '<div class="panel">';
+      const types = Object.entries(conv).sort((a, b) => (b[1].rate || 0) - (a[1].rate || 0));
+      if (types.length > 0) {
+        const maxRate = Math.max(...types.map(t => t[1].rate || 0), 1);
+        html += '<table class="lb-table"><thead><tr>';
+        html += '<th>#</th><th>Property Type</th><th>Total</th><th>Contacted</th><th>Proposed</th><th>Signed</th><th>Conv Rate</th><th></th>';
+        html += '</tr></thead><tbody>';
+        types.forEach(([type, stats], i) => {
+          const barW = maxRate > 0 ? (stats.rate / maxRate * 100) : 0;
+          html += `<tr>
+            <td class="lb-rank">${i + 1}</td>
+            <td><strong>${type || 'Unknown'}</strong></td>
+            <td>${fmt(stats.total)}</td>
+            <td>${fmt(stats.contacted)}</td>
+            <td>${fmt(stats.proposed)}</td>
+            <td>${fmt(stats.signed)}</td>
+            <td><strong>${(stats.rate || 0).toFixed(1)}%</strong></td>
+            <td><div class="lb-bar"><div class="lb-bar-fill" style="width:${barW}%"></div></div></td>
+          </tr>`;
+        });
+        html += '</tbody></table>';
+      } else {
+        html += '<p style="color:var(--muted);font-size:0.85rem;text-align:center;padding:20px">No property type data yet</p>';
+      }
+      html += '</div></div>';
+
+      // ── Conversion Rate Per Week (bar chart) ──
+      if (ws.length > 1) {
+        html += '<div class="section"><div class="section-title">📉 Weekly Conversion Snapshot</div>';
+        html += '<div class="panel"><div class="panel-title">Won vs Lost Per Week</div>';
+        const maxWL = Math.max(...ws.map(w => Math.max(w.wonCount || 0, w.lostCount || 0)), 1);
+        html += '<div class="bar-chart">';
+        ws.forEach(w => {
+          const hW = ((w.wonCount || 0) / maxWL * 100);
+          const hL = ((w.lostCount || 0) / maxWL * 100);
+          html += `<div class="bar-col" style="gap:2px">
+            <div class="bar-fill" style="height:${Math.max(hW, 2)}%;background:var(--success)">
+              <span class="bar-tooltip">${w.wonCount || 0} won</span>
+            </div>
+            <div class="bar-label">${w.week || ''}</div>
+          </div>`;
+        });
+        html += '</div>';
+        html += '<div style="display:flex;gap:16px;margin-top:10px;font-size:0.75rem;color:var(--muted)">';
+        html += '<span>🟢 Won</span><span>🔴 Lost</span></div>';
+        html += '</div></div>';
+      }
+
+      document.getElementById('content').innerHTML = html;
+    }
+
+    // Initial load
+    loadReport();
+  </script>
+</body>
+</html>

@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <title>Planogram Editor — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
+      --muted: #718096; --accent: #3182ce; --hot: #e53e3e; --warn: #dd6b20;
+      --success: #38a169; --purple: #7b2cbf;
+      --zone-eye: #38a169; --zone-chest: #3182ce; --zone-top: #dd6b20; --zone-bottom: #a0aec0;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+    .top-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .top-nav .logo { height: 40px; }
+    .top-nav a { color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500; padding: 6px 12px; border-radius: 6px; transition: all 0.2s; }
+    .top-nav a:hover, .top-nav a.active { color: var(--accent); background: rgba(49,130,206,0.08); }
+    .nav-brand { font-size: 0.9rem; font-weight: 600; color: var(--text); margin-right: 8px; }
+
+    h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 4px; }
+    h2 { font-size: 1.2rem; font-weight: 600; margin-bottom: 16px; }
+    .subtitle { color: var(--muted); margin-bottom: 24px; }
+
+    .card { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; }
+
+    select, input[type="text"], input[type="number"] {
+      padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem;
+      background: var(--card); color: var(--text); outline: none;
+    }
+    select:focus, input:focus { border-color: var(--accent); }
+
+    .btn { padding: 8px 18px; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { background: #2c6cb5; }
+    .btn-success { background: var(--success); color: white; }
+    .btn-success:hover { background: #2f8c5a; }
+    .btn-danger { background: var(--hot); color: white; }
+    .btn-danger:hover { background: #c53030; }
+    .btn-ghost { background: transparent; color: var(--accent); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: rgba(49,130,206,0.08); }
+    .btn-sm { padding: 5px 12px; font-size: 0.78rem; }
+
+    /* Layout */
+    .editor-layout { display: grid; grid-template-columns: 1fr 320px; gap: 20px; }
+
+    /* Machine Selector */
+    .toolbar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
+    .toolbar label { font-size: 0.85rem; font-weight: 500; color: var(--muted); }
+
+    /* Planogram Grid */
+    .plano-grid-wrap { overflow-x: auto; }
+    .plano-grid { display: grid; gap: 4px; margin-bottom: 16px; }
+    .plano-slot {
+      aspect-ratio: 1;
+      min-width: 80px; min-height: 80px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      font-size: 0.75rem;
+      text-align: center;
+      padding: 4px;
+      background: var(--card);
+    }
+    .plano-slot:hover { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(49,130,206,0.2); }
+    .plano-slot.selected { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(49,130,206,0.3); }
+    .plano-slot.empty { background: #f7f8fa; border-style: dashed; }
+    .plano-slot.drag-over { background: rgba(49,130,206,0.1); border-color: var(--accent); }
+    .plano-slot .slot-product { font-weight: 600; font-size: 0.72rem; line-height: 1.2; margin-top: 2px; }
+    .plano-slot .slot-price { font-size: 0.68rem; color: var(--muted); }
+    .plano-slot .slot-emoji { font-size: 1.4rem; }
+    .plano-slot .slot-coord { position: absolute; top: 2px; left: 4px; font-size: 0.6rem; color: var(--muted); }
+    .plano-slot .slot-clear { position: absolute; top: 2px; right: 4px; font-size: 0.7rem; cursor: pointer; color: var(--hot); opacity: 0; transition: opacity 0.2s; background: white; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; }
+    .plano-slot:hover .slot-clear { opacity: 1; }
+
+    /* Zone indicators */
+    .zone-label { position: absolute; right: -90px; top: 50%; transform: translateY(-50%); font-size: 0.72rem; font-weight: 600; white-space: nowrap; padding: 3px 8px; border-radius: 4px; }
+
+    /* Zone coloring */
+    .zone-eye { border-left: 4px solid var(--zone-eye); }
+    .zone-chest { border-left: 4px solid var(--zone-chest); }
+    .zone-top { border-left: 4px solid var(--zone-top); }
+    .zone-bottom { border-left: 4px solid var(--zone-bottom); }
+
+    /* Warnings */
+    .slot-warning { position: absolute; bottom: 2px; right: 4px; font-size: 0.75rem; }
+
+    /* Heatmap overlay */
+    .heatmap .plano-slot { position: relative; }
+    .heat-overlay { position: absolute; inset: 0; border-radius: 6px; pointer-events: none; }
+
+    /* Sidebar */
+    .sidebar { position: sticky; top: 20px; }
+    .product-palette { max-height: 400px; overflow-y: auto; }
+    .palette-item {
+      display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+      border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px;
+      cursor: grab; font-size: 0.82rem; transition: all 0.2s;
+      background: var(--card);
+    }
+    .palette-item:hover { border-color: var(--accent); }
+    .palette-item.dragging { opacity: 0.5; }
+    .palette-item .p-emoji { font-size: 1.2rem; }
+    .palette-item .p-info { flex: 1; }
+    .palette-item .p-name { font-weight: 600; font-size: 0.8rem; }
+    .palette-item .p-detail { font-size: 0.72rem; color: var(--muted); }
+    .palette-item .p-margin { font-size: 0.72rem; font-weight: 600; }
+
+    /* Zone legend */
+    .zone-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+    .zone-legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; }
+    .zone-dot { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
+
+    /* Templates */
+    .template-list { max-height: 200px; overflow-y: auto; }
+    .template-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; font-size: 0.82rem; }
+    .template-item:hover { border-color: var(--accent); }
+
+    /* Category filter for palette */
+    .palette-filter { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
+    .palette-filter .btn { padding: 3px 8px; font-size: 0.72rem; }
+    .palette-filter .btn.active { background: var(--accent); color: white; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: var(--card); border-radius: 16px; padding: 24px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+    .modal h3 { margin-bottom: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+    .form-group label { font-size: 0.82rem; font-weight: 500; color: var(--muted); }
+    .form-group input, .form-group select { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; }
+
+    /* Toggle switches */
+    .toggle-row { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; margin-bottom: 10px; }
+    .toggle { position: relative; width: 40px; height: 22px; border-radius: 11px; background: var(--border); cursor: pointer; transition: background 0.2s; }
+    .toggle.on { background: var(--accent); }
+    .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: white; transition: transform 0.2s; }
+    .toggle.on::after { transform: translateX(18px); }
+
+    @media (max-width: 900px) {
+      .editor-layout { grid-template-columns: 1fr; }
+      .sidebar { position: static; }
+      .plano-slot { min-width: 60px; min-height: 60px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <nav class="top-nav">
+      <a href="/"><img src="/logo.png" alt="Kande VendTech" class="logo"></a>
+      <span class="nav-brand">Operations</span>
+      <a href="/">Dashboard</a>
+      <a href="/crm">CRM</a>
+      <a href="/machines">Machines</a>
+      <a href="/inventory">Inventory</a>
+      <a href="/finance">Finance</a>
+      <a href="/restock">Restock</a>
+      <a href="/performance">Performance</a>
+      <a href="/planogram" class="active">Planogram</a>
+      <a href="/map">Map</a>
+    </nav>
+
+    <h1>🎰 Planogram Editor</h1>
+    <p class="subtitle">Visual product placement — optimize every slot for maximum revenue</p>
+
+    <!-- Machine & Planogram Selector -->
+    <div class="toolbar">
+      <label>Machine:</label>
+      <select id="machine-select" onchange="onMachineChange()">
+        <option value="">Select a machine...</option>
+      </select>
+      <label style="margin-left:12px;">Planogram:</label>
+      <select id="planogram-select" onchange="onPlanogramChange()">
+        <option value="">New Planogram</option>
+      </select>
+      <div style="flex:1"></div>
+      <div class="toggle-row">
+        <span>Zones</span>
+        <div class="toggle on" id="toggle-zones" onclick="toggleZones()"></div>
+      </div>
+      <div class="toggle-row">
+        <span>Heatmap</span>
+        <div class="toggle" id="toggle-heatmap" onclick="toggleHeatmap()"></div>
+      </div>
+      <div class="toggle-row">
+        <span>Warnings</span>
+        <div class="toggle on" id="toggle-warnings" onclick="toggleWarnings()"></div>
+      </div>
+      <button class="btn btn-success" onclick="savePlanogram()">💾 Save</button>
+      <button class="btn btn-ghost" onclick="showNewPlanogramModal()">+ New</button>
+    </div>
+
+    <div class="editor-layout">
+      <!-- Main Grid -->
+      <div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h2 style="margin-bottom:0;" id="plano-title">New Planogram</h2>
+            <div style="font-size:0.82rem;color:var(--muted);" id="plano-info">6 rows × 8 columns</div>
+          </div>
+
+          <!-- Zone labels row -->
+          <div style="display:flex;gap:12px;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:4px;font-size:0.75rem;">
+              <div style="width:12px;height:12px;border-radius:3px;background:var(--zone-top);"></div>
+              <span>Reach (50-65%)</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;font-size:0.75rem;">
+              <div style="width:12px;height:12px;border-radius:3px;background:var(--zone-eye);"></div>
+              <span>Buy Level (100%)</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;font-size:0.75rem;">
+              <div style="width:12px;height:12px;border-radius:3px;background:var(--zone-chest);"></div>
+              <span>Prime (75-85%)</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;font-size:0.75rem;">
+              <div style="width:12px;height:12px;border-radius:3px;background:var(--zone-bottom);"></div>
+              <span>Stoop (40-60%)</span>
+            </div>
+          </div>
+
+          <div class="plano-grid-wrap">
+            <div class="plano-grid" id="plano-grid"></div>
+          </div>
+        </div>
+
+        <!-- Placement Strategy Reference -->
+        <div class="card">
+          <h2>📋 Placement Strategy</h2>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;font-size:0.85rem;">
+            <div style="padding:12px;border-radius:10px;border-left:4px solid var(--zone-top);background:rgba(221,107,32,0.04);">
+              <strong>Top Shelf (Reach Zone)</strong><br>
+              <span style="color:var(--muted)">Lightweight items, strong brands people seek out. Light chips, candy bars.</span>
+            </div>
+            <div style="padding:12px;border-radius:10px;border-left:4px solid var(--zone-eye);background:rgba(56,161,105,0.04);">
+              <strong>Eye Level (Buy Level)</strong><br>
+              <span style="color:var(--muted)">Monster, Red Bull, Fair Life Protein ($7.99), impulse buys. Highest revenue items.</span>
+            </div>
+            <div style="padding:12px;border-radius:10px;border-left:4px solid var(--zone-chest);background:rgba(49,130,206,0.04);">
+              <strong>Chest Level (Prime)</strong><br>
+              <span style="color:var(--muted)">Proven sellers — popular chips, sodas, established sellers.</span>
+            </div>
+            <div style="padding:12px;border-radius:10px;border-left:4px solid var(--zone-bottom);background:rgba(160,174,192,0.04);">
+              <strong>Bottom Rows (Stoop)</strong><br>
+              <span style="color:var(--muted)">Water (people seek it), bulk items, heavy items.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <!-- Product Palette -->
+        <div class="card">
+          <h2>🏷️ Products</h2>
+          <input type="text" id="palette-search" placeholder="Search products..." style="width:100%;margin-bottom:10px;" oninput="renderPalette()">
+          <div class="palette-filter" id="palette-filter"></div>
+          <div class="product-palette" id="product-palette"></div>
+        </div>
+
+        <!-- Slot Info -->
+        <div class="card" id="slot-info-card" style="display:none;">
+          <h2>Slot Details</h2>
+          <div id="slot-info"></div>
+        </div>
+
+        <!-- Saved Templates -->
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <h2 style="margin-bottom:0">📁 Templates</h2>
+            <button class="btn btn-ghost btn-sm" onclick="saveAsTemplate()">Save Current</button>
+          </div>
+          <div class="template-list" id="template-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Planogram Modal -->
+  <div class="modal-overlay" id="new-plano-modal">
+    <div class="modal">
+      <h3>Create New Planogram</h3>
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="new-plano-name" placeholder="e.g. Main Combo - Gym Layout">
+      </div>
+      <div class="form-group">
+        <label>Machine</label>
+        <select id="new-plano-machine"></select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label>Rows</label>
+          <input type="number" id="new-plano-rows" value="6" min="2" max="12">
+        </div>
+        <div class="form-group">
+          <label>Columns</label>
+          <input type="number" id="new-plano-cols" value="8" min="2" max="15">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end;">
+        <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
+        <button class="btn btn-success" onclick="createPlanogram()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Template Name Modal -->
+  <div class="modal-overlay" id="template-modal">
+    <div class="modal">
+      <h3>Save as Template</h3>
+      <div class="form-group">
+        <label>Template Name</label>
+        <input type="text" id="template-name" placeholder="e.g. Standard Gym Layout">
+      </div>
+      <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end;">
+        <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
+        <button class="btn btn-success" onclick="confirmSaveTemplate()">Save Template</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let products = [];
+    let machines = [];
+    let planograms = [];
+    let currentPlanogram = null;
+    let selectedSlot = null;
+    let showZones = true;
+    let showHeatmap = false;
+    let showWarnings = true;
+    let paletteCategory = '';
+    let dragProduct = null;
+
+    // Zone mapping: row index → zone (for a 6-row machine)
+    function getZone(row, totalRows) {
+      const pct = row / (totalRows - 1); // 0 = top, 1 = bottom
+      if (pct <= 0.15) return 'top';      // Top shelf
+      if (pct <= 0.45) return 'eye';      // Eye level
+      if (pct <= 0.7) return 'chest';     // Chest level
+      return 'bottom';                     // Bottom rows
+    }
+
+    function getZoneInfo(zone) {
+      const zones = {
+        top: { name: 'Reach', color: 'var(--zone-top)', rate: '50-65%', class: 'zone-top' },
+        eye: { name: 'Buy Level', color: 'var(--zone-eye)', rate: '100%', class: 'zone-eye' },
+        chest: { name: 'Prime', color: 'var(--zone-chest)', rate: '75-85%', class: 'zone-chest' },
+        bottom: { name: 'Stoop', color: 'var(--zone-bottom)', rate: '40-60%', class: 'zone-bottom' }
+      };
+      return zones[zone] || zones.bottom;
+    }
+
+    // Category emoji
+    function getCategoryEmoji(cat) {
+      const emojis = {
+        'Beverages': '🥤', 'Snacks': '🍿', 'Protein/Health': '💪',
+        'Candy': '🍬', 'Essentials': '🧻', 'Frozen': '🧊'
+      };
+      return emojis[cat] || '📦';
+    }
+
+    // Init
+    async function init() {
+      await Promise.all([loadProducts(), loadMachines(), loadPlanograms()]);
+      renderPalette();
+      renderGrid();
+      renderTemplates();
+    }
+
+    async function loadProducts() {
+      products = await fetch('/api/products').then(r => r.json());
+    }
+
+    async function loadMachines() {
+      machines = await fetch('/api/machines').then(r => r.json());
+      const opts = machines.map(m => `<option value="${m.id}">${m.name || m.model || 'Machine #'+m.id}${m.location ? ' @ '+m.location.name : ''}</option>`).join('');
+      document.getElementById('machine-select').innerHTML = '<option value="">Select a machine...</option>' + opts;
+      document.getElementById('new-plano-machine').innerHTML = '<option value="">No machine</option>' + opts;
+    }
+
+    async function loadPlanograms() {
+      planograms = await fetch('/api/planograms').then(r => r.json());
+      const sel = document.getElementById('planogram-select');
+      sel.innerHTML = '<option value="">New Planogram</option>' + planograms.map(p =>
+        `<option value="${p.id}">${p.name} (${p.rows}×${p.columns})</option>`
+      ).join('');
+    }
+
+    function onMachineChange() {
+      const machineId = document.getElementById('machine-select').value;
+      if (!machineId) return;
+      // Try to find planogram for this machine
+      const plano = planograms.find(p => p.machine_id === parseInt(machineId));
+      if (plano) {
+        document.getElementById('planogram-select').value = plano.id;
+        loadPlanogramById(plano.id);
+      }
+    }
+
+    function onPlanogramChange() {
+      const id = document.getElementById('planogram-select').value;
+      if (id) loadPlanogramById(parseInt(id));
+      else {
+        currentPlanogram = { name: 'New Planogram', rows: 6, columns: 8, slots: [], machine_id: null };
+        renderGrid();
+      }
+    }
+
+    async function loadPlanogramById(id) {
+      const plano = planograms.find(p => p.id === id);
+      if (plano) {
+        currentPlanogram = { ...plano };
+        if (plano.machine_id) document.getElementById('machine-select').value = plano.machine_id;
+        renderGrid();
+      }
+    }
+
+    // Render the planogram grid
+    function renderGrid() {
+      const p = currentPlanogram || { name: 'New Planogram', rows: 6, columns: 8, slots: [] };
+      const grid = document.getElementById('plano-grid');
+      grid.style.gridTemplateColumns = `repeat(${p.columns || 8}, minmax(80px, 1fr))`;
+
+      document.getElementById('plano-title').textContent = p.name || 'New Planogram';
+      document.getElementById('plano-info').textContent = `${p.rows || 6} rows × ${p.columns || 8} columns`;
+
+      const slotMap = {};
+      (p.slots || []).forEach(s => { slotMap[`${s.row}-${s.col}`] = s; });
+
+      const rows = p.rows || 6;
+      const cols = p.columns || 8;
+      let html = '';
+
+      for (let r = 0; r < rows; r++) {
+        const zone = getZone(r, rows);
+        const zoneInfo = getZoneInfo(zone);
+
+        for (let c = 0; c < cols; c++) {
+          const slot = slotMap[`${r}-${c}`];
+          const prod = slot ? products.find(pr => pr.id === slot.product_id) : null;
+          const zoneClass = showZones ? zoneInfo.class : '';
+          const isEmpty = !prod;
+          const isSelected = selectedSlot && selectedSlot.row === r && selectedSlot.col === c;
+
+          // Warnings
+          let warning = '';
+          if (showWarnings && prod) {
+            const margin = prod.margin || 0;
+            const isHeavy = (prod.weight && prod.weight > 16) || (prod.category === 'Essentials');
+            if (margin > 50 && zone !== 'eye' && zone !== 'chest') warning = '⬆️'; // high margin not at eye level
+            if (isHeavy && zone === 'top') warning = '⚠️'; // heavy on top
+          }
+
+          // Heatmap
+          let heatStyle = '';
+          if (showHeatmap && slot && slot.revenue) {
+            const maxRev = Math.max(...(p.slots || []).map(s => s.revenue || 0), 1);
+            const intensity = (slot.revenue || 0) / maxRev;
+            const r2 = Math.round(255 - intensity * 200);
+            const g2 = Math.round(255 - intensity * 50);
+            const b2 = Math.round(255 - intensity * 200);
+            heatStyle = `background: rgba(49,130,206,${intensity * 0.3});`;
+          }
+
+          html += `<div class="plano-slot ${zoneClass} ${isEmpty ? 'empty' : ''} ${isSelected ? 'selected' : ''}"
+            style="${heatStyle}"
+            data-row="${r}" data-col="${c}"
+            onclick="selectSlot(${r},${c})"
+            ondragover="onDragOver(event)" ondrop="onDrop(event,${r},${c})" ondragleave="onDragLeave(event)">
+            <span class="slot-coord">${String.fromCharCode(65+r)}${c+1}</span>
+            ${prod ? `
+              <span class="slot-emoji">${getCategoryEmoji(prod.category)}</span>
+              <span class="slot-product">${prod.name}</span>
+              <span class="slot-price">$${(prod.sell_price||0).toFixed(2)}</span>
+              <span class="slot-clear" onclick="event.stopPropagation();clearSlot(${r},${c})">✕</span>
+              ${warning ? `<span class="slot-warning" title="Placement warning">${warning}</span>` : ''}
+            ` : `
+              <span style="font-size:1.2rem;color:var(--border);">+</span>
+              <span style="font-size:0.68rem;color:var(--muted);">Empty</span>
+            `}
+          </div>`;
+        }
+      }
+      grid.innerHTML = html;
+    }
+
+    // Slot selection
+    function selectSlot(row, col) {
+      selectedSlot = { row, col };
+      renderGrid();
+      showSlotInfo(row, col);
+    }
+
+    function showSlotInfo(row, col) {
+      const p = currentPlanogram || { slots: [] };
+      const slot = (p.slots || []).find(s => s.row === row && s.col === col);
+      const prod = slot ? products.find(pr => pr.id === slot.product_id) : null;
+      const zone = getZone(row, p.rows || 6);
+      const zoneInfo = getZoneInfo(zone);
+
+      const card = document.getElementById('slot-info-card');
+      card.style.display = 'block';
+
+      document.getElementById('slot-info').innerHTML = `
+        <div style="font-size:0.85rem;">
+          <div style="margin-bottom:10px;">
+            <strong>Position:</strong> ${String.fromCharCode(65+row)}${col+1}<br>
+            <strong>Zone:</strong> <span style="color:${zoneInfo.color};font-weight:600;">${zoneInfo.name}</span> (${zoneInfo.rate} sales rate)
+          </div>
+          ${prod ? `
+            <div style="padding:12px;border-radius:8px;border:1px solid var(--border);margin-bottom:10px;">
+              <div style="font-size:1.2rem;margin-bottom:4px;">${getCategoryEmoji(prod.category)} <strong>${prod.name}</strong></div>
+              <div style="color:var(--muted);">
+                Category: ${prod.category || '—'}<br>
+                Cost: $${(prod.cost_price||0).toFixed(2)} → Sell: $${(prod.sell_price||0).toFixed(2)}<br>
+                Margin: ${prod.margin || 0}%<br>
+                Profit/Unit: $${((prod.sell_price||0) - (prod.cost_price||0)).toFixed(2)}
+              </div>
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="clearSlot(${row},${col})" style="width:100%;">Remove from Slot</button>
+          ` : `
+            <div style="color:var(--muted);margin-bottom:10px;">No product assigned. Drag a product from the palette or click a product to assign it.</div>
+          `}
+          <div style="margin-top:12px;">
+            <strong>Assign Product:</strong>
+            <select onchange="assignProduct(${row},${col},parseInt(this.value))" style="width:100%;margin-top:4px;">
+              <option value="">Choose product...</option>
+              ${products.map(pr => `<option value="${pr.id}" ${prod && prod.id === pr.id ? 'selected' : ''}>${pr.name} ($${(pr.sell_price||0).toFixed(2)})</option>`).join('')}
+            </select>
+          </div>
+        </div>
+      `;
+    }
+
+    // Product palette
+    function renderPalette() {
+      const search = (document.getElementById('palette-search').value || '').toLowerCase();
+      const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
+
+      // Category filter buttons
+      document.getElementById('palette-filter').innerHTML = 
+        `<button class="btn btn-sm ${!paletteCategory ? 'active' : 'btn-ghost'}" onclick="filterPalette('')">All</button>` +
+        categories.map(c => `<button class="btn btn-sm ${paletteCategory === c ? 'active' : 'btn-ghost'}" onclick="filterPalette('${c}')">${c}</button>`).join('');
+
+      const filtered = products.filter(p => {
+        if (search && !p.name.toLowerCase().includes(search)) return false;
+        if (paletteCategory && p.category !== paletteCategory) return false;
+        return true;
+      });
+
+      document.getElementById('product-palette').innerHTML = filtered.map(p => {
+        const marginColor = (p.margin || 0) >= 60 ? 'var(--success)' : ((p.margin || 0) >= 45 ? 'var(--warn)' : 'var(--hot)');
+        return `<div class="palette-item" draggable="true" data-product-id="${p.id}"
+          ondragstart="onDragStart(event, ${p.id})"
+          onclick="assignToSelected(${p.id})">
+          <span class="p-emoji">${getCategoryEmoji(p.category)}</span>
+          <div class="p-info">
+            <div class="p-name">${p.name}</div>
+            <div class="p-detail">${p.category || 'Other'} · $${(p.sell_price||0).toFixed(2)}</div>
+          </div>
+          <span class="p-margin" style="color:${marginColor}">${p.margin || 0}%</span>
+        </div>`;
+      }).join('') || '<div style="color:var(--muted);font-size:0.82rem;padding:10px;">No products found. Add products in Inventory.</div>';
+    }
+
+    function filterPalette(cat) {
+      paletteCategory = cat;
+      renderPalette();
+    }
+
+    // Drag and drop
+    function onDragStart(e, productId) {
+      dragProduct = productId;
+      e.dataTransfer.setData('text/plain', productId);
+      e.target.classList.add('dragging');
+    }
+
+    function onDragOver(e) {
+      e.preventDefault();
+      e.currentTarget.classList.add('drag-over');
+    }
+
+    function onDragLeave(e) {
+      e.currentTarget.classList.remove('drag-over');
+    }
+
+    function onDrop(e, row, col) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('drag-over');
+      const productId = parseInt(e.dataTransfer.getData('text/plain') || dragProduct);
+      if (productId) assignProduct(row, col, productId);
+      dragProduct = null;
+      document.querySelectorAll('.palette-item.dragging').forEach(el => el.classList.remove('dragging'));
+    }
+
+    function assignToSelected(productId) {
+      if (selectedSlot) {
+        assignProduct(selectedSlot.row, selectedSlot.col, productId);
+      }
+    }
+
+    function assignProduct(row, col, productId) {
+      if (!currentPlanogram) {
+        currentPlanogram = { name: 'New Planogram', rows: 6, columns: 8, slots: [], machine_id: null };
+      }
+      if (!currentPlanogram.slots) currentPlanogram.slots = [];
+
+      // Remove existing slot assignment
+      currentPlanogram.slots = currentPlanogram.slots.filter(s => !(s.row === row && s.col === col));
+
+      if (productId) {
+        currentPlanogram.slots.push({ row, col, product_id: productId });
+      }
+
+      renderGrid();
+      if (selectedSlot && selectedSlot.row === row && selectedSlot.col === col) {
+        showSlotInfo(row, col);
+      }
+    }
+
+    function clearSlot(row, col) {
+      assignProduct(row, col, null);
+    }
+
+    // Save planogram
+    async function savePlanogram() {
+      if (!currentPlanogram) return alert('Nothing to save');
+      const machineId = document.getElementById('machine-select').value;
+      const data = {
+        ...currentPlanogram,
+        machine_id: machineId ? parseInt(machineId) : currentPlanogram.machine_id
+      };
+
+      let res;
+      if (currentPlanogram.id) {
+        res = await fetch(`/api/planograms/${currentPlanogram.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+      } else {
+        res = await fetch('/api/planograms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+      }
+      const result = await res.json();
+      currentPlanogram = result;
+      await loadPlanograms();
+      document.getElementById('planogram-select').value = result.id;
+      alert('Planogram saved!');
+    }
+
+    // New planogram
+    function showNewPlanogramModal() {
+      document.getElementById('new-plano-modal').classList.add('active');
+    }
+
+    function createPlanogram() {
+      const name = document.getElementById('new-plano-name').value || 'Untitled';
+      const machineId = document.getElementById('new-plano-machine').value;
+      const rows = parseInt(document.getElementById('new-plano-rows').value) || 6;
+      const cols = parseInt(document.getElementById('new-plano-cols').value) || 8;
+
+      currentPlanogram = {
+        name,
+        machine_id: machineId ? parseInt(machineId) : null,
+        rows,
+        columns: cols,
+        slots: []
+      };
+
+      if (machineId) document.getElementById('machine-select').value = machineId;
+      selectedSlot = null;
+      closeModals();
+      renderGrid();
+    }
+
+    // Templates
+    function renderTemplates() {
+      const templates = planograms.filter(p => p.is_template);
+      document.getElementById('template-list').innerHTML = templates.length === 0
+        ? '<div style="color:var(--muted);font-size:0.82rem;">No templates saved yet</div>'
+        : templates.map(t => `
+          <div class="template-item">
+            <div>
+              <strong>${t.name}</strong>
+              <div style="font-size:0.72rem;color:var(--muted);">${t.rows}×${t.columns} · ${(t.slots||[]).length} products</div>
+            </div>
+            <div style="display:flex;gap:4px;">
+              <button class="btn btn-ghost btn-sm" onclick="loadTemplate(${t.id})">Load</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteTemplate(${t.id})">✕</button>
+            </div>
+          </div>
+        `).join('');
+    }
+
+    function saveAsTemplate() {
+      if (!currentPlanogram || !(currentPlanogram.slots || []).length) return alert('Nothing to save as template');
+      document.getElementById('template-modal').classList.add('active');
+      document.getElementById('template-name').value = (currentPlanogram.name || '') + ' Template';
+    }
+
+    async function confirmSaveTemplate() {
+      const name = document.getElementById('template-name').value || 'Template';
+      const data = {
+        name,
+        rows: currentPlanogram.rows || 6,
+        columns: currentPlanogram.columns || 8,
+        slots: currentPlanogram.slots || [],
+        is_template: true
+      };
+      await fetch('/api/planograms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      closeModals();
+      await loadPlanograms();
+      renderTemplates();
+      alert('Template saved!');
+    }
+
+    async function loadTemplate(id) {
+      const tmpl = planograms.find(p => p.id === id);
+      if (!tmpl) return;
+      currentPlanogram = {
+        name: tmpl.name.replace(' Template', ''),
+        rows: tmpl.rows,
+        columns: tmpl.columns,
+        slots: JSON.parse(JSON.stringify(tmpl.slots || [])),
+        machine_id: document.getElementById('machine-select').value || null
+      };
+      selectedSlot = null;
+      renderGrid();
+    }
+
+    async function deleteTemplate(id) {
+      if (!confirm('Delete this template?')) return;
+      await fetch(`/api/planograms/${id}`, { method: 'DELETE' });
+      await loadPlanograms();
+      renderTemplates();
+    }
+
+    // Toggles
+    function toggleZones() {
+      showZones = !showZones;
+      document.getElementById('toggle-zones').classList.toggle('on', showZones);
+      renderGrid();
+    }
+
+    function toggleHeatmap() {
+      showHeatmap = !showHeatmap;
+      document.getElementById('toggle-heatmap').classList.toggle('on', showHeatmap);
+      renderGrid();
+    }
+
+    function toggleWarnings() {
+      showWarnings = !showWarnings;
+      document.getElementById('toggle-warnings').classList.toggle('on', showWarnings);
+      renderGrid();
+    }
+
+    function closeModals() {
+      document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+    }
+
+    document.querySelectorAll('.modal-overlay').forEach(m => {
+      m.addEventListener('click', e => { if (e.target === m) closeModals(); });
+    });
+
+    init();
+  </script>
+<script src="/nav.js"></script>
+</body>
+</html>

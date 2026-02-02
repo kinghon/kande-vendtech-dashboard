@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Competitor Monitoring — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa; --card: #ffffff; --card-hover: #f7fafc;
+      --border: #e2e8f0; --border-accent: #cbd5e0;
+      --text: #1a202c; --muted: #718096; --dim: #a0aec0;
+      --accent: #3182ce; --accent-dim: rgba(49,130,206,0.1);
+      --accent-glow: rgba(49,130,206,0.15);
+      --hot: #e53e3e; --warn: #dd6b20; --success: #38a169;
+      --purple: #7b2cbf; --teal: #319795;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh;
+    }
+    .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+    /* ── Page Header ── */
+    .page-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+    }
+    .page-header h1 {
+      font-size: 1.6rem; font-weight: 700;
+      background: linear-gradient(90deg, var(--accent), var(--teal));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .page-header .subtitle { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--card); color: var(--text); font-size: 0.85rem;
+      font-weight: 500; cursor: pointer; transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+    .btn-primary:hover { background: #2b6cb0; box-shadow: 0 0 20px var(--accent-glow); }
+    .btn-danger { color: var(--hot); border-color: rgba(239,68,68,0.3); }
+    .btn-danger:hover { background: var(--hot); color: #fff; }
+    .btn-sm { padding: 4px 10px; font-size: 0.78rem; }
+    .btn-ghost { background: transparent; border-color: transparent; }
+    .btn-ghost:hover { background: var(--accent-dim); }
+
+    /* ── Stats ── */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--card); border-radius: 12px; padding: 18px;
+      border: 1px solid var(--border); text-align: center;
+      transition: border-color 0.2s;
+    }
+    .stat-card:hover { border-color: var(--border-accent); }
+    .stat-card .value { font-size: 2rem; font-weight: 700; color: var(--accent); }
+    .stat-card .label {
+      font-size: 0.7rem; color: var(--muted); margin-top: 4px;
+      text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;
+    }
+
+    /* ── Search / Filter Bar ── */
+    .toolbar {
+      display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;
+    }
+    .search-input {
+      flex: 1; min-width: 200px; padding: 9px 14px 9px 36px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-size: 0.9rem; outline: none; transition: border-color 0.2s;
+    }
+    .search-input:focus { border-color: var(--accent); }
+    .search-input::placeholder { color: var(--dim); }
+    .search-wrap { position: relative; flex: 1; min-width: 200px; }
+    .search-icon {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      color: var(--dim); font-size: 0.85rem; pointer-events: none;
+    }
+    .filter-select {
+      padding: 9px 14px; background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: 0.85rem; outline: none;
+      cursor: pointer;
+    }
+    .filter-select:focus { border-color: var(--accent); }
+    .filter-select option { background: var(--card); color: var(--text); }
+
+    /* ── View Toggle ── */
+    .view-toggle { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .view-btn {
+      padding: 8px 14px; background: transparent; border: none; color: var(--muted);
+      font-size: 0.85rem; cursor: pointer; transition: all 0.2s;
+    }
+    .view-btn.active { background: var(--accent-dim); color: var(--accent); }
+    .view-btn:hover { color: var(--text); }
+
+    /* ── Competitor Cards Grid ── */
+    .cards-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+      gap: 16px; margin-bottom: 24px;
+    }
+    .competitor-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 20px; transition: all 0.25s; cursor: pointer; position: relative;
+    }
+    .competitor-card:hover {
+      border-color: var(--accent); transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(49,130,206,0.08);
+    }
+    .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+    .card-name { font-size: 1.1rem; font-weight: 600; color: var(--text); }
+    .card-website {
+      font-size: 0.78rem; color: var(--accent); text-decoration: none;
+      display: block; margin-top: 2px; word-break: break-all;
+    }
+    .card-website:hover { text-decoration: underline; }
+    .card-actions { display: flex; gap: 4px; }
+    .card-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .meta-tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 6px; font-size: 0.72rem;
+      font-weight: 600; background: rgba(0,0,0,0.05); color: var(--muted);
+    }
+    .meta-tag.locations { background: var(--accent-dim); color: var(--accent); }
+    .meta-tag.phone { background: rgba(34,197,94,0.1); color: var(--success); }
+
+    .card-section { margin-bottom: 10px; }
+    .card-section-label {
+      font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--dim); font-weight: 600; margin-bottom: 4px;
+    }
+    .card-section-text { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
+
+    .tag-list { display: flex; flex-wrap: wrap; gap: 4px; }
+    .tag {
+      padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 500;
+      background: rgba(0,0,0,0.06); color: var(--muted);
+    }
+    .tag.strength { background: rgba(34,197,94,0.1); color: var(--success); }
+    .tag.weakness { background: rgba(239,68,68,0.1); color: var(--hot); }
+    .tag.machine-type { background: rgba(167,139,250,0.1); color: var(--purple); }
+    .tag.target { background: rgba(49,130,206,0.08); color: var(--accent); }
+
+    .card-footer {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);
+    }
+    .card-date { font-size: 0.72rem; color: var(--dim); }
+
+    /* ── Table View ── */
+    .table-view { display: none; }
+    .table-view.active { display: block; }
+    .cards-view.active { display: grid; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th {
+      text-align: left; padding: 10px 12px; font-weight: 600; color: var(--muted);
+      border-bottom: 2px solid var(--border); font-size: 0.72rem;
+      text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer;
+      user-select: none; transition: color 0.2s;
+    }
+    th:hover { color: var(--accent); }
+    th.sorted { color: var(--accent); }
+    th .sort-arrow { margin-left: 4px; font-size: 0.65rem; }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:hover { background: rgba(49,130,206,0.04); }
+    td a { color: var(--accent); text-decoration: none; }
+    td a:hover { text-decoration: underline; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px); z-index: 1000;
+      justify-content: center; align-items: flex-start;
+      padding: 40px 20px; overflow-y: auto;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 28px; width: 100%; max-width: 700px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .modal h2 {
+      font-size: 1.2rem; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
+    }
+    .form-group { margin-bottom: 14px; }
+    .form-group label {
+      display: block; font-size: 0.75rem; font-weight: 600;
+      color: var(--muted); margin-bottom: 4px; text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 9px 12px; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 0.9rem; font-family: inherit;
+      background: var(--bg); color: var(--text); outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border-color: var(--accent);
+    }
+    .form-group input::placeholder, .form-group textarea::placeholder { color: var(--dim); }
+    .form-group textarea { min-height: 70px; resize: vertical; }
+    .form-group select option { background: var(--card); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .form-divider {
+      margin: 18px 0 14px; padding-top: 14px; border-top: 1px solid var(--border);
+      font-size: 0.8rem; font-weight: 600; color: var(--accent);
+    }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 24px; }
+
+    /* ── Empty State ── */
+    .empty-state {
+      text-align: center; padding: 60px 20px; color: var(--muted);
+    }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.5; }
+    .empty-state h3 { font-size: 1.1rem; color: var(--text); margin-bottom: 6px; }
+    .empty-state p { font-size: 0.9rem; margin-bottom: 16px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .cards-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .form-row, .form-row-3 { grid-template-columns: 1fr; }
+      .page-header { flex-direction: column; align-items: flex-start; }
+      .toolbar { flex-direction: column; }
+      .search-wrap { min-width: 100%; }
+    }
+
+    /* ── Scrollbar styling ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--dim); }
+  </style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1>🔍 Competitor Intelligence</h1>
+      <div class="subtitle">Track and analyze vending competitors in the Las Vegas market</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary" onclick="openModal()">+ Add Competitor</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid" id="stats">
+    <div class="stat-card"><div class="value" id="stat-total">0</div><div class="label">Total Tracked</div></div>
+    <div class="stat-card"><div class="value" id="stat-locations">0</div><div class="label">Est. Combined Locations</div></div>
+    <div class="stat-card"><div class="value" id="stat-smart">0</div><div class="label">Smart Vending</div></div>
+    <div class="stat-card"><div class="value" id="stat-traditional">0</div><div class="label">Traditional</div></div>
+    <div class="stat-card"><div class="value" id="stat-micro">0</div><div class="label">Micro-Market</div></div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">🔎</span>
+      <input type="text" class="search-input" id="searchInput" placeholder="Search competitors by name, notes, target market...">
+    </div>
+    <select class="filter-select" id="filterType" title="Filter by machine type">
+      <option value="">All Machine Types</option>
+      <option value="traditional">Traditional</option>
+      <option value="smart">Smart Vending</option>
+      <option value="micro-market">Micro-Market</option>
+      <option value="combo">Combo/Multiple</option>
+    </select>
+    <select class="filter-select" id="filterTarget" title="Filter by target market">
+      <option value="">All Markets</option>
+      <option value="apartments">Apartments</option>
+      <option value="offices">Offices</option>
+      <option value="hotels">Hotels/Casinos</option>
+      <option value="retail">Retail</option>
+      <option value="schools">Schools</option>
+      <option value="gyms">Gyms/Fitness</option>
+      <option value="hospitals">Healthcare</option>
+    </select>
+    <div class="view-toggle">
+      <button class="view-btn active" data-view="cards" title="Card view">▦</button>
+      <button class="view-btn" data-view="table" title="Table view">☰</button>
+    </div>
+  </div>
+
+  <!-- Cards View -->
+  <div class="cards-grid cards-view active" id="cardsView"></div>
+
+  <!-- Table View -->
+  <div class="table-view" id="tableView">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th data-sort="name">Name <span class="sort-arrow"></span></th>
+            <th data-sort="locations_count">Locations <span class="sort-arrow"></span></th>
+            <th data-sort="machine_types">Types <span class="sort-arrow"></span></th>
+            <th data-sort="target_markets">Markets <span class="sort-arrow"></span></th>
+            <th data-sort="pricing_notes">Pricing <span class="sort-arrow"></span></th>
+            <th>Phone</th>
+            <th data-sort="updated_at">Updated <span class="sort-arrow"></span></th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" id="emptyState" style="display:none;">
+    <div class="icon">🔍</div>
+    <h3>No competitors tracked yet</h3>
+    <p>Start building your competitive intelligence by adding your first competitor</p>
+    <button class="btn btn-primary" onclick="openModal()">+ Add Competitor</button>
+  </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2 id="modalTitle">➕ Add Competitor</h2>
+    <input type="hidden" id="editId">
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Company Name *</label>
+        <input type="text" id="fName" placeholder="e.g. Vegas Vending Co">
+      </div>
+      <div class="form-group">
+        <label>Website</label>
+        <input type="url" id="fWebsite" placeholder="https://...">
+      </div>
+    </div>
+
+    <div class="form-row-3">
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="tel" id="fPhone" placeholder="(702) 555-0000">
+      </div>
+      <div class="form-group">
+        <label>Est. Locations in Vegas</label>
+        <input type="number" id="fLocations" placeholder="0" min="0">
+      </div>
+      <div class="form-group">
+        <label>Contact Person</label>
+        <input type="text" id="fContact" placeholder="Name / Role">
+      </div>
+    </div>
+
+    <div class="form-divider">Machine & Market Profile</div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Machine Types</label>
+        <select id="fMachineTypes" multiple size="3" style="min-height:72px;">
+          <option value="traditional">Traditional</option>
+          <option value="smart">Smart Vending</option>
+          <option value="micro-market">Micro-Market</option>
+          <option value="coffee">Coffee/Specialty</option>
+          <option value="healthy">Healthy/Fresh</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Target Markets</label>
+        <select id="fTargetMarkets" multiple size="3" style="min-height:72px;">
+          <option value="apartments">Apartments</option>
+          <option value="offices">Offices</option>
+          <option value="hotels">Hotels/Casinos</option>
+          <option value="retail">Retail</option>
+          <option value="schools">Schools</option>
+          <option value="gyms">Gyms/Fitness</option>
+          <option value="hospitals">Healthcare</option>
+          <option value="industrial">Industrial</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-divider">Pricing & Strategy</div>
+
+    <div class="form-group">
+      <label>Pricing Model</label>
+      <input type="text" id="fPricing" placeholder="e.g. 15% revenue share, $150/mo flat fee, free placement">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Strengths</label>
+        <textarea id="fStrengths" placeholder="What they do well (one per line)&#10;e.g. Large fleet, Fast service"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Weaknesses</label>
+        <textarea id="fWeaknesses" placeholder="Where they're vulnerable (one per line)&#10;e.g. Outdated machines, Poor service"></textarea>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Win/Loss Notes</label>
+      <textarea id="fWinLoss" placeholder="Notes on deals won or lost against them..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>General Notes</label>
+      <textarea id="fNotes" placeholder="Any other intelligence..."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" id="deleteBtn" style="display:none;" onclick="deleteCompetitor()">Delete</button>
+      <button class="btn btn-primary" onclick="saveCompetitor()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="/nav.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  let competitors = [];
+  let sortField = 'name';
+  let sortDir = 'asc';
+  let currentView = 'cards';
+
+  // ── API ──
+  async function fetchCompetitors() {
+    try {
+      const res = await fetch('/api/competitors');
+      competitors = await res.json();
+      render();
+    } catch (e) {
+      console.error('Failed to load competitors:', e);
+    }
+  }
+
+  async function saveToAPI(data, id) {
+    const url = id ? `/api/competitors/${id}` : '/api/competitors';
+    const method = id ? 'PUT' : 'POST';
+    const res = await fetch(url, {
+      method, headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return res.json();
+  }
+
+  async function deleteFromAPI(id) {
+    await fetch(`/api/competitors/${id}`, { method: 'DELETE' });
+  }
+
+  // ── Rendering ──
+  function render() {
+    const filtered = getFiltered();
+    const sorted = getSorted(filtered);
+
+    renderStats(filtered);
+    renderCards(sorted);
+    renderTable(sorted);
+
+    document.getElementById('emptyState').style.display =
+      competitors.length === 0 ? 'block' : 'none';
+
+    document.getElementById('cardsView').style.display =
+      competitors.length === 0 ? 'none' : (currentView === 'cards' ? 'grid' : 'none');
+    document.getElementById('tableView').style.display =
+      competitors.length === 0 ? 'none' : (currentView === 'table' ? 'block' : 'none');
+  }
+
+  function getFiltered() {
+    const q = document.getElementById('searchInput').value.toLowerCase().trim();
+    const typeFilter = document.getElementById('filterType').value;
+    const targetFilter = document.getElementById('filterTarget').value;
+
+    return competitors.filter(c => {
+      if (q) {
+        const searchable = [c.name, c.notes, c.pricing_notes, c.strengths, c.weaknesses,
+          c.win_loss_notes, c.contact_person, (c.target_markets||[]).join(' '),
+          (c.machine_types||[]).join(' ')].join(' ').toLowerCase();
+        if (!searchable.includes(q)) return false;
+      }
+      if (typeFilter && !(c.machine_types || []).includes(typeFilter)) return false;
+      if (targetFilter && !(c.target_markets || []).includes(targetFilter)) return false;
+      return true;
+    });
+  }
+
+  function getSorted(list) {
+    return [...list].sort((a, b) => {
+      let av = a[sortField], bv = b[sortField];
+      if (sortField === 'locations_count') { av = av || 0; bv = bv || 0; }
+      if (typeof av === 'string') av = av.toLowerCase();
+      if (typeof bv === 'string') bv = bv.toLowerCase();
+      if (Array.isArray(av)) av = av.join(',');
+      if (Array.isArray(bv)) bv = bv.join(',');
+      if (av < bv) return sortDir === 'asc' ? -1 : 1;
+      if (av > bv) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }
+
+  function renderStats(list) {
+    document.getElementById('stat-total').textContent = competitors.length;
+    const totalLoc = competitors.reduce((s, c) => s + (c.locations_count || 0), 0);
+    document.getElementById('stat-locations').textContent = totalLoc;
+
+    const types = competitors.flatMap(c => c.machine_types || []);
+    document.getElementById('stat-smart').textContent = types.filter(t => t === 'smart').length;
+    document.getElementById('stat-traditional').textContent = types.filter(t => t === 'traditional').length;
+    document.getElementById('stat-micro').textContent = types.filter(t => t === 'micro-market').length;
+  }
+
+  function renderCards(list) {
+    const el = document.getElementById('cardsView');
+    if (list.length === 0 && competitors.length > 0) {
+      el.innerHTML = '<div class="empty-state"><div class="icon">🔎</div><h3>No matches</h3><p>Try adjusting your search or filters</p></div>';
+      return;
+    }
+    el.innerHTML = list.map(c => `
+      <div class="competitor-card" onclick="openModal(${c.id})">
+        <div class="card-header">
+          <div>
+            <div class="card-name">${esc(c.name)}</div>
+            ${c.website ? `<a class="card-website" href="${esc(c.website)}" target="_blank" onclick="event.stopPropagation()">${esc(c.website.replace(/^https?:\/\//, ''))}</a>` : ''}
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-sm btn-ghost" onclick="event.stopPropagation(); openModal(${c.id})" title="Edit">✏️</button>
+            <button class="btn btn-sm btn-ghost btn-danger" onclick="event.stopPropagation(); quickDelete(${c.id})" title="Delete">🗑️</button>
+          </div>
+        </div>
+
+        <div class="card-meta">
+          ${c.locations_count ? `<span class="meta-tag locations">📍 ~${c.locations_count} locations</span>` : ''}
+          ${c.phone ? `<span class="meta-tag phone">📞 ${esc(c.phone)}</span>` : ''}
+          ${c.contact_person ? `<span class="meta-tag">👤 ${esc(c.contact_person)}</span>` : ''}
+        </div>
+
+        ${c.pricing_notes ? `
+          <div class="card-section">
+            <div class="card-section-label">Pricing Model</div>
+            <div class="card-section-text">${esc(c.pricing_notes)}</div>
+          </div>
+        ` : ''}
+
+        ${(c.machine_types && c.machine_types.length) ? `
+          <div class="card-section">
+            <div class="card-section-label">Machine Types</div>
+            <div class="tag-list">${c.machine_types.map(t => `<span class="tag machine-type">${esc(t)}</span>`).join('')}</div>
+          </div>
+        ` : ''}
+
+        ${(c.target_markets && c.target_markets.length) ? `
+          <div class="card-section">
+            <div class="card-section-label">Target Markets</div>
+            <div class="tag-list">${c.target_markets.map(t => `<span class="tag target">${esc(t)}</span>`).join('')}</div>
+          </div>
+        ` : ''}
+
+        ${c.strengths ? `
+          <div class="card-section">
+            <div class="card-section-label">Strengths</div>
+            <div class="tag-list">${c.strengths.split('\n').filter(Boolean).map(s => `<span class="tag strength">✓ ${esc(s.trim())}</span>`).join('')}</div>
+          </div>
+        ` : ''}
+
+        ${c.weaknesses ? `
+          <div class="card-section">
+            <div class="card-section-label">Weaknesses</div>
+            <div class="tag-list">${c.weaknesses.split('\n').filter(Boolean).map(s => `<span class="tag weakness">✗ ${esc(s.trim())}</span>`).join('')}</div>
+          </div>
+        ` : ''}
+
+        ${c.win_loss_notes ? `
+          <div class="card-section">
+            <div class="card-section-label">Win/Loss Intel</div>
+            <div class="card-section-text">${esc(c.win_loss_notes).substring(0, 120)}${c.win_loss_notes.length > 120 ? '...' : ''}</div>
+          </div>
+        ` : ''}
+
+        <div class="card-footer">
+          <div class="card-date">Updated ${timeAgo(c.updated_at || c.created_at)}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderTable(list) {
+    const tbody = document.getElementById('tableBody');
+    if (list.length === 0 && competitors.length > 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">No matches found</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(c => `
+      <tr>
+        <td>
+          <strong>${esc(c.name)}</strong>
+          ${c.website ? `<br><a href="${esc(c.website)}" target="_blank" style="font-size:0.75rem;">${esc(c.website.replace(/^https?:\/\//, ''))}</a>` : ''}
+        </td>
+        <td style="text-align:center;">${c.locations_count || '—'}</td>
+        <td>${(c.machine_types || []).map(t => `<span class="tag machine-type">${esc(t)}</span>`).join(' ')}</td>
+        <td>${(c.target_markets || []).map(t => `<span class="tag target">${esc(t)}</span>`).join(' ')}</td>
+        <td style="max-width:200px;"><span style="font-size:0.82rem;">${esc(c.pricing_notes || '—')}</span></td>
+        <td>${esc(c.phone || '—')}</td>
+        <td style="font-size:0.78rem;color:var(--dim);">${timeAgo(c.updated_at || c.created_at)}</td>
+        <td>
+          <button class="btn btn-sm btn-ghost" onclick="openModal(${c.id})" title="Edit">✏️</button>
+          <button class="btn btn-sm btn-ghost btn-danger" onclick="quickDelete(${c.id})" title="Delete">🗑️</button>
+        </td>
+      </tr>
+    `).join('');
+
+    // Highlight sorted column
+    document.querySelectorAll('th[data-sort]').forEach(th => {
+      th.classList.toggle('sorted', th.dataset.sort === sortField);
+      const arrow = th.querySelector('.sort-arrow');
+      if (th.dataset.sort === sortField) {
+        arrow.textContent = sortDir === 'asc' ? '▲' : '▼';
+      } else {
+        arrow.textContent = '';
+      }
+    });
+  }
+
+  // ── Modal ──
+  window.openModal = function(id) {
+    const modal = document.getElementById('modal');
+    const form = modal.querySelector('.modal');
+    document.getElementById('editId').value = '';
+    document.getElementById('modalTitle').textContent = '➕ Add Competitor';
+    document.getElementById('deleteBtn').style.display = 'none';
+
+    // Reset fields
+    ['fName','fWebsite','fPhone','fLocations','fContact','fPricing','fStrengths','fWeaknesses','fWinLoss','fNotes'].forEach(f => {
+      document.getElementById(f).value = '';
+    });
+    document.getElementById('fMachineTypes').selectedIndex = -1;
+    document.getElementById('fTargetMarkets').selectedIndex = -1;
+
+    if (id) {
+      const c = competitors.find(x => x.id === id);
+      if (!c) return;
+      document.getElementById('editId').value = id;
+      document.getElementById('modalTitle').textContent = '✏️ Edit Competitor';
+      document.getElementById('deleteBtn').style.display = 'inline-flex';
+
+      document.getElementById('fName').value = c.name || '';
+      document.getElementById('fWebsite').value = c.website || '';
+      document.getElementById('fPhone').value = c.phone || '';
+      document.getElementById('fLocations').value = c.locations_count || '';
+      document.getElementById('fContact').value = c.contact_person || '';
+      document.getElementById('fPricing').value = c.pricing_notes || '';
+      document.getElementById('fStrengths').value = c.strengths || '';
+      document.getElementById('fWeaknesses').value = c.weaknesses || '';
+      document.getElementById('fWinLoss').value = c.win_loss_notes || '';
+      document.getElementById('fNotes').value = c.notes || '';
+
+      // Multi-selects
+      setMultiSelect('fMachineTypes', c.machine_types || []);
+      setMultiSelect('fTargetMarkets', c.target_markets || []);
+    }
+
+    modal.classList.add('show');
+    setTimeout(() => document.getElementById('fName').focus(), 100);
+  };
+
+  window.closeModal = function() {
+    document.getElementById('modal').classList.remove('show');
+  };
+
+  window.saveCompetitor = async function() {
+    const name = document.getElementById('fName').value.trim();
+    if (!name) { alert('Company name is required'); return; }
+
+    const data = {
+      name,
+      website: document.getElementById('fWebsite').value.trim(),
+      phone: document.getElementById('fPhone').value.trim(),
+      locations_count: parseInt(document.getElementById('fLocations').value) || 0,
+      contact_person: document.getElementById('fContact').value.trim(),
+      pricing_notes: document.getElementById('fPricing').value.trim(),
+      machine_types: getMultiSelect('fMachineTypes'),
+      target_markets: getMultiSelect('fTargetMarkets'),
+      strengths: document.getElementById('fStrengths').value.trim(),
+      weaknesses: document.getElementById('fWeaknesses').value.trim(),
+      win_loss_notes: document.getElementById('fWinLoss').value.trim(),
+      notes: document.getElementById('fNotes').value.trim()
+    };
+
+    const id = document.getElementById('editId').value;
+    await saveToAPI(data, id || null);
+    closeModal();
+    fetchCompetitors();
+  };
+
+  window.deleteCompetitor = async function() {
+    const id = document.getElementById('editId').value;
+    if (!id) return;
+    if (!confirm('Delete this competitor? This cannot be undone.')) return;
+    await deleteFromAPI(id);
+    closeModal();
+    fetchCompetitors();
+  };
+
+  window.quickDelete = async function(id) {
+    const c = competitors.find(x => x.id === id);
+    if (!confirm(`Delete "${c?.name}"?`)) return;
+    await deleteFromAPI(id);
+    fetchCompetitors();
+  };
+
+  // ── Helpers ──
+  function esc(s) {
+    if (!s) return '';
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function timeAgo(dateStr) {
+    if (!dateStr) return 'never';
+    const d = new Date(dateStr);
+    const now = new Date();
+    const diff = now - d;
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + 'm ago';
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    const days = Math.floor(hrs / 24);
+    if (days < 30) return days + 'd ago';
+    return d.toLocaleDateString();
+  }
+
+  function getMultiSelect(id) {
+    const sel = document.getElementById(id);
+    return Array.from(sel.selectedOptions).map(o => o.value);
+  }
+
+  function setMultiSelect(id, values) {
+    const sel = document.getElementById(id);
+    Array.from(sel.options).forEach(o => {
+      o.selected = values.includes(o.value);
+    });
+  }
+
+  // ── Event Listeners ──
+  document.getElementById('searchInput').addEventListener('input', render);
+  document.getElementById('filterType').addEventListener('change', render);
+  document.getElementById('filterTarget').addEventListener('change', render);
+
+  // View toggle
+  document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentView = btn.dataset.view;
+      render();
+    });
+  });
+
+  // Table sorting
+  document.querySelectorAll('th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const field = th.dataset.sort;
+      if (sortField === field) {
+        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortField = field;
+        sortDir = 'asc';
+      }
+      render();
+    });
+  });
+
+  // Close modal on backdrop click
+  document.getElementById('modal').addEventListener('click', e => {
+    if (e.target.classList.contains('modal-overlay')) closeModal();
+  });
+
+  // Escape key
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  // ── Init ──
+  fetchCompetitors();
+})();
+</script>
+</body>
+</html>

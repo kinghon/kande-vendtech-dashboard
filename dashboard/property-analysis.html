@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Property Type Analysis — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa;
+      --surface: #ffffff;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #1a202c;
+      --muted: #718096;
+      --accent: #3182ce;
+      --accent-dim: rgba(49,130,206,0.1);
+      --success: #38a169;
+      --success-dim: rgba(56,161,105,0.1);
+      --warn: #dd6b20;
+      --warn-dim: rgba(221,107,32,0.1);
+      --hot: #e53e3e;
+      --hot-dim: rgba(229,62,62,0.1);
+      --purple: #7b2cbf;
+      --purple-dim: rgba(123,44,191,0.1);
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* Top Nav */
+    .top-nav {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      flex-wrap: wrap;
+    }
+    .top-nav .brand {
+      font-size: 1rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--accent), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-right: 12px;
+    }
+    .top-nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.82rem;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    .top-nav a:hover { color: var(--accent); background: var(--accent-dim); }
+    .top-nav a.active { color: var(--accent); background: var(--accent-dim); }
+    .nav-spacer { flex: 1; }
+
+    /* Container */
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    /* Page Header */
+    .page-header {
+      margin-bottom: 32px;
+    }
+    .page-header h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      background: linear-gradient(90deg, var(--accent), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .page-header p { color: var(--muted); font-size: 0.9rem; }
+
+    /* Summary Cards */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .summary-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .summary-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .summary-card .value {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .summary-card .label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+    .value.cyan { color: var(--accent); }
+    .value.green { color: var(--success); }
+    .value.amber { color: var(--warn); }
+    .value.red { color: var(--hot); }
+    .value.purple { color: var(--purple); }
+
+    /* Recommendation Banner */
+    .reco-banner {
+      background: var(--accent-dim);
+      border: 1px solid rgba(49,130,206,0.18);
+      border-radius: 12px;
+      padding: 18px 24px;
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .reco-banner .icon { font-size: 1.5rem; flex-shrink: 0; }
+    .reco-banner .text {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--accent);
+      line-height: 1.5;
+    }
+
+    /* Section Title */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* Chart Area */
+    .chart-container {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+    @media (max-width: 768px) {
+      .chart-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Bar Chart */
+    .bar-chart { width: 100%; }
+    .bar-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 14px;
+      gap: 12px;
+    }
+    .bar-label {
+      width: 120px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      text-align: right;
+      flex-shrink: 0;
+      color: var(--muted);
+    }
+    .bar-track {
+      flex: 1;
+      height: 32px;
+      background: rgba(0,0,0,0.04);
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 8px;
+      transition: width 0.6s ease;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #fff;
+      min-width: fit-content;
+    }
+    .bar-fill.top { background: linear-gradient(90deg, #3182ce, #2b6cb0); }
+    .bar-fill.normal { background: linear-gradient(90deg, #3b82f6, #2563eb); }
+    .bar-fill.low { background: linear-gradient(90deg, #6366f1, #4f46e5); }
+    .bar-value {
+      font-size: 0.82rem;
+      font-weight: 600;
+      width: 55px;
+      text-align: right;
+      flex-shrink: 0;
+      color: var(--accent);
+    }
+
+    /* Breakdown Donut */
+    .donut-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .donut-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 16px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Data Table */
+    .table-wrap {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow-x: auto;
+      margin-bottom: 32px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th {
+      padding: 14px 16px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      white-space: nowrap;
+    }
+    td {
+      padding: 14px 16px;
+      font-size: 0.88rem;
+      border-bottom: 1px solid rgba(39,39,42,0.5);
+      white-space: nowrap;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(49,130,206,0.04); }
+    tr.top-performer td { background: var(--accent-dim); }
+    tr.top-performer td:first-child { position: relative; }
+    tr.top-performer td:first-child::before {
+      content: '⭐';
+      position: absolute;
+      left: 4px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.7rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .badge.rank-1 { background: var(--accent-dim); color: var(--accent); }
+    .badge.rank-2 { background: var(--success-dim); color: var(--success); }
+    .badge.rank-3 { background: var(--warn-dim); color: var(--warn); }
+    .badge.rank-other { background: rgba(113,113,122,0.15); color: var(--muted); }
+
+    .conversion-bar {
+      width: 80px;
+      height: 6px;
+      background: rgba(0,0,0,0.06);
+      border-radius: 3px;
+      overflow: hidden;
+      display: inline-block;
+      vertical-align: middle;
+      margin-left: 8px;
+    }
+    .conversion-bar .fill {
+      height: 100%;
+      border-radius: 3px;
+      background: var(--accent);
+      transition: width 0.4s ease;
+    }
+
+    /* Detail Cards */
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .detail-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.2s;
+    }
+    .detail-card:hover { border-color: var(--accent); }
+    .detail-card.top-card { border-color: rgba(49,130,206,0.3); background: linear-gradient(135deg, var(--card), rgba(49,130,206,0.06)); }
+    .detail-card .type-name {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .detail-card .type-name .crown { font-size: 0.85rem; }
+    .detail-card .conversion {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin: 8px 0;
+    }
+    .detail-card .meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .detail-card .meta-item {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .detail-card .meta-item strong {
+      color: var(--text);
+      font-size: 0.88rem;
+    }
+    .detail-card .status-bar {
+      display: flex;
+      height: 6px;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 12px;
+      gap: 2px;
+    }
+    .status-bar .seg { border-radius: 3px; transition: width 0.4s ease; }
+    .seg.signed { background: var(--success); }
+    .seg.active { background: var(--accent); }
+    .seg.closed { background: var(--hot); }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 60px 0;
+      color: var(--muted);
+    }
+    .loading .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty-state p { font-size: 0.9rem; }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .container { padding: 16px 12px; }
+      .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .summary-card { padding: 14px; }
+      .summary-card .value { font-size: 1.5rem; }
+      .bar-label { width: 80px; font-size: 0.72rem; }
+      .detail-grid { grid-template-columns: 1fr; }
+      th, td { padding: 10px 12px; font-size: 0.78rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <span class="brand">Kande VendTech</span>
+  <a href="/">Dashboard</a>
+  <a href="/pipeline.html">Pipeline</a>
+  <a href="/crm">CRM</a>
+  <a href="/map">Map</a>
+  <a href="/property-analysis" class="active">Property Analysis</a>
+  <span class="nav-spacer"></span>
+  <a href="/finance">Finance</a>
+</nav>
+
+<div class="container">
+  <div class="page-header">
+    <h1>📊 Property Type Analysis</h1>
+    <p>Performance comparison across property types — conversion rates, pipeline, and rankings</p>
+  </div>
+
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    Loading analysis data...
+  </div>
+
+  <div id="content" style="display:none;">
+
+    <!-- Summary Cards -->
+    <div id="summary-cards" class="summary-grid"></div>
+
+    <!-- Recommendation -->
+    <div id="reco-banner" class="reco-banner" style="display:none;">
+      <span class="icon">💡</span>
+      <span class="text" id="reco-text"></span>
+    </div>
+
+    <!-- Charts -->
+    <div class="section-title">Conversion Rate Comparison</div>
+    <div class="chart-grid">
+      <div class="chart-container">
+        <div id="conversion-chart" class="bar-chart"></div>
+      </div>
+      <div class="chart-container">
+        <div class="donut-wrap">
+          <canvas id="donut-canvas" width="220" height="220"></canvas>
+          <div id="donut-legend" class="donut-legend"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Signed Count Bar Chart -->
+    <div class="section-title">Signed Deals by Property Type</div>
+    <div class="chart-container">
+      <div id="signed-chart" class="bar-chart"></div>
+    </div>
+
+    <!-- Rankings Table -->
+    <div class="section-title">Rankings Table</div>
+    <div class="table-wrap">
+      <table id="rankings-table">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Property Type</th>
+            <th>Total</th>
+            <th>Signed</th>
+            <th>Active</th>
+            <th>Closed</th>
+            <th>Conversion %</th>
+            <th>Pipeline Value</th>
+            <th>Hot Leads</th>
+            <th>Avg Activities</th>
+          </tr>
+        </thead>
+        <tbody id="rankings-body"></tbody>
+      </table>
+    </div>
+
+    <!-- Detail Cards -->
+    <div class="section-title">Property Type Breakdown</div>
+    <div id="detail-cards" class="detail-grid"></div>
+  </div>
+
+  <div id="empty-state" class="empty-state" style="display:none;">
+    <div class="icon">🏢</div>
+    <p>No prospect data available yet.<br>Add prospects to see property type analysis.</p>
+  </div>
+</div>
+
+<script>
+const COLORS = ['#3182ce', '#7b2cbf', '#38a169', '#dd6b20', '#e53e3e', '#d53f8c', '#7b2cbf', '#2b6cb0'];
+const TYPE_ICONS = {
+  apartments: '🏠',
+  senior_living: '🏥',
+  healthcare: '⚕️',
+  industrial: '🏭',
+  office: '🏢',
+  unknown: '❓'
+};
+
+function formatType(t) {
+  return t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function fmt$(n) {
+  return '$' + n.toLocaleString();
+}
+
+async function loadData() {
+  try {
+    const res = await fetch('/api/analytics/property-types');
+    const data = await res.json();
+
+    document.getElementById('loading').style.display = 'none';
+
+    if (!data.types || data.types.length === 0) {
+      document.getElementById('empty-state').style.display = 'block';
+      return;
+    }
+
+    document.getElementById('content').style.display = 'block';
+    render(data);
+  } catch (err) {
+    document.getElementById('loading').innerHTML = '<p style="color: var(--hot);">Failed to load data. Check server connection.</p>';
+    console.error(err);
+  }
+}
+
+function render(data) {
+  renderSummary(data.summary);
+  renderRecommendation(data.recommendation);
+  renderConversionChart(data.types);
+  renderSignedChart(data.types);
+  renderDonut(data.types);
+  renderTable(data.types);
+  renderDetailCards(data.types);
+}
+
+function renderSummary(s) {
+  const el = document.getElementById('summary-cards');
+  el.innerHTML = `
+    <div class="summary-card">
+      <div class="value cyan">${s.total_prospects}</div>
+      <div class="label">Total Prospects</div>
+    </div>
+    <div class="summary-card">
+      <div class="value green">${s.total_signed}</div>
+      <div class="label">Signed Deals</div>
+    </div>
+    <div class="summary-card">
+      <div class="value amber">${s.overall_conversion}%</div>
+      <div class="label">Overall Conversion</div>
+    </div>
+    <div class="summary-card">
+      <div class="value purple">${s.total_pipeline}</div>
+      <div class="label">In Pipeline</div>
+    </div>
+    <div class="summary-card">
+      <div class="value cyan">${fmt$(s.total_pipeline_value)}</div>
+      <div class="label">Pipeline Value/mo</div>
+    </div>
+    <div class="summary-card">
+      <div class="value green">${s.property_type_count}</div>
+      <div class="label">Property Types</div>
+    </div>
+  `;
+}
+
+function renderRecommendation(text) {
+  if (!text || text.includes('Not enough')) return;
+  const banner = document.getElementById('reco-banner');
+  banner.style.display = 'flex';
+  document.getElementById('reco-text').textContent = text;
+}
+
+function renderConversionChart(types) {
+  const sorted = [...types].sort((a, b) => b.conversion_rate - a.conversion_rate);
+  const maxRate = Math.max(...sorted.map(t => t.conversion_rate), 1);
+  const el = document.getElementById('conversion-chart');
+
+  el.innerHTML = sorted.map((t, i) => {
+    const pct = maxRate > 0 ? (t.conversion_rate / maxRate * 100) : 0;
+    const cls = i === 0 ? 'top' : (i < 3 ? 'normal' : 'low');
+    return `
+      <div class="bar-row">
+        <div class="bar-label">${TYPE_ICONS[t.property_type] || '🏢'} ${formatType(t.property_type)}</div>
+        <div class="bar-track">
+          <div class="bar-fill ${cls}" style="width: ${Math.max(pct, 3)}%">${t.conversion_rate}%</div>
+        </div>
+        <div class="bar-value">${t.signed}/${t.total}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderSignedChart(types) {
+  const sorted = [...types].sort((a, b) => b.signed - a.signed);
+  const maxSigned = Math.max(...sorted.map(t => t.signed), 1);
+  const el = document.getElementById('signed-chart');
+
+  el.innerHTML = sorted.map((t, i) => {
+    const pct = maxSigned > 0 ? (t.signed / maxSigned * 100) : 0;
+    const cls = i === 0 ? 'top' : (i < 3 ? 'normal' : 'low');
+    return `
+      <div class="bar-row">
+        <div class="bar-label">${TYPE_ICONS[t.property_type] || '🏢'} ${formatType(t.property_type)}</div>
+        <div class="bar-track">
+          <div class="bar-fill ${cls}" style="width: ${Math.max(pct, 3)}%">${t.signed} signed</div>
+        </div>
+        <div class="bar-value">${fmt$(t.signed_value)}/mo</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderDonut(types) {
+  const canvas = document.getElementById('donut-canvas');
+  const ctx = canvas.getContext('2d');
+  const total = types.reduce((s, t) => s + t.total, 0);
+  if (total === 0) return;
+
+  const cx = 110, cy = 110, r = 85, inner = 55;
+  let start = -Math.PI / 2;
+
+  ctx.clearRect(0, 0, 220, 220);
+
+  types.forEach((t, i) => {
+    const angle = (t.total / total) * 2 * Math.PI;
+    const end = start + angle;
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, start, end);
+    ctx.arc(cx, cy, inner, end, start, true);
+    ctx.closePath();
+    ctx.fillStyle = COLORS[i % COLORS.length];
+    ctx.fill();
+
+    start = end;
+  });
+
+  // Center text
+  ctx.fillStyle = '#fafafa';
+  ctx.font = 'bold 24px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(total, cx, cy - 8);
+  ctx.font = '11px -apple-system, sans-serif';
+  ctx.fillStyle = '#71717a';
+  ctx.fillText('PROSPECTS', cx, cy + 12);
+
+  // Legend
+  const legend = document.getElementById('donut-legend');
+  legend.innerHTML = types.map((t, i) => `
+    <div class="legend-item">
+      <span class="legend-dot" style="background:${COLORS[i % COLORS.length]}"></span>
+      ${formatType(t.property_type)} (${t.total})
+    </div>
+  `).join('');
+}
+
+function renderTable(types) {
+  const sorted = [...types].sort((a, b) => a.overall_rank - b.overall_rank);
+  const body = document.getElementById('rankings-body');
+
+  body.innerHTML = sorted.map((t, i) => {
+    const isTop = i === 0;
+    const rankClass = t.overall_rank === 1 ? 'rank-1' : t.overall_rank === 2 ? 'rank-2' : t.overall_rank === 3 ? 'rank-3' : 'rank-other';
+    const convPct = Math.min(t.conversion_rate, 100);
+    return `
+      <tr class="${isTop ? 'top-performer' : ''}">
+        <td><span class="badge ${rankClass}">#${t.overall_rank}</span></td>
+        <td>${TYPE_ICONS[t.property_type] || '🏢'} <strong>${formatType(t.property_type)}</strong></td>
+        <td>${t.total}</td>
+        <td><strong style="color:var(--success)">${t.signed}</strong></td>
+        <td style="color:var(--accent)">${t.active}</td>
+        <td style="color:var(--muted)">${t.closed}</td>
+        <td>
+          <strong>${t.conversion_rate}%</strong>
+          <span class="conversion-bar"><span class="fill" style="width:${convPct}%"></span></span>
+        </td>
+        <td style="color:var(--warn)">${fmt$(t.pipeline_value)}/mo</td>
+        <td>${t.hot_leads > 0 ? '<span style="color:var(--hot)">🔥 ' + t.hot_leads + '</span>' : '—'}</td>
+        <td>${t.avg_activities}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderDetailCards(types) {
+  const sorted = [...types].sort((a, b) => a.overall_rank - b.overall_rank);
+  const el = document.getElementById('detail-cards');
+
+  el.innerHTML = sorted.map((t, i) => {
+    const isTop = i === 0;
+    const totalForBar = t.signed + t.active + t.closed;
+    const signedPct = totalForBar > 0 ? (t.signed / totalForBar * 100) : 0;
+    const activePct = totalForBar > 0 ? (t.active / totalForBar * 100) : 0;
+    const closedPct = totalForBar > 0 ? (t.closed / totalForBar * 100) : 0;
+
+    return `
+      <div class="detail-card ${isTop ? 'top-card' : ''}">
+        <div class="type-name">
+          ${TYPE_ICONS[t.property_type] || '🏢'} ${formatType(t.property_type)}
+          ${isTop ? '<span class="crown">👑</span>' : ''}
+        </div>
+        <div class="conversion">${t.conversion_rate}% <span style="font-size:0.7rem;color:var(--muted);font-weight:400">conversion</span></div>
+        <div class="status-bar">
+          ${signedPct > 0 ? `<div class="seg signed" style="width:${signedPct}%" title="Signed: ${t.signed}"></div>` : ''}
+          ${activePct > 0 ? `<div class="seg active" style="width:${activePct}%" title="Active: ${t.active}"></div>` : ''}
+          ${closedPct > 0 ? `<div class="seg closed" style="width:${closedPct}%" title="Closed: ${t.closed}"></div>` : ''}
+        </div>
+        <div class="meta">
+          <div class="meta-item"><strong>${t.total}</strong><br>Total Prospects</div>
+          <div class="meta-item"><strong style="color:var(--success)">${t.signed}</strong><br>Signed</div>
+          <div class="meta-item"><strong style="color:var(--accent)">${t.pipeline}</strong><br>In Pipeline</div>
+          <div class="meta-item"><strong style="color:var(--warn)">${fmt$(t.pipeline_value)}</strong><br>Pipeline Value/mo</div>
+          <div class="meta-item"><strong>${t.hot_leads}</strong><br>🔥 Hot Leads</div>
+          <div class="meta-item"><strong>${t.avg_activities}</strong><br>Avg Activities</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Init
+loadData();
+</script>
+</body>
+</html>

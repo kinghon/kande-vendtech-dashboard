@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1a202c">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Kande VendTech — Driver</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --bg: #0f1117; --card: #1a1d28; --card-hover: #222636; --border: #2d3148;
+      --text: #e2e8f0; --muted: #8892a4; --accent: #3b82f6; --accent-glow: rgba(59,130,246,0.15);
+      --success: #22c55e; --success-bg: rgba(34,197,94,0.12); --warn: #f59e0b; --warn-bg: rgba(245,158,11,0.12);
+      --danger: #ef4444; --danger-bg: rgba(239,68,68,0.12); --purple: #8b5cf6;
+      --radius: 16px; --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; min-height: 100dvh; overflow-x: hidden; }
+    
+    /* ===== PIN LOGIN SCREEN ===== */
+    .login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; min-height: 100dvh; padding: 24px; }
+    .login-logo { font-size: 3rem; margin-bottom: 8px; }
+    .login-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+    .login-sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 32px; }
+    .pin-display { display: flex; gap: 12px; margin-bottom: 24px; }
+    .pin-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); background: transparent; transition: all 0.2s; }
+    .pin-dot.filled { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 12px var(--accent-glow); }
+    .pin-dot.error { background: var(--danger); border-color: var(--danger); }
+    .pin-pad { display: grid; grid-template-columns: repeat(3, 80px); gap: 12px; }
+    .pin-btn { width: 80px; height: 80px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 1.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; -webkit-user-select: none; user-select: none; }
+    .pin-btn:active { background: var(--accent); border-color: var(--accent); transform: scale(0.93); }
+    .pin-btn.fn { font-size: 0.8rem; color: var(--muted); font-weight: 500; }
+    .pin-error { color: var(--danger); font-size: 0.85rem; margin-top: 16px; min-height: 20px; }
+
+    /* ===== MAIN APP ===== */
+    .app { display: none; padding-bottom: calc(80px + var(--safe-bottom)); }
+    .app.active { display: block; }
+
+    /* Header */
+    .app-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 16px 8px; position: sticky; top: 0; background: var(--bg); z-index: 50; }
+    .driver-info { display: flex; align-items: center; gap: 10px; }
+    .driver-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--purple)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; }
+    .driver-name { font-weight: 600; font-size: 1rem; }
+    .driver-date { font-size: 0.75rem; color: var(--muted); }
+    .header-actions { display: flex; gap: 8px; }
+    .header-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem; }
+    .header-btn:active { background: var(--card-hover); }
+    .online-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); display: inline-block; margin-left: 4px; }
+    .offline-dot { background: var(--danger); }
+
+    /* Status Bar */
+    .status-bar { display: flex; gap: 8px; padding: 8px 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .status-bar::-webkit-scrollbar { display: none; }
+    .stat-chip { flex-shrink: 0; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 16px; text-align: center; min-width: 90px; }
+    .stat-chip .num { font-size: 1.4rem; font-weight: 800; line-height: 1; }
+    .stat-chip .lbl { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+    .stat-chip.accent .num { color: var(--accent); }
+    .stat-chip.success .num { color: var(--success); }
+    .stat-chip.warn .num { color: var(--warn); }
+    .stat-chip.danger .num { color: var(--danger); }
+
+    /* Tab Views */
+    .tab-content { padding: 12px 16px; }
+    .tab-view { display: none; }
+    .tab-view.active { display: block; }
+
+    /* Section Label */
+    .section-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin: 16px 0 8px; }
+
+    /* ===== ROUTE CARDS ===== */
+    .route-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; transition: all 0.2s; position: relative; overflow: hidden; }
+    .route-card:active { background: var(--card-hover); }
+    .route-card.completed { opacity: 0.6; }
+    .route-card.completed::after { content: '✓'; position: absolute; top: 12px; right: 14px; font-size: 1.4rem; color: var(--success); font-weight: 700; }
+    .route-card.current { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 4px 20px var(--accent-glow); }
+    .route-card.has-issue { border-left: 3px solid var(--danger); }
+
+    .route-order { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .route-num { width: 28px; height: 28px; border-radius: 8px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.85rem; flex-shrink: 0; }
+    .route-card.completed .route-num { background: var(--success); }
+    .route-card.has-issue .route-num { background: var(--danger); }
+    .route-name { font-weight: 700; font-size: 1rem; flex: 1; }
+    .route-address { font-size: 0.8rem; color: var(--muted); margin-bottom: 8px; padding-left: 38px; }
+
+    .route-meta { display: flex; gap: 8px; flex-wrap: wrap; padding-left: 38px; }
+    .route-tag { font-size: 0.7rem; padding: 3px 8px; border-radius: 6px; font-weight: 600; }
+    .tag-products { background: var(--accent-glow); color: var(--accent); }
+    .tag-revenue { background: var(--success-bg); color: var(--success); }
+    .tag-time { background: rgba(139,92,246,0.12); color: var(--purple); }
+    .tag-issue { background: var(--danger-bg); color: var(--danger); }
+    .tag-pending { background: var(--warn-bg); color: var(--warn); }
+
+    .route-actions { display: flex; gap: 8px; margin-top: 12px; padding-left: 38px; }
+
+    /* ===== BUTTONS ===== */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 20px; border-radius: 12px; border: none; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.15s; -webkit-user-select: none; user-select: none; min-height: 48px; }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:active { background: #2563eb; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-success:active { background: #16a34a; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:active { background: #dc2626; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:active { background: var(--card); }
+    .btn-sm { padding: 8px 14px; font-size: 0.8rem; min-height: 36px; border-radius: 8px; }
+    .btn-lg { padding: 16px 28px; font-size: 1rem; width: 100%; border-radius: 14px; min-height: 56px; }
+    .btn-icon { width: 48px; height: 48px; padding: 0; border-radius: 12px; font-size: 1.2rem; }
+    .btn[disabled] { opacity: 0.4; pointer-events: none; }
+    .btn-ghost { background: transparent; color: var(--muted); }
+
+    /* ===== CHECK-IN PANEL ===== */
+    .checkin-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+    .checkin-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 4px; }
+    .checkin-address { font-size: 0.85rem; color: var(--muted); margin-bottom: 16px; }
+    .gps-status { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--muted); margin-bottom: 12px; }
+    .gps-status .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .gps-status .dot.ok { background: var(--success); }
+    .gps-status .dot.err { background: var(--danger); }
+    .gps-status .dot.wait { background: var(--warn); animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .checkin-time { font-size: 2rem; font-weight: 800; text-align: center; margin: 16px 0; color: var(--accent); }
+
+    /* ===== RESTOCK FORM ===== */
+    .restock-section { margin-top: 16px; }
+    .product-entry { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; background: var(--bg); border-radius: 10px; padding: 10px 12px; }
+    .product-entry .prod-name { flex: 1; font-size: 0.85rem; font-weight: 500; }
+    .product-entry .qty-control { display: flex; align-items: center; gap: 4px; }
+    .qty-btn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 1.2rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .qty-btn:active { background: var(--accent); border-color: var(--accent); }
+    .qty-value { width: 36px; text-align: center; font-size: 1rem; font-weight: 700; }
+    .product-add-btn { width: 100%; padding: 12px; border: 2px dashed var(--border); border-radius: 10px; background: transparent; color: var(--muted); font-size: 0.85rem; cursor: pointer; margin-top: 8px; }
+    .product-add-btn:active { border-color: var(--accent); color: var(--accent); }
+
+    /* ===== ISSUE REPORT ===== */
+    .issue-types { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
+    .issue-type-btn { padding: 14px 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--card); cursor: pointer; text-align: center; transition: all 0.15s; }
+    .issue-type-btn:active, .issue-type-btn.selected { border-color: var(--danger); background: var(--danger-bg); }
+    .issue-type-btn .icon { font-size: 1.5rem; margin-bottom: 4px; }
+    .issue-type-btn .label { font-size: 0.75rem; font-weight: 600; }
+    
+    .issue-notes { width: 100%; min-height: 80px; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-family: inherit; font-size: 0.9rem; resize: vertical; }
+    .issue-notes:focus { outline: none; border-color: var(--accent); }
+
+    .photo-upload { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 20px; border: 2px dashed var(--border); border-radius: 12px; background: transparent; color: var(--muted); font-size: 0.9rem; cursor: pointer; margin: 12px 0; transition: all 0.15s; }
+    .photo-upload:active { border-color: var(--accent); color: var(--accent); }
+    .photo-upload input { display: none; }
+    .photo-preview { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .photo-thumb { width: 72px; height: 72px; border-radius: 10px; object-fit: cover; border: 1px solid var(--border); }
+
+    /* ===== MACHINE DETAIL ===== */
+    .detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
+    .detail-item { background: var(--bg); border-radius: 10px; padding: 12px; }
+    .detail-item .val { font-size: 1.2rem; font-weight: 700; }
+    .detail-item .lbl { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+    .detail-item.full { grid-column: 1 / -1; }
+
+    .history-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .history-item:last-child { border-bottom: none; }
+    .history-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-top: 6px; flex-shrink: 0; }
+    .history-text { font-size: 0.85rem; }
+    .history-date { font-size: 0.7rem; color: var(--muted); }
+
+    /* ===== PRODUCT SELECT MODAL ===== */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: flex-end; justify-content: center; }
+    .modal-overlay.active { display: flex; }
+    .modal-sheet { background: var(--card); border-radius: 20px 20px 0 0; width: 100%; max-width: 500px; max-height: 80vh; overflow-y: auto; padding: 20px 16px calc(20px + var(--safe-bottom)); }
+    .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
+    .modal-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; }
+    .modal-search { width: 100%; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 0.9rem; margin-bottom: 12px; }
+    .modal-search:focus { outline: none; border-color: var(--accent); }
+    .product-option { display: flex; align-items: center; gap: 12px; padding: 14px 12px; border-radius: 10px; cursor: pointer; transition: background 0.1s; }
+    .product-option:active { background: var(--card-hover); }
+    .product-option .emoji { font-size: 1.4rem; }
+    .product-option .info { flex: 1; }
+    .product-option .pname { font-weight: 600; font-size: 0.9rem; }
+    .product-option .pcat { font-size: 0.75rem; color: var(--muted); }
+    .product-option .pprice { font-weight: 700; color: var(--accent); font-size: 0.9rem; }
+
+    /* ===== BOTTOM NAV ===== */
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--border); display: flex; padding: 8px 0 calc(8px + var(--safe-bottom)); z-index: 90; }
+    .nav-tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; cursor: pointer; color: var(--muted); transition: color 0.15s; -webkit-user-select: none; user-select: none; border: none; background: none; }
+    .nav-tab.active { color: var(--accent); }
+    .nav-tab .nav-icon { font-size: 1.3rem; }
+    .nav-tab .nav-label { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+    .nav-badge { position: relative; }
+    .nav-badge::after { content: attr(data-count); position: absolute; top: -4px; right: -8px; background: var(--danger); color: #fff; font-size: 0.6rem; font-weight: 700; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+    /* ===== OFFLINE BANNER ===== */
+    .offline-banner { display: none; background: var(--warn); color: #000; text-align: center; padding: 6px; font-size: 0.75rem; font-weight: 600; }
+    .offline-banner.active { display: block; }
+
+    /* ===== TOAST ===== */
+    .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 20px; font-size: 0.85rem; font-weight: 600; z-index: 200; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
+    .toast.show { opacity: 1; }
+    .toast.success { border-color: var(--success); color: var(--success); }
+    .toast.error { border-color: var(--danger); color: var(--danger); }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty-state .msg { font-size: 0.9rem; }
+
+    /* Scrollbar hide for mobile */
+    ::-webkit-scrollbar { width: 0; height: 0; }
+
+    /* Select input */
+    select.form-select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 0.9rem; appearance: none; -webkit-appearance: none; }
+  </style>
+</head>
+<body>
+
+  <!-- OFFLINE BANNER -->
+  <div class="offline-banner" id="offline-banner">⚡ Offline — showing cached route</div>
+
+  <!-- ===== PIN LOGIN ===== -->
+  <div class="login-screen" id="login-screen">
+    <div class="login-logo">🚐</div>
+    <div class="login-title">Driver Portal</div>
+    <div class="login-sub">Enter your 4-digit PIN</div>
+    <div class="pin-display" id="pin-display">
+      <div class="pin-dot"></div><div class="pin-dot"></div>
+      <div class="pin-dot"></div><div class="pin-dot"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-btn" onclick="pinInput(1)">1</button>
+      <button class="pin-btn" onclick="pinInput(2)">2</button>
+      <button class="pin-btn" onclick="pinInput(3)">3</button>
+      <button class="pin-btn" onclick="pinInput(4)">4</button>
+      <button class="pin-btn" onclick="pinInput(5)">5</button>
+      <button class="pin-btn" onclick="pinInput(6)">6</button>
+      <button class="pin-btn" onclick="pinInput(7)">7</button>
+      <button class="pin-btn" onclick="pinInput(8)">8</button>
+      <button class="pin-btn" onclick="pinInput(9)">9</button>
+      <button class="pin-btn fn" onclick="pinClear()">Clear</button>
+      <button class="pin-btn" onclick="pinInput(0)">0</button>
+      <button class="pin-btn fn" onclick="pinDelete()">⌫</button>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+  </div>
+
+  <!-- ===== MAIN APP ===== -->
+  <div class="app" id="main-app">
+    <!-- Header -->
+    <div class="app-header">
+      <div class="driver-info">
+        <div class="driver-avatar" id="driver-avatar">K</div>
+        <div>
+          <div class="driver-name" id="driver-name-display">Driver</div>
+          <div class="driver-date" id="driver-date-display"><span class="online-dot" id="connectivity-dot"></span></div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="header-btn" onclick="refreshData()" title="Refresh">🔄</button>
+        <button class="header-btn" onclick="driverLogout()" title="Logout">🚪</button>
+      </div>
+    </div>
+
+    <!-- Status Chips -->
+    <div class="status-bar">
+      <div class="stat-chip accent"><div class="num" id="stat-total">0</div><div class="lbl">Stops</div></div>
+      <div class="stat-chip success"><div class="num" id="stat-done">0</div><div class="lbl">Done</div></div>
+      <div class="stat-chip warn"><div class="num" id="stat-remaining">0</div><div class="lbl">Left</div></div>
+      <div class="stat-chip danger"><div class="num" id="stat-issues">0</div><div class="lbl">Issues</div></div>
+      <div class="stat-chip"><div class="num" id="stat-products">0</div><div class="lbl">Restocked</div></div>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+      <!-- ===== ROUTE TAB ===== -->
+      <div class="tab-view active" id="tab-route">
+        <div class="section-label">Today's Route</div>
+        <div id="route-list"></div>
+        <div class="empty-state" id="route-empty" style="display:none;">
+          <div class="icon">🗺️</div>
+          <div class="msg">No route assigned today.<br>Check with dispatch.</div>
+        </div>
+      </div>
+
+      <!-- ===== CHECK-IN TAB ===== -->
+      <div class="tab-view" id="tab-checkin">
+        <div id="checkin-content">
+          <div class="empty-state">
+            <div class="icon">📍</div>
+            <div class="msg">Select a stop from your route to check in.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== RESTOCK TAB ===== -->
+      <div class="tab-view" id="tab-restock">
+        <div id="restock-content">
+          <div class="empty-state">
+            <div class="icon">📦</div>
+            <div class="msg">Check in at a stop first to log restocks.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ISSUES TAB ===== -->
+      <div class="tab-view" id="tab-issues">
+        <div class="section-label">Report Issue</div>
+        <div id="issues-content">
+          <div class="empty-state">
+            <div class="icon">⚠️</div>
+            <div class="msg">Check in at a stop to report issues.</div>
+          </div>
+        </div>
+        <div class="section-label" style="margin-top:24px;">Today's Reports</div>
+        <div id="issues-list"></div>
+      </div>
+
+      <!-- ===== DETAILS TAB ===== -->
+      <div class="tab-view" id="tab-details">
+        <div id="details-content">
+          <div class="empty-state">
+            <div class="icon">🔍</div>
+            <div class="msg">Tap a stop to view machine details.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== BOTTOM NAV ===== -->
+  <div class="bottom-nav" id="bottom-nav" style="display:none;">
+    <button class="nav-tab active" onclick="switchTab('route')">
+      <span class="nav-icon">🗺️</span><span class="nav-label">Route</span>
+    </button>
+    <button class="nav-tab" onclick="switchTab('checkin')">
+      <span class="nav-icon">📍</span><span class="nav-label">Check In</span>
+    </button>
+    <button class="nav-tab" onclick="switchTab('restock')">
+      <span class="nav-icon">📦</span><span class="nav-label">Restock</span>
+    </button>
+    <button class="nav-tab" onclick="switchTab('issues')">
+      <span class="nav-icon">⚠️</span><span class="nav-label">Issues</span>
+    </button>
+    <button class="nav-tab" onclick="switchTab('details')">
+      <span class="nav-icon">🔍</span><span class="nav-label">Details</span>
+    </button>
+  </div>
+
+  <!-- ===== PRODUCT SELECT MODAL ===== -->
+  <div class="modal-overlay" id="product-modal">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">Add Product</div>
+      <input class="modal-search" placeholder="Search products..." oninput="filterProducts(this.value)" id="product-search">
+      <div id="product-list"></div>
+    </div>
+  </div>
+
+  <!-- ===== TOAST ===== -->
+  <div class="toast" id="toast"></div>
+
+<script>
+// ===== STATE =====
+let currentDriver = null;
+let currentRoute = [];
+let currentStop = null;  // The active stop being worked on
+let allProducts = [];
+let restockItems = {};   // { stopId: [{ product_id, name, qty }] }
+let issueReports = [];   // Today's issues
+let checkins = {};       // { stopId: { time, lat, lng } }
+let isOnline = navigator.onLine;
+const CACHE_KEY = 'kande_driver_cache';
+
+// ===== PIN AUTH =====
+let pin = '';
+
+function pinInput(n) {
+  if (pin.length >= 4) return;
+  pin += n;
+  updatePinDots();
+  if (pin.length === 4) {
+    setTimeout(() => verifyPin(), 200);
+  }
+}
+
+function pinDelete() {
+  pin = pin.slice(0, -1);
+  updatePinDots();
+}
+
+function pinClear() {
+  pin = '';
+  updatePinDots();
+  document.getElementById('pin-error').textContent = '';
+}
+
+function updatePinDots() {
+  const dots = document.querySelectorAll('.pin-dot');
+  dots.forEach((d, i) => {
+    d.classList.toggle('filled', i < pin.length);
+    d.classList.remove('error');
+  });
+}
+
+async function verifyPin() {
+  try {
+    const res = await fetch('/api/driver/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin })
+    });
+    const data = await res.json();
+    if (data.success) {
+      currentDriver = data.driver;
+      localStorage.setItem('driver_token', data.token);
+      localStorage.setItem('driver_info', JSON.stringify(data.driver));
+      showApp();
+    } else {
+      showPinError(data.error || 'Invalid PIN');
+    }
+  } catch (e) {
+    // Try offline with cached driver
+    const cached = localStorage.getItem('driver_info');
+    if (cached) {
+      const info = JSON.parse(cached);
+      if (info.pin === pin) {
+        currentDriver = info;
+        showApp();
+        return;
+      }
+    }
+    showPinError('Cannot connect. Try again.');
+  }
+}
+
+function showPinError(msg) {
+  document.getElementById('pin-error').textContent = msg;
+  document.querySelectorAll('.pin-dot').forEach(d => d.classList.add('error'));
+  pin = '';
+  setTimeout(() => {
+    document.querySelectorAll('.pin-dot').forEach(d => { d.classList.remove('error', 'filled'); });
+  }, 600);
+}
+
+// ===== APP INIT =====
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main-app').classList.add('active');
+  document.getElementById('bottom-nav').style.display = 'flex';
+
+  const avatar = document.getElementById('driver-avatar');
+  avatar.textContent = (currentDriver.name || 'D')[0].toUpperCase();
+  document.getElementById('driver-name-display').textContent = currentDriver.name || 'Driver';
+
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  document.getElementById('driver-date-display').innerHTML = dateStr + ' <span class="' + (isOnline ? 'online-dot' : 'online-dot offline-dot') + '" id="connectivity-dot"></span>';
+
+  loadRoute();
+  loadProducts();
+}
+
+// Check for existing session
+(function checkSession() {
+  const token = localStorage.getItem('driver_token');
+  const info = localStorage.getItem('driver_info');
+  if (token && info) {
+    // Verify token is still valid
+    fetch('/api/driver/verify', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    }).then(r => r.json()).then(d => {
+      if (d.valid) {
+        currentDriver = JSON.parse(info);
+        showApp();
+      }
+    }).catch(() => {
+      // Offline — use cached session
+      if (info) {
+        currentDriver = JSON.parse(info);
+        showApp();
+      }
+    });
+  }
+})();
+
+// ===== DATA LOADING =====
+async function loadRoute() {
+  try {
+    const token = localStorage.getItem('driver_token');
+    const res = await fetch('/api/driver/route', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    currentRoute = data.stops || [];
+    // Cache for offline
+    localStorage.setItem(CACHE_KEY + '_route', JSON.stringify(currentRoute));
+  } catch (e) {
+    // Use cached route
+    const cached = localStorage.getItem(CACHE_KEY + '_route');
+    if (cached) currentRoute = JSON.parse(cached);
+  }
+
+  // Load today's check-ins and issues from cache
+  const todayKey = new Date().toISOString().split('T')[0];
+  const cachedCheckins = localStorage.getItem(CACHE_KEY + '_checkins_' + todayKey);
+  if (cachedCheckins) checkins = JSON.parse(cachedCheckins);
+  const cachedIssues = localStorage.getItem(CACHE_KEY + '_issues_' + todayKey);
+  if (cachedIssues) issueReports = JSON.parse(cachedIssues);
+
+  renderRoute();
+  updateStats();
+}
+
+async function loadProducts() {
+  try {
+    const token = localStorage.getItem('driver_token');
+    const res = await fetch('/api/driver/products', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    allProducts = await res.json();
+    localStorage.setItem(CACHE_KEY + '_products', JSON.stringify(allProducts));
+  } catch (e) {
+    const cached = localStorage.getItem(CACHE_KEY + '_products');
+    if (cached) allProducts = JSON.parse(cached);
+  }
+}
+
+async function refreshData() {
+  showToast('Refreshing...', '');
+  await loadRoute();
+  await loadProducts();
+  showToast('✓ Updated', 'success');
+}
+
+// ===== ROUTE RENDERING =====
+function renderRoute() {
+  const list = document.getElementById('route-list');
+  const empty = document.getElementById('route-empty');
+
+  if (currentRoute.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  list.innerHTML = currentRoute.map((stop, i) => {
+    const isCheckedIn = !!checkins[stop.id];
+    const hasIssue = issueReports.some(ir => ir.stop_id === stop.id);
+    const isCurrent = currentStop && currentStop.id === stop.id;
+    const restocked = (restockItems[stop.id] || []).reduce((s, r) => s + r.qty, 0);
+
+    let classes = 'route-card';
+    if (isCheckedIn) classes += ' completed';
+    if (isCurrent) classes += ' current';
+    if (hasIssue) classes += ' has-issue';
+
+    return `
+      <div class="${classes}" onclick="selectStop(${i})">
+        <div class="route-order">
+          <div class="route-num">${i + 1}</div>
+          <div class="route-name">${esc(stop.machine_name || stop.location_name || 'Stop ' + (i+1))}</div>
+        </div>
+        <div class="route-address">${esc(stop.address || 'No address')}</div>
+        <div class="route-meta">
+          ${stop.products_needed ? `<span class="route-tag tag-products">📦 ${stop.products_needed} items</span>` : ''}
+          ${stop.est_revenue ? `<span class="route-tag tag-revenue">$${stop.est_revenue}</span>` : ''}
+          ${stop.est_time ? `<span class="route-tag tag-time">~${stop.est_time}min</span>` : ''}
+          ${isCheckedIn ? `<span class="route-tag tag-products">✓ Done</span>` : '<span class="route-tag tag-pending">Pending</span>'}
+          ${hasIssue ? '<span class="route-tag tag-issue">⚠️ Issue</span>' : ''}
+          ${restocked > 0 ? `<span class="route-tag tag-products">${restocked} stocked</span>` : ''}
+        </div>
+        <div class="route-actions">
+          ${!isCheckedIn ? `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); startCheckin(${i})">📍 Check In</button>` : ''}
+          <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); viewDetails(${i})">Details</button>
+          ${isCheckedIn ? `<button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); openNavigate(${i})">🧭 Navigate</button>` : `<button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); openNavigate(${i})">🧭 Navigate</button>`}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function selectStop(idx) {
+  currentStop = currentRoute[idx];
+  renderRoute();
+}
+
+// ===== NAVIGATION =====
+function openNavigate(idx) {
+  const stop = currentRoute[idx];
+  if (stop.lat && stop.lng) {
+    window.open(`https://maps.apple.com/?daddr=${stop.lat},${stop.lng}`, '_blank');
+  } else if (stop.address) {
+    window.open(`https://maps.apple.com/?daddr=${encodeURIComponent(stop.address)}`, '_blank');
+  }
+}
+
+// ===== CHECK-IN =====
+let gpsPosition = null;
+let gpsWatchId = null;
+
+function startCheckin(idx) {
+  currentStop = currentRoute[idx];
+  switchTab('checkin');
+  renderCheckin();
+}
+
+function renderCheckin() {
+  if (!currentStop) return;
+  const el = document.getElementById('checkin-content');
+  const isCheckedIn = !!checkins[currentStop.id];
+
+  el.innerHTML = `
+    <div class="checkin-panel">
+      <div class="checkin-title">${esc(currentStop.machine_name || currentStop.location_name || 'Unknown')}</div>
+      <div class="checkin-address">${esc(currentStop.address || '')}</div>
+      <div class="gps-status" id="gps-status">
+        <div class="dot wait"></div>
+        <span>Acquiring GPS...</span>
+      </div>
+      ${isCheckedIn ? `
+        <div class="checkin-time">✓ Checked In</div>
+        <div style="text-align:center;color:var(--muted);font-size:0.85rem;">
+          ${new Date(checkins[currentStop.id].time).toLocaleTimeString()}
+        </div>
+      ` : `
+        <div class="checkin-time" id="checkin-timer">--:--:--</div>
+        <button class="btn btn-success btn-lg" onclick="doCheckin()" id="checkin-btn">
+          📍 Check In Now
+        </button>
+      `}
+    </div>
+    ${isCheckedIn ? `
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-primary btn-lg" onclick="switchTab('restock'); renderRestockForm();" style="flex:1;">📦 Log Restock</button>
+        <button class="btn btn-danger btn-lg" onclick="switchTab('issues'); renderIssueForm();" style="flex:1;">⚠️ Report Issue</button>
+      </div>
+    ` : ''}
+  `;
+
+  // Start GPS
+  startGPS();
+  // Start clock
+  if (!isCheckedIn) {
+    const timerEl = document.getElementById('checkin-timer');
+    if (timerEl) {
+      setInterval(() => {
+        if (timerEl) timerEl.textContent = new Date().toLocaleTimeString();
+      }, 1000);
+    }
+  }
+}
+
+function startGPS() {
+  if (!navigator.geolocation) {
+    updateGPSStatus('err', 'GPS not available');
+    return;
+  }
+  gpsWatchId = navigator.geolocation.watchPosition(
+    pos => {
+      gpsPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
+      const acc = Math.round(pos.coords.accuracy);
+      updateGPSStatus('ok', `GPS locked — accuracy ${acc}m`);
+    },
+    err => {
+      updateGPSStatus('err', 'GPS error: ' + err.message);
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
+  );
+}
+
+function updateGPSStatus(status, text) {
+  const el = document.getElementById('gps-status');
+  if (!el) return;
+  el.innerHTML = `<div class="dot ${status}"></div><span>${text}</span>`;
+}
+
+async function doCheckin() {
+  if (!currentStop) return;
+
+  const btn = document.getElementById('checkin-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Checking in...'; }
+
+  const checkinData = {
+    stop_id: currentStop.id,
+    machine_id: currentStop.machine_id,
+    time: new Date().toISOString(),
+    lat: gpsPosition?.lat || null,
+    lng: gpsPosition?.lng || null,
+    accuracy: gpsPosition?.accuracy || null
+  };
+
+  checkins[currentStop.id] = checkinData;
+
+  // Persist to local cache
+  const todayKey = new Date().toISOString().split('T')[0];
+  localStorage.setItem(CACHE_KEY + '_checkins_' + todayKey, JSON.stringify(checkins));
+
+  // Send to server
+  try {
+    const token = localStorage.getItem('driver_token');
+    await fetch('/api/driver/checkin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify(checkinData)
+    });
+  } catch (e) {
+    // Queue for sync later
+    queueSync('checkin', checkinData);
+  }
+
+  renderCheckin();
+  renderRoute();
+  updateStats();
+  showToast('✓ Checked in!', 'success');
+}
+
+// ===== RESTOCK FORM =====
+function renderRestockForm() {
+  if (!currentStop) return;
+  const el = document.getElementById('restock-content');
+  const items = restockItems[currentStop.id] || [];
+
+  el.innerHTML = `
+    <div class="checkin-panel">
+      <div class="checkin-title">📦 Restock — ${esc(currentStop.machine_name || 'Machine')}</div>
+      <div class="checkin-address">${esc(currentStop.address || '')}</div>
+    </div>
+    <div class="restock-section">
+      <div class="section-label">Products Added</div>
+      <div id="restock-items">
+        ${items.map((item, i) => `
+          <div class="product-entry">
+            <div class="prod-name">${esc(item.name)}</div>
+            <div class="qty-control">
+              <button class="qty-btn" onclick="adjustQty(${i}, -1)">−</button>
+              <div class="qty-value">${item.qty}</div>
+              <button class="qty-btn" onclick="adjustQty(${i}, 1)">+</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <button class="product-add-btn" onclick="openProductModal()">+ Add Product</button>
+    </div>
+    <div style="margin-top:16px;">
+      <div class="section-label">Time Spent (minutes)</div>
+      <input type="number" class="issue-notes" style="min-height:auto;padding:12px;" id="restock-time" 
+             placeholder="e.g. 15" value="${restockItems[currentStop.id + '_time'] || ''}" 
+             onchange="restockItems[currentStop.id + '_time'] = this.value">
+      <div class="section-label">Notes</div>
+      <textarea class="issue-notes" id="restock-notes" placeholder="Any notes about this restock..."
+                onchange="restockItems[currentStop.id + '_notes'] = this.value">${restockItems[currentStop.id + '_notes'] || ''}</textarea>
+    </div>
+    <button class="btn btn-success btn-lg" onclick="submitRestock()" style="margin-top:16px;">
+      ✓ Save Restock Log
+    </button>
+  `;
+}
+
+function adjustQty(idx, delta) {
+  if (!currentStop) return;
+  const items = restockItems[currentStop.id] || [];
+  if (items[idx]) {
+    items[idx].qty = Math.max(0, items[idx].qty + delta);
+    if (items[idx].qty === 0) items.splice(idx, 1);
+    restockItems[currentStop.id] = items;
+    renderRestockForm();
+    updateStats();
+  }
+}
+
+function openProductModal() {
+  document.getElementById('product-modal').classList.add('active');
+  document.getElementById('product-search').value = '';
+  renderProductList(allProducts);
+}
+
+function closeProductModal() {
+  document.getElementById('product-modal').classList.remove('active');
+}
+
+function filterProducts(q) {
+  const query = q.toLowerCase();
+  const filtered = allProducts.filter(p =>
+    (p.name || '').toLowerCase().includes(query) ||
+    (p.category || '').toLowerCase().includes(query)
+  );
+  renderProductList(filtered);
+}
+
+function renderProductList(products) {
+  const el = document.getElementById('product-list');
+  if (products.length === 0) {
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);">No products found</div>';
+    return;
+  }
+  const catEmoji = { Drinks: '🥤', Snacks: '🍿', Candy: '🍬', Healthy: '🥗', Energy: '⚡' };
+  el.innerHTML = products.map(p => `
+    <div class="product-option" onclick="addProduct(${p.id}, '${esc(p.name)}')">
+      <div class="emoji">${catEmoji[p.category] || '📦'}</div>
+      <div class="info">
+        <div class="pname">${esc(p.name)}</div>
+        <div class="pcat">${esc(p.category || 'Other')}</div>
+      </div>
+      <div class="pprice">$${(p.sell_price || 0).toFixed(2)}</div>
+    </div>
+  `).join('');
+}
+
+function addProduct(id, name) {
+  if (!currentStop) return;
+  if (!restockItems[currentStop.id]) restockItems[currentStop.id] = [];
+  const existing = restockItems[currentStop.id].find(r => r.product_id === id);
+  if (existing) {
+    existing.qty++;
+  } else {
+    restockItems[currentStop.id].push({ product_id: id, name: name, qty: 1 });
+  }
+  closeProductModal();
+  renderRestockForm();
+  updateStats();
+}
+
+async function submitRestock() {
+  if (!currentStop) return;
+  const items = restockItems[currentStop.id] || [];
+  if (items.length === 0) {
+    showToast('Add products first', 'error');
+    return;
+  }
+
+  const restockData = {
+    stop_id: currentStop.id,
+    machine_id: currentStop.machine_id,
+    driver_id: currentDriver.id,
+    items: items,
+    time_spent: parseInt(document.getElementById('restock-time')?.value) || 0,
+    notes: document.getElementById('restock-notes')?.value || '',
+    timestamp: new Date().toISOString()
+  };
+
+  try {
+    const token = localStorage.getItem('driver_token');
+    await fetch('/api/driver/restock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify(restockData)
+    });
+    showToast('✓ Restock saved!', 'success');
+  } catch (e) {
+    queueSync('restock', restockData);
+    showToast('✓ Saved offline — will sync', 'success');
+  }
+}
+
+// ===== ISSUE REPORTING =====
+let selectedIssueType = null;
+let issuePhotos = [];
+
+function renderIssueForm() {
+  if (!currentStop) return;
+  const el = document.getElementById('issues-content');
+  el.innerHTML = `
+    <div class="checkin-panel">
+      <div class="checkin-title">⚠️ Report Issue</div>
+      <div class="checkin-address">${esc(currentStop.machine_name || '')} — ${esc(currentStop.address || '')}</div>
+    </div>
+    <div class="section-label">Issue Type</div>
+    <div class="issue-types">
+      <button class="issue-type-btn" onclick="selectIssueType(this, 'machine_down')">
+        <div class="icon">🔴</div><div class="label">Machine Down</div>
+      </button>
+      <button class="issue-type-btn" onclick="selectIssueType(this, 'needs_repair')">
+        <div class="icon">🔧</div><div class="label">Needs Repair</div>
+      </button>
+      <button class="issue-type-btn" onclick="selectIssueType(this, 'vandalism')">
+        <div class="icon">💥</div><div class="label">Vandalism</div>
+      </button>
+      <button class="issue-type-btn" onclick="selectIssueType(this, 'power_issue')">
+        <div class="icon">⚡</div><div class="label">Power Issue</div>
+      </button>
+      <button class="issue-type-btn" onclick="selectIssueType(this, 'payment_issue')">
+        <div class="icon">💳</div><div class="label">Payment Issue</div>
+      </button>
+      <button class="issue-type-btn" onclick="selectIssueType(this, 'other')">
+        <div class="icon">❓</div><div class="label">Other</div>
+      </button>
+    </div>
+    <div class="section-label">Description</div>
+    <textarea class="issue-notes" id="issue-description" placeholder="Describe the issue..."></textarea>
+    
+    <div class="section-label">Photo Evidence</div>
+    <label class="photo-upload" id="photo-upload-area">
+      📷 Tap to Take Photo or Upload
+      <input type="file" accept="image/*" capture="environment" onchange="handlePhotoUpload(event)" multiple>
+    </label>
+    <div class="photo-preview" id="photo-preview"></div>
+
+    <div class="section-label">Severity</div>
+    <select class="form-select" id="issue-severity">
+      <option value="low">Low — Cosmetic / Minor</option>
+      <option value="medium" selected>Medium — Affecting Sales</option>
+      <option value="high">High — Machine Non-Functional</option>
+      <option value="critical">Critical — Safety Hazard</option>
+    </select>
+
+    <button class="btn btn-danger btn-lg" onclick="submitIssue()" style="margin-top:16px;">
+      🚨 Submit Issue Report
+    </button>
+  `;
+  issuePhotos = [];
+}
+
+function selectIssueType(btn, type) {
+  document.querySelectorAll('.issue-type-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedIssueType = type;
+}
+
+function handlePhotoUpload(e) {
+  const files = e.target.files;
+  for (const file of files) {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      issuePhotos.push({ name: file.name, data: ev.target.result });
+      renderPhotoPreviews();
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function renderPhotoPreviews() {
+  const el = document.getElementById('photo-preview');
+  el.innerHTML = issuePhotos.map((p, i) =>
+    `<img src="${p.data}" class="photo-thumb" onclick="issuePhotos.splice(${i},1);renderPhotoPreviews();" title="Tap to remove">`
+  ).join('');
+}
+
+async function submitIssue() {
+  if (!currentStop || !selectedIssueType) {
+    showToast('Select an issue type', 'error');
+    return;
+  }
+
+  const issueData = {
+    stop_id: currentStop.id,
+    machine_id: currentStop.machine_id,
+    driver_id: currentDriver.id,
+    type: selectedIssueType,
+    description: document.getElementById('issue-description')?.value || '',
+    severity: document.getElementById('issue-severity')?.value || 'medium',
+    photos: issuePhotos.length,
+    photo_data: issuePhotos.map(p => p.data),
+    timestamp: new Date().toISOString(),
+    lat: gpsPosition?.lat || null,
+    lng: gpsPosition?.lng || null
+  };
+
+  issueReports.push(issueData);
+  const todayKey = new Date().toISOString().split('T')[0];
+  localStorage.setItem(CACHE_KEY + '_issues_' + todayKey, JSON.stringify(issueReports));
+
+  try {
+    const token = localStorage.getItem('driver_token');
+    await fetch('/api/driver/issues', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify(issueData)
+    });
+    showToast('✓ Issue reported!', 'success');
+  } catch (e) {
+    queueSync('issue', issueData);
+    showToast('✓ Saved offline — will sync', 'success');
+  }
+
+  renderIssuesList();
+  renderRoute();
+  updateStats();
+  selectedIssueType = null;
+  issuePhotos = [];
+}
+
+function renderIssuesList() {
+  const el = document.getElementById('issues-list');
+  if (issueReports.length === 0) {
+    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:0.85rem;">No issues reported today 👍</div>';
+    return;
+  }
+
+  const typeLabels = {
+    machine_down: '🔴 Machine Down', needs_repair: '🔧 Needs Repair', vandalism: '💥 Vandalism',
+    power_issue: '⚡ Power Issue', payment_issue: '💳 Payment Issue', other: '❓ Other'
+  };
+
+  el.innerHTML = issueReports.map(issue => {
+    const stop = currentRoute.find(s => s.id === issue.stop_id);
+    return `
+      <div class="route-card has-issue">
+        <div class="route-order">
+          <div class="route-num" style="background:var(--danger);">!</div>
+          <div class="route-name">${typeLabels[issue.type] || issue.type}</div>
+        </div>
+        <div class="route-address">${esc(stop?.machine_name || 'Unknown')} — ${esc(issue.severity)}</div>
+        <div style="padding-left:38px;font-size:0.8rem;color:var(--muted);margin-top:4px;">
+          ${esc(issue.description || 'No description')}
+        </div>
+        <div style="padding-left:38px;font-size:0.7rem;color:var(--muted);margin-top:4px;">
+          ${new Date(issue.timestamp).toLocaleTimeString()}
+          ${issue.photos > 0 ? ` · 📷 ${issue.photos} photo(s)` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ===== MACHINE DETAILS =====
+function viewDetails(idx) {
+  currentStop = currentRoute[idx];
+  switchTab('details');
+  renderDetails();
+}
+
+async function renderDetails() {
+  if (!currentStop) return;
+  const el = document.getElementById('details-content');
+
+  el.innerHTML = `
+    <div class="checkin-panel">
+      <div class="checkin-title">${esc(currentStop.machine_name || 'Machine')}</div>
+      <div class="checkin-address">${esc(currentStop.address || '')}</div>
+    </div>
+    <div class="detail-grid">
+      <div class="detail-item">
+        <div class="val">${currentStop.machine_type || '—'}</div>
+        <div class="lbl">Machine Type</div>
+      </div>
+      <div class="detail-item">
+        <div class="val" style="color:${currentStop.machine_status === 'deployed' ? 'var(--success)' : 'var(--warn)'}">${currentStop.machine_status || '—'}</div>
+        <div class="lbl">Status</div>
+      </div>
+      <div class="detail-item">
+        <div class="val">${currentStop.last_restock || 'Never'}</div>
+        <div class="lbl">Last Restock</div>
+      </div>
+      <div class="detail-item">
+        <div class="val">${currentStop.est_revenue ? '$' + currentStop.est_revenue : '—'}</div>
+        <div class="lbl">Monthly Revenue</div>
+      </div>
+      <div class="detail-item full">
+        <div class="val">${(currentStop.product_mix || []).join(', ') || 'Standard mix'}</div>
+        <div class="lbl">Product Mix</div>
+      </div>
+    </div>
+    <div class="section-label">Recent Activity</div>
+    <div id="machine-history">
+      <div style="text-align:center;padding:20px;color:var(--muted);">Loading...</div>
+    </div>
+  `;
+
+  // Fetch history
+  try {
+    const token = localStorage.getItem('driver_token');
+    const res = await fetch(`/api/driver/machine/${currentStop.machine_id}/history`, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    const histEl = document.getElementById('machine-history');
+    if (data.length === 0) {
+      histEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:0.85rem;">No recent activity</div>';
+    } else {
+      histEl.innerHTML = data.slice(0, 10).map(h => `
+        <div class="history-item">
+          <div class="history-dot" style="background:${h.type === 'issue' ? 'var(--danger)' : h.type === 'restock' ? 'var(--success)' : 'var(--accent)'}"></div>
+          <div>
+            <div class="history-text">${esc(h.description)}</div>
+            <div class="history-date">${new Date(h.timestamp).toLocaleDateString()} ${new Date(h.timestamp).toLocaleTimeString()}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+  } catch (e) {
+    document.getElementById('machine-history').innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);">Offline — history unavailable</div>';
+  }
+}
+
+// ===== TAB SWITCHING =====
+function switchTab(tab) {
+  document.querySelectorAll('.tab-view').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.querySelectorAll('.nav-tab')[['route','checkin','restock','issues','details'].indexOf(tab)]?.classList.add('active');
+
+  // Render relevant content
+  if (tab === 'issues') renderIssuesList();
+}
+
+// ===== STATS =====
+function updateStats() {
+  const total = currentRoute.length;
+  const done = Object.keys(checkins).length;
+  const issues = issueReports.length;
+  const productsRestocked = Object.values(restockItems).reduce((sum, items) => {
+    if (Array.isArray(items)) return sum + items.reduce((s, i) => s + i.qty, 0);
+    return sum;
+  }, 0);
+
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-done').textContent = done;
+  document.getElementById('stat-remaining').textContent = total - done;
+  document.getElementById('stat-issues').textContent = issues;
+  document.getElementById('stat-products').textContent = productsRestocked;
+}
+
+// ===== OFFLINE SYNC =====
+function queueSync(type, data) {
+  const queue = JSON.parse(localStorage.getItem(CACHE_KEY + '_sync_queue') || '[]');
+  queue.push({ type, data, queued_at: new Date().toISOString() });
+  localStorage.setItem(CACHE_KEY + '_sync_queue', JSON.stringify(queue));
+}
+
+async function processQueue() {
+  if (!isOnline) return;
+  const queue = JSON.parse(localStorage.getItem(CACHE_KEY + '_sync_queue') || '[]');
+  if (queue.length === 0) return;
+
+  const token = localStorage.getItem('driver_token');
+  const remaining = [];
+
+  for (const item of queue) {
+    try {
+      const endpoint = item.type === 'checkin' ? '/api/driver/checkin'
+        : item.type === 'restock' ? '/api/driver/restock'
+        : '/api/driver/issues';
+      await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify(item.data)
+      });
+    } catch (e) {
+      remaining.push(item);
+    }
+  }
+
+  localStorage.setItem(CACHE_KEY + '_sync_queue', JSON.stringify(remaining));
+  if (remaining.length < queue.length) {
+    showToast(`✓ Synced ${queue.length - remaining.length} items`, 'success');
+  }
+}
+
+// ===== CONNECTIVITY =====
+window.addEventListener('online', () => {
+  isOnline = true;
+  document.getElementById('offline-banner').classList.remove('active');
+  const dot = document.getElementById('connectivity-dot');
+  if (dot) { dot.classList.remove('offline-dot'); }
+  processQueue();
+});
+
+window.addEventListener('offline', () => {
+  isOnline = false;
+  document.getElementById('offline-banner').classList.add('active');
+  const dot = document.getElementById('connectivity-dot');
+  if (dot) { dot.classList.add('offline-dot'); }
+});
+
+// ===== LOGOUT =====
+function driverLogout() {
+  localStorage.removeItem('driver_token');
+  localStorage.removeItem('driver_info');
+  currentDriver = null;
+  currentRoute = [];
+  currentStop = null;
+  pin = '';
+  document.getElementById('main-app').classList.remove('active');
+  document.getElementById('bottom-nav').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  updatePinDots();
+}
+
+// ===== HELPERS =====
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  setTimeout(() => { t.className = 'toast'; }, 2500);
+}
+
+// Close modal on overlay click
+document.getElementById('product-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeProductModal();
+});
+
+// Process sync queue on load
+setTimeout(processQueue, 3000);
+// Re-check every 2 minutes
+setInterval(processQueue, 120000);
+</script>
+</body>
+</html>

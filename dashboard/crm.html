@@ -1,0 +1,1850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-sales-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-sales.png">
+  <title>Sales CRM — Kande VendTech</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { overflow-x: hidden; width: 100%; }
+    
+    :root {
+      --bg: #f5f7fa;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #1a202c;
+      --muted: #718096;
+      --accent: #3182ce;
+      --hot: #e53e3e;
+      --warm: #eab308;
+      --success: #38a169;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .app { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 24px; flex-wrap: wrap; gap: 16px;
+    }
+    .header h1 {
+      font-size: 1.5rem;
+      background: linear-gradient(90deg, var(--accent), #7b2cbf);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .header-actions { display: flex; gap: 12px; }
+
+    .btn {
+      padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer;
+      font-size: 0.9rem; font-weight: 500; transition: all 0.2s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-danger { background: var(--hot); color: #fff; }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+
+    .stats {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px; margin-bottom: 24px;
+    }
+    .stat {
+      background: var(--card); border-radius: 12px; padding: 16px;
+      text-align: center; border: 1px solid var(--border);
+    }
+    .stat-value { font-size: 1.8rem; font-weight: 700; }
+    .stat-value.hot { color: var(--hot); }
+    .stat-value.accent { color: var(--accent); }
+    .stat-value.warn { color: var(--warm); }
+    .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+
+    .filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filter-btn {
+      padding: 8px 16px; background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; color: var(--muted); cursor: pointer; font-size: 0.85rem;
+    }
+    .filter-btn:hover, .filter-btn.active {
+      background: rgba(49,130,206,0.1); border-color: var(--accent); color: var(--accent);
+    }
+    .search-input {
+      flex: 1; min-width: 200px; padding: 10px 16px; background: var(--card);
+      border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.9rem;
+    }
+
+    .prospect-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .prospect-card {
+      background: var(--card); border-radius: 12px; border: 1px solid var(--border);
+      cursor: pointer; transition: all 0.2s; overflow: hidden; position: relative;
+    }
+    .prospect-card:hover { border-color: var(--accent); }
+    .prospect-card.hot { border-left: 4px solid var(--hot); }
+    .prospect-card.warm { border-left: 4px solid var(--warm); }
+    .prospect-card.stale { border-left: 4px solid var(--hot); background: rgba(229,62,62,0.08); opacity: 0.85; }
+    .prospect-card.expanded { border-color: var(--accent); cursor: default; }
+
+    .prospect-summary { padding: 16px; }
+    .prospect-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 8px; flex-wrap: wrap; }
+    .prospect-name { flex: 1; min-width: 60%; }
+    .contact-field-label { display: none; }
+    .contact-field { gap: 2px; }
+    .prospect-name { font-size: 1.1rem; font-weight: 600; }
+    .prospect-badge {
+      padding: 4px 10px; border-radius: 12px; font-size: 0.7rem;
+      font-weight: 600; text-transform: uppercase;
+    }
+    .badge-hot { background: rgba(229,62,62,0.15); color: var(--hot); }
+    .badge-warm { background: rgba(234,179,8,0.15); color: var(--warm); }
+    .badge-new { background: rgba(49,130,206,0.15); color: var(--accent); }
+    .badge-closed { background: rgba(160,174,192,0.15); color: #a0aec0; }
+    .badge-signed { background: rgba(56,161,105,0.15); color: var(--success); }
+    .badge-action { background: rgba(128,90,213,0.15); color: #805ad5; }
+    /* wellness styles removed */
+    .needs-action-btn {
+      padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 600;
+      cursor: pointer; border: 1px dashed #805ad5; color: #805ad5; background: transparent;
+      text-transform: uppercase; transition: all 0.2s; white-space: nowrap;
+    }
+    .needs-action-btn.active { background: rgba(128,90,213,0.15); border-style: solid; }
+    .needs-action-btn:hover { background: rgba(128,90,213,0.1); }
+
+    #miniMap { height: 400px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px; }
+    .map-container { position: relative; }
+    .map-legend {
+      position: absolute; bottom: 20px; left: 20px;
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+      padding: 10px 14px; z-index: 1000; font-size: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .legend-title { font-weight: 600; font-size: 11px; color: #718096; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .address-link { color: var(--accent); text-decoration: none; }
+    .address-link:hover { text-decoration: underline; }
+    .prospect-meta { font-size: 0.85rem; color: var(--muted); }
+
+    /* Expanded detail area */
+    .prospect-detail {
+      display: none; padding: 0 16px 16px; border-top: 1px solid var(--border);
+    }
+    .prospect-card.expanded .prospect-detail { display: block; }
+
+    .detail-section {
+      margin-top: 16px; padding: 14px; background: var(--bg);
+      border-radius: 8px;
+    }
+    .detail-section-title {
+      font-size: 0.8rem; font-weight: 600; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 10px; letter-spacing: 0.5px;
+    }
+
+    .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .field-group { display: flex; flex-direction: column; gap: 4px; }
+    .field-group.full { grid-column: 1 / -1; }
+    .field-label { font-size: 0.75rem; color: var(--muted); font-weight: 500; }
+    .field-input {
+      width: 100%; padding: 8px 10px; background: var(--card);
+      border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); font-size: 0.9rem; font-family: inherit;
+    }
+    .field-input:focus { outline: none; border-color: var(--accent); }
+    select.field-input { cursor: pointer; }
+    textarea.field-input { min-height: 70px; resize: vertical; }
+
+    .notes-box {
+      margin-top: 12px; padding: 12px; background: var(--card);
+      border-radius: 8px; border-left: 3px solid var(--accent);
+    }
+    .notes-box.kurtis { border-left-color: var(--warm); }
+    .notes-box label {
+      display: block; font-size: 0.8rem; font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .notes-box label.sales { color: var(--accent); }
+    .notes-box label.kurtis { color: var(--warm); }
+    .notes-box textarea {
+      width: 100%; padding: 8px 10px; background: var(--bg);
+      border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); font-size: 0.9rem; font-family: inherit;
+      min-height: 60px; resize: vertical; overflow: hidden;
+    }
+    .notes-box textarea:focus { outline: none; border-color: var(--accent); }
+
+    .action-bar {
+      display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap;
+      padding-top: 12px; border-top: 1px solid var(--border);
+    }
+    .action-btn {
+      padding: 8px 14px; background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); cursor: pointer; font-size: 0.85rem;
+    }
+    .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .action-btn.danger { color: var(--hot); }
+    .action-btn.danger:hover { border-color: var(--hot); }
+    .action-btn.save { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .action-btn.save:hover { opacity: 0.9; }
+
+    /* Activities inline */
+    .activities-section { margin-top: 16px; }
+    .activity-item {
+      padding: 10px; background: var(--card); border-radius: 8px;
+      border-left: 3px solid var(--accent); margin-bottom: 8px;
+    }
+    .activity-item.call { border-left-color: var(--accent); }
+    .activity-item.pop-in { border-left-color: var(--success); }
+    .activity-item.email { border-left-color: var(--warm); }
+    .activity-type { font-size: 0.7rem; text-transform: uppercase; color: var(--muted); }
+    .activity-desc { font-size: 0.85rem; margin-top: 2px; }
+    .activity-date { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+
+    /* Contacts inline */
+    .contact-card {
+      padding: 10px; background: var(--card); border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    /* Modals (kept for add prospect, log activity, add contact) */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      display: none; align-items: center; justify-content: center;
+      z-index: 1000; padding: 20px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: var(--card); border-radius: 16px; width: 100%;
+      max-width: 600px; max-height: 90vh; overflow-y: auto;
+      border: 1px solid var(--border);
+    }
+    .modal-header {
+      padding: 20px; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+      position: sticky; top: 0; background: var(--card);
+    }
+    .modal-header h2 { font-size: 1.2rem; }
+    .modal-close { background: none; border: none; color: var(--muted); font-size: 1.5rem; cursor: pointer; }
+    .modal-body { padding: 20px; }
+    .modal-footer {
+      padding: 20px; border-top: 1px solid var(--border);
+      display: flex; gap: 12px; justify-content: flex-end;
+    }
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; }
+    .form-input, .form-select, .form-textarea {
+      width: 100%; padding: 12px; background: var(--bg);
+      border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-size: 0.95rem;
+    }
+    .form-textarea { min-height: 80px; resize: vertical; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+
+    .saved-indicator {
+      position: absolute; top: 8px; right: 8px; padding: 4px 10px; border-radius: 12px;
+      font-size: 0.75rem; background: rgba(56,161,105,0.15); color: var(--success);
+      opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 1;
+    }
+    .saved-indicator.show { opacity: 1; }
+
+    @media (max-width: 600px) {
+      .field-grid { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      .header { flex-direction: column; align-items: flex-start; }
+      .prospect-header { flex-wrap: wrap; justify-content: flex-start !important; }
+      .prospect-name { width: 100%; }
+      .badge-row { margin-left: 0 !important; }
+      .contact-grid-header { display: none !important; }
+      .contact-grid-row { grid-template-columns: 1fr !important; }
+      .contact-grid-row .contact-delete { justify-self: start; }
+      .contact-field-label { display: block !important; }
+      .prop-info-grid { grid-template-columns: 1fr !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <img src="/logo.png" alt="Kande VendTech" style="height:56px;">
+        <h1>Sales CRM</h1>
+        <div id="signedCounter" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:12px;background:var(--success);color:#fff;font-size:1.2rem;font-weight:700;cursor:pointer;" onclick="document.querySelector('[data-filter=signed]').click()">
+          ✅ <span id="signedCount">0</span> Signed
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="/crm/map" class="btn btn-secondary" style="border-color:var(--accent);color:var(--accent);">🚗 Route Planner</a>
+        <button class="btn btn-primary" onclick="showAddModal()">+ New Prospect</button>
+      </div>
+    </div>
+
+    <!-- Recent Activity Panel -->
+    <div id="recentActivityPanel" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:linear-gradient(135deg,#805ad5,#6b46c1);color:#fff;">
+        <h3 style="margin:0;font-size:1.05rem;">🕐 Recent Activity <span id="recentActivityCount" style="font-size:0.8rem;opacity:0.8;"></span></h3>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="recentDaysFilter" onchange="renderRecentActivity()" style="padding:4px 8px;border-radius:6px;border:none;font-size:0.8rem;background:rgba(255,255,255,0.2);color:#fff;">
+            <option value="1">Last 24h</option>
+            <option value="3">Last 3 days</option>
+            <option value="7" selected>Last 7 days</option>
+            <option value="30">Last 30 days</option>
+          </select>
+          <button onclick="toggleRecentActivity()" style="background:none;border:none;color:#fff;font-size:1.1rem;cursor:pointer;">✕</button>
+        </div>
+      </div>
+      <div id="recentActivityList" style="max-height:400px;overflow-y:auto;padding:12px 16px;">
+        <div style="color:var(--muted);font-size:0.9rem;">Loading...</div>
+      </div>
+    </div>
+
+    <div class="map-container">
+      <div id="miniMap"></div>
+      <div class="map-legend">
+        <div class="legend-title">Status</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#e53e3e"></div> 🔥 Hot</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#eab308"></div> 🟡 Warm</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3182ce"></div> 🆕 New</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#38a169"></div> ✅ Signed</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#a0aec0"></div> ⛔ Stale</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#805ad5"></div> 📋 Needs Action</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div> 🚶 Pop In Needed</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#276749"></div> 🌿 Wellness</div>
+      </div>
+    </div>
+
+    <div class="stats" id="stats">
+      <div class="stat"><div class="stat-value hot" id="statHot">-</div><div class="stat-label">🔥 Hot Leads</div></div>
+      <div class="stat"><div class="stat-value accent" id="statActive">-</div><div class="stat-label">Active</div></div>
+      <div class="stat"><div class="stat-value warn" id="statFollowup">-</div><div class="stat-label">Need Follow-up</div></div>
+      <div class="stat"><div class="stat-value" id="statWeek">-</div><div class="stat-label">Activities (7d)</div></div>
+    </div>
+
+    <!-- To-Do Checklist -->
+    <div class="todo-section" style="background:var(--card);border-radius:12px;overflow:hidden;margin-bottom:20px;border:1px solid var(--accent);">
+      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--accent);padding:12px 16px;" onclick="toggleTodoList()">
+        <h3 style="margin:0;font-size:1.1rem;color:#fff;">📋 To-Do Checklist <span id="todoCount" style="font-size:0.85rem;color:rgba(255,255,255,0.8);font-weight:normal;"></span> <span id="todoArrow" style="font-size:0.8rem;">▶</span></h3>
+        <a href="/activities" style="display:inline-block;padding:6px 14px;border-radius:20px;background:#e53e3e;color:#fff;font-size:0.8rem;font-weight:600;text-decoration:none;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'" onclick="event.stopPropagation();">📊 View Activity Log</a>
+      </div>
+      <div id="todoContent" style="display:none;padding:16px;">
+        <!-- Completed Today -->
+        <div id="completedTodaySection" style="display:none;margin-bottom:16px;">
+          <div style="font-size:0.85rem;font-weight:600;color:var(--success);margin-bottom:8px;">✅ Tasks Completed Today</div>
+          <div id="completedTodayList" style="display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
+        <!-- To-Do List -->
+        <div style="font-size:0.85rem;font-weight:600;color:var(--muted);margin-bottom:8px;">📋 Pending Tasks</div>
+        <div id="todoList" style="display:flex;flex-direction:column;gap:8px;">
+          <div style="color:var(--muted);font-size:0.9rem;">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="filters">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="hot">🔥 Hot</button>
+      <button class="filter-btn" data-filter="warm">🟠 Warm</button>
+      <button class="filter-btn" data-filter="new">🆕 New</button>
+      <button class="filter-btn" data-filter="signed">✅ Signed</button>
+      <button class="filter-btn" data-filter="closed">⛔ Stale</button>
+      <button class="filter-btn" data-filter="followup">📋 Needs Action</button>
+      <select id="typeFilter" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:0.9rem;cursor:pointer;">
+        <option value="all">All Types</option>
+        <option value="apartments_condos">🏢 Apartments/Condos</option>
+        <option value="senior_living">🏥 Senior Living</option>
+        <option value="healthcare">⚕️ Healthcare</option>
+        <option value="industrial">🏭 Industrial/Warehouse</option>
+        <option value="office">🏢 Office/Business</option>
+        <option value="other">📦 Other</option>
+      </select>
+      <input type="text" class="search-input" id="search" placeholder="Search prospects...">
+    </div>
+
+    <div class="prospect-list" id="prospectList">
+      <div class="empty-state"><h3>Loading...</h3></div>
+    </div>
+  </div>
+
+  <!-- Add Prospect Modal (only for new) -->
+  <div class="modal-overlay" id="prospectModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Add Prospect</h2>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="prospectForm">
+          <div class="form-group">
+            <label class="form-label">Property Name *</label>
+            <input type="text" class="form-input" id="addName" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Property Type</label>
+              <select class="form-select" id="addPropertyType">
+                <option value="">Select...</option>
+                <option value="Apartments/Condos">🏢 Apartments/Condos</option>
+                <option value="Senior Living">🏥 Senior Living</option>
+                <option value="Healthcare">⚕️ Healthcare</option>
+                <option value="Industrial/Warehouse">🏭 Industrial/Warehouse</option>
+                <option value="Office/Business">🏢 Office/Business</option>
+                <option value="Other">📦 Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label"># of Units</label>
+              <input type="text" class="form-input" id="addUnits" placeholder="e.g., 100+">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Address</label>
+            <input type="text" class="form-input" id="addAddress">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Phone</label>
+              <input type="tel" class="form-input" id="addPhone">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Hours</label>
+              <input type="text" class="form-input" id="addHours" placeholder="e.g., M-F 9-5">
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="addProspect()">Add Prospect</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log Activity Modal -->
+  <div class="modal-overlay" id="activityModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="activityTitle">Log Activity</h2>
+        <button class="modal-close" onclick="closeActivityModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="activityForm">
+          <input type="hidden" id="activityProspectId">
+          <input type="hidden" id="activityId">
+          <div class="form-group">
+            <label class="form-label">Activity Type</label>
+            <select class="form-select" id="activityType">
+              <option value="call">📞 Call</option>
+              <option value="pop-in">🚶 Pop-in</option>
+              <option value="email">📧 Email</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date of Activity</label>
+            <input type="date" class="form-input" id="activityDate">
+          </div>
+          <div class="form-group">
+            <label class="form-label">What happened?</label>
+            <textarea class="form-textarea" id="activityDesc" placeholder="Spoke with manager, showed them the catalog..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Outcome</label>
+            <select class="form-select" id="activityOutcome">
+              <option value="">Select...</option>
+              <option value="interested">Interested - Follow up</option>
+              <option value="thinking">Thinking about it</option>
+              <option value="not_available">Contact not available</option>
+              <option value="not_interested">Not interested</option>
+              <option value="left_info">Left information</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Next Action</label>
+              <select class="form-select" id="nextAction" onchange="toggleCustomAction()">
+                <option value="">Select...</option>
+                <option value="Pop In">🚶 Pop In</option>
+                <option value="Call">📞 Call</option>
+                <option value="Email">📧 Email</option>
+                <option value="Other">📝 Other</option>
+              </select>
+              <input type="text" class="form-input" id="customAction" placeholder="Enter custom action..." style="display:none;margin-top:8px;">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Follow-up Date</label>
+              <input type="date" class="form-input" id="nextActionDate">
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeActivityModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveActivity()">Save Activity</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Contact Modal -->
+  <div class="modal-overlay" id="contactModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Add Contact</h2>
+        <button class="modal-close" onclick="closeContactModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="contactForm">
+          <input type="hidden" id="contactProspectId">
+          <div class="form-group">
+            <label class="form-label">Name *</label>
+            <input type="text" class="form-input" id="contactName" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Role</label>
+            <input type="text" class="form-input" id="contactRole" placeholder="e.g., Property Manager">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-input" id="contactEmail">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phone</label>
+              <input type="tel" class="form-input" id="contactPhone">
+            </div>
+          </div>
+          <div class="form-group">
+            <label><input type="checkbox" id="contactPrimary"> Primary contact</label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeContactModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveContact()">Save Contact</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let prospects = [];
+    let expandedId = null;
+    let currentFilter = 'all';
+    let saveTimers = {};
+
+    async function loadData() {
+      await Promise.all([loadStats(), loadProspects()]);
+    }
+
+    async function loadStats() {
+      const res = await fetch('/api/stats');
+      const s = await res.json();
+      document.getElementById('statHot').textContent = s.hot;
+      document.getElementById('statActive').textContent = s.active;
+      document.getElementById('statFollowup').textContent = s.needsFollowup;
+      document.getElementById('statWeek').textContent = s.thisWeek;
+      document.getElementById('signedCount').textContent = s.signed || 0;
+    }
+
+    async function loadProspects() {
+      const res = await fetch('/api/prospects');
+      prospects = await res.json();
+      renderProspects();
+      renderTodoList();
+      renderCompletedToday();
+    }
+
+    let todoExpanded = false;
+    let completedToday = JSON.parse(localStorage.getItem('completedToday') || '[]');
+    
+    // Clean up items older than 24 hours
+    function cleanupCompletedToday() {
+      const now = Date.now();
+      const dayMs = 24 * 60 * 60 * 1000;
+      completedToday = completedToday.filter(item => (now - item.completedAt) < dayMs);
+      localStorage.setItem('completedToday', JSON.stringify(completedToday));
+    }
+    
+    function toggleTodoList() {
+      todoExpanded = !todoExpanded;
+      const content = document.getElementById('todoContent');
+      const arrow = document.getElementById('todoArrow');
+      content.style.display = todoExpanded ? 'block' : 'none';
+      arrow.textContent = todoExpanded ? '▼' : '▶';
+    }
+
+    function renderCompletedToday() {
+      cleanupCompletedToday();
+      const section = document.getElementById('completedTodaySection');
+      const list = document.getElementById('completedTodayList');
+      
+      if (completedToday.length === 0) {
+        section.style.display = 'none';
+        return;
+      }
+      
+      section.style.display = 'block';
+      const actionIcon = (a) => (a || '').toLowerCase().includes('pop in') ? '🚶' : a === 'Call' ? '📞' : a === 'Email' ? '📧' : '📝';
+      const formatTimestamp = (ts) => {
+        const d = new Date(ts);
+        return d.toLocaleString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+      };
+      
+      list.innerHTML = completedToday.map(item => `
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 12px;background:rgba(56,161,105,0.1);border-radius:8px;border:1px solid rgba(56,161,105,0.2);flex-wrap:wrap;">
+          <span style="color:var(--success);">✓</span>
+          <span style="font-size:1rem;">${actionIcon(item.actionType)}</span>
+          <span style="font-weight:500;color:var(--accent);cursor:pointer;text-decoration:underline;" onclick="openFromTodo(${item.prospectId})">${esc(item.name)}</span>
+          <span style="font-size:0.75rem;color:var(--muted);">${item.actionType}</span>
+          <span style="flex:1;"></span>
+          <span style="font-size:0.7rem;color:var(--muted);">Completed: ${formatTimestamp(item.completedAt)}</span>
+          <button onclick="undoComplete(${item.prospectId}, '${item.actionType}')" style="padding:2px 8px;font-size:0.7rem;background:none;border:1px solid var(--muted);border-radius:4px;color:var(--muted);cursor:pointer;">↩ Undo</button>
+        </div>
+      `).join('');
+    }
+
+    async function undoComplete(prospectId, actionType) {
+      prospectId = parseInt(prospectId);
+      
+      // Find the completed item to get activity ID
+      const completedItem = completedToday.find(item => parseInt(item.prospectId) === prospectId);
+      
+      // Find the prospect
+      const p = prospects.find(pr => pr.id === prospectId);
+      
+      // Delete the activity from database if we have the ID
+      if (completedItem && completedItem.activityId) {
+        const activityId = parseInt(completedItem.activityId);
+        await fetch(`/api/activities/${activityId}`, { method: 'DELETE' });
+        
+        // Remove from local prospect data
+        if (p && p.activities) {
+          p.activities = p.activities.filter(a => parseInt(a.id) !== activityId);
+        }
+      }
+      
+      // Remove from completed list
+      completedToday = completedToday.filter(item => parseInt(item.prospectId) !== prospectId);
+      localStorage.setItem('completedToday', JSON.stringify(completedToday));
+      
+      // Restore the next action
+      if (p) {
+        p.next_action = actionType;
+        p.needs_action = true;
+      }
+      
+      await fetch(`/api/prospects/${prospectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ next_action: actionType, needs_action: true })
+      });
+      
+      // Refresh prospect data from server to ensure activities list is updated
+      const res = await fetch(`/api/prospects/${prospectId}`);
+      if (res.ok) {
+        const updated = await res.json();
+        const idx = prospects.findIndex(pr => pr.id === prospectId);
+        if (idx >= 0) prospects[idx] = { ...prospects[idx], ...updated };
+      }
+      
+      renderProspects();
+      renderCompletedToday();
+      renderTodoList();
+    }
+
+    function renderTodoList() {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Include prospects with next_action OR where follow_up_date has passed (excluding stale/signed)
+      const withActions = prospects.filter(p => {
+        if (p.status === 'closed' || p.status === 'signed') return false;
+        if (p.next_action) return true;
+        // Check if follow-up is due
+        if (p.follow_up_date && p.follow_up_date <= today) return true;
+        return false;
+      });
+      
+      // For follow-up items without next_action, set a temporary action
+      withActions.forEach(p => {
+        if (!p.next_action && p.follow_up_date && p.follow_up_date <= today) {
+          p._isFollowUp = true;
+        }
+      });
+      
+      // Update count badge
+      document.getElementById('todoCount').textContent = withActions.length > 0 ? `(${withActions.length})` : '';
+      
+      // Sort by action type: Pop In first, then Call, then Email, then Follow Up, then Other
+      const actionOrder = {'Pop In': 1, 'Call': 2, 'Email': 3};
+      withActions.sort((a, b) => {
+        if (a._isFollowUp && !b._isFollowUp) return 1;
+        if (!a._isFollowUp && b._isFollowUp) return -1;
+        return (actionOrder[a.next_action] || 99) - (actionOrder[b.next_action] || 99);
+      });
+      
+      if (withActions.length === 0) {
+        document.getElementById('todoList').innerHTML = '<div style="color:var(--muted);font-size:0.9rem;">✅ No pending actions</div>';
+        return;
+      }
+      
+      const actionIcon = (a, isFollowUp) => {
+        if (isFollowUp) return '🔄';
+        return (a || '').toLowerCase().includes('pop in') ? '🚶' : a === 'Call' ? '📞' : a === 'Email' ? '📧' : '📝';
+      };
+      const actionPillStyle = (a, isFollowUp) => {
+        if (isFollowUp) return 'background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);';
+        const lowerA = (a || '').toLowerCase();
+        if (lowerA.includes('pop in')) return 'background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);';
+        if (a === 'Call') return 'background:rgba(49,130,206,0.15);color:var(--accent);border:1px solid rgba(49,130,206,0.3);';
+        if (a === 'Email') return 'background:rgba(221,107,32,0.15);color:var(--warm);border:1px solid rgba(221,107,32,0.3);';
+        return 'background:rgba(128,90,213,0.15);color:#805ad5;border:1px solid rgba(128,90,213,0.3);';
+      };
+      
+      document.getElementById('todoList').innerHTML = withActions.map(p => {
+        const isFollowUp = p._isFollowUp;
+        const displayAction = isFollowUp ? 'Follow up?' : p.next_action;
+        return `
+        <div class="todo-item" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg);border-radius:8px;border:1px solid ${isFollowUp ? 'rgba(16,185,129,0.3)' : 'var(--border)'};flex-wrap:wrap;">
+          <input type="checkbox" onclick="completeTodo(${p.id}, '${isFollowUp ? 'Follow up' : p.next_action}')" style="width:18px;height:18px;cursor:pointer;">
+          <span style="font-size:1.1rem;">${actionIcon(p.next_action, isFollowUp)}</span>
+          <span style="font-weight:500;color:var(--accent);cursor:pointer;text-decoration:underline;" onclick="openFromTodo(${p.id})">${esc(p.name)}</span>
+          <span class="prospect-badge badge-${getBadgeClass(p)}" style="font-size:0.65rem;padding:2px 8px;">${getBadgeLabel(p)}</span>
+          <span style="font-size:0.8rem;color:var(--muted);">${isFollowUp ? 'Follow up?' : 'Action Needed:'}</span>
+          <span style="padding:3px 10px;border-radius:12px;font-size:0.75rem;font-weight:600;${actionPillStyle(p.next_action, isFollowUp)}">${displayAction}</span>
+          ${isFollowUp && p.last_completed_action ? `<span style="font-size:0.7rem;color:var(--muted);">Last: ${p.last_completed_action} on ${p.last_completed_date}</span>` : ''}
+          ${!isFollowUp && p.next_action_added ? `<span style="font-size:0.7rem;color:var(--muted);">Added: ${new Date(p.next_action_added).toLocaleDateString('en-US', {month:'2-digit',day:'2-digit',year:'2-digit'})}</span>` : ''}
+          <span style="flex:1;"></span>
+          ${p.next_action_date ? `<span style="font-size:0.75rem;color:var(--accent);">${p.next_action_date}</span>` : ''}
+        </div>
+      `}).join('');
+    }
+
+    async function completeTodo(id, actionType) {
+      const p = prospects.find(pr => pr.id === id);
+      if (!p) return;
+      
+      // Map action type to activity type
+      let activityType = 'other';
+      if (actionType === 'Pop In') activityType = 'pop-in';
+      else if (actionType === 'Call') activityType = 'call';
+      else if (actionType === 'Email') activityType = 'email';
+      
+      // Log the completed action as an activity
+      const activity = {
+        type: activityType,
+        description: actionType === 'Pop In' || actionType === 'Call' || actionType === 'Email' 
+          ? 'Completed from to-do list' 
+          : `Completed: ${actionType}`,
+        date: new Date().toISOString().split('T')[0]
+      };
+      
+      const res = await fetch(`/api/prospects/${id}/activities`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(activity)
+      });
+      
+      let activityId = null;
+      // Add the new activity to the local prospect data so it shows in header
+      if (res.ok) {
+        const newActivity = await res.json();
+        activityId = newActivity.id;
+        if (!p.activities) p.activities = [];
+        p.activities.unshift(newActivity);
+      }
+      
+      // Add to completed today list (with activity ID for undo)
+      completedToday.push({
+        prospectId: id,
+        name: p.name,
+        actionType: actionType,
+        activityId: activityId,
+        completedAt: Date.now()
+      });
+      localStorage.setItem('completedToday', JSON.stringify(completedToday));
+      
+      // Clear the next action and set follow-up for 7 days
+      const followUpDate = new Date();
+      followUpDate.setDate(followUpDate.getDate() + 7);
+      
+      p.next_action = '';
+      p.next_action_date = '';
+      p.needs_action = false;
+      p.follow_up_date = followUpDate.toISOString().split('T')[0];
+      p.last_completed_action = actionType;
+      p.last_completed_date = new Date().toISOString().split('T')[0];
+      
+      await fetch(`/api/prospects/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          next_action: '', 
+          next_action_date: '', 
+          needs_action: false,
+          follow_up_date: p.follow_up_date,
+          last_completed_action: p.last_completed_action,
+          last_completed_date: p.last_completed_date
+        })
+      });
+      
+      // Refresh
+      renderProspects();
+      renderTodoList();
+      renderCompletedToday();
+      loadStats();
+    }
+
+    function openFromTodo(id) {
+      // Reset filters to show all
+      currentFilter = 'all';
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector('[data-filter="all"]').classList.add('active');
+      document.getElementById('typeFilter').value = 'all';
+      document.getElementById('search').value = '';
+      
+      // Expand and scroll to the prospect
+      toggleExpand(id);
+    }
+
+    function renderProspects() {
+      let filtered = prospects;
+      const search = document.getElementById('search').value.toLowerCase();
+
+      if (currentFilter === 'hot') filtered = filtered.filter(p => p.priority === 'hot');
+      else if (currentFilter === 'warm') filtered = filtered.filter(p => p.priority === 'warm');
+      else if (currentFilter === 'new') filtered = filtered.filter(p => p.status === 'new');
+      else if (currentFilter === 'signed') filtered = filtered.filter(p => p.status === 'signed');
+      else if (currentFilter === 'closed') filtered = filtered.filter(p => p.status === 'closed');
+      else if (currentFilter === 'followup') filtered = filtered.filter(p => p.needs_action);
+
+      if (search) {
+        filtered = filtered.filter(p => {
+          // Search all text fields
+          const fields = [
+            p.name,
+            p.address,
+            p.property_type,
+            p.units,
+            p.phone,
+            p.hours,
+            p.notes,
+            p.kurtis_notes,
+            p.primary_contact,
+            p.stale_reason
+          ];
+          // Search contacts
+          const contactText = (p.contacts || []).map(c => 
+            [c.name, c.role, c.phone, c.email].join(' ')
+          ).join(' ');
+          // Search activities
+          const activityText = (p.activities || []).map(a => 
+            [a.type, a.description, a.outcome, a.next_action].join(' ')
+          ).join(' ');
+          
+          const allText = [...fields, contactText, activityText]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+          
+          return allText.includes(search);
+        });
+      }
+
+      // Normalize property type (combine apartment/condo variants)
+      function normalizeType(type) {
+        const t = (type || '').toLowerCase();
+        if (t.includes('apartment') || t.includes('condo') || t.includes('high-rise')) return 'apartments_condos';
+        if (t.includes('assisted') || t.includes('nursing') || t.includes('retirement') || t.includes('memory') || t.includes('ccrc') || t.includes('skilled')) return 'senior_living';
+        if (t.includes('hospital') || t.includes('healthcare') || t.includes('urgent') || t.includes('radiology') || t.includes('xray')) return 'healthcare';
+        if (t.includes('warehouse') || t.includes('logistics') || t.includes('manufacturing')) return 'industrial';
+        if (t.includes('office') || t.includes('business')) return 'office';
+        return 'other';
+      }
+
+      // Filter by property type category
+      const typeFilter = document.getElementById('typeFilter').value;
+      if (typeFilter !== 'all') {
+        filtered = filtered.filter(p => normalizeType(p.property_type) === typeFilter);
+      }
+
+      // Always sort stale to bottom
+      filtered.sort((a, b) => {
+        if (a.status === 'closed' && b.status !== 'closed') return 1;
+        if (a.status !== 'closed' && b.status === 'closed') return -1;
+        return 0;
+      });
+
+      if (filtered.length === 0) {
+        document.getElementById('prospectList').innerHTML = '<div class="empty-state"><h3>No prospects found</h3></div>';
+        return;
+      }
+
+      document.getElementById('prospectList').innerHTML = filtered.map(p => `
+        <div class="prospect-card ${p.priority} ${p.status === 'closed' ? 'stale' : ''} ${expandedId === p.id ? 'expanded' : ''}" id="card-${p.id}">
+          <div class="prospect-summary" onclick="toggleExpand(${p.id})">
+            <div class="prospect-header">
+              <div class="prospect-name">${p.name}${p.status === 'closed' && p.stale_reason ? `<span style="margin-left:10px;font-size:0.8rem;font-weight:700;color:var(--hot);">⛔ ${esc(p.stale_reason)}</span>` : ''}${p.next_action ? `<span style="margin-left:10px;font-size:0.8rem;font-weight:600;color:var(--accent);background:rgba(49,130,206,0.1);padding:2px 8px;border-radius:4px;">→ ${p.next_action === 'Pop In' ? '🚶' : p.next_action === 'Call' ? '📞' : '📧'} ${esc(p.next_action)}${p.next_action_date ? ' (' + p.next_action_date + ')' : ''}</span>` : ''}</div>
+              <span class="saved-indicator" id="saved-${p.id}">✓ Saved</span>
+              <div class="badge-row" style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+                <span class="prospect-badge badge-${getBadgeClass(p)}" onclick="event.stopPropagation(); cycleTag(${p.id})" style="cursor:pointer;" title="Click to change">
+                  ${getBadgeLabel(p)}
+                </span>
+                <select class="next-action-select" onclick="event.stopPropagation()" onchange="setNextAction(${p.id}, this.value)" style="padding:4px 8px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;border:1px solid ${p.next_action ? 'var(--accent)' : 'var(--border)'};background:${p.next_action ? 'rgba(49,130,206,0.1)' : 'transparent'};color:${p.next_action ? 'var(--accent)' : 'var(--muted)'};">
+                  <option value="">📋 + Action</option>
+                  <option value="Pop In" ${p.next_action === 'Pop In' ? 'selected' : ''}>🚶 Pop In</option>
+                  <option value="Call" ${p.next_action === 'Call' ? 'selected' : ''}>📞 Call</option>
+                  <option value="Email" ${p.next_action === 'Email' ? 'selected' : ''}>📧 Email</option>
+                  <option value="Other" ${p.next_action && !['Pop In','Call','Email'].includes(p.next_action) ? 'selected' : ''}>📝 Other${p.next_action && !['Pop In','Call','Email'].includes(p.next_action) ? ': ' + p.next_action : ''}</option>
+                </select>
+                <button onclick="event.stopPropagation(); toggleSigned(${p.id})" title="Mark as Signed" style="padding:4px 10px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;border:1px solid ${p.status === 'signed' ? 'var(--success)' : 'var(--border)'};background:${p.status === 'signed' ? 'rgba(56,161,105,0.15)' : 'transparent'};color:${p.status === 'signed' ? 'var(--success)' : 'var(--muted)'};">
+                  ✅ Signed
+                </button>
+                <button class="stale-btn ${p.status === 'closed' ? 'active' : ''}" onclick="event.stopPropagation(); toggleStale(${p.id})" title="Mark as Stale" style="padding:4px 10px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;border:1px solid ${p.status === 'closed' ? 'var(--hot)' : 'var(--border)'};background:${p.status === 'closed' ? 'rgba(229,62,62,0.1)' : 'transparent'};color:${p.status === 'closed' ? 'var(--hot)' : 'var(--muted)'};">
+                  ⛔ Stale
+                </button>
+              </div>
+            </div>
+            <div class="prospect-meta" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span>${p.property_type || 'Unknown'} ${p.units ? '• ' + p.units + ' units' : ''}
+              ${p.address ? ' • <a href="https://www.google.com/maps/search/' + encodeURIComponent(p.address) + '" target="_blank" class="address-link" onclick="event.stopPropagation()">📍 ' + p.address + '</a>' : ''}
+              ${p.subsidy_amount ? ' • <span style="color:#276749;font-weight:600;">💰 $' + parseFloat(p.subsidy_amount).toFixed(2) + '/mo subsidy</span>' : ''}</span>
+            </div>
+            ${p.activities?.length ? `<div style="display:flex;justify-content:flex-start;gap:4px;flex-wrap:wrap;margin-top:6px;">
+              ${groupActivitiesByDate(p.activities).slice(0, 8).map(([date, acts]) => `<span onclick="event.stopPropagation(); showActivityPopup(${p.id}, '${date}')" style="cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;min-width:54px;height:54px;border-radius:8px;font-size:0.7rem;background:rgba(49,130,206,0.08);color:var(--accent);border:1px solid rgba(49,130,206,0.15);transition:all 0.15s;" onmouseover="this.style.background='rgba(49,130,206,0.15)'" onmouseout="this.style.background='rgba(49,130,206,0.08)'"><span style="font-size:16px;">${acts.map(a => actIcon(a.type)).join('')}</span><span style="opacity:0.7;font-size:0.65rem;">${date}</span></span>`).join('')}
+              ${groupActivitiesByDate(p.activities).length > 8 ? `<span style="min-width:54px;height:54px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;color:var(--muted);background:var(--bg);border:1px solid var(--border);">+${groupActivitiesByDate(p.activities).length - 8}</span>` : ''}
+            </div>` : ''}
+            ${(p.contacts?.length || p.primary_contact) ? `<div style="margin-top:4px;font-size:0.85rem;">
+              ${p.contacts?.length ? p.contacts.map(c => `<span style="color:var(--text);">${c.is_primary ? '⭐ ' : ''}${titleCase(c.name)}</span>${c.phone ? ' <a href="tel:' + c.phone + '" style="color:var(--accent);font-size:0.8rem;" onclick="event.stopPropagation()">' + c.phone + '</a>' : ''}${c.email ? ' <a href="mailto:' + c.email + '" style="color:var(--accent);font-size:0.8rem;" onclick="event.stopPropagation()">' + c.email + '</a>' : ''}`).join(' · ') : titleCase(p.primary_contact || '')}
+            </div>` : ''}
+          </div>
+          ${expandedId === p.id ? renderDetail(p) : ''}
+        </div>
+      `).join('');
+    }
+
+    function renderDetail(p) {
+      const contacts = p.contacts || [];
+      const activities = p.activities || [];
+
+      return `
+        <div class="prospect-detail" style="display:block;">
+          <!-- Activities -->
+          <div class="activities-section">
+            <div class="detail-section-title" style="margin-bottom:8px;">Activities</div>
+            ${activities.length ? activities.map(a => `
+              <div class="activity-item ${a.type}" style="position:relative;">
+                <div style="position:absolute;top:6px;right:6px;display:flex;gap:8px;">
+                  <button style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px;opacity:0.6;" onclick="editActivity(${p.id},${a.id})" title="Edit activity" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">✏️</button>
+                  <button style="background:none;border:none;color:var(--hot);cursor:pointer;font-size:12px;opacity:0.5;" onclick="deleteActivity(${p.id},${a.id})" title="Delete activity" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5">✕</button>
+                </div>
+                <div class="activity-type">${a.type}</div>
+                <div class="activity-desc">${a.description || ''}</div>
+                ${a.outcome ? `<div style="font-size:0.8rem;color:var(--accent);margin-top:2px;">Outcome: ${outcomeLabel(a.outcome)}</div>` : ''}
+                ${a.next_action ? `<div style="font-size:0.8rem;color:var(--warm);margin-top:2px;">→ ${a.next_action}</div>` : ''}
+                <div class="activity-date">${a.activity_date ? formatActivityDate(a.activity_date) : new Date(a.created_at).toLocaleDateString()}</div>
+              </div>
+            `).join('') : '<p style="color:var(--muted);font-size:0.85rem;">No activities logged yet.</p>'}
+          </div>
+
+          <!-- Action bar -->
+          <div class="action-bar">
+            <button class="action-btn" onclick="logActivity(${p.id},'call')" style="background:rgba(49,130,206,0.15);border-color:var(--accent);color:var(--accent);">📞 Log Call</button>
+            <button class="action-btn" onclick="logActivity(${p.id},'pop-in')" style="background:rgba(56,161,105,0.15);border-color:var(--success);color:var(--success);">🚶 Log Pop-in</button>
+            <button class="action-btn" onclick="logActivity(${p.id},'email')" style="background:rgba(221,107,32,0.15);border-color:var(--warm);color:var(--warm);">📧 Log Email</button>
+          </div>
+
+          <!-- Editable Fields -->
+          <div class="detail-section" style="padding:10px;">
+            <div class="detail-section-title">Property Info</div>
+            <div class="prop-info-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+              <div class="field-group">
+                <label class="field-label">Name</label>
+                <input class="field-input" value="${esc(p.name)}" onchange="updateField(${p.id},'name',this.value)" style="padding:6px 8px;font-size:0.85rem;">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Type</label>
+                <select class="field-input" onchange="updateField(${p.id},'property_type',this.value)" style="padding:6px 8px;font-size:0.85rem;">
+                  <option value="">Select...</option>
+                  ${[
+                    {v: 'Apartments/Condos', l: '🏢 Apartments/Condos'},
+                    {v: 'Senior Living', l: '🏥 Senior Living'},
+                    {v: 'Healthcare', l: '⚕️ Healthcare'},
+                    {v: 'Industrial/Warehouse', l: '🏭 Industrial/Warehouse'},
+                    {v: 'Office/Business', l: '🏢 Office/Business'},
+                    {v: 'Other', l: '📦 Other'}
+                  ].map(t =>
+                    `<option value="${t.v}" ${p.property_type === t.v ? 'selected' : ''}>${t.l}</option>`
+                  ).join('')}
+                </select>
+              </div>
+              <div class="field-group">
+                <label class="field-label">Units</label>
+                <input class="field-input" value="${esc(p.units || '')}" onchange="updateField(${p.id},'units',this.value)" style="padding:6px 8px;font-size:0.85rem;">
+              </div>
+              <div class="field-group" style="grid-column:1/-1;">
+                <label class="field-label">Address</label>
+                <input class="field-input" value="${esc(p.address || '')}" onchange="updateField(${p.id},'address',this.value)" style="padding:6px 8px;font-size:0.85rem;">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Hours</label>
+                <input class="field-input" value="${esc(p.hours || '')}" onchange="updateField(${p.id},'hours',this.value)" style="padding:6px 8px;font-size:0.85rem;">
+              </div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;margin-top:12px;">
+              <button class="action-btn danger" onclick="deleteProspect(${p.id}, '${esc(p.name)}')" style="font-size:0.75rem;padding:4px 10px;">🗑️ Delete Location</button>
+            </div>
+          </div>
+
+          <!-- Sales Notes -->
+          <div class="notes-box">
+            <label class="sales">📝 Sales Notes</label>
+            <div style="position:relative;">
+              <button onclick="addTimestampedNote(${p.id},'notes')" style="position:absolute;top:6px;left:6px;font-size:0.7rem;padding:2px 8px;background:var(--accent);color:white;border:none;border-radius:4px;cursor:pointer;z-index:1;">+ Add Entry</button>
+              <textarea id="notes-${p.id}" onchange="updateField(${p.id},'notes',this.value)" oninput="autoResize(this)" onfocus="autoResize(this)" style="padding-top:30px;">${esc(p.notes || '')}</textarea>
+            </div>
+          </div>
+
+          <!-- Kurtis Notes -->
+          <div class="notes-box kurtis">
+            <label class="kurtis">👤 Kurtis Notes</label>
+            <div style="position:relative;">
+              <button onclick="addTimestampedNote(${p.id},'kurtis_notes')" style="position:absolute;top:6px;left:6px;font-size:0.7rem;padding:2px 8px;background:#805ad5;color:white;border:none;border-radius:4px;cursor:pointer;z-index:1;">+ Add Entry</button>
+              <textarea id="kurtis_notes-${p.id}" onchange="updateField(${p.id},'kurtis_notes',this.value)" oninput="autoResize(this)" onfocus="autoResize(this)" style="padding-top:30px;">${esc(p.kurtis_notes || '')}</textarea>
+            </div>
+          </div>
+
+          <!-- Contacts (inline editable) -->
+          <div class="detail-section" style="margin-top:12px;">
+            <div class="detail-section-title">Contacts</div>
+            ${contacts.length ? `<div class="contact-grid-header" style="display:grid;grid-template-columns:2fr 2fr 1.5fr 3fr auto;gap:8px;margin-bottom:6px;align-items:center;">
+              <span class="field-label">Name</span>
+              <span class="field-label">Role</span>
+              <span class="field-label">Phone</span>
+              <span class="field-label">Email</span>
+              <span></span>
+            </div>` : ''}
+            ${contacts.map((c, ci) => `
+              <div class="contact-card contact-grid-row" style="display:grid;grid-template-columns:2fr 2fr 1.5fr 3fr auto;gap:8px;align-items:center;">
+                <div class="field-group contact-field"><label class="field-label contact-field-label">Name</label><input class="field-input" value="${esc(c.name)}" placeholder="Name" style="font-weight:600;width:100%;" onchange="updateContact(${p.id},${c.id},'name',this.value)"></div>
+                <div class="field-group contact-field"><label class="field-label contact-field-label">Role</label><input class="field-input" value="${esc(c.role || '')}" placeholder="Role" style="font-size:0.8rem;width:100%;" onchange="updateContact(${p.id},${c.id},'role',this.value)"></div>
+                <div class="field-group contact-field"><label class="field-label contact-field-label">Phone</label><input class="field-input" value="${esc(c.phone || '')}" placeholder="Phone" style="width:100%;" onchange="updateContact(${p.id},${c.id},'phone',this.value)"></div>
+                <div class="field-group contact-field"><label class="field-label contact-field-label">Email</label><input class="field-input" value="${esc(c.email || '')}" placeholder="Email" style="width:100%;" onchange="updateContact(${p.id},${c.id},'email',this.value)"></div>
+                <button class="contact-delete" style="background:none;border:none;color:var(--hot);cursor:pointer;font-size:14px;" onclick="deleteContact(${p.id},${c.id})" title="Remove contact">✕</button>
+              </div>
+            `).join('')}
+            <button class="action-btn" style="margin-top:8px;" onclick="showAddContact(${p.id})">+ Add Contact</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Tag cycling: new → warm → hot → new (signed and stale are separate buttons)
+    const TAG_CYCLE = [
+      { priority: 'normal', status: 'new' },
+      { priority: 'warm', status: 'active' },
+      { priority: 'hot', status: 'active' }
+    ];
+
+    function getBadgeClass(p) {
+      if (p.priority === 'hot') return 'hot';
+      if (p.priority === 'warm') return 'warm';
+      // Don't show signed/stale in badge - they have their own buttons
+      return 'new';
+    }
+
+    function getBadgeLabel(p) {
+      if (p.priority === 'hot') return '🔥 Hot';
+      if (p.priority === 'warm') return '🟠 Warm';
+      // Don't show Signed/Stale in badge label - they have their own buttons
+      return '🆕 New';
+    }
+
+    function toggleNeedsAction(id) {
+      const p = prospects.find(p => p.id === id);
+      if (!p) return;
+      p.needs_action = !p.needs_action;
+      fetch(`/api/prospects/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ needs_action: p.needs_action })
+      }).then(() => {
+        const el = document.getElementById(`saved-${id}`);
+        if (el) { el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 1500); }
+      });
+      renderProspects();
+    }
+
+    function setNextAction(id, action) {
+      const p = prospects.find(p => p.id === id);
+      if (!p) return;
+      
+      // If "Other" selected, prompt for custom action
+      if (action === 'Other') {
+        const customAction = prompt('Enter custom action:');
+        if (!customAction) {
+          renderProspects(); // Reset dropdown if cancelled
+          return;
+        }
+        action = customAction;
+      }
+      
+      p.next_action = action;
+      p.needs_action = !!action; // Set needs_action based on whether action is set
+      p.follow_up_date = ''; // Clear follow-up since new action is set
+      p._isFollowUp = false;
+      const updateData = { next_action: action, needs_action: !!action, follow_up_date: '' };
+      if (action) {
+        p.next_action_added = new Date().toISOString();
+        updateData.next_action_added = p.next_action_added;
+      }
+      fetch(`/api/prospects/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+      }).then(() => {
+        const el = document.getElementById(`saved-${id}`);
+        if (el) { el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 1500); }
+      });
+      renderProspects();
+      renderTodoList();
+    }
+
+    function toggleSigned(id) {
+      const p = prospects.find(p => p.id === id);
+      if (!p) return;
+      
+      if (p.status === 'signed') {
+        // Un-sign: set back to active
+        p.status = 'active';
+        fetch(`/api/prospects/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'active' })
+        }).then(() => {
+          const el = document.getElementById(`saved-${id}`);
+          if (el) { el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 1500); }
+          loadStats();
+        });
+      } else {
+        // Mark as signed
+        p.status = 'signed';
+        fetch(`/api/prospects/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'signed' })
+        }).then(() => {
+          const el = document.getElementById(`saved-${id}`);
+          if (el) { el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 1500); }
+          loadStats();
+        });
+      }
+      renderProspects();
+    }
+
+    function toggleStale(id) {
+      const p = prospects.find(p => p.id === id);
+      if (!p) return;
+      
+      if (p.status === 'closed') {
+        // Un-stale: set back to active/normal
+        p.status = 'active';
+        p.stale_reason = '';
+        fetch(`/api/prospects/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'active', stale_reason: '' })
+        }).then(() => {
+          const el = document.getElementById(`saved-${id}`);
+          if (el) { el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 1500); }
+          loadStats();
+        });
+      } else {
+        // Mark as stale: prompt for reason
+        const reason = prompt('Why is this prospect stale?');
+        if (reason === null) return; // cancelled
+        // Clear all other tags when marking stale
+        p.status = 'closed';
+        p.stale_reason = reason;
+        p.priority = 'normal';
+        p.next_action = '';
+        p.next_action_date = '';
+        p.needs_action = false;
+        fetch(`/api/prospects/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            status: 'closed', 
+            stale_reason: reason,
+            priority: 'normal',
+            next_action: '',
+            next_action_date: '',
+            needs_action: false
+          })
+        }).then(() => {
+          const el = document.getElementById(`saved-${id}`);
+          if (el) { el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 1500); }
+          loadStats();
+        });
+      }
+      renderProspects();
+      renderTodoList();
+    }
+
+    function deleteProspect(id, name) {
+      if (!confirm(`Are you sure you want to delete "${name}"?\n\nThis action cannot be undone.`)) return;
+      
+      fetch(`/api/prospects/${id}`, {
+        method: 'DELETE'
+      }).then(res => {
+        if (res.ok) {
+          prospects = prospects.filter(p => p.id !== id);
+          expandedId = null;
+          renderProspects();
+          loadStats();
+        } else {
+          alert('Failed to delete prospect');
+        }
+      }).catch(() => {
+        alert('Failed to delete prospect');
+      });
+    }
+
+    function cycleTag(id) {
+      const p = prospects.find(p => p.id === id);
+      if (!p) return;
+
+      // If currently stale, stay on current tag cycle position (stale is separate button)
+      // Find current position in cycle based on priority
+      let idx = TAG_CYCLE.findIndex(t =>
+        t.priority === p.priority && (t.status === p.status || (t.status === 'new' && p.status === 'new') || (t.status === 'active' && p.status === 'active') || p.status === 'closed')
+      );
+      if (idx === -1) idx = 0;
+
+      // Move to next
+      const next = TAG_CYCLE[(idx + 1) % TAG_CYCLE.length];
+      
+      p.priority = next.priority;
+      // Don't change status if stale - stale is controlled by separate button
+      const updateData = { priority: next.priority };
+      if (p.status !== 'closed') {
+        p.status = next.status;
+        updateData.status = next.status;
+      }
+
+      // Save
+      fetch(`/api/prospects/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+      }).then(() => {
+        const el = document.getElementById(`saved-${id}`);
+        if (el) { el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 1500); }
+        loadStats();
+      });
+
+      renderProspects();
+    }
+
+    function esc(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function titleCase(str) {
+      return String(str).replace(/\S+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+    }
+
+    function formatPhone(str) {
+      const digits = String(str).replace(/\D/g, '');
+      if (digits.length === 10) {
+        return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+      }
+      if (digits.length === 11 && digits[0] === '1') {
+        return `(${digits.slice(1,4)}) ${digits.slice(4,7)}-${digits.slice(7)}`;
+      }
+      return str; // Return original if not standard format
+    }
+
+    function actIcon(type) {
+      if (type === 'call') return '📞';
+      if (type === 'pop-in') return '🚶';
+      if (type === 'email') return '📧';
+      if (type === 'status-change') return '🔄';
+      return '📋';
+    }
+
+    function formatActivityDate(dateStr) {
+      // Parse YYYY-MM-DD as local date to avoid timezone shift
+      const [y, m, d] = dateStr.split('-');
+      return new Date(y, m - 1, d).toLocaleDateString();
+    }
+
+    function outcomeLabel(val) {
+      const labels = {
+        'interested': 'Interested - Follow up',
+        'thinking': 'Thinking about it',
+        'not_available': 'Contact not available',
+        'not_interested': 'Not interested',
+        'left_info': 'Left information'
+      };
+      return labels[val] || val;
+    }
+
+    function showActivityPopup(prospectId, dateLabel) {
+      const p = prospects.find(pr => pr.id === prospectId);
+      if (!p || !p.activities) return;
+      
+      // Find activities matching this date label
+      const acts = p.activities.filter(a => {
+        let date;
+        if (a.activity_date) {
+          const [y, m, d] = a.activity_date.split('-');
+          date = new Date(y, m - 1, d).toLocaleDateString('en', { month: 'short', day: 'numeric' });
+        } else {
+          date = new Date(a.created_at).toLocaleDateString('en', { month: 'short', day: 'numeric' });
+        }
+        return date === dateLabel;
+      });
+
+      if (!acts.length) return;
+
+      const content = acts.map(a => `
+        <div style="padding:12px;background:#f7fafc;border-radius:8px;margin-bottom:8px;border-left:3px solid ${a.type === 'call' ? 'var(--accent)' : a.type === 'pop-in' ? 'var(--success)' : 'var(--warn)'};">
+          <div style="font-weight:600;font-size:1rem;margin-bottom:6px;">${actIcon(a.type)} ${a.type.charAt(0).toUpperCase() + a.type.slice(1)}</div>
+          <div style="font-size:0.9rem;color:#2d3748;margin-bottom:6px;">${a.description || '<em>No description</em>'}</div>
+          ${a.outcome ? `<div style="font-size:0.85rem;color:var(--accent);margin-bottom:4px;"><strong>Outcome:</strong> ${outcomeLabel(a.outcome)}</div>` : ''}
+          ${a.next_action ? `<div style="font-size:0.85rem;color:var(--warn);"><strong>Next:</strong> ${a.next_action}</div>` : ''}
+        </div>
+      `).join('');
+
+      // Create popup
+      const popup = document.createElement('div');
+      popup.id = 'activityPopup';
+      popup.innerHTML = `
+        <div style="position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1000;display:flex;align-items:center;justify-content:center;" onclick="if(event.target===this)this.remove()">
+          <div style="background:#fff;border-radius:12px;padding:20px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.2);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+              <h3 style="margin:0;font-size:1.1rem;">Activities on ${dateLabel}</h3>
+              <button onclick="this.closest('#activityPopup').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#718096;">&times;</button>
+            </div>
+            ${content}
+          </div>
+        </div>
+      `;
+      document.body.appendChild(popup);
+    }
+
+    function groupActivitiesByDate(activities) {
+      const groups = {};
+      for (const a of activities) {
+        // Use activity_date if set, otherwise fall back to created_at
+        let date;
+        if (a.activity_date) {
+          // Parse YYYY-MM-DD as local date (avoid timezone shift)
+          const [y, m, d] = a.activity_date.split('-');
+          date = new Date(y, m - 1, d).toLocaleDateString('en', { month: 'short', day: 'numeric' });
+        } else {
+          date = new Date(a.created_at).toLocaleDateString('en', { month: 'short', day: 'numeric' });
+        }
+        if (!groups[date]) groups[date] = [];
+        groups[date].push(a);
+      }
+      // Sort by date ascending (earliest first, extends right)
+      return Object.entries(groups).sort((a, b) => {
+        const dateA = a[1][0].activity_date ? new Date(a[1][0].activity_date + 'T12:00:00') : new Date(a[1][0].created_at);
+        const dateB = b[1][0].activity_date ? new Date(b[1][0].activity_date + 'T12:00:00') : new Date(b[1][0].created_at);
+        return dateA - dateB;
+      });
+    }
+
+    function autoResize(el) {
+      el.style.height = 'auto';
+      el.style.height = el.scrollHeight + 'px';
+    }
+
+    function updateContact(prospectId, contactId, field, value) {
+      const p = prospects.find(p => p.id === prospectId);
+      if (p?.contacts) {
+        const c = p.contacts.find(c => c.id === contactId);
+        if (c) c[field] = value;
+      }
+      clearTimeout(saveTimers['c' + contactId]);
+      saveTimers['c' + contactId] = setTimeout(async () => {
+        await fetch(`/api/contacts/${contactId}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [field]: value })
+        });
+        const el = document.getElementById(`saved-${prospectId}`);
+        if (el) { el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 1500); }
+      }, 500);
+    }
+
+    async function deleteContact(prospectId, contactId) {
+      if (!confirm('Remove this contact?')) return;
+      await fetch(`/api/contacts/${contactId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/prospects/${prospectId}`);
+      const detail = await res.json();
+      const idx = prospects.findIndex(p => p.id === prospectId);
+      if (idx >= 0) prospects[idx] = detail;
+      renderProspects();
+    }
+
+    async function deleteActivity(prospectId, activityId) {
+      if (!confirm('Delete this activity?')) return;
+      await fetch(`/api/activities/${activityId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/prospects/${prospectId}`);
+      const detail = await res.json();
+      const idx = prospects.findIndex(p => p.id === prospectId);
+      if (idx >= 0) prospects[idx] = detail;
+      renderProspects();
+      loadStats();
+    }
+
+    async function toggleExpand(id) {
+      if (expandedId === id) {
+        expandedId = null;
+        renderProspects();
+      } else {
+        // Set expandedId immediately for instant feedback
+        expandedId = id;
+        renderProspects();
+        // Then fetch fresh detail data in background
+        const res = await fetch(`/api/prospects/${id}`);
+        const detail = await res.json();
+        const idx = prospects.findIndex(p => p.id === id);
+        if (idx >= 0) {
+          prospects[idx] = detail;
+          renderProspects(); // Re-render with fresh data
+        }
+      }
+      if (expandedId) {
+        setTimeout(() => {
+          const card = document.getElementById(`card-${expandedId}`);
+          card?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          card?.querySelectorAll('.notes-box textarea').forEach(t => autoResize(t));
+        }, 50);
+      }
+    }
+
+    // Auto-save on field change
+    function updateField(id, field, value) {
+      // Update local data
+      const p = prospects.find(p => p.id === id);
+      if (p) p[field] = value;
+
+      // Debounce save
+      clearTimeout(saveTimers[id]);
+      saveTimers[id] = setTimeout(async () => {
+        await fetch(`/api/prospects/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [field]: value })
+        });
+        // Flash saved indicator
+        const el = document.getElementById(`saved-${id}`);
+        if (el) { el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 1500); }
+        loadStats();
+      }, 500);
+    }
+
+    function addTimestampedNote(id, field) {
+      const textarea = document.getElementById(`${field}-${id}`);
+      if (!textarea) return;
+      
+      const timestamp = new Date().toLocaleString('en-US', {
+        month: '2-digit', day: '2-digit', year: '2-digit',
+        hour: '2-digit', minute: '2-digit', hour12: true
+      });
+      
+      const entry = `[${timestamp}] `;
+      const existingText = textarea.value;
+      textarea.value = entry + (existingText ? '\n\n' + existingText : '');
+      textarea.focus();
+      textarea.setSelectionRange(entry.length, entry.length);
+      autoResize(textarea);
+    }
+
+    // Filters
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        renderProspects();
+      });
+    });
+    document.getElementById('search').addEventListener('input', renderProspects);
+    document.getElementById('typeFilter').addEventListener('change', renderProspects);
+
+    // Add new prospect
+    function showAddModal() {
+      document.getElementById('prospectForm').reset();
+      document.getElementById('prospectModal').classList.add('active');
+    }
+    function closeModal() { document.getElementById('prospectModal').classList.remove('active'); }
+
+    async function addProspect() {
+      const data = {
+        name: titleCase(document.getElementById('addName').value.trim()),
+        property_type: document.getElementById('addPropertyType').value,
+        units: document.getElementById('addUnits').value,
+        address: titleCase(document.getElementById('addAddress').value.trim()),
+        phone: formatPhone(document.getElementById('addPhone').value.trim()),
+        hours: document.getElementById('addHours').value,
+        status: 'new', priority: 'normal', notes: '', kurtis_notes: ''
+      };
+      await fetch('/api/prospects', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      closeModal();
+      loadData();
+    }
+
+    // Activity
+    function logActivity(prospectId, type) {
+      document.getElementById('activityForm').reset();
+      document.getElementById('activityProspectId').value = prospectId;
+      document.getElementById('activityId').value = '';
+      document.getElementById('activityType').value = type;
+      document.getElementById('activityTitle').textContent = `Log ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+      // Set default date to today
+      document.getElementById('activityDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('activityModal').classList.add('active');
+    }
+
+    function editActivity(prospectId, activityId) {
+      const p = prospects.find(pr => pr.id === prospectId);
+      if (!p || !p.activities) return;
+      const a = p.activities.find(act => act.id === activityId);
+      if (!a) return;
+
+      document.getElementById('activityProspectId').value = prospectId;
+      document.getElementById('activityId').value = activityId;
+      document.getElementById('activityType').value = a.type;
+      document.getElementById('activityTitle').textContent = `Edit ${a.type.charAt(0).toUpperCase() + a.type.slice(1)}`;
+      document.getElementById('activityDate').value = a.activity_date || (a.created_at ? a.created_at.split('T')[0] : '');
+      document.getElementById('activityDesc').value = a.description || '';
+      document.getElementById('activityOutcome').value = a.outcome || '';
+      document.getElementById('nextAction').value = a.next_action || '';
+      document.getElementById('nextActionDate').value = a.next_action_date || '';
+      document.getElementById('activityModal').classList.add('active');
+    }
+
+    function closeActivityModal() { document.getElementById('activityModal').classList.remove('active'); }
+
+    function toggleCustomAction() {
+      const select = document.getElementById('nextAction');
+      const customInput = document.getElementById('customAction');
+      customInput.style.display = select.value === 'Other' ? 'block' : 'none';
+      if (select.value !== 'Other') customInput.value = '';
+    }
+
+    async function saveActivity() {
+      const pid = document.getElementById('activityProspectId').value;
+      const aid = document.getElementById('activityId').value;
+      
+      // Handle custom action
+      let nextAction = document.getElementById('nextAction').value;
+      if (nextAction === 'Other') {
+        nextAction = document.getElementById('customAction').value || '';
+      }
+      
+      const data = {
+        type: document.getElementById('activityType').value,
+        activity_date: document.getElementById('activityDate').value,
+        description: document.getElementById('activityDesc').value,
+        outcome: document.getElementById('activityOutcome').value,
+        next_action: nextAction,
+        next_action_date: document.getElementById('nextActionDate').value
+      };
+
+      if (aid) {
+        // Update existing activity
+        await fetch(`/api/activities/${aid}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+      } else {
+        // Create new activity
+        await fetch(`/api/prospects/${pid}/activities`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+      }
+      
+      // Also update the prospect's next_action if one was set
+      if (nextAction) {
+        await fetch(`/api/prospects/${pid}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            next_action: nextAction, 
+            next_action_date: data.next_action_date,
+            next_action_added: new Date().toISOString(),
+            needs_action: true 
+          })
+        });
+      }
+      
+      closeActivityModal();
+      // Refresh the expanded card
+      expandedId = parseInt(pid);
+      const res = await fetch(`/api/prospects/${pid}`);
+      const detail = await res.json();
+      const idx = prospects.findIndex(p => p.id === parseInt(pid));
+      if (idx >= 0) prospects[idx] = detail;
+      renderProspects();
+      renderTodoList();
+      loadStats();
+    }
+
+    // Contacts
+    function showAddContact(prospectId) {
+      document.getElementById('contactProspectId').value = prospectId;
+      document.getElementById('contactForm').reset();
+      document.getElementById('contactModal').classList.add('active');
+    }
+    function closeContactModal() { document.getElementById('contactModal').classList.remove('active'); }
+
+    async function saveContact() {
+      const pid = document.getElementById('contactProspectId').value;
+      const data = {
+        name: titleCase(document.getElementById('contactName').value.trim()),
+        role: document.getElementById('contactRole').value,
+        email: document.getElementById('contactEmail').value,
+        phone: document.getElementById('contactPhone').value,
+        is_primary: document.getElementById('contactPrimary').checked
+      };
+      await fetch(`/api/prospects/${pid}/contacts`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      closeContactModal();
+      expandedId = parseInt(pid);
+      const res = await fetch(`/api/prospects/${pid}`);
+      const detail = await res.json();
+      const idx = prospects.findIndex(p => p.id === parseInt(pid));
+      if (idx >= 0) prospects[idx] = detail;
+      renderProspects();
+    }
+
+    // Delete
+    async function deleteProspect(id, name) {
+      if (!confirm(`Remove "${name}" from the list? This cannot be undone.`)) return;
+      await fetch(`/api/prospects/${id}`, { method: 'DELETE' });
+      expandedId = null;
+      loadData();
+    }
+
+    // Mini Map
+    const map = L.map('miniMap').setView([36.10, -115.18], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 18
+    }).addTo(map);
+
+    const markers = L.layerGroup().addTo(map);
+    const markerColors = { hot: '#e53e3e', warm: '#eab308', signed: '#38a169', new: '#3182ce', closed: '#a0aec0' };
+
+    function getMarkerColor(p) {
+      // Pop In Needed = amber (check next_action for pop in variations)
+      if (p.next_action && p.next_action.toLowerCase().includes('pop in')) return '#f59e0b';
+      if (p.status === 'signed') return markerColors.signed;
+      if (p.priority === 'hot') return markerColors.hot;
+      if (p.priority === 'warm') return markerColors.warm;
+      if (p.status === 'closed') return markerColors.closed;
+      return markerColors.new;
+    }
+
+    function geocodeAndPlot() {
+      markers.clearLayers();
+      // Server pre-geocodes all addresses — just plot what's available
+      prospects.filter(p => p.lat && p.lng).forEach(p => addMarker(p));
+    }
+
+    function addMarker(p) {
+      const color = getMarkerColor(p);
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="width:20px;height:20px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,0.3);"></div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+      const m = L.marker([p.lat, p.lng], { icon }).addTo(markers);
+      m.bindPopup(`
+        <strong style="font-size:14px;">${p.name}</strong><br>
+        <span style="color:#3182ce;font-size:12px;">${p.property_type || ''}</span><br>
+        <span style="color:#718096;font-size:12px;">📍 ${p.address || ''}</span><br>
+        <div style="margin-top:8px;display:flex;gap:6px;">
+          <a href="#" onclick="event.preventDefault();openFromTodo(${p.id});return false;" style="padding:4px 10px;background:#3182ce;color:#fff;border-radius:6px;font-size:11px;text-decoration:none;">View Details</a>
+          <a href="https://www.google.com/maps/search/${encodeURIComponent(p.address || '')}" target="_blank" style="padding:4px 10px;background:#eee;color:#333;border-radius:6px;font-size:11px;text-decoration:none;">Open in Maps</a>
+        </div>
+      `);
+    }
+
+    // Override loadData to also plot map
+    const _origLoadData = loadData;
+    loadData = async function() {
+      await _origLoadData();
+      geocodeAndPlot();
+    };
+
+    // ── Recent Activity ──
+    function toggleRecentActivity() {
+      const panel = document.getElementById('recentActivityPanel');
+      const btn = document.getElementById('recentActivityBtn');
+      if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        btn.style.background = '#805ad5';
+        btn.style.color = '#fff';
+        renderRecentActivity();
+      } else {
+        panel.style.display = 'none';
+        btn.style.background = '';
+        btn.style.color = '#805ad5';
+      }
+    }
+
+    async function renderRecentActivity() {
+      const days = parseInt(document.getElementById('recentDaysFilter').value) || 7;
+      const cutoff = new Date(Date.now() - days * 86400000);
+      const container = document.getElementById('recentActivityList');
+      container.innerHTML = '<div style="color:var(--muted);font-size:0.9rem;">Loading...</div>';
+
+      // Fetch todos
+      let todos = [];
+      try { todos = await (await fetch('/api/todos')).json(); } catch(e) {}
+
+      // Build activity map grouped by prospect
+      const byProspect = {};
+
+      function addEntry(prospectId, prospectName, timestamp, icon, text) {
+        if (!timestamp || new Date(timestamp) < cutoff) return;
+        if (!byProspect[prospectId]) byProspect[prospectId] = { name: prospectName, items: [] };
+        byProspect[prospectId].items.push({ timestamp: new Date(timestamp), icon, text });
+      }
+
+      // 1. Activities from prospects
+      prospects.forEach(p => {
+        (p.activities || []).forEach(a => {
+          const typeIcons = { 'call': '📞', 'email': '📧', 'pop-in': '🚶', 'note': '📝', 'status-change': '🔄' };
+          const typeIcon = typeIcons[a.type] || '📋';
+          let desc;
+          if (a.type === 'status-change') {
+            desc = a.description || 'Status changed';
+          } else {
+            desc = `${a.type.charAt(0).toUpperCase() + a.type.slice(1)} logged`;
+            if (a.description) desc += `: ${a.description.substring(0, 80)}${a.description.length > 80 ? '...' : ''}`;
+            if (a.outcome) desc += ` → ${a.outcome.substring(0, 60)}`;
+            if (a.next_action) desc += ` (Next: ${a.next_action}${a.next_action_date ? ' ' + a.next_action_date : ''})`;
+          }
+          addEntry(p.id, p.name, a.created_at, typeIcon, desc);
+        });
+
+        // 2. Check notes for timestamped entries
+        // Supports both formats: [MM/DD/YY, HH:MM AM/PM] and [YYYY-MM-DD ...]
+        function parseNoteTimestamp(line) {
+          // Format from addTimestampedNote: [02/01/26, 2:00 PM]
+          const shortMatch = line.match(/^\[(\d{2})\/(\d{2})\/(\d{2}),?\s*(\d{1,2}):(\d{2})\s*(AM|PM)\]/i);
+          if (shortMatch) {
+            const [, mm, dd, yy, hr, min, ampm] = shortMatch;
+            let hour = parseInt(hr);
+            if (ampm.toUpperCase() === 'PM' && hour !== 12) hour += 12;
+            if (ampm.toUpperCase() === 'AM' && hour === 12) hour = 0;
+            return new Date(2000 + parseInt(yy), parseInt(mm) - 1, parseInt(dd), hour, parseInt(min));
+          }
+          // Format: [2026-02-01 ...]
+          const isoMatch = line.match(/^\[(20\d{2}-\d{2}-\d{2}[^\]]*)\]/);
+          if (isoMatch) return new Date(isoMatch[1]);
+          return null;
+        }
+
+        const kurtisLines = (p.kurtis_notes || '').split('\n').filter(l => l.match(/^\[/));
+        kurtisLines.forEach(line => {
+          const noteDate = parseNoteTimestamp(line);
+          if (noteDate && noteDate >= cutoff) {
+            addEntry(p.id, p.name, noteDate.toISOString(), '📝', 'Kurtis note: ' + line.replace(/^\[[^\]]+\]\s*/, '').substring(0, 100));
+          }
+        });
+        const salesLines = (p.notes || '').split('\n').filter(l => l.match(/^\[/));
+        salesLines.forEach(line => {
+          const noteDate = parseNoteTimestamp(line);
+          if (noteDate && noteDate >= cutoff) {
+            addEntry(p.id, p.name, noteDate.toISOString(), '🗒️', 'Sales note: ' + line.replace(/^\[[^\]]+\]\s*/, '').substring(0, 100));
+          }
+        });
+      });
+
+      // 3. Completed todos
+      todos.filter(t => t.completed && t.completed_at).forEach(t => {
+        // Try to find matching prospect by name in title
+        const matchP = prospects.find(p => t.title && t.title.toLowerCase().includes(p.name.toLowerCase()));
+        const pId = matchP ? matchP.id : 0;
+        const pName = matchP ? matchP.name : (t.category || 'General');
+        addEntry(pId, pName, t.completed_at, '✅', `Todo completed: ${t.title}`);
+      });
+
+      // Sort each prospect's items by timestamp desc
+      Object.values(byProspect).forEach(g => g.items.sort((a, b) => b.timestamp - a.timestamp));
+
+      // Sort prospects by most recent activity
+      const sorted = Object.entries(byProspect).sort((a, b) => {
+        const aMax = Math.max(...a[1].items.map(i => i.timestamp.getTime()));
+        const bMax = Math.max(...b[1].items.map(i => i.timestamp.getTime()));
+        return bMax - aMax;
+      });
+
+      // Count total
+      const totalItems = sorted.reduce((sum, [, g]) => sum + g.items.length, 0);
+      document.getElementById('recentActivityCount').textContent = `(${totalItems} events)`;
+
+      if (!sorted.length) {
+        container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);">No recent activity in this time period</div>';
+        return;
+      }
+
+      // Render
+      container.innerHTML = sorted.map(([pId, group]) => {
+        const items = group.items.map(i => {
+          const timeAgo = getTimeAgo(i.timestamp);
+          return `<div style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.05);">
+            <span style="font-size:0.9rem;flex-shrink:0;">${i.icon}</span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:0.83rem;color:var(--text);line-height:1.4;">${esc(i.text)}</div>
+              <div style="font-size:0.72rem;color:var(--muted);margin-top:2px;">${i.timestamp.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} ${i.timestamp.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true})} · ${timeAgo}</div>
+            </div>
+          </div>`;
+        }).join('');
+
+        return `<div style="margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--border);">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer;" onclick="openFromTodo(${pId})">
+            <span style="font-weight:700;font-size:0.95rem;color:var(--accent);">${esc(group.name)}</span>
+            <span style="font-size:0.75rem;color:var(--muted);background:rgba(0,0,0,0.05);padding:2px 8px;border-radius:10px;">${group.items.length} event${group.items.length > 1 ? 's' : ''}</span>
+          </div>
+          ${items}
+        </div>`;
+      }).join('');
+    }
+
+    function getTimeAgo(date) {
+      const now = new Date();
+      const diff = now - date;
+      const mins = Math.floor(diff / 60000);
+      if (mins < 1) return 'just now';
+      if (mins < 60) return `${mins}m ago`;
+      const hours = Math.floor(mins / 60);
+      if (hours < 24) return `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      if (days === 1) return 'yesterday';
+      return `${days}d ago`;
+    }
+
+    loadData();
+  </script>
+</body>
+</html>

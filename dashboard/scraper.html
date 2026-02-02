@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Property Scraper — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa;
+      --card: #ffffff;
+      --card-hover: #f7fafc;
+      --border: #e2e8f0;
+      --text: #1a202c;
+      --muted: #718096;
+      --accent: #3182ce;
+      --accent-dim: rgba(49,130,206,0.1);
+      --success: #38a169;
+      --warn: #dd6b20;
+      --hot: #e53e3e;
+      --purple: #7b2cbf;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .app { max-width: 1300px; margin: 0 auto; padding: 20px; }
+
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 28px; flex-wrap: wrap; gap: 16px;
+    }
+    .header h1 {
+      font-size: 1.5rem;
+      background: linear-gradient(90deg, var(--accent), var(--purple));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .header-sub { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+    .header-actions { display: flex; gap: 10px; align-items: center; }
+
+    .btn {
+      padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer;
+      font-size: 0.9rem; font-weight: 500; transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover:not(:disabled) { opacity: 0.9; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-success:hover:not(:disabled) { opacity: 0.9; }
+    .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover:not(:disabled) { background: var(--card-hover); }
+    .btn-danger { background: var(--hot); color: #fff; }
+    .btn-sm { padding: 6px 14px; font-size: 0.8rem; }
+
+    /* Stats */
+    .stats {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px; margin-bottom: 24px;
+    }
+    .stat {
+      background: var(--card); border-radius: 12px; padding: 18px;
+      text-align: center; border: 1px solid var(--border);
+    }
+    .stat-value { font-size: 2rem; font-weight: 700; }
+    .stat-value.accent { color: var(--accent); }
+    .stat-value.success { color: var(--success); }
+    .stat-value.warn { color: var(--warn); }
+    .stat-value.hot { color: var(--hot); }
+    .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; }
+
+    /* Progress bar */
+    .progress-container {
+      display: none; margin-bottom: 20px; background: var(--card);
+      border-radius: 12px; padding: 20px; border: 1px solid var(--border);
+    }
+    .progress-container.active { display: block; }
+    .progress-bar-bg {
+      width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px;
+      overflow: hidden; margin-top: 10px;
+    }
+    .progress-bar-fill {
+      height: 100%; background: linear-gradient(90deg, var(--accent), var(--purple));
+      border-radius: 4px; transition: width 0.5s ease; width: 0%;
+    }
+    .progress-text { font-size: 0.85rem; color: var(--muted); }
+    .progress-spin { display: inline-block; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Filters */
+    .filters {
+      display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+      align-items: center;
+    }
+    .filter-btn {
+      padding: 8px 16px; background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; color: var(--muted); cursor: pointer; font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .filter-btn:hover, .filter-btn.active {
+      background: var(--accent-dim); border-color: var(--accent); color: var(--accent);
+    }
+    .search-input {
+      flex: 1; min-width: 200px; padding: 10px 16px; background: var(--card);
+      border: 1px solid var(--border); border-radius: 8px; color: var(--text);
+      font-size: 0.9rem; outline: none;
+    }
+    .search-input:focus { border-color: var(--accent); }
+
+    /* Property cards */
+    .property-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .property-card {
+      background: var(--card); border-radius: 12px; border: 1px solid var(--border);
+      padding: 16px 20px; transition: all 0.2s; position: relative;
+      display: grid; grid-template-columns: 40px 1fr auto; gap: 14px; align-items: center;
+    }
+    .property-card:hover { border-color: var(--accent); }
+    .property-card.in-crm { opacity: 0.55; }
+    .property-card.in-crm:hover { opacity: 0.75; }
+    .property-card.selected { border-color: var(--accent); background: rgba(49,130,206,0.04); }
+
+    .property-check {
+      width: 20px; height: 20px; border-radius: 4px; cursor: pointer;
+      accent-color: var(--accent);
+    }
+
+    .property-info { min-width: 0; }
+    .property-name {
+      font-weight: 600; font-size: 0.95rem; margin-bottom: 2px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .property-name a { color: var(--text); text-decoration: none; }
+    .property-name a:hover { color: var(--accent); }
+
+    .property-meta {
+      font-size: 0.8rem; color: var(--muted); display: flex; gap: 14px;
+      flex-wrap: wrap; margin-top: 4px;
+    }
+
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 10px;
+      font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+    }
+    .badge-type { background: var(--accent-dim); color: var(--accent); }
+    .badge-crm { background: rgba(56,161,105,0.15); color: var(--success); }
+    .badge-new { background: rgba(229,62,62,0.12); color: var(--hot); }
+    .badge-score { background: rgba(123,44,191,0.12); color: var(--purple); }
+
+    .property-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+
+    .score-bar {
+      width: 60px; height: 6px; background: #e2e8f0; border-radius: 3px;
+      overflow: hidden; display: inline-block; vertical-align: middle;
+    }
+    .score-bar-fill {
+      height: 100%; border-radius: 3px;
+      transition: width 0.3s;
+    }
+    .score-high .score-bar-fill { background: var(--success); }
+    .score-mid .score-bar-fill { background: var(--warn); }
+    .score-low .score-bar-fill { background: var(--muted); }
+
+    /* Select all bar */
+    .bulk-bar {
+      display: none; padding: 12px 20px; background: var(--accent);
+      border-radius: 10px; color: #fff; margin-bottom: 16px;
+      align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .bulk-bar.active { display: flex; }
+    .bulk-bar .count { font-weight: 700; }
+    .bulk-bar .btn { background: #fff; color: var(--accent); }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center; padding: 60px 20px; color: var(--muted);
+    }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty-state h3 { color: var(--text); margin-bottom: 8px; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; padding: 14px 24px;
+      background: var(--text); color: #fff; border-radius: 10px;
+      font-size: 0.9rem; z-index: 9999; opacity: 0; transform: translateY(20px);
+      transition: all 0.3s; pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { background: var(--success); }
+    .toast.error { background: var(--hot); }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .property-card { grid-template-columns: 30px 1fr; gap: 10px; }
+      .property-actions { grid-column: 1 / -1; justify-content: flex-start; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .header { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <script src="/nav.js"></script>
+  <div class="app">
+    <div class="header">
+      <div>
+        <h1>🏘️ Property Scraper</h1>
+        <div class="header-sub">Find vending prospects in Henderson & SW Las Vegas</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" onclick="loadResults()">🔄 Refresh</button>
+        <button class="btn btn-primary" id="runBtn" onclick="runScraper()">
+          🔍 Run Scraper
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats" id="stats">
+      <div class="stat"><div class="stat-value accent" id="statTotal">—</div><div class="stat-label">Properties Found</div></div>
+      <div class="stat"><div class="stat-value success" id="statNew">—</div><div class="stat-label">New Leads</div></div>
+      <div class="stat"><div class="stat-value warn" id="statCRM">—</div><div class="stat-label">Already in CRM</div></div>
+      <div class="stat"><div class="stat-value" id="statAvgScore" style="color: var(--purple)">—</div><div class="stat-label">Avg Vending Score</div></div>
+      <div class="stat"><div class="stat-value accent" id="statLastRun">—</div><div class="stat-label">Last Scrape</div></div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-container" id="progressBar">
+      <div class="progress-text">
+        <span class="progress-spin">⏳</span>
+        <span id="progressText">Starting scraper...</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+    </div>
+
+    <!-- Bulk action bar -->
+    <div class="bulk-bar" id="bulkBar">
+      <span><span class="count" id="bulkCount">0</span> properties selected</span>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-sm" onclick="importSelected()">📥 Import to CRM</button>
+        <button class="btn btn-sm" onclick="clearSelection()" style="background:rgba(255,255,255,0.2);color:#fff;">✕ Clear</button>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+      <input class="search-input" type="text" id="searchInput" placeholder="Search properties..." oninput="filterResults()">
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">All</button>
+      <button class="filter-btn" data-filter="apartment" onclick="setFilter('apartment', this)">🏢 Apartments</button>
+      <button class="filter-btn" data-filter="senior_living" onclick="setFilter('senior_living', this)">👴 Senior Living</button>
+      <button class="filter-btn" data-filter="medical_office" onclick="setFilter('medical_office', this)">🏥 Medical</button>
+      <button class="filter-btn" data-filter="office" onclick="setFilter('office', this)">🏬 Office</button>
+      <button class="filter-btn" data-filter="new_only" onclick="setFilter('new_only', this)">🆕 New Only</button>
+    </div>
+
+    <!-- Results -->
+    <div class="property-list" id="propertyList">
+      <div class="empty-state">
+        <div class="icon">🔍</div>
+        <h3>No results yet</h3>
+        <p>Click "Run Scraper" to find vending prospects in your territory</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let allProperties = [];
+    let selectedIds = new Set();
+    let currentFilter = 'all';
+    let pollInterval = null;
+
+    // ── Load Results ────────────────────────────────
+    async function loadResults() {
+      try {
+        const res = await fetch('/api/scraper/results');
+        const data = await res.json();
+        allProperties = data.properties || [];
+        updateStats(data);
+        renderProperties();
+      } catch (err) {
+        console.error('Failed to load results:', err);
+      }
+    }
+
+    function updateStats(data) {
+      const summary = data.summary || {};
+      const props = data.properties || [];
+      document.getElementById('statTotal').textContent = summary.total || props.length || '0';
+      document.getElementById('statNew').textContent = summary.new_leads ?? props.filter(p => !p.in_crm).length;
+      document.getElementById('statCRM').textContent = summary.already_in_crm ?? props.filter(p => p.in_crm).length;
+
+      // Avg vending score
+      if (props.length > 0) {
+        const avg = Math.round(props.reduce((s, p) => s + (p.vending_score || 0), 0) / props.length);
+        document.getElementById('statAvgScore').textContent = avg + '/100';
+      }
+
+      // Last run
+      if (data.scraped_at) {
+        const d = new Date(data.scraped_at);
+        document.getElementById('statLastRun').textContent = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        document.getElementById('statLastRun').style.fontSize = '1.3rem';
+      }
+    }
+
+    // ── Render ──────────────────────────────────────
+    function renderProperties() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      let filtered = allProperties;
+
+      // Category filter
+      if (currentFilter === 'new_only') {
+        filtered = filtered.filter(p => !p.in_crm);
+      } else if (currentFilter !== 'all') {
+        filtered = filtered.filter(p => p.property_type === currentFilter);
+      }
+
+      // Search filter
+      if (search) {
+        filtered = filtered.filter(p =>
+          (p.name || '').toLowerCase().includes(search) ||
+          (p.address || '').toLowerCase().includes(search) ||
+          (p.property_type || '').toLowerCase().includes(search)
+        );
+      }
+
+      const list = document.getElementById('propertyList');
+      if (filtered.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">📭</div>
+            <h3>No matching properties</h3>
+            <p>${allProperties.length === 0 ? 'Click "Run Scraper" to find prospects' : 'Try adjusting your filters'}</p>
+          </div>`;
+        return;
+      }
+
+      list.innerHTML = filtered.map((p, i) => {
+        const scoreClass = p.vending_score >= 60 ? 'score-high' : p.vending_score >= 35 ? 'score-mid' : 'score-low';
+        const typeLabels = {
+          apartment: '🏢 Apartment',
+          senior_living: '👴 Senior Living',
+          medical_office: '🏥 Medical',
+          office: '🏬 Office'
+        };
+        const checked = selectedIds.has(i) ? 'checked' : '';
+        const crmClass = p.in_crm ? 'in-crm' : '';
+        const selClass = selectedIds.has(i) ? 'selected' : '';
+
+        return `
+          <div class="property-card ${crmClass} ${selClass}" data-idx="${i}">
+            <input type="checkbox" class="property-check" ${checked} ${p.in_crm ? 'disabled title="Already in CRM"' : ''}
+              onchange="toggleSelect(${i}, this.checked)">
+            <div class="property-info">
+              <div class="property-name">
+                ${p.website ? `<a href="${p.website}" target="_blank">${esc(p.name)}</a>` : esc(p.name)}
+                <span class="badge badge-type">${typeLabels[p.property_type] || p.property_type}</span>
+                ${p.in_crm ? '<span class="badge badge-crm">In CRM</span>' : '<span class="badge badge-new">New</span>'}
+              </div>
+              <div class="property-meta">
+                <span>📍 ${esc(p.address || 'No address')}</span>
+                ${p.phone ? `<span>📞 ${esc(p.phone)}</span>` : ''}
+                ${p.units ? `<span>🏠 ${p.units} units</span>` : ''}
+                ${p.rating ? `<span>⭐ ${p.rating} (${p.review_count || 0})</span>` : ''}
+              </div>
+            </div>
+            <div class="property-actions">
+              <span class="badge badge-score" title="Vending Score: ${p.vending_score}/100">${p.vending_score}</span>
+              <div class="score-bar ${scoreClass}">
+                <div class="score-bar-fill" style="width:${p.vending_score}%"></div>
+              </div>
+              ${!p.in_crm ? `<button class="btn btn-sm btn-success" onclick="importOne(${i})">+ CRM</button>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── Selection ───────────────────────────────────
+    function toggleSelect(idx, checked) {
+      if (checked) selectedIds.add(idx);
+      else selectedIds.delete(idx);
+      updateBulkBar();
+      renderProperties();
+    }
+
+    function clearSelection() {
+      selectedIds.clear();
+      updateBulkBar();
+      renderProperties();
+    }
+
+    function updateBulkBar() {
+      const bar = document.getElementById('bulkBar');
+      const count = selectedIds.size;
+      document.getElementById('bulkCount').textContent = count;
+      bar.classList.toggle('active', count > 0);
+    }
+
+    // ── Filters ─────────────────────────────────────
+    function setFilter(filter, btn) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderProperties();
+    }
+
+    function filterResults() { renderProperties(); }
+
+    // ── Run Scraper ─────────────────────────────────
+    async function runScraper() {
+      const btn = document.getElementById('runBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="progress-spin">⏳</span> Running...';
+
+      const prog = document.getElementById('progressBar');
+      prog.classList.add('active');
+
+      try {
+        await fetch('/api/scraper/run', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+        // Poll for status
+        pollInterval = setInterval(pollStatus, 1500);
+      } catch (err) {
+        showToast('Failed to start scraper: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = '🔍 Run Scraper';
+        prog.classList.remove('active');
+      }
+    }
+
+    async function pollStatus() {
+      try {
+        const res = await fetch('/api/scraper/status');
+        const status = await res.json();
+
+        if (status.running && status.progress) {
+          const pct = status.progress.total > 0
+            ? Math.round((status.progress.completed / status.progress.total) * 100) : 0;
+          document.getElementById('progressFill').style.width = pct + '%';
+          document.getElementById('progressText').textContent =
+            `Scanning... ${status.progress.completed}/${status.progress.total} categories (${status.progress.results} found)`;
+        }
+
+        if (!status.running) {
+          clearInterval(pollInterval);
+          document.getElementById('progressBar').classList.remove('active');
+          document.getElementById('runBtn').disabled = false;
+          document.getElementById('runBtn').innerHTML = '🔍 Run Scraper';
+
+          if (status.error) {
+            showToast('Scraper error: ' + status.error, 'error');
+          } else {
+            showToast(`Scraper complete! Found ${status.progress?.results || 0} properties`, 'success');
+            loadResults();
+          }
+        }
+      } catch (err) {
+        // keep polling
+      }
+    }
+
+    // ── Import ──────────────────────────────────────
+    async function importSelected() {
+      const props = [...selectedIds].map(i => allProperties[i]).filter(p => !p.in_crm);
+      if (props.length === 0) {
+        showToast('No new properties selected', 'error');
+        return;
+      }
+      await doImport(props);
+    }
+
+    async function importOne(idx) {
+      const p = allProperties[idx];
+      if (!p || p.in_crm) return;
+      await doImport([p]);
+    }
+
+    async function doImport(properties) {
+      try {
+        const res = await fetch('/api/scraper/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ properties })
+        });
+        const data = await res.json();
+        if (data.imported > 0) {
+          showToast(`✅ Imported ${data.imported} prospect${data.imported > 1 ? 's' : ''} to CRM!`, 'success');
+          selectedIds.clear();
+          updateBulkBar();
+          // Refresh to update duplicate status
+          await loadResults();
+        } else {
+          showToast('All selected properties already in CRM', 'error');
+        }
+      } catch (err) {
+        showToast('Import failed: ' + err.message, 'error');
+      }
+    }
+
+    // ── Helpers ─────────────────────────────────────
+    function esc(s) {
+      if (!s) return '';
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function showToast(msg, type = '') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast show' + (type ? ' ' + type : '');
+      setTimeout(() => t.className = 'toast', 3500);
+    }
+
+    // ── Init ────────────────────────────────────────
+    loadResults();
+  </script>
+</body>
+</html>

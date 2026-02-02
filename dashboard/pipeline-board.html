@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-sales-32.png">
+  <title>Pipeline Board — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0f172a; --card: #1e293b; --border: #334155;
+      --text: #e2e8f0; --muted: #94a3b8; --accent: #3b82f6;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app { padding: 16px; height: calc(100vh - 52px); display: flex; flex-direction: column; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+    .header h1 { font-size: 1.4rem; background: linear-gradient(90deg, #3b82f6, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header-stats { display: flex; gap: 16px; font-size: 0.85rem; color: var(--muted); }
+    .header-stats span { display: flex; align-items: center; gap: 4px; }
+    .header-stats .count { font-weight: 700; color: var(--text); }
+    .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-sm { padding: 4px 10px; font-size: 0.75rem; }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: var(--text); }
+
+    .board-container { flex: 1; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+    .board { display: flex; gap: 12px; height: 100%; min-width: fit-content; padding-bottom: 8px; }
+
+    .stage-column {
+      min-width: 260px; max-width: 280px; background: rgba(30,41,59,0.6); border-radius: 12px;
+      display: flex; flex-direction: column; border: 1px solid var(--border);
+    }
+    .stage-header {
+      padding: 12px 14px; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+      border-top: 3px solid var(--stage-color, var(--accent)); border-radius: 12px 12px 0 0;
+    }
+    .stage-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; }
+    .stage-count {
+      background: rgba(255,255,255,0.1); border-radius: 12px; padding: 2px 8px;
+      font-size: 0.7rem; font-weight: 600; min-width: 24px; text-align: center;
+    }
+    .stage-cards {
+      flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px;
+      min-height: 60px; scrollbar-width: thin; scrollbar-color: #475569 transparent;
+    }
+    .stage-cards::-webkit-scrollbar { width: 4px; }
+    .stage-cards::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+    .stage-cards.drag-over { background: rgba(59,130,246,0.1); border: 1px dashed var(--accent); border-radius: 8px; }
+
+    .pipeline-card {
+      background: var(--card); border-radius: 10px; padding: 12px; cursor: grab;
+      border: 1px solid var(--border); transition: all 0.15s; position: relative;
+    }
+    .pipeline-card:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .pipeline-card.dragging { opacity: 0.4; transform: scale(0.95); }
+    .pipeline-card .company { font-weight: 600; font-size: 0.9rem; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pipeline-card .contact { font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+    .pipeline-card .meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; color: var(--muted); }
+    .pipeline-card .days { display: flex; align-items: center; gap: 3px; }
+    .pipeline-card .days.stale { color: #f97316; font-weight: 600; }
+    .pipeline-card .days.critical { color: #ef4444; font-weight: 600; }
+    .pipeline-card .task-badge {
+      background: rgba(59,130,246,0.2); color: #60a5fa; border-radius: 4px;
+      padding: 1px 6px; font-size: 0.68rem; font-weight: 500;
+    }
+    .pipeline-card .task-badge.overdue { background: rgba(239,68,68,0.2); color: #f87171; }
+    .priority-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+    .priority-dot.hot { background: #ef4444; }
+    .priority-dot.warm { background: #f59e0b; }
+    .priority-dot.normal { background: #6b7280; }
+    .pipeline-card .last-activity { font-size: 0.7rem; color: #64748b; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .empty-stage { text-align: center; color: #475569; font-size: 0.8rem; padding: 20px 10px; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--card); border-radius: 12px; padding: 24px; width: 90%; max-width: 480px; border: 1px solid var(--border); max-height: 80vh; overflow-y: auto; }
+    .modal h2 { margin-bottom: 16px; font-size: 1.1rem; }
+    .modal label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; margin-top: 12px; }
+    .modal input, .modal select, .modal textarea {
+      width: 100%; padding: 10px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: 0.9rem;
+    }
+    .modal textarea { min-height: 80px; resize: vertical; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+
+    .toast { position: fixed; bottom: 20px; right: 20px; background: #22c55e; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 0.9rem; z-index: 9999; animation: slideIn 0.3s; }
+    @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    @media (max-width: 768px) {
+      .stage-column { min-width: 220px; max-width: 240px; }
+      .app { padding: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <div>
+        <h1>🎯 Pipeline Board</h1>
+      </div>
+      <div class="header-stats">
+        <span>Total: <b class="count" id="totalCards">0</b></span>
+        <span>Tasks: <b class="count" id="overdueTasks">0</b> overdue</span>
+        <button class="btn btn-primary btn-sm" onclick="openAddModal()">+ Add Lead</button>
+        <button class="btn btn-ghost btn-sm" onclick="syncPipeline()">⟳ Sync</button>
+      </div>
+    </div>
+    <div class="board-container">
+      <div class="board" id="board"></div>
+    </div>
+  </div>
+
+  <!-- Add Lead Modal -->
+  <div class="modal-overlay" id="addModal">
+    <div class="modal">
+      <h2>Add to Pipeline</h2>
+      <label>Select Prospect</label>
+      <select id="addProspectSelect"><option value="">Loading...</option></select>
+      <label>Stage</label>
+      <select id="addStageSelect"></select>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeAddModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="addToPipeline()">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let pipelineData = { stages: [], cards: {} };
+    let allProspects = [];
+
+    async function loadPipeline() {
+      try {
+        const [pRes, sRes] = await Promise.all([
+          fetch('/api/pipeline/cards'),
+          fetch('/api/pipeline/stats')
+        ]);
+        pipelineData = await pRes.json();
+        const stats = await sRes.json();
+        document.getElementById('totalCards').textContent = pipelineData.total || 0;
+        document.getElementById('overdueTasks').textContent = stats.overdueTasks || 0;
+        renderBoard();
+      } catch (e) {
+        console.error('Error loading pipeline:', e);
+      }
+    }
+
+    function renderBoard() {
+      const board = document.getElementById('board');
+      board.innerHTML = '';
+
+      (pipelineData.stages || []).forEach(stage => {
+        const cards = pipelineData.cards[stage.id] || [];
+        const col = document.createElement('div');
+        col.className = 'stage-column';
+        col.innerHTML = `
+          <div class="stage-header" style="--stage-color: ${stage.color}">
+            <span class="stage-title">${stage.emoji} ${stage.label}</span>
+            <span class="stage-count">${cards.length}</span>
+          </div>
+          <div class="stage-cards" data-stage="${stage.id}"
+               ondragover="handleDragOver(event)" ondrop="handleDrop(event, '${stage.id}')"
+               ondragleave="handleDragLeave(event)">
+            ${cards.length === 0 ? '<div class="empty-stage">Drop cards here</div>' :
+              cards.map(card => renderCard(card)).join('')}
+          </div>
+        `;
+        board.appendChild(col);
+      });
+    }
+
+    function renderCard(card) {
+      const daysClass = card.days_in_stage > 14 ? 'critical' : card.days_in_stage > 7 ? 'stale' : '';
+      const taskBadge = card.next_task
+        ? `<span class="task-badge ${card.next_task.due_date && card.next_task.due_date < new Date().toISOString().split('T')[0] ? 'overdue' : ''}">${card.next_task.title.substring(0, 22)}</span>`
+        : (card.open_tasks > 0 ? `<span class="task-badge">${card.open_tasks} tasks</span>` : '');
+
+      // Touchpoint progress bar (Skool: 8-10 touches to close)
+      const tc = card.touch_count || 0;
+      const tcPct = Math.min(100, Math.round((tc / 10) * 100));
+      const tcColor = tc >= 8 ? '#22c55e' : tc >= 4 ? '#eab308' : '#64748b';
+      const touchBar = `<div style="display:flex;align-items:center;gap:4px;margin-top:4px;"><span style="font-size:0.65rem;color:${tcColor};font-weight:600;">👆${tc}/10</span><div style="flex:1;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;"><div style="width:${tcPct}%;height:100%;background:${tcColor};border-radius:2px;"></div></div></div>`;
+
+      // Qualification score badge
+      const qs = card.qualification_score || 0;
+      const qColor = qs >= 60 ? '#22c55e' : qs >= 30 ? '#eab308' : '#64748b';
+      const qualBadge = qs > 0 ? `<span style="font-size:0.65rem;color:${qColor};font-weight:600;">${qs}pt</span>` : '';
+
+      // Revenue & vendor approval
+      const revBadge = card.monthly_revenue_potential ? `<span style="font-size:0.65rem;color:#22c55e;">$${(card.monthly_revenue_potential/1000).toFixed(1)}K</span>` : '';
+      const vendorBadge = card.vendor_approval_status === 'pending' ? `<span style="font-size:0.62rem;color:#f97316;">⏳vendor</span>` : card.vendor_approval_status === 'approved' ? `<span style="font-size:0.62rem;color:#22c55e;">✓vendor</span>` : '';
+
+      return `
+        <div class="pipeline-card" draggable="true" data-card-id="${card.id}"
+             ondragstart="handleDragStart(event, ${card.id})" ondragend="handleDragEnd(event)"
+             onclick="window.location='/crm/${card.prospect_id}'">
+          <div class="company">${card.company || 'Unknown'}</div>
+          <div class="contact"><span class="priority-dot ${card.priority || 'normal'}"></span> ${card.contact || 'No contact'}</div>
+          <div class="meta">
+            <span class="days ${daysClass}">📅 ${card.days_in_stage}d</span>
+            ${qualBadge} ${revBadge} ${vendorBadge}
+            ${taskBadge}
+          </div>
+          ${touchBar}
+          ${card.last_activity ? `<div class="last-activity">${card.last_activity.type}: ${(card.last_activity.description || '').substring(0, 40)}</div>` : ''}
+        </div>
+      `;
+    }
+
+    // Drag and Drop
+    let dragCardId = null;
+
+    function handleDragStart(e, cardId) {
+      dragCardId = cardId;
+      e.target.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', cardId);
+    }
+
+    function handleDragEnd(e) {
+      e.target.classList.remove('dragging');
+      document.querySelectorAll('.stage-cards').forEach(el => el.classList.remove('drag-over'));
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      e.currentTarget.classList.add('drag-over');
+    }
+
+    function handleDragLeave(e) {
+      e.currentTarget.classList.remove('drag-over');
+    }
+
+    async function handleDrop(e, newStage) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('drag-over');
+      if (!dragCardId) return;
+
+      try {
+        await fetch(`/api/pipeline/cards/${dragCardId}/move`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stage: newStage })
+        });
+        showToast(`Moved to ${newStage.replace(/_/g, ' ')}`);
+        loadPipeline();
+      } catch (e) {
+        console.error('Move failed:', e);
+      }
+      dragCardId = null;
+    }
+
+    // Add Lead Modal
+    async function openAddModal() {
+      document.getElementById('addModal').classList.add('open');
+      const [pRes] = await Promise.all([fetch('/api/prospects')]);
+      allProspects = await pRes.json();
+
+      const existingIds = new Set(Object.values(pipelineData.cards).flat().map(c => c.prospect_id));
+      const available = allProspects.filter(p => !existingIds.has(p.id) && p.status !== 'closed');
+
+      const select = document.getElementById('addProspectSelect');
+      select.innerHTML = '<option value="">— Select prospect —</option>' +
+        available.map(p => `<option value="${p.id}">${p.name} (${p.property_type || 'Unknown'})</option>`).join('');
+
+      const stageSelect = document.getElementById('addStageSelect');
+      stageSelect.innerHTML = (pipelineData.stages || []).map(s =>
+        `<option value="${s.id}">${s.emoji} ${s.label}</option>`
+      ).join('');
+    }
+
+    function closeAddModal() { document.getElementById('addModal').classList.remove('open'); }
+
+    async function addToPipeline() {
+      const prospectId = document.getElementById('addProspectSelect').value;
+      const stage = document.getElementById('addStageSelect').value;
+      if (!prospectId) return alert('Select a prospect');
+
+      await fetch('/api/pipeline/cards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prospect_id: parseInt(prospectId), stage })
+      });
+      closeAddModal();
+      showToast('Added to pipeline');
+      loadPipeline();
+    }
+
+    async function syncPipeline() {
+      const res = await fetch('/api/pipeline/sync', { method: 'POST' });
+      const data = await res.json();
+      showToast(`Synced: ${data.synced} new cards, ${data.total} total`);
+      loadPipeline();
+    }
+
+    function showToast(msg) {
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 3000);
+    }
+
+    loadPipeline();
+  </script>
+  <script src="/nav.js"></script>
+</body>
+</html>

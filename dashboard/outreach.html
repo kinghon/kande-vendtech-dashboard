@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Outreach — Kande VendTech</title>
+  <script src="/nav.js" defer></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#f5f5f7;--card:#fff;--border:#e2e8f0;--border-hover:#cbd5e1;
+      --text:#1a202c;--muted:#718096;--dim:#a0aec0;
+      --accent:#667eea;--accent2:#764ba2;--accent-dim:rgba(102,126,234,.1);
+      --success:#38a169;--success-dim:rgba(56,161,105,.1);
+      --warn:#d69e2e;--warn-dim:rgba(214,158,46,.1);
+      --hot:#e53e3e;--hot-dim:rgba(229,62,62,.1);
+      --purple:#805ad5;--purple-dim:rgba(128,90,213,.1);
+      --gradient:linear-gradient(135deg,#667eea,#764ba2);
+    }
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    .app{max-width:1440px;margin:0 auto;padding:20px}
+    .page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:14px}
+    .page-header h1{font-size:1.7rem;font-weight:700;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .header-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+    .btn{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:.82rem;font-weight:500;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;font-family:inherit}
+    .btn:hover{border-color:var(--accent);color:var(--accent)}
+    .btn-primary{background:var(--gradient);color:#fff;border:none;font-weight:600}
+    .btn-primary:hover{opacity:.9;box-shadow:0 0 16px rgba(102,126,234,.3)}
+    .btn-danger{color:var(--hot);border-color:rgba(229,62,62,.2)}
+    .btn-danger:hover{background:var(--hot);color:#fff}
+    .btn-sm{padding:5px 10px;font-size:.76rem}
+    .btn-success{color:var(--success);border-color:rgba(56,161,105,.3)}
+    .btn-success:hover{background:var(--success);color:#fff}
+    .btn-outline{background:transparent}
+
+    /* Status badge */
+    .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+    .status-dot.online{background:#38a169}
+    .status-dot.offline{background:#e53e3e}
+    .status-dot.warmup{background:#d69e2e}
+
+    /* Stats row */
+    .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px}
+    .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center}
+    .stat-card .value{font-size:1.6rem;font-weight:700;color:var(--accent)}
+    .stat-card .label{font-size:.7rem;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+    .stat-card.success .value{color:var(--success)}
+    .stat-card.warn .value{color:var(--warn)}
+    .stat-card.hot .value{color:var(--hot)}
+    .stat-card.purple .value{color:var(--purple)}
+
+    /* Tabs */
+    .tabs{display:flex;gap:2px;margin-bottom:24px;border-bottom:2px solid var(--border);overflow-x:auto}
+    .tab{padding:10px 18px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem;font-weight:500;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;font-family:inherit;white-space:nowrap}
+    .tab:hover{color:var(--text)}
+    .tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+    .tab-panel{display:none}
+    .tab-panel.active{display:block}
+
+    /* Cards */
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:14px}
+    .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+    .card-title{font-size:1.05rem;font-weight:600}
+
+    /* Tables */
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);font-size:.83rem}
+    th{color:var(--muted);font-weight:600;font-size:.7rem;text-transform:uppercase;letter-spacing:.5px}
+    tr:hover td{background:rgba(102,126,234,.02)}
+    .table-wrap{overflow-x:auto}
+
+    /* Badges */
+    .badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:.7rem;font-weight:600;text-transform:uppercase}
+    .badge-active{background:var(--success-dim);color:var(--success)}
+    .badge-paused{background:var(--warn-dim);color:var(--warn)}
+    .badge-draft{background:rgba(113,128,150,.1);color:var(--muted)}
+    .badge-completed{background:var(--purple-dim);color:var(--purple)}
+    .badge-sent{background:var(--accent-dim);color:var(--accent)}
+    .badge-opened{background:var(--success-dim);color:var(--success)}
+    .badge-replied{background:var(--purple-dim);color:var(--purple)}
+    .badge-bounced{background:var(--hot-dim);color:var(--hot)}
+
+    /* Account cards */
+    .account-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+    .account-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;transition:all .2s}
+    .account-card:hover{border-color:var(--accent);box-shadow:0 2px 8px rgba(102,126,234,.1)}
+    .account-email{font-weight:600;font-size:.9rem;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+    .account-meta{display:flex;gap:12px;flex-wrap:wrap;font-size:.76rem;color:var(--muted)}
+    .account-meta span{display:flex;align-items:center;gap:4px}
+
+    /* Template cards */
+    .tpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+    .tpl-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;cursor:pointer;transition:all .2s}
+    .tpl-card:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.06)}
+    .tpl-name{font-weight:600;font-size:.95rem;margin-bottom:4px}
+    .tpl-subject{font-size:.82rem;color:var(--muted);margin-bottom:8px}
+    .tpl-meta{display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid var(--border)}
+    .tpl-preview{font-size:.78rem;color:var(--dim);line-height:1.5;max-height:52px;overflow:hidden}
+
+    /* Campaign cards */
+    .campaign-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px;transition:all .2s}
+    .campaign-card:hover{border-color:var(--accent)}
+    .campaign-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+    .campaign-name{font-weight:600;font-size:1rem}
+    .campaign-stats{display:flex;gap:16px;flex-wrap:wrap}
+    .campaign-stat{text-align:center;min-width:60px}
+    .campaign-stat .val{font-size:1.1rem;font-weight:700}
+    .campaign-stat .lbl{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+
+    /* Progress bars */
+    .progress{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:8px}
+    .progress-fill{height:100%;border-radius:3px;transition:width .4s ease}
+    .progress-fill.sent{background:var(--accent)}
+    .progress-fill.opened{background:var(--success)}
+    .progress-fill.replied{background:var(--purple)}
+
+    /* Quick Send */
+    .quick-send{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px}
+    .quick-send h3{font-size:1.1rem;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+
+    /* Analytics */
+    .chart-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+    .chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px}
+    .chart-card h4{font-size:.9rem;font-weight:600;margin-bottom:12px}
+    .bar-chart{display:flex;flex-direction:column;gap:8px}
+    .bar-row{display:flex;align-items:center;gap:10px}
+    .bar-label{min-width:100px;font-size:.78rem;color:var(--muted);text-align:right}
+    .bar-track{flex:1;height:20px;background:var(--border);border-radius:4px;overflow:hidden;position:relative}
+    .bar-fill{height:100%;border-radius:4px;transition:width .4s ease}
+    .bar-value{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:.72rem;font-weight:600;color:var(--text)}
+
+    /* Modals */
+    .modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;padding:20px}
+    .modal-overlay.active{display:flex}
+    .modal{background:var(--card);border:1px solid var(--border);border-radius:16px;max-width:680px;width:100%;max-height:90vh;overflow-y:auto;padding:28px}
+    .modal h2{font-size:1.2rem;font-weight:700;margin-bottom:18px;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .form-group{margin-bottom:14px}
+    .form-group label{display:block;font-size:.76rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px}
+    .form-group input,.form-group select,.form-group textarea{width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:.86rem;font-family:inherit}
+    .form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+    .form-group textarea{min-height:120px;resize:vertical}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)}
+
+    .empty-state{text-align:center;padding:40px;color:var(--muted)}
+    .empty-state .icon{font-size:2.5rem;margin-bottom:10px}
+
+    .connection-status{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;font-size:.82rem;font-weight:500;margin-bottom:20px}
+    .connection-status.connected{background:var(--success-dim);color:var(--success)}
+    .connection-status.disconnected{background:var(--hot-dim);color:var(--hot)}
+
+    .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:.68rem;font-weight:600;margin-right:4px;margin-bottom:4px}
+    .tag-company{background:var(--accent-dim);color:var(--accent)}
+    .tag-emails{background:var(--purple-dim);color:var(--purple)}
+
+    .toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:10px;background:#1a202c;color:#fff;font-size:.85rem;font-weight:500;z-index:99999;transform:translateY(100px);opacity:0;transition:all .3s ease;max-width:400px}
+    .toast.show{transform:translateY(0);opacity:1}
+    .toast.success{background:#38a169}
+    .toast.error{background:#e53e3e}
+
+    /* Apollo specific */
+    #tab-prospecting .form-group input,
+    #tab-prospecting .form-group select{font-size:.84rem}
+    #apolloResults table td{vertical-align:middle}
+
+    @media(max-width:1024px){
+      #tab-prospecting .card > div[style*="grid-template-columns: 1fr 1fr 1fr"]{
+        grid-template-columns:1fr !important;
+      }
+    }
+    @media(max-width:768px){
+      .stats-row{grid-template-columns:repeat(2,1fr)}
+      .tpl-grid,.account-grid{grid-template-columns:1fr}
+      .chart-row{grid-template-columns:1fr}
+      .form-row{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="page-header">
+    <h1>📧 Outreach & Email Campaigns</h1>
+    <div class="header-actions">
+      <button class="btn" onclick="loadAll()">🔄 Refresh</button>
+      <button class="btn btn-primary" onclick="openQuickSend()">⚡ Quick Send</button>
+    </div>
+  </div>
+
+  <div id="connectionBanner"></div>
+  <div id="statsRow" class="stats-row"></div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="accounts" onclick="switchTab('accounts')">📬 Email Accounts</button>
+    <button class="tab" data-tab="campaigns" onclick="switchTab('campaigns')">🚀 Campaigns</button>
+    <button class="tab" data-tab="templates" onclick="switchTab('templates')">📝 Pitch Templates</button>
+    <button class="tab" data-tab="quicksend" onclick="switchTab('quicksend')">⚡ Quick Send</button>
+    <button class="tab" data-tab="pipeline" onclick="switchTab('pipeline')">📊 Pipeline</button>
+    <button class="tab" data-tab="analytics" onclick="switchTab('analytics')">📈 Analytics</button>
+    <button class="tab" data-tab="prospecting" onclick="switchTab('prospecting')">🔍 Prospecting</button>
+    <button class="tab" data-tab="history" onclick="switchTab('history')">📬 Send Log</button>
+  </div>
+
+  <!-- EMAIL ACCOUNTS TAB -->
+  <div id="tab-accounts" class="tab-panel active">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Connected Instantly Email Accounts</span>
+        <a href="https://app.instantly.ai/app/accounts" target="_blank" class="btn btn-sm">+ Add in Instantly ↗</a>
+      </div>
+      <div id="accountsList" class="account-grid">
+        <div class="empty-state"><div class="icon">⏳</div><p>Loading accounts...</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CAMPAIGNS TAB -->
+  <div id="tab-campaigns" class="tab-panel">
+    <div class="card-header" style="margin-bottom:16px">
+      <span class="card-title">Instantly Campaigns</span>
+      <div style="display:flex;gap:8px">
+        <select id="campaignFilter" onchange="renderCampaigns()" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);font-size:.82rem">
+          <option value="">All Statuses</option>
+          <option value="1">Active</option>
+          <option value="0">Paused</option>
+          <option value="2">Completed</option>
+          <option value="-1">Draft</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="openCreateCampaign()">+ Create Campaign</button>
+      </div>
+    </div>
+    <div id="campaignsList"></div>
+  </div>
+
+  <!-- PITCH TEMPLATES TAB -->
+  <div id="tab-templates" class="tab-panel">
+    <div class="card-header" style="margin-bottom:16px">
+      <span class="card-title">Corporate Pitch Templates</span>
+      <span style="font-size:.78rem;color:var(--muted)">Loaded from kande-vendtech/sales/corporate-pitches/</span>
+    </div>
+    <div id="pitchGrid" class="tpl-grid"></div>
+
+    <div style="margin-top:24px">
+      <div class="card-header">
+        <span class="card-title">Custom Templates</span>
+        <button class="btn btn-primary btn-sm" onclick="openTplModal()">+ New Template</button>
+      </div>
+      <div id="customTemplateGrid" class="tpl-grid"></div>
+    </div>
+  </div>
+
+  <!-- QUICK SEND TAB -->
+  <div id="tab-quicksend" class="tab-panel">
+    <div class="quick-send">
+      <h3>⚡ Quick Send Email</h3>
+      <p style="color:var(--muted);font-size:.82rem;margin-bottom:18px">Select a prospect, pick a template, preview and send directly through Instantly.</p>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>From Account</label>
+          <select id="qsFrom"><option value="">Loading accounts...</option></select>
+        </div>
+        <div class="form-group">
+          <label>Prospect</label>
+          <select id="qsProspect" onchange="onProspectSelect()"><option value="">-- Select Prospect --</option></select>
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>Pitch Template</label>
+          <select id="qsPitch" onchange="onPitchSelect()"><option value="">-- Select Template --</option></select>
+        </div>
+        <div class="form-group">
+          <label>Email Variant</label>
+          <select id="qsVariant" onchange="onVariantSelect()"><option value="">-- Select Pitch First --</option></select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>To Email</label>
+        <input type="email" id="qsTo" placeholder="recipient@company.com">
+      </div>
+      <div class="form-group">
+        <label>Subject</label>
+        <input type="text" id="qsSubject" placeholder="Email subject...">
+      </div>
+      <div class="form-group">
+        <label>Body</label>
+        <textarea id="qsBody" style="min-height:200px" placeholder="Email body..."></textarea>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px">
+        <span id="qsPreviewNote" style="font-size:.78rem;color:var(--muted)"></span>
+        <div style="display:flex;gap:8px">
+          <button class="btn" onclick="clearQuickSend()">Clear</button>
+          <button class="btn btn-primary" onclick="sendQuickEmail()">📤 Send Email</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIPELINE TAB -->
+  <div id="tab-pipeline" class="tab-panel">
+    <div class="card-header" style="margin-bottom:16px">
+      <span class="card-title">Prospect Outreach Pipeline</span>
+      <button class="btn btn-primary btn-sm" onclick="openLogSendModal()">+ Log Send</button>
+    </div>
+    <div id="pipelineList"></div>
+  </div>
+
+  <!-- ANALYTICS TAB -->
+  <div id="tab-analytics" class="tab-panel">
+    <div id="analyticsContent"></div>
+  </div>
+
+  <!-- SEND HISTORY TAB -->
+  <div id="tab-history" class="tab-panel">
+    <div class="card-header" style="margin-bottom:16px">
+      <span class="card-title">Send History</span>
+      <button class="btn btn-primary btn-sm" onclick="openLogSendModal()">+ Log Send</button>
+    </div>
+    <div class="card"><div class="table-wrap">
+      <table>
+        <thead><tr><th>Prospect</th><th>Template</th><th>Status</th><th>Sent</th><th>Opened</th><th>Replied</th><th>Actions</th></tr></thead>
+        <tbody id="sendsBody"></tbody>
+      </table>
+    </div></div>
+  </div>
+</div>
+
+  <!-- PROSPECTING TAB (Apollo.io) -->
+  <div id="tab-prospecting" class="tab-panel">
+    <div id="apolloBanner"></div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🔍 Apollo.io — Find Decision Makers</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-sm" onclick="clearApolloSearch()">🗑️ Clear</button>
+          <button class="btn btn-primary btn-sm" onclick="runApolloSearch()">🔎 Search</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+        <div class="form-group">
+          <label>Company / Organization</label>
+          <input type="text" id="apolloOrg" placeholder="e.g. Alorica, Boyd Gaming...">
+        </div>
+        <div class="form-group">
+          <label>Job Titles (comma-separated)</label>
+          <input type="text" id="apolloTitles" placeholder="e.g. Facilities Manager, VP Operations">
+        </div>
+        <div class="form-group">
+          <label>Location</label>
+          <input type="text" id="apolloLocation" placeholder="e.g. Las Vegas, Nevada">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+        <div class="form-group">
+          <label>Keywords</label>
+          <input type="text" id="apolloKeywords" placeholder="e.g. vending, facilities, amenities">
+        </div>
+        <div class="form-group">
+          <label>Seniority Level</label>
+          <select id="apolloSeniority">
+            <option value="">Any</option>
+            <option value="c_suite">C-Suite</option>
+            <option value="vp">VP</option>
+            <option value="director">Director</option>
+            <option value="manager">Manager</option>
+            <option value="senior">Senior</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Company Size</label>
+          <select id="apolloSize">
+            <option value="">Any</option>
+            <option value="1,10">1-10</option>
+            <option value="11,50">11-50</option>
+            <option value="51,200">51-200</option>
+            <option value="201,500">201-500</option>
+            <option value="501,1000">501-1,000</option>
+            <option value="1001,5000">1,001-5,000</option>
+            <option value="5001,10000">5,001-10,000</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div id="apolloResults">
+      <div class="empty-state"><div class="icon">🔍</div><p>Search Apollo.io to find contacts. Try searching for "Facilities Manager" at companies in your target area.</p></div>
+    </div>
+
+    <div id="apolloPagination" style="display:none;margin-top:14px;text-align:center">
+      <button class="btn btn-sm" id="apolloPrevBtn" onclick="apolloPage(-1)">← Prev</button>
+      <span id="apolloPageInfo" style="margin:0 12px;font-size:.82rem;color:var(--muted)"></span>
+      <button class="btn btn-sm" id="apolloNextBtn" onclick="apolloPage(1)">Next →</button>
+    </div>
+  </div>
+
+<!-- Create Campaign Modal -->
+<div class="modal-overlay" id="campaignModal">
+  <div class="modal">
+    <h2>Create Instantly Campaign</h2>
+    <div class="form-group">
+      <label>Campaign Name</label>
+      <input type="text" id="campName" placeholder="e.g. Corporate Outreach — Alorica Q3">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('campaignModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createCampaign()">🚀 Create Campaign</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Leads to Campaign Modal -->
+<div class="modal-overlay" id="addLeadsModal">
+  <div class="modal">
+    <h2>Add Prospects to Campaign</h2>
+    <input type="hidden" id="addLeadsCampaignId">
+    <div class="form-group">
+      <label>Select Prospects (with email addresses)</label>
+      <div id="leadCheckboxes" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:10px"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('addLeadsModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addLeadsToCampaign()">📥 Add Leads</button>
+    </div>
+  </div>
+</div>
+
+<!-- Template Modal -->
+<div class="modal-overlay" id="tplModal">
+  <div class="modal">
+    <h2 id="tplModalTitle">New Template</h2>
+    <input type="hidden" id="tplEditId">
+    <div class="form-group">
+      <label>Template Name</label>
+      <input type="text" id="tplName" placeholder="e.g. Day 1 — Smart Market Introduction">
+    </div>
+    <div class="form-group">
+      <label>Subject Line</label>
+      <input type="text" id="tplSubject" placeholder="e.g. A smarter amenity for {{property_name}}">
+    </div>
+    <div class="form-group">
+      <label>Email Body</label>
+      <textarea id="tplBody" placeholder="Hi {{contact_name}},&#10;&#10;Use {{variable}} for merge fields."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('tplModal')">Cancel</button>
+      <button class="btn btn-danger" id="tplDeleteBtn" style="display:none" onclick="deleteTpl()">🗑️</button>
+      <button class="btn btn-primary" onclick="saveTpl()">💾 Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Log Send Modal -->
+<div class="modal-overlay" id="logSendModal">
+  <div class="modal">
+    <h2>Log Email Send</h2>
+    <input type="hidden" id="sendEditId">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Prospect</label>
+        <select id="sendProspect"><option value="">-- Select --</option></select>
+      </div>
+      <div class="form-group">
+        <label>Template</label>
+        <select id="sendTemplate"><option value="">-- Select --</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Status</label>
+        <select id="sendStatus"><option value="sent">Sent</option><option value="pending">Pending</option><option value="opened">Opened</option><option value="replied">Replied</option><option value="bounced">Bounced</option></select>
+      </div>
+      <div class="form-group">
+        <label>Sent At</label>
+        <input type="date" id="sendSentAt">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Opened At</label>
+        <input type="date" id="sendOpenedAt">
+      </div>
+      <div class="form-group">
+        <label>Replied At</label>
+        <input type="date" id="sendRepliedAt">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('logSendModal')">Cancel</button>
+      <button class="btn btn-danger" id="sendDeleteBtn" style="display:none" onclick="deleteSend()">🗑️</button>
+      <button class="btn btn-primary" onclick="saveSend()">💾 Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pitch Preview Modal -->
+<div class="modal-overlay" id="pitchPreviewModal">
+  <div class="modal" style="max-width:720px">
+    <h2 id="pitchPreviewTitle">Pitch Preview</h2>
+    <div id="pitchPreviewContent"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('pitchPreviewModal')">Close</button>
+      <button class="btn btn-primary" id="pitchUseBtn" onclick="usePitchInQuickSend()">⚡ Use in Quick Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- Apollo Contact Detail Modal -->
+<div class="modal-overlay" id="apolloDetailModal">
+  <div class="modal" style="max-width:600px">
+    <h2>Contact Details</h2>
+    <div id="apolloDetailContent"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('apolloDetailModal')">Close</button>
+      <button class="btn btn-success" id="apolloImportBtn" onclick="importApolloContact()">📥 Import to CRM</button>
+      <button class="btn btn-primary" id="apolloSendBtn" onclick="apolloToQuickSend()">⚡ Quick Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const $$=s=>document.querySelectorAll(s);
+
+// State
+let instantlyStatus={configured:false};
+let apolloStatus={configured:false};
+let accounts=[], campaigns=[], pitchTemplates=[], customTemplates=[];
+let sends=[], prospects=[], localStats={};
+let selectedPitch=null;
+let warmupData=null;
+// Apollo state
+let apolloResults=[], apolloCurrentPage=1, apolloTotalPages=1, apolloSelectedContact=null;
+
+// API helper
+async function api(url,opts={}){
+  const r=await fetch(url,{headers:{'Content-Type':'application/json'},...opts});
+  if(!r.ok){ const e=await r.json().catch(()=>({error:r.statusText})); throw new Error(e.error||e.message||'API Error'); }
+  return r.json();
+}
+
+// Toast
+function toast(msg,type='success'){
+  const el=$('#toast');
+  el.textContent=msg;
+  el.className='toast show '+type;
+  setTimeout(()=>el.classList.remove('show'),3500);
+}
+
+// Modal helpers
+function closeModal(id){$('#'+id).classList.remove('active')}
+function openModal(id){$('#'+id).classList.add('active')}
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('active')});
+});
+
+// Tab switching
+function switchTab(tab){
+  $$('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
+  $$('.tab-panel').forEach(p=>p.classList.toggle('active',p.id===`tab-${tab}`));
+}
+
+// ==================== LOAD ALL DATA ====================
+async function loadAll(){
+  try {
+    // Parallel load
+    const [statusRes, apolloStatusRes, prospectsRes, sendsRes, localStatsRes] = await Promise.all([
+      api('/api/instantly/status').catch(()=>({configured:false})),
+      api('/api/apollo/status').catch(()=>({configured:false})),
+      api('/api/prospects'),
+      api('/api/outreach/sends'),
+      api('/api/outreach/stats')
+    ]);
+    instantlyStatus = statusRes;
+    apolloStatus = apolloStatusRes;
+    prospects = prospectsRes;
+    sends = sendsRes;
+    localStats = localStatsRes;
+
+    renderConnectionBanner();
+
+    // Load Instantly data if configured
+    if(instantlyStatus.configured){
+      const [acctRes, campRes, warmupRes] = await Promise.all([
+        api('/api/instantly/accounts').catch(()=>[]),
+        api('/api/instantly/campaigns').catch(()=>[]),
+        api('/api/instantly/warmup').catch(()=>null)
+      ]);
+      // Handle different response shapes
+      accounts = Array.isArray(acctRes) ? acctRes : (acctRes.items || acctRes.data || []);
+      campaigns = Array.isArray(campRes) ? campRes : (campRes.items || campRes.data || []);
+      warmupData = warmupRes;
+    }
+
+    // Load templates
+    const [pitchRes, customRes] = await Promise.all([
+      api('/api/instantly/pitch-templates').catch(()=>[]),
+      api('/api/outreach/templates').catch(()=>[])
+    ]);
+    pitchTemplates = pitchRes;
+    customTemplates = customRes;
+
+    renderStats();
+    renderAccounts();
+    renderCampaigns();
+    renderPitchTemplates();
+    renderCustomTemplates();
+    renderPipeline();
+    renderSends();
+    renderAnalytics();
+    renderApolloBanner();
+    populateSelects();
+  } catch(e) {
+    console.error('Load error:', e);
+    toast('Error loading data: '+e.message, 'error');
+  }
+}
+
+// ==================== CONNECTION BANNER ====================
+function renderConnectionBanner(){
+  const el=$('#connectionBanner');
+  let html='';
+  // Instantly status
+  if(instantlyStatus.configured){
+    const warmupCount = warmupData ? warmupData.warming_up : 0;
+    const warmupNote = warmupCount > 0 ? ` · 🔥 ${warmupCount} warming up` : '';
+    html+=`<div class="connection-status connected">
+      <span class="status-dot online"></span>
+      <strong>Instantly.ai Connected</strong> — API key configured (${instantlyStatus.keyPreview || '...'})${warmupNote}
+      <a href="https://app.instantly.ai" target="_blank" style="margin-left:auto;color:inherit;font-size:.8rem">Open Instantly ↗</a>
+    </div>`;
+  } else {
+    html+=`<div class="connection-status disconnected">
+      <span class="status-dot offline"></span>
+      <strong>Instantly.ai Not Connected</strong> — Set INSTANTLY_API_KEY in .env to enable live email sending
+    </div>`;
+  }
+  // Apollo status
+  if(apolloStatus.configured){
+    html+=`<div class="connection-status connected" style="margin-top:6px">
+      <span class="status-dot online"></span>
+      <strong>Apollo.io Connected</strong> — Prospecting & enrichment enabled (${apolloStatus.keyPreview || '...'})
+      <a href="https://app.apollo.io" target="_blank" style="margin-left:auto;color:inherit;font-size:.8rem">Open Apollo ↗</a>
+    </div>`;
+  }
+  el.innerHTML=html;
+}
+
+// ==================== STATS ROW ====================
+function renderStats(){
+  const totalAccounts = accounts.length;
+  const totalCampaigns = campaigns.length;
+  const activeCampaigns = campaigns.filter(c=>c.status===1||c.status==='active').length;
+  const warmingUp = warmupData ? warmupData.warming_up : 0;
+  const el=$('#statsRow');
+  el.innerHTML=`
+    <div class="stat-card"><div class="value">${totalAccounts}</div><div class="label">Email Accounts</div></div>
+    <div class="stat-card${warmingUp>0?' warn':''}"><div class="value">${warmingUp}</div><div class="label">Warming Up</div></div>
+    <div class="stat-card"><div class="value">${totalCampaigns}</div><div class="label">Campaigns</div></div>
+    <div class="stat-card success"><div class="value">${activeCampaigns}</div><div class="label">Active Campaigns</div></div>
+    <div class="stat-card"><div class="value">${pitchTemplates.length}</div><div class="label">Pitch Templates</div></div>
+    <div class="stat-card purple"><div class="value">${localStats.total||0}</div><div class="label">Emails Tracked</div></div>
+    <div class="stat-card success"><div class="value">${localStats.openRate||0}%</div><div class="label">Open Rate</div></div>
+    <div class="stat-card warn"><div class="value">${localStats.replyRate||0}%</div><div class="label">Reply Rate</div></div>
+  `;
+}
+
+// ==================== EMAIL ACCOUNTS ====================
+function renderAccounts(){
+  const el=$('#accountsList');
+  if(accounts.length===0){
+    el.innerHTML=`<div class="empty-state" style="grid-column:1/-1">
+      <div class="icon">📬</div>
+      <p>${instantlyStatus.configured ? 'No email accounts found in Instantly.' : 'Connect Instantly.ai to see email accounts.'}</p>
+      <a href="https://app.instantly.ai/app/accounts" target="_blank" class="btn btn-primary btn-sm" style="margin-top:12px">+ Add Account in Instantly ↗</a>
+    </div>`;
+    return;
+  }
+  // Merge warmup data if available
+  const warmupMap={};
+  if(warmupData && warmupData.accounts){
+    warmupData.accounts.forEach(w=>{warmupMap[w.email]=w;});
+  }
+  el.innerHTML=accounts.map(a=>{
+    const email = a.email || a.email_account || a.from_email || 'Unknown';
+    const wu = warmupMap[email] || {};
+    const warmupEnabled = wu.warmup_enabled || a.warmup_enabled || a.warmup?.enabled;
+    const status = warmupEnabled ? 'warmup' : (a.status === 'active' || a.is_active ? 'online' : 'offline');
+    const statusLabel = warmupEnabled ? '🔥 Warming Up' : (status==='online' ? 'Active' : 'Inactive');
+    const dailyLimit = a.daily_limit || a.sending_limit || '—';
+    const provider = a.provider || a.smtp_provider || (email.includes('gmail') ? 'Gmail' : email.includes('outlook') ? 'Outlook' : 'SMTP');
+    const reputation = wu.warmup_reputation;
+    const warmupPerDay = wu.warmup_emails_per_day;
+    return `<div class="account-card">
+      <div class="account-email"><span class="status-dot ${status}"></span>${email}</div>
+      <div class="account-meta">
+        <span>📊 ${statusLabel}</span>
+        <span>📤 ${dailyLimit}/day</span>
+        <span>🏷️ ${provider}</span>
+        ${reputation?`<span>⭐ Rep: ${reputation}</span>`:''}
+        ${warmupPerDay?`<span>🔥 ${warmupPerDay}/day warmup</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ==================== CAMPAIGNS ====================
+function renderCampaigns(){
+  const filter=$('#campaignFilter').value;
+  let filtered=campaigns;
+  if(filter) filtered=campaigns.filter(c=>String(c.status)===filter);
+  const el=$('#campaignsList');
+
+  if(filtered.length===0){
+    el.innerHTML=`<div class="empty-state"><div class="icon">🚀</div>
+      <p>${campaigns.length===0 ? 'No campaigns yet.' : 'No campaigns match filter.'}</p>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML=filtered.map(c=>{
+    const statusMap={1:'active',0:'paused',2:'completed','-1':'draft'};
+    const statusCls=statusMap[c.status]||'draft';
+    const statusLabel=statusCls.charAt(0).toUpperCase()+statusCls.slice(1);
+    const name=c.name||'Untitled Campaign';
+    const id=c.id;
+    // Analytics placeholders
+    const sent=c.leads_count||c.total_leads||0;
+    const opened=c.opens||c.open_count||0;
+    const replied=c.replies||c.reply_count||0;
+    const clicked=c.clicks||c.click_count||0;
+
+    return `<div class="campaign-card">
+      <div class="campaign-header">
+        <div>
+          <span class="campaign-name">${name}</span>
+          <span class="badge badge-${statusCls}" style="margin-left:8px">${statusLabel}</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sm" onclick="openAddLeads('${id}')">📥 Add Leads</button>
+          <button class="btn btn-sm" onclick="viewCampaignLeads('${id}','${name}')">👥 Leads</button>
+        </div>
+      </div>
+      <div class="campaign-stats">
+        <div class="campaign-stat"><div class="val" style="color:var(--accent)">${sent}</div><div class="lbl">Leads</div></div>
+        <div class="campaign-stat"><div class="val" style="color:var(--success)">${opened}</div><div class="lbl">Opened</div></div>
+        <div class="campaign-stat"><div class="val" style="color:var(--purple)">${replied}</div><div class="lbl">Replied</div></div>
+        <div class="campaign-stat"><div class="val" style="color:var(--warn)">${clicked}</div><div class="lbl">Clicked</div></div>
+      </div>
+      ${sent>0?`<div class="progress" title="Open rate">
+        <div class="progress-fill opened" style="width:${Math.min(100,sent>0?(opened/sent*100):0)}%"></div>
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// Create campaign
+function openCreateCampaign(){
+  $('#campName').value='';
+  openModal('campaignModal');
+}
+
+async function createCampaign(){
+  const name=$('#campName').value.trim();
+  if(!name){toast('Enter a campaign name','error');return;}
+  try{
+    await api('/api/instantly/campaigns',{method:'POST',body:JSON.stringify({name})});
+    toast('Campaign created!');
+    closeModal('campaignModal');
+    loadAll();
+  }catch(e){toast(e.message,'error');}
+}
+
+// Add leads to campaign
+function openAddLeads(campaignId){
+  $('#addLeadsCampaignId').value=campaignId;
+  const withEmail=prospects.filter(p=>{
+    const contacts=(p.contacts||[]);
+    const hasContactEmail=contacts.some(c=>c.email);
+    return p.email || hasContactEmail;
+  });
+  const el=$('#leadCheckboxes');
+  if(withEmail.length===0){
+    el.innerHTML='<p style="color:var(--muted);padding:10px">No prospects have email addresses. Add emails in the CRM first.</p>';
+  } else {
+    el.innerHTML=withEmail.map(p=>{
+      const email=p.email || (p.contacts||[]).find(c=>c.email)?.email || '';
+      return `<label style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;font-size:.85rem">
+        <input type="checkbox" value="${p.id}" data-email="${email}" data-name="${p.name||''}">
+        <strong>${p.name}</strong> <span style="color:var(--muted)">${email}</span>
+      </label>`;
+    }).join('');
+  }
+  openModal('addLeadsModal');
+}
+
+async function addLeadsToCampaign(){
+  const campaignId=$('#addLeadsCampaignId').value;
+  const checked=$$('#leadCheckboxes input:checked');
+  if(checked.length===0){toast('Select at least one prospect','error');return;}
+  const leads=Array.from(checked).map(cb=>({
+    email: cb.dataset.email,
+    first_name: (cb.dataset.name||'').split(' ')[0],
+    last_name: (cb.dataset.name||'').split(' ').slice(1).join(' '),
+    company_name: cb.dataset.name
+  }));
+  try{
+    await api(`/api/instantly/campaigns/${campaignId}/leads`,{method:'POST',body:JSON.stringify(leads)});
+    toast(`Added ${leads.length} leads to campaign!`);
+    closeModal('addLeadsModal');
+    loadAll();
+  }catch(e){toast(e.message,'error');}
+}
+
+async function viewCampaignLeads(id,name){
+  try{
+    const data=await api(`/api/instantly/campaigns/${id}/leads`);
+    const leads=Array.isArray(data)?data:(data.items||data.data||[]);
+    if(leads.length===0){toast('No leads in this campaign yet','error');return;}
+    alert(`Campaign: ${name}\n\nLeads (${leads.length}):\n${leads.map(l=>l.email||l.email_address||JSON.stringify(l)).join('\n')}`);
+  }catch(e){toast(e.message,'error');}
+}
+
+// ==================== PITCH TEMPLATES ====================
+function renderPitchTemplates(){
+  const el=$('#pitchGrid');
+  if(pitchTemplates.length===0){
+    el.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="icon">📝</div><p>No corporate pitch files found.</p></div>';
+    return;
+  }
+  el.innerHTML=pitchTemplates.map((t,i)=>`<div class="tpl-card" onclick="previewPitch(${i})">
+    <div class="tpl-name">${t.name}</div>
+    <div class="tpl-subject">${t.target ? '🏢 '+t.target : ''}</div>
+    <div class="tpl-preview">${t.profile||''}</div>
+    <div class="tpl-meta">
+      <div>
+        ${t.decisionMaker?`<span class="tag tag-company">🎯 ${t.decisionMaker}</span>`:''}
+        <span class="tag tag-emails">📧 ${t.emailCount} emails</span>
+      </div>
+      <button class="btn btn-sm btn-primary" onclick="event.stopPropagation();usePitchDirect(${i})">⚡ Use</button>
+    </div>
+  </div>`).join('');
+}
+
+function previewPitch(idx){
+  const t=pitchTemplates[idx];
+  selectedPitch=t;
+  $('#pitchPreviewTitle').textContent=t.name;
+  let html=`<div style="margin-bottom:14px">
+    <strong>Target:</strong> ${t.target||'—'}<br>
+    <strong>Decision Maker:</strong> ${t.decisionMaker||'—'}<br>
+    <strong>Profile:</strong> ${t.profile||'—'}
+  </div>`;
+  
+  t.emails.forEach((e,i)=>{
+    html+=`<div class="card" style="margin-bottom:10px">
+      <div style="font-weight:600;font-size:.9rem;margin-bottom:6px">Email ${i+1}: ${e.subject}</div>
+      <pre style="font-family:inherit;white-space:pre-wrap;font-size:.82rem;color:var(--muted);line-height:1.6;max-height:200px;overflow-y:auto">${e.body}</pre>
+      <button class="btn btn-sm" style="margin-top:8px" onclick="useSpecificPitch(${idx},${i})">⚡ Use This Email</button>
+    </div>`;
+  });
+  
+  $('#pitchPreviewContent').innerHTML=html;
+  openModal('pitchPreviewModal');
+}
+
+function useSpecificPitch(pitchIdx,emailIdx){
+  const t=pitchTemplates[pitchIdx];
+  const e=t.emails[emailIdx];
+  closeModal('pitchPreviewModal');
+  switchTab('quicksend');
+  $('#qsSubject').value=e.subject||'';
+  $('#qsBody').value=e.body||'';
+  $('#qsPreviewNote').textContent=`Template: ${t.name} — Email ${emailIdx+1}`;
+}
+
+function usePitchDirect(idx){
+  const t=pitchTemplates[idx];
+  if(t.emails.length>0){
+    useSpecificPitch(idx,0);
+  }
+}
+
+function usePitchInQuickSend(){
+  if(selectedPitch && selectedPitch.emails.length>0){
+    useSpecificPitch(pitchTemplates.indexOf(selectedPitch),0);
+  }
+}
+
+// ==================== CUSTOM TEMPLATES ====================
+function renderCustomTemplates(){
+  const el=$('#customTemplateGrid');
+  if(customTemplates.length===0){
+    el.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="icon">📝</div><p>No custom templates yet.</p></div>';
+    return;
+  }
+  el.innerHTML=customTemplates.map(t=>`<div class="tpl-card" onclick="openTplModal(${t.id})">
+    <div class="tpl-name">${t.name}</div>
+    <div class="tpl-subject">📧 ${t.subject||'No subject'}</div>
+    <div class="tpl-preview">${(t.body||'').slice(0,100)}${(t.body||'').length>100?'...':''}</div>
+    <div class="tpl-meta">
+      <span style="font-size:.7rem;color:var(--dim)">${new Date(t.created_at).toLocaleDateString()}</span>
+      <button class="btn btn-sm" onclick="event.stopPropagation();useCustomTpl(${t.id})">⚡ Use</button>
+    </div>
+  </div>`).join('');
+}
+
+function useCustomTpl(id){
+  const t=customTemplates.find(x=>x.id===id);
+  if(!t)return;
+  switchTab('quicksend');
+  $('#qsSubject').value=t.subject||'';
+  $('#qsBody').value=t.body||'';
+  $('#qsPreviewNote').textContent=`Template: ${t.name}`;
+}
+
+// Template CRUD
+function openTplModal(id){
+  if(id){
+    const t=customTemplates.find(x=>x.id===id);
+    if(!t)return;
+    $('#tplModalTitle').textContent='Edit Template';
+    $('#tplEditId').value=t.id;
+    $('#tplName').value=t.name;
+    $('#tplSubject').value=t.subject;
+    $('#tplBody').value=t.body;
+    $('#tplDeleteBtn').style.display='inline-flex';
+  }else{
+    $('#tplModalTitle').textContent='New Template';
+    $('#tplEditId').value='';
+    $('#tplName').value='';$('#tplSubject').value='';$('#tplBody').value='';
+    $('#tplDeleteBtn').style.display='none';
+  }
+  openModal('tplModal');
+}
+
+async function saveTpl(){
+  const id=$('#tplEditId').value;
+  const data={name:$('#tplName').value,subject:$('#tplSubject').value,body:$('#tplBody').value};
+  if(id) await api(`/api/outreach/templates/${id}`,{method:'PUT',body:JSON.stringify(data)});
+  else await api('/api/outreach/templates',{method:'POST',body:JSON.stringify(data)});
+  toast('Template saved!');
+  closeModal('tplModal');
+  loadAll();
+}
+
+async function deleteTpl(){
+  const id=$('#tplEditId').value;
+  if(!id||!confirm('Delete this template?'))return;
+  await api(`/api/outreach/templates/${id}`,{method:'DELETE'});
+  toast('Template deleted');
+  closeModal('tplModal');
+  loadAll();
+}
+
+// ==================== QUICK SEND ====================
+function openQuickSend(){switchTab('quicksend');}
+
+function populateSelects(){
+  // From accounts
+  const fromSel=$('#qsFrom');
+  fromSel.innerHTML='<option value="">-- Select Account --</option>';
+  accounts.forEach(a=>{
+    const email=a.email||a.email_account||a.from_email||'';
+    fromSel.innerHTML+=`<option value="${email}">${email}</option>`;
+  });
+
+  // Prospects
+  const pSel=$('#qsProspect');
+  pSel.innerHTML='<option value="">-- Select Prospect --</option>';
+  prospects.forEach(p=>pSel.innerHTML+=`<option value="${p.id}">${p.name} ${p.email?'('+p.email+')':''}</option>`);
+
+  // Pitch templates
+  const ptSel=$('#qsPitch');
+  ptSel.innerHTML='<option value="">-- Select Template --</option>';
+  pitchTemplates.forEach((t,i)=>ptSel.innerHTML+=`<option value="${i}">🏢 ${t.name} (${t.emailCount} emails)</option>`);
+  customTemplates.forEach(t=>ptSel.innerHTML+=`<option value="custom_${t.id}">📝 ${t.name}</option>`);
+
+  // Send modal selects
+  const spSel=$('#sendProspect');
+  spSel.innerHTML='<option value="">-- Select --</option>';
+  prospects.forEach(p=>spSel.innerHTML+=`<option value="${p.id}">${p.name}</option>`);
+
+  const stSel=$('#sendTemplate');
+  stSel.innerHTML='<option value="">-- Select --</option>';
+  customTemplates.forEach(t=>stSel.innerHTML+=`<option value="${t.id}">${t.name}</option>`);
+}
+
+function onProspectSelect(){
+  const pid=$('#qsProspect').value;
+  if(!pid)return;
+  const p=prospects.find(x=>x.id===parseInt(pid));
+  if(p){
+    const email=p.email||(p.contacts||[]).find(c=>c.email)?.email||'';
+    if(email)$('#qsTo').value=email;
+    // Merge fields in subject/body
+    const body=$('#qsBody').value;
+    const subject=$('#qsSubject').value;
+    const contact=(p.contacts||[]).find(c=>c.is_primary)||(p.contacts||[])[0];
+    const replacements={'{{property_name}}':p.name,'{{contact_name}}':contact?.name||'','{{company}}':p.name};
+    let newBody=body, newSubject=subject;
+    for(const[k,v] of Object.entries(replacements)){
+      newBody=newBody.replaceAll(k,v);
+      newSubject=newSubject.replaceAll(k,v);
+    }
+    $('#qsBody').value=newBody;
+    $('#qsSubject').value=newSubject;
+  }
+}
+
+function onPitchSelect(){
+  const val=$('#qsPitch').value;
+  const varSel=$('#qsVariant');
+  
+  if(val.startsWith('custom_')){
+    const id=parseInt(val.replace('custom_',''));
+    const t=customTemplates.find(x=>x.id===id);
+    if(t){
+      $('#qsSubject').value=t.subject||'';
+      $('#qsBody').value=t.body||'';
+      $('#qsPreviewNote').textContent=`Template: ${t.name}`;
+    }
+    varSel.innerHTML='<option value="">N/A (Custom Template)</option>';
+    return;
+  }
+  
+  const idx=parseInt(val);
+  if(isNaN(idx))return;
+  const t=pitchTemplates[idx];
+  if(!t)return;
+  
+  varSel.innerHTML=t.emails.map((e,i)=>`<option value="${i}">Email ${i+1}: ${e.subject.slice(0,60)}</option>`).join('');
+  
+  if(t.emails.length>0){
+    $('#qsSubject').value=t.emails[0].subject;
+    $('#qsBody').value=t.emails[0].body;
+    $('#qsPreviewNote').textContent=`Template: ${t.name} — Email 1`;
+  }
+}
+
+function onVariantSelect(){
+  const pitchVal=$('#qsPitch').value;
+  const varIdx=parseInt($('#qsVariant').value);
+  if(pitchVal.startsWith('custom_')||isNaN(varIdx))return;
+  const t=pitchTemplates[parseInt(pitchVal)];
+  if(!t||!t.emails[varIdx])return;
+  $('#qsSubject').value=t.emails[varIdx].subject;
+  $('#qsBody').value=t.emails[varIdx].body;
+  $('#qsPreviewNote').textContent=`Template: ${t.name} — Email ${varIdx+1}`;
+}
+
+function clearQuickSend(){
+  ['qsFrom','qsProspect','qsPitch'].forEach(id=>$('#'+id).selectedIndex=0);
+  ['qsTo','qsSubject','qsBody'].forEach(id=>$('#'+id).value='');
+  $('#qsVariant').innerHTML='<option value="">-- Select Pitch First --</option>';
+  $('#qsPreviewNote').textContent='';
+}
+
+async function sendQuickEmail(){
+  const from=$('#qsFrom').value;
+  const to=$('#qsTo').value;
+  const subject=$('#qsSubject').value;
+  const body=$('#qsBody').value;
+  const prospectId=$('#qsProspect').value;
+
+  if(!to||!subject||!body){toast('Fill in To, Subject, and Body','error');return;}
+
+  if(!instantlyStatus.configured){
+    // Log locally only
+    await logSendLocally(prospectId, subject);
+    toast('Email logged (Instantly not connected — send manually)');
+    return;
+  }
+
+  if(!from){toast('Select a From account','error');return;}
+
+  try{
+    await api('/api/instantly/emails/send',{method:'POST',body:JSON.stringify({
+      from_email: from,
+      to: to,
+      subject: subject,
+      body: body.replace(/\n/g,'<br>'),
+      _prospect_id: prospectId||null,
+      _template_id: null
+    })});
+    toast('✅ Email sent via Instantly!');
+    clearQuickSend();
+    loadAll();
+  }catch(e){
+    // If Instantly fails, still log locally
+    await logSendLocally(prospectId, subject);
+    toast('Logged locally. Instantly error: '+e.message,'error');
+  }
+}
+
+async function logSendLocally(prospectId, subject){
+  if(prospectId){
+    await api('/api/outreach/sends',{method:'POST',body:JSON.stringify({
+      prospect_id:parseInt(prospectId),
+      status:'sent',
+      sent_at:new Date().toISOString()
+    })});
+    // Also log CRM activity
+    await api(`/api/prospects/${prospectId}/activities`,{method:'POST',body:JSON.stringify({
+      type:'email',
+      description:`Email sent: "${subject}"`
+    })});
+  }
+}
+
+// ==================== PIPELINE ====================
+function renderPipeline(){
+  const el=$('#pipelineList');
+  const byProspect={};
+  sends.forEach(s=>{if(s.prospect_id){if(!byProspect[s.prospect_id])byProspect[s.prospect_id]=[];byProspect[s.prospect_id].push(s);}});
+  
+  const ids=Object.keys(byProspect);
+  if(ids.length===0){
+    el.innerHTML='<div class="empty-state"><div class="icon">📊</div><p>No prospects in outreach pipeline yet.</p></div>';
+    return;
+  }
+  
+  el.innerHTML=ids.map(pid=>{
+    const pSends=byProspect[pid].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+    const p=prospects.find(x=>x.id===parseInt(pid));
+    const name=p?.name||`Prospect #${pid}`;
+    const email=p?.email||(p?.contacts||[]).find(c=>c.email)?.email||'';
+    const lastSend=pSends[pSends.length-1];
+    const lastStatus=lastSend?.status||'pending';
+    const opened=pSends.filter(s=>s.opened_at).length;
+    const replied=pSends.filter(s=>s.replied_at).length;
+    
+    return `<div class="card" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 18px">
+      <div style="min-width:180px">
+        <div style="font-weight:600;font-size:.9rem">${name}</div>
+        <div style="font-size:.76rem;color:var(--muted)">${email}</div>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;gap:8px;min-width:200px">
+        ${pSends.map(s=>`<div style="width:28px;height:8px;border-radius:4px;background:${
+          s.replied_at?'var(--purple)':s.opened_at?'var(--success)':s.status==='bounced'?'var(--hot)':'var(--accent)'
+        }" title="${s.status}${s.sent_at?' — '+new Date(s.sent_at).toLocaleDateString():''}"></div>`).join('')}
+      </div>
+      <div style="display:flex;gap:12px;font-size:.78rem;color:var(--muted)">
+        <span>📤 ${pSends.length} sent</span>
+        <span>👁️ ${opened} opened</span>
+        <span>💬 ${replied} replied</span>
+      </div>
+      <span class="badge badge-${lastStatus}">${lastStatus}</span>
+    </div>`;
+  }).join('');
+}
+
+// ==================== ANALYTICS ====================
+function renderAnalytics(){
+  const el=$('#analyticsContent');
+  const total=localStats.total||0;
+  const sent=localStats.sent||0;
+  const opened=localStats.opened||0;
+  const replied=localStats.replied||0;
+  const bounced=localStats.bounced||0;
+  const openRate=localStats.openRate||0;
+  const replyRate=localStats.replyRate||0;
+  const bounceRate=localStats.bounceRate||0;
+
+  // Campaign performance from Instantly
+  const campPerf=campaigns.slice(0,8).map(c=>({
+    name:(c.name||'Untitled').slice(0,30),
+    leads:c.leads_count||c.total_leads||0,
+    opens:c.opens||c.open_count||0,
+    replies:c.replies||c.reply_count||0
+  }));
+
+  el.innerHTML=`
+    <div class="chart-row">
+      <div class="chart-card">
+        <h4>📊 Overall Performance</h4>
+        <div class="bar-chart">
+          <div class="bar-row">
+            <div class="bar-label">Sent</div>
+            <div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--accent)"></div>
+              <span class="bar-value">${sent}</span></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">Opened</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,openRate)}%;background:var(--success)"></div>
+              <span class="bar-value">${opened} (${openRate}%)</span></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">Replied</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,replyRate)}%;background:var(--purple)"></div>
+              <span class="bar-value">${replied} (${replyRate}%)</span></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">Bounced</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,bounceRate)}%;background:var(--hot)"></div>
+              <span class="bar-value">${bounced} (${bounceRate}%)</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h4>🎯 Key Metrics</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px">
+          <div style="text-align:center;padding:16px;background:var(--bg);border-radius:10px">
+            <div style="font-size:2rem;font-weight:700;color:var(--success)">${openRate}%</div>
+            <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase">Open Rate</div>
+          </div>
+          <div style="text-align:center;padding:16px;background:var(--bg);border-radius:10px">
+            <div style="font-size:2rem;font-weight:700;color:var(--purple)">${replyRate}%</div>
+            <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase">Reply Rate</div>
+          </div>
+          <div style="text-align:center;padding:16px;background:var(--bg);border-radius:10px">
+            <div style="font-size:2rem;font-weight:700;color:var(--hot)">${bounceRate}%</div>
+            <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase">Bounce Rate</div>
+          </div>
+          <div style="text-align:center;padding:16px;background:var(--bg);border-radius:10px">
+            <div style="font-size:2rem;font-weight:700;color:var(--accent)">${localStats.uniqueProspects||0}</div>
+            <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase">Prospects Reached</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    ${campPerf.length>0?`<div class="chart-card">
+      <h4>🚀 Campaign Performance</h4>
+      <div class="bar-chart" style="margin-top:10px">
+        ${campPerf.map(c=>{
+          const maxLeads=Math.max(...campPerf.map(x=>x.leads),1);
+          return `<div class="bar-row">
+            <div class="bar-label">${c.name}</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:${(c.leads/maxLeads*100)}%;background:var(--accent)"></div>
+              <span class="bar-value">${c.leads} leads · ${c.opens} opens · ${c.replies} replies</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`:''}
+
+    <div class="chart-card" style="margin-top:14px">
+      <h4>📝 Template Performance</h4>
+      <p style="color:var(--muted);font-size:.82rem;margin-top:4px">
+        ${pitchTemplates.length} corporate pitch templates loaded · ${customTemplates.length} custom templates
+      </p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
+        ${pitchTemplates.map(t=>`<div class="tag tag-company">${t.name} (${t.emailCount} emails)</div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ==================== SEND HISTORY ====================
+function renderSends(){
+  const body=$('#sendsBody');
+  if(sends.length===0){
+    body.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px">No sends logged yet</td></tr>';
+    return;
+  }
+  body.innerHTML=sends.slice(0,50).map(s=>{
+    const p=prospects.find(x=>x.id===s.prospect_id);
+    const t=customTemplates.find(x=>x.id===s.template_id);
+    return `<tr>
+      <td style="font-weight:600">${p?.name||'—'}</td>
+      <td>${t?.name||'—'}</td>
+      <td><span class="badge badge-${s.status||'pending'}">${s.status||'pending'}</span></td>
+      <td>${s.sent_at?new Date(s.sent_at).toLocaleDateString():'—'}</td>
+      <td>${s.opened_at?'✅ '+new Date(s.opened_at).toLocaleDateString():'—'}</td>
+      <td>${s.replied_at?'💬 '+new Date(s.replied_at).toLocaleDateString():'—'}</td>
+      <td>
+        <button class="btn btn-sm" onclick="editSend(${s.id})">✏️</button>
+        ${s.status==='sent'&&!s.opened_at?`<button class="btn btn-sm btn-success" onclick="markOpened(${s.id})">👁️</button>`:''}
+        ${s.opened_at&&!s.replied_at?`<button class="btn btn-sm btn-success" onclick="markReplied(${s.id})">💬</button>`:''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// Send CRUD
+function openLogSendModal(){
+  ['sendEditId'].forEach(id=>$('#'+id).value='');
+  ['sendProspect','sendTemplate','sendStatus'].forEach(id=>$('#'+id).selectedIndex=0);
+  ['sendSentAt','sendOpenedAt','sendRepliedAt'].forEach(id=>$('#'+id).value='');
+  $('#sendDeleteBtn').style.display='none';
+  openModal('logSendModal');
+}
+
+function editSend(id){
+  const s=sends.find(x=>x.id===id);
+  if(!s)return;
+  $('#sendEditId').value=s.id;
+  $('#sendProspect').value=s.prospect_id||'';
+  $('#sendTemplate').value=s.template_id||'';
+  $('#sendStatus').value=s.status||'sent';
+  $('#sendSentAt').value=s.sent_at?s.sent_at.split('T')[0]:'';
+  $('#sendOpenedAt').value=s.opened_at?s.opened_at.split('T')[0]:'';
+  $('#sendRepliedAt').value=s.replied_at?s.replied_at.split('T')[0]:'';
+  $('#sendDeleteBtn').style.display='inline-flex';
+  openModal('logSendModal');
+}
+
+async function saveSend(){
+  const id=$('#sendEditId').value;
+  const data={
+    prospect_id:$('#sendProspect').value?parseInt($('#sendProspect').value):null,
+    template_id:$('#sendTemplate').value?parseInt($('#sendTemplate').value):null,
+    status:$('#sendStatus').value,
+    sent_at:$('#sendSentAt').value||null,
+    opened_at:$('#sendOpenedAt').value||null,
+    replied_at:$('#sendRepliedAt').value||null
+  };
+  if(id) await api(`/api/outreach/sends/${id}`,{method:'PUT',body:JSON.stringify(data)});
+  else await api('/api/outreach/sends',{method:'POST',body:JSON.stringify(data)});
+  toast('Send record saved!');
+  closeModal('logSendModal');
+  loadAll();
+}
+
+async function deleteSend(){
+  const id=$('#sendEditId').value;
+  if(!id||!confirm('Delete this send record?'))return;
+  await api(`/api/outreach/sends/${id}`,{method:'DELETE'});
+  toast('Deleted');
+  closeModal('logSendModal');
+  loadAll();
+}
+
+async function markOpened(id){
+  await api(`/api/outreach/sends/${id}`,{method:'PUT',body:JSON.stringify({status:'opened',opened_at:new Date().toISOString()})});
+  toast('Marked as opened');
+  loadAll();
+}
+
+async function markReplied(id){
+  await api(`/api/outreach/sends/${id}`,{method:'PUT',body:JSON.stringify({status:'replied',replied_at:new Date().toISOString()})});
+  toast('Marked as replied');
+  loadAll();
+}
+
+// ==================== APOLLO.IO PROSPECTING ====================
+function renderApolloBanner(){
+  const el=$('#apolloBanner');
+  if(!el)return;
+  if(apolloStatus.configured){
+    el.innerHTML=`<div class="connection-status connected" style="margin-bottom:16px">
+      <span class="status-dot online"></span>
+      <strong>Apollo.io Ready</strong> — Search for decision-makers, enrich contacts, and import to CRM
+    </div>`;
+  } else {
+    el.innerHTML=`<div class="connection-status disconnected" style="margin-bottom:16px">
+      <span class="status-dot offline"></span>
+      <strong>Apollo.io Not Connected</strong> — Set APOLLO_API_KEY in environment to enable prospecting
+    </div>`;
+  }
+}
+
+function clearApolloSearch(){
+  ['apolloOrg','apolloTitles','apolloLocation','apolloKeywords'].forEach(id=>$('#'+id).value='');
+  $('#apolloSeniority').selectedIndex=0;
+  $('#apolloSize').selectedIndex=0;
+  apolloResults=[];
+  apolloCurrentPage=1;
+  $('#apolloResults').innerHTML='<div class="empty-state"><div class="icon">🔍</div><p>Search Apollo.io to find contacts.</p></div>';
+  $('#apolloPagination').style.display='none';
+}
+
+async function runApolloSearch(page){
+  if(!apolloStatus.configured){toast('Apollo API key not configured','error');return;}
+  
+  const org=$('#apolloOrg').value.trim();
+  const titles=$('#apolloTitles').value.trim();
+  const location=$('#apolloLocation').value.trim();
+  const keywords=$('#apolloKeywords').value.trim();
+  const seniority=$('#apolloSeniority').value;
+  const size=$('#apolloSize').value;
+
+  if(!org&&!titles&&!keywords&&!location){toast('Enter at least one search criteria','error');return;}
+
+  apolloCurrentPage=page||1;
+  const payload={page:apolloCurrentPage, per_page:25};
+  if(org) payload.q_organization_name=org;
+  if(titles) payload.person_titles=titles.split(',').map(s=>s.trim()).filter(Boolean);
+  if(location) payload.person_locations=[location];
+  if(keywords) payload.q_keywords=keywords;
+  if(seniority) payload.person_seniorities=[seniority];
+  if(size) payload.organization_num_employees_ranges=[size];
+
+  const el=$('#apolloResults');
+  el.innerHTML='<div class="empty-state"><div class="icon">⏳</div><p>Searching Apollo.io...</p></div>';
+
+  try{
+    const data=await api('/api/apollo/search',{method:'POST',body:JSON.stringify(payload)});
+    const people=data.people||data.contacts||[];
+    const pagination=data.pagination||{};
+    const total=pagination.total_entries||data.total||people.length;
+    apolloTotalPages=Math.ceil(total/25)||1;
+    apolloResults=people;
+
+    if(people.length===0){
+      el.innerHTML='<div class="empty-state"><div class="icon">🤷</div><p>No contacts found. Try broadening your search.</p></div>';
+      $('#apolloPagination').style.display='none';
+      return;
+    }
+
+    el.innerHTML=`
+      <div style="margin-bottom:12px;font-size:.82rem;color:var(--muted)">
+        Found <strong>${total.toLocaleString()}</strong> contacts — showing page ${apolloCurrentPage} of ${apolloTotalPages}
+      </div>
+      <div class="card"><div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Title</th><th>Company</th><th>Location</th><th>Email</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${people.map((p,i)=>{
+              const name=`${p.first_name||''} ${p.last_name||''}`.trim()||'Unknown';
+              const title=p.title||'—';
+              const company=p.organization?.name||p.organization_name||'—';
+              const city=p.city||p.state||p.country||'—';
+              const email=p.email||'';
+              const emailStatus=p.email_status||'';
+              const emailBadge=email?(emailStatus==='verified'?'<span class="badge badge-active">✓</span>':'<span class="badge badge-draft">?</span>'):'<span class="badge badge-paused">No email</span>';
+              const linkedinUrl=p.linkedin_url||'';
+              return `<tr>
+                <td style="font-weight:600">${name}${linkedinUrl?` <a href="${linkedinUrl}" target="_blank" style="font-size:.7rem">🔗</a>`:''}</td>
+                <td>${title}</td>
+                <td>${company}</td>
+                <td style="font-size:.78rem;color:var(--muted)">${city}</td>
+                <td>${email?`<span style="font-size:.82rem">${email}</span>`:'—'} ${emailBadge}</td>
+                <td style="white-space:nowrap">
+                  <button class="btn btn-sm" onclick="viewApolloContact(${i})" title="View Details">👁️</button>
+                  <button class="btn btn-sm btn-success" onclick="importApolloByIndex(${i})" title="Import to CRM">📥</button>
+                  ${email?`<button class="btn btn-sm btn-primary" onclick="apolloQuickSendByIndex(${i})" title="Send Email">⚡</button>`:''}
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div></div>
+    `;
+
+    // Pagination
+    const pagEl=$('#apolloPagination');
+    pagEl.style.display='flex';
+    pagEl.style.justifyContent='center';
+    pagEl.style.alignItems='center';
+    $('#apolloPrevBtn').disabled=apolloCurrentPage<=1;
+    $('#apolloNextBtn').disabled=apolloCurrentPage>=apolloTotalPages;
+    $('#apolloPageInfo').textContent=`Page ${apolloCurrentPage} of ${apolloTotalPages} (${total.toLocaleString()} results)`;
+  }catch(e){
+    el.innerHTML=`<div class="empty-state"><div class="icon">❌</div><p>Search error: ${e.message}</p></div>`;
+    $('#apolloPagination').style.display='none';
+  }
+}
+
+function apolloPage(delta){
+  const newPage=apolloCurrentPage+delta;
+  if(newPage<1||newPage>apolloTotalPages)return;
+  runApolloSearch(newPage);
+}
+
+function viewApolloContact(idx){
+  const p=apolloResults[idx];
+  if(!p)return;
+  apolloSelectedContact=p;
+  const name=`${p.first_name||''} ${p.last_name||''}`.trim();
+  const org=p.organization||{};
+
+  let html=`<div style="margin-bottom:16px">
+    <div style="font-size:1.1rem;font-weight:700;margin-bottom:4px">${name}</div>
+    <div style="color:var(--muted);font-size:.88rem">${p.title||'—'} at ${org.name||p.organization_name||'—'}</div>
+    ${p.headline?`<div style="color:var(--dim);font-size:.82rem;margin-top:4px">${p.headline}</div>`:''}
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.85rem">
+    <div><strong>Email:</strong> ${p.email||'Not available'} ${p.email_status==='verified'?'✅':''}</div>
+    <div><strong>Phone:</strong> ${p.phone_number||p.sanitized_phone||'—'}</div>
+    <div><strong>Location:</strong> ${[p.city,p.state,p.country].filter(Boolean).join(', ')||'—'}</div>
+    <div><strong>Seniority:</strong> ${p.seniority||'—'}</div>
+    ${p.linkedin_url?`<div style="grid-column:1/-1"><strong>LinkedIn:</strong> <a href="${p.linkedin_url}" target="_blank">${p.linkedin_url}</a></div>`:''}
+  </div>`;
+
+  if(org.name){
+    html+=`<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+      <div style="font-weight:600;margin-bottom:8px">🏢 ${org.name}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.82rem;color:var(--muted)">
+        <div>Industry: ${org.industry||'—'}</div>
+        <div>Employees: ${org.estimated_num_employees?org.estimated_num_employees.toLocaleString():'—'}</div>
+        <div>Revenue: ${org.annual_revenue?'$'+org.annual_revenue.toLocaleString():'—'}</div>
+        ${org.website_url?`<div>Website: <a href="${org.website_url}" target="_blank">${org.website_url}</a></div>`:''}
+        ${org.phone?`<div>Phone: ${org.phone}</div>`:''}
+        ${org.city?`<div>HQ: ${[org.city,org.state,org.country].filter(Boolean).join(', ')}</div>`:''}
+      </div>
+    </div>`;
+  }
+
+  $('#apolloDetailContent').innerHTML=html;
+  $('#apolloSendBtn').style.display=p.email?'inline-flex':'none';
+  openModal('apolloDetailModal');
+}
+
+async function importApolloByIndex(idx){
+  const p=apolloResults[idx];
+  if(!p)return;
+  try{
+    const result=await api('/api/apollo/import-to-crm',{method:'POST',body:JSON.stringify({
+      person:p,
+      organization:p.organization||null
+    })});
+    toast(`${result.action==='created'?'✅ Imported':'📝 Updated'}: ${p.first_name} ${p.last_name} → CRM`);
+    // Refresh prospects
+    prospects=await api('/api/prospects').catch(()=>prospects);
+    populateSelects();
+  }catch(e){toast(e.message,'error');}
+}
+
+async function importApolloContact(){
+  if(!apolloSelectedContact)return;
+  const p=apolloSelectedContact;
+  try{
+    const result=await api('/api/apollo/import-to-crm',{method:'POST',body:JSON.stringify({
+      person:p,
+      organization:p.organization||null
+    })});
+    toast(`${result.action==='created'?'✅ Imported':'📝 Updated'}: ${p.first_name} ${p.last_name}`);
+    closeModal('apolloDetailModal');
+    prospects=await api('/api/prospects').catch(()=>prospects);
+    populateSelects();
+  }catch(e){toast(e.message,'error');}
+}
+
+function apolloQuickSendByIndex(idx){
+  const p=apolloResults[idx];
+  if(!p||!p.email)return;
+  switchTab('quicksend');
+  $('#qsTo').value=p.email;
+  const name=`${p.first_name||''} ${p.last_name||''}`.trim();
+  const company=p.organization?.name||p.organization_name||'';
+  $('#qsPreviewNote').textContent=`Sending to: ${name} (${p.title||''}) at ${company}`;
+}
+
+function apolloToQuickSend(){
+  if(!apolloSelectedContact)return;
+  const p=apolloSelectedContact;
+  closeModal('apolloDetailModal');
+  apolloQuickSendByIndex(apolloResults.indexOf(p));
+  if(apolloResults.indexOf(p)===-1){
+    switchTab('quicksend');
+    if(p.email)$('#qsTo').value=p.email;
+  }
+}
+
+// Init
+loadAll();
+</script>
+</body>
+</html>

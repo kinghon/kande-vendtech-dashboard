@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Finance — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
+      --muted: #718096; --accent: #3182ce; --hot: #e53e3e; --warn: #dd6b20;
+      --success: #38a169; --purple: #7b2cbf;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+    .top-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .top-nav .logo { height: 36px; }
+    .top-nav a { color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500; padding: 6px 12px; border-radius: 6px; transition: all 0.2s; }
+    .top-nav a:hover, .top-nav a.active { color: var(--accent); background: rgba(49,130,206,0.08); }
+
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+    .header h1 { font-size: 1.5rem; background: linear-gradient(90deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-danger { background: var(--hot); color: #fff; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+
+    /* Health Cards */
+    .health-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .health-card { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); }
+    .health-card .label { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; font-weight: 600; margin-bottom: 8px; }
+    .health-card .value { font-size: 2rem; font-weight: 700; }
+    .health-card .sub { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+    .value.positive { color: var(--success); }
+    .value.negative { color: var(--hot); }
+    .value.accent { color: var(--accent); }
+    .value.warn { color: var(--warn); }
+
+    /* Section */
+    .section { margin-bottom: 32px; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .section-title { font-size: 1.2rem; font-weight: 600; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 2px solid var(--border); }
+    .tab { padding: 10px 20px; cursor: pointer; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; background: none; border-top: none; border-left: none; border-right: none; font-size: 0.9rem; }
+    .tab:hover { color: var(--accent); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* Table */
+    .table-container { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #f7fafc; padding: 12px 16px; text-align: left; font-size: 0.8rem; text-transform: uppercase; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f7fafc; }
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+
+    .badge { padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
+    .badge-revenue { background: rgba(56,161,105,0.15); color: var(--success); }
+    .badge-expense { background: rgba(229,62,62,0.15); color: var(--hot); }
+
+    /* P&L Chart (CSS only) */
+    .pl-chart { display: flex; gap: 4px; align-items: flex-end; height: 200px; padding: 0 20px; }
+    .pl-bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .pl-bars { display: flex; gap: 2px; align-items: flex-end; height: 160px; }
+    .pl-bar { width: 20px; border-radius: 4px 4px 0 0; transition: height 0.3s; min-height: 2px; }
+    .pl-bar.revenue { background: var(--success); }
+    .pl-bar.expense { background: var(--hot); opacity: 0.7; }
+    .pl-bar.profit { background: var(--accent); }
+    .pl-label { font-size: 0.7rem; color: var(--muted); }
+
+    /* Credit Card */
+    .cc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+    .cc-card { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); }
+    .cc-card h3 { font-size: 1rem; margin-bottom: 12px; }
+    .cc-detail { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; }
+    .cc-detail .label { color: var(--muted); }
+    .progress-bar { height: 8px; background: #edf2f7; border-radius: 4px; overflow: hidden; margin-top: 12px; }
+    .progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+    .progress-fill.low { background: var(--success); }
+    .progress-fill.medium { background: var(--warn); }
+    .progress-fill.high { background: var(--hot); }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--card); border-radius: 16px; padding: 24px; max-width: 600px; width: 95%; max-height: 90vh; overflow-y: auto; }
+    .modal h2 { font-size: 1.3rem; margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--muted); margin-bottom: 4px; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; color: var(--text); background: var(--card); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
+
+    @media (max-width: 768px) {
+      .form-row { grid-template-columns: 1fr; }
+      .health-grid { grid-template-columns: repeat(2, 1fr); }
+      .header { flex-direction: column; align-items: flex-start; }
+      .pl-chart { height: 150px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <nav class="top-nav">
+      <a href="/"><img src="/logo.png" alt="Kande VendTech" class="logo"></a>
+      <a href="/">Dashboard</a>
+      <a href="/crm">CRM</a>
+      <a href="/machines">Machines</a>
+      <a href="/inventory">Inventory</a>
+      <a href="/finance" class="active">Finance</a>
+      <a href="/restock">Restock</a>
+      <a href="/map">Map</a>
+    </nav>
+
+    <div class="header">
+      <h1>💰 Financial Dashboard</h1>
+      <div class="header-actions">
+        <button class="btn btn-success" onclick="openTransactionModal('revenue')">+ Revenue</button>
+        <button class="btn btn-danger" onclick="openTransactionModal('expense')">+ Expense</button>
+        <button class="btn btn-primary" onclick="openCreditCardModal()">+ Credit Card</button>
+      </div>
+    </div>
+
+    <!-- Health Metrics -->
+    <div class="health-grid" id="health-grid"></div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="overview" onclick="switchTab('overview')">📊 P&L Overview</button>
+      <button class="tab" data-tab="transactions" onclick="switchTab('transactions')">📋 Transactions</button>
+      <button class="tab" data-tab="machines" onclick="switchTab('machines')">🏭 Per Machine</button>
+      <button class="tab" data-tab="credit" onclick="switchTab('credit')">💳 Credit Cards</button>
+    </div>
+
+    <!-- P&L Overview -->
+    <div id="tab-overview" class="tab-content">
+      <div class="section">
+        <div class="section-header">
+          <h3 class="section-title">Monthly P&L</h3>
+        </div>
+        <div class="table-container" style="padding: 20px;">
+          <div class="pl-chart" id="pl-chart"></div>
+          <div style="display:flex;gap:20px;justify-content:center;margin-top:16px;font-size:0.85rem;color:var(--muted);">
+            <span>🟢 Revenue</span><span>🔴 Expenses</span><span>🔵 Profit</span>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <h3 class="section-title" style="margin-bottom:16px;">Monthly Breakdown</h3>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Month</th><th class="text-right">Revenue</th><th class="text-right">COGS</th><th class="text-right">Rev Share</th><th class="text-right">Other Expenses</th><th class="text-right">Net Profit</th><th class="text-right">Margin</th></tr></thead>
+            <tbody id="pl-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transactions -->
+    <div id="tab-transactions" class="tab-content" style="display:none;">
+      <div class="section">
+        <div class="section-header">
+          <h3 class="section-title">All Transactions</h3>
+          <div>
+            <select id="txn-filter-type" onchange="renderTransactions()" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;">
+              <option value="">All Types</option>
+              <option value="revenue">Revenue</option>
+              <option value="expense">Expenses</option>
+            </select>
+            <select id="txn-filter-month" onchange="renderTransactions()" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;margin-left:8px;">
+              <option value="">All Months</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Machine</th><th>Description</th><th class="text-right">Amount</th><th>Actions</th></tr></thead>
+            <tbody id="txn-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Per Machine -->
+    <div id="tab-machines" class="tab-content" style="display:none;">
+      <div class="table-container">
+        <table>
+          <thead><tr><th>Machine</th><th>Location</th><th class="text-right">Total Revenue</th><th class="text-right">Total Expenses</th><th class="text-right">Net Profit</th><th class="text-right">Avg Monthly Rev</th><th>Status</th></tr></thead>
+          <tbody id="machine-finance-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Credit Cards -->
+    <div id="tab-credit" class="tab-content" style="display:none;">
+      <div class="cc-grid" id="cc-grid"></div>
+      <div id="cc-empty" class="empty-state" style="display:none;text-align:center;padding:60px 20px;color:var(--muted);">
+        <div style="font-size:3rem;margin-bottom:12px;">💳</div>
+        <h3>No credit cards tracked</h3>
+        <p>Add your 0% APR business cards to track balances and expiry dates.</p>
+        <button class="btn btn-primary" style="margin-top:16px;" onclick="openCreditCardModal()">+ Add Credit Card</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transaction Modal -->
+  <div class="modal-overlay" id="txn-modal">
+    <div class="modal">
+      <h2 id="txn-modal-title">Add Transaction</h2>
+      <input type="hidden" id="txn-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Type</label>
+          <select id="txn-type" onchange="updateCategoryOptions()">
+            <option value="revenue">Revenue</option>
+            <option value="expense">Expense</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="txn-category"></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Amount ($)</label>
+          <input type="number" id="txn-amount" step="0.01" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label>Month</label>
+          <input type="month" id="txn-month">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Machine (optional)</label>
+        <select id="txn-machine">
+          <option value="">— All / General —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <input type="text" id="txn-description" placeholder="e.g. Monthly revenue from CRM report">
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="closeTxnModal()">Cancel</button>
+        <button class="btn btn-danger" id="txn-delete-btn" style="display:none;" onclick="deleteTransaction()">Delete</button>
+        <button class="btn btn-primary" onclick="saveTransaction()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Credit Card Modal -->
+  <div class="modal-overlay" id="cc-modal">
+    <div class="modal">
+      <h2 id="cc-modal-title">Add Credit Card</h2>
+      <input type="hidden" id="cc-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Card Name</label>
+          <input type="text" id="cc-name" placeholder="e.g. Chase Ink Business Preferred">
+        </div>
+        <div class="form-group">
+          <label>Issuer</label>
+          <select id="cc-issuer">
+            <option value="Chase">Chase</option>
+            <option value="Amex">American Express</option>
+            <option value="Capital One">Capital One</option>
+            <option value="Discover">Discover</option>
+            <option value="US Bank">US Bank</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Credit Limit ($)</label>
+          <input type="number" id="cc-limit" step="1" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>Current Balance ($)</label>
+          <input type="number" id="cc-balance" step="0.01" placeholder="0.00">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>APR %</label>
+          <input type="text" id="cc-apr" placeholder="e.g. 0% intro, 24.99% after">
+        </div>
+        <div class="form-group">
+          <label>0% APR Expires</label>
+          <input type="date" id="cc-apr-expires">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="cc-notes" placeholder="Usage, rewards, etc." style="min-height:60px;resize:vertical;width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;"></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="closeCCModal()">Cancel</button>
+        <button class="btn btn-danger" id="cc-delete-btn" style="display:none;" onclick="deleteCreditCard()">Delete</button>
+        <button class="btn btn-primary" onclick="saveCreditCard()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let summary = {};
+    let transactions = [];
+    let machines = [];
+    let creditCards = [];
+
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    function fmt(n) { return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
+    function fmt2(n) { return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+    async function loadData() {
+      const [sumRes, txnRes, machRes, ccRes] = await Promise.all([
+        fetch('/api/finances/summary').then(r => r.json()),
+        fetch('/api/finances').then(r => r.json()),
+        fetch('/api/machines').then(r => r.json()),
+        fetch('/api/credit-cards').then(r => r.json())
+      ]);
+      summary = sumRes;
+      transactions = txnRes;
+      machines = machRes;
+      creditCards = ccRes;
+
+      renderHealth();
+      renderPLChart();
+      renderPLTable();
+      renderTransactions();
+      renderMachineFinance();
+      renderCreditCards();
+      populateMonthFilter();
+      populateMachineSelect();
+    }
+
+    function renderHealth() {
+      const { currentRevenue, currentExpenses, currentProfit, totalRevenue, totalExpenses, totalProfit, machineCount, deployedCount, totalCreditBalance, totalCreditLimit } = summary;
+      const margin = currentRevenue > 0 ? Math.round((currentProfit / currentRevenue) * 100) : 0;
+
+      document.getElementById('health-grid').innerHTML = `
+        <div class="health-card">
+          <div class="label">This Month Revenue</div>
+          <div class="value positive">${fmt(currentRevenue)}</div>
+          <div class="sub">${deployedCount} machines deployed</div>
+        </div>
+        <div class="health-card">
+          <div class="label">This Month Expenses</div>
+          <div class="value negative">${fmt(currentExpenses)}</div>
+        </div>
+        <div class="health-card">
+          <div class="label">This Month Profit</div>
+          <div class="value ${currentProfit >= 0 ? 'positive' : 'negative'}">${fmt(currentProfit)}</div>
+          <div class="sub">${margin}% margin</div>
+        </div>
+        <div class="health-card">
+          <div class="label">All-Time Revenue</div>
+          <div class="value accent">${fmt(totalRevenue)}</div>
+        </div>
+        <div class="health-card">
+          <div class="label">All-Time Profit</div>
+          <div class="value ${totalProfit >= 0 ? 'positive' : 'negative'}">${fmt(totalProfit)}</div>
+        </div>
+        <div class="health-card">
+          <div class="label">Credit Utilization</div>
+          <div class="value ${(totalCreditBalance / (totalCreditLimit||1)) > 0.7 ? 'negative' : (totalCreditBalance / (totalCreditLimit||1)) > 0.3 ? 'warn' : 'positive'}">${totalCreditLimit > 0 ? Math.round((totalCreditBalance / totalCreditLimit) * 100) + '%' : '—'}</div>
+          <div class="sub">${fmt(totalCreditBalance)} / ${fmt(totalCreditLimit)}</div>
+        </div>
+      `;
+    }
+
+    function renderPLChart() {
+      const months = summary.months || {};
+      const sorted = Object.entries(months).sort((a, b) => a[0].localeCompare(b[0])).slice(-12);
+      if (sorted.length === 0) {
+        document.getElementById('pl-chart').innerHTML = '<div style="text-align:center;color:var(--muted);width:100%;padding:40px;">No data yet. Add revenue and expenses to see your P&L chart.</div>';
+        return;
+      }
+      const maxVal = Math.max(...sorted.map(([, v]) => Math.max(v.revenue, v.expenses, 1)));
+      document.getElementById('pl-chart').innerHTML = sorted.map(([month, data]) => {
+        const profit = data.revenue - data.expenses;
+        const rH = Math.max((data.revenue / maxVal) * 150, 2);
+        const eH = Math.max((data.expenses / maxVal) * 150, 2);
+        const pH = Math.max((Math.abs(profit) / maxVal) * 150, 2);
+        return `<div class="pl-bar-group">
+          <div class="pl-bars">
+            <div class="pl-bar revenue" style="height:${rH}px;" title="Revenue: ${fmt(data.revenue)}"></div>
+            <div class="pl-bar expense" style="height:${eH}px;" title="Expenses: ${fmt(data.expenses)}"></div>
+            <div class="pl-bar profit" style="height:${pH}px;" title="Profit: ${fmt(profit)}"></div>
+          </div>
+          <div class="pl-label">${month.slice(5)}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function renderPLTable() {
+      const months = summary.months || {};
+      const sorted = Object.entries(months).sort((a, b) => b[0].localeCompare(a[0]));
+      const tbody = document.getElementById('pl-tbody');
+
+      if (sorted.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">No financial data yet</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = sorted.map(([month, data]) => {
+        const profit = data.revenue - data.expenses;
+        const margin = data.revenue > 0 ? Math.round((profit / data.revenue) * 100) : 0;
+        // Break down expenses by category
+        const monthTxns = transactions.filter(t => t.month === month && t.type === 'expense');
+        const cogs = monthTxns.filter(t => t.category === 'cogs').reduce((s, t) => s + (t.amount || 0), 0);
+        const revShare = monthTxns.filter(t => t.category === 'rev_share').reduce((s, t) => s + (t.amount || 0), 0);
+        const other = data.expenses - cogs - revShare;
+        return `<tr>
+          <td><strong>${month}</strong></td>
+          <td class="text-right" style="color:var(--success);">${fmt(data.revenue)}</td>
+          <td class="text-right">${fmt(cogs)}</td>
+          <td class="text-right">${fmt(revShare)}</td>
+          <td class="text-right">${fmt(other)}</td>
+          <td class="text-right" style="color:${profit >= 0 ? 'var(--success)' : 'var(--hot)'}; font-weight:700;">${fmt(profit)}</td>
+          <td class="text-right">${margin}%</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function renderTransactions() {
+      const typeFilter = document.getElementById('txn-filter-type').value;
+      const monthFilter = document.getElementById('txn-filter-month').value;
+      let filtered = transactions;
+      if (typeFilter) filtered = filtered.filter(t => t.type === typeFilter);
+      if (monthFilter) filtered = filtered.filter(t => t.month === monthFilter);
+      filtered.sort((a, b) => (b.month || '').localeCompare(a.month || '') || new Date(b.created_at) - new Date(a.created_at));
+
+      const tbody = document.getElementById('txn-tbody');
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">No transactions found</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(t => {
+        const machine = machines.find(m => m.id === t.machine_id);
+        return `<tr>
+          <td>${t.month || '—'}</td>
+          <td><span class="badge badge-${t.type}">${t.type}</span></td>
+          <td>${formatCategory(t.category)}</td>
+          <td>${machine ? machine.name || 'Machine #' + machine.id : '—'}</td>
+          <td>${t.description || '—'}</td>
+          <td class="text-right" style="color:${t.type === 'revenue' ? 'var(--success)' : 'var(--hot)'}; font-weight:600;">${t.type === 'expense' ? '-' : ''}${fmt2(t.amount)}</td>
+          <td><button class="btn btn-secondary btn-sm" onclick="editTransaction(${t.id})">Edit</button></td>
+        </tr>`;
+      }).join('');
+    }
+
+    function formatCategory(cat) {
+      const map = { sales: 'Sales', cogs: 'COGS', rev_share: 'Rev Share', gas: 'Gas/Transport', labor: 'Labor', supplies: 'Supplies', equipment: 'Equipment', marketing: 'Marketing', insurance: 'Insurance', rent: 'Rent/Storage', other: 'Other' };
+      return map[cat] || cat || '—';
+    }
+
+    function renderMachineFinance() {
+      const tbody = document.getElementById('machine-finance-tbody');
+      if (machines.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">No machines yet</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = machines.map(m => {
+        const rev = transactions.filter(t => t.machine_id === m.id && t.type === 'revenue').reduce((s, t) => s + (t.amount || 0), 0);
+        const exp = transactions.filter(t => t.machine_id === m.id && t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
+        const profit = rev - exp;
+        const months = [...new Set(transactions.filter(t => t.machine_id === m.id && t.type === 'revenue').map(t => t.month))].length;
+        const avgRev = months > 0 ? rev / months : 0;
+        return `<tr>
+          <td><strong>${m.name || 'Machine #' + m.id}</strong></td>
+          <td>${m.location ? m.location.name : '—'}</td>
+          <td class="text-right" style="color:var(--success);">${fmt(rev)}</td>
+          <td class="text-right" style="color:var(--hot);">${fmt(exp)}</td>
+          <td class="text-right" style="font-weight:700;color:${profit >= 0 ? 'var(--success)' : 'var(--hot)'};">${fmt(profit)}</td>
+          <td class="text-right">${fmt(avgRev)}/mo</td>
+          <td><span class="badge badge-${m.status === 'deployed' ? 'revenue' : 'expense'}">${m.status}</span></td>
+        </tr>`;
+      }).join('');
+    }
+
+    function renderCreditCards() {
+      const grid = document.getElementById('cc-grid');
+      const empty = document.getElementById('cc-empty');
+      if (creditCards.length === 0) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+
+      grid.innerHTML = creditCards.map(c => {
+        const util = c.credit_limit > 0 ? Math.round((c.balance / c.credit_limit) * 100) : 0;
+        const utilClass = util > 70 ? 'high' : util > 30 ? 'medium' : 'low';
+        const daysLeft = c.apr_expires ? Math.ceil((new Date(c.apr_expires) - now) / (1000 * 60 * 60 * 24)) : null;
+        return `<div class="cc-card">
+          <h3>${c.name} <span style="font-size:0.8rem;color:var(--muted);font-weight:400;">${c.issuer || ''}</span></h3>
+          <div class="cc-detail"><span class="label">Balance</span><span style="font-weight:600;">${fmt2(c.balance)}</span></div>
+          <div class="cc-detail"><span class="label">Limit</span><span>${fmt(c.credit_limit)}</span></div>
+          <div class="cc-detail"><span class="label">APR</span><span>${c.apr || '—'}</span></div>
+          ${daysLeft !== null ? `<div class="cc-detail"><span class="label">0% Expires</span><span style="color:${daysLeft < 30 ? 'var(--hot)' : daysLeft < 90 ? 'var(--warn)' : 'var(--success)'}; font-weight:600;">${daysLeft > 0 ? daysLeft + ' days' : 'EXPIRED'}</span></div>` : ''}
+          <div class="progress-bar"><div class="progress-fill ${utilClass}" style="width:${util}%"></div></div>
+          <div style="text-align:right;font-size:0.8rem;color:var(--muted);margin-top:4px;">${util}% utilized</div>
+          ${c.notes ? `<p style="font-size:0.85rem;color:var(--muted);margin-top:12px;">${c.notes}</p>` : ''}
+          <button class="btn btn-secondary btn-sm" style="margin-top:12px;" onclick="editCreditCard(${c.id})">Edit</button>
+        </div>`;
+      }).join('');
+    }
+
+    function populateMonthFilter() {
+      const months = [...new Set(transactions.map(t => t.month).filter(Boolean))].sort().reverse();
+      const sel = document.getElementById('txn-filter-month');
+      sel.innerHTML = '<option value="">All Months</option>' + months.map(m => `<option value="${m}">${m}</option>`).join('');
+    }
+
+    function populateMachineSelect() {
+      const sel = document.getElementById('txn-machine');
+      sel.innerHTML = '<option value="">— All / General —</option>' + machines.map(m => `<option value="${m.id}">${m.name || 'Machine #' + m.id}</option>`).join('');
+    }
+
+    // Category options
+    function updateCategoryOptions() {
+      const type = document.getElementById('txn-type').value;
+      const sel = document.getElementById('txn-category');
+      if (type === 'revenue') {
+        sel.innerHTML = '<option value="sales">Sales Revenue</option>';
+      } else {
+        sel.innerHTML = `
+          <option value="cogs">COGS (Product Cost)</option>
+          <option value="rev_share">Revenue Share</option>
+          <option value="gas">Gas / Transport</option>
+          <option value="labor">Labor</option>
+          <option value="supplies">Supplies</option>
+          <option value="equipment">Equipment</option>
+          <option value="marketing">Marketing</option>
+          <option value="insurance">Insurance</option>
+          <option value="rent">Rent / Storage</option>
+          <option value="other">Other</option>
+        `;
+      }
+    }
+
+    // Transaction Modal
+    function openTransactionModal(type, txn) {
+      document.getElementById('txn-modal-title').textContent = txn ? 'Edit Transaction' : (type === 'revenue' ? 'Add Revenue' : 'Add Expense');
+      document.getElementById('txn-id').value = txn ? txn.id : '';
+      document.getElementById('txn-type').value = txn ? txn.type : type;
+      updateCategoryOptions();
+      if (txn) document.getElementById('txn-category').value = txn.category || '';
+      document.getElementById('txn-amount').value = txn ? txn.amount : '';
+      document.getElementById('txn-month').value = txn ? txn.month : currentMonth;
+      document.getElementById('txn-machine').value = txn ? txn.machine_id || '' : '';
+      document.getElementById('txn-description').value = txn ? txn.description || '' : '';
+      document.getElementById('txn-delete-btn').style.display = txn ? 'inline-block' : 'none';
+      document.getElementById('txn-modal').classList.add('open');
+    }
+    function closeTxnModal() { document.getElementById('txn-modal').classList.remove('open'); }
+
+    function editTransaction(id) {
+      const t = transactions.find(x => x.id === id);
+      if (t) openTransactionModal(t.type, t);
+    }
+
+    async function saveTransaction() {
+      const id = document.getElementById('txn-id').value;
+      const data = {
+        type: document.getElementById('txn-type').value,
+        category: document.getElementById('txn-category').value,
+        amount: parseFloat(document.getElementById('txn-amount').value) || 0,
+        month: document.getElementById('txn-month').value,
+        machine_id: document.getElementById('txn-machine').value ? parseInt(document.getElementById('txn-machine').value) : null,
+        description: document.getElementById('txn-description').value
+      };
+      if (id) {
+        await fetch(`/api/finances/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      } else {
+        await fetch('/api/finances', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      }
+      closeTxnModal();
+      loadData();
+    }
+
+    async function deleteTransaction() {
+      const id = document.getElementById('txn-id').value;
+      if (!id || !confirm('Delete this transaction?')) return;
+      await fetch(`/api/finances/${id}`, { method: 'DELETE' });
+      closeTxnModal();
+      loadData();
+    }
+
+    // Credit Card Modal
+    function openCreditCardModal(card) {
+      document.getElementById('cc-modal-title').textContent = card ? 'Edit Credit Card' : 'Add Credit Card';
+      document.getElementById('cc-id').value = card ? card.id : '';
+      document.getElementById('cc-name').value = card ? card.name || '' : '';
+      document.getElementById('cc-issuer').value = card ? card.issuer || 'Chase' : 'Chase';
+      document.getElementById('cc-limit').value = card ? card.credit_limit || '' : '';
+      document.getElementById('cc-balance').value = card ? card.balance || '' : '';
+      document.getElementById('cc-apr').value = card ? card.apr || '' : '';
+      document.getElementById('cc-apr-expires').value = card ? card.apr_expires || '' : '';
+      document.getElementById('cc-notes').value = card ? card.notes || '' : '';
+      document.getElementById('cc-delete-btn').style.display = card ? 'inline-block' : 'none';
+      document.getElementById('cc-modal').classList.add('open');
+    }
+    function closeCCModal() { document.getElementById('cc-modal').classList.remove('open'); }
+
+    function editCreditCard(id) {
+      const c = creditCards.find(x => x.id === id);
+      if (c) openCreditCardModal(c);
+    }
+
+    async function saveCreditCard() {
+      const id = document.getElementById('cc-id').value;
+      const data = {
+        name: document.getElementById('cc-name').value,
+        issuer: document.getElementById('cc-issuer').value,
+        credit_limit: parseFloat(document.getElementById('cc-limit').value) || 0,
+        balance: parseFloat(document.getElementById('cc-balance').value) || 0,
+        apr: document.getElementById('cc-apr').value,
+        apr_expires: document.getElementById('cc-apr-expires').value,
+        notes: document.getElementById('cc-notes').value
+      };
+      if (id) {
+        await fetch(`/api/credit-cards/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      } else {
+        await fetch('/api/credit-cards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      }
+      closeCCModal();
+      loadData();
+    }
+
+    async function deleteCreditCard() {
+      const id = document.getElementById('cc-id').value;
+      if (!id || !confirm('Delete this credit card?')) return;
+      await fetch(`/api/credit-cards/${id}`, { method: 'DELETE' });
+      closeCCModal();
+      loadData();
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+      document.getElementById(`tab-${tab}`).style.display = 'block';
+    }
+
+    document.querySelectorAll('.modal-overlay').forEach(m => {
+      m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+    });
+
+    updateCategoryOptions();
+    loadData();
+  </script>
+<script src="/nav.js"></script>
+</body>
+</html>

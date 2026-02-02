@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Fleet Management — Kande VendTech</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa;
+      --card: #ffffff;
+      --card-hover: #f7fafc;
+      --border: #e2e8f0;
+      --text: #1a202c;
+      --muted: #718096;
+      --accent: #3182ce;
+      --accent-dim: rgba(49,130,206,0.1);
+      --success: #38a169;
+      --success-dim: rgba(56,161,105,0.1);
+      --warn: #dd6b20;
+      --warn-dim: rgba(221,107,32,0.1);
+      --hot: #e53e3e;
+      --hot-dim: rgba(229,62,62,0.1);
+      --purple: #7b2cbf;
+      --purple-dim: rgba(123,44,191,0.1);
+      --offline: #a0aec0;
+      --offline-dim: rgba(160,174,192,0.1);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .app { max-width: 1500px; margin: 0 auto; padding: 20px; }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--accent), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-danger { background: var(--hot); color: #fff; }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+    .btn-xs { padding: 4px 8px; font-size: 0.72rem; border-radius: 5px; }
+
+    /* Summary Stats */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .stat-card .stat-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .stat-card .stat-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .stat-card .stat-sub {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .stat-card.accent .stat-value { color: var(--accent); }
+    .stat-card.success .stat-value { color: var(--success); }
+    .stat-card.warn .stat-value { color: var(--warn); }
+    .stat-card.hot .stat-value { color: var(--hot); }
+
+    /* View Toggle */
+    .view-toggle {
+      display: flex;
+      gap: 4px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 3px;
+    }
+    .view-toggle button {
+      padding: 6px 14px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--muted);
+      transition: all 0.2s;
+    }
+    .view-toggle button.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* Filter Bar */
+    .filter-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .filter-bar input,
+    .filter-bar select {
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      background: var(--card);
+      color: var(--text);
+      outline: none;
+    }
+    .filter-bar input:focus,
+    .filter-bar select:focus {
+      border-color: var(--accent);
+    }
+    .filter-bar input { min-width: 220px; }
+
+    /* Machine Cards Grid */
+    .machines-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .machine-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .machine-card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 4px 16px rgba(49,130,206,0.1);
+      transform: translateY(-1px);
+    }
+    .machine-card .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .machine-card .serial {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .machine-card .model {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* Status Badge */
+    .status-badge {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .status-active { background: var(--success-dim); color: var(--success); }
+    .status-needs-service { background: var(--warn-dim); color: var(--warn); }
+    .status-available { background: var(--accent-dim); color: var(--accent); }
+    .status-offline { background: var(--offline-dim); color: var(--offline); }
+
+    .machine-card .card-details {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .machine-card .detail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .detail-item .detail-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .detail-item .detail-value {
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+    .detail-item .detail-value.revenue { color: var(--success); }
+
+    .machine-card .card-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Map Placeholder */
+    .map-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 28px;
+    }
+    .map-section h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .map-placeholder {
+      height: 400px;
+      background: linear-gradient(135deg, #e8f4fd 0%, #f0f7ff 50%, #e8f0fe 100%);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+    .map-placeholder .map-icon { font-size: 3rem; opacity: 0.6; }
+    .map-placeholder .map-text {
+      font-size: 0.95rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .map-placeholder .map-subtext {
+      font-size: 0.78rem;
+      color: var(--muted);
+      opacity: 0.7;
+    }
+    .map-dots {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+    }
+    .map-dot {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    .map-dot.active { background: var(--success); }
+    .map-dot.needs-service { background: var(--warn); }
+    .map-dot.available { background: var(--accent); }
+    .map-dot.offline { background: var(--offline); }
+    .map-dot .dot-label {
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.65rem;
+      white-space: nowrap;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* Revenue Chart */
+    .chart-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 28px;
+    }
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .chart-header h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .chart-container { position: relative; height: 300px; }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--card);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 600px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-header h2 {
+      font-size: 1.15rem;
+      font-weight: 600;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.3rem;
+      cursor: pointer;
+      color: var(--muted);
+      padding: 4px;
+    }
+    .modal-body { padding: 24px; }
+
+    /* Forms */
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.88rem;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--accent);
+    }
+    .form-group textarea { min-height: 80px; resize: vertical; }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    /* Status Toggle in Detail */
+    .status-toggle {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .status-toggle button {
+      padding: 6px 14px;
+      border: 2px solid var(--border);
+      border-radius: 20px;
+      background: transparent;
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .status-toggle button.selected-active { border-color: var(--success); background: var(--success-dim); color: var(--success); }
+    .status-toggle button.selected-needs-service { border-color: var(--warn); background: var(--warn-dim); color: var(--warn); }
+    .status-toggle button.selected-available { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+    .status-toggle button.selected-offline { border-color: var(--offline); background: var(--offline-dim); color: #4a5568; }
+
+    /* Service Log */
+    .service-log {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    .service-log h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .log-entry {
+      padding: 10px 14px;
+      border-left: 3px solid var(--accent);
+      background: var(--bg);
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 8px;
+    }
+    .log-entry .log-date {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .log-entry .log-type {
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin: 2px 0;
+    }
+    .log-entry .log-notes {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .log-entry .log-tech {
+      font-size: 0.72rem;
+      color: var(--accent);
+      margin-top: 4px;
+    }
+
+    /* Revenue Detail */
+    .revenue-section {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    .revenue-section h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .revenue-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.82rem;
+    }
+    .revenue-table th {
+      text-align: left;
+      padding: 8px 12px;
+      background: var(--bg);
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+    }
+    .revenue-table td {
+      padding: 8px 12px;
+      border-top: 1px solid var(--border);
+    }
+    .revenue-table tr:hover td {
+      background: var(--card-hover);
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.5; }
+    .empty-state .empty-title { font-size: 1.1rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .empty-state .empty-text { font-size: 0.88rem; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 20px;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 0.85rem;
+      font-weight: 500;
+      z-index: 10001;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { background: var(--success); }
+    .toast.error { background: var(--hot); }
+
+    @media (max-width: 768px) {
+      .machines-grid { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .form-row { grid-template-columns: 1fr; }
+      .header { flex-direction: column; align-items: flex-start; }
+      .chart-container { height: 220px; }
+      .map-placeholder { height: 280px; }
+    }
+  </style>
+</head>
+<body>
+  <script src="/nav.js"></script>
+
+  <div class="app">
+    <!-- Header -->
+    <div class="header">
+      <h1>🚀 Fleet Management</h1>
+      <div class="header-actions">
+        <div class="view-toggle" id="viewToggle">
+          <button class="active" data-view="grid">📋 Cards</button>
+          <button data-view="map">🗺️ Map</button>
+          <button data-view="revenue">💵 Revenue</button>
+        </div>
+        <button class="btn btn-primary" onclick="openAddModal()">➕ Add Machine</button>
+      </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="stats-row" id="statsRow">
+      <div class="stat-card accent">
+        <span class="stat-label">Total Machines</span>
+        <span class="stat-value" id="statTotal">0</span>
+        <span class="stat-sub" id="statModel">SandStar AI Fleet</span>
+      </div>
+      <div class="stat-card success">
+        <span class="stat-label">Active Rate</span>
+        <span class="stat-value" id="statActiveRate">0%</span>
+        <span class="stat-sub" id="statActiveSub">0 active machines</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Avg Revenue / Machine</span>
+        <span class="stat-value" id="statAvgRevenue">$0</span>
+        <span class="stat-sub">This month</span>
+      </div>
+      <div class="stat-card warn">
+        <span class="stat-label">Needs Service</span>
+        <span class="stat-value" id="statNeedsService">0</span>
+        <span class="stat-sub" id="statServiceSub">machines flagged</span>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar" id="filterBar">
+      <input type="text" id="searchInput" placeholder="🔍 Search serial, location...">
+      <select id="statusFilter">
+        <option value="">All Statuses</option>
+        <option value="active">✅ Active</option>
+        <option value="needs-service">🔧 Needs Service</option>
+        <option value="available">📦 Available</option>
+        <option value="offline">⚫ Offline</option>
+      </select>
+      <select id="sortBy">
+        <option value="serial">Sort: Serial #</option>
+        <option value="revenue">Sort: Revenue</option>
+        <option value="restock">Sort: Last Restock</option>
+        <option value="status">Sort: Status</option>
+      </select>
+    </div>
+
+    <!-- Machine Cards Grid (default view) -->
+    <div class="machines-grid" id="machinesGrid"></div>
+
+    <!-- Map View -->
+    <div class="map-section" id="mapSection" style="display:none;">
+      <h2>🗺️ Machine Locations</h2>
+      <div class="map-placeholder" id="mapPlaceholder">
+        <div class="map-dots" id="mapDots"></div>
+        <span class="map-icon">📍</span>
+        <span class="map-text">Fleet Location Map</span>
+        <span class="map-subtext">Machine locations shown as color-coded dots — Green=Active, Orange=Service, Blue=Available, Gray=Offline</span>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;">
+        <span style="font-size:0.78rem;display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--success);display:inline-block;"></span> Active</span>
+        <span style="font-size:0.78rem;display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--warn);display:inline-block;"></span> Needs Service</span>
+        <span style="font-size:0.78rem;display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--accent);display:inline-block;"></span> Available</span>
+        <span style="font-size:0.78rem;display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--offline);display:inline-block;"></span> Offline</span>
+      </div>
+    </div>
+
+    <!-- Revenue Chart View -->
+    <div class="chart-section" id="revenueSection" style="display:none;">
+      <div class="chart-header">
+        <h2>💵 Fleet Revenue Overview</h2>
+        <div class="view-toggle" id="revPeriodToggle">
+          <button class="active" data-period="daily">Daily</button>
+          <button data-period="weekly">Weekly</button>
+          <button data-period="monthly">Monthly</button>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="revenueChart"></canvas>
+      </div>
+      <div id="revenueSummary" style="margin-top:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;"></div>
+    </div>
+
+    <!-- Machine cards always below -->
+    <div class="machines-grid" id="machinesGridBelow" style="display:none;"></div>
+  </div>
+
+  <!-- Add Machine Modal -->
+  <div class="modal-overlay" id="addModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>➕ Add New Machine</h2>
+        <button class="modal-close" onclick="closeModal('addModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="addForm" onsubmit="handleAddMachine(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Serial Number *</label>
+              <input type="text" name="serial" required placeholder="e.g. SS-AI-0001">
+            </div>
+            <div class="form-group">
+              <label>Model</label>
+              <input type="text" name="model" value="SandStar AI" placeholder="SandStar AI">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Location *</label>
+            <input type="text" name="location" required placeholder="e.g. The District at Green Valley">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Install Date</label>
+              <input type="date" name="install_date">
+            </div>
+            <div class="form-group">
+              <label>Status</label>
+              <select name="status">
+                <option value="available">Available</option>
+                <option value="active">Active</option>
+                <option value="needs-service">Needs Service</option>
+                <option value="offline">Offline</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Notes</label>
+            <textarea name="notes" placeholder="Additional notes about this machine..."></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('addModal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Add Machine</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Machine Detail Modal -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal" style="max-width:700px;">
+      <div class="modal-header">
+        <h2 id="detailTitle">Machine Details</h2>
+        <button class="modal-close" onclick="closeModal('detailModal')">&times;</button>
+      </div>
+      <div class="modal-body" id="detailBody"></div>
+    </div>
+  </div>
+
+  <!-- Add Service Log Modal -->
+  <div class="modal-overlay" id="serviceModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>🔧 Add Service Entry</h2>
+        <button class="modal-close" onclick="closeModal('serviceModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="serviceForm" onsubmit="handleAddService(event)">
+          <input type="hidden" name="machine_id" id="serviceMachineId">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Service Type *</label>
+              <select name="service_type" required>
+                <option value="routine">Routine Maintenance</option>
+                <option value="repair">Repair</option>
+                <option value="restock">Restock</option>
+                <option value="cleaning">Cleaning</option>
+                <option value="software-update">Software Update</option>
+                <option value="hardware-replace">Hardware Replacement</option>
+                <option value="inspection">Inspection</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" name="service_date" value="">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Technician</label>
+            <input type="text" name="technician" placeholder="Name of technician">
+          </div>
+          <div class="form-group">
+            <label>Notes *</label>
+            <textarea name="notes" required placeholder="What was done..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Cost ($)</label>
+            <input type="number" name="cost" step="0.01" placeholder="0.00">
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('serviceModal')">Cancel</button>
+            <button type="submit" class="btn btn-success">Log Service</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Revenue Modal -->
+  <div class="modal-overlay" id="revenueModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>💵 Record Revenue</h2>
+        <button class="modal-close" onclick="closeModal('revenueModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="revenueForm" onsubmit="handleAddRevenue(event)">
+          <input type="hidden" name="machine_id" id="revenueMachineId">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Amount ($) *</label>
+              <input type="number" name="amount" step="0.01" required placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label>Date *</label>
+              <input type="date" name="date" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Notes</label>
+            <input type="text" name="notes" placeholder="e.g. Daily collection">
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('revenueModal')">Cancel</button>
+            <button type="submit" class="btn btn-success">Record Revenue</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ===== STATE =====
+    let machines = [];
+    let currentView = 'grid';
+    let revenueChart = null;
+    let currentDetailId = null;
+
+    // ===== API =====
+    async function api(url, opts = {}) {
+      const res = await fetch(url, {
+        ...opts,
+        headers: { 'Content-Type': 'application/json', ...opts.headers }
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    // ===== LOAD =====
+    async function loadFleet() {
+      try {
+        machines = await api('/api/fleet');
+        renderStats();
+        renderGrid();
+        renderMap();
+        renderRevenueChart();
+      } catch (e) {
+        console.error('Failed to load fleet:', e);
+      }
+    }
+
+    // ===== STATS =====
+    function renderStats() {
+      const total = machines.length;
+      const active = machines.filter(m => m.status === 'active').length;
+      const needsService = machines.filter(m => m.status === 'needs-service').length;
+      const now = new Date();
+      const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      const totalRevThisMonth = machines.reduce((sum, m) => {
+        return sum + (m.revenue || []).filter(r => r.date && r.date.startsWith(monthKey)).reduce((s, r) => s + (r.amount || 0), 0);
+      }, 0);
+      const avgRevenue = total > 0 ? totalRevThisMonth / total : 0;
+
+      document.getElementById('statTotal').textContent = total;
+      document.getElementById('statActiveRate').textContent = total > 0 ? Math.round((active/total)*100) + '%' : '0%';
+      document.getElementById('statActiveSub').textContent = `${active} active machines`;
+      document.getElementById('statAvgRevenue').textContent = '$' + avgRevenue.toFixed(0);
+      document.getElementById('statNeedsService').textContent = needsService;
+      document.getElementById('statServiceSub').textContent = needsService === 1 ? 'machine flagged' : 'machines flagged';
+    }
+
+    // ===== GRID =====
+    function getFilteredMachines() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const statusFilter = document.getElementById('statusFilter').value;
+      const sortBy = document.getElementById('sortBy').value;
+      const now = new Date();
+      const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+      let filtered = machines.filter(m => {
+        if (statusFilter && m.status !== statusFilter) return false;
+        if (search) {
+          const haystack = `${m.serial} ${m.location} ${m.model} ${m.notes || ''}`.toLowerCase();
+          if (!haystack.includes(search)) return false;
+        }
+        return true;
+      });
+
+      filtered.sort((a, b) => {
+        if (sortBy === 'serial') return (a.serial || '').localeCompare(b.serial || '');
+        if (sortBy === 'status') return (a.status || '').localeCompare(b.status || '');
+        if (sortBy === 'revenue') {
+          const aRev = (a.revenue||[]).filter(r=>r.date&&r.date.startsWith(monthKey)).reduce((s,r)=>s+(r.amount||0),0);
+          const bRev = (b.revenue||[]).filter(r=>r.date&&r.date.startsWith(monthKey)).reduce((s,r)=>s+(r.amount||0),0);
+          return bRev - aRev;
+        }
+        if (sortBy === 'restock') {
+          const aDate = a.last_restock || '';
+          const bDate = b.last_restock || '';
+          return bDate.localeCompare(aDate);
+        }
+        return 0;
+      });
+
+      return filtered;
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById('machinesGrid');
+      const filtered = getFilteredMachines();
+      const now = new Date();
+      const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column:1/-1;">
+            <div class="empty-icon">🏭</div>
+            <div class="empty-title">No machines found</div>
+            <div class="empty-text">Add your first SandStar AI machine to start tracking your fleet.</div>
+          </div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(m => {
+        const monthRevenue = (m.revenue||[]).filter(r=>r.date&&r.date.startsWith(monthKey)).reduce((s,r)=>s+(r.amount||0),0);
+        const statusLabel = { 'active':'Active', 'needs-service':'Needs Service', 'available':'Available', 'offline':'Offline' }[m.status] || m.status;
+        const restockDate = m.last_restock ? new Date(m.last_restock).toLocaleDateString() : 'Never';
+
+        return `
+          <div class="machine-card" onclick="openDetail(${m.id})">
+            <div class="card-header">
+              <div>
+                <div class="serial">${esc(m.serial)}</div>
+                <div class="model">${esc(m.model || 'SandStar AI')}</div>
+              </div>
+              <span class="status-badge status-${m.status}">${statusLabel}</span>
+            </div>
+            <div class="card-details">
+              <div class="detail-item">
+                <span class="detail-label">Location</span>
+                <span class="detail-value">${esc(m.location || 'Unassigned')}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Revenue (This Month)</span>
+                <span class="detail-value revenue">$${monthRevenue.toLocaleString()}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Last Restock</span>
+                <span class="detail-value">${restockDate}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Installed</span>
+                <span class="detail-value">${m.install_date ? new Date(m.install_date).toLocaleDateString() : '—'}</span>
+              </div>
+            </div>
+            <div class="card-actions" onclick="event.stopPropagation()">
+              <button class="btn btn-sm btn-secondary" onclick="openServiceModal(${m.id})">🔧 Service</button>
+              <button class="btn btn-sm btn-secondary" onclick="openRevenueModal(${m.id})">💵 Revenue</button>
+              <button class="btn btn-sm btn-danger" onclick="deleteMachine(${m.id})" style="margin-left:auto;">🗑</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ===== MAP =====
+    function renderMap() {
+      const dots = document.getElementById('mapDots');
+      const mapMachines = machines.filter(m => m.location);
+
+      if (mapMachines.length === 0) {
+        dots.innerHTML = '';
+        return;
+      }
+
+      // Distribute dots across the map area with pseudo-random placement
+      dots.innerHTML = mapMachines.map((m, i) => {
+        const seed = hashCode(m.serial || String(m.id));
+        const x = 10 + (Math.abs(seed) % 80);
+        const y = 10 + (Math.abs(seed * 7) % 75);
+        return `
+          <div class="map-dot ${m.status}" style="left:${x}%;top:${y}%;" title="${esc(m.serial)} — ${esc(m.location)}">
+            <span class="dot-label">${esc(m.serial)}</span>
+          </div>`;
+      }).join('');
+    }
+
+    function hashCode(s) {
+      let h = 0;
+      for (let i = 0; i < s.length; i++) { h = Math.imul(31, h) + s.charCodeAt(i) | 0; }
+      return h;
+    }
+
+    // ===== REVENUE CHART =====
+    function renderRevenueChart(period = 'daily') {
+      const ctx = document.getElementById('revenueChart');
+      if (!ctx) return;
+
+      const allRevenue = [];
+      machines.forEach(m => {
+        (m.revenue || []).forEach(r => {
+          allRevenue.push({ ...r, serial: m.serial, machine_id: m.id });
+        });
+      });
+
+      if (allRevenue.length === 0) {
+        if (revenueChart) revenueChart.destroy();
+        revenueChart = null;
+        document.getElementById('revenueSummary').innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px;">No revenue data yet. Record revenue on individual machines to see charts.</div>';
+        return;
+      }
+
+      // Aggregate by period
+      const grouped = {};
+      allRevenue.forEach(r => {
+        let key;
+        const d = new Date(r.date);
+        if (period === 'daily') key = r.date;
+        else if (period === 'weekly') {
+          const weekStart = new Date(d);
+          weekStart.setDate(d.getDate() - d.getDay());
+          key = weekStart.toISOString().split('T')[0];
+        } else {
+          key = r.date ? r.date.substring(0, 7) : 'unknown';
+        }
+        if (!grouped[key]) grouped[key] = 0;
+        grouped[key] += r.amount || 0;
+      });
+
+      const labels = Object.keys(grouped).sort();
+      const data = labels.map(k => grouped[k]);
+
+      if (revenueChart) revenueChart.destroy();
+      revenueChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels.map(l => period === 'monthly' ? l : new Date(l).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+          datasets: [{
+            label: 'Revenue ($)',
+            data,
+            backgroundColor: 'rgba(49,130,206,0.7)',
+            borderRadius: 6,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { callback: v => '$' + v } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+
+      // Revenue summary
+      const totalRev = allRevenue.reduce((s, r) => s + (r.amount || 0), 0);
+      const now = new Date();
+      const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      const thisMonthRev = allRevenue.filter(r => r.date && r.date.startsWith(monthKey)).reduce((s, r) => s + (r.amount || 0), 0);
+      const topMachine = machines.reduce((best, m) => {
+        const rev = (m.revenue||[]).filter(r=>r.date&&r.date.startsWith(monthKey)).reduce((s,r)=>s+(r.amount||0),0);
+        return rev > (best.rev || 0) ? { serial: m.serial, rev } : best;
+      }, { serial: '—', rev: 0 });
+
+      document.getElementById('revenueSummary').innerHTML = `
+        <div class="stat-card"><span class="stat-label">Total All-Time</span><span class="stat-value" style="font-size:1.3rem;color:var(--success);">$${totalRev.toLocaleString()}</span></div>
+        <div class="stat-card"><span class="stat-label">This Month</span><span class="stat-value" style="font-size:1.3rem;color:var(--accent);">$${thisMonthRev.toLocaleString()}</span></div>
+        <div class="stat-card"><span class="stat-label">Top Performer</span><span class="stat-value" style="font-size:1.3rem;">${esc(topMachine.serial)}</span><span class="stat-sub">$${topMachine.rev.toLocaleString()} this month</span></div>
+      `;
+    }
+
+    // ===== VIEW TOGGLE =====
+    document.getElementById('viewToggle').addEventListener('click', (e) => {
+      if (e.target.tagName !== 'BUTTON') return;
+      document.querySelectorAll('#viewToggle button').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      currentView = e.target.dataset.view;
+
+      document.getElementById('machinesGrid').style.display = currentView === 'grid' ? '' : 'none';
+      document.getElementById('filterBar').style.display = currentView === 'grid' ? '' : 'none';
+      document.getElementById('mapSection').style.display = currentView === 'map' ? '' : 'none';
+      document.getElementById('revenueSection').style.display = currentView === 'revenue' ? '' : 'none';
+    });
+
+    // Revenue period toggle
+    document.getElementById('revPeriodToggle').addEventListener('click', (e) => {
+      if (e.target.tagName !== 'BUTTON') return;
+      document.querySelectorAll('#revPeriodToggle button').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      renderRevenueChart(e.target.dataset.period);
+    });
+
+    // Filter events
+    document.getElementById('searchInput').addEventListener('input', renderGrid);
+    document.getElementById('statusFilter').addEventListener('change', renderGrid);
+    document.getElementById('sortBy').addEventListener('change', renderGrid);
+
+    // ===== MODALS =====
+    function openModal(id) { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    function openAddModal() {
+      document.getElementById('addForm').reset();
+      document.querySelector('#addForm [name="model"]').value = 'SandStar AI';
+      openModal('addModal');
+    }
+
+    function openServiceModal(machineId) {
+      document.getElementById('serviceMachineId').value = machineId;
+      document.getElementById('serviceForm').reset();
+      document.getElementById('serviceMachineId').value = machineId;
+      document.querySelector('#serviceForm [name="service_date"]').value = new Date().toISOString().split('T')[0];
+      openModal('serviceModal');
+    }
+
+    function openRevenueModal(machineId) {
+      document.getElementById('revenueMachineId').value = machineId;
+      document.getElementById('revenueForm').reset();
+      document.getElementById('revenueMachineId').value = machineId;
+      document.querySelector('#revenueForm [name="date"]').value = new Date().toISOString().split('T')[0];
+      openModal('revenueModal');
+    }
+
+    // ===== MACHINE DETAIL =====
+    async function openDetail(id) {
+      currentDetailId = id;
+      const m = machines.find(x => x.id === id);
+      if (!m) return;
+
+      document.getElementById('detailTitle').textContent = `${m.serial} — ${m.model || 'SandStar AI'}`;
+
+      const now = new Date();
+      const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      const monthRevenue = (m.revenue||[]).filter(r=>r.date&&r.date.startsWith(monthKey)).reduce((s,r)=>s+(r.amount||0),0);
+      const totalRevenue = (m.revenue||[]).reduce((s,r)=>s+(r.amount||0),0);
+      const serviceLogs = (m.service_logs || []).sort((a,b) => new Date(b.service_date||b.created_at) - new Date(a.service_date||a.created_at));
+      const revenueEntries = (m.revenue||[]).sort((a,b) => new Date(b.date) - new Date(a.date));
+
+      const statusOptions = ['active', 'needs-service', 'available', 'offline'];
+      const statusLabels = { 'active':'✅ Active', 'needs-service':'🔧 Needs Service', 'available':'📦 Available', 'offline':'⚫ Offline' };
+
+      document.getElementById('detailBody').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+          <div class="detail-item">
+            <span class="detail-label">Location</span>
+            <span class="detail-value">${esc(m.location || 'Unassigned')}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Install Date</span>
+            <span class="detail-value">${m.install_date ? new Date(m.install_date).toLocaleDateString() : '—'}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Revenue (This Month)</span>
+            <span class="detail-value revenue">$${monthRevenue.toLocaleString()}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Revenue (All-Time)</span>
+            <span class="detail-value revenue">$${totalRevenue.toLocaleString()}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Last Restock</span>
+            <span class="detail-value">${m.last_restock ? new Date(m.last_restock).toLocaleDateString() : 'Never'}</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Status</label>
+          <div class="status-toggle">
+            ${statusOptions.map(s => `
+              <button class="${m.status === s ? 'selected-' + s : ''}" onclick="updateStatus(${m.id}, '${s}')">${statusLabels[s]}</button>
+            `).join('')}
+          </div>
+        </div>
+
+        ${m.notes ? `<div style="margin-top:12px;padding:10px 14px;background:var(--bg);border-radius:8px;font-size:0.85rem;color:var(--muted);">📝 ${esc(m.notes)}</div>` : ''}
+
+        <div class="service-log">
+          <h3>🔧 Service History <button class="btn btn-xs btn-secondary" onclick="closeModal('detailModal');openServiceModal(${m.id})" style="margin-left:auto;">+ Add</button></h3>
+          ${serviceLogs.length === 0 ? '<div style="color:var(--muted);font-size:0.82rem;padding:8px 0;">No service records yet.</div>' :
+            serviceLogs.slice(0, 10).map(log => `
+              <div class="log-entry">
+                <div class="log-date">${new Date(log.service_date || log.created_at).toLocaleDateString()} ${log.cost ? '• $' + log.cost : ''}</div>
+                <div class="log-type">${formatServiceType(log.service_type)}</div>
+                <div class="log-notes">${esc(log.notes || '')}</div>
+                ${log.technician ? `<div class="log-tech">👤 ${esc(log.technician)}</div>` : ''}
+              </div>
+            `).join('')
+          }
+        </div>
+
+        <div class="revenue-section">
+          <h3>💵 Revenue History <button class="btn btn-xs btn-secondary" onclick="closeModal('detailModal');openRevenueModal(${m.id})" style="margin-left:auto;">+ Add</button></h3>
+          ${revenueEntries.length === 0 ? '<div style="color:var(--muted);font-size:0.82rem;padding:8px 0;">No revenue recorded yet.</div>' : `
+            <table class="revenue-table">
+              <thead><tr><th>Date</th><th>Amount</th><th>Notes</th></tr></thead>
+              <tbody>
+                ${revenueEntries.slice(0, 15).map(r => `
+                  <tr>
+                    <td>${new Date(r.date).toLocaleDateString()}</td>
+                    <td style="color:var(--success);font-weight:600;">$${(r.amount||0).toLocaleString()}</td>
+                    <td style="color:var(--muted);">${esc(r.notes || '')}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `}
+        </div>
+      `;
+
+      openModal('detailModal');
+    }
+
+    function formatServiceType(t) {
+      const labels = {
+        'routine': '🔄 Routine Maintenance',
+        'repair': '🔧 Repair',
+        'restock': '📦 Restock',
+        'cleaning': '🧹 Cleaning',
+        'software-update': '💻 Software Update',
+        'hardware-replace': '⚙️ Hardware Replacement',
+        'inspection': '🔍 Inspection'
+      };
+      return labels[t] || t;
+    }
+
+    // ===== ACTIONS =====
+    async function handleAddMachine(e) {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const data = Object.fromEntries(fd);
+      try {
+        await api('/api/fleet', { method: 'POST', body: JSON.stringify(data) });
+        closeModal('addModal');
+        toast('Machine added successfully', 'success');
+        loadFleet();
+      } catch (err) {
+        toast('Failed to add machine: ' + err.message, 'error');
+      }
+    }
+
+    async function handleAddService(e) {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const data = Object.fromEntries(fd);
+      const machineId = data.machine_id;
+      delete data.machine_id;
+      try {
+        await api(`/api/fleet/${machineId}/service-logs`, { method: 'POST', body: JSON.stringify(data) });
+        closeModal('serviceModal');
+        toast('Service entry logged', 'success');
+        await loadFleet();
+        openDetail(parseInt(machineId));
+      } catch (err) {
+        toast('Failed to log service: ' + err.message, 'error');
+      }
+    }
+
+    async function handleAddRevenue(e) {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const data = Object.fromEntries(fd);
+      data.amount = parseFloat(data.amount);
+      const machineId = data.machine_id;
+      delete data.machine_id;
+      try {
+        await api(`/api/fleet/${machineId}/revenue`, { method: 'POST', body: JSON.stringify(data) });
+        closeModal('revenueModal');
+        toast('Revenue recorded', 'success');
+        await loadFleet();
+        openDetail(parseInt(machineId));
+      } catch (err) {
+        toast('Failed to record revenue: ' + err.message, 'error');
+      }
+    }
+
+    async function updateStatus(id, status) {
+      try {
+        await api(`/api/fleet/${id}`, { method: 'PUT', body: JSON.stringify({ status }) });
+        toast('Status updated', 'success');
+        await loadFleet();
+        openDetail(id);
+      } catch (err) {
+        toast('Failed to update status: ' + err.message, 'error');
+      }
+    }
+
+    async function deleteMachine(id) {
+      const m = machines.find(x => x.id === id);
+      if (!confirm(`Delete machine ${m ? m.serial : '#' + id}? This cannot be undone.`)) return;
+      try {
+        await api(`/api/fleet/${id}`, { method: 'DELETE' });
+        toast('Machine removed', 'success');
+        loadFleet();
+      } catch (err) {
+        toast('Failed to delete: ' + err.message, 'error');
+      }
+    }
+
+    // ===== UTILS =====
+    function esc(s) {
+      if (!s) return '';
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function toast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast ' + type + ' show';
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // Close modals on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.classList.remove('open');
+      });
+    });
+
+    // ===== INIT =====
+    loadFleet();
+  </script>
+</body>
+</html>

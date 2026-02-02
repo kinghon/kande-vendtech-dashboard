@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Client Portal — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f5f7; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
+      --muted: #718096; --accent: #3182ce; --hot: #e53e3e; --warn: #dd6b20;
+      --success: #38a169; --purple: #7b2cbf;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+    /* Login Screen */
+    .login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+    .login-box { background: var(--card); border-radius: 16px; padding: 48px 40px; max-width: 420px; width: 100%; box-shadow: 0 8px 32px rgba(0,0,0,0.08); text-align: center; border: 1px solid var(--border); }
+    .login-box img { height: 48px; margin-bottom: 20px; }
+    .login-box h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+    .login-box p { color: var(--muted); font-size: 0.9rem; margin-bottom: 28px; }
+    .login-box input { width: 100%; padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 1.1rem; text-align: center; letter-spacing: 3px; font-weight: 600; outline: none; transition: border 0.2s; }
+    .login-box input:focus { border-color: var(--accent); }
+    .login-box .btn-login { width: 100%; padding: 14px; background: var(--accent); color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; margin-top: 16px; transition: background 0.2s; }
+    .login-box .btn-login:hover { background: #2b6cb0; }
+    .login-error { color: var(--hot); font-size: 0.85rem; margin-top: 12px; display: none; }
+    .login-badge { display: inline-block; background: linear-gradient(135deg, var(--accent), var(--purple)); color: white; padding: 4px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; margin-bottom: 20px; letter-spacing: 0.5px; }
+
+    /* Portal Nav */
+    .portal-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; padding-bottom: 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .portal-nav img { height: 36px; }
+    .portal-nav .nav-brand { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+    .portal-nav .client-name { color: var(--accent); font-weight: 600; font-size: 0.85rem; margin-left: auto; }
+    .portal-nav .btn-logout { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
+    .portal-nav .btn-logout:hover { border-color: var(--hot); color: var(--hot); }
+
+    /* Portal Header */
+    .portal-header { margin-bottom: 28px; }
+    .portal-header h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; }
+    .portal-header p { color: var(--muted); font-size: 0.9rem; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 2px solid var(--border); overflow-x: auto; }
+    .tab { padding: 10px 18px; font-size: 0.85rem; font-weight: 500; color: var(--muted); background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; white-space: nowrap; }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Stats Grid */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 28px; }
+    .stat-card { background: var(--card); border-radius: 14px; padding: 22px; border: 1px solid var(--border); text-align: center; transition: transform 0.2s; }
+    .stat-card:hover { transform: translateY(-2px); }
+    .stat-card .icon { font-size: 1.8rem; margin-bottom: 8px; }
+    .stat-card .value { font-size: 2rem; font-weight: 700; line-height: 1.1; }
+    .stat-card .label { font-size: 0.72rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.3px; }
+    .value.accent { color: var(--accent); }
+    .value.success { color: var(--success); }
+    .value.warn { color: var(--warn); }
+    .value.hot { color: var(--hot); }
+
+    /* Cards */
+    .card { background: var(--card); border-radius: 14px; padding: 24px; border: 1px solid var(--border); margin-bottom: 20px; }
+    .card h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .card h3::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* Grid layouts */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    /* Machines Table */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { text-align: left; padding: 10px 12px; font-weight: 600; color: var(--muted); border-bottom: 2px solid var(--border); font-size: 0.73rem; text-transform: uppercase; }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    tr:hover { background: rgba(49,130,206,0.03); }
+
+    /* Badges */
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; }
+    .badge-active { background: rgba(56,161,105,0.12); color: var(--success); }
+    .badge-needs-service { background: rgba(221,107,32,0.12); color: var(--warn); }
+    .badge-offline { background: rgba(113,128,150,0.12); color: var(--muted); }
+    .badge-available { background: rgba(49,130,206,0.12); color: var(--accent); }
+    .badge-open { background: rgba(221,107,32,0.12); color: var(--warn); }
+    .badge-resolved { background: rgba(56,161,105,0.12); color: var(--success); }
+    .badge-in-progress { background: rgba(49,130,206,0.12); color: var(--accent); }
+
+    /* Chart Container */
+    .chart-container { position: relative; height: 260px; }
+    .bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 200px; padding: 0 10px; }
+    .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .bar { width: 100%; max-width: 48px; background: linear-gradient(180deg, var(--accent), #63b3ed); border-radius: 6px 6px 0 0; transition: height 0.5s ease; min-height: 4px; position: relative; }
+    .bar:hover { opacity: 0.85; }
+    .bar-label { font-size: 0.68rem; color: var(--muted); text-align: center; }
+    .bar-value { font-size: 0.7rem; font-weight: 600; color: var(--text); }
+
+    /* Horizontal bar chart for popularity */
+    .h-bar-chart { display: flex; flex-direction: column; gap: 10px; }
+    .h-bar-row { display: flex; align-items: center; gap: 12px; }
+    .h-bar-name { width: 120px; font-size: 0.82rem; font-weight: 500; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+    .h-bar-track { flex: 1; height: 24px; background: #edf2f7; border-radius: 6px; overflow: hidden; }
+    .h-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--purple)); border-radius: 6px; transition: width 0.5s ease; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; }
+    .h-bar-fill span { font-size: 0.7rem; font-weight: 700; color: white; }
+
+    /* Form */
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .form-group select, .form-group input, .form-group textarea { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.9rem; outline: none; transition: border 0.2s; font-family: inherit; background: var(--card); }
+    .form-group select:focus, .form-group input:focus, .form-group textarea:focus { border-color: var(--accent); }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .btn { padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+    .btn-primary:hover { background: #2b6cb0; }
+
+    /* Statement Table */
+    .statement-row { display: flex; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); gap: 16px; }
+    .statement-row:last-child { border-bottom: none; }
+    .statement-month { font-weight: 600; width: 100px; }
+    .statement-amount { flex: 1; text-align: right; }
+    .statement-commission { flex: 1; text-align: right; color: var(--success); font-weight: 600; }
+    .statement-status { width: 80px; text-align: center; }
+    .paid-badge { background: rgba(56,161,105,0.12); color: var(--success); padding: 3px 10px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; }
+    .pending-badge { background: rgba(221,107,32,0.12); color: var(--warn); padding: 3px 10px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; }
+
+    /* Support section */
+    .support-card { display: flex; align-items: center; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+    .support-card:last-child { border-bottom: none; }
+    .support-icon { font-size: 1.5rem; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; background: rgba(49,130,206,0.08); border-radius: 12px; }
+    .support-info h4 { font-size: 0.9rem; font-weight: 600; }
+    .support-info p { font-size: 0.82rem; color: var(--muted); }
+    .support-info a { color: var(--accent); text-decoration: none; font-weight: 500; }
+    .support-info a:hover { text-decoration: underline; }
+
+    /* Success message */
+    .success-msg { background: rgba(56,161,105,0.08); border: 1px solid rgba(56,161,105,0.25); color: var(--success); padding: 12px 16px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 16px; display: none; }
+    .success-msg.show { display: block; }
+
+    /* Restock list */
+    .restock-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #edf2f7; }
+    .restock-item:last-child { border-bottom: none; }
+    .restock-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .restock-dot.pending { background: var(--warn); }
+    .restock-dot.complete { background: var(--success); }
+    .restock-info { flex: 1; font-size: 0.85rem; }
+    .restock-date { font-size: 0.78rem; color: var(--muted); }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .empty-state p { font-size: 0.9rem; }
+
+    /* Powered by */
+    .powered-by { text-align: center; padding: 24px 0; color: var(--muted); font-size: 0.75rem; }
+    .powered-by a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<!-- ===== LOGIN SCREEN ===== -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-box">
+    <img src="/logo.png" alt="Kande VendTech">
+    <div class="login-badge">CLIENT PORTAL</div>
+    <h1>Welcome Back</h1>
+    <p>Enter your access code to view your vending machine dashboard</p>
+    <input type="text" id="accessCode" placeholder="ACCESS CODE" maxlength="12" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn-login" onclick="doLogin()">Access Dashboard</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ===== PORTAL DASHBOARD ===== -->
+<div id="portalDashboard" class="app" style="display:none;">
+  <nav class="portal-nav">
+    <img src="/logo.png" alt="Kande VendTech">
+    <span class="nav-brand">Client Portal</span>
+    <span class="client-name" id="clientNameNav">—</span>
+    <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+  </nav>
+
+  <div class="portal-header">
+    <h1>👋 Welcome, <span id="clientNameHeader">Client</span></h1>
+    <p>Your vending machine performance at a glance — updated in real time</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('overview')">📊 Overview</button>
+    <button class="tab" onclick="switchTab('machines')">🤖 Machines</button>
+    <button class="tab" onclick="switchTab('service')">🔧 Service Request</button>
+    <button class="tab" onclick="switchTab('statements')">📄 Statements</button>
+    <button class="tab" onclick="switchTab('support')">💬 Support</button>
+  </div>
+
+  <!-- ===== OVERVIEW TAB ===== -->
+  <div id="tab-overview" class="tab-content active">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="icon">💰</div>
+        <div class="value accent" id="statRevenue">$0</div>
+        <div class="label">Revenue This Month</div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">🤝</div>
+        <div class="value success" id="statCommission">$0</div>
+        <div class="label">Your Commission</div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">🤖</div>
+        <div class="value accent" id="statMachines">0</div>
+        <div class="label">Active Machines</div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">✅</div>
+        <div class="value success" id="statHealth">—</div>
+        <div class="label">Fleet Health</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Revenue Trend -->
+      <div class="card">
+        <h3>📈 Revenue Trend (6 Months)</h3>
+        <div class="bar-chart" id="revenueBars"></div>
+      </div>
+
+      <!-- Product Popularity -->
+      <div class="card">
+        <h3>🏆 Top Products</h3>
+        <div class="h-bar-chart" id="popularityChart"></div>
+        <div class="empty-state" id="popularityEmpty" style="display:none;">
+          <div class="icon">📦</div>
+          <p>Sales data will appear here once machines are active</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Machine Status Overview -->
+      <div class="card">
+        <h3>🤖 Machine Status</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Machine</th><th>Location</th><th>Status</th></tr></thead>
+            <tbody id="machineStatusBody"></tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="machineEmpty" style="display:none;">
+          <div class="icon">🤖</div>
+          <p>No machines assigned yet</p>
+        </div>
+      </div>
+
+      <!-- Restock Schedule -->
+      <div class="card">
+        <h3>📅 Recent Restocks</h3>
+        <div id="restockList"></div>
+        <div class="empty-state" id="restockEmpty" style="display:none;">
+          <div class="icon">📅</div>
+          <p>Restock history will appear here</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MACHINES TAB ===== -->
+  <div id="tab-machines" class="tab-content">
+    <div class="card">
+      <h3>🤖 Your Machines — Detailed View</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Serial</th><th>Model</th><th>Location</th><th>Status</th><th>Last Restock</th></tr>
+          </thead>
+          <tbody id="machinesDetailBody"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="machinesDetailEmpty" style="display:none;">
+        <div class="icon">🤖</div>
+        <p>Machine details will appear once assigned to your account</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SERVICE REQUEST TAB ===== -->
+  <div id="tab-service" class="tab-content">
+    <div class="grid-2">
+      <div class="card">
+        <h3>🔧 Submit Service Request</h3>
+        <div class="success-msg" id="srSuccess">✅ Service request submitted! Our team will respond shortly.</div>
+        <form id="serviceForm" onsubmit="submitServiceRequest(event)">
+          <div class="form-group">
+            <label>Machine</label>
+            <select id="srMachine"><option value="">Select machine...</option></select>
+          </div>
+          <div class="form-group">
+            <label>Issue Type</label>
+            <select id="srType">
+              <option value="machine-down">Machine Down / Not Working</option>
+              <option value="payment-issue">Payment System Issue</option>
+              <option value="product-stuck">Product Stuck / Jammed</option>
+              <option value="restock-needed">Needs Restocking</option>
+              <option value="temperature">Temperature Problem</option>
+              <option value="cleanliness">Cleanliness / Appearance</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Urgency</label>
+            <select id="srUrgency">
+              <option value="normal">Normal — next business day</option>
+              <option value="high">High — within 24 hours</option>
+              <option value="urgent">Urgent — ASAP</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="srDescription" placeholder="Describe the issue..."></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">Submit Request</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3>📋 Your Service Requests</h3>
+        <div id="serviceRequestList"></div>
+        <div class="empty-state" id="srEmpty" style="display:none;">
+          <div class="icon">✅</div>
+          <p>No service requests — everything looks good!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STATEMENTS TAB ===== -->
+  <div id="tab-statements" class="tab-content">
+    <div class="card">
+      <h3>📄 Monthly Statements</h3>
+      <p style="color:var(--muted);font-size:0.85rem;margin-bottom:20px;">Revenue, commission, and payment history for your locations</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Month</th><th style="text-align:right">Revenue</th><th style="text-align:right">Commission Rate</th><th style="text-align:right">Commission Owed</th><th style="text-align:center">Status</th></tr>
+          </thead>
+          <tbody id="statementsBody"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="statementsEmpty" style="display:none;">
+        <div class="icon">📄</div>
+        <p>Statements will appear once revenue is recorded</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SUPPORT TAB ===== -->
+  <div id="tab-support" class="tab-content">
+    <div class="card">
+      <h3>💬 Contact & Support</h3>
+      <div class="support-card">
+        <div class="support-icon">📞</div>
+        <div class="support-info">
+          <h4>Phone Support</h4>
+          <p>Call us for urgent machine issues</p>
+          <a href="tel:+17025551234">(702) 555-1234</a>
+        </div>
+      </div>
+      <div class="support-card">
+        <div class="support-icon">📧</div>
+        <div class="support-info">
+          <h4>Email Support</h4>
+          <p>For general inquiries and non-urgent requests</p>
+          <a href="mailto:support@kandevendtech.com">support@kandevendtech.com</a>
+        </div>
+      </div>
+      <div class="support-card">
+        <div class="support-icon">⏰</div>
+        <div class="support-info">
+          <h4>Business Hours</h4>
+          <p>Monday – Friday: 8:00 AM – 6:00 PM PST<br>Emergency support available 24/7 for machine-down issues</p>
+        </div>
+      </div>
+      <div class="support-card">
+        <div class="support-icon">📍</div>
+        <div class="support-info">
+          <h4>Service Area</h4>
+          <p>Henderson, Las Vegas, and surrounding Clark County</p>
+        </div>
+      </div>
+      <div class="support-card">
+        <div class="support-icon">🔧</div>
+        <div class="support-info">
+          <h4>Submit a Service Request</h4>
+          <p>Use the <a href="#" onclick="switchTab('service');return false;">Service Request</a> tab to report issues directly — we'll respond within 4 hours during business hours.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>❓ Frequently Asked Questions</h3>
+      <div class="support-card">
+        <div class="support-icon">📊</div>
+        <div class="support-info">
+          <h4>How often is revenue data updated?</h4>
+          <p>Revenue data is updated as transactions are processed, typically within 24 hours.</p>
+        </div>
+      </div>
+      <div class="support-card">
+        <div class="support-icon">💰</div>
+        <div class="support-info">
+          <h4>When are commission payments made?</h4>
+          <p>Commission payments are processed monthly, typically by the 15th of the following month.</p>
+        </div>
+      </div>
+      <div class="support-card">
+        <div class="support-icon">📅</div>
+        <div class="support-info">
+          <h4>How often are machines restocked?</h4>
+          <p>Machines are restocked on a regular schedule based on sales velocity — typically every 1-2 weeks. High-traffic locations may be restocked more frequently.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="powered-by">
+    Powered by <a href="https://kandevendtech.com">Kande VendTech</a> — Smart Vending Solutions
+  </div>
+</div>
+
+<script>
+let clientToken = localStorage.getItem('cp_token');
+let clientName = localStorage.getItem('cp_name') || 'Client';
+let dashboardData = null;
+
+// ===== AUTH =====
+async function doLogin() {
+  const code = document.getElementById('accessCode').value.trim();
+  if (!code) return;
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  try {
+    const res = await fetch('/api/client-portal/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
+    });
+    const data = await res.json();
+    if (data.success) {
+      clientToken = data.token;
+      clientName = data.clientName;
+      localStorage.setItem('cp_token', clientToken);
+      localStorage.setItem('cp_name', clientName);
+      showPortal();
+    } else {
+      errEl.textContent = data.error || 'Invalid code';
+      errEl.style.display = 'block';
+    }
+  } catch (e) {
+    errEl.textContent = 'Connection error. Please try again.';
+    errEl.style.display = 'block';
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem('cp_token');
+  localStorage.removeItem('cp_name');
+  clientToken = null;
+  document.getElementById('portalDashboard').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+async function apiFetch(url, opts = {}) {
+  const headers = { 'Authorization': `Bearer ${clientToken}`, ...opts.headers };
+  const res = await fetch(url, { ...opts, headers });
+  if (res.status === 401) { doLogout(); return null; }
+  return res.json();
+}
+
+// ===== SHOW PORTAL =====
+function showPortal() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('portalDashboard').style.display = 'block';
+  document.getElementById('clientNameNav').textContent = clientName;
+  document.getElementById('clientNameHeader').textContent = clientName;
+  loadDashboard();
+}
+
+// ===== TABS =====
+function switchTab(tabName) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tabName).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => {
+    if (t.textContent.toLowerCase().includes(tabName === 'overview' ? 'overview' : tabName === 'machines' ? 'machine' : tabName === 'service' ? 'service' : tabName === 'statements' ? 'statement' : 'support')) {
+      t.classList.add('active');
+    }
+  });
+  if (tabName === 'statements') loadStatements();
+}
+
+// ===== LOAD DASHBOARD =====
+async function loadDashboard() {
+  const data = await apiFetch('/api/client-portal/dashboard');
+  if (!data) return;
+  dashboardData = data;
+
+  // Stats
+  document.getElementById('statRevenue').textContent = '$' + (data.monthRevenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  document.getElementById('statCommission').textContent = '$' + (data.commissionAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  document.getElementById('statMachines').textContent = data.machineCount || 0;
+
+  // Fleet health
+  const machines = data.machines || [];
+  const activeCount = machines.filter(m => m.status === 'active').length;
+  const totalCount = machines.length;
+  const needsService = machines.filter(m => m.status === 'needs-service').length;
+  if (totalCount === 0) {
+    document.getElementById('statHealth').textContent = '—';
+  } else if (needsService > 0) {
+    document.getElementById('statHealth').textContent = needsService + ' ⚠️';
+    document.getElementById('statHealth').className = 'value warn';
+  } else {
+    document.getElementById('statHealth').textContent = 'All Good';
+    document.getElementById('statHealth').className = 'value success';
+  }
+
+  // Revenue trend bars
+  renderRevenueBars(data.monthlyHistory || []);
+
+  // Product popularity
+  renderPopularity(data.productPopularity || []);
+
+  // Machine status table (overview)
+  renderMachineTable(machines, 'machineStatusBody', 'machineEmpty', false);
+
+  // Machine detail table
+  renderMachineTable(machines, 'machinesDetailBody', 'machinesDetailEmpty', true);
+
+  // Restock schedule
+  renderRestocks(data.recentRestocks || [], data.restockSchedule || []);
+
+  // Populate service request machine dropdown
+  populateMachineDropdown(machines);
+
+  // Load service requests
+  loadServiceRequests();
+}
+
+function renderRevenueBars(history) {
+  const container = document.getElementById('revenueBars');
+  if (!history.length) { container.innerHTML = '<div class="empty-state"><div class="icon">📈</div><p>Revenue data will appear here</p></div>'; return; }
+  const maxRev = Math.max(...history.map(h => h.revenue), 1);
+  container.innerHTML = history.map(h => {
+    const pct = (h.revenue / maxRev) * 100;
+    const monthName = new Date(h.month + '-01').toLocaleDateString('en-US', { month: 'short' });
+    return `<div class="bar-group">
+      <div class="bar-value">$${h.revenue.toLocaleString()}</div>
+      <div class="bar" style="height:${Math.max(pct, 3)}%"></div>
+      <div class="bar-label">${monthName}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderPopularity(products) {
+  const container = document.getElementById('popularityChart');
+  const empty = document.getElementById('popularityEmpty');
+  if (!products.length) { container.style.display = 'none'; empty.style.display = 'block'; return; }
+  container.style.display = 'flex'; empty.style.display = 'none';
+  const maxUnits = Math.max(...products.map(p => p.units), 1);
+  container.innerHTML = products.slice(0, 8).map(p => {
+    const pct = (p.units / maxUnits) * 100;
+    return `<div class="h-bar-row">
+      <div class="h-bar-name" title="${p.name}">${p.name}</div>
+      <div class="h-bar-track"><div class="h-bar-fill" style="width:${Math.max(pct, 5)}%"><span>${p.units}</span></div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderMachineTable(machines, bodyId, emptyId, detailed) {
+  const body = document.getElementById(bodyId);
+  const empty = document.getElementById(emptyId);
+  if (!machines.length) { body.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  body.innerHTML = machines.map(m => {
+    const statusClass = m.status === 'active' ? 'badge-active' : m.status === 'needs-service' ? 'badge-needs-service' : m.status === 'offline' ? 'badge-offline' : 'badge-available';
+    const statusLabel = m.status === 'needs-service' ? 'Needs Service' : m.status.charAt(0).toUpperCase() + m.status.slice(1);
+    if (detailed) {
+      return `<tr>
+        <td><strong>${m.serial}</strong></td>
+        <td>${m.model || 'SandStar AI'}</td>
+        <td>${m.location || '—'}</td>
+        <td><span class="badge ${statusClass}">${statusLabel}</span></td>
+        <td>${m.last_restock ? new Date(m.last_restock).toLocaleDateString() : '—'}</td>
+      </tr>`;
+    }
+    return `<tr>
+      <td><strong>${m.serial}</strong></td>
+      <td>${m.location || '—'}</td>
+      <td><span class="badge ${statusClass}">${statusLabel}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderRestocks(recent, scheduled) {
+  const container = document.getElementById('restockList');
+  const empty = document.getElementById('restockEmpty');
+  const items = [...scheduled.map(s => ({ ...s, type: 'scheduled' })), ...recent.map(r => ({ ...r, type: 'completed' }))];
+  if (!items.length) { container.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  container.innerHTML = items.slice(0, 8).map(item => {
+    const isScheduled = item.type === 'scheduled';
+    const dateStr = item.date || item.scheduled_date;
+    return `<div class="restock-item">
+      <div class="restock-dot ${isScheduled ? 'pending' : 'complete'}"></div>
+      <div class="restock-info">${item.machine || '—'} ${isScheduled ? '— scheduled' : '— restocked'}</div>
+      <div class="restock-date">${dateStr ? new Date(dateStr).toLocaleDateString() : '—'}</div>
+    </div>`;
+  }).join('');
+}
+
+function populateMachineDropdown(machines) {
+  const select = document.getElementById('srMachine');
+  select.innerHTML = '<option value="">Select machine...</option>';
+  machines.forEach(m => {
+    select.innerHTML += `<option value="${m.id}">${m.serial} — ${m.location || 'Unknown'}</option>`;
+  });
+}
+
+// ===== SERVICE REQUESTS =====
+async function submitServiceRequest(e) {
+  e.preventDefault();
+  const body = {
+    machine_id: parseInt(document.getElementById('srMachine').value) || null,
+    issue_type: document.getElementById('srType').value,
+    urgency: document.getElementById('srUrgency').value,
+    description: document.getElementById('srDescription').value
+  };
+  if (!body.description.trim()) { alert('Please describe the issue'); return; }
+  await apiFetch('/api/client-portal/service-request', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  document.getElementById('srSuccess').classList.add('show');
+  document.getElementById('serviceForm').reset();
+  setTimeout(() => document.getElementById('srSuccess').classList.remove('show'), 5000);
+  loadServiceRequests();
+}
+
+async function loadServiceRequests() {
+  const data = await apiFetch('/api/client-portal/service-requests');
+  if (!data) return;
+  const container = document.getElementById('serviceRequestList');
+  const empty = document.getElementById('srEmpty');
+  if (!data.length) { container.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  container.innerHTML = data.map(sr => {
+    const statusClass = sr.status === 'open' ? 'badge-open' : sr.status === 'in-progress' ? 'badge-in-progress' : 'badge-resolved';
+    return `<div style="padding:12px 0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <strong style="font-size:0.85rem;">${sr.issue_type.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</strong>
+        <span class="badge ${statusClass}">${sr.status}</span>
+      </div>
+      <p style="font-size:0.82rem;color:var(--muted);margin-bottom:2px;">${sr.description || ''}</p>
+      <span style="font-size:0.75rem;color:var(--muted);">${new Date(sr.created_at).toLocaleDateString()} · ${sr.urgency} priority</span>
+    </div>`;
+  }).join('');
+}
+
+// ===== STATEMENTS =====
+async function loadStatements() {
+  const data = await apiFetch('/api/client-portal/statements');
+  if (!data) return;
+  const body = document.getElementById('statementsBody');
+  const empty = document.getElementById('statementsEmpty');
+  if (!data.length) { body.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  body.innerHTML = data.map(s => {
+    const monthName = new Date(s.month + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    return `<tr>
+      <td><strong>${monthName}</strong></td>
+      <td style="text-align:right">$${s.revenue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+      <td style="text-align:right">${s.commissionRate}%</td>
+      <td style="text-align:right;color:var(--success);font-weight:600;">$${s.commissionOwed.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+      <td style="text-align:center"><span class="${s.paid ? 'paid-badge' : 'pending-badge'}">${s.paid ? 'Paid' : 'Pending'}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ===== INIT =====
+if (clientToken) {
+  showPortal();
+} else {
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+</script>
+</body>
+</html>

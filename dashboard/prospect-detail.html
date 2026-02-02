@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-sales-32.png">
+  <title>Prospect Detail — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --bg: #f8fafc; --card: #fff; --border: #e2e8f0; --text: #1e293b; --muted: #64748b; --accent: #3b82f6; --danger: #ef4444; --success: #22c55e; --warn: #f59e0b; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+    .app { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .btn { padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.15s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-sm { padding: 5px 10px; font-size: 0.78rem; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: var(--bg); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-success { background: var(--success); color: #fff; }
+
+    /* Top bar */
+    .top-bar { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+    .top-bar h1 { font-size: 1.5rem; }
+    .top-bar .sub { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+    .breadcrumb { font-size: 0.82rem; color: var(--muted); margin-bottom: 8px; }
+    .breadcrumb a { color: var(--accent); text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+
+    /* Pipeline progress */
+    .pipeline-progress { display: flex; gap: 2px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 8px; }
+    .stage-step { flex: 1; min-width: 80px; text-align: center; padding: 8px 4px; border-radius: 6px; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; background: rgba(0,0,0,0.04); color: var(--muted); cursor: pointer; transition: all 0.15s; border: 2px solid transparent; white-space: nowrap; }
+    .stage-step.active { color: #fff; border-color: transparent; }
+    .stage-step.past { background: rgba(34,197,94,0.15); color: var(--success); }
+    .stage-step:hover { transform: translateY(-1px); }
+
+    /* Grid layout */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-full { grid-column: 1 / -1; }
+    @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+
+    /* Section cards */
+    .section { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+    .section-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .section-header h3 { font-size: 0.95rem; display: flex; align-items: center; gap: 8px; }
+    .section-body { padding: 16px; }
+
+    /* Contact info */
+    .info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+    .info-item { }
+    .info-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+    .info-value { font-size: 0.9rem; font-weight: 500; }
+    .info-value a { color: var(--accent); text-decoration: none; }
+
+    /* Notes editable */
+    .notes-area { width: 100%; min-height: 80px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 0.9rem; resize: vertical; }
+
+    /* Contact list */
+    .contact-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .contact-row:last-child { border-bottom: none; }
+    .contact-name { font-weight: 600; font-size: 0.9rem; }
+    .contact-detail { font-size: 0.8rem; color: var(--muted); }
+    .primary-badge { background: rgba(59,130,246,0.1); color: var(--accent); padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+
+    /* Timeline */
+    .timeline { position: relative; padding-left: 24px; }
+    .timeline::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+    .timeline-item { position: relative; padding: 8px 0 16px 0; }
+    .timeline-item::before { content: ''; position: absolute; left: -20px; top: 12px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--border); background: var(--card); }
+    .timeline-item.pipeline_move::before { background: var(--accent); border-color: var(--accent); }
+    .timeline-item.pop_in::before { background: #a855f7; border-color: #a855f7; }
+    .timeline-item.email::before { background: #06b6d4; border-color: #06b6d4; }
+    .timeline-item.proposal::before { background: #f59e0b; border-color: #f59e0b; }
+    .timeline-item.task_completed::before { background: var(--success); border-color: var(--success); }
+    .timeline-desc { font-size: 0.88rem; }
+    .timeline-date { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .timeline-type { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.3px; }
+
+    /* Tasks section */
+    .task-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .task-row:last-child { border-bottom: none; }
+    .task-check { width: 20px; height: 20px; border: 2px solid var(--border); border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.7rem; }
+    .task-check.done { background: var(--success); border-color: var(--success); color: #fff; }
+    .task-row.done .task-text { text-decoration: line-through; opacity: 0.5; }
+    .task-text { flex: 1; font-size: 0.85rem; }
+    .task-due { font-size: 0.75rem; color: var(--muted); }
+    .task-due.overdue { color: var(--danger); font-weight: 600; }
+
+    /* Pop-in list */
+    .popin-card { padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; }
+    .popin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .popin-date { font-weight: 600; font-size: 0.85rem; }
+    .outcome-badge { padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+    .outcome-interested { background: rgba(34,197,94,0.15); color: var(--success); }
+    .outcome-not_now { background: rgba(245,158,11,0.15); color: var(--warn); }
+    .outcome-no { background: rgba(239,68,68,0.15); color: var(--danger); }
+    .outcome-neutral { background: rgba(100,116,139,0.1); color: var(--muted); }
+
+    /* Documents */
+    .doc-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .doc-icon { font-size: 1.2rem; }
+    .doc-info { flex: 1; }
+    .doc-title { font-size: 0.85rem; font-weight: 500; }
+    .doc-meta { font-size: 0.75rem; color: var(--muted); }
+    .doc-status { padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+
+    /* Machine assignments */
+    .machine-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .machine-icon { font-size: 1.5rem; }
+    .machine-info { flex: 1; }
+    .machine-name { font-weight: 600; font-size: 0.9rem; }
+    .machine-detail { font-size: 0.8rem; color: var(--muted); }
+
+    /* Modals */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--card); border-radius: 12px; padding: 24px; width: 90%; max-width: 480px; border: 1px solid var(--border); max-height: 85vh; overflow-y: auto; }
+    .modal h2 { margin-bottom: 16px; font-size: 1.1rem; }
+    .modal label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; margin-top: 12px; }
+    .modal input, .modal select, .modal textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; }
+    .modal textarea { min-height: 60px; resize: vertical; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+
+    .toast { position: fixed; bottom: 20px; right: 20px; background: var(--success); color: #fff; padding: 12px 24px; border-radius: 8px; z-index: 9999; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } }
+
+    .email-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.05); font-size: 0.85rem; }
+    .email-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .email-status.sent { background: var(--accent); }
+    .email-status.opened { background: var(--warn); }
+    .email-status.replied { background: var(--success); }
+    .email-status.bounced { background: var(--danger); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="breadcrumb">
+      <a href="/pipeline-board">Pipeline</a> → <a href="/crm">CRM</a> → <span id="breadcrumbName">Loading...</span>
+    </div>
+
+    <div class="top-bar">
+      <div>
+        <h1 id="prospectName">Loading...</h1>
+        <div class="sub" id="prospectSub"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" onclick="openTaskModal()">+ Task</button>
+        <button class="btn btn-outline btn-sm" onclick="openPopInModal()">+ Pop-In</button>
+        <button class="btn btn-outline btn-sm" onclick="openActivityModal()">+ Activity</button>
+        <button class="btn btn-outline btn-sm" onclick="openDocModal()">+ Document</button>
+      </div>
+    </div>
+
+    <!-- Pipeline Progress Bar -->
+    <div class="pipeline-progress" id="pipelineProgress"></div>
+
+    <div class="grid">
+      <!-- Contact Info -->
+      <div class="section">
+        <div class="section-header">
+          <h3>📍 Location & Details</h3>
+          <button class="btn btn-sm btn-outline" onclick="openEditModal()">Edit</button>
+        </div>
+        <div class="section-body">
+          <div class="info-grid" id="infoGrid"></div>
+          <div style="margin-top: 12px;">
+            <div class="info-label">Notes</div>
+            <textarea class="notes-area" id="notesArea" onblur="saveNotes()"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contacts -->
+      <div class="section">
+        <div class="section-header">
+          <h3>👤 Contacts</h3>
+          <button class="btn btn-sm btn-outline" onclick="openContactModal()">+ Add</button>
+        </div>
+        <div class="section-body" id="contactsList"></div>
+      </div>
+
+      <!-- Tasks -->
+      <div class="section">
+        <div class="section-header">
+          <h3>✅ Tasks <span id="taskCount" style="font-size:0.75rem;color:var(--muted);font-weight:400;"></span></h3>
+          <button class="btn btn-sm btn-outline" onclick="openTaskModal()">+ Add</button>
+        </div>
+        <div class="section-body" id="tasksList"></div>
+      </div>
+
+      <!-- Touchpoint Progress (Skool: 8-10 touches to close) -->
+      <div class="section grid-full">
+        <div class="section-header">
+          <h3>👆 Touchpoint Tracker <span id="touchLabel" style="font-size:0.75rem;color:var(--muted);font-weight:400;"></span></h3>
+        </div>
+        <div class="section-body">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+            <div style="flex:1;height:12px;background:var(--border);border-radius:6px;overflow:hidden;">
+              <div id="touchBar" style="height:100%;border-radius:6px;transition:width 0.5s;"></div>
+            </div>
+            <span id="touchCount" style="font-weight:700;font-size:1rem;"></span>
+          </div>
+          <div id="touchBreakdown" style="display:flex;gap:16px;flex-wrap:wrap;font-size:0.8rem;color:var(--muted);"></div>
+          <p style="font-size:0.75rem;color:var(--muted);margin-top:8px;">💡 Skool community: 8-10 touchpoints needed to close. Never say "vending" — say "AI-powered smart market" or "premium amenity."</p>
+        </div>
+      </div>
+
+      <!-- Qualification & Site Details (Skool: min 100 residents, $2K threshold) -->
+      <div class="section">
+        <div class="section-header">
+          <h3>📊 Qualification <span id="qualScore" style="font-size:0.75rem;font-weight:700;"></span></h3>
+          <button class="btn btn-sm btn-outline" onclick="openQualModal()">Edit</button>
+        </div>
+        <div class="section-body" id="qualGrid"></div>
+      </div>
+
+      <!-- Vendor Approval & Referrals -->
+      <div class="section">
+        <div class="section-header">
+          <h3>🔗 Vendor Approval & Referrals</h3>
+          <button class="btn btn-sm btn-outline" onclick="openReferralModal()">+ Referral</button>
+        </div>
+        <div class="section-body" id="vendorRefSection"></div>
+      </div>
+
+      <!-- Email Tracking -->
+      <div class="section">
+        <div class="section-header">
+          <h3>📧 Email Activity</h3>
+        </div>
+        <div class="section-body" id="emailList"></div>
+      </div>
+
+      <!-- Location Performance (active clients only) -->
+      <div class="section" id="perfSection" style="display:none;">
+        <div class="section-header">
+          <h3>💰 Location Performance</h3>
+          <button class="btn btn-sm btn-outline" onclick="openPerfModal()">+ Month</button>
+        </div>
+        <div class="section-body" id="perfList"></div>
+      </div>
+
+      <!-- Activity Timeline -->
+      <div class="section grid-full">
+        <div class="section-header">
+          <h3>📊 Activity Timeline</h3>
+        </div>
+        <div class="section-body">
+          <div class="timeline" id="activityTimeline"></div>
+        </div>
+      </div>
+
+      <!-- Pop-In Visits -->
+      <div class="section">
+        <div class="section-header">
+          <h3>🚶 Pop-In Visits <span id="popinCount" style="font-size:0.75rem;color:var(--muted);font-weight:400;"></span></h3>
+          <button class="btn btn-sm btn-outline" onclick="openPopInModal()">+ Log Visit</button>
+        </div>
+        <div class="section-body" id="popinList"></div>
+      </div>
+
+      <!-- Documents -->
+      <div class="section">
+        <div class="section-header">
+          <h3>📄 Documents</h3>
+          <button class="btn btn-sm btn-outline" onclick="openDocModal()">+ Add</button>
+        </div>
+        <div class="section-body" id="docList"></div>
+      </div>
+
+      <!-- Machine Assignments -->
+      <div class="section">
+        <div class="section-header">
+          <h3>🏭 Machines</h3>
+          <button class="btn btn-sm btn-outline" onclick="openMachineModal()">+ Assign</button>
+        </div>
+        <div class="section-body" id="machineList"></div>
+      </div>
+
+      <!-- Proposals -->
+      <div class="section">
+        <div class="section-header">
+          <h3>📝 Proposals</h3>
+          <a class="btn btn-sm btn-outline" href="/proposal-generator">Generate New</a>
+        </div>
+        <div class="section-body" id="proposalList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Task Modal -->
+  <div class="modal-overlay" id="taskModal">
+    <div class="modal">
+      <h2>Add Task</h2>
+      <label>Title</label>
+      <input type="text" id="newTaskTitle" placeholder="Follow up call...">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div><label>Type</label><select id="newTaskType"><option value="general">General</option><option value="email">Email</option><option value="call">Call</option><option value="follow_up">Follow-up</option><option value="pop_in">Pop-In</option><option value="proposal">Proposal</option><option value="install">Install</option></select></div>
+        <div><label>Priority</label><select id="newTaskPriority"><option value="medium">Medium</option><option value="high">High</option><option value="low">Low</option></select></div>
+      </div>
+      <label>Due Date</label>
+      <input type="date" id="newTaskDue">
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeModal('taskModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="createTask()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pop-In Modal (Skool: gift baskets, never say vending) -->
+  <div class="modal-overlay" id="popinModal">
+    <div class="modal">
+      <h2>🚶 Log Pop-In Visit</h2>
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:12px;">💡 Remember: "Do you have smart market amenities? Like them? What would you change?"</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div><label>Date</label><input type="date" id="popinDate"></div>
+        <div><label>Visitor</label><input type="text" id="popinVisitor" value="Kurtis"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div><label>Spoke With</label><input type="text" id="popinSpokeWith" placeholder="Name of person"></div>
+        <div><label>Their Title</label><input type="text" id="popinSpokeTitle" placeholder="Property Manager, etc."></div>
+      </div>
+      <label>Outcome</label>
+      <select id="popinOutcome">
+        <option value="neutral">Neutral — left materials</option>
+        <option value="interested">Interested 👍 — wants more info</option>
+        <option value="not_now">Not Now ⏳ — come back later</option>
+        <option value="no">Not Interested ❌</option>
+        <option value="decision_maker_absent">Decision Maker Absent — left gift</option>
+      </select>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;">
+        <div>
+          <label><input type="checkbox" id="popinGiftGiven"> 🎁 Gift Basket Given</label>
+          <input type="text" id="popinGiftContents" placeholder="Costco snack bag, candy, etc." style="margin-top:4px;">
+        </div>
+        <div>
+          <label>Existing Snack Options?</label>
+          <input type="text" id="popinExistingVending" placeholder="None, old Coke machine, etc.">
+        </div>
+      </div>
+      <label>Notes</label>
+      <textarea id="popinNotes" placeholder="What happened? Who did you talk to? What did they say about current amenities?"></textarea>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeModal('popinModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="createPopIn()">Save Visit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Activity Modal -->
+  <div class="modal-overlay" id="activityModal">
+    <div class="modal">
+      <h2>Log Activity</h2>
+      <label>Type</label>
+      <select id="actType"><option value="call">📞 Call</option><option value="email">📧 Email</option><option value="meeting">🤝 Meeting</option><option value="proposal">📝 Proposal</option><option value="note">📋 Note</option></select>
+      <label>Description</label>
+      <textarea id="actDesc" placeholder="What happened..."></textarea>
+      <label>Outcome</label>
+      <select id="actOutcome"><option value="">None</option><option value="interested">Interested</option><option value="not_interested">Not Interested</option><option value="follow_up">Follow Up Needed</option></select>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeModal('activityModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="createActivity()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contact Modal -->
+  <div class="modal-overlay" id="contactModal">
+    <div class="modal">
+      <h2>Add Contact</h2>
+      <label>Name</label><input type="text" id="ctName">
+      <label>Role/Title</label><input type="text" id="ctRole">
+      <label>Email</label><input type="email" id="ctEmail">
+      <label>Phone</label><input type="tel" id="ctPhone">
+      <label><input type="checkbox" id="ctPrimary"> Primary Contact</label>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeModal('contactModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="createContact()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Document Modal -->
+  <div class="modal-overlay" id="docModal">
+    <div class="modal">
+      <h2>Add Document</h2>
+      <label>Type</label>
+      <select id="docType"><option value="proposal">Proposal</option><option value="contract">Contract</option><option value="signed_contract">Signed Contract</option><option value="photo">Photo</option><option value="other">Other</option></select>
+      <label>Title</label><input type="text" id="docTitle">
+      <label>Status</label>
+      <select id="docStatus"><option value="draft">Draft</option><option value="sent">Sent</option><option value="viewed">Viewed</option><option value="accepted">Accepted</option><option value="rejected">Rejected</option><option value="signed">Signed</option></select>
+      <label>Description</label><textarea id="docDesc"></textarea>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeModal('docModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="createDoc()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Machine Modal -->
+  <div class="modal-overlay" id="machineModal">
+    <div class="modal">
+      <h2>Assign Machine</h2>
+      <label>Machine Name</label><input type="text" id="machName" placeholder="e.g., SandStar AI #1">
+      <label>Serial Number</label><input type="text" id="machSerial">
+      <label>Install Date</label><input type="date" id="machDate">
+      <label>Notes</label><textarea id="machNotes"></textarea>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeModal('machineModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="createMachineAssignment()">Assign</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Qualification Modal -->
+  <div class="modal-overlay" id="qualModal">
+    <div class="modal">
+      <h2>📊 Site Qualification</h2>
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:12px;">Skool minimum: 100+ residents/employees, $2K/mo revenue potential</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div><label>Resident/Employee Count</label><input type="number" id="qCount" placeholder="e.g., 250"></div>
+        <div><label>Monthly Revenue Potential ($)</label><input type="number" id="qRevPotential" placeholder="e.g., 2500"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div><label>Daily Foot Traffic</label><input type="text" id="qFootTraffic" placeholder="e.g., 500/day"></div>
+        <div><label>Shift Breakdown</label><input type="text" id="qShifts" placeholder="e.g., Day + Night shifts"></div>
+      </div>
+      <label>Existing Snack Options / Competitors</label>
+      <input type="text" id="qCompetitors" placeholder="e.g., Old Canteen machine, no options">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div><label><input type="checkbox" id="qPower"> Power Outlet Available</label></div>
+        <div><label><input type="checkbox" id="qWifi"> WiFi Available</label></div>
+      </div>
+      <label>Space Dimensions / Notes</label>
+      <input type="text" id="qSpace" placeholder="e.g., 6x4 ft alcove near lobby">
+      <label>Revenue Share % (typical 3-5%)</label>
+      <input type="number" id="qRevShare" step="0.5" placeholder="e.g., 5">
+      <label>Management Company</label>
+      <input type="text" id="qMgmtCo" placeholder="e.g., Greystar, Holland">
+      <label>Vendor Approval Status</label>
+      <select id="qVendorStatus">
+        <option value="">Not Required</option>
+        <option value="pending">Pending</option>
+        <option value="in_progress">In Progress</option>
+        <option value="approved">Approved ✅</option>
+        <option value="rejected">Rejected ❌</option>
+      </select>
+      <label>Vendor Approval Notes</label>
+      <input type="text" id="qVendorNotes" placeholder="e.g., NetVendor cert required for Greystar">
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeModal('qualModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveQualification()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Referral Modal -->
+  <div class="modal-overlay" id="referralModal">
+    <div class="modal">
+      <h2>🔗 Add Referral</h2>
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:12px;">Skool: "Can you introduce me to 3 other buildings?"</p>
+      <label>Referred Building Name</label>
+      <input type="text" id="refName" placeholder="e.g., The Vistas at Seven Hills">
+      <label>Address</label>
+      <input type="text" id="refAddress" placeholder="Address of referred building">
+      <label>Contact Person</label>
+      <input type="text" id="refContact" placeholder="Name + phone/email if given">
+      <label>Notes</label>
+      <textarea id="refNotes" placeholder="How do they know this building? Any intro offered?"></textarea>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeModal('referralModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="createReferral()">Save Referral</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Location Performance Modal -->
+  <div class="modal-overlay" id="perfModal">
+    <div class="modal">
+      <h2>💰 Log Monthly Performance</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div><label>Month</label><input type="month" id="perfMonth"></div>
+        <div><label>Revenue ($)</label><input type="number" id="perfRevenue" step="0.01"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div><label>COGS ($)</label><input type="number" id="perfCogs" step="0.01"></div>
+        <div><label>Rev Share Paid ($)</label><input type="number" id="perfRevShare" step="0.01"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div><label>Restock Count</label><input type="number" id="perfRestocks"></div>
+        <div><label>Top Products</label><input type="text" id="perfTopProducts" placeholder="Joy Burst, Smartwater..."></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeModal('perfModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="logPerformance()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const prospectId = parseInt(window.location.pathname.split('/').pop());
+    let data = null;
+    const today = new Date().toISOString().split('T')[0];
+    const STAGES = [];
+
+    async function loadData() {
+      try {
+        const [pRes, sRes] = await Promise.all([
+          fetch(`/api/pipeline/prospect/${prospectId}`),
+          fetch('/api/pipeline/stages')
+        ]);
+        if (!pRes.ok) { document.querySelector('.app').innerHTML = '<h2 style="padding:40px;text-align:center;">Prospect not found</h2>'; return; }
+        data = await pRes.json();
+        STAGES.push(...await sRes.json());
+        render();
+      } catch (e) { console.error(e); }
+    }
+
+    function render() {
+      document.title = `${data.name} — Kande VendTech CRM`;
+      document.getElementById('breadcrumbName').textContent = data.name;
+      document.getElementById('prospectName').textContent = data.name;
+      const revShare = data.revenue_share_percent ? ` · ${data.revenue_share_percent}% rev share` : '';
+      document.getElementById('prospectSub').textContent = `${data.property_type || 'Unknown'} · ${data.address || 'No address'} · ${data.current_stage.replace(/_/g, ' ')} · ${data.days_in_stage} days${revShare}`;
+
+      renderPipelineProgress();
+      renderTouchpoints();
+      renderQualification();
+      renderVendorReferrals();
+      renderInfo();
+      renderContacts();
+      renderTasks();
+      renderTimeline();
+      renderPopIns();
+      renderEmails();
+      renderDocs();
+      renderMachines();
+      renderProposals();
+      renderPerformance();
+    }
+
+    function renderPipelineProgress() {
+      const bar = document.getElementById('pipelineProgress');
+      const currentIdx = STAGES.findIndex(s => s.id === data.current_stage);
+      bar.innerHTML = STAGES.map((s, i) => {
+        const cls = i === currentIdx ? 'active' : (i < currentIdx ? 'past' : '');
+        const bg = i === currentIdx ? `background:${s.color};` : '';
+        return `<div class="stage-step ${cls}" style="${bg}" onclick="moveToStage('${s.id}')">${s.emoji} ${s.label}</div>`;
+      }).join('');
+    }
+
+    function renderInfo() {
+      document.getElementById('infoGrid').innerHTML = [
+        { label: 'Property Type', value: data.property_type || '—' },
+        { label: 'Address', value: data.address || '—' },
+        { label: 'Phone', value: data.phone ? `<a href="tel:${data.phone}">${data.phone}</a>` : '—' },
+        { label: 'Email', value: data.email ? `<a href="mailto:${data.email}">${data.email}</a>` : '—' },
+        { label: 'Priority', value: `<span style="color:${data.priority === 'hot' ? 'var(--danger)' : data.priority === 'warm' ? 'var(--warn)' : 'var(--muted)'};font-weight:600;">${(data.priority || 'normal').toUpperCase()}</span>` },
+        { label: 'Units', value: data.units || '—' },
+        { label: 'Status', value: data.status || '—' },
+        { label: 'Created', value: data.created_at ? new Date(data.created_at).toLocaleDateString() : '—' },
+      ].map(i => `<div class="info-item"><div class="info-label">${i.label}</div><div class="info-value">${i.value}</div></div>`).join('');
+      document.getElementById('notesArea').value = data.notes || data.kurtis_notes || '';
+    }
+
+    function renderContacts() {
+      const el = document.getElementById('contactsList');
+      if (!data.contacts || data.contacts.length === 0) {
+        el.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;">No contacts yet</p>';
+        return;
+      }
+      el.innerHTML = data.contacts.map(c => `
+        <div class="contact-row">
+          <div>
+            <div class="contact-name">${c.name || 'Unknown'} ${c.is_primary ? '<span class="primary-badge">PRIMARY</span>' : ''}</div>
+            <div class="contact-detail">${c.role || c.title || ''}</div>
+            <div class="contact-detail">${c.email ? `<a href="mailto:${c.email}">${c.email}</a>` : ''} ${c.phone ? `· <a href="tel:${c.phone}">${c.phone}</a>` : ''}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderTasks() {
+      const pending = data.tasks.pending || [];
+      const completed = data.tasks.completed || [];
+      document.getElementById('taskCount').textContent = `(${pending.length} pending)`;
+      const el = document.getElementById('tasksList');
+      if (pending.length === 0 && completed.length === 0) {
+        el.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;">No tasks</p>';
+        return;
+      }
+      const icons = { email: '📧', call: '📞', follow_up: '🔄', install: '🔧', pop_in: '🚶', proposal: '📝', general: '📋' };
+      el.innerHTML = [...pending, ...completed.slice(0, 3)].map(t => {
+        const isOverdue = !t.completed && t.due_date && t.due_date < today;
+        return `
+          <div class="task-row ${t.completed ? 'done' : ''}">
+            <div class="task-check ${t.completed ? 'done' : ''}" onclick="toggleTask(${t.id})">${t.completed ? '✓' : ''}</div>
+            <div class="task-text">${icons[t.task_type] || '📋'} ${t.title} ${t.auto_generated ? '<span style="font-size:0.7rem;color:#a855f7;">auto</span>' : ''}</div>
+            <div class="task-due ${isOverdue ? 'overdue' : ''}">${t.due_date ? fmtDate(t.due_date) : ''}</div>
+          </div>`;
+      }).join('');
+    }
+
+    function renderTimeline() {
+      const el = document.getElementById('activityTimeline');
+      const acts = data.activities || [];
+      if (acts.length === 0) { el.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;">No activity yet</p>'; return; }
+      el.innerHTML = acts.slice(0, 30).map(a => `
+        <div class="timeline-item ${a.type || ''}">
+          <div class="timeline-type">${a.type || 'note'}</div>
+          <div class="timeline-desc">${a.description || ''}</div>
+          <div class="timeline-date">${new Date(a.created_at).toLocaleString()}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderPopIns() {
+      const visits = data.pop_ins || [];
+      document.getElementById('popinCount').textContent = `(${visits.length})`;
+      const el = document.getElementById('popinList');
+      if (visits.length === 0) { el.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;">No pop-in visits yet</p>'; return; }
+      el.innerHTML = visits.map(v => `
+        <div class="popin-card">
+          <div class="popin-header">
+            <span class="popin-date">${new Date(v.visit_date + 'T00:00:00').toLocaleDateString()} · ${v.visitor}${v.gift_basket_given ? ' 🎁' : ''}</span>
+            <span class="outcome-badge outcome-${v.outcome}">${(v.outcome || 'neutral').replace(/_/g, ' ')}</span>
+          </div>
+          ${v.spoke_with ? `<div style="font-size:0.82rem;font-weight:500;">Spoke with: ${v.spoke_with}${v.spoke_with_title ? ' (' + v.spoke_with_title + ')' : ''}</div>` : ''}
+          ${v.gift_basket_given ? `<div style="font-size:0.78rem;color:var(--accent);">🎁 Gift: ${v.gift_basket_contents || 'Costco snack bag'}</div>` : ''}
+          ${v.existing_vending ? `<div style="font-size:0.78rem;color:var(--muted);">Current vending: ${v.existing_vending}</div>` : ''}
+          <div style="font-size:0.85rem;color:var(--muted);margin-top:4px;">${v.notes || 'No notes'}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderEmails() {
+      const sends = data.email_sends || [];
+      const el = document.getElementById('emailList');
+      if (sends.length === 0) { el.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;">No emails tracked</p>'; return; }
+      el.innerHTML = sends.map(s => {
+        const status = s.replied_at ? 'replied' : s.opened_at ? 'opened' : s.status === 'bounced' ? 'bounced' : 'sent';
+        const label = status.charAt(0).toUpperCase() + status.slice(1);
+        return `<div class="email-row"><span class="email-status ${status}"></span><span style="flex:1;">${label}</span><span style="color:var(--muted);font-size:0.78rem;">${s.sent_at ? new Date(s.sent_at).toLocaleDateString() : new Date(s.created_at).toLocaleDateString()}</span></div>`;
+      }).join('');
+    }
+
+    function renderDocs() {
+      const docs = data.documents || [];
+      const el = document.getElementById('docList');
+      if (docs.length === 0) { el.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;">No documents</p>'; return; }
+      const icons = { proposal: '📝', contract: '📄', signed_contract: '✅', photo: '📸', other: '📎' };
+      el.innerHTML = docs.map(d => `
+        <div class="doc-row">
+          <span class="doc-icon">${icons[d.doc_type] || '📎'}</span>
+          <div class="doc-info">
+            <div class="doc-title">${d.title}</div>
+            <div class="doc-meta">${d.doc_type} · ${new Date(d.created_at).toLocaleDateString()}</div>
+          </div>
+          <span class="doc-status" style="background:rgba(59,130,246,0.1);color:var(--accent);">${d.status}</span>
+        </div>
+      `).join('');
+    }
+
+    function renderMachines() {
+      const machines = data.machine_assignments || [];
+      const el = document.getElementById('machineList');
+      if (machines.length === 0) { el.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;">No machines assigned</p>'; return; }
+      el.innerHTML = machines.map(m => `
+        <div class="machine-row">
+          <span class="machine-icon">🏭</span>
+          <div class="machine-info">
+            <div class="machine-name">${m.machine_name || 'Machine'}</div>
+            <div class="machine-detail">${m.machine_serial || ''} · ${m.status || 'planned'} ${m.installed_date ? '· Installed ' + m.installed_date : ''}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderProposals() {
+      const proposals = data.proposals || [];
+      const el = document.getElementById('proposalList');
+      if (proposals.length === 0) { el.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;">No proposals</p>'; return; }
+      el.innerHTML = proposals.map(p => `
+        <div class="doc-row">
+          <span class="doc-icon">📝</span>
+          <div class="doc-info">
+            <div class="doc-title">${p.property_name || 'Proposal'} — ${p.proposal_number || ''}</div>
+            <div class="doc-meta">${p.machine_count || '?'} machines · ${p.revenue_share || '?'}% share · ${new Date(p.created_at).toLocaleDateString()}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Actions
+    async function moveToStage(stageId) {
+      if (!data.pipeline_card) return;
+      if (stageId === data.current_stage) return;
+      if (!confirm(`Move to ${stageId.replace(/_/g, ' ')}?`)) return;
+      await fetch(`/api/pipeline/cards/${data.pipeline_card.id}/move`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stage: stageId })
+      });
+      showToast('Stage updated');
+      loadData();
+    }
+
+    async function toggleTask(id) {
+      await fetch(`/api/crm-tasks/${id}/complete`, { method: 'PUT' });
+      loadData();
+    }
+
+    async function saveNotes() {
+      const notes = document.getElementById('notesArea').value;
+      await fetch(`/api/prospects/${prospectId}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes })
+      });
+    }
+
+    async function createTask() {
+      const title = document.getElementById('newTaskTitle').value;
+      if (!title) return alert('Title required');
+      await fetch('/api/crm-tasks', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prospect_id: prospectId, title,
+          task_type: document.getElementById('newTaskType').value,
+          priority: document.getElementById('newTaskPriority').value,
+          due_date: document.getElementById('newTaskDue').value || null
+        })
+      });
+      closeModal('taskModal'); showToast('Task created'); loadData();
+    }
+
+    async function createPopIn() {
+      await fetch('/api/popins', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prospect_id: prospectId,
+          visit_date: document.getElementById('popinDate').value || today,
+          visitor: document.getElementById('popinVisitor').value,
+          outcome: document.getElementById('popinOutcome').value,
+          spoke_with: document.getElementById('popinSpokeWith').value,
+          spoke_with_title: document.getElementById('popinSpokeTitle').value,
+          gift_basket_given: document.getElementById('popinGiftGiven').checked,
+          gift_basket_contents: document.getElementById('popinGiftContents').value,
+          existing_vending: document.getElementById('popinExistingVending').value,
+          notes: document.getElementById('popinNotes').value
+        })
+      });
+      closeModal('popinModal'); showToast('Pop-in logged'); loadData();
+    }
+
+    async function createActivity() {
+      await fetch(`/api/prospects/${prospectId}/activities`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: document.getElementById('actType').value,
+          description: document.getElementById('actDesc').value,
+          outcome: document.getElementById('actOutcome').value || undefined
+        })
+      });
+      closeModal('activityModal'); showToast('Activity logged'); loadData();
+    }
+
+    async function createContact() {
+      await fetch(`/api/prospects/${prospectId}/contacts`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('ctName').value,
+          role: document.getElementById('ctRole').value,
+          email: document.getElementById('ctEmail').value,
+          phone: document.getElementById('ctPhone').value,
+          is_primary: document.getElementById('ctPrimary').checked
+        })
+      });
+      closeModal('contactModal'); showToast('Contact added'); loadData();
+    }
+
+    async function createDoc() {
+      await fetch('/api/crm-documents', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prospect_id: prospectId,
+          doc_type: document.getElementById('docType').value,
+          title: document.getElementById('docTitle').value,
+          status: document.getElementById('docStatus').value,
+          description: document.getElementById('docDesc').value
+        })
+      });
+      closeModal('docModal'); showToast('Document added'); loadData();
+    }
+
+    async function createMachineAssignment() {
+      await fetch('/api/machine-assignments', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prospect_id: prospectId,
+          machine_name: document.getElementById('machName').value,
+          machine_serial: document.getElementById('machSerial').value,
+          installed_date: document.getElementById('machDate').value || null,
+          notes: document.getElementById('machNotes').value
+        })
+      });
+      closeModal('machineModal'); showToast('Machine assigned'); loadData();
+    }
+
+    // === NEW SKOOL COMMUNITY RENDER FUNCTIONS ===
+
+    function renderTouchpoints() {
+      const tc = data.touch_count || 0;
+      const target = data.touch_target || 10;
+      const pct = data.touch_progress || Math.min(100, Math.round((tc / target) * 100));
+      const color = tc >= 8 ? 'var(--success)' : tc >= 4 ? 'var(--warn)' : 'var(--muted)';
+      document.getElementById('touchLabel').textContent = `${tc} of ${target} touches (${data.touch_count >= 8 ? 'Ready to close!' : data.touch_count >= 4 ? 'Keep going...' : 'Just getting started'})`;
+      document.getElementById('touchBar').style.width = pct + '%';
+      document.getElementById('touchBar').style.background = `linear-gradient(90deg, var(--accent), ${color})`;
+      document.getElementById('touchCount').textContent = `${tc}/${target}`;
+      document.getElementById('touchCount').style.color = color;
+      // Breakdown by type (fetched inline from activities)
+      const types = { pop_in: 0, email: 0, call: 0, proposal: 0, meeting: 0 };
+      (data.activities || []).forEach(a => {
+        const t = (a.type || '').toLowerCase();
+        if (types[t] !== undefined) types[t]++;
+      });
+      const icons = { pop_in: '🚶', email: '📧', call: '📞', proposal: '📝', meeting: '🤝' };
+      document.getElementById('touchBreakdown').innerHTML = Object.entries(types).filter(([,v]) => v > 0).map(([k, v]) =>
+        `<span>${icons[k] || '📋'} ${k.replace(/_/g, ' ')}: <b>${v}</b></span>`
+      ).join('');
+    }
+
+    function renderQualification() {
+      const el = document.getElementById('qualGrid');
+      const qs = data.qualification_score || 0;
+      const qColor = qs >= 60 ? 'var(--success)' : qs >= 30 ? 'var(--warn)' : 'var(--danger)';
+      document.getElementById('qualScore').textContent = `${qs}/100`;
+      document.getElementById('qualScore').style.color = qColor;
+      const fields = [
+        { label: 'Residents/Employees', value: data.resident_employee_count || '—', warn: data.resident_employee_count && data.resident_employee_count < 100 ? '⚠️ Below 100 minimum' : '' },
+        { label: 'Monthly Revenue Potential', value: data.monthly_revenue_potential ? `$${Number(data.monthly_revenue_potential).toLocaleString()}` : '—', warn: data.monthly_revenue_potential && data.monthly_revenue_potential < 2000 ? '⚠️ Below $2K threshold' : '' },
+        { label: 'Daily Foot Traffic', value: data.daily_foot_traffic || '—' },
+        { label: 'Shift Breakdown', value: data.shift_breakdown || '—' },
+        { label: 'Competitors', value: data.competitor_machines || data.existing_snack_options || '—' },
+        { label: 'Power', value: data.power_outlet_available ? '✅ Yes' : '—' },
+        { label: 'WiFi', value: data.wifi_available ? '✅ Yes' : '—' },
+        { label: 'Space', value: data.space_dimensions || data.space_notes || '—' },
+        { label: 'Revenue Share %', value: data.revenue_share_percent ? `${data.revenue_share_percent}%` : '—' },
+        { label: 'Management Co.', value: data.management_company || '—' },
+      ];
+      el.innerHTML = `<div class="info-grid">${fields.map(f =>
+        `<div class="info-item"><div class="info-label">${f.label}</div><div class="info-value">${f.value} ${f.warn ? `<span style="font-size:0.7rem;color:var(--warn);">${f.warn}</span>` : ''}</div></div>`
+      ).join('')}</div>`;
+    }
+
+    function renderVendorReferrals() {
+      const el = document.getElementById('vendorRefSection');
+      let html = '';
+      // Vendor approval
+      const vs = data.vendor_approval_status;
+      if (vs) {
+        const colors = { pending: 'var(--warn)', in_progress: 'var(--accent)', approved: 'var(--success)', rejected: 'var(--danger)' };
+        html += `<div style="margin-bottom:12px;padding:10px;border:1px solid var(--border);border-radius:8px;">
+          <div style="font-weight:600;font-size:0.85rem;">🏢 Vendor Approval: <span style="color:${colors[vs] || 'var(--muted)'}">${vs.replace(/_/g, ' ').toUpperCase()}</span></div>
+          ${data.vendor_approval_company ? `<div style="font-size:0.8rem;color:var(--muted);">Company: ${data.vendor_approval_company}</div>` : ''}
+          ${data.vendor_approval_notes ? `<div style="font-size:0.8rem;color:var(--muted);">${data.vendor_approval_notes}</div>` : ''}
+        </div>`;
+      }
+      // Referrals given
+      const refs = data.referrals_given || [];
+      if (refs.length > 0) {
+        html += `<div style="font-weight:600;font-size:0.85rem;margin-bottom:6px;">Referrals Given (${refs.length}):</div>`;
+        refs.forEach(r => {
+          html += `<div style="padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.05);font-size:0.85rem;">
+            <span style="font-weight:500;">${r.referred_name || 'Unknown'}</span>
+            <span style="color:var(--muted);font-size:0.75rem;"> — ${r.status}</span>
+            ${r.referred_address ? `<div style="font-size:0.78rem;color:var(--muted);">${r.referred_address}</div>` : ''}
+          </div>`;
+        });
+      }
+      // Referred by
+      const by = data.referred_by || [];
+      if (by.length > 0) {
+        html += `<div style="font-weight:600;font-size:0.85rem;margin-top:10px;">Referred By:</div>`;
+        by.forEach(r => {
+          html += `<div style="font-size:0.85rem;color:var(--muted);">← <a href="/crm/${r.referrer_prospect_id}" style="color:var(--accent);">${r.referrer_name}</a></div>`;
+        });
+      }
+      if (!html) html = '<p style="color:var(--muted);font-size:0.85rem;">No vendor approval required. No referrals yet.<br><span style="font-size:0.75rem;">💡 Ask: "Can you introduce me to 3 other buildings?"</span></p>';
+      el.innerHTML = html;
+    }
+
+    function renderPerformance() {
+      const perf = data.location_performance || [];
+      const section = document.getElementById('perfSection');
+      const isActive = ['signed', 'onboarding', 'machine_placed', 'active_client'].includes(data.current_stage);
+      if (!isActive && perf.length === 0) { section.style.display = 'none'; return; }
+      section.style.display = '';
+      const el = document.getElementById('perfList');
+      if (perf.length === 0) { el.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;">No performance data yet</p>'; return; }
+      el.innerHTML = `<table style="width:100%;font-size:0.82rem;border-collapse:collapse;"><thead><tr style="text-align:left;color:var(--muted);font-size:0.72rem;text-transform:uppercase;">
+        <th style="padding:4px 8px;">Month</th><th>Revenue</th><th>COGS</th><th>Rev Share</th><th>Profit</th><th>Restocks</th></tr></thead><tbody>
+        ${perf.map(p => {
+          const profit = (p.revenue || 0) - (p.cogs || 0) - (p.revenue_share_paid || 0);
+          return `<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;font-weight:500;">${p.month}</td>
+            <td>$${(p.revenue||0).toLocaleString()}</td><td>$${(p.cogs||0).toLocaleString()}</td>
+            <td>$${(p.revenue_share_paid||0).toLocaleString()}</td>
+            <td style="color:${profit >= 0 ? 'var(--success)' : 'var(--danger)'};">$${profit.toLocaleString()}</td>
+            <td>${p.restock_count || 0}x</td></tr>`;
+        }).join('')}
+      </tbody></table>`;
+    }
+
+    // === NEW SKOOL ACTION FUNCTIONS ===
+
+    function openQualModal() {
+      document.getElementById('qualModal').classList.add('open');
+      document.getElementById('qCount').value = data.resident_employee_count || '';
+      document.getElementById('qRevPotential').value = data.monthly_revenue_potential || '';
+      document.getElementById('qFootTraffic').value = data.daily_foot_traffic || '';
+      document.getElementById('qShifts').value = data.shift_breakdown || '';
+      document.getElementById('qCompetitors').value = data.competitor_machines || data.existing_snack_options || '';
+      document.getElementById('qPower').checked = !!data.power_outlet_available;
+      document.getElementById('qWifi').checked = !!data.wifi_available;
+      document.getElementById('qSpace').value = data.space_dimensions || data.space_notes || '';
+      document.getElementById('qRevShare').value = data.revenue_share_percent || '';
+      document.getElementById('qMgmtCo').value = data.management_company || '';
+      document.getElementById('qVendorStatus').value = data.vendor_approval_status || '';
+      document.getElementById('qVendorNotes').value = data.vendor_approval_notes || '';
+    }
+
+    async function saveQualification() {
+      await fetch(`/api/prospects/${prospectId}/qualification`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resident_employee_count: parseInt(document.getElementById('qCount').value) || null,
+          monthly_revenue_potential: parseFloat(document.getElementById('qRevPotential').value) || null,
+          daily_foot_traffic: document.getElementById('qFootTraffic').value,
+          shift_breakdown: document.getElementById('qShifts').value,
+          competitor_machines: document.getElementById('qCompetitors').value,
+          power_outlet_available: document.getElementById('qPower').checked,
+          wifi_available: document.getElementById('qWifi').checked,
+          space_dimensions: document.getElementById('qSpace').value,
+          revenue_share_percent: parseFloat(document.getElementById('qRevShare').value) || null,
+          management_company: document.getElementById('qMgmtCo').value,
+          vendor_approval_status: document.getElementById('qVendorStatus').value || null,
+          vendor_approval_notes: document.getElementById('qVendorNotes').value
+        })
+      });
+      closeModal('qualModal'); showToast('Qualification saved'); loadData();
+    }
+
+    function openReferralModal() { document.getElementById('referralModal').classList.add('open'); }
+
+    async function createReferral() {
+      await fetch('/api/referrals', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          referrer_prospect_id: prospectId,
+          referred_name: document.getElementById('refName').value,
+          referred_address: document.getElementById('refAddress').value,
+          referred_contact: document.getElementById('refContact').value,
+          notes: document.getElementById('refNotes').value
+        })
+      });
+      closeModal('referralModal'); showToast('Referral saved'); loadData();
+    }
+
+    function openPerfModal() {
+      document.getElementById('perfModal').classList.add('open');
+      document.getElementById('perfMonth').value = new Date().toISOString().slice(0, 7);
+    }
+
+    async function logPerformance() {
+      const rev = parseFloat(document.getElementById('perfRevenue').value) || 0;
+      const cogs = parseFloat(document.getElementById('perfCogs').value) || 0;
+      const rsPaid = parseFloat(document.getElementById('perfRevShare').value) || 0;
+      await fetch('/api/location-performance', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prospect_id: prospectId,
+          month: document.getElementById('perfMonth').value,
+          revenue: rev, cogs: cogs, revenue_share_paid: rsPaid,
+          profit: rev - cogs - rsPaid,
+          restock_count: parseInt(document.getElementById('perfRestocks').value) || 0,
+          top_products: document.getElementById('perfTopProducts').value
+        })
+      });
+      closeModal('perfModal'); showToast('Performance logged'); loadData();
+    }
+
+    // Modal helpers
+    function openTaskModal() { document.getElementById('newTaskDue').value = today; document.getElementById('taskModal').classList.add('open'); }
+    function openPopInModal() { document.getElementById('popinDate').value = today; document.getElementById('popinModal').classList.add('open'); }
+    function openActivityModal() { document.getElementById('activityModal').classList.add('open'); }
+    function openContactModal() { document.getElementById('contactModal').classList.add('open'); }
+    function openDocModal() { document.getElementById('docModal').classList.add('open'); }
+    function openMachineModal() { document.getElementById('machineModal').classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    function fmtDate(d) {
+      if (d === today) return 'Today';
+      const diff = Math.round((new Date(d+'T00:00:00') - new Date(today+'T00:00:00'))/(1000*60*60*24));
+      if (diff === 1) return 'Tomorrow';
+      if (diff < 0) return `${Math.abs(diff)}d ago`;
+      return new Date(d+'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function showToast(msg) {
+      const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+      document.body.appendChild(t); setTimeout(() => t.remove(), 3000);
+    }
+
+    // Close modals on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(o => {
+      o.addEventListener('click', (e) => { if (e.target === o) o.classList.remove('open'); });
+    });
+
+    loadData();
+  </script>
+  <script src="/nav.js"></script>
+</body>
+</html>

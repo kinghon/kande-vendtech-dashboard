@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tax Strategy Guide — Kande VendTech</title>
+<style>
+  :root {
+    --primary: #667eea;
+    --primary-dark: #764ba2;
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --card-border: #e5e7eb;
+    --text: #e4e4e7;
+    --text-muted: #9ca3af;
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #eab308;
+    --blue: #3b82f6;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .header { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); padding: 32px 24px; text-align: center; }
+  .header h1 { font-size: 2rem; font-weight: 800; margin-bottom: 8px; }
+  .header p { opacity: 0.85; font-size: 1.05rem; }
+  .nav { display: flex; gap: 8px; padding: 16px 24px; background: var(--card); border-bottom: 1px solid var(--card-border); overflow-x: auto; }
+  .nav a { color: var(--text-muted); text-decoration: none; padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; white-space: nowrap; transition: all 0.2s; }
+  .nav a:hover, .nav a.active { background: var(--primary); color: #fff; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+  .section { margin-bottom: 32px; }
+  .section-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .section-title .icon { font-size: 1.6rem; }
+
+  .card { background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  .card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+  .card p, .card li { color: var(--text-muted); font-size: 0.92rem; line-height: 1.6; }
+  .card ul { padding-left: 20px; }
+  .card li { margin-bottom: 6px; }
+
+  .highlight { background: linear-gradient(135deg, rgba(102,126,234,0.15), rgba(118,75,162,0.15)); border: 1px solid rgba(102,126,234,0.3); }
+  .highlight h3 { color: var(--primary); }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .stat { background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px; text-align: center; }
+  .stat .number { font-size: 2rem; font-weight: 800; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .stat .label { color: var(--text-muted); font-size: 0.85rem; margin-top: 4px; }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--card-border); }
+  th { color: var(--text-muted); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { color: var(--text); }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+  .badge-green { background: rgba(34,197,94,0.15); color: var(--green); }
+  .badge-yellow { background: rgba(234,179,8,0.15); color: var(--yellow); }
+  .badge-red { background: rgba(239,68,68,0.15); color: var(--red); }
+  .badge-blue { background: rgba(59,130,246,0.15); color: var(--blue); }
+
+  .callout { padding: 16px 20px; border-radius: 10px; margin: 16px 0; font-size: 0.92rem; line-height: 1.6; }
+  .callout-green { background: rgba(34,197,94,0.1); border-left: 4px solid var(--green); color: var(--green); }
+  .callout-yellow { background: rgba(234,179,8,0.1); border-left: 4px solid var(--yellow); color: var(--yellow); }
+  .callout-blue { background: rgba(59,130,246,0.1); border-left: 4px solid var(--blue); color: var(--blue); }
+
+  .loading { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+  .loading .spinner { width: 40px; height: 40px; border: 3px solid var(--card-border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #content { display: none; }
+
+  @media (max-width: 768px) {
+    .stat-grid { grid-template-columns: 1fr 1fr; }
+    .header h1 { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>💰 Tax Strategy Guide</h1>
+  <p>Kande VendTech LLC — Maximize deductions, minimize liability</p>
+</div>
+
+<div class="nav">
+  <a href="/">📊 Dashboard</a>
+  <a href="/crm">🤝 CRM</a>
+  <a href="/todos">📋 To-Do</a>
+  <a href="/lead-review">🔍 Lead Review</a>
+  <a href="/tax-strategy" class="active">💰 Tax Strategy</a>
+</div>
+
+<div class="container">
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Loading tax strategy data...</p>
+  </div>
+
+  <div id="content">
+    <!-- Quick Stats -->
+    <div class="stat-grid">
+      <div class="stat">
+        <div class="number">$0</div>
+        <div class="label">NV State Income Tax</div>
+      </div>
+      <div class="stat">
+        <div class="number">100%</div>
+        <div class="label">Bonus Depreciation (2025)</div>
+      </div>
+      <div class="stat">
+        <div class="number">20%</div>
+        <div class="label">QBI Deduction</div>
+      </div>
+      <div class="stat">
+        <div class="number" id="machineDeduction">$0</div>
+        <div class="label">Est. Machine Deductions</div>
+      </div>
+    </div>
+
+    <!-- Section 179 & Depreciation -->
+    <div class="section">
+      <div class="section-title"><span class="icon">🏗️</span> Section 179 & Bonus Depreciation</div>
+      <div class="card highlight">
+        <h3>The Big One: Deduct Machines Immediately</h3>
+        <p>Under current tax law, you can deduct the <strong>full cost of vending machines in Year 1</strong> — either through Section 179 or 100% Bonus Depreciation. This means if you buy 10 machines at $4,000 each, you get a <strong>$40,000 deduction</strong> in the year of purchase.</p>
+        <ul style="margin-top: 12px;">
+          <li><strong>Section 179 limit (2025):</strong> $1,220,000 — more than enough for any vending operation</li>
+          <li><strong>Bonus Depreciation (2025):</strong> 100% — deduct the full cost immediately</li>
+          <li><strong>MACRS classification:</strong> Vending machines = 5-year property (if you don't use 179/bonus)</li>
+          <li><strong>Applies to:</strong> New AND used equipment</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>💡 Tax Savings Calculator</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0;">
+          <div>
+            <label style="font-size: 0.85rem; color: var(--text-muted);">Number of Machines</label>
+            <input type="number" id="numMachines" value="5" min="1" max="100" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg); color: var(--text); font-size: 1rem; margin-top: 4px;">
+          </div>
+          <div>
+            <label style="font-size: 0.85rem; color: var(--text-muted);">Cost Per Machine ($)</label>
+            <input type="number" id="machineCost" value="4000" min="1000" max="20000" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg); color: var(--text); font-size: 1rem; margin-top: 4px;">
+          </div>
+          <div>
+            <label style="font-size: 0.85rem; color: var(--text-muted);">Marginal Tax Rate (%)</label>
+            <input type="number" id="taxRate" value="24" min="10" max="50" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg); color: var(--text); font-size: 1rem; margin-top: 4px;">
+          </div>
+          <div style="display: flex; align-items: flex-end;">
+            <button onclick="calcTax()" style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; font-weight: 700; cursor: pointer; font-size: 1rem;">Calculate</button>
+          </div>
+        </div>
+        <div id="taxResult" class="callout callout-green" style="display: none;"></div>
+      </div>
+    </div>
+
+    <!-- Nevada Taxes -->
+    <div class="section">
+      <div class="section-title"><span class="icon">🎰</span> Nevada-Specific Taxes</div>
+      <div class="card">
+        <h3>What You Owe Nevada</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Tax</th><th>Rate</th><th>When</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>State Income Tax</td><td><span class="badge badge-green">$0</span></td><td>Never</td><td>Nevada has no state income tax</td></tr>
+              <tr><td>Sales Tax on Vending</td><td><span class="badge badge-yellow">8.375%</span></td><td>Quarterly</td><td>Collected automatically by payment processor on each sale</td></tr>
+              <tr><td>Commerce Tax</td><td><span class="badge badge-green">$0</span></td><td>N/A until $4M+</td><td>Only applies when gross revenue exceeds $4M</td></tr>
+              <tr><td>Modified Business Tax</td><td><span class="badge badge-yellow">1.378%</span></td><td>Quarterly</td><td>On wages when you have employees (after $50K exemption)</td></tr>
+              <tr><td>Clark County Machine License</td><td><span class="badge badge-yellow">$50/machine</span></td><td>Semi-annual</td><td>Register as distributor to potentially avoid per-machine fees</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="callout callout-blue">
+        <strong>💡 Sales Tax Tip:</strong> Your sales tax permit (SUT-0000-3639-3016) requires quarterly filing. First filing due April 20, 2026. If your payment processor (WeVend/Nayax) collects and remits sales tax automatically, confirm with your CPA to avoid double-reporting.
+      </div>
+    </div>
+
+    <!-- Deductible Expenses -->
+    <div class="section">
+      <div class="section-title"><span class="icon">📝</span> Deductible Expenses</div>
+      <div class="card">
+        <h3>Everything You Can Write Off</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Expense</th><th>Category</th><th>Est. Annual</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>Vending machines</td><td><span class="badge badge-blue">Equipment</span></td><td>$20K-$60K+</td><td>100% deductible Year 1 via Sec 179</td></tr>
+              <tr><td>Inventory / COGS</td><td><span class="badge badge-blue">Cost of Goods</span></td><td>40-50% of revenue</td><td>All product purchases deductible</td></tr>
+              <tr><td>Vehicle mileage</td><td><span class="badge badge-green">Auto</span></td><td>$3K-$8K+</td><td>67¢/mile (2025) for restocking routes</td></tr>
+              <tr><td>Insurance (GL/BOP)</td><td><span class="badge badge-green">Insurance</span></td><td>$1,200-$1,500</td><td>Hartford ~$40/mo recommended</td></tr>
+              <tr><td>Payment processing</td><td><span class="badge badge-yellow">Fees</span></td><td>5-6% of revenue</td><td>WeVend/Preva fees fully deductible</td></tr>
+              <tr><td>Software subscriptions</td><td><span class="badge badge-yellow">Tech</span></td><td>$800-$2,400</td><td>Gimme, VendHub, monitoring platforms</td></tr>
+              <tr><td>Phone & internet</td><td><span class="badge badge-green">Utilities</span></td><td>$1,200-$2,400</td><td>Business portion of cell + home internet</td></tr>
+              <tr><td>Home office</td><td><span class="badge badge-green">Office</span></td><td>$1,500-$3,000</td><td>Simplified: $5/sq ft up to 300 sq ft</td></tr>
+              <tr><td>Warehouse/storage</td><td><span class="badge badge-yellow">Rent</span></td><td>$2,400-$6,000</td><td>Inventory storage space</td></tr>
+              <tr><td>Marketing materials</td><td><span class="badge badge-green">Marketing</span></td><td>$500-$2,000</td><td>Business cards, wraps, proposals</td></tr>
+              <tr><td>Meals (50%)</td><td><span class="badge badge-yellow">Meals</span></td><td>$500-$1,500</td><td>50% deductible for business meals with leads/vendors</td></tr>
+              <tr><td>Professional services</td><td><span class="badge badge-blue">Legal/CPA</span></td><td>$1,500-$3,000</td><td>CPA, legal fees, bookkeeping</td></tr>
+              <tr><td>Gift bags for pop-ins</td><td><span class="badge badge-green">Marketing</span></td><td>$500-$1,500</td><td>$5 Costco snack bags = business development</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- S-Corp Election -->
+    <div class="section">
+      <div class="section-title"><span class="icon">🏛️</span> S-Corp Election Strategy</div>
+      <div class="card highlight">
+        <h3>When to Elect S-Corp Status</h3>
+        <p>As a 2-member LLC, you're currently taxed as a partnership. Once your net profit exceeds ~$40,000-$50,000/year, consider electing S-Corp status to save on self-employment tax.</p>
+        <ul style="margin-top: 12px;">
+          <li><strong>Current:</strong> All profit subject to 15.3% self-employment tax</li>
+          <li><strong>With S-Corp:</strong> Pay yourself a "reasonable salary" → only salary is subject to SE tax, remaining profit is not</li>
+          <li><strong>Example:</strong> $100K profit → $50K salary + $50K distribution = save ~$7,650/year in SE tax</li>
+          <li><strong>Downside:</strong> Must run payroll, file S-Corp return (Form 1120S), more CPA costs</li>
+          <li><strong>When:</strong> File Form 2553 by March 15 of the tax year you want it effective</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- QBI Deduction -->
+    <div class="section">
+      <div class="section-title"><span class="icon">💎</span> QBI Deduction (20% Pass-Through)</div>
+      <div class="card">
+        <h3>Free 20% Deduction on Business Income</h3>
+        <p>The Qualified Business Income deduction lets you deduct 20% of your net business income from your taxable income. For vending, this is essentially free money.</p>
+        <ul style="margin-top: 12px;">
+          <li><strong>Example:</strong> $80K net profit × 20% = $16,000 deduction = ~$3,840 tax savings (at 24%)</li>
+          <li><strong>Phase-out:</strong> Starts at $182,100 (single) / $364,200 (MFJ) — not an issue early on</li>
+          <li><strong>Vending qualifies:</strong> It's NOT a "specified service trade" so no limitations apply</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Tax Calendar -->
+    <div class="section">
+      <div class="section-title"><span class="icon">📅</span> 2026 Tax Calendar</div>
+      <div class="card">
+        <h3>Important Dates</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>What</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Jan 15</td><td>Q4 2025 estimated federal tax</td><td><span class="badge badge-green">✓ Done (or N/A first year)</span></td></tr>
+              <tr><td>Mar 15</td><td>S-Corp election deadline (if electing)</td><td><span class="badge badge-yellow">⏳ Decide</span></td></tr>
+              <tr><td>Apr 15</td><td>Q1 2026 estimated federal tax</td><td><span class="badge badge-red">⏰ Upcoming</span></td></tr>
+              <tr><td>Apr 20</td><td>Q1 NV sales tax filing (SUT-0000-3639-3016)</td><td><span class="badge badge-red">⏰ First Filing!</span></td></tr>
+              <tr><td>Jun 15</td><td>Q2 2026 estimated federal tax</td><td><span class="badge badge-yellow">⏳ Upcoming</span></td></tr>
+              <tr><td>Jul 20</td><td>Q2 NV sales tax filing</td><td><span class="badge badge-yellow">⏳ Upcoming</span></td></tr>
+              <tr><td>Sep 15</td><td>Q3 2026 estimated federal tax</td><td><span class="badge badge-yellow">⏳ Upcoming</span></td></tr>
+              <tr><td>Oct 20</td><td>Q3 NV sales tax filing</td><td><span class="badge badge-yellow">⏳ Upcoming</span></td></tr>
+              <tr><td>Jan 15, 2027</td><td>Q4 2026 estimated federal tax</td><td><span class="badge badge-yellow">⏳ Upcoming</span></td></tr>
+              <tr><td>Jan 20, 2027</td><td>Q4 NV sales tax filing</td><td><span class="badge badge-yellow">⏳ Upcoming</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Record Keeping -->
+    <div class="section">
+      <div class="section-title"><span class="icon">📁</span> Record Keeping</div>
+      <div class="card">
+        <h3>What to Track</h3>
+        <ul>
+          <li><strong>Mileage log:</strong> Date, destination, miles, business purpose — use MileIQ or Everlance app</li>
+          <li><strong>All receipts:</strong> Snap photos with QuickBooks or Wave — IRS requires proof for expenses over $75</li>
+          <li><strong>Machine revenue:</strong> Monthly reports from payment processor by machine</li>
+          <li><strong>Inventory purchases:</strong> Every VenMarket, Costco, distributor receipt</li>
+          <li><strong>Bank statements:</strong> Separate business checking account (required for LLC)</li>
+          <li><strong>Retain records:</strong> 3 years minimum (7 years recommended)</li>
+        </ul>
+      </div>
+      <div class="callout callout-yellow">
+        <strong>⚠️ Get a CPA now.</strong> Don't wait until tax season. A vending-savvy CPA will save you multiples of their fee. Budget $1,500-$3,000/year. Ask in the Vendingpreneurs community for recommendations.
+      </div>
+    </div>
+
+    <!-- Research Loading Zone -->
+    <div class="section">
+      <div class="section-title"><span class="icon">🔬</span> Deep Research (Loading...)</div>
+      <div class="card" id="researchCard">
+        <h3>Comprehensive Tax Strategy Guide</h3>
+        <p>Full research document is being generated and will be available at:<br>
+        <code style="background: var(--bg); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">kande-vendtech/research/tax-strategy-guide-2026.md</code></p>
+        <p style="margin-top: 8px;">Topics covered: Section 179 deep dive, Nevada tax specifics, S-Corp analysis, retirement planning (Solo 401k/SEP IRA), equipment financing vs cash tax implications, and more.</p>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div>
+
+<script>
+function calcTax() {
+  const n = parseInt(document.getElementById('numMachines').value) || 5;
+  const c = parseInt(document.getElementById('machineCost').value) || 4000;
+  const r = parseInt(document.getElementById('taxRate').value) || 24;
+  const total = n * c;
+  const savings = Math.round(total * (r / 100));
+  document.getElementById('taxResult').style.display = 'block';
+  document.getElementById('taxResult').innerHTML = `
+    <strong>💰 Tax Savings Estimate</strong><br>
+    ${n} machines × $${c.toLocaleString()} = <strong>$${total.toLocaleString()}</strong> total deduction<br>
+    At ${r}% tax rate = <strong>$${savings.toLocaleString()} in tax savings</strong> (Year 1)
+  `;
+  document.getElementById('machineDeduction').textContent = '$' + total.toLocaleString();
+}
+
+// Show content after brief load
+setTimeout(() => {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('content').style.display = 'block';
+  calcTax();
+}, 500);
+</script>
+</body>
+</html>

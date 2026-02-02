@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Conversion Funnel Analytics — Kande VendTech</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#f5f5f7;--bg2:#161922;--card:#ffffff;--card2:#222632;
+      --border:#2a2e3a;--border-light:#3a3f4d;
+      --text:#e2e8f0;--muted:#8892a4;--dim:#5a6478;
+      --accent:#667eea;--accent2:#764ba2;--accent-dim:rgba(102,126,234,0.15);
+      --success:#38d9a9;--success-dim:rgba(56,217,169,0.15);
+      --warn:#fbbf24;--warn-dim:rgba(251,191,36,0.15);
+      --hot:#f87171;--hot-dim:rgba(248,113,113,0.15);
+      --purple:#a78bfa;--purple-dim:rgba(167,139,250,0.15);
+      --gradient:linear-gradient(135deg,#667eea,#764ba2);
+    }
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    .app{max-width:1440px;margin:0 auto;padding:20px}
+
+    /* Nav */
+    .top-nav{display:flex;align-items:center;gap:10px;margin-bottom:28px;padding-bottom:14px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+    .top-nav .logo{height:36px}
+    .nav-brand{font-size:.88rem;font-weight:600;color:var(--text);margin-right:6px}
+    .top-nav a{color:var(--muted);text-decoration:none;font-size:.82rem;font-weight:500;padding:5px 10px;border-radius:6px;transition:all .2s}
+    .top-nav a:hover{color:var(--text);background:rgba(255,255,255,.06)}
+    .top-nav a.active{color:var(--accent);background:var(--accent-dim)}
+
+    /* Header */
+    .page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;flex-wrap:wrap;gap:16px}
+    .page-header h1{font-size:1.8rem;font-weight:700;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;display:flex;align-items:center;gap:12px}
+    .page-header p{color:var(--muted);font-size:.9rem}
+    .header-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+    /* Buttons */
+    .btn{padding:9px 18px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:.83rem;font-weight:500;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;font-family:inherit}
+    .btn:hover{border-color:var(--accent);color:var(--accent)}
+    .btn-primary{background:var(--gradient);color:#fff;border:none;font-weight:600}
+    .btn-primary:hover{opacity:.9;box-shadow:0 0 20px rgba(102,126,234,.3)}
+    select.filter{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:.83rem;font-family:inherit}
+    select.filter:focus{outline:none;border-color:var(--accent)}
+
+    /* Stats Row */
+    .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:28px}
+    .stat-card{background:var(--card);border-radius:14px;padding:20px;border:1px solid var(--border);text-align:center;transition:all .2s}
+    .stat-card:hover{border-color:var(--border-light);transform:translateY(-1px)}
+    .stat-card .label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:8px}
+    .stat-card .value{font-size:2rem;font-weight:700}
+    .stat-card .sub{font-size:.75rem;color:var(--dim);margin-top:4px}
+    .v-accent{color:var(--accent)}.v-success{color:var(--success)}.v-warn{color:var(--warn)}.v-hot{color:var(--hot)}.v-purple{color:var(--purple)}
+
+    /* Funnel Visual */
+    .funnel-section{margin-bottom:32px}
+    .section-title{font-size:1.15rem;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+    .section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+    .funnel-container{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;display:flex;flex-direction:column;align-items:center;gap:0}
+    .funnel-stage{display:flex;align-items:center;gap:20px;width:100%;max-width:700px;padding:16px 0}
+    .funnel-bar-wrap{flex:1;position:relative}
+    .funnel-bar{height:48px;border-radius:10px;position:relative;overflow:hidden;transition:width .8s ease;min-width:60px}
+    .funnel-bar-inner{height:100%;border-radius:10px;background:var(--gradient);position:relative}
+    .funnel-bar .bar-label{position:absolute;left:16px;top:50%;transform:translateY(-50%);font-weight:600;font-size:.95rem;color:#fff;white-space:nowrap;z-index:2}
+    .funnel-bar .bar-count{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-weight:700;font-size:1.1rem;color:#fff;z-index:2}
+    .funnel-meta{min-width:160px;text-align:right}
+    .funnel-meta .rate{font-size:1.6rem;font-weight:700}
+    .funnel-meta .rate-label{font-size:.72rem;color:var(--muted);margin-top:2px}
+    .funnel-arrow{font-size:1.4rem;color:var(--dim);text-align:center;padding:4px 0}
+
+    /* Breakdown Grid */
+    .breakdown-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:32px}
+    .breakdown-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;transition:all .2s}
+    .breakdown-card:hover{border-color:var(--border-light)}
+    .bc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+    .bc-title{font-size:1rem;font-weight:600;text-transform:capitalize}
+    .bc-badge{padding:3px 10px;border-radius:8px;font-size:.7rem;font-weight:600;background:var(--accent-dim);color:var(--accent)}
+    .bc-funnel{display:flex;flex-direction:column;gap:8px}
+    .bc-row{display:flex;justify-content:space-between;align-items:center;font-size:.85rem}
+    .bc-row .stage-name{color:var(--muted)}
+    .bc-row .stage-count{font-weight:600}
+    .bc-bar{height:6px;background:var(--bg2);border-radius:3px;overflow:hidden;margin-top:2px}
+    .bc-bar-fill{height:100%;border-radius:3px;background:var(--gradient);transition:width .6s ease}
+    .bc-conversion{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:.8rem}
+    .bc-conversion .rate-val{font-weight:700;color:var(--accent)}
+
+    /* Time to Close */
+    .ttc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:28px}
+    .ttc-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center}
+    .ttc-card .ttc-val{font-size:2.2rem;font-weight:700;color:var(--accent)}
+    .ttc-card .ttc-label{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+    .ttc-card .ttc-sub{font-size:.78rem;color:var(--dim);margin-top:6px}
+
+    /* Distribution Chart */
+    .dist-container{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:28px}
+    .dist-bars{display:flex;align-items:flex-end;gap:12px;height:200px;padding-top:20px}
+    .dist-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;height:100%}
+    .dist-bar{width:100%;border-radius:6px 6px 0 0;background:var(--gradient);transition:height .6s ease;min-height:4px;margin-top:auto}
+    .dist-bar-label{font-size:.7rem;color:var(--muted);margin-top:8px;text-align:center;white-space:nowrap}
+    .dist-bar-count{font-size:.78rem;font-weight:600;color:var(--accent);margin-bottom:4px}
+
+    /* Biggest Drop Alert */
+    .alert-card{background:var(--hot-dim);border:1px solid rgba(248,113,113,.2);border-radius:14px;padding:20px;margin-bottom:28px;display:flex;align-items:center;gap:16px}
+    .alert-icon{font-size:2rem}
+    .alert-content h3{font-size:1rem;font-weight:600;color:var(--hot);margin-bottom:4px}
+    .alert-content p{font-size:.85rem;color:var(--muted)}
+
+    /* Rankings Table */
+    .table-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:28px;overflow-x:auto}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--border);font-size:.85rem}
+    th{color:var(--muted);font-weight:600;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px}
+    tr:hover td{background:rgba(255,255,255,.02)}
+    .rank-badge{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:.75rem;font-weight:700;background:var(--accent-dim);color:var(--accent)}
+    .rank-badge.gold{background:rgba(251,191,36,.15);color:var(--warn)}
+
+    /* Loading */
+    .loading{text-align:center;padding:60px;color:var(--muted);font-size:.9rem}
+    .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    @media(max-width:768px){
+      .funnel-stage{flex-direction:column;align-items:stretch;gap:8px}
+      .funnel-meta{text-align:left;min-width:auto}
+      .stats-row{grid-template-columns:repeat(2,1fr)}
+      .breakdown-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <nav class="top-nav">
+    <a href="/"><img src="/logo.png" alt="Kande VendTech" class="logo" onerror="this.style.display='none'"></a>
+    <span class="nav-brand">Operations</span>
+    <a href="/">Dashboard</a>
+    <a href="/crm">CRM</a>
+    <a href="/machines">Machines</a>
+    <a href="/finance">Finance</a>
+    <a href="/analytics" class="active">Analytics</a>
+    <a href="/contracts">Contracts</a>
+    <a href="/outreach">Outreach</a>
+    <a href="/funnel">Funnel</a>
+    <a href="/map">Map</a>
+    <a href="/performance">Performance</a>
+  </nav>
+
+  <div class="page-header">
+    <div>
+      <h1>📊 Conversion Funnel Analytics</h1>
+      <p>Track how prospects move through your sales pipeline</p>
+    </div>
+    <div class="header-actions">
+      <select class="filter" id="periodFilter" onchange="loadAll()">
+        <option value="all">All Time</option>
+        <option value="30">Last 30 Days</option>
+        <option value="60">Last 60 Days</option>
+        <option value="90">Last 90 Days</option>
+        <option value="180">Last 6 Months</option>
+      </select>
+      <select class="filter" id="typeFilter" onchange="loadAll()">
+        <option value="all">All Property Types</option>
+        <option value="apartments">Apartments</option>
+        <option value="senior_living">Senior Living</option>
+        <option value="healthcare">Healthcare</option>
+        <option value="industrial">Industrial</option>
+        <option value="office">Office</option>
+      </select>
+      <button class="btn" onclick="loadAll()">🔄 Refresh</button>
+    </div>
+  </div>
+
+  <div id="content">
+    <div class="loading"><div class="spinner"></div>Loading analytics...</div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+async function api(url) {
+  const r = await fetch(url);
+  return r.json();
+}
+
+async function loadAll() {
+  const days = $('#periodFilter').value;
+  const ptype = $('#typeFilter').value;
+  const qs = `?days=${days}&property_type=${ptype}`;
+
+  try {
+    const [funnel, ttc, ptypes] = await Promise.all([
+      api('/api/analytics/funnel' + qs),
+      api('/api/analytics/time-to-close'),
+      api('/api/analytics/property-types')
+    ]);
+    render(funnel, ttc, ptypes);
+  } catch (e) {
+    $('#content').innerHTML = `<div class="alert-card"><span class="alert-icon">⚠️</span><div class="alert-content"><h3>Error Loading Data</h3><p>${e.message}</p></div></div>`;
+  }
+}
+
+function render(funnel, ttc, ptypes) {
+  const f = funnel.funnel;
+  const r = funnel.rates;
+  const bd = funnel.biggest_drop;
+  const ttcO = ttc.overall;
+  const dist = ttc.distribution || [];
+
+  let html = '';
+
+  // Stats Row
+  html += `<div class="stats-row">
+    <div class="stat-card"><div class="label">Total Prospects</div><div class="value v-accent">${f.total}</div><div class="sub">In pipeline</div></div>
+    <div class="stat-card"><div class="label">Pop-Ins Done</div><div class="value v-purple">${f.pop_ins}</div><div class="sub">${r.pop_in_rate}% of total</div></div>
+    <div class="stat-card"><div class="label">Callbacks Made</div><div class="value v-warn">${f.calls}</div><div class="sub">${r.call_rate}% of pop-ins</div></div>
+    <div class="stat-card"><div class="label">Proposals Sent</div><div class="value v-success">${f.proposals}</div><div class="sub">${r.proposal_rate}% of calls</div></div>
+    <div class="stat-card"><div class="label">Contracts Signed</div><div class="value v-accent">${f.signed}</div><div class="sub">${r.overall_rate}% overall</div></div>
+    <div class="stat-card"><div class="label">Close Rate</div><div class="value v-success">${r.close_rate}%</div><div class="sub">Proposal → Signed</div></div>
+  </div>`;
+
+  // Funnel Visualization
+  const maxCount = Math.max(f.total, 1);
+  const stages = [
+    { name: 'Total Prospects', count: f.total, rate: '100%', rateLabel: 'Total pipeline', color: '#667eea' },
+    { name: 'Pop-In Visits', count: f.pop_ins, rate: r.pop_in_rate + '%', rateLabel: 'Pop-in rate', color: '#7c5cbf' },
+    { name: 'Call Backs', count: f.calls, rate: r.call_rate + '%', rateLabel: 'Callback rate', color: '#a78bfa' },
+    { name: 'Proposals Sent', count: f.proposals, rate: r.proposal_rate + '%', rateLabel: 'Proposal rate', color: '#38d9a9' },
+    { name: 'Contracts Signed', count: f.signed, rate: r.close_rate + '%', rateLabel: 'Close rate', color: '#34d399' }
+  ];
+
+  html += `<div class="funnel-section"><div class="section-title">Sales Funnel</div><div class="funnel-container">`;
+  stages.forEach((s, i) => {
+    const pct = Math.max(10, (s.count / maxCount) * 100);
+    html += `<div class="funnel-stage">
+      <div class="funnel-bar-wrap">
+        <div class="funnel-bar" style="width:${pct}%">
+          <div class="funnel-bar-inner" style="background:linear-gradient(135deg,${s.color},${stages[Math.min(i+1,stages.length-1)].color})"></div>
+          <span class="bar-label">${s.name}</span>
+          <span class="bar-count">${s.count}</span>
+        </div>
+      </div>
+      <div class="funnel-meta">
+        <div class="rate" style="color:${s.color}">${s.rate}</div>
+        <div class="rate-label">${s.rateLabel}</div>
+      </div>
+    </div>`;
+    if (i < stages.length - 1) html += `<div class="funnel-arrow">↓</div>`;
+  });
+  html += `</div></div>`;
+
+  // Biggest Drop Alert
+  if (bd && bd.stage !== 'N/A' && bd.dropRate > 0) {
+    html += `<div class="alert-card">
+      <span class="alert-icon">🚨</span>
+      <div class="alert-content">
+        <h3>Biggest Drop-Off: ${bd.stage}</h3>
+        <p>You're losing ${bd.dropRate}% of prospects (${bd.lost} lost) at this stage. Focus your efforts here for maximum impact.</p>
+      </div>
+    </div>`;
+  }
+
+  // Property Type Breakdown
+  const byPT = funnel.by_property_type || {};
+  const ptKeys = Object.keys(byPT).filter(k => byPT[k].total > 0);
+  if (ptKeys.length > 0) {
+    html += `<div class="section-title">Breakdown by Property Type</div><div class="breakdown-grid">`;
+    ptKeys.sort((a, b) => byPT[b].total - byPT[a].total).forEach(pt => {
+      const d = byPT[pt];
+      const label = pt.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      html += `<div class="breakdown-card">
+        <div class="bc-header">
+          <span class="bc-title">${label}</span>
+          <span class="bc-badge">${d.total} prospects</span>
+        </div>
+        <div class="bc-funnel">
+          ${funnelRow('Pop-Ins', d.pop_ins, d.total)}
+          ${funnelRow('Calls', d.calls, d.total)}
+          ${funnelRow('Proposals', d.proposals, d.total)}
+          ${funnelRow('Signed', d.signed, d.total)}
+        </div>
+        <div class="bc-conversion">
+          <span>Overall Conversion</span>
+          <span class="rate-val">${d.rates?.overall_rate || 0}%</span>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Time-to-Close Section
+  html += `<div class="section-title">⏱️ Time-to-Close Metrics</div>`;
+  html += `<div class="ttc-grid">
+    <div class="ttc-card"><div class="ttc-val">${ttcO.count}</div><div class="ttc-label">Deals Closed</div></div>
+    <div class="ttc-card"><div class="ttc-val">${ttcO.average}<span style="font-size:.9rem;color:var(--muted)">d</span></div><div class="ttc-label">Avg Days to Close</div></div>
+    <div class="ttc-card"><div class="ttc-val">${ttcO.median}<span style="font-size:.9rem;color:var(--muted)">d</span></div><div class="ttc-label">Median Days</div></div>
+    <div class="ttc-card"><div class="ttc-val">${ttcO.fastest}<span style="font-size:.9rem;color:var(--muted)">d</span></div><div class="ttc-label">Fastest Close</div><div class="ttc-sub">${ttc.fastest_deal?.name || 'N/A'}</div></div>
+    <div class="ttc-card"><div class="ttc-val">${ttcO.slowest}<span style="font-size:.9rem;color:var(--muted)">d</span></div><div class="ttc-label">Slowest Close</div><div class="ttc-sub">${ttc.slowest_deal?.name || 'N/A'}</div></div>
+  </div>`;
+
+  // Distribution histogram
+  if (dist.length > 0 && dist.some(d => d.count > 0)) {
+    const maxBucket = Math.max(...dist.map(d => d.count), 1);
+    html += `<div class="dist-container">
+      <div class="section-title" style="margin-bottom:20px">Close Time Distribution</div>
+      <div class="dist-bars">
+        ${dist.map(d => `<div class="dist-bar-wrap">
+          <div class="dist-bar-count">${d.count}</div>
+          <div class="dist-bar" style="height:${Math.max(4, (d.count / maxBucket) * 160)}px"></div>
+          <div class="dist-bar-label">${d.label}</div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  // Property Type Rankings
+  const rankings = ttc.rankings || [];
+  if (rankings.length > 0) {
+    html += `<div class="section-title">Property Type Rankings (by Close Speed)</div>
+    <div class="table-card"><table>
+      <thead><tr><th>Rank</th><th>Property Type</th><th>Deals</th><th>Avg Days</th><th>Median</th><th>Fastest</th><th>Slowest</th></tr></thead>
+      <tbody>`;
+    rankings.forEach((r, i) => {
+      const label = r.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      html += `<tr>
+        <td><span class="rank-badge ${i === 0 ? 'gold' : ''}">${i + 1}</span></td>
+        <td style="font-weight:600">${label}</td>
+        <td>${r.count}</td>
+        <td style="color:var(--accent);font-weight:600">${r.average}d</td>
+        <td>${r.median}d</td>
+        <td style="color:var(--success)">${r.fastest}d</td>
+        <td style="color:var(--hot)">${r.slowest}d</td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+
+  // Overall Recommendation
+  if (ptypes.recommendation) {
+    html += `<div style="background:var(--accent-dim);border:1px solid rgba(102,126,234,.2);border-radius:14px;padding:20px;margin-bottom:28px;display:flex;align-items:center;gap:16px">
+      <span style="font-size:2rem">💡</span>
+      <div><h3 style="font-size:1rem;font-weight:600;color:var(--accent);margin-bottom:4px">Strategic Recommendation</h3>
+      <p style="font-size:.85rem;color:var(--muted)">${ptypes.recommendation}</p></div>
+    </div>`;
+  }
+
+  $('#content').innerHTML = html;
+}
+
+function funnelRow(name, count, total) {
+  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+  return `<div>
+    <div class="bc-row"><span class="stage-name">${name}</span><span class="stage-count">${count} <span style="color:var(--dim);font-weight:400">(${pct}%)</span></span></div>
+    <div class="bc-bar"><div class="bc-bar-fill" style="width:${pct}%"></div></div>
+  </div>`;
+}
+
+loadAll();
+</script>
+</body>
+</html>

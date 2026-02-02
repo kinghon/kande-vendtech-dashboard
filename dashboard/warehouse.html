@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <title>Kande VendTech — Warehouse</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f5f7; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
+      --muted: #718096; --accent: #3182ce; --hot: #e53e3e; --warn: #dd6b20;
+      --success: #38a169; --purple: #7b2cbf; --radius: 12px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .page-header h1 { font-size: 1.6rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .btn:hover { background: #f0f4f8; }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover { background: #2b6cb0; }
+    .btn-success { background: var(--success); color: #fff; border-color: var(--success); }
+    .btn-danger { background: var(--hot); color: #fff; border-color: var(--hot); }
+    .btn-warn { background: var(--warn); color: #fff; border-color: var(--warn); }
+    .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
+
+    .tab-bar { display: flex; gap: 4px; margin-bottom: 20px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 4px; overflow-x: auto; }
+    .tab-btn { padding: 8px 18px; border: none; background: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: var(--muted); transition: all 0.15s; white-space: nowrap; }
+    .tab-btn.active { background: var(--accent); color: #fff; }
+    .tab-btn:hover:not(.active) { background: #f0f4f8; color: var(--text); }
+
+    /* Stats */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; }
+    .stat-card .value { font-size: 1.8rem; font-weight: 800; }
+    .stat-card .label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
+    .value.accent { color: var(--accent); }
+    .value.success { color: var(--success); }
+    .value.warn { color: var(--warn); }
+    .value.danger { color: var(--hot); }
+
+    /* Stock Table */
+    .data-table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 24px; }
+    .data-table th { background: #edf2f7; padding: 10px 14px; font-size: 0.75rem; text-transform: uppercase; color: var(--muted); font-weight: 700; text-align: left; position: sticky; top: 0; }
+    .data-table td { padding: 10px 14px; border-top: 1px solid var(--border); font-size: 0.85rem; }
+    .data-table tr:hover td { background: #fafbfc; }
+    .data-table tr.low-stock td { background: rgba(229,62,62,0.04); }
+    .data-table tr.reorder td { background: rgba(221,107,32,0.04); }
+
+    /* Stock Level Bar */
+    .stock-bar { width: 100px; height: 8px; background: #edf2f7; border-radius: 4px; overflow: hidden; display: inline-block; vertical-align: middle; margin-left: 8px; }
+    .stock-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+    .stock-bar-fill.good { background: var(--success); }
+    .stock-bar-fill.low { background: var(--warn); }
+    .stock-bar-fill.critical { background: var(--hot); }
+
+    /* Alert Banner */
+    .alert-banner { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: var(--radius); margin-bottom: 16px; font-size: 0.85rem; }
+    .alert-danger { background: rgba(229,62,62,0.08); border: 1px solid rgba(229,62,62,0.2); color: #c53030; }
+    .alert-warn { background: rgba(221,107,32,0.08); border: 1px solid rgba(221,107,32,0.2); color: #c05621; }
+    .alert-info { background: rgba(49,130,206,0.08); border: 1px solid rgba(49,130,206,0.2); color: #2b6cb0; }
+
+    /* Packing List */
+    .packing-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; }
+    .packing-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--border); background: #fafbfc; }
+    .packing-header h3 { font-size: 0.95rem; }
+    .packing-status { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; }
+    .status-pending { background: rgba(221,107,32,0.1); color: var(--warn); }
+    .status-packing { background: rgba(49,130,206,0.1); color: var(--accent); }
+    .status-ready { background: rgba(56,161,105,0.1); color: var(--success); }
+    .packing-body { padding: 12px 18px; }
+    .packing-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .packing-item:last-child { border-bottom: none; }
+    .packing-item input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: var(--success); }
+    .packing-item.checked { opacity: 0.5; text-decoration: line-through; }
+    .packing-item .item-name { flex: 1; font-weight: 500; }
+    .packing-item .item-qty { font-weight: 700; color: var(--accent); min-width: 60px; text-align: right; }
+    .packing-progress { height: 4px; background: #edf2f7; border-radius: 2px; overflow: hidden; margin: 8px 18px 12px; }
+    .packing-progress-fill { height: 100%; background: var(--success); border-radius: 2px; transition: width 0.3s; }
+
+    /* Supplier Order */
+    .order-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 16px; }
+    .order-card .order-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+    .order-icon.pending { background: rgba(221,107,32,0.1); }
+    .order-icon.shipped { background: rgba(49,130,206,0.1); }
+    .order-icon.delivered { background: rgba(56,161,105,0.1); }
+    .order-info { flex: 1; }
+    .order-info h4 { font-size: 0.9rem; margin-bottom: 2px; }
+    .order-info span { font-size: 0.78rem; color: var(--muted); }
+
+    /* Search */
+    .search-bar { display: flex; gap: 8px; margin-bottom: 16px; }
+    .search-bar input { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; }
+    .search-bar select { padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; min-width: 140px; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--card); border-radius: 16px; padding: 24px; width: 90%; max-width: 520px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); max-height: 90vh; overflow-y: auto; }
+    .modal h3 { font-size: 1.1rem; margin-bottom: 16px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: var(--muted); }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+    .empty-state { text-align: center; padding: 40px; color: var(--muted); }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <script src="/nav.js"></script>
+  <div class="app">
+    <div class="page-header">
+      <h1>🏭 Warehouse</h1>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="openAddStock()">+ Add Stock</button>
+        <button class="btn btn-warn" onclick="openSupplierOrder()">📦 New Order</button>
+        <button class="btn" onclick="generatePackingLists()">📋 Gen Packing Lists</button>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="value accent" id="statSKUs">0</div><div class="label">SKUs in Stock</div></div>
+      <div class="stat-card"><div class="value success" id="statTotalUnits">0</div><div class="label">Total Units</div></div>
+      <div class="stat-card"><div class="value warn" id="statLowStock">0</div><div class="label">Low Stock Items</div></div>
+      <div class="stat-card"><div class="value danger" id="statOutOfStock">0</div><div class="label">Out of Stock</div></div>
+      <div class="stat-card"><div class="value accent" id="statValue">$0</div><div class="label">Inventory Value</div></div>
+    </div>
+
+    <!-- Alerts -->
+    <div id="alertsContainer"></div>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('stock', this)">📦 Stock Levels</button>
+      <button class="tab-btn" onclick="switchTab('packing', this)">📋 Packing Lists</button>
+      <button class="tab-btn" onclick="switchTab('packstation', this)">✅ Pack Station</button>
+      <button class="tab-btn" onclick="switchTab('orders', this)">🚚 Supplier Orders</button>
+    </div>
+
+    <!-- Stock Levels -->
+    <div id="tab-stock">
+      <div class="search-bar">
+        <input type="text" placeholder="Search products..." id="stockSearch" oninput="renderStock()">
+        <select id="stockFilter" onchange="renderStock()">
+          <option value="all">All Items</option>
+          <option value="low">Low Stock</option>
+          <option value="out">Out of Stock</option>
+          <option value="good">Well Stocked</option>
+        </select>
+        <select id="categoryFilter" onchange="renderStock()">
+          <option value="all">All Categories</option>
+        </select>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="data-table" id="stockTable">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Category</th>
+              <th>In Stock</th>
+              <th>Level</th>
+              <th>Reorder At</th>
+              <th>Cost</th>
+              <th>Value</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="stockBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Packing Lists -->
+    <div id="tab-packing" style="display:none">
+      <p style="color:var(--muted);margin-bottom:16px;font-size:0.9rem;">Auto-generated from tomorrow's routes. Items grouped by route for easy packing.</p>
+      <div id="packingListsContainer"></div>
+    </div>
+
+    <!-- Pack Station -->
+    <div id="tab-packstation" style="display:none">
+      <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center;">
+        <select id="packRouteSelect" onchange="loadPackStation()" style="padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;min-width:200px;">
+          <option value="">Select a packing list...</option>
+        </select>
+        <div id="packProgress" style="font-size:0.85rem;color:var(--muted)"></div>
+      </div>
+      <div id="packStationContainer"></div>
+    </div>
+
+    <!-- Supplier Orders -->
+    <div id="tab-orders" style="display:none">
+      <div id="ordersContainer"></div>
+    </div>
+  </div>
+
+  <!-- Add Stock Modal -->
+  <div class="modal-overlay" id="stockModal">
+    <div class="modal">
+      <h3>Update Stock Level</h3>
+      <div class="form-group">
+        <label>Product</label>
+        <select id="stockProduct"></select>
+      </div>
+      <div class="form-group">
+        <label>Quantity Adjustment</label>
+        <div style="display:flex;gap:8px;">
+          <select id="stockAction" style="width:100px;">
+            <option value="set">Set to</option>
+            <option value="add">Add</option>
+            <option value="remove">Remove</option>
+          </select>
+          <input type="number" id="stockQty" min="0" value="0" style="flex:1;">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Reorder Threshold</label>
+        <input type="number" id="stockThreshold" min="0" value="24">
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="stockNotes" rows="2" placeholder="Reason for adjustment..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeStockModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveStock()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supplier Order Modal -->
+  <div class="modal-overlay" id="orderModal">
+    <div class="modal">
+      <h3>New Supplier Order</h3>
+      <div class="form-group">
+        <label>Supplier</label>
+        <input type="text" id="orderSupplier" placeholder="e.g., Sam's Club, Costco, Distributor">
+      </div>
+      <div class="form-group">
+        <label>Items (one per line: Product Name × Quantity)</label>
+        <textarea id="orderItems" rows="5" placeholder="Coca-Cola 12oz × 48&#10;Doritos Nacho × 36&#10;Water Bottles × 60"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Estimated Cost</label>
+        <input type="number" id="orderCost" step="0.01" placeholder="0.00">
+      </div>
+      <div class="form-group">
+        <label>Expected Delivery</label>
+        <input type="date" id="orderDelivery">
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="orderNotes" rows="2" placeholder="PO number, special instructions..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeOrderModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveOrder()">Create Order</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let warehouseStock = [];
+    let products = [];
+    let packingLists = [];
+    let supplierOrders = [];
+    let routeTemplates = [];
+
+    function switchTab(tab, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      ['stock','packing','packstation','orders'].forEach(t => {
+        document.getElementById('tab-' + t).style.display = t === tab ? '' : 'none';
+      });
+    }
+
+    async function loadData() {
+      try {
+        const [stockRes, prodRes, packRes, orderRes, tmplRes] = await Promise.all([
+          fetch('/api/warehouse/stock').then(r => r.json()),
+          fetch('/api/products').then(r => r.json()),
+          fetch('/api/warehouse/packing-lists').then(r => r.json()),
+          fetch('/api/warehouse/orders').then(r => r.json()),
+          fetch('/api/routes/templates').then(r => r.json())
+        ]);
+        warehouseStock = stockRes.stock || [];
+        products = Array.isArray(prodRes) ? prodRes : prodRes.products || [];
+        packingLists = packRes.lists || [];
+        supplierOrders = orderRes.orders || [];
+        routeTemplates = tmplRes.templates || [];
+      } catch(e) {
+        console.error('Load error:', e);
+      }
+
+      renderStock();
+      renderAlerts();
+      renderPackingLists();
+      renderOrders();
+      updateStats();
+      populateSelects();
+    }
+
+    function updateStats() {
+      const inStock = warehouseStock.filter(s => s.quantity > 0);
+      const low = warehouseStock.filter(s => s.quantity > 0 && s.quantity <= (s.reorder_threshold || 24));
+      const out = warehouseStock.filter(s => s.quantity === 0);
+      const totalUnits = warehouseStock.reduce((s, i) => s + (i.quantity || 0), 0);
+      const totalValue = warehouseStock.reduce((s, i) => s + (i.quantity || 0) * (i.cost_price || 0), 0);
+
+      document.getElementById('statSKUs').textContent = inStock.length;
+      document.getElementById('statTotalUnits').textContent = totalUnits.toLocaleString();
+      document.getElementById('statLowStock').textContent = low.length;
+      document.getElementById('statOutOfStock').textContent = out.length;
+      document.getElementById('statValue').textContent = '$' + totalValue.toFixed(0);
+    }
+
+    function renderAlerts() {
+      const container = document.getElementById('alertsContainer');
+      const out = warehouseStock.filter(s => s.quantity === 0);
+      const low = warehouseStock.filter(s => s.quantity > 0 && s.quantity <= (s.reorder_threshold || 24));
+      let html = '';
+
+      if (out.length > 0) {
+        html += `<div class="alert-banner alert-danger">🚨 <strong>${out.length} items out of stock:</strong> ${out.map(s => s.product_name).join(', ')}</div>`;
+      }
+      if (low.length > 0) {
+        html += `<div class="alert-banner alert-warn">⚠️ <strong>${low.length} items below reorder threshold:</strong> ${low.map(s => `${s.product_name} (${s.quantity})`).join(', ')}</div>`;
+      }
+
+      const pendingOrders = supplierOrders.filter(o => o.status === 'ordered' || o.status === 'shipped');
+      if (pendingOrders.length > 0) {
+        html += `<div class="alert-banner alert-info">📦 <strong>${pendingOrders.length} orders in transit</strong></div>`;
+      }
+
+      container.innerHTML = html;
+    }
+
+    function renderStock() {
+      const search = (document.getElementById('stockSearch').value || '').toLowerCase();
+      const filter = document.getElementById('stockFilter').value;
+      const category = document.getElementById('categoryFilter').value;
+      const tbody = document.getElementById('stockBody');
+
+      let items = warehouseStock;
+      if (search) items = items.filter(s => (s.product_name || '').toLowerCase().includes(search));
+      if (filter === 'low') items = items.filter(s => s.quantity > 0 && s.quantity <= (s.reorder_threshold || 24));
+      if (filter === 'out') items = items.filter(s => s.quantity === 0);
+      if (filter === 'good') items = items.filter(s => s.quantity > (s.reorder_threshold || 24));
+      if (category !== 'all') items = items.filter(s => s.category === category);
+
+      tbody.innerHTML = items.length ? items.map(s => {
+        const threshold = s.reorder_threshold || 24;
+        const pct = Math.min(100, (s.quantity / Math.max(threshold * 3, 1)) * 100);
+        const level = s.quantity === 0 ? 'critical' : s.quantity <= threshold ? 'low' : 'good';
+        const rowClass = s.quantity === 0 ? 'low-stock' : s.quantity <= threshold ? 'reorder' : '';
+        const value = (s.quantity || 0) * (s.cost_price || 0);
+
+        return `<tr class="${rowClass}">
+          <td><strong>${s.product_name || 'Unknown'}</strong></td>
+          <td>${s.category || '—'}</td>
+          <td>
+            <strong>${s.quantity || 0}</strong>
+            <div class="stock-bar"><div class="stock-bar-fill ${level}" style="width:${pct}%"></div></div>
+          </td>
+          <td><span style="color:${level==='good'?'var(--success)':level==='low'?'var(--warn)':'var(--hot)'};font-weight:600;text-transform:uppercase;font-size:0.75rem">${level}</span></td>
+          <td>${threshold}</td>
+          <td>$${(s.cost_price || 0).toFixed(2)}</td>
+          <td>$${value.toFixed(2)}</td>
+          <td><button class="btn btn-sm" onclick="editStock(${s.product_id})">Edit</button></td>
+        </tr>`;
+      }).join('') : '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">No stock items found. Add products first!</td></tr>';
+    }
+
+    function populateSelects() {
+      // Categories
+      const cats = [...new Set(warehouseStock.map(s => s.category).filter(Boolean))];
+      const catSel = document.getElementById('categoryFilter');
+      catSel.innerHTML = '<option value="all">All Categories</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+
+      // Product select for modal
+      const prodSel = document.getElementById('stockProduct');
+      prodSel.innerHTML = products.map(p => `<option value="${p.id}">${p.name} (${p.category || 'Other'})</option>`).join('');
+
+      // Pack station route select
+      const packSel = document.getElementById('packRouteSelect');
+      packSel.innerHTML = '<option value="">Select a packing list...</option>' + packingLists.map((pl, i) => `<option value="${i}">${pl.route_name || 'Route ' + (i+1)} — ${pl.items.length} items</option>`).join('');
+    }
+
+    // Packing Lists
+    function renderPackingLists() {
+      const container = document.getElementById('packingListsContainer');
+      if (packingLists.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>No packing lists yet. Click "Gen Packing Lists" to create from tomorrow\'s routes.</p></div>';
+        return;
+      }
+
+      container.innerHTML = packingLists.map((pl, idx) => {
+        const checked = (pl.items || []).filter(i => i.packed).length;
+        const total = (pl.items || []).length;
+        const pct = total > 0 ? Math.round((checked / total) * 100) : 0;
+        const status = pct === 100 ? 'ready' : pct > 0 ? 'packing' : 'pending';
+
+        return `<div class="packing-card">
+          <div class="packing-header">
+            <h3>📦 ${pl.route_name || 'Route'} — ${pl.date || 'Tomorrow'}</h3>
+            <span class="packing-status status-${status}">${status === 'ready' ? '✓ Ready' : status === 'packing' ? '🔄 Packing' : '⏳ Pending'} (${pct}%)</span>
+          </div>
+          <div class="packing-progress"><div class="packing-progress-fill" style="width:${pct}%"></div></div>
+          <div class="packing-body">
+            ${(pl.items || []).map((item, i) => `
+              <div class="packing-item ${item.packed ? 'checked' : ''}">
+                <input type="checkbox" ${item.packed ? 'checked' : ''} onchange="togglePacked(${idx}, ${i})">
+                <span class="item-name">${item.product_name || 'Unknown'}</span>
+                <span class="item-qty">× ${item.quantity}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    async function togglePacked(listIdx, itemIdx) {
+      const list = packingLists[listIdx];
+      if (!list) return;
+      list.items[itemIdx].packed = !list.items[itemIdx].packed;
+
+      await fetch('/api/warehouse/packing-lists/' + (list.id || listIdx), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: list.items })
+      });
+      renderPackingLists();
+    }
+
+    async function generatePackingLists() {
+      try {
+        const res = await fetch('/api/warehouse/packing-lists/generate', { method: 'POST' });
+        const data = await res.json();
+        packingLists = data.lists || [];
+        renderPackingLists();
+        populateSelects();
+        switchTab('packing', document.querySelectorAll('.tab-btn')[1]);
+        alert(`✅ Generated ${packingLists.length} packing list(s) for tomorrow's routes`);
+      } catch(e) {
+        alert('Error generating packing lists');
+      }
+    }
+
+    // Pack Station
+    function loadPackStation() {
+      const idx = document.getElementById('packRouteSelect').value;
+      const container = document.getElementById('packStationContainer');
+      if (idx === '') { container.innerHTML = ''; return; }
+
+      const list = packingLists[parseInt(idx)];
+      if (!list) return;
+
+      const checked = (list.items || []).filter(i => i.packed).length;
+      const total = (list.items || []).length;
+      document.getElementById('packProgress').textContent = `${checked}/${total} packed (${total > 0 ? Math.round(checked/total*100) : 0}%)`;
+
+      container.innerHTML = `
+        <div style="margin-bottom:12px;display:flex;gap:8px;">
+          <button class="btn btn-sm btn-success" onclick="markAllPacked(${idx})">✅ Mark All Packed</button>
+          <button class="btn btn-sm" onclick="clearAllPacked(${idx})">↩️ Reset</button>
+        </div>
+        ${(list.items || []).map((item, i) => `
+          <div class="packing-item" style="padding:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;${item.packed?'opacity:0.5;':''}">
+            <input type="checkbox" ${item.packed ? 'checked' : ''} onchange="togglePackStation(${idx}, ${i})" style="width:24px;height:24px;">
+            <span class="item-name" style="font-size:1rem;">${item.product_name || 'Unknown'}</span>
+            <span style="font-size:0.8rem;color:var(--muted)">${item.category || ''}</span>
+            <span class="item-qty" style="font-size:1.1rem;">× ${item.quantity}</span>
+          </div>
+        `).join('')}
+      `;
+    }
+
+    async function togglePackStation(listIdx, itemIdx) {
+      await togglePacked(listIdx, itemIdx);
+      loadPackStation();
+    }
+
+    async function markAllPacked(listIdx) {
+      const list = packingLists[listIdx];
+      list.items.forEach(i => i.packed = true);
+      await fetch('/api/warehouse/packing-lists/' + (list.id || listIdx), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: list.items })
+      });
+      renderPackingLists();
+      loadPackStation();
+    }
+
+    async function clearAllPacked(listIdx) {
+      const list = packingLists[listIdx];
+      list.items.forEach(i => i.packed = false);
+      await fetch('/api/warehouse/packing-lists/' + (list.id || listIdx), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: list.items })
+      });
+      renderPackingLists();
+      loadPackStation();
+    }
+
+    // Supplier Orders
+    function renderOrders() {
+      const container = document.getElementById('ordersContainer');
+      if (supplierOrders.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">🚚</div><p>No supplier orders yet. Create one to track incoming inventory.</p></div>';
+        return;
+      }
+
+      container.innerHTML = supplierOrders.map(o => {
+        const iconClass = o.status === 'delivered' ? 'delivered' : o.status === 'shipped' ? 'shipped' : 'pending';
+        const icon = o.status === 'delivered' ? '✅' : o.status === 'shipped' ? '🚚' : '📋';
+        return `<div class="order-card">
+          <div class="order-icon ${iconClass}">${icon}</div>
+          <div class="order-info">
+            <h4>${o.supplier || 'Unknown Supplier'}</h4>
+            <span>${o.items_summary || ''} · $${(o.est_cost || 0).toFixed(2)} · ${o.status}</span>
+            <br><span>Expected: ${o.expected_delivery || '—'} ${o.notes ? '· ' + o.notes : ''}</span>
+          </div>
+          <div style="display:flex;gap:6px;">
+            ${o.status === 'ordered' ? `<button class="btn btn-sm" onclick="updateOrderStatus(${o.id},'shipped')">🚚 Shipped</button>` : ''}
+            ${o.status === 'shipped' ? `<button class="btn btn-sm btn-success" onclick="updateOrderStatus(${o.id},'delivered')">✅ Delivered</button>` : ''}
+            <button class="btn btn-sm btn-danger" onclick="deleteOrder(${o.id})">🗑️</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    async function updateOrderStatus(id, status) {
+      await fetch(`/api/warehouse/orders/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      loadData();
+    }
+
+    async function deleteOrder(id) {
+      if (!confirm('Delete this order?')) return;
+      await fetch(`/api/warehouse/orders/${id}`, { method: 'DELETE' });
+      loadData();
+    }
+
+    // Modals
+    function openAddStock() { document.getElementById('stockModal').classList.add('open'); }
+    function closeStockModal() { document.getElementById('stockModal').classList.remove('open'); }
+    function openSupplierOrder() {
+      document.getElementById('orderDelivery').value = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0];
+      document.getElementById('orderModal').classList.add('open');
+    }
+    function closeOrderModal() { document.getElementById('orderModal').classList.remove('open'); }
+
+    function editStock(productId) {
+      const item = warehouseStock.find(s => s.product_id === productId);
+      if (item) {
+        document.getElementById('stockProduct').value = productId;
+        document.getElementById('stockAction').value = 'set';
+        document.getElementById('stockQty').value = item.quantity || 0;
+        document.getElementById('stockThreshold').value = item.reorder_threshold || 24;
+      }
+      openAddStock();
+    }
+
+    async function saveStock() {
+      const productId = parseInt(document.getElementById('stockProduct').value);
+      const action = document.getElementById('stockAction').value;
+      const qty = parseInt(document.getElementById('stockQty').value) || 0;
+      const threshold = parseInt(document.getElementById('stockThreshold').value) || 24;
+      const notes = document.getElementById('stockNotes').value;
+
+      await fetch('/api/warehouse/stock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_id: productId, action, quantity: qty, reorder_threshold: threshold, notes })
+      });
+      closeStockModal();
+      loadData();
+    }
+
+    async function saveOrder() {
+      const data = {
+        supplier: document.getElementById('orderSupplier').value,
+        items_text: document.getElementById('orderItems').value,
+        est_cost: parseFloat(document.getElementById('orderCost').value) || 0,
+        expected_delivery: document.getElementById('orderDelivery').value,
+        notes: document.getElementById('orderNotes').value
+      };
+      await fetch('/api/warehouse/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      closeOrderModal();
+      loadData();
+    }
+
+    // Init
+    loadData();
+  </script>
+</body>
+</html>

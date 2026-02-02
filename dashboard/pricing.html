@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <title>Pricing Comparison — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f5f7;
+      --card: #ffffff;
+      --card-hover: #222633;
+      --border: #2d3248;
+      --text: #e2e8f0;
+      --muted: #8892b0;
+      --accent: #667eea;
+      --accent-light: #7c8ff8;
+      --green: #48bb78;
+      --yellow: #ecc94b;
+      --red: #fc8181;
+      --orange: #f6ad55;
+      --purple: #b794f4;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    a { color: var(--accent-light); text-decoration: none; }
+    a:hover { color: #fff; }
+
+    /* Layout */
+    .app { max-width: 1600px; margin: 0 auto; padding: 16px 20px; }
+
+    /* Top Nav */
+    .top-nav {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 24px; padding-bottom: 14px;
+      border-bottom: 1px solid var(--border); flex-wrap: wrap;
+    }
+    .nav-brand { font-weight: 700; font-size: 0.95rem; color: var(--accent-light); margin-right: 8px; }
+    .top-nav a {
+      color: var(--muted); font-size: 0.8rem; font-weight: 500;
+      padding: 5px 10px; border-radius: 6px; transition: all 0.2s;
+    }
+    .top-nav a:hover, .top-nav a.active {
+      color: var(--accent-light); background: rgba(102,126,234,0.12);
+    }
+    .nav-spacer { flex: 1; }
+
+    /* Page Header */
+    .page-header { margin-bottom: 24px; }
+    .page-header h1 {
+      font-size: 1.6rem; font-weight: 700;
+      background: linear-gradient(135deg, #667eea, #b794f4);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .page-header p { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px; text-align: center;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+    .stat-value { font-size: 1.8rem; font-weight: 700; }
+    .stat-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; font-weight: 600; margin-top: 4px; letter-spacing: 0.5px; }
+    .stat-sub { font-size: 0.75rem; color: var(--muted); margin-top: 6px; }
+    .v-accent { color: var(--accent-light); }
+    .v-green { color: var(--green); }
+    .v-yellow { color: var(--yellow); }
+    .v-red { color: var(--red); }
+    .v-orange { color: var(--orange); }
+    .v-purple { color: var(--purple); }
+
+    /* Filters Bar */
+    .filters-bar {
+      display: flex; gap: 10px; margin-bottom: 20px;
+      flex-wrap: wrap; align-items: center;
+    }
+    .filters-bar input, .filters-bar select {
+      background: var(--card); color: var(--text);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 9px 14px; font-size: 0.85rem;
+      outline: none; transition: border-color 0.2s;
+    }
+    .filters-bar input:focus, .filters-bar select:focus {
+      border-color: var(--accent);
+    }
+    .filters-bar input[type="text"] { min-width: 260px; }
+    .filters-bar select { min-width: 160px; cursor: pointer; }
+    select option { background: var(--card); color: var(--text); }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 16px; border-radius: 8px; font-size: 0.85rem;
+      font-weight: 600; cursor: pointer; border: none;
+      transition: all 0.2s; white-space: nowrap;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-success {
+      background: linear-gradient(135deg, #38a169, #2f855a);
+      color: #fff;
+    }
+    .btn-success:hover { opacity: 0.9; }
+    .btn-outline {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--text); }
+
+    .filter-count { color: var(--muted); font-size: 0.8rem; margin-left: auto; }
+
+    /* Table */
+    .table-wrap {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+    }
+    .table-scroll { overflow-x: auto; max-height: 70vh; overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    thead {
+      background: #151822; position: sticky; top: 0; z-index: 10;
+    }
+    th {
+      padding: 12px 10px; text-align: left; font-weight: 600;
+      color: var(--muted); font-size: 0.72rem; text-transform: uppercase;
+      letter-spacing: 0.5px; border-bottom: 1px solid var(--border);
+      cursor: pointer; user-select: none; white-space: nowrap;
+    }
+    th:hover { color: var(--accent-light); }
+    th .sort-icon { margin-left: 4px; font-size: 0.65rem; }
+    td {
+      padding: 10px; border-bottom: 1px solid rgba(45,50,72,0.5);
+      vertical-align: middle;
+    }
+    tr:hover td { background: rgba(102,126,234,0.04); }
+
+    .thumb {
+      width: 40px; height: 40px; border-radius: 6px;
+      object-fit: cover; background: var(--border);
+    }
+    .thumb-placeholder {
+      width: 40px; height: 40px; border-radius: 6px;
+      background: var(--border); display: flex;
+      align-items: center; justify-content: center;
+      font-size: 0.7rem; color: var(--muted);
+    }
+
+    .cat-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 10px;
+      font-size: 0.7rem; font-weight: 600; text-transform: capitalize;
+      white-space: nowrap;
+    }
+    .cat-candy { background: rgba(237,100,166,0.15); color: #ed64a6; }
+    .cat-snacks { background: rgba(246,173,85,0.15); color: #f6ad55; }
+    .cat-cold_beverage { background: rgba(66,153,225,0.15); color: #4299e1; }
+    .cat-frozen_foods { background: rgba(129,230,217,0.15); color: #81e6d9; }
+    .cat-health_beauty { background: rgba(183,148,244,0.15); color: #b794f4; }
+    .cat-hot_drink { background: rgba(252,129,129,0.15); color: #fc8181; }
+    .cat-refrigerated { background: rgba(72,187,120,0.15); color: #48bb78; }
+    .cat-specialty_better4you { background: rgba(102,126,234,0.15); color: #667eea; }
+    .cat-hot_foods { background: rgba(236,201,75,0.15); color: #ecc94b; }
+
+    .price-not-set { color: var(--red); font-weight: 600; font-size: 0.75rem; }
+    .price-val { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .suggested { color: var(--accent-light); }
+    .margin-val { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: 0.72rem; font-weight: 600; white-space: nowrap;
+    }
+
+    /* Pagination */
+    .pagination {
+      display: flex; align-items: center; justify-content: center;
+      gap: 6px; padding: 16px; flex-wrap: wrap;
+    }
+    .pagination button {
+      background: var(--card); border: 1px solid var(--border);
+      color: var(--muted); padding: 6px 12px; border-radius: 6px;
+      font-size: 0.8rem; cursor: pointer; transition: all 0.2s;
+    }
+    .pagination button:hover { border-color: var(--accent); color: var(--text); }
+    .pagination button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .pagination button:disabled { opacity: 0.4; cursor: default; }
+    .page-info { color: var(--muted); font-size: 0.8rem; }
+
+    /* Modal */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); z-index: 100;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 28px; max-width: 600px;
+      width: 90%; max-height: 80vh; overflow-y: auto;
+    }
+    .modal h2 {
+      font-size: 1.2rem; margin-bottom: 16px;
+      background: linear-gradient(135deg, #667eea, #b794f4);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .modal p { color: var(--muted); font-size: 0.9rem; margin-bottom: 14px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+
+    /* Category summary cards */
+    .cat-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 10px; margin-bottom: 24px;
+    }
+    .cat-summary-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .cat-summary-card:hover, .cat-summary-card.active {
+      border-color: var(--accent); transform: translateY(-1px);
+    }
+    .cat-summary-card .cat-name {
+      font-size: 0.75rem; font-weight: 600;
+      text-transform: capitalize; margin-bottom: 6px;
+    }
+    .cat-summary-card .cat-count { font-size: 1.1rem; font-weight: 700; color: var(--accent-light); }
+    .cat-summary-card .cat-margin { font-size: 0.72rem; color: var(--muted); }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--green); color: #fff;
+      padding: 12px 20px; border-radius: 10px;
+      font-size: 0.85rem; font-weight: 600;
+      transform: translateY(80px); opacity: 0;
+      transition: all 0.3s; z-index: 200;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .filters-bar input[type="text"] { min-width: 100%; }
+      .cat-summary-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Nav -->
+  <nav class="top-nav">
+    <span class="nav-brand">🏪 Kande VendTech</span>
+    <a href="/">Dashboard</a>
+    <a href="/crm.html">CRM</a>
+    <a href="/finance.html">Finance</a>
+    <a href="/pricing" class="active">💰 Pricing</a>
+    <a href="/tax-strategy">Tax</a>
+    <a href="/competitors.html">Competitors</a>
+    <span class="nav-spacer"></span>
+    <a href="/ai-office.html">🤖 AI Office</a>
+  </nav>
+
+  <!-- Header -->
+  <div class="page-header">
+    <h1>💰 Pricing Comparison Dashboard</h1>
+    <p>3,315 VendHub products — cost analysis, margin optimization, and bulk pricing tools</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card">
+      <div class="stat-value v-accent" id="statTotal">—</div>
+      <div class="stat-label">Total Products</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value v-green" id="statPriced">—</div>
+      <div class="stat-label">Prices Set</div>
+      <div class="stat-sub" id="statPricedPct"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value v-red" id="statUnpriced">—</div>
+      <div class="stat-label">Unpriced</div>
+      <div class="stat-sub" id="statUnpricedPct"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value v-yellow" id="statAvgMargin">—</div>
+      <div class="stat-label">Avg Margin (Priced)</div>
+      <div class="stat-sub" id="statMarginNote"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value v-orange" id="statLowMargin">—</div>
+      <div class="stat-label">Low Margin (&lt;40%)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value v-purple" id="statOpportunity">—</div>
+      <div class="stat-label">Revenue Opportunity</div>
+      <div class="stat-sub" id="statOppNote"></div>
+    </div>
+  </div>
+
+  <!-- Category Summary -->
+  <div class="cat-summary-grid" id="catSummary"></div>
+
+  <!-- Filters -->
+  <div class="filters-bar">
+    <input type="text" id="searchInput" placeholder="🔍 Search by name or brand...">
+    <select id="categoryFilter">
+      <option value="">All Categories</option>
+    </select>
+    <select id="statusFilter">
+      <option value="">All Status</option>
+      <option value="priced">✅ Priced</option>
+      <option value="unpriced">⚪ Unpriced</option>
+      <option value="good">🟢 Good Margin (60%+)</option>
+      <option value="review">🟡 Review (40-59%)</option>
+      <option value="low">🔴 Low Margin (&lt;40%)</option>
+    </select>
+    <select id="perPage">
+      <option value="50">50 per page</option>
+      <option value="100" selected>100 per page</option>
+      <option value="250">250 per page</option>
+      <option value="500">500 per page</option>
+    </select>
+    <button class="btn btn-primary" onclick="openBulkModal()">⚡ Bulk Price Tool</button>
+    <button class="btn btn-outline" onclick="exportCSV()">📥 Export CSV</button>
+    <span class="filter-count" id="filterCount"></span>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:50px">IMG</th>
+            <th onclick="sortBy('name')">Name <span class="sort-icon" id="sort-name"></span></th>
+            <th onclick="sortBy('brand')">Brand <span class="sort-icon" id="sort-brand"></span></th>
+            <th onclick="sortBy('size')">Size <span class="sort-icon" id="sort-size"></span></th>
+            <th onclick="sortBy('category')">Category <span class="sort-icon" id="sort-category"></span></th>
+            <th onclick="sortBy('unitPrice')">Cost <span class="sort-icon" id="sort-unitPrice"></span></th>
+            <th onclick="sortBy('currentPrice')">Current Price <span class="sort-icon" id="sort-currentPrice"></span></th>
+            <th onclick="sortBy('suggestedPrice')">Suggested <span class="sort-icon" id="sort-suggestedPrice"></span></th>
+            <th onclick="sortBy('margin')">Margin % <span class="sort-icon" id="sort-margin"></span></th>
+            <th onclick="sortBy('status')">Status <span class="sort-icon" id="sort-status"></span></th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+</div>
+
+<!-- Bulk Price Modal -->
+<div class="modal-overlay" id="bulkModal">
+  <div class="modal">
+    <h2>⚡ Bulk Pricing Tool</h2>
+    <p id="bulkInfo">Generate suggested prices for all unpriced items based on category-specific markup rules and Las Vegas market data.</p>
+    <div id="bulkPreview" style="max-height:300px;overflow-y:auto;margin-bottom:14px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-success" onclick="generateBulkJSON()">📥 Download Pricing JSON</button>
+      <button class="btn btn-primary" onclick="generateBulkCSV()">📊 Download CSV</button>
+      <button class="btn btn-outline" onclick="closeBulkModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Products Data -->
+<script src="/products.js"></script>
+
+<script>
+// ============================================================
+// PRICING ENGINE — Category-specific rules from Skool research
+// ============================================================
+
+const PRICING_RULES = {
+  candy:                { markup: 3.0, min: 2.50, label: 'Candy' },
+  snacks:               { markup: 3.0, min: 2.50, label: 'Snacks' },
+  cold_beverage:        { markup: 2.5, min: 1.75, label: 'Cold Beverage' },
+  frozen_foods:         { markup: 2.5, min: 4.99, label: 'Frozen Foods' },
+  health_beauty:        { markup: 3.0, min: 3.99, label: 'Health & Beauty' },
+  hot_drink:            { markup: 2.5, min: 1.50, label: 'Hot Drink' },
+  refrigerated:         { markup: 2.5, min: 3.99, label: 'Refrigerated' },
+  specialty_better4you: { markup: 3.0, min: 2.99, label: 'Specialty/Better4You' },
+  hot_foods:            { markup: 2.0, min: 4.99, label: 'Hot Foods' }
+};
+
+// Beverage sub-type detection for smarter pricing
+const BEVERAGE_PATTERNS = {
+  energy: {
+    keywords: ['energy', 'monster', 'celsius', 'red bull', 'bang', 'ghost', 'c4', 'reign', 'rockstar', '5 hour', '5hour', 'joy burst', 'alani', 'xyience', 'nos ', 'g fuel', 'zoa'],
+    priceRange: [3.00, 4.00]
+  },
+  water: {
+    keywords: ['water', 'fiji', 'voss', 'dasani', 'aquafina', 'smartwater', 'evian', 'liquid death', 'essentia', 'core hydration', 'lifewtr'],
+    priceRange: [2.00, 4.00]
+  },
+  soda: {
+    keywords: ['soda', 'cola', 'coke', 'pepsi', 'sprite', 'fanta', 'dr pepper', 'dr.pepper', 'mtn dew', 'mountain dew', '7 up', '7up', 'root beer', 'a w ', 'a&w', 'sierra mist', 'sunkist', 'crush', 'jarritos', 'ginger ale', 'canada dry', 'squirt', 'big red'],
+    priceRange: [1.75, 2.75]
+  },
+  juice: {
+    keywords: ['juice', 'lemonade', 'tropicana', 'minute maid', 'naked', 'ocean spray', 'v8', 'simply', 'snapple', 'capri sun', 'kool aid', 'hi-c'],
+    priceRange: [2.00, 3.50]
+  },
+  tea: {
+    keywords: ['tea', 'brisk', 'arizona', 'pure leaf', 'gold peak', 'honest tea'],
+    priceRange: [2.00, 3.00]
+  },
+  sports: {
+    keywords: ['gatorade', 'powerade', 'bodyarmor', 'electrolit', 'prime', 'biosteel'],
+    priceRange: [2.50, 3.50]
+  },
+  milk_protein: {
+    keywords: ['milk', 'fairlife', 'protein shake', 'muscle milk', 'premier protein', 'core power', 'yoo-hoo', 'nesquik'],
+    priceRange: [3.00, 4.50]
+  },
+  coffee: {
+    keywords: ['coffee', 'starbucks', 'dunkin', 'java', 'cold brew', 'frappuccino', 'latte'],
+    priceRange: [3.00, 4.50]
+  }
+};
+
+function detectBeverageType(product) {
+  const name = (product.name || '').toLowerCase();
+  const brand = (product.brand || '').toLowerCase();
+  const combined = name + ' ' + brand;
+
+  for (const [type, config] of Object.entries(BEVERAGE_PATTERNS)) {
+    if (config.keywords.some(kw => combined.includes(kw))) {
+      return { type, ...config };
+    }
+  }
+  return null;
+}
+
+function calculateSuggestedPrice(product) {
+  const cost = product.unitPrice || 0;
+  if (cost <= 0) return 0;
+
+  const cat = product.category || '';
+  const rule = PRICING_RULES[cat] || { markup: 3.0, min: 2.50 };
+
+  let price;
+
+  // Special handling for cold beverages
+  if (cat === 'cold_beverage') {
+    const bevType = detectBeverageType(product);
+    if (bevType) {
+      // Use cost-based markup but clamp to market range
+      const markupPrice = cost * 2.5;
+      const [minPrice, maxPrice] = bevType.priceRange;
+      // Smart pricing: use markup unless it falls below market range
+      price = Math.max(markupPrice, minPrice);
+      price = Math.min(price, maxPrice + 1.00); // Allow some headroom above range max
+      // Round to nearest .25
+      price = Math.round(price * 4) / 4;
+    } else {
+      price = Math.max(cost * rule.markup, rule.min);
+      price = Math.round(price * 4) / 4;
+    }
+  } else {
+    price = Math.max(cost * rule.markup, rule.min);
+    // Round to nearest .25 for clean pricing
+    price = Math.round(price * 4) / 4;
+  }
+
+  // Final sanity: never suggest below cost
+  if (price <= cost) price = Math.ceil(cost * 2 * 4) / 4;
+
+  return price;
+}
+
+function calculateMargin(cost, sellPrice) {
+  if (!cost || !sellPrice || sellPrice <= 0) return 0;
+  return ((sellPrice - cost) / sellPrice) * 100;
+}
+
+function getStatus(product, margin) {
+  if (!product.vendingPriceOverride) return { emoji: '⚪', label: 'Unpriced', cls: 'v-muted' };
+  if (margin >= 60) return { emoji: '🟢', label: 'Good', cls: 'v-green' };
+  if (margin >= 40) return { emoji: '🟡', label: 'Review', cls: 'v-yellow' };
+  return { emoji: '🔴', label: 'Low', cls: 'v-red' };
+}
+
+
+// ============================================================
+// DATA PROCESSING
+// ============================================================
+
+let processedData = [];
+let filteredData = [];
+let sortField = 'category';
+let sortDir = 1; // 1 = asc, -1 = desc
+let currentPage = 1;
+
+function processProducts() {
+  processedData = PRODUCTS.map(p => {
+    const suggested = calculateSuggestedPrice(p);
+    const activePrice = p.vendingPriceOverride || null;
+    const margin = activePrice ? calculateMargin(p.unitPrice, activePrice) : calculateMargin(p.unitPrice, suggested);
+    const status = getStatus(p, activePrice ? calculateMargin(p.unitPrice, activePrice) : -1);
+    const bevType = p.category === 'cold_beverage' ? detectBeverageType(p) : null;
+
+    return {
+      ...p,
+      suggestedPrice: suggested,
+      currentPrice: activePrice,
+      margin: activePrice ? calculateMargin(p.unitPrice, activePrice) : null,
+      suggestedMargin: calculateMargin(p.unitPrice, suggested),
+      status,
+      bevType: bevType ? bevType.type : null
+    };
+  });
+}
+
+function computeStats() {
+  const total = processedData.length;
+  const priced = processedData.filter(p => p.currentPrice);
+  const unpriced = processedData.filter(p => !p.currentPrice);
+  const pricedCount = priced.length;
+  const unpricedCount = unpriced.length;
+
+  const avgMargin = pricedCount > 0
+    ? priced.reduce((s, p) => s + p.margin, 0) / pricedCount
+    : 0;
+
+  const lowMarginCount = priced.filter(p => p.margin < 40).length;
+
+  // Revenue opportunity: if every unpriced item gets suggested price,
+  // plus low-margin items get corrected — show potential per-unit margin gain
+  let oppGain = 0;
+  unpriced.forEach(p => {
+    oppGain += (p.suggestedPrice - p.unitPrice);
+  });
+  priced.filter(p => p.margin < 60).forEach(p => {
+    const targetPrice = p.suggestedPrice;
+    const currentGain = p.currentPrice - p.unitPrice;
+    const suggestedGain = targetPrice - p.unitPrice;
+    if (suggestedGain > currentGain) oppGain += (suggestedGain - currentGain);
+  });
+
+  document.getElementById('statTotal').textContent = total.toLocaleString();
+  document.getElementById('statPriced').textContent = pricedCount.toLocaleString();
+  document.getElementById('statPricedPct').textContent = `${((pricedCount/total)*100).toFixed(1)}% of catalog`;
+  document.getElementById('statUnpriced').textContent = unpricedCount.toLocaleString();
+  document.getElementById('statUnpricedPct').textContent = `${((unpricedCount/total)*100).toFixed(1)}% need pricing`;
+  document.getElementById('statAvgMargin').textContent = avgMargin.toFixed(1) + '%';
+  document.getElementById('statMarginNote').textContent = avgMargin >= 60 ? '✅ On target' : '⚠️ Below 60% target';
+  document.getElementById('statLowMargin').textContent = lowMarginCount.toLocaleString();
+  document.getElementById('statOpportunity').textContent = '$' + oppGain.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  document.getElementById('statOppNote').textContent = 'Per-unit margin gain if optimized';
+}
+
+function buildCategorySummary() {
+  const cats = {};
+  processedData.forEach(p => {
+    const c = p.category || 'unknown';
+    if (!cats[c]) cats[c] = { count: 0, priced: 0, totalMargin: 0, pricedCount: 0 };
+    cats[c].count++;
+    if (p.currentPrice) {
+      cats[c].priced++;
+      cats[c].totalMargin += p.margin;
+      cats[c].pricedCount++;
+    }
+  });
+
+  const container = document.getElementById('catSummary');
+  container.innerHTML = '';
+
+  Object.entries(cats)
+    .sort((a, b) => b[1].count - a[1].count)
+    .forEach(([cat, data]) => {
+      const avgM = data.pricedCount > 0 ? (data.totalMargin / data.pricedCount).toFixed(0) : '—';
+      const rule = PRICING_RULES[cat];
+      const label = rule ? rule.label : cat;
+      const card = document.createElement('div');
+      card.className = 'cat-summary-card';
+      card.onclick = () => {
+        document.getElementById('categoryFilter').value = cat;
+        applyFilters();
+        card.classList.toggle('active');
+      };
+      card.innerHTML = `
+        <div class="cat-name"><span class="cat-badge cat-${cat}">${label}</span></div>
+        <div class="cat-count">${data.count}</div>
+        <div class="cat-margin">${data.priced}/${data.count} priced · Avg margin: ${avgM}%</div>
+      `;
+      container.appendChild(card);
+    });
+}
+
+function populateCategoryFilter() {
+  const sel = document.getElementById('categoryFilter');
+  const cats = [...new Set(processedData.map(p => p.category))].sort();
+  cats.forEach(c => {
+    const rule = PRICING_RULES[c];
+    const label = rule ? rule.label : c;
+    const count = processedData.filter(p => p.category === c).length;
+    const opt = document.createElement('option');
+    opt.value = c;
+    opt.textContent = `${label} (${count})`;
+    sel.appendChild(opt);
+  });
+}
+
+
+// ============================================================
+// FILTERING & SORTING
+// ============================================================
+
+function applyFilters() {
+  const search = document.getElementById('searchInput').value.toLowerCase().trim();
+  const cat = document.getElementById('categoryFilter').value;
+  const status = document.getElementById('statusFilter').value;
+
+  filteredData = processedData.filter(p => {
+    if (search && !(p.name.toLowerCase().includes(search) || (p.brand||'').toLowerCase().includes(search))) return false;
+    if (cat && p.category !== cat) return false;
+    if (status === 'priced' && !p.currentPrice) return false;
+    if (status === 'unpriced' && p.currentPrice) return false;
+    if (status === 'good' && (!p.currentPrice || p.margin < 60)) return false;
+    if (status === 'review' && (!p.currentPrice || p.margin < 40 || p.margin >= 60)) return false;
+    if (status === 'low' && (!p.currentPrice || p.margin >= 40)) return false;
+    return true;
+  });
+
+  applySorting();
+  currentPage = 1;
+  renderTable();
+  document.getElementById('filterCount').textContent = `Showing ${filteredData.length} of ${processedData.length} products`;
+}
+
+function applySorting() {
+  filteredData.sort((a, b) => {
+    let va, vb;
+    switch (sortField) {
+      case 'name': va = a.name; vb = b.name; break;
+      case 'brand': va = a.brand || ''; vb = b.brand || ''; break;
+      case 'size': va = a.size || ''; vb = b.size || ''; break;
+      case 'category': va = a.category; vb = b.category; break;
+      case 'unitPrice': va = a.unitPrice; vb = b.unitPrice; break;
+      case 'currentPrice': va = a.currentPrice || 0; vb = b.currentPrice || 0; break;
+      case 'suggestedPrice': va = a.suggestedPrice; vb = b.suggestedPrice; break;
+      case 'margin': va = a.margin ?? a.suggestedMargin; vb = b.margin ?? b.suggestedMargin; break;
+      case 'status':
+        const order = { '🔴': 0, '🟡': 1, '⚪': 2, '🟢': 3 };
+        va = order[a.status.emoji] ?? 2;
+        vb = order[b.status.emoji] ?? 2;
+        break;
+      default: va = a.name; vb = b.name;
+    }
+    if (typeof va === 'string') return sortDir * va.localeCompare(vb);
+    return sortDir * ((va || 0) - (vb || 0));
+  });
+}
+
+function sortBy(field) {
+  // Clear all sort icons
+  document.querySelectorAll('.sort-icon').forEach(el => el.textContent = '');
+
+  if (sortField === field) {
+    sortDir *= -1;
+  } else {
+    sortField = field;
+    sortDir = 1;
+  }
+
+  const icon = document.getElementById('sort-' + field);
+  if (icon) icon.textContent = sortDir === 1 ? '▲' : '▼';
+
+  applySorting();
+  renderTable();
+}
+
+
+// ============================================================
+// RENDERING
+// ============================================================
+
+function renderTable() {
+  const perPage = parseInt(document.getElementById('perPage').value);
+  const start = (currentPage - 1) * perPage;
+  const pageData = filteredData.slice(start, start + perPage);
+  const tbody = document.getElementById('tableBody');
+
+  tbody.innerHTML = pageData.map(p => {
+    const imgHtml = p.imageUrl
+      ? `<img class="thumb" src="${p.imageUrl}" loading="lazy" onerror="this.outerHTML='<div class=thumb-placeholder>📦</div>'">`
+      : '<div class="thumb-placeholder">📦</div>';
+
+    const currentHtml = p.currentPrice
+      ? `<span class="price-val">$${p.currentPrice.toFixed(2)}</span>`
+      : '<span class="price-not-set">NOT SET</span>';
+
+    const sugHtml = `<span class="price-val suggested">$${p.suggestedPrice.toFixed(2)}</span>`;
+
+    const marginVal = p.margin !== null ? p.margin : p.suggestedMargin;
+    const marginColor = marginVal >= 60 ? 'v-green' : marginVal >= 40 ? 'v-yellow' : 'v-red';
+    const marginLabel = p.margin !== null ? `${p.margin.toFixed(1)}%` : `${p.suggestedMargin.toFixed(1)}%*`;
+    const marginHtml = `<span class="margin-val ${marginColor}">${marginLabel}</span>`;
+
+    const statusHtml = `<span class="status-badge">${p.status.emoji} ${p.status.label}</span>`;
+
+    return `<tr>
+      <td>${imgHtml}</td>
+      <td style="max-width:220px">${escHtml(p.name)}</td>
+      <td>${escHtml(p.brand || '—')}</td>
+      <td>${escHtml(p.size || '—')}</td>
+      <td><span class="cat-badge cat-${p.category}">${(PRICING_RULES[p.category]?.label || p.category)}</span></td>
+      <td><span class="price-val">$${p.unitPrice.toFixed(2)}</span></td>
+      <td>${currentHtml}</td>
+      <td>${sugHtml}</td>
+      <td>${marginHtml}</td>
+      <td>${statusHtml}</td>
+    </tr>`;
+  }).join('');
+
+  renderPagination(perPage);
+}
+
+function renderPagination(perPage) {
+  const totalPages = Math.ceil(filteredData.length / perPage);
+  const container = document.getElementById('pagination');
+
+  if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+  let html = `<button ${currentPage === 1 ? 'disabled' : ''} onclick="goPage(${currentPage-1})">← Prev</button>`;
+  html += `<span class="page-info">Page ${currentPage} of ${totalPages}</span>`;
+
+  // Show page numbers around current
+  const start = Math.max(1, currentPage - 3);
+  const end = Math.min(totalPages, currentPage + 3);
+  for (let i = start; i <= end; i++) {
+    html += `<button class="${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+  }
+
+  html += `<button ${currentPage === totalPages ? 'disabled' : ''} onclick="goPage(${currentPage+1})">Next →</button>`;
+  container.innerHTML = html;
+}
+
+function goPage(n) {
+  currentPage = n;
+  renderTable();
+  document.querySelector('.table-scroll').scrollTop = 0;
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+
+// ============================================================
+// BULK PRICING TOOL
+// ============================================================
+
+function openBulkModal() {
+  document.getElementById('bulkModal').classList.add('show');
+  const unpriced = processedData.filter(p => !p.currentPrice);
+  const lowMargin = processedData.filter(p => p.currentPrice && p.margin < 40);
+
+  let html = `<div style="color:var(--muted);font-size:0.85rem;margin-bottom:12px;">
+    <strong style="color:var(--accent-light)">${unpriced.length}</strong> unpriced products will get suggested prices<br>
+    <strong style="color:var(--yellow)">${lowMargin.length}</strong> products have margins below 40%
+  </div>`;
+
+  // Preview table
+  html += `<table style="width:100%;font-size:0.75rem;border-collapse:collapse;">
+    <tr style="border-bottom:1px solid var(--border);">
+      <th style="text-align:left;padding:4px;color:var(--muted);">Category</th>
+      <th style="text-align:right;padding:4px;color:var(--muted);">Count</th>
+      <th style="text-align:right;padding:4px;color:var(--muted);">Markup</th>
+      <th style="text-align:right;padding:4px;color:var(--muted);">Min Price</th>
+      <th style="text-align:right;padding:4px;color:var(--muted);">Avg Suggested</th>
+    </tr>`;
+
+  const byCat = {};
+  unpriced.forEach(p => {
+    const c = p.category;
+    if (!byCat[c]) byCat[c] = { count: 0, totalSuggested: 0 };
+    byCat[c].count++;
+    byCat[c].totalSuggested += p.suggestedPrice;
+  });
+
+  Object.entries(byCat).sort((a, b) => b[1].count - a[1].count).forEach(([cat, data]) => {
+    const rule = PRICING_RULES[cat] || { markup: 3.0, min: 2.50 };
+    const avg = (data.totalSuggested / data.count).toFixed(2);
+    html += `<tr style="border-bottom:1px solid rgba(45,50,72,0.3);">
+      <td style="padding:4px;"><span class="cat-badge cat-${cat}">${rule.label || cat}</span></td>
+      <td style="text-align:right;padding:4px;">${data.count}</td>
+      <td style="text-align:right;padding:4px;">${rule.markup}x</td>
+      <td style="text-align:right;padding:4px;">$${rule.min.toFixed(2)}</td>
+      <td style="text-align:right;padding:4px;color:var(--accent-light);">$${avg}</td>
+    </tr>`;
+  });
+
+  html += '</table>';
+  document.getElementById('bulkPreview').innerHTML = html;
+}
+
+function closeBulkModal() {
+  document.getElementById('bulkModal').classList.remove('show');
+}
+
+function generateBulkJSON() {
+  const unpriced = processedData.filter(p => !p.currentPrice);
+  const data = unpriced.map(p => ({
+    id: p.id,
+    name: p.name,
+    brand: p.brand,
+    category: p.category,
+    size: p.size,
+    cost: p.unitPrice,
+    suggestedPrice: p.suggestedPrice,
+    expectedMargin: p.suggestedMargin.toFixed(1) + '%'
+  }));
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  downloadBlob(blob, `kande-vendtech-pricing-${new Date().toISOString().slice(0,10)}.json`);
+  showToast(`Downloaded pricing for ${data.length} products`);
+}
+
+function generateBulkCSV() {
+  const unpriced = processedData.filter(p => !p.currentPrice);
+  let csv = 'ID,Name,Brand,Category,Size,Cost,Suggested Price,Expected Margin %\n';
+  unpriced.forEach(p => {
+    csv += `"${p.id}","${(p.name||'').replace(/"/g,'""')}","${(p.brand||'').replace(/"/g,'""')}","${p.category}","${p.size || ''}",${p.unitPrice},${p.suggestedPrice},${p.suggestedMargin.toFixed(1)}\n`;
+  });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  downloadBlob(blob, `kande-vendtech-pricing-${new Date().toISOString().slice(0,10)}.csv`);
+  showToast(`Downloaded CSV for ${unpriced.length} products`);
+}
+
+function exportCSV() {
+  let csv = 'ID,Name,Brand,Category,Size,Cost,Current Price,Suggested Price,Margin %,Status\n';
+  filteredData.forEach(p => {
+    const margin = p.margin !== null ? p.margin.toFixed(1) : p.suggestedMargin.toFixed(1) + ' (suggested)';
+    csv += `"${p.id}","${(p.name||'').replace(/"/g,'""')}","${(p.brand||'').replace(/"/g,'""')}","${p.category}","${p.size || ''}",${p.unitPrice},${p.currentPrice || ''},${p.suggestedPrice},${margin},"${p.status.label}"\n`;
+  });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  downloadBlob(blob, `kande-pricing-export-${new Date().toISOString().slice(0,10)}.csv`);
+  showToast(`Exported ${filteredData.length} products`);
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+
+// ============================================================
+// INIT
+// ============================================================
+
+document.addEventListener('DOMContentLoaded', () => {
+  processProducts();
+  computeStats();
+  buildCategorySummary();
+  populateCategoryFilter();
+  applyFilters();
+
+  // Event listeners
+  document.getElementById('searchInput').addEventListener('input', debounce(applyFilters, 200));
+  document.getElementById('categoryFilter').addEventListener('change', applyFilters);
+  document.getElementById('statusFilter').addEventListener('change', applyFilters);
+  document.getElementById('perPage').addEventListener('change', () => { currentPage = 1; renderTable(); });
+
+  // Close modal on overlay click
+  document.getElementById('bulkModal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeBulkModal();
+  });
+});
+
+function debounce(fn, ms) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
+}
+</script>
+</body>
+</html>

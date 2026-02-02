@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Inventory & Products — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
+      --muted: #718096; --accent: #3182ce; --hot: #e53e3e; --warn: #dd6b20;
+      --success: #38a169; --purple: #7b2cbf;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+    .top-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .top-nav .logo { height: 36px; }
+    .top-nav a { color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500; padding: 6px 12px; border-radius: 6px; transition: all 0.2s; }
+    .top-nav a:hover, .top-nav a.active { color: var(--accent); background: rgba(49,130,206,0.08); }
+
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+    .header h1 { font-size: 1.5rem; background: linear-gradient(90deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-danger { background: var(--hot); color: #fff; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+    .btn-warn { background: var(--warn); color: #fff; }
+
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat { background: var(--card); border-radius: 12px; padding: 16px; text-align: center; border: 1px solid var(--border); }
+    .stat-value { font-size: 1.8rem; font-weight: 700; }
+    .stat-value.accent { color: var(--accent); }
+    .stat-value.success { color: var(--success); }
+    .stat-value.warn { color: var(--warn); }
+    .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+
+    .filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .filter-btn { padding: 8px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; color: var(--muted); cursor: pointer; font-size: 0.85rem; }
+    .filter-btn:hover, .filter-btn.active { background: rgba(49,130,206,0.1); border-color: var(--accent); color: var(--accent); }
+    .search-input { flex: 1; min-width: 200px; padding: 10px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.9rem; }
+
+    .tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 2px solid var(--border); }
+    .tab { padding: 10px 20px; cursor: pointer; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; background: none; border-top: none; border-left: none; border-right: none; font-size: 0.9rem; }
+    .tab:hover { color: var(--accent); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .table-container { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #f7fafc; padding: 12px 16px; text-align: left; font-size: 0.8rem; text-transform: uppercase; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f7fafc; }
+
+    .badge { padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
+    .badge-beverages { background: rgba(49,130,206,0.15); color: var(--accent); }
+    .badge-snacks { background: rgba(221,107,32,0.15); color: var(--warn); }
+    .badge-protein { background: rgba(56,161,105,0.15); color: var(--success); }
+    .badge-essentials { background: rgba(113,128,150,0.15); color: var(--muted); }
+    .badge-frozen { background: rgba(123,44,191,0.15); color: var(--purple); }
+    .badge-candy { background: rgba(229,62,62,0.15); color: var(--hot); }
+
+    .margin-bar { display: inline-block; height: 8px; border-radius: 4px; min-width: 20px; }
+    .margin-good { background: var(--success); }
+    .margin-ok { background: var(--warn); }
+    .margin-low { background: var(--hot); }
+
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--card); border-radius: 16px; padding: 24px; max-width: 600px; width: 95%; max-height: 90vh; overflow-y: auto; }
+    .modal h2 { font-size: 1.3rem; margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--muted); margin-bottom: 4px; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; color: var(--text); background: var(--card); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+
+    .supplier-card { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); }
+    .supplier-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .supplier-card h3 { font-size: 1.1rem; margin-bottom: 8px; }
+    .supplier-card p { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+    .supplier-tag { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; background: rgba(49,130,206,0.1); color: var(--accent); margin-right: 4px; margin-top: 8px; }
+
+    @media (max-width: 768px) {
+      .form-row, .form-row-3 { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .header { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <nav class="top-nav">
+      <a href="/"><img src="/logo.png" alt="Kande VendTech" class="logo"></a>
+      <a href="/">Dashboard</a>
+      <a href="/crm">CRM</a>
+      <a href="/machines">Machines</a>
+      <a href="/inventory" class="active">Inventory</a>
+      <a href="/finance">Finance</a>
+      <a href="/restock">Restock</a>
+      <a href="/map">Map</a>
+    </nav>
+
+    <div class="header">
+      <h1>📦 Product Catalog & Inventory</h1>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="openProductModal()">+ Add Product</button>
+        <button class="btn btn-warn" onclick="seedProducts()">⚡ Load Starter Products</button>
+        <button class="btn btn-secondary" onclick="openSupplierModal()">+ Add Supplier</button>
+      </div>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="products" onclick="switchTab('products')">📦 Products</button>
+      <button class="tab" data-tab="suppliers" onclick="switchTab('suppliers')">🏪 Suppliers</button>
+    </div>
+
+    <!-- Products Tab -->
+    <div id="tab-products" class="tab-content">
+      <div class="filters">
+        <input type="text" class="search-input" placeholder="Search products..." id="search" oninput="renderProducts()">
+        <button class="filter-btn active" data-cat="all" onclick="filterCat('all')">All</button>
+        <button class="filter-btn" data-cat="Beverages" onclick="filterCat('Beverages')">🥤 Beverages</button>
+        <button class="filter-btn" data-cat="Snacks" onclick="filterCat('Snacks')">🍿 Snacks</button>
+        <button class="filter-btn" data-cat="Protein/Health" onclick="filterCat('Protein/Health')">💪 Protein</button>
+        <button class="filter-btn" data-cat="Essentials" onclick="filterCat('Essentials')">🧴 Essentials</button>
+        <button class="filter-btn" data-cat="Frozen" onclick="filterCat('Frozen')">🧊 Frozen</button>
+        <button class="filter-btn" data-cat="Candy" onclick="filterCat('Candy')">🍬 Candy</button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>SKU</th>
+              <th>Category</th>
+              <th>Cost</th>
+              <th>Sell Price</th>
+              <th>Margin</th>
+              <th>Profit/Unit</th>
+              <th>Supplier</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="products-tbody"></tbody>
+        </table>
+      </div>
+      <div id="products-empty" class="empty-state" style="display:none;">
+        <div class="icon">📦</div>
+        <h3>No products yet</h3>
+        <p>Add products or load the starter catalog to get going.</p>
+        <button class="btn btn-warn" style="margin-top:16px;" onclick="seedProducts()">⚡ Load Starter Products</button>
+      </div>
+    </div>
+
+    <!-- Suppliers Tab -->
+    <div id="tab-suppliers" class="tab-content" style="display:none;">
+      <div class="supplier-grid" id="suppliers-grid"></div>
+      <div id="suppliers-empty" class="empty-state" style="display:none;">
+        <div class="icon">🏪</div>
+        <h3>No suppliers yet</h3>
+        <p>Add your suppliers to track where products come from.</p>
+        <button class="btn btn-secondary" style="margin-top:16px;" onclick="openSupplierModal()">+ Add Supplier</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Product Modal -->
+  <div class="modal-overlay" id="product-modal">
+    <div class="modal">
+      <h2 id="product-modal-title">Add Product</h2>
+      <input type="hidden" id="product-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Product Name</label>
+          <input type="text" id="product-name" placeholder="e.g. Core Water 30oz">
+        </div>
+        <div class="form-group">
+          <label>SKU</label>
+          <input type="text" id="product-sku" placeholder="e.g. BEV-CORE-30">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Category</label>
+          <select id="product-category">
+            <option value="Beverages">🥤 Beverages</option>
+            <option value="Snacks">🍿 Snacks</option>
+            <option value="Protein/Health">💪 Protein/Health</option>
+            <option value="Essentials">🧴 Essentials</option>
+            <option value="Frozen">🧊 Frozen</option>
+            <option value="Candy">🍬 Candy</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Supplier</label>
+          <select id="product-supplier">
+            <option value="">— Select —</option>
+            <option value="Sam's Club">Sam's Club</option>
+            <option value="Costco Business Center">Costco Business Center</option>
+            <option value="Vistar">Vistar</option>
+            <option value="Amazon">Amazon</option>
+            <option value="Direct">Direct from Brand</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>Cost Price ($)</label>
+          <input type="number" id="product-cost" step="0.01" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label>Sell Price ($)</label>
+          <input type="number" id="product-sell" step="0.01" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label>Margin %</label>
+          <input type="text" id="product-margin" readonly style="background:#f7fafc;">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="product-notes" placeholder="Sourcing notes, pack size, etc."></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="closeProductModal()">Cancel</button>
+        <button class="btn btn-danger" id="product-delete-btn" style="display:none;" onclick="deleteProduct()">Delete</button>
+        <button class="btn btn-primary" onclick="saveProduct()">Save Product</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supplier Modal -->
+  <div class="modal-overlay" id="supplier-modal">
+    <div class="modal">
+      <h2 id="supplier-modal-title">Add Supplier</h2>
+      <input type="hidden" id="supplier-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Supplier Name</label>
+          <input type="text" id="supplier-name" placeholder="e.g. Sam's Club">
+        </div>
+        <div class="form-group">
+          <label>Type</label>
+          <select id="supplier-type">
+            <option value="wholesale">Wholesale Club</option>
+            <option value="distributor">Distributor</option>
+            <option value="direct">Direct Brand</option>
+            <option value="online">Online</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Address / Location</label>
+        <input type="text" id="supplier-address" placeholder="Address">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Contact</label>
+          <input type="text" id="supplier-contact" placeholder="Name / phone">
+        </div>
+        <div class="form-group">
+          <label>Account #</label>
+          <input type="text" id="supplier-account" placeholder="Account or member #">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="supplier-notes" placeholder="Rebates, delivery schedule, minimums..."></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="closeSupplierModal()">Cancel</button>
+        <button class="btn btn-danger" id="supplier-delete-btn" style="display:none;" onclick="deleteSupplier()">Delete</button>
+        <button class="btn btn-primary" onclick="saveSupplier()">Save Supplier</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let products = [];
+    let suppliers = [];
+    let currentCat = 'all';
+
+    // Auto-calc margin
+    document.getElementById('product-cost').addEventListener('input', calcMargin);
+    document.getElementById('product-sell').addEventListener('input', calcMargin);
+    function calcMargin() {
+      const cost = parseFloat(document.getElementById('product-cost').value) || 0;
+      const sell = parseFloat(document.getElementById('product-sell').value) || 0;
+      if (sell > 0) {
+        const margin = Math.round(((sell - cost) / sell) * 100);
+        document.getElementById('product-margin').value = margin + '%';
+      } else {
+        document.getElementById('product-margin').value = '';
+      }
+    }
+
+    async function loadData() {
+      const [pRes, sRes] = await Promise.all([
+        fetch('/api/products').then(r => r.json()),
+        fetch('/api/suppliers').then(r => r.json())
+      ]);
+      products = pRes;
+      suppliers = sRes;
+      renderStats();
+      renderProducts();
+      renderSuppliers();
+    }
+
+    function renderStats() {
+      const avgMargin = products.length ? Math.round(products.reduce((s, p) => s + (p.margin || 0), 0) / products.length) : 0;
+      const categories = [...new Set(products.map(p => p.category))].length;
+      const avgProfit = products.length ? (products.reduce((s, p) => s + ((p.sell_price || 0) - (p.cost_price || 0)), 0) / products.length).toFixed(2) : '0.00';
+      document.getElementById('stats').innerHTML = `
+        <div class="stat"><div class="stat-value accent">${products.length}</div><div class="stat-label">Total Products</div></div>
+        <div class="stat"><div class="stat-value ${avgMargin >= 55 ? 'success' : avgMargin >= 40 ? 'warn' : ''}">${avgMargin}%</div><div class="stat-label">Avg Margin</div></div>
+        <div class="stat"><div class="stat-value success">$${avgProfit}</div><div class="stat-label">Avg Profit/Unit</div></div>
+        <div class="stat"><div class="stat-value accent">${categories}</div><div class="stat-label">Categories</div></div>
+        <div class="stat"><div class="stat-value">${suppliers.length}</div><div class="stat-label">Suppliers</div></div>
+      `;
+    }
+
+    function filterCat(cat) {
+      currentCat = cat;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+      renderProducts();
+    }
+
+    function renderProducts() {
+      const search = document.getElementById('search').value.toLowerCase();
+      let filtered = products;
+      if (currentCat !== 'all') filtered = filtered.filter(p => p.category === currentCat);
+      if (search) filtered = filtered.filter(p => (p.name || '').toLowerCase().includes(search) || (p.sku || '').toLowerCase().includes(search));
+
+      const tbody = document.getElementById('products-tbody');
+      const empty = document.getElementById('products-empty');
+      if (filtered.length === 0 && products.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+
+      tbody.innerHTML = filtered.map(p => {
+        const margin = p.margin || 0;
+        const profit = ((p.sell_price || 0) - (p.cost_price || 0)).toFixed(2);
+        const marginClass = margin >= 55 ? 'margin-good' : margin >= 40 ? 'margin-ok' : 'margin-low';
+        const catClass = 'badge-' + (p.category || '').toLowerCase().replace(/[^a-z]/g, '');
+        return `<tr class="clickable" ondblclick="editProduct(${p.id})">
+          <td><strong>${p.name || '—'}</strong></td>
+          <td style="font-family:monospace;font-size:0.8rem;">${p.sku || '—'}</td>
+          <td><span class="badge ${catClass}">${p.category || '—'}</span></td>
+          <td>$${(p.cost_price || 0).toFixed(2)}</td>
+          <td><strong>$${(p.sell_price || 0).toFixed(2)}</strong></td>
+          <td><span class="margin-bar ${marginClass}" style="width:${Math.min(margin, 80)}px;"></span> ${margin}%</td>
+          <td style="color:${parseFloat(profit) >= 2 ? 'var(--success)' : parseFloat(profit) >= 1 ? 'var(--warn)' : 'var(--hot)'};">$${profit}</td>
+          <td>${p.supplier || '—'}</td>
+          <td><button class="btn btn-secondary btn-sm" onclick="editProduct(${p.id})">Edit</button></td>
+        </tr>`;
+      }).join('');
+    }
+
+    function renderSuppliers() {
+      const grid = document.getElementById('suppliers-grid');
+      const empty = document.getElementById('suppliers-empty');
+      if (suppliers.length === 0) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+      grid.innerHTML = suppliers.map(s => {
+        const productCount = products.filter(p => p.supplier === s.name).length;
+        return `<div class="supplier-card clickable" ondblclick="editSupplier(${s.id})">
+          <h3>${s.name}</h3>
+          <p>${s.address || ''}</p>
+          <p>${s.contact || ''}</p>
+          <p style="margin-top:8px;">${s.notes || ''}</p>
+          <div style="margin-top:12px;">
+            <span class="supplier-tag">${s.supplier_type || 'wholesale'}</span>
+            <span class="supplier-tag">${productCount} products</span>
+            ${s.account_number ? `<span class="supplier-tag">Acct: ${s.account_number}</span>` : ''}
+          </div>
+          <button class="btn btn-secondary btn-sm" style="margin-top:12px;" onclick="editSupplier(${s.id})">Edit</button>
+        </div>`;
+      }).join('');
+    }
+
+    // Product Modal
+    function openProductModal(product) {
+      document.getElementById('product-modal-title').textContent = product ? 'Edit Product' : 'Add Product';
+      document.getElementById('product-id').value = product ? product.id : '';
+      document.getElementById('product-name').value = product ? product.name || '' : '';
+      document.getElementById('product-sku').value = product ? product.sku || '' : '';
+      document.getElementById('product-category').value = product ? product.category || 'Beverages' : 'Beverages';
+      document.getElementById('product-supplier').value = product ? product.supplier || '' : '';
+      document.getElementById('product-cost').value = product ? product.cost_price || '' : '';
+      document.getElementById('product-sell').value = product ? product.sell_price || '' : '';
+      document.getElementById('product-notes').value = product ? product.notes || '' : '';
+      document.getElementById('product-delete-btn').style.display = product ? 'inline-block' : 'none';
+      calcMargin();
+      document.getElementById('product-modal').classList.add('open');
+    }
+    function closeProductModal() { document.getElementById('product-modal').classList.remove('open'); }
+    function editProduct(id) { const p = products.find(x => x.id === id); if (p) openProductModal(p); }
+
+    async function saveProduct() {
+      const id = document.getElementById('product-id').value;
+      const data = {
+        name: document.getElementById('product-name').value,
+        sku: document.getElementById('product-sku').value,
+        category: document.getElementById('product-category').value,
+        supplier: document.getElementById('product-supplier').value,
+        cost_price: parseFloat(document.getElementById('product-cost').value) || 0,
+        sell_price: parseFloat(document.getElementById('product-sell').value) || 0,
+        notes: document.getElementById('product-notes').value
+      };
+      if (id) {
+        await fetch(`/api/products/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      } else {
+        await fetch('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      }
+      closeProductModal();
+      loadData();
+    }
+
+    async function deleteProduct() {
+      const id = document.getElementById('product-id').value;
+      if (!id || !confirm('Delete this product?')) return;
+      await fetch(`/api/products/${id}`, { method: 'DELETE' });
+      closeProductModal();
+      loadData();
+    }
+
+    // Supplier Modal
+    function openSupplierModal(supplier) {
+      document.getElementById('supplier-modal-title').textContent = supplier ? 'Edit Supplier' : 'Add Supplier';
+      document.getElementById('supplier-id').value = supplier ? supplier.id : '';
+      document.getElementById('supplier-name').value = supplier ? supplier.name || '' : '';
+      document.getElementById('supplier-type').value = supplier ? supplier.supplier_type || 'wholesale' : 'wholesale';
+      document.getElementById('supplier-address').value = supplier ? supplier.address || '' : '';
+      document.getElementById('supplier-contact').value = supplier ? supplier.contact || '' : '';
+      document.getElementById('supplier-account').value = supplier ? supplier.account_number || '' : '';
+      document.getElementById('supplier-notes').value = supplier ? supplier.notes || '' : '';
+      document.getElementById('supplier-delete-btn').style.display = supplier ? 'inline-block' : 'none';
+      document.getElementById('supplier-modal').classList.add('open');
+    }
+    function closeSupplierModal() { document.getElementById('supplier-modal').classList.remove('open'); }
+    function editSupplier(id) { const s = suppliers.find(x => x.id === id); if (s) openSupplierModal(s); }
+
+    async function saveSupplier() {
+      const id = document.getElementById('supplier-id').value;
+      const data = {
+        name: document.getElementById('supplier-name').value,
+        supplier_type: document.getElementById('supplier-type').value,
+        address: document.getElementById('supplier-address').value,
+        contact: document.getElementById('supplier-contact').value,
+        account_number: document.getElementById('supplier-account').value,
+        notes: document.getElementById('supplier-notes').value
+      };
+      if (id) {
+        await fetch(`/api/suppliers/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      } else {
+        await fetch('/api/suppliers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      }
+      closeSupplierModal();
+      loadData();
+    }
+
+    async function deleteSupplier() {
+      const id = document.getElementById('supplier-id').value;
+      if (!id || !confirm('Delete this supplier?')) return;
+      await fetch(`/api/suppliers/${id}`, { method: 'DELETE' });
+      closeSupplierModal();
+      loadData();
+    }
+
+    // Seed starter products from pricing reference
+    async function seedProducts() {
+      if (!confirm('Load starter product catalog? (Existing products won\'t be duplicated)')) return;
+      const starters = [
+        // Beverages
+        { name: 'Core Water 30oz', sku: 'BEV-CORE-30', category: 'Beverages', cost_price: 1.29, sell_price: 2.99, supplier: "Sam's Club" },
+        { name: 'Monster Energy 16oz', sku: 'BEV-MNSTR-16', category: 'Beverages', cost_price: 1.65, sell_price: 3.99, supplier: "Sam's Club" },
+        { name: 'Red Bull 12oz', sku: 'BEV-RDBULL-12', category: 'Beverages', cost_price: 1.85, sell_price: 4.49, supplier: "Sam's Club" },
+        { name: 'Coca-Cola 20oz', sku: 'BEV-COKE-20', category: 'Beverages', cost_price: 0.75, sell_price: 2.49, supplier: "Sam's Club" },
+        { name: 'Pepsi 20oz', sku: 'BEV-PEPSI-20', category: 'Beverages', cost_price: 0.75, sell_price: 2.49, supplier: "Sam's Club" },
+        { name: 'Gatorade 28oz', sku: 'BEV-GATOR-28', category: 'Beverages', cost_price: 1.15, sell_price: 2.99, supplier: "Sam's Club" },
+        { name: 'Body Armor 16oz', sku: 'BEV-BARM-16', category: 'Beverages', cost_price: 1.25, sell_price: 3.49, supplier: "Sam's Club" },
+        { name: 'Celsius 12oz', sku: 'BEV-CELS-12', category: 'Beverages', cost_price: 1.40, sell_price: 3.49, supplier: "Costco Business Center" },
+        { name: 'Liquid Death 19.2oz', sku: 'BEV-LQDTH-19', category: 'Beverages', cost_price: 1.15, sell_price: 2.99, supplier: "Sam's Club" },
+        { name: 'Dr Pepper 20oz', sku: 'BEV-DRPEP-20', category: 'Beverages', cost_price: 0.75, sell_price: 2.49, supplier: "Sam's Club" },
+        // Protein/Health
+        { name: 'Fair Life Core Power 42g', sku: 'PRO-FAIR-42', category: 'Protein/Health', cost_price: 3.49, sell_price: 7.99, supplier: "Costco Business Center" },
+        { name: 'Fair Life Core Power 26g', sku: 'PRO-FAIR-26', category: 'Protein/Health', cost_price: 2.49, sell_price: 5.49, supplier: "Costco Business Center" },
+        { name: 'Premier Protein Shake', sku: 'PRO-PREM-11', category: 'Protein/Health', cost_price: 1.89, sell_price: 4.49, supplier: "Sam's Club" },
+        { name: 'Clif Bar', sku: 'PRO-CLIF-01', category: 'Protein/Health', cost_price: 0.85, sell_price: 2.49, supplier: "Costco Business Center" },
+        { name: 'Kind Bar', sku: 'PRO-KIND-01', category: 'Protein/Health', cost_price: 0.95, sell_price: 2.49, supplier: "Costco Business Center" },
+        { name: 'Built Bar', sku: 'PRO-BUILT-01', category: 'Protein/Health', cost_price: 1.15, sell_price: 2.99, supplier: "Direct" },
+        // Snacks
+        { name: 'Cheetos Flamin Hot', sku: 'SNK-CHTFH-01', category: 'Snacks', cost_price: 0.55, sell_price: 2.25, supplier: "Vistar" },
+        { name: 'Doritos Nacho', sku: 'SNK-DORNC-01', category: 'Snacks', cost_price: 0.55, sell_price: 2.25, supplier: "Vistar" },
+        { name: 'Lays Classic', sku: 'SNK-LAYS-01', category: 'Snacks', cost_price: 0.55, sell_price: 2.25, supplier: "Vistar" },
+        { name: 'Takis Fuego', sku: 'SNK-TAKIS-01', category: 'Snacks', cost_price: 0.65, sell_price: 2.25, supplier: "Sam's Club" },
+        { name: 'PopCorners', sku: 'SNK-POPC-01', category: 'Snacks', cost_price: 0.65, sell_price: 2.25, supplier: "Costco Business Center" },
+        { name: 'Maruchan Ramen', sku: 'SNK-RAMN-01', category: 'Snacks', cost_price: 0.25, sell_price: 1.50, supplier: "Sam's Club", notes: '70%+ margin — top performer' },
+        { name: 'Trail Mix Pack', sku: 'SNK-TRAIL-01', category: 'Snacks', cost_price: 0.65, sell_price: 2.25, supplier: "Sam's Club" },
+        // Candy
+        { name: 'Snickers', sku: 'CDY-SNKRS-01', category: 'Candy', cost_price: 0.65, sell_price: 2.00, supplier: "Sam's Club" },
+        { name: "Reese's PB Cups", sku: 'CDY-REESE-01', category: 'Candy', cost_price: 0.65, sell_price: 2.00, supplier: "Sam's Club" },
+        { name: 'M&Ms Peanut', sku: 'CDY-MMS-01', category: 'Candy', cost_price: 0.65, sell_price: 2.00, supplier: "Sam's Club" },
+        { name: 'Kit Kat', sku: 'CDY-KITKT-01', category: 'Candy', cost_price: 0.60, sell_price: 2.00, supplier: "Sam's Club" },
+        // Essentials
+        { name: 'Advil 2-pack', sku: 'ESS-ADVIL-2', category: 'Essentials', cost_price: 0.25, sell_price: 2.00, supplier: "Sam's Club", notes: 'Great margin — residential must-have' },
+        { name: 'Tide Pod 1-pack', sku: 'ESS-TIDE-1', category: 'Essentials', cost_price: 0.45, sell_price: 2.50, supplier: "Sam's Club" },
+        { name: 'Travel Toothbrush Kit', sku: 'ESS-TOOTH-01', category: 'Essentials', cost_price: 0.50, sell_price: 3.00, supplier: "Amazon" },
+        { name: 'Phone Charger Cable', sku: 'ESS-CHRG-01', category: 'Essentials', cost_price: 1.50, sell_price: 5.99, supplier: "Amazon" },
+        // Frozen
+        { name: 'Häagen-Dazs Pint', sku: 'FRZ-HAAG-01', category: 'Frozen', cost_price: 3.25, sell_price: 6.99, supplier: "Costco Business Center" },
+        { name: 'Ice Cream Sandwich', sku: 'FRZ-ICSAND-01', category: 'Frozen', cost_price: 0.75, sell_price: 2.50, supplier: "Sam's Club" },
+        { name: 'Hot Pocket', sku: 'FRZ-HOTPK-01', category: 'Frozen', cost_price: 1.15, sell_price: 3.49, supplier: "Sam's Club" },
+        { name: 'Jimmy Dean Sandwich', sku: 'FRZ-JDEAN-01', category: 'Frozen', cost_price: 1.25, sell_price: 3.99, supplier: "Costco Business Center" },
+      ];
+
+      // Don't add dupes
+      const existingSkus = new Set(products.map(p => p.sku));
+      const toAdd = starters.filter(s => !existingSkus.has(s.sku));
+
+      for (const p of toAdd) {
+        await fetch('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) });
+      }
+
+      // Seed default suppliers too
+      const existingSuppliers = new Set(suppliers.map(s => s.name));
+      const defaultSuppliers = [
+        { name: "Sam's Club", supplier_type: 'wholesale', address: 'Multiple Las Vegas locations', notes: 'Best for beverages, candy, bulk snacks. Business member pricing.' },
+        { name: "Costco Business Center", supplier_type: 'wholesale', address: '3250 S Highland Dr, Las Vegas, NV 89109', notes: 'Single-SKU cases, protein products, frozen. Better per-unit pricing on protein.' },
+        { name: "Vistar", supplier_type: 'distributor', address: 'Las Vegas distribution center', notes: 'Bulk distributor. 3-12% rebates. Single-SKU ordering. Best for snack chips at scale.' },
+      ];
+      for (const s of defaultSuppliers) {
+        if (!existingSuppliers.has(s.name)) {
+          await fetch('/api/suppliers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(s) });
+        }
+      }
+
+      loadData();
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+      document.getElementById(`tab-${tab}`).style.display = 'block';
+    }
+
+    document.querySelectorAll('.modal-overlay').forEach(m => {
+      m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+    });
+
+    loadData();
+  </script>
+<script src="/nav.js"></script>
+</body>
+</html>

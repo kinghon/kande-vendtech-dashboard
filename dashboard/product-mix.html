@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <title>Product Mix Optimizer — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f5f7; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
+      --muted: #718096; --accent: #3182ce; --hot: #e53e3e; --warn: #dd6b20;
+      --success: #38a169; --purple: #7b2cbf;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+    /* Header */
+    .page-header { margin-bottom: 28px; }
+    .page-header h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 10px; }
+    .page-header .subtitle { color: var(--muted); font-size: 0.92rem; }
+    .badge-catalog { background: rgba(49,130,206,0.1); color: var(--accent); font-size: 0.75rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+
+    /* Location Selector */
+    .selector-card { background: var(--card); border-radius: 14px; padding: 24px; border: 1px solid var(--border); margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .selector-card h2 { font-size: 1.05rem; font-weight: 600; margin-bottom: 16px; color: var(--text); }
+    .location-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+    .loc-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding: 20px 16px; border: 2px solid var(--border); border-radius: 12px;
+      background: var(--card); cursor: pointer; transition: all 0.2s;
+      text-align: center;
+    }
+    .loc-btn:hover { border-color: var(--accent); background: rgba(49,130,206,0.03); transform: translateY(-1px); }
+    .loc-btn.active { border-color: var(--accent); background: rgba(49,130,206,0.06); box-shadow: 0 0 0 3px rgba(49,130,206,0.15); }
+    .loc-btn .loc-icon { font-size: 2rem; }
+    .loc-btn .loc-name { font-weight: 600; font-size: 0.88rem; }
+    .loc-btn .loc-desc { font-size: 0.75rem; color: var(--muted); line-height: 1.3; }
+
+    /* Results Container */
+    .results { display: none; }
+    .results.visible { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Strategy Card */
+    .strategy-card { background: var(--card); border-radius: 14px; padding: 24px; border: 1px solid var(--border); margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .strategy-card h2 { font-size: 1.05rem; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .strategy-text { color: var(--muted); font-size: 0.88rem; line-height: 1.6; background: #f8fafc; padding: 14px 18px; border-radius: 10px; border-left: 3px solid var(--accent); }
+
+    /* Stats Row */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px; }
+    .stat-card { background: var(--card); border-radius: 12px; padding: 18px; border: 1px solid var(--border); text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .stat-card .stat-value { font-size: 1.5rem; font-weight: 700; color: var(--text); }
+    .stat-card .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .stat-card.revenue .stat-value { color: var(--success); }
+    .stat-card.margin .stat-value { color: var(--accent); }
+    .stat-card.profit .stat-value { color: var(--purple); }
+
+    /* Category Breakdown */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    @media (max-width: 860px) { .two-col { grid-template-columns: 1fr; } }
+
+    .card { background: var(--card); border-radius: 14px; padding: 24px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+    /* Category Bars */
+    .cat-bar-list { display: flex; flex-direction: column; gap: 12px; }
+    .cat-bar-item { display: flex; align-items: center; gap: 12px; }
+    .cat-bar-label { font-size: 0.82rem; font-weight: 500; min-width: 130px; }
+    .cat-bar-track { flex: 1; height: 28px; background: #f1f5f9; border-radius: 8px; overflow: hidden; position: relative; }
+    .cat-bar-fill { height: 100%; border-radius: 8px; transition: width 0.6s ease; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; }
+    .cat-bar-pct { font-size: 0.72rem; font-weight: 700; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+    .cat-bar-count { font-size: 0.75rem; color: var(--muted); min-width: 50px; text-align: right; }
+
+    /* Revenue Projections */
+    .rev-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .rev-table th { text-align: left; font-size: 0.75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 12px; border-bottom: 2px solid var(--border); }
+    .rev-table td { padding: 10px 12px; font-size: 0.85rem; border-bottom: 1px solid #f1f5f9; }
+    .rev-table tr:hover td { background: #f8fafc; }
+    .rev-label { font-weight: 600; }
+    .rev-green { color: var(--success); font-weight: 600; }
+    .rev-blue { color: var(--accent); font-weight: 600; }
+
+    /* Product Recommendations */
+    .product-section { margin-bottom: 24px; }
+    .product-section h3 { font-size: 1rem; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+    .product-section .section-reason { font-size: 0.82rem; color: var(--muted); margin-bottom: 14px; line-height: 1.4; padding: 10px 14px; background: #f8fafc; border-radius: 8px; }
+
+    .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+    .product-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px; display: flex; gap: 12px; align-items: center;
+      transition: all 0.2s; cursor: default;
+    }
+    .product-card:hover { border-color: var(--accent); box-shadow: 0 2px 8px rgba(49,130,206,0.1); }
+    .product-card img { width: 52px; height: 52px; object-fit: cover; border-radius: 8px; background: #f1f5f9; }
+    .product-card .img-placeholder { width: 52px; height: 52px; border-radius: 8px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
+    .product-card .product-info { flex: 1; min-width: 0; }
+    .product-card .product-name { font-weight: 600; font-size: 0.82rem; line-height: 1.2; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .product-card .product-brand { font-size: 0.72rem; color: var(--muted); }
+    .product-card .product-prices { display: flex; gap: 10px; margin-top: 4px; }
+    .product-card .cost-tag { font-size: 0.72rem; color: var(--muted); }
+    .product-card .sell-tag { font-size: 0.78rem; font-weight: 700; color: var(--success); }
+    .product-card .margin-tag { font-size: 0.68rem; font-weight: 600; padding: 1px 6px; border-radius: 4px; background: rgba(49,130,206,0.1); color: var(--accent); }
+
+    /* Skool Insights */
+    .insight-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 14px; padding: 24px; margin-bottom: 24px; }
+    .insight-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 14px; }
+    .insight-list { list-style: none; }
+    .insight-list li { padding: 8px 0; font-size: 0.85rem; line-height: 1.4; border-bottom: 1px solid rgba(255,255,255,0.15); display: flex; gap: 8px; }
+    .insight-list li:last-child { border-bottom: none; }
+    .insight-list li::before { content: '💡'; flex-shrink: 0; }
+
+    /* Show More Button */
+    .show-more-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; background: rgba(49,130,206,0.08); color: var(--accent); border: 1px solid rgba(49,130,206,0.2); border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 12px; }
+    .show-more-btn:hover { background: rgba(49,130,206,0.15); }
+
+    /* Loading state */
+    .loading { text-align: center; padding: 40px; color: var(--muted); font-size: 0.9rem; }
+
+    @media (max-width: 600px) {
+      .app { padding: 12px; }
+      .location-grid { grid-template-columns: 1fr 1fr; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .product-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<script src="/nav.js"></script>
+<div class="app">
+  <div class="page-header">
+    <h1>🧪 Product Mix Optimizer <span class="badge-catalog">3,315 Products</span></h1>
+    <p class="subtitle">AI-powered product recommendations by location type — backed by Vendingpreneurs community insights</p>
+  </div>
+
+  <!-- Location Selector -->
+  <div class="selector-card">
+    <h2>📍 Select Location Type</h2>
+    <div class="location-grid">
+      <div class="loc-btn" data-type="apartments" onclick="selectLocation('apartments')">
+        <span class="loc-icon">🏢</span>
+        <span class="loc-name">Apartments</span>
+        <span class="loc-desc">Luxury high-rises, multifamily complexes</span>
+      </div>
+      <div class="loc-btn" data-type="senior_living" onclick="selectLocation('senior_living')">
+        <span class="loc-icon">🏠</span>
+        <span class="loc-name">Senior Living</span>
+        <span class="loc-desc">Assisted living, retirement communities</span>
+      </div>
+      <div class="loc-btn" data-type="healthcare" onclick="selectLocation('healthcare')">
+        <span class="loc-icon">🏥</span>
+        <span class="loc-name">Healthcare</span>
+        <span class="loc-desc">Hospitals, clinics, medical offices</span>
+      </div>
+      <div class="loc-btn" data-type="office" onclick="selectLocation('office')">
+        <span class="loc-icon">🏬</span>
+        <span class="loc-name">Office</span>
+        <span class="loc-desc">Corporate offices, coworking spaces</span>
+      </div>
+      <div class="loc-btn" data-type="industrial" onclick="selectLocation('industrial')">
+        <span class="loc-icon">🏭</span>
+        <span class="loc-name">Industrial</span>
+        <span class="loc-desc">Warehouses, factories, distribution centers</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="results" id="results">
+    <div class="loading" id="loading">Analyzing optimal product mix...</div>
+    <div id="results-content" style="display:none;">
+
+      <!-- Strategy -->
+      <div class="strategy-card">
+        <h2>🧠 Recommended Strategy</h2>
+        <div class="strategy-text" id="strategy-text"></div>
+      </div>
+
+      <!-- Revenue Projections -->
+      <div class="stats-row" id="stats-row"></div>
+
+      <!-- Two-column layout: Category Breakdown + Revenue Projections -->
+      <div class="two-col">
+        <div class="card">
+          <h3>📊 Category Allocation</h3>
+          <div class="cat-bar-list" id="category-bars"></div>
+        </div>
+        <div class="card">
+          <h3>💰 Revenue Projections (per machine/month)</h3>
+          <table class="rev-table">
+            <thead><tr><th>Scenario</th><th>Revenue</th><th>COGS</th><th>Profit</th></tr></thead>
+            <tbody id="rev-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Skool Insights -->
+      <div class="insight-card" id="insight-card">
+        <h3>📚 Vendingpreneurs Community Insights</h3>
+        <ul class="insight-list" id="insight-list"></ul>
+      </div>
+
+      <!-- Product Recommendations by Category -->
+      <div id="product-sections"></div>
+    </div>
+  </div>
+</div>
+
+<script src="/products.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  // ─── LOCATION-SPECIFIC CONFIGURATIONS ───────────────────
+  // All data sourced from Vendingpreneurs Skool community research + course materials
+
+  const CONFIGS = {
+    apartments: {
+      name: 'Luxury Apartments',
+      strategy: "Heavy on energy drinks, premium beverages, and variety snacks. Luxury apartment residents skew young (25-40), active, and convenience-driven. The Vendingpreneurs community consistently reports energy drinks (Celsius, Monster) and premium water as top sellers in luxury high-rises. Mike's pricing: snacks $1.50, candy $1.50-$3.00, 12oz drinks $1.25, energy drinks $4.00. Stock king-size candy bars and 1.75oz chip bags for maximum revenue per slot.",
+      categories: {
+        cold_beverage: { pct: 30, color: '#3182ce', reason: "Joy Burst is Vegas #1. Celsius and Monster are community top sellers. Stock Smartwater 20oz, BOSS, Fiji, Voss for premium water. Coke, Diet Coke, Dr Pepper for classics." },
+        snacks: { pct: 25, color: '#dd6b20', reason: "Frito Lay Classic Mix variety at $1.50 (Mike's pricing). 1.75oz bags from VenMarket. Young residents want variety — Doritos, Cheetos, and premium chips perform well." },
+        candy: { pct: 18, color: '#e53e3e', reason: "King-size candy bars are key revenue drivers. Snickers, Reese's, Kit Kat, M&M's. Trolli Sour Brite Crawlers at $3, Sour Patch at $3. Grandma's Cookies at $1.50." },
+        specialty_better4you: { pct: 12, color: '#38a169', reason: "Health-conscious residents want protein bars (Barebells, RX Bar), fruit snacks, and better-for-you options. Growing demand from fitness-oriented luxury apartment demographic." },
+        frozen_foods: { pct: 8, color: '#7b2cbf', reason: "Emerging opportunity — every platform releasing AI freezers H1 2026. Frozen meals at $12-15 with 45-50% margins. Nestle/Mars incentive: 6 Nestle + 4 Mars items = free cases." },
+        health_beauty: { pct: 4, color: '#718096', reason: "Incidentals drive impulse purchases: phone chargers, Advil, Tide Pods, Charmin. Community calls these 'convenience multipliers' — residents will pay premium for 24/7 access." },
+        hot_drink: { pct: 3, color: '#b7791f', reason: "PrintWithMe Caffection machine cross-sell opportunity. 12 drink options, resident allowances. Can reduce PM's coffee spend by 60% — great value-add in your proposal." }
+      },
+      revenue: { low: 500, mid: 800, high: 1200 },
+      avgMargin: 52,
+      insights: [
+        "Luxury high-rises are the #1 most successful location type in the Vendingpreneurs community",
+        "Common rooms are prime placement spots — PMs often struggle with how to use that space",
+        "PMs get 10+ vending pitches per month — your product mix quality is your differentiator",
+        "Stock complementary products if Coke/Pepsi cooler already exists at the property",
+        "Properties with 300+ units have highest revenue potential ($800-1,200/mo)",
+        "Offer revenue share to differentiate from Canteen and other big operators",
+        "Gift bag strategy ($5 from Costco) is the proven icebreaker for apartment pop-ins"
+      ],
+      topBrands: ['Celsius', 'Monster', 'Coke', 'Smartwater', 'Doritos', 'Reeses', 'FritoLay', 'Snickers', 'Bareblls', 'KitKat']
+    },
+
+    senior_living: {
+      name: 'Senior Living',
+      strategy: "Focus heavily on healthy, easy-to-open options with lower caffeine content. Senior residents prefer familiar brands, sugar-free alternatives, and portion-controlled snacks. Water is absolutely essential — make it prominently available. Avoid complex packaging. Include comfort items like soup, crackers, and traditional candy. Price moderately — this demographic values quality over deals.",
+      categories: {
+        specialty_better4you: { pct: 28, color: '#38a169', reason: "Protein bars, low-sodium snacks, sugar-free options, and nuts are top priorities. Annie's Mac & Cheese cups, Bare Fruit chips, and portion-controlled healthy snacks. Easy-to-open packaging is critical." },
+        cold_beverage: { pct: 25, color: '#3182ce', reason: "Water is the #1 must-have. Stock regular and flavored water prominently. Diet sodas (Diet Coke, Coke Zero) for sugar-conscious residents. Juice and tea options over energy drinks." },
+        snacks: { pct: 18, color: '#dd6b20', reason: "Familiar, comfort snacks — crackers, pretzels, cheese crackers. Portion-controlled bags. Avoid overly spicy or extreme flavors. Traditional Lay's, Goldfish, and Ritz perform well." },
+        candy: { pct: 10, color: '#e53e3e', reason: "Traditional favorites: Werther's, Hershey's, peppermints. Sugar-free candy options are essential. Smaller portion sizes preferred over king-size." },
+        hot_drink: { pct: 10, color: '#b7791f', reason: "Coffee and tea are essential comfort beverages. Hot chocolate for cold months. Caffection machine is an excellent value-add for senior communities." },
+        hot_foods: { pct: 5, color: '#7b2cbf', reason: "Soup (Campbell's Chunky), easy-to-heat meals. Comfort food items that remind of home cooking. Keep options simple and familiar." },
+        health_beauty: { pct: 4, color: '#718096', reason: "Reading glasses, Advil, antacids, tissues, hand sanitizer. High-value convenience items that seniors frequently need on short notice." }
+      },
+      revenue: { low: 250, mid: 400, high: 650 },
+      avgMargin: 48,
+      insights: [
+        "Easy-to-open packaging is critical — avoid twist-off caps and tight wrappers",
+        "Sugar-free and low-sodium options should be clearly labeled in the machine",
+        "Water must be prominently displayed and always fully stocked",
+        "Familiar, traditional brands outperform trendy newer brands in this demographic",
+        "Staff members are also heavy users — consider their preferences too",
+        "Comfort items (soup, crackers, tea) drive repeat daily purchases",
+        "Revenue per machine is lower but churn is minimal — senior communities rarely switch vendors"
+      ],
+      topBrands: ['Campbell', 'Coke', 'Hersheys', 'Advil', 'Lays', 'Goldfish', 'Annie s', 'Quaker']
+    },
+
+    healthcare: {
+      name: 'Healthcare',
+      strategy: "Prioritize healthy, nutritious choices — protein bars, nuts, bottled water, and better-for-you snacks. Healthcare staff work long shifts and need quick, energizing food. Visitors want comfort. The vending perception matters enormously in healthcare — minimize 'junk food' optics. Premium pricing is acceptable here as staff and visitors have limited alternatives during odd hours.",
+      categories: {
+        specialty_better4you: { pct: 28, color: '#38a169', reason: "Protein bars (Barebells, RX Bar, KIND), trail mix, dried fruit, yogurt-covered snacks. Healthcare workers are health-conscious and need sustained energy for 12-hour shifts." },
+        cold_beverage: { pct: 25, color: '#3182ce', reason: "Water is essential (staff hydration). Sparkling water for premium option. Low-sugar drinks, tea, and electrolyte beverages. Moderate energy drink selection for night shift staff." },
+        snacks: { pct: 18, color: '#dd6b20', reason: "Baked chips, mixed nuts, granola bars, cheese & cracker combos. Quick-eat items staff can consume between patients. Avoid messy or strong-smelling items." },
+        hot_drink: { pct: 12, color: '#b7791f', reason: "Coffee is absolute necessity for healthcare staff, especially night shift. Premium coffee options command higher prices. Hot tea and cocoa for visitors." },
+        candy: { pct: 7, color: '#e53e3e', reason: "Limited but essential — dark chocolate, mint options, small portion candy. Staff use candy as a quick energy boost. Keep selection modest to maintain healthy perception." },
+        refrigerated: { pct: 6, color: '#7b2cbf', reason: "Fresh sandwiches, wraps, salads if you have refrigerated capacity. Staff working 12-hour shifts need real meal options. Premium pricing ($8-12) is accepted." },
+        health_beauty: { pct: 4, color: '#718096', reason: "Advil, Tylenol, antacids, hand sanitizer, lip balm. Staff and visitors pay premium for immediate access to health essentials." }
+      },
+      revenue: { low: 350, mid: 550, high: 800 },
+      avgMargin: 50,
+      insights: [
+        "Night shift staff (11pm-7am) are your highest-value customers — stock accordingly",
+        "Perception matters: healthcare facilities want to project healthy image with their vending",
+        "Coffee is non-negotiable — if you can add a hot coffee machine alongside, do it",
+        "Visitors in waiting rooms make impulse purchases — comfort snacks and drinks",
+        "Urgent care facilities have LOW foot traffic — focus on hospitals and large clinics",
+        "24/7 access is your key selling point — staff have no other options at 3 AM",
+        "Fresh/refrigerated items command premium prices and differentiate from traditional vendors"
+      ],
+      topBrands: ['Bareblls', 'KIND', 'RXBar', 'Smartwater', 'Coke', 'Campbell', 'Advil', 'Quaker']
+    },
+
+    office: {
+      name: 'Corporate Office',
+      strategy: "Premium snacks and beverages for professionals. The office vending machine is a micro-market that reflects company culture. Sparkling water, premium protein bars, artisan chips, and specialty drinks. Perception is everything — keep it upscale. Professionals will pay 20-30% more for perceived quality. Stock trending brands that employees see on social media. This is also a 365 Retail / Stockwell sweet spot for micro-market setups.",
+      categories: {
+        cold_beverage: { pct: 27, color: '#3182ce', reason: "Sparkling water (LaCroix, Perrier), premium still water, cold-pressed juice, kombucha. Moderate energy drink selection (Celsius is the office favorite). Diet sodas for afternoon pick-me-up." },
+        snacks: { pct: 22, color: '#dd6b20', reason: "Premium chips (Kettle Brand, Terra), rice cakes, popcorn, mixed nuts. Individually wrapped for desk snacking. Nothing too messy or strong-smelling — open office consideration." },
+        specialty_better4you: { pct: 22, color: '#38a169', reason: "Protein bars, granola, dried fruit, yogurt. Office workers are highly health-conscious. Trending brands (Barebells, RXBAR, Perfect Bar) command premium prices." },
+        hot_drink: { pct: 12, color: '#b7791f', reason: "Premium coffee is essential for office environments. Consider Caffection partnership — 12 drink options, employer can subsidize. Reduces office coffee machine maintenance headaches." },
+        candy: { pct: 8, color: '#e53e3e', reason: "Dark chocolate, premium chocolate bars, gourmet candy. Keep it sophisticated — Lindt, Ghirardelli, premium brands. Afternoon chocolate break is a real office behavior." },
+        refrigerated: { pct: 5, color: '#7b2cbf', reason: "Fresh wraps, salads, yogurt parfaits for the lunch crowd. Premium pricing accepted ($8-12). Differentiates you from traditional vending." },
+        health_beauty: { pct: 4, color: '#718096', reason: "Phone chargers, headache relief, hand lotion, lip balm, mints. Convenience items professionals forget at home." }
+      },
+      revenue: { low: 400, mid: 650, high: 900 },
+      avgMargin: 54,
+      insights: [
+        "Stockwell and 365 Retail micro-market setups are ideal for 50+ employee offices",
+        "Employer-subsidized vending is increasingly common — pitch this to HR/office managers",
+        "Keep presentation immaculate — dirty/poorly stocked machines get removed quickly in offices",
+        "Trending social media brands (Celsius, Barebells) drive trial purchases in offices",
+        "Monday and Friday are lowest sales days; Tuesday-Thursday peak — plan restocking accordingly",
+        "Consider QR code feedback form (from Vendingpreneurs Operations module) for product requests",
+        "Micro-markets with open shelf format see 30-40% higher revenue than closed vending in offices"
+      ],
+      topBrands: ['Celsius', 'Bareblls', 'KIND', 'LaCroix', 'Kettle', 'Coke', 'Smartwater', 'RXBar']
+    },
+
+    industrial: {
+      name: 'Industrial / Warehouse',
+      strategy: "Workers need fuel — high-calorie, high-energy products that keep them going through physically demanding shifts. Energy drinks are king. Filling snacks, hearty candy bars, and cold refreshing drinks. Value-oriented pricing keeps volume high. Industrial locations are less price-sensitive per item but extremely volume-sensitive. If a worker buys from your machine 3x per shift, price accessibility matters. Beat Canteen on service and freshness.",
+      categories: {
+        cold_beverage: { pct: 30, color: '#3182ce', reason: "Energy drinks dominate: Monster, Celsius, Red Bull. Gatorade Cool Blue and electrolyte drinks for physically active workers. Cold water is consumed at very high volumes. Mountain Dew and full-sugar sodas outperform diet options here." },
+        snacks: { pct: 25, color: '#dd6b20', reason: "Large bags (1.75oz from VenMarket), filling chips, beef jerky, trail mix, cheese crackers. Workers eat between breaks — portable, one-hand-friendly items. Volume over premium." },
+        candy: { pct: 15, color: '#e53e3e', reason: "King-size candy bars are the standard. Snickers, Reese's, PayDay (peanut/protein appeal). Workers treat candy bars as quick energy. Price at $2-3 for king-size." },
+        hot_foods: { pct: 10, color: '#7b2cbf', reason: "Hot sandwiches, soups, burritos — real meal alternatives. Workers without access to a cafeteria will pay $5-8 for a hot meal from a vending machine. High margin opportunity." },
+        hot_drink: { pct: 8, color: '#b7791f', reason: "Coffee is essential for early morning and night shifts. Hot chocolate for cold warehouse environments. Simple, strong coffee outperforms fancy options here." },
+        specialty_better4you: { pct: 7, color: '#38a169', reason: "Protein bars and trail mix for health-conscious workers. Growing demand but still secondary to traditional options. Include a small healthy section to show variety." },
+        health_beauty: { pct: 5, color: '#718096', reason: "Advil/pain relief is high-demand for physical laborers. Hand warmers in winter, sunscreen for outdoor sites. Phone chargers. These items have very high margins." }
+      },
+      revenue: { low: 600, mid: 900, high: 1300 },
+      avgMargin: 48,
+      insights: [
+        "Industrial locations are high-volume but service-sensitive — Canteen locations are ripe for takeover",
+        "Workers buy 2-4 items per shift — keep prices accessible to encourage repeat purchases",
+        "Early morning shift change (5-7 AM) is peak time — ensure machine is fully stocked",
+        "Break room placement near microwave is ideal — hot food items sell better nearby",
+        "Gatorade and electrolyte drinks outsell premium water in physical work environments",
+        "King-size candy bars outsell regular size 3:1 in industrial locations",
+        "Beat Canteen's reputation for poor stocking — fresh, fully-stocked machines win contracts"
+      ],
+      topBrands: ['Monster', 'Gatorade', 'Snickers', 'Reeses', 'Doritos', 'Coke', 'MtnDew', 'RedBull']
+    }
+  };
+
+  // ─── CATEGORY METADATA ────────────────────────────────
+  const CAT_META = {
+    cold_beverage: { label: 'Cold Beverages', icon: '🥤', emoji: '🧃' },
+    snacks: { label: 'Snacks & Chips', icon: '🍿', emoji: '🥨' },
+    candy: { label: 'Candy & Cookies', icon: '🍫', emoji: '🍬' },
+    specialty_better4you: { label: 'Healthy / Better4You', icon: '🥗', emoji: '🥜' },
+    frozen_foods: { label: 'Frozen Foods', icon: '🧊', emoji: '🍕' },
+    hot_drink: { label: 'Hot Drinks', icon: '☕', emoji: '🍵' },
+    hot_foods: { label: 'Hot Foods', icon: '🍲', emoji: '🌯' },
+    refrigerated: { label: 'Fresh / Refrigerated', icon: '🥪', emoji: '🥗' },
+    health_beauty: { label: 'Health & Convenience', icon: '💊', emoji: '🔌' }
+  };
+
+  // ─── VENDING PRICE ESTIMATOR ────────────────────────────
+  function estimateVendPrice(product) {
+    if (product.vendingPriceOverride) return product.vendingPriceOverride;
+    const cost = product.unitPrice || 0;
+    // Based on Mike's pricing philosophy from course
+    if (product.category === 'cold_beverage') {
+      if (cost > 1.5) return 4.00;   // Energy drinks, premium
+      if (cost > 1.0) return 2.50;   // Regular soda bottles
+      return 1.25;                    // 12oz cans
+    }
+    if (product.category === 'candy') {
+      if (cost > 1.8) return 3.00;   // King-size, premium
+      if (cost > 1.0) return 2.00;
+      return 1.50;
+    }
+    if (product.category === 'snacks') {
+      if (cost > 1.5) return 3.00;
+      return 1.50;                    // Standard snack bags
+    }
+    // Default: ~2.2x markup
+    return Math.max(1.50, Math.round(cost * 2.2 * 4) / 4);
+  }
+
+  // ─── SELECT LOCATION ──────────────────────────────────
+  let currentType = null;
+
+  window.selectLocation = function(type) {
+    currentType = type;
+    document.querySelectorAll('.loc-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.loc-btn[data-type="${type}"]`).classList.add('active');
+
+    const results = document.getElementById('results');
+    const loading = document.getElementById('loading');
+    const content = document.getElementById('results-content');
+
+    results.classList.add('visible');
+    loading.style.display = 'block';
+    content.style.display = 'none';
+
+    // Simulate brief analysis
+    setTimeout(() => {
+      renderResults(type);
+      loading.style.display = 'none';
+      content.style.display = 'block';
+    }, 400);
+  };
+
+  // ─── RENDER RESULTS ──────────────────────────────────
+  function renderResults(type) {
+    const config = CONFIGS[type];
+    if (!config) return;
+
+    // Strategy
+    document.getElementById('strategy-text').textContent = config.strategy;
+
+    // Stats Row
+    const statsHtml = `
+      <div class="stat-card revenue">
+        <div class="stat-value">$${config.revenue.mid.toLocaleString()}</div>
+        <div class="stat-label">Est. Monthly Revenue</div>
+      </div>
+      <div class="stat-card margin">
+        <div class="stat-value">${config.avgMargin}%</div>
+        <div class="stat-label">Avg Gross Margin</div>
+      </div>
+      <div class="stat-card profit">
+        <div class="stat-value">$${Math.round(config.revenue.mid * config.avgMargin / 100).toLocaleString()}</div>
+        <div class="stat-label">Est. Monthly Profit</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${Object.keys(config.categories).length}</div>
+        <div class="stat-label">Product Categories</div>
+      </div>
+    `;
+    document.getElementById('stats-row').innerHTML = statsHtml;
+
+    // Category Bars
+    const sortedCats = Object.entries(config.categories).sort((a, b) => b[1].pct - a[1].pct);
+    let barsHtml = '';
+    sortedCats.forEach(([cat, info]) => {
+      const meta = CAT_META[cat] || { label: cat, icon: '📦' };
+      const catProducts = (typeof PRODUCTS !== 'undefined') ? PRODUCTS.filter(p => p.category === cat) : [];
+      barsHtml += `
+        <div class="cat-bar-item">
+          <div class="cat-bar-label">${meta.icon} ${meta.label}</div>
+          <div class="cat-bar-track">
+            <div class="cat-bar-fill" style="width:${info.pct}%;background:${info.color};">
+              <span class="cat-bar-pct">${info.pct}%</span>
+            </div>
+          </div>
+          <div class="cat-bar-count">${catProducts.length} SKUs</div>
+        </div>
+      `;
+    });
+    document.getElementById('category-bars').innerHTML = barsHtml;
+
+    // Revenue Projections Table
+    const scenarios = [
+      { label: 'Conservative', rev: config.revenue.low, icon: '📉' },
+      { label: 'Expected', rev: config.revenue.mid, icon: '📊' },
+      { label: 'Optimistic', rev: config.revenue.high, icon: '📈' }
+    ];
+    let revHtml = '';
+    scenarios.forEach(s => {
+      const cogs = Math.round(s.rev * (1 - config.avgMargin / 100));
+      const profit = s.rev - cogs;
+      revHtml += `
+        <tr>
+          <td class="rev-label">${s.icon} ${s.label}</td>
+          <td class="rev-green">$${s.rev.toLocaleString()}</td>
+          <td>$${cogs.toLocaleString()}</td>
+          <td class="rev-blue">$${profit.toLocaleString()}</td>
+        </tr>
+      `;
+    });
+    // Annual projections
+    revHtml += `
+      <tr style="border-top:2px solid var(--border);">
+        <td class="rev-label">📅 Annual (Expected)</td>
+        <td class="rev-green">$${(config.revenue.mid * 12).toLocaleString()}</td>
+        <td>$${(Math.round(config.revenue.mid * (1 - config.avgMargin / 100)) * 12).toLocaleString()}</td>
+        <td class="rev-blue">$${(Math.round(config.revenue.mid * config.avgMargin / 100) * 12).toLocaleString()}</td>
+      </tr>
+    `;
+    document.getElementById('rev-table-body').innerHTML = revHtml;
+
+    // Skool Insights
+    let insightHtml = '';
+    config.insights.forEach(i => {
+      insightHtml += `<li>${i}</li>`;
+    });
+    document.getElementById('insight-list').innerHTML = insightHtml;
+
+    // Product Recommendations by Category
+    renderProductSections(config, sortedCats);
+  }
+
+  // ─── RENDER PRODUCT SECTIONS ──────────────────────────
+  function renderProductSections(config, sortedCats) {
+    if (typeof PRODUCTS === 'undefined' || !PRODUCTS.length) {
+      document.getElementById('product-sections').innerHTML = '<div class="card"><p style="color:var(--muted);">Product catalog not loaded.</p></div>';
+      return;
+    }
+
+    let html = '';
+
+    sortedCats.forEach(([cat, info]) => {
+      const meta = CAT_META[cat] || { label: cat, icon: '📦' };
+      let catProducts = PRODUCTS.filter(p => p.category === cat);
+
+      // Boost products from preferred brands for this location type
+      const topBrands = (config.topBrands || []).map(b => b.toLowerCase());
+      catProducts = catProducts.map(p => {
+        let score = p.popularity || 0;
+        if (topBrands.some(tb => (p.brand || '').toLowerCase().includes(tb) || (p.name || '').toLowerCase().includes(tb))) {
+          score += 2000;
+        }
+        return { ...p, _score: score };
+      });
+
+      catProducts.sort((a, b) => b._score - a._score);
+
+      const initialShow = 6;
+      const allProducts = catProducts;
+      const showProducts = catProducts.slice(0, initialShow);
+      const sectionId = `section-${cat}`;
+
+      html += `
+        <div class="product-section card" style="margin-bottom:20px;">
+          <h3>${meta.icon} ${meta.label} — ${info.pct}% of mix</h3>
+          <div class="section-reason">${info.reason}</div>
+          <div class="product-grid" id="${sectionId}">
+            ${showProducts.map(p => productCardHtml(p)).join('')}
+          </div>
+          ${allProducts.length > initialShow ? `
+            <button class="show-more-btn" onclick="showMore('${cat}', this)" data-cat="${cat}" data-showing="${initialShow}">
+              Show More (${allProducts.length - initialShow} more) ▾
+            </button>
+          ` : ''}
+        </div>
+      `;
+    });
+
+    document.getElementById('product-sections').innerHTML = html;
+  }
+
+  function productCardHtml(p) {
+    const vendPrice = estimateVendPrice(p);
+    const margin = vendPrice > 0 ? Math.round(((vendPrice - p.unitPrice) / vendPrice) * 100) : 0;
+    const imgHtml = p.imageUrl
+      ? `<img src="${p.imageUrl}" alt="${p.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="img-placeholder" style="display:none;">${(CAT_META[p.category] || {}).emoji || '📦'}</div>`
+      : `<div class="img-placeholder">${(CAT_META[p.category] || {}).emoji || '📦'}</div>`;
+
+    return `
+      <div class="product-card">
+        ${imgHtml}
+        <div class="product-info">
+          <div class="product-name" title="${p.name}">${p.name}</div>
+          <div class="product-brand">${p.brand || 'Unknown'} · ${p.size || ''}</div>
+          <div class="product-prices">
+            <span class="cost-tag">Cost: $${p.unitPrice.toFixed(2)}</span>
+            <span class="sell-tag">Sell: $${vendPrice.toFixed(2)}</span>
+            <span class="margin-tag">${margin}%</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Show More products
+  window.showMore = function(cat, btn) {
+    const config = CONFIGS[currentType];
+    if (!config) return;
+
+    const topBrands = (config.topBrands || []).map(b => b.toLowerCase());
+    let catProducts = PRODUCTS.filter(p => p.category === cat).map(p => {
+      let score = p.popularity || 0;
+      if (topBrands.some(tb => (p.brand || '').toLowerCase().includes(tb) || (p.name || '').toLowerCase().includes(tb))) {
+        score += 2000;
+      }
+      return { ...p, _score: score };
+    }).sort((a, b) => b._score - a._score);
+
+    const showing = parseInt(btn.dataset.showing) || 6;
+    const nextShow = showing + 12;
+    const container = document.getElementById(`section-${cat}`);
+
+    const newProducts = catProducts.slice(showing, nextShow);
+    newProducts.forEach(p => {
+      container.insertAdjacentHTML('beforeend', productCardHtml(p));
+    });
+
+    btn.dataset.showing = nextShow;
+    const remaining = catProducts.length - nextShow;
+    if (remaining > 0) {
+      btn.textContent = `Show More (${remaining} more) ▾`;
+    } else {
+      btn.style.display = 'none';
+    }
+  };
+
+})();
+</script>
+</body>
+</html>

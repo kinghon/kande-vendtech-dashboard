@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Restock — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
+      --muted: #718096; --accent: #3182ce; --hot: #e53e3e; --warn: #dd6b20;
+      --success: #38a169; --purple: #7b2cbf;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+    .top-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .top-nav .logo { height: 36px; }
+    .top-nav a { color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500; padding: 6px 12px; border-radius: 6px; transition: all 0.2s; }
+    .top-nav a:hover, .top-nav a.active { color: var(--accent); background: rgba(49,130,206,0.08); }
+
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+    .header h1 { font-size: 1.5rem; background: linear-gradient(90deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-danger { background: var(--hot); color: #fff; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+    .btn-warn { background: var(--warn); color: #fff; }
+
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat { background: var(--card); border-radius: 12px; padding: 16px; text-align: center; border: 1px solid var(--border); }
+    .stat-value { font-size: 1.8rem; font-weight: 700; }
+    .stat-value.accent { color: var(--accent); }
+    .stat-value.success { color: var(--success); }
+    .stat-value.warn { color: var(--warn); }
+    .stat-value.hot { color: var(--hot); }
+    .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+
+    /* Workflow Steps */
+    .workflow { display: flex; gap: 4px; margin-bottom: 24px; background: var(--card); border-radius: 12px; padding: 16px; border: 1px solid var(--border); overflow-x: auto; }
+    .workflow-step { flex: 1; text-align: center; padding: 12px 8px; border-radius: 8px; min-width: 100px; }
+    .workflow-step .step-icon { font-size: 1.5rem; margin-bottom: 4px; }
+    .workflow-step .step-label { font-size: 0.8rem; font-weight: 600; }
+    .workflow-step .step-count { font-size: 1.4rem; font-weight: 700; margin-top: 4px; }
+    .workflow-step.pending { background: rgba(221,107,32,0.1); color: var(--warn); }
+    .workflow-step.picking { background: rgba(49,130,206,0.1); color: var(--accent); }
+    .workflow-step.packed { background: rgba(123,44,191,0.1); color: var(--purple); }
+    .workflow-step.loaded { background: rgba(0,128,128,0.1); color: teal; }
+    .workflow-step.delivering { background: rgba(56,161,105,0.1); color: var(--success); }
+    .workflow-step.done { background: rgba(113,128,150,0.1); color: var(--muted); }
+    .workflow-arrow { display: flex; align-items: center; color: var(--border); font-size: 1.2rem; }
+
+    /* Restock Cards */
+    .restock-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .restock-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+    .restock-card-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--border); }
+    .restock-card-header h3 { font-size: 1rem; }
+    .restock-card-body { padding: 16px; }
+
+    .badge { padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
+    .badge-pending { background: rgba(221,107,32,0.15); color: var(--warn); }
+    .badge-picking { background: rgba(49,130,206,0.15); color: var(--accent); }
+    .badge-packed { background: rgba(123,44,191,0.15); color: var(--purple); }
+    .badge-loaded { background: rgba(0,128,128,0.15); color: teal; }
+    .badge-delivering { background: rgba(56,161,105,0.15); color: var(--success); }
+    .badge-done { background: rgba(113,128,150,0.15); color: var(--muted); }
+
+    /* Pick List */
+    .pick-list { list-style: none; }
+    .pick-item { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .pick-item:last-child { border-bottom: none; }
+    .pick-check { width: 20px; height: 20px; border-radius: 4px; border: 2px solid var(--border); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .pick-check.checked { background: var(--success); border-color: var(--success); color: #fff; }
+    .pick-name { flex: 1; font-size: 0.9rem; }
+    .pick-qty { font-weight: 600; font-size: 0.9rem; color: var(--accent); }
+
+    .restock-meta { display: flex; gap: 16px; font-size: 0.85rem; color: var(--muted); margin-bottom: 12px; flex-wrap: wrap; }
+    .restock-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--card); border-radius: 16px; padding: 24px; max-width: 700px; width: 95%; max-height: 90vh; overflow-y: auto; }
+    .modal h2 { font-size: 1.3rem; margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--muted); margin-bottom: 4px; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; color: var(--text); background: var(--card); }
+    .form-group textarea { min-height: 80px; resize: vertical; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
+
+    /* Items builder */
+    .items-builder { margin-top: 12px; }
+    .item-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .item-row select, .item-row input { padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; }
+    .item-row select { flex: 2; }
+    .item-row input { flex: 1; width: 80px; }
+    .item-row .remove-btn { background: none; border: none; color: var(--hot); cursor: pointer; font-size: 1.2rem; padding: 4px; }
+
+    .filter-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .filter-btn { padding: 8px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; color: var(--muted); cursor: pointer; font-size: 0.85rem; }
+    .filter-btn:hover, .filter-btn.active { background: rgba(49,130,206,0.1); border-color: var(--accent); color: var(--accent); }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+
+    @media (max-width: 768px) {
+      .form-row { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .restock-grid { grid-template-columns: 1fr; }
+      .workflow { flex-wrap: wrap; }
+      .workflow-arrow { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <nav class="top-nav">
+      <a href="/"><img src="/logo.png" alt="Kande VendTech" class="logo"></a>
+      <a href="/">Dashboard</a>
+      <a href="/crm">CRM</a>
+      <a href="/machines">Machines</a>
+      <a href="/inventory">Inventory</a>
+      <a href="/finance">Finance</a>
+      <a href="/restock" class="active">Restock</a>
+      <a href="/map">Map</a>
+    </nav>
+
+    <div class="header">
+      <h1>📋 Restock Workflow</h1>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="openRestockModal()">+ New Restock</button>
+      </div>
+    </div>
+
+    <!-- Workflow Pipeline -->
+    <div class="workflow" id="workflow"></div>
+
+    <!-- Filters -->
+    <div class="filter-row">
+      <button class="filter-btn active" data-status="active" onclick="filterStatus('active')">🔄 Active</button>
+      <button class="filter-btn" data-status="all" onclick="filterStatus('all')">All</button>
+      <button class="filter-btn" data-status="pending" onclick="filterStatus('pending')">⏳ Pending</button>
+      <button class="filter-btn" data-status="picking" onclick="filterStatus('picking')">📋 Picking</button>
+      <button class="filter-btn" data-status="packed" onclick="filterStatus('packed')">📦 Packed</button>
+      <button class="filter-btn" data-status="loaded" onclick="filterStatus('loaded')">🚛 Loaded</button>
+      <button class="filter-btn" data-status="delivering" onclick="filterStatus('delivering')">🚚 Delivering</button>
+      <button class="filter-btn" data-status="done" onclick="filterStatus('done')">✅ Done</button>
+    </div>
+
+    <!-- Restock Cards -->
+    <div class="restock-grid" id="restock-grid"></div>
+    <div id="restock-empty" class="empty-state" style="display:none;">
+      <div class="icon">📋</div>
+      <h3>No restocks yet</h3>
+      <p>Create a restock order to generate a pick list for a machine.</p>
+      <button class="btn btn-primary" style="margin-top:16px;" onclick="openRestockModal()">+ New Restock</button>
+    </div>
+  </div>
+
+  <!-- Restock Modal -->
+  <div class="modal-overlay" id="restock-modal">
+    <div class="modal">
+      <h2 id="restock-modal-title">New Restock Order</h2>
+      <input type="hidden" id="restock-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Machine</label>
+          <select id="restock-machine" onchange="loadMachineDefaults()">
+            <option value="">— Select Machine —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Scheduled Date</label>
+          <input type="date" id="restock-date">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Pick List Items</label>
+        <div class="items-builder" id="items-builder">
+          <!-- Dynamic rows -->
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="addItemRow()" style="margin-top:8px;">+ Add Item</button>
+        <button class="btn btn-sm" onclick="addAllProducts()" style="margin-top:8px;margin-left:8px;background:rgba(49,130,206,0.1);color:var(--accent);border:1px solid var(--accent);">⚡ Add All Products</button>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="restock-notes" placeholder="Special instructions, items to check..."></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="closeRestockModal()">Cancel</button>
+        <button class="btn btn-danger" id="restock-delete-btn" style="display:none;" onclick="deleteRestock()">Delete</button>
+        <button class="btn btn-primary" onclick="saveRestock()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let restocks = [];
+    let machines = [];
+    let products = [];
+    let currentFilter = 'active';
+
+    async function loadData() {
+      const [rRes, mRes, pRes] = await Promise.all([
+        fetch('/api/restocks').then(r => r.json()),
+        fetch('/api/machines').then(r => r.json()),
+        fetch('/api/products').then(r => r.json())
+      ]);
+      restocks = rRes;
+      machines = mRes;
+      products = pRes;
+      renderWorkflow();
+      renderRestocks();
+      populateMachineSelect();
+    }
+
+    function renderWorkflow() {
+      const counts = { pending: 0, picking: 0, packed: 0, loaded: 0, delivering: 0, done: 0 };
+      restocks.forEach(r => { if (counts[r.status] !== undefined) counts[r.status]++; });
+
+      document.getElementById('workflow').innerHTML = `
+        <div class="workflow-step pending">
+          <div class="step-icon">⏳</div>
+          <div class="step-label">Pending</div>
+          <div class="step-count">${counts.pending}</div>
+        </div>
+        <div class="workflow-arrow">→</div>
+        <div class="workflow-step picking">
+          <div class="step-icon">📋</div>
+          <div class="step-label">Picking</div>
+          <div class="step-count">${counts.picking}</div>
+        </div>
+        <div class="workflow-arrow">→</div>
+        <div class="workflow-step packed">
+          <div class="step-icon">📦</div>
+          <div class="step-label">Packed</div>
+          <div class="step-count">${counts.packed}</div>
+        </div>
+        <div class="workflow-arrow">→</div>
+        <div class="workflow-step loaded">
+          <div class="step-icon">🚛</div>
+          <div class="step-label">Loaded</div>
+          <div class="step-count">${counts.loaded}</div>
+        </div>
+        <div class="workflow-arrow">→</div>
+        <div class="workflow-step delivering">
+          <div class="step-icon">🚚</div>
+          <div class="step-label">Delivering</div>
+          <div class="step-count">${counts.delivering}</div>
+        </div>
+        <div class="workflow-arrow">→</div>
+        <div class="workflow-step done">
+          <div class="step-icon">✅</div>
+          <div class="step-label">Done</div>
+          <div class="step-count">${counts.done}</div>
+        </div>
+      `;
+    }
+
+    function filterStatus(status) {
+      currentFilter = status;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.status === status));
+      renderRestocks();
+    }
+
+    function renderRestocks() {
+      let filtered = restocks;
+      if (currentFilter === 'active') filtered = filtered.filter(r => r.status !== 'done');
+      else if (currentFilter !== 'all') filtered = filtered.filter(r => r.status === currentFilter);
+
+      const grid = document.getElementById('restock-grid');
+      const empty = document.getElementById('restock-empty');
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+      empty.style.display = 'none';
+
+      grid.innerHTML = filtered.map(r => {
+        const machine = machines.find(m => m.id === r.machine_id);
+        const items = r.items || [];
+        const checkedCount = items.filter(i => i.checked).length;
+        const nextStatus = getNextStatus(r.status);
+        const prevStatus = getPrevStatus(r.status);
+
+        return `<div class="restock-card">
+          <div class="restock-card-header">
+            <div>
+              <h3>${machine ? machine.name || 'Machine #' + machine.id : 'Unknown Machine'}</h3>
+              <span style="font-size:0.8rem;color:var(--muted);">${machine?.location?.name || ''}</span>
+            </div>
+            <span class="badge badge-${r.status}">${r.status}</span>
+          </div>
+          <div class="restock-card-body">
+            <div class="restock-meta">
+              <span>📅 ${r.scheduled_date || 'No date'}</span>
+              <span>📦 ${items.length} items</span>
+              <span>✅ ${checkedCount}/${items.length} picked</span>
+            </div>
+            ${items.length > 0 ? `
+              <ul class="pick-list">
+                ${items.slice(0, 8).map((item, idx) => `
+                  <li class="pick-item">
+                    <div class="pick-check ${item.checked ? 'checked' : ''}" onclick="toggleItem(${r.id}, ${idx})">${item.checked ? '✓' : ''}</div>
+                    <span class="pick-name ${item.checked ? 'style=text-decoration:line-through;color:var(--muted);' : ''}">${item.name}</span>
+                    <span class="pick-qty">×${item.qty}</span>
+                  </li>
+                `).join('')}
+                ${items.length > 8 ? `<li class="pick-item" style="color:var(--muted);justify-content:center;">+ ${items.length - 8} more items</li>` : ''}
+              </ul>
+            ` : '<p style="color:var(--muted);font-size:0.9rem;">No items in pick list</p>'}
+            ${r.notes ? `<p style="font-size:0.85rem;color:var(--muted);margin-top:12px;font-style:italic;">${r.notes}</p>` : ''}
+            <div class="restock-actions">
+              ${prevStatus ? `<button class="btn btn-secondary btn-sm" onclick="moveStatus(${r.id}, '${prevStatus}')">← ${prevStatus}</button>` : ''}
+              ${nextStatus ? `<button class="btn btn-${nextStatus === 'done' ? 'success' : 'primary'} btn-sm" onclick="moveStatus(${r.id}, '${nextStatus}')">${nextStatus === 'done' ? '✅ Complete' : nextStatus + ' →'}</button>` : ''}
+              <button class="btn btn-secondary btn-sm" onclick="editRestock(${r.id})">Edit</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function getNextStatus(s) {
+      const flow = ['pending', 'picking', 'packed', 'loaded', 'delivering', 'done'];
+      const idx = flow.indexOf(s);
+      return idx >= 0 && idx < flow.length - 1 ? flow[idx + 1] : null;
+    }
+    function getPrevStatus(s) {
+      const flow = ['pending', 'picking', 'packed', 'loaded', 'delivering', 'done'];
+      const idx = flow.indexOf(s);
+      return idx > 0 ? flow[idx - 1] : null;
+    }
+
+    async function toggleItem(restockId, itemIdx) {
+      const r = restocks.find(x => x.id === restockId);
+      if (!r || !r.items[itemIdx]) return;
+      r.items[itemIdx].checked = !r.items[itemIdx].checked;
+      await fetch(`/api/restocks/${restockId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: r.items })
+      });
+      renderRestocks();
+    }
+
+    async function moveStatus(restockId, newStatus) {
+      await fetch(`/api/restocks/${restockId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      loadData();
+    }
+
+    function populateMachineSelect() {
+      const sel = document.getElementById('restock-machine');
+      sel.innerHTML = '<option value="">— Select Machine —</option>' +
+        machines.filter(m => m.status === 'deployed').map(m =>
+          `<option value="${m.id}">${m.name || 'Machine #' + m.id}${m.location ? ' — ' + m.location.name : ''}</option>`
+        ).join('');
+    }
+
+    // Modal
+    function openRestockModal(restock) {
+      document.getElementById('restock-modal-title').textContent = restock ? 'Edit Restock' : 'New Restock Order';
+      document.getElementById('restock-id').value = restock ? restock.id : '';
+      document.getElementById('restock-machine').value = restock ? restock.machine_id || '' : '';
+      document.getElementById('restock-date').value = restock ? restock.scheduled_date || '' : new Date().toISOString().split('T')[0];
+      document.getElementById('restock-notes').value = restock ? restock.notes || '' : '';
+      document.getElementById('restock-delete-btn').style.display = restock ? 'inline-block' : 'none';
+
+      // Build items
+      const builder = document.getElementById('items-builder');
+      builder.innerHTML = '';
+      if (restock && restock.items) {
+        restock.items.forEach(item => addItemRow(item.name, item.qty));
+      }
+
+      document.getElementById('restock-modal').classList.add('open');
+    }
+
+    function closeRestockModal() { document.getElementById('restock-modal').classList.remove('open'); }
+
+    function editRestock(id) {
+      const r = restocks.find(x => x.id === id);
+      if (r) openRestockModal(r);
+    }
+
+    function addItemRow(name, qty) {
+      const builder = document.getElementById('items-builder');
+      const row = document.createElement('div');
+      row.className = 'item-row';
+      row.innerHTML = `
+        <select onchange="if(this.value==='custom'){this.style.display='none';this.nextElementSibling.style.display='block';this.nextElementSibling.focus();}">
+          <option value="">— Select Product —</option>
+          ${products.map(p => `<option value="${p.name}" ${name === p.name ? 'selected' : ''}>${p.name}</option>`).join('')}
+          <option value="custom">✏️ Custom item...</option>
+        </select>
+        <input type="text" placeholder="Custom item" style="display:${name && !products.find(p => p.name === name) ? 'block' : 'none'};" value="${name && !products.find(p => p.name === name) ? name : ''}">
+        <input type="number" min="1" value="${qty || 1}" placeholder="Qty" style="width:70px;">
+        <button class="remove-btn" onclick="this.parentElement.remove()">✕</button>
+      `;
+      builder.appendChild(row);
+    }
+
+    function addAllProducts() {
+      const builder = document.getElementById('items-builder');
+      builder.innerHTML = '';
+      products.forEach(p => addItemRow(p.name, 2));
+    }
+
+    function loadMachineDefaults() {
+      // Could load last restock items for this machine
+    }
+
+    function getItemsFromBuilder() {
+      const rows = document.querySelectorAll('#items-builder .item-row');
+      return Array.from(rows).map(row => {
+        const select = row.querySelector('select');
+        const customInput = row.querySelectorAll('input[type="text"]')[0];
+        const qtyInput = row.querySelector('input[type="number"]');
+        let name = select.value === 'custom' ? customInput.value : select.value;
+        if (!name && customInput.style.display !== 'none') name = customInput.value;
+        return { name, qty: parseInt(qtyInput.value) || 1, checked: false };
+      }).filter(i => i.name);
+    }
+
+    async function saveRestock() {
+      const id = document.getElementById('restock-id').value;
+      const items = getItemsFromBuilder();
+      const data = {
+        machine_id: parseInt(document.getElementById('restock-machine').value) || null,
+        scheduled_date: document.getElementById('restock-date').value,
+        items,
+        notes: document.getElementById('restock-notes').value
+      };
+
+      if (id) {
+        // Preserve checked state from existing items
+        const existing = restocks.find(r => r.id === parseInt(id));
+        if (existing && existing.items) {
+          data.items = data.items.map(newItem => {
+            const oldItem = existing.items.find(oi => oi.name === newItem.name);
+            return { ...newItem, checked: oldItem ? oldItem.checked : false };
+          });
+        }
+        await fetch(`/api/restocks/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      } else {
+        await fetch('/api/restocks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      }
+      closeRestockModal();
+      loadData();
+    }
+
+    async function deleteRestock() {
+      const id = document.getElementById('restock-id').value;
+      if (!id || !confirm('Delete this restock order?')) return;
+      await fetch(`/api/restocks/${id}`, { method: 'DELETE' });
+      closeRestockModal();
+      loadData();
+    }
+
+    document.querySelectorAll('.modal-overlay').forEach(m => {
+      m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+    });
+
+    loadData();
+  </script>
+<script src="/nav.js"></script>
+</body>
+</html>

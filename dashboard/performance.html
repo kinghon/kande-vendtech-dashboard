@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <title>Product Performance — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
+      --muted: #718096; --accent: #3182ce; --hot: #e53e3e; --warn: #dd6b20;
+      --success: #38a169; --purple: #7b2cbf;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+    .top-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .top-nav .logo { height: 40px; }
+    .top-nav a { color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500; padding: 6px 12px; border-radius: 6px; transition: all 0.2s; }
+    .top-nav a:hover, .top-nav a.active { color: var(--accent); background: rgba(49,130,206,0.08); }
+    .nav-brand { font-size: 0.9rem; font-weight: 600; color: var(--text); margin-right: 8px; }
+
+    h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 4px; }
+    h2 { font-size: 1.2rem; font-weight: 600; margin-bottom: 16px; }
+    .subtitle { color: var(--muted); margin-bottom: 24px; }
+
+    .card { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; }
+
+    /* Filters */
+    .filters { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; align-items: center; }
+    .filter-group { display: flex; align-items: center; gap: 6px; }
+    .filter-group label { font-size: 0.85rem; font-weight: 500; color: var(--muted); }
+    select, input[type="text"], input[type="number"], input[type="date"] {
+      padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem;
+      background: var(--card); color: var(--text); outline: none;
+    }
+    select:focus, input:focus { border-color: var(--accent); }
+
+    .btn { padding: 8px 18px; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { background: #2c6cb5; }
+    .btn-success { background: var(--success); color: white; }
+    .btn-success:hover { background: #2f8c5a; }
+    .btn-danger { background: var(--hot); color: white; }
+    .btn-danger:hover { background: #c53030; }
+    .btn-ghost { background: transparent; color: var(--accent); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: rgba(49,130,206,0.08); }
+    .btn-sm { padding: 5px 12px; font-size: 0.78rem; }
+
+    /* Summary cards */
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .summary-card { background: var(--card); border-radius: 12px; padding: 18px; border: 1px solid var(--border); text-align: center; }
+    .summary-card .value { font-size: 1.8rem; font-weight: 700; }
+    .summary-card .label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; font-weight: 600; margin-top: 4px; }
+    .value.accent { color: var(--accent); }
+    .value.success { color: var(--success); }
+    .value.warn { color: var(--warn); }
+    .value.hot { color: var(--hot); }
+
+    /* Layout */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--border); color: var(--muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 600; cursor: pointer; user-select: none; white-space: nowrap; }
+    th:hover { color: var(--accent); }
+    th.sorted-asc::after { content: ' ▲'; }
+    th.sorted-desc::after { content: ' ▼'; }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    tr:hover { background: rgba(49,130,206,0.03); }
+    tr.top-performer { background: rgba(56,161,105,0.06); }
+    tr.bottom-performer { background: rgba(229,62,62,0.06); }
+
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; }
+    .badge-success { background: rgba(56,161,105,0.15); color: var(--success); }
+    .badge-danger { background: rgba(229,62,62,0.15); color: var(--hot); }
+    .badge-warn { background: rgba(221,107,32,0.15); color: var(--warn); }
+    .badge-info { background: rgba(49,130,206,0.15); color: var(--accent); }
+
+    /* Canvas charts */
+    .chart-container { position: relative; width: 100%; }
+    .chart-container canvas { width: 100%; }
+
+    /* Margin bars */
+    .margin-bar-wrap { margin-bottom: 12px; }
+    .margin-bar-label { display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 4px; }
+    .margin-bar { height: 24px; background: var(--border); border-radius: 6px; overflow: hidden; position: relative; }
+    .margin-bar-fill { height: 100%; border-radius: 6px; transition: width 0.5s; }
+    .margin-bar-target { position: absolute; top: 0; height: 100%; width: 2px; background: var(--text); opacity: 0.4; }
+    .margin-bar-target-range { position: absolute; top: 0; height: 100%; background: rgba(56,161,105,0.15); border-left: 2px dashed var(--success); border-right: 2px dashed var(--success); }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
+    .tab { padding: 10px 20px; font-size: 0.9rem; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+    .tab:hover { color: var(--accent); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Sales form */
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: 0.82rem; font-weight: 500; color: var(--muted); }
+    .form-group input, .form-group select { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; }
+
+    /* Recommendations */
+    .rec-card { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 10px; margin-bottom: 10px; border: 1px solid var(--border); }
+    .rec-card.swap { border-left: 4px solid var(--hot); background: rgba(229,62,62,0.03); }
+    .rec-card.keep { border-left: 4px solid var(--success); background: rgba(56,161,105,0.03); }
+    .rec-icon { font-size: 1.5rem; }
+    .rec-info { flex: 1; }
+    .rec-name { font-weight: 600; font-size: 0.95rem; }
+    .rec-detail { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: var(--card); border-radius: 16px; padding: 24px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+    .modal h3 { margin-bottom: 16px; }
+
+    @media (max-width: 768px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .summary-grid { grid-template-columns: repeat(2, 1fr); }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <nav class="top-nav">
+      <a href="/"><img src="/logo.png" alt="Kande VendTech" class="logo"></a>
+      <span class="nav-brand">Operations</span>
+      <a href="/">Dashboard</a>
+      <a href="/crm">CRM</a>
+      <a href="/machines">Machines</a>
+      <a href="/inventory">Inventory</a>
+      <a href="/finance">Finance</a>
+      <a href="/restock">Restock</a>
+      <a href="/performance" class="active">Performance</a>
+      <a href="/planogram">Planogram</a>
+      <a href="/map">Map</a>
+    </nav>
+
+    <h1>📊 Product Performance</h1>
+    <p class="subtitle">Track sales velocity, margins, and find your top (and worst) performers</p>
+
+    <!-- Filters -->
+    <div class="filters">
+      <div class="filter-group">
+        <label>Period:</label>
+        <select id="period-filter">
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+          <option value="30days" selected>Last 30 Days</option>
+          <option value="all">All Time</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Machine:</label>
+        <select id="machine-filter">
+          <option value="">All Machines</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Category:</label>
+        <select id="category-filter">
+          <option value="">All Categories</option>
+          <option value="Beverages">Beverages</option>
+          <option value="Snacks">Snacks</option>
+          <option value="Protein/Health">Protein/Health</option>
+          <option value="Candy">Candy</option>
+          <option value="Essentials">Essentials</option>
+          <option value="Frozen">Frozen</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="loadPerformance()">Apply</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-success" onclick="showSalesModal()">+ Log Sale</button>
+      <button class="btn btn-ghost" onclick="showBulkModal()">📥 Bulk Import</button>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="summary-grid" id="summary-grid">
+      <div class="summary-card"><div class="value accent" id="s-revenue">$0</div><div class="label">Total Revenue</div></div>
+      <div class="summary-card"><div class="value success" id="s-units">0</div><div class="label">Units Sold</div></div>
+      <div class="summary-card"><div class="value warn" id="s-margin">0%</div><div class="label">Avg Margin</div></div>
+      <div class="summary-card"><div class="value accent" id="s-profit">$0</div><div class="label">Total Profit</div></div>
+      <div class="summary-card"><div class="value success" id="s-velocity">0</div><div class="label">Units/Week</div></div>
+      <div class="summary-card"><div class="value hot" id="s-swaps">0</div><div class="label">Swap Candidates</div></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('scoreboard')">Scoreboard</div>
+      <div class="tab" onclick="switchTab('charts')">Category Breakdown</div>
+      <div class="tab" onclick="switchTab('margins')">Margin Analysis</div>
+      <div class="tab" onclick="switchTab('recommendations')">Recommendations</div>
+      <div class="tab" onclick="switchTab('sales')">Sales Log</div>
+    </div>
+
+    <!-- Tab: Scoreboard -->
+    <div class="tab-content active" id="tab-scoreboard">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h2 style="margin-bottom:0">Product Scoreboard</h2>
+          <span style="font-size:0.82rem;color:var(--muted)">
+            <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:rgba(56,161,105,0.2);margin-right:4px;vertical-align:middle;"></span>Top 5
+            <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:rgba(229,62,62,0.2);margin-right:4px;margin-left:12px;vertical-align:middle;"></span>Bottom 5
+          </span>
+        </div>
+        <div class="table-wrap">
+          <table id="scoreboard-table">
+            <thead>
+              <tr>
+                <th data-sort="rank">#</th>
+                <th data-sort="name">Product</th>
+                <th data-sort="category">Category</th>
+                <th data-sort="revenue">Revenue</th>
+                <th data-sort="units">Units</th>
+                <th data-sort="margin">Margin %</th>
+                <th data-sort="profit_per_unit">Profit/Unit</th>
+                <th data-sort="velocity">Units/Wk</th>
+                <th data-sort="status">Status</th>
+              </tr>
+            </thead>
+            <tbody id="scoreboard-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Charts -->
+    <div class="tab-content" id="tab-charts">
+      <div class="grid-2">
+        <div class="card">
+          <h2>Revenue by Category</h2>
+          <div class="chart-container">
+            <canvas id="category-chart" width="400" height="400"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Top 5 vs Bottom 5</h2>
+          <div style="margin-bottom:20px">
+            <h3 style="font-size:0.9rem;color:var(--success);margin-bottom:10px">🏆 Top Performers</h3>
+            <div id="top5-list"></div>
+          </div>
+          <div>
+            <h3 style="font-size:0.9rem;color:var(--hot);margin-bottom:10px">⚠️ Bottom Performers</h3>
+            <div id="bottom5-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Margins -->
+    <div class="tab-content" id="tab-margins">
+      <div class="grid-2">
+        <div class="card">
+          <h2>Ambient Products — Target 60-65% Margin</h2>
+          <div id="margin-ambient"></div>
+        </div>
+        <div class="card">
+          <h2>Frozen Products — Target 45-50% Margin</h2>
+          <div id="margin-frozen"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Margin Rules</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;font-size:0.9rem;">
+          <div style="padding:14px;border-radius:10px;background:rgba(49,130,206,0.05);border:1px solid rgba(49,130,206,0.2);">
+            <strong>3× Markup Rule</strong><br><span style="color:var(--muted)">Buy at $1 → Sell at $3. Simple and effective.</span>
+          </div>
+          <div style="padding:14px;border-radius:10px;background:rgba(56,161,105,0.05);border:1px solid rgba(56,161,105,0.2);">
+            <strong>Gas Station Parity</strong><br><span style="color:var(--muted)">Price to match gas stations, NOT Walmart.</span>
+          </div>
+          <div style="padding:14px;border-radius:10px;background:rgba(221,107,32,0.05);border:1px solid rgba(221,107,32,0.2);">
+            <strong>Profit per Unit > Margin %</strong><br><span style="color:var(--muted)">$1.70 profit at 57% beats $0.80 at 80%.</span>
+          </div>
+          <div style="padding:14px;border-radius:10px;background:rgba(123,44,191,0.05);border:1px solid rgba(123,44,191,0.2);">
+            <strong>Net Target: 30-35%</strong><br><span style="color:var(--muted)">After COGS, commission, restocking costs.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Recommendations -->
+    <div class="tab-content" id="tab-recommendations">
+      <div class="card">
+        <h2>Swap Recommendations</h2>
+        <p style="font-size:0.85rem;color:var(--muted);margin-bottom:16px;">Products with &lt;2 units/week velocity are flagged for potential replacement.</p>
+        <div id="rec-list"></div>
+      </div>
+    </div>
+
+    <!-- Tab: Sales Log -->
+    <div class="tab-content" id="tab-sales">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h2 style="margin-bottom:0">Recent Sales</h2>
+          <button class="btn btn-success btn-sm" onclick="showSalesModal()">+ Log Sale</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Product</th>
+                <th>Machine</th>
+                <th>Qty</th>
+                <th>Unit Price</th>
+                <th>Total</th>
+                <th>Profit</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="sales-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log Sale Modal -->
+  <div class="modal-overlay" id="sale-modal">
+    <div class="modal">
+      <h3>Log a Sale</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Product</label>
+          <select id="sale-product"></select>
+        </div>
+        <div class="form-group">
+          <label>Machine</label>
+          <select id="sale-machine"><option value="">General</option></select>
+        </div>
+        <div class="form-group">
+          <label>Quantity</label>
+          <input type="number" id="sale-qty" value="1" min="1">
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="sale-date">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end;">
+        <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
+        <button class="btn btn-success" onclick="submitSale()">Log Sale</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Import Modal -->
+  <div class="modal-overlay" id="bulk-modal">
+    <div class="modal">
+      <h3>Bulk Import Sales</h3>
+      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:12px;">Paste CSV data: product_name, machine_name, quantity, date (one per line)</p>
+      <textarea id="bulk-data" style="width:100%;height:200px;padding:12px;border:1px solid var(--border);border-radius:8px;font-family:monospace;font-size:0.85rem;" placeholder="Core Water, Machine A, 5, 2025-01-15
+Cheetos Flamin Hot, Machine A, 3, 2025-01-15
+Snickers, Machine B, 2, 2025-01-16"></textarea>
+      <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end;">
+        <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
+        <button class="btn btn-success" onclick="submitBulk()">Import</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let products = [];
+    let machines = [];
+    let sales = [];
+    let performanceData = [];
+    let sortField = 'revenue';
+    let sortDir = 'desc';
+
+    // Init
+    async function init() {
+      document.getElementById('sale-date').value = new Date().toISOString().split('T')[0];
+      await Promise.all([loadProducts(), loadMachines()]);
+      await loadPerformance();
+      await loadSales();
+    }
+
+    async function loadProducts() {
+      products = await fetch('/api/products').then(r => r.json());
+      const sel = document.getElementById('sale-product');
+      sel.innerHTML = products.map(p => `<option value="${p.id}">${p.name} ($${(p.sell_price||0).toFixed(2)})</option>`).join('');
+    }
+
+    async function loadMachines() {
+      machines = await fetch('/api/machines').then(r => r.json());
+      const sel = document.getElementById('machine-filter');
+      const saleSel = document.getElementById('sale-machine');
+      const opts = machines.map(m => `<option value="${m.id}">${m.name || m.model || 'Machine #'+m.id}${m.location ? ' @ '+m.location.name : ''}</option>`).join('');
+      sel.innerHTML = '<option value="">All Machines</option>' + opts;
+      saleSel.innerHTML = '<option value="">General</option>' + opts;
+    }
+
+    async function loadPerformance() {
+      const period = document.getElementById('period-filter').value;
+      const machineId = document.getElementById('machine-filter').value;
+      const category = document.getElementById('category-filter').value;
+      let url = `/api/performance/summary?period=${period}`;
+      if (machineId) url += `&machine_id=${machineId}`;
+      if (category) url += `&category=${encodeURIComponent(category)}`;
+      const data = await fetch(url).then(r => r.json());
+      performanceData = data.products || [];
+
+      // Summary stats
+      document.getElementById('s-revenue').textContent = '$' + (data.totalRevenue || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+      document.getElementById('s-units').textContent = (data.totalUnits || 0).toLocaleString();
+      document.getElementById('s-margin').textContent = (data.avgMargin || 0).toFixed(1) + '%';
+      document.getElementById('s-profit').textContent = '$' + (data.totalProfit || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+      document.getElementById('s-velocity').textContent = (data.totalVelocity || 0).toFixed(1);
+      document.getElementById('s-swaps').textContent = data.swapCount || 0;
+
+      renderScoreboard();
+      renderCategoryChart(data.categoryBreakdown || {});
+      renderTopBottom();
+      renderMarginAnalysis();
+      renderRecommendations();
+    }
+
+    async function loadSales() {
+      sales = await fetch('/api/sales').then(r => r.json());
+      renderSalesLog();
+    }
+
+    // Scoreboard
+    function renderScoreboard() {
+      const sorted = [...performanceData].sort((a, b) => {
+        let va = a[sortField], vb = b[sortField];
+        if (typeof va === 'string') return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+        return sortDir === 'asc' ? va - vb : vb - va;
+      });
+
+      const top5 = sorted.slice(0, 5).map(p => p.product_id);
+      const bottom5 = sorted.length > 5 ? sorted.slice(-5).map(p => p.product_id) : [];
+
+      const tbody = document.getElementById('scoreboard-body');
+      tbody.innerHTML = sorted.map((p, i) => {
+        const isTop = top5.includes(p.product_id) && sorted.length > 5;
+        const isBottom = bottom5.includes(p.product_id);
+        const rowClass = isTop ? 'top-performer' : (isBottom ? 'bottom-performer' : '');
+        const statusBadge = p.velocity < 2 
+          ? '<span class="badge badge-danger">Swap?</span>' 
+          : (p.velocity >= 5 ? '<span class="badge badge-success">Star</span>' : '<span class="badge badge-info">OK</span>');
+        return `<tr class="${rowClass}">
+          <td>${i + 1}</td>
+          <td><strong>${p.name}</strong></td>
+          <td>${p.category || '—'}</td>
+          <td>$${p.revenue.toFixed(2)}</td>
+          <td>${p.units}</td>
+          <td>${p.margin.toFixed(1)}%</td>
+          <td>$${p.profit_per_unit.toFixed(2)}</td>
+          <td>${p.velocity.toFixed(1)}</td>
+          <td>${statusBadge}</td>
+        </tr>`;
+      }).join('');
+
+      // Update sort headers
+      document.querySelectorAll('#scoreboard-table th').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+        if (th.dataset.sort === sortField) {
+          th.classList.add(sortDir === 'asc' ? 'sorted-asc' : 'sorted-desc');
+        }
+      });
+    }
+
+    // Sort handler
+    document.querySelectorAll('#scoreboard-table th[data-sort]').forEach(th => {
+      th.addEventListener('click', () => {
+        const field = th.dataset.sort;
+        if (sortField === field) { sortDir = sortDir === 'asc' ? 'desc' : 'asc'; }
+        else { sortField = field; sortDir = 'desc'; }
+        renderScoreboard();
+      });
+    });
+
+    // Category donut chart
+    function renderCategoryChart(breakdown) {
+      const canvas = document.getElementById('category-chart');
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = 400 * dpr;
+      canvas.height = 400 * dpr;
+      ctx.scale(dpr, dpr);
+
+      const categories = Object.keys(breakdown);
+      const values = Object.values(breakdown);
+      const total = values.reduce((s, v) => s + v, 0);
+      if (total === 0) {
+        ctx.fillStyle = '#718096';
+        ctx.font = '14px -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('No sales data yet', 200, 200);
+        return;
+      }
+
+      const colors = ['#3182ce', '#38a169', '#dd6b20', '#e53e3e', '#7b2cbf', '#00bcd4'];
+      const cx = 200, cy = 170, outer = 130, inner = 70;
+      let angle = -Math.PI / 2;
+
+      categories.forEach((cat, i) => {
+        const slice = (values[i] / total) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, outer, angle, angle + slice);
+        ctx.arc(cx, cy, inner, angle + slice, angle, true);
+        ctx.closePath();
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.fill();
+        
+        // Label
+        const mid = angle + slice / 2;
+        const lx = cx + Math.cos(mid) * (outer + 20);
+        const ly = cy + Math.sin(mid) * (outer + 20);
+        ctx.fillStyle = '#1a202c';
+        ctx.font = '12px -apple-system, sans-serif';
+        ctx.textAlign = Math.cos(mid) > 0 ? 'left' : 'right';
+        ctx.fillText(`${cat}`, lx, ly - 6);
+        ctx.fillStyle = '#718096';
+        ctx.font = '11px -apple-system, sans-serif';
+        ctx.fillText(`$${values[i].toFixed(0)} (${((values[i]/total)*100).toFixed(0)}%)`, lx, ly + 8);
+
+        angle += slice;
+      });
+
+      // Center text
+      ctx.fillStyle = '#1a202c';
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 20px -apple-system, sans-serif';
+      ctx.fillText('$' + total.toFixed(0), cx, cy - 4);
+      ctx.fillStyle = '#718096';
+      ctx.font = '12px -apple-system, sans-serif';
+      ctx.fillText('Total Revenue', cx, cy + 14);
+
+      // Legend
+      let ly = 330;
+      const legendCols = Math.min(categories.length, 3);
+      const colW = 400 / legendCols;
+      categories.forEach((cat, i) => {
+        const col = i % legendCols;
+        const row = Math.floor(i / legendCols);
+        const lx = col * colW + 20;
+        const y = ly + row * 22;
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.fillRect(lx, y - 4, 10, 10);
+        ctx.fillStyle = '#1a202c';
+        ctx.font = '11px -apple-system, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(cat, lx + 16, y + 4);
+      });
+    }
+
+    // Top/Bottom performers
+    function renderTopBottom() {
+      const sorted = [...performanceData].sort((a, b) => b.revenue - a.revenue);
+      const top5 = sorted.slice(0, 5);
+      const bottom5 = sorted.length > 5 ? sorted.slice(-5).reverse() : [];
+
+      document.getElementById('top5-list').innerHTML = top5.map((p, i) => `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;margin-bottom:6px;background:rgba(56,161,105,0.05);">
+          <span style="font-size:1.3rem;font-weight:700;color:var(--success);width:28px;">${i+1}</span>
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:0.9rem;">${p.name}</div>
+            <div style="font-size:0.78rem;color:var(--muted);">${p.category || ''} · ${p.units} units · $${p.profit_per_unit.toFixed(2)}/unit</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-weight:700;color:var(--success);">$${p.revenue.toFixed(2)}</div>
+            <div style="font-size:0.78rem;color:var(--muted);">${p.margin.toFixed(0)}% margin</div>
+          </div>
+        </div>
+      `).join('');
+
+      document.getElementById('bottom5-list').innerHTML = bottom5.length === 0 
+        ? '<div style="color:var(--muted);font-size:0.85rem;padding:8px;">Need more products for comparison</div>'
+        : bottom5.map((p, i) => `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;margin-bottom:6px;background:rgba(229,62,62,0.05);">
+          <span style="font-size:1.3rem;font-weight:700;color:var(--hot);width:28px;">${sorted.length - bottom5.length + i + 1}</span>
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:0.9rem;">${p.name}</div>
+            <div style="font-size:0.78rem;color:var(--muted);">${p.category || ''} · ${p.units} units · ${p.velocity.toFixed(1)}/wk</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-weight:700;color:var(--hot);">$${p.revenue.toFixed(2)}</div>
+            <div style="font-size:0.78rem;color:var(--muted);">${p.margin.toFixed(0)}% margin</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Margin Analysis
+    function renderMarginAnalysis() {
+      const ambient = performanceData.filter(p => (p.category || '').toLowerCase() !== 'frozen');
+      const frozen = performanceData.filter(p => (p.category || '').toLowerCase() === 'frozen');
+
+      renderMarginBars('margin-ambient', ambient, 60, 65);
+      renderMarginBars('margin-frozen', frozen, 45, 50);
+    }
+
+    function renderMarginBars(containerId, items, targetLow, targetHigh) {
+      const el = document.getElementById(containerId);
+      if (items.length === 0) {
+        el.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:12px;">No products in this category yet</div>';
+        return;
+      }
+      el.innerHTML = items.sort((a,b) => b.margin - a.margin).map(p => {
+        const pct = Math.min(p.margin, 100);
+        const color = p.margin >= targetLow ? 'var(--success)' : (p.margin >= targetLow - 10 ? 'var(--warn)' : 'var(--hot)');
+        return `<div class="margin-bar-wrap">
+          <div class="margin-bar-label">
+            <span>${p.name}</span>
+            <span style="font-weight:600;color:${color}">${p.margin.toFixed(1)}%</span>
+          </div>
+          <div class="margin-bar">
+            <div class="margin-bar-target-range" style="left:${targetLow}%;width:${targetHigh-targetLow}%;"></div>
+            <div class="margin-bar-fill" style="width:${pct}%;background:${color};"></div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // Recommendations
+    function renderRecommendations() {
+      const recs = [...performanceData].sort((a, b) => a.velocity - b.velocity);
+      const el = document.getElementById('rec-list');
+      if (recs.length === 0) {
+        el.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;">No sales data to analyze yet. Start logging sales to get recommendations.</div>';
+        return;
+      }
+      el.innerHTML = recs.map(p => {
+        const isSwap = p.velocity < 2;
+        return `<div class="rec-card ${isSwap ? 'swap' : 'keep'}">
+          <div class="rec-icon">${isSwap ? '🔄' : '✅'}</div>
+          <div class="rec-info">
+            <div class="rec-name">${p.name}</div>
+            <div class="rec-detail">
+              ${isSwap ? '⚠️ Consider Replacing — ' : ''}
+              ${p.velocity.toFixed(1)} units/week · $${p.profit_per_unit.toFixed(2)} profit/unit · ${p.margin.toFixed(0)}% margin · $${p.revenue.toFixed(2)} revenue
+            </div>
+          </div>
+          <div>
+            <span class="badge ${isSwap ? 'badge-danger' : 'badge-success'}">${isSwap ? 'Low Velocity' : 'Performing'}</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // Sales Log
+    function renderSalesLog() {
+      const productMap = {};
+      products.forEach(p => productMap[p.id] = p);
+      const machineMap = {};
+      machines.forEach(m => machineMap[m.id] = m);
+
+      const sorted = [...sales].sort((a, b) => new Date(b.date || b.created_at) - new Date(a.date || a.created_at));
+      document.getElementById('sales-body').innerHTML = sorted.slice(0, 100).map(s => {
+        const prod = productMap[s.product_id];
+        const mach = machineMap[s.machine_id];
+        const cost = prod ? (prod.cost_price || 0) : 0;
+        const price = s.unit_price || (prod ? prod.sell_price : 0) || 0;
+        const profit = (price - cost) * (s.quantity || 1);
+        return `<tr>
+          <td>${s.date || s.created_at?.split('T')[0] || '—'}</td>
+          <td>${prod?.name || 'Product #' + s.product_id}</td>
+          <td>${mach ? (mach.name || mach.model || 'Machine #'+mach.id) : (s.machine_id ? '#'+s.machine_id : '—')}</td>
+          <td>${s.quantity}</td>
+          <td>$${price.toFixed(2)}</td>
+          <td>$${(price * s.quantity).toFixed(2)}</td>
+          <td style="color:${profit >= 0 ? 'var(--success)' : 'var(--hot)'}">$${profit.toFixed(2)}</td>
+          <td><button class="btn btn-danger btn-sm" onclick="deleteSale(${s.id})">✕</button></td>
+        </tr>`;
+      }).join('');
+    }
+
+    // Modals
+    function showSalesModal() {
+      document.getElementById('sale-modal').classList.add('active');
+    }
+    function showBulkModal() {
+      document.getElementById('bulk-modal').classList.add('active');
+    }
+    function closeModals() {
+      document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+    }
+
+    async function submitSale() {
+      const productId = parseInt(document.getElementById('sale-product').value);
+      const machineId = document.getElementById('sale-machine').value ? parseInt(document.getElementById('sale-machine').value) : null;
+      const quantity = parseInt(document.getElementById('sale-qty').value) || 1;
+      const date = document.getElementById('sale-date').value;
+      const prod = products.find(p => p.id === productId);
+      if (!prod) return alert('Select a product');
+
+      await fetch('/api/sales', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_id: productId,
+          machine_id: machineId,
+          quantity,
+          unit_price: prod.sell_price || 0,
+          total: (prod.sell_price || 0) * quantity,
+          date
+        })
+      });
+      closeModals();
+      await loadSales();
+      await loadPerformance();
+    }
+
+    async function submitBulk() {
+      const data = document.getElementById('bulk-data').value.trim();
+      if (!data) return;
+      const lines = data.split('\n').filter(l => l.trim());
+      let imported = 0;
+
+      for (const line of lines) {
+        const parts = line.split(',').map(s => s.trim());
+        if (parts.length < 3) continue;
+        const [productName, machineName, qty, date] = parts;
+        const prod = products.find(p => p.name.toLowerCase().includes(productName.toLowerCase()));
+        const mach = machines.find(m => (m.name || '').toLowerCase().includes((machineName || '').toLowerCase()));
+        if (!prod) continue;
+
+        await fetch('/api/sales', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            product_id: prod.id,
+            machine_id: mach ? mach.id : null,
+            quantity: parseInt(qty) || 1,
+            unit_price: prod.sell_price || 0,
+            total: (prod.sell_price || 0) * (parseInt(qty) || 1),
+            date: date || new Date().toISOString().split('T')[0]
+          })
+        });
+        imported++;
+      }
+      closeModals();
+      alert(`Imported ${imported} sales records`);
+      document.getElementById('bulk-data').value = '';
+      await loadSales();
+      await loadPerformance();
+    }
+
+    async function deleteSale(id) {
+      if (!confirm('Delete this sale?')) return;
+      await fetch(`/api/sales/${id}`, { method: 'DELETE' });
+      await loadSales();
+      await loadPerformance();
+    }
+
+    // Tab switching
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelector(`.tab-content#tab-${tab}`).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    // Click outside modal to close
+    document.querySelectorAll('.modal-overlay').forEach(m => {
+      m.addEventListener('click', e => { if (e.target === m) closeModals(); });
+    });
+
+    init();
+  </script>
+<script src="/nav.js"></script>
+</body>
+</html>

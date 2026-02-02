@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Morning Briefing — Kande VendTech</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#0f1117;--bg2:#161922;--card:#1c1f2e;--card2:#222632;
+      --border:#2a2e3a;--border-light:#3a3f4d;
+      --text:#e2e8f0;--muted:#8892a4;--dim:#5a6478;
+      --accent:#667eea;--accent2:#764ba2;--accent-dim:rgba(102,126,234,0.15);
+      --success:#38d9a9;--success-dim:rgba(56,217,169,0.15);
+      --warn:#fbbf24;--warn-dim:rgba(251,191,36,0.15);
+      --hot:#f87171;--hot-dim:rgba(248,113,113,0.15);
+      --purple:#a78bfa;--purple-dim:rgba(167,139,250,0.15);
+      --gradient:linear-gradient(135deg,#667eea,#764ba2);
+    }
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    .app{max-width:1440px;margin:0 auto;padding:20px}
+
+    /* Header */
+    .page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;flex-wrap:wrap;gap:16px}
+    .page-header h1{font-size:1.8rem;font-weight:700;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;display:flex;align-items:center;gap:12px}
+    .page-header p{color:var(--muted);font-size:.9rem;margin-top:4px}
+    .header-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+    /* Toggle */
+    .period-toggle{display:flex;border-radius:10px;overflow:hidden;border:1px solid var(--border)}
+    .period-toggle button{padding:9px 20px;background:var(--card);color:var(--muted);border:none;font-size:.83rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit}
+    .period-toggle button:hover{color:var(--text)}
+    .period-toggle button.active{background:var(--gradient);color:#fff}
+    .refresh-btn{padding:9px 16px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--muted);font-size:.83rem;cursor:pointer;transition:all .2s;font-family:inherit}
+    .refresh-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+    /* Stats Row */
+    .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:28px}
+    .stat-card{background:var(--card);border-radius:14px;padding:20px;border:1px solid var(--border);text-align:center;transition:all .2s}
+    .stat-card:hover{border-color:var(--border-light);transform:translateY(-1px)}
+    .stat-card .label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:8px}
+    .stat-card .value{font-size:1.9rem;font-weight:700}
+    .stat-card .sub{font-size:.75rem;color:var(--dim);margin-top:4px}
+    .v-accent{color:var(--accent)}.v-success{color:var(--success)}.v-warn{color:var(--warn)}.v-hot{color:var(--hot)}.v-purple{color:var(--purple)}
+
+    /* Sections */
+    .section{margin-bottom:28px}
+    .section-title{font-size:1.1rem;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+    .section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+    .section-title .count{background:var(--accent-dim);color:var(--accent);padding:2px 10px;border-radius:12px;font-size:.75rem;font-weight:700}
+
+    /* Cards Grid */
+    .cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+    .briefing-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;transition:all .2s}
+    .briefing-card:hover{border-color:var(--border-light);transform:translateY(-1px)}
+
+    /* Follow-up cards */
+    .followup-card{display:flex;gap:14px;align-items:flex-start}
+    .followup-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+    .followup-icon.overdue{background:var(--hot-dim);color:var(--hot)}
+    .followup-icon.due_today{background:var(--warn-dim);color:var(--warn)}
+    .followup-icon.upcoming{background:var(--accent-dim);color:var(--accent)}
+    .followup-body{flex:1;min-width:0}
+    .followup-name{font-weight:600;font-size:.9rem;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .followup-action{color:var(--muted);font-size:.82rem;margin-bottom:4px}
+    .followup-meta{display:flex;gap:8px;flex-wrap:wrap}
+    .badge{padding:2px 8px;border-radius:6px;font-size:.68rem;font-weight:600}
+    .badge-overdue{background:var(--hot-dim);color:var(--hot)}
+    .badge-today{background:var(--warn-dim);color:var(--warn)}
+    .badge-upcoming{background:var(--accent-dim);color:var(--accent)}
+    .badge-hot{background:var(--hot-dim);color:var(--hot)}
+    .badge-warm{background:var(--warn-dim);color:var(--warn)}
+    .badge-type{background:var(--purple-dim);color:var(--purple)}
+
+    /* Stage change cards */
+    .stage-card{display:flex;gap:14px;align-items:flex-start}
+    .stage-arrow{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+    .stage-arrow.forward{background:var(--success-dim);color:var(--success)}
+    .stage-arrow.backward{background:var(--hot-dim);color:var(--hot)}
+    .stage-arrow.neutral{background:var(--accent-dim);color:var(--accent)}
+    .stage-body{flex:1;min-width:0}
+    .stage-name{font-weight:600;font-size:.9rem;margin-bottom:3px}
+    .stage-desc{color:var(--muted);font-size:.82rem;margin-bottom:4px}
+    .stage-time{color:var(--dim);font-size:.72rem}
+
+    /* New prospect cards */
+    .prospect-card{display:flex;gap:14px;align-items:flex-start}
+    .prospect-avatar{width:40px;height:40px;border-radius:10px;background:var(--gradient);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0}
+    .prospect-body{flex:1;min-width:0}
+    .prospect-name{font-weight:600;font-size:.9rem;margin-bottom:2px}
+    .prospect-detail{color:var(--muted);font-size:.82rem}
+    .prospect-meta{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap}
+
+    /* Win/Loss section */
+    .winloss{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .winloss-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;text-align:center}
+    .winloss-card .big{font-size:3rem;font-weight:800;margin-bottom:4px}
+    .winloss-card .wl-label{color:var(--muted);font-size:.82rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+    .winloss-card .wl-sub{color:var(--dim);font-size:.78rem;margin-top:8px}
+
+    /* Empty state */
+    .empty-state{text-align:center;padding:40px 20px;color:var(--muted);font-size:.9rem}
+    .empty-state .emoji{font-size:2rem;margin-bottom:12px}
+
+    /* Loading */
+    .loading{text-align:center;padding:60px 20px;color:var(--muted)}
+    .loading .spinner{display:inline-block;width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* Last updated */
+    .last-updated{color:var(--dim);font-size:.75rem;text-align:right;margin-bottom:20px}
+
+    @media(max-width:768px){
+      .page-header{flex-direction:column;align-items:flex-start}
+      .stats-row{grid-template-columns:repeat(2,1fr)}
+      .cards-grid{grid-template-columns:1fr}
+      .winloss{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <script src="/nav.js"></script>
+  <div class="app">
+    <div class="page-header">
+      <div>
+        <h1>🌅 Morning Briefing</h1>
+        <p>Your daily sales pipeline digest</p>
+      </div>
+      <div class="header-actions">
+        <div class="period-toggle">
+          <button class="active" data-period="daily" onclick="setPeriod('daily')">📅 Today</button>
+          <button data-period="weekly" onclick="setPeriod('weekly')">📆 This Week</button>
+        </div>
+        <button class="refresh-btn" onclick="loadBriefing()">🔄 Refresh</button>
+      </div>
+    </div>
+
+    <div class="last-updated" id="lastUpdated"></div>
+
+    <div id="content">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p style="margin-top:16px">Loading briefing...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentPeriod = 'daily';
+
+    function setPeriod(period) {
+      currentPeriod = period;
+      document.querySelectorAll('.period-toggle button').forEach(b => {
+        b.classList.toggle('active', b.dataset.period === period);
+      });
+      loadBriefing();
+    }
+
+    function fmtMoney(n) {
+      if (n >= 1000000) return '$' + (n / 1000000).toFixed(1) + 'M';
+      if (n >= 1000) return '$' + (n / 1000).toFixed(1) + 'K';
+      return '$' + n.toLocaleString();
+    }
+
+    function timeAgo(dateStr) {
+      const diff = Date.now() - new Date(dateStr).getTime();
+      const mins = Math.floor(diff / 60000);
+      if (mins < 60) return `${mins}m ago`;
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return `${hrs}h ago`;
+      const days = Math.floor(hrs / 24);
+      return `${days}d ago`;
+    }
+
+    function getInitials(name) {
+      return (name || '?').split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    }
+
+    function isForward(from, to) {
+      const order = { 'new': 0, 'New': 0, 'active': 1, 'Active': 1, 'signed': 2, 'Signed': 2 };
+      const fromIdx = order[from] ?? -1;
+      const toIdx = order[to] ?? -1;
+      if (toIdx > fromIdx) return 'forward';
+      if (toIdx < fromIdx) return 'backward';
+      return 'neutral';
+    }
+
+    async function loadBriefing() {
+      const content = document.getElementById('content');
+      content.innerHTML = '<div class="loading"><div class="spinner"></div><p style="margin-top:16px">Loading briefing...</p></div>';
+
+      try {
+        const resp = await fetch(`/api/briefing?period=${currentPeriod}`);
+        if (!resp.ok) throw new Error('Failed to load briefing');
+        const data = await resp.json();
+        renderBriefing(data);
+      } catch (err) {
+        content.innerHTML = `<div class="empty-state"><div class="emoji">⚠️</div><p>Failed to load briefing: ${err.message}</p></div>`;
+      }
+    }
+
+    function renderBriefing(data) {
+      const { metrics, newProspects, stageChanges, followUps, period, generatedAt } = data;
+      const m = metrics;
+
+      // Update timestamp
+      const genTime = new Date(generatedAt);
+      document.getElementById('lastUpdated').textContent = `Last updated: ${genTime.toLocaleTimeString()}`;
+
+      const periodLabel = period === 'weekly' ? '7 days' : '24h';
+
+      let html = '';
+
+      // ── Stats Row ──
+      html += '<div class="stats-row">';
+      html += `<div class="stat-card"><div class="label">Pipeline Value</div><div class="value v-accent">${fmtMoney(m.pipelineValue)}</div><div class="sub">/month estimated</div></div>`;
+      html += `<div class="stat-card"><div class="label">Total Prospects</div><div class="value v-purple">${m.totalProspects}</div><div class="sub">${m.activeCount} active</div></div>`;
+      html += `<div class="stat-card"><div class="label">New (${periodLabel})</div><div class="value v-success">+${m.newCount}</div><div class="sub">prospects added</div></div>`;
+      html += `<div class="stat-card"><div class="label">Conversion Rate</div><div class="value v-warn">${m.conversionRate}%</div><div class="sub">${m.wonAllTime} signed total</div></div>`;
+      html += `<div class="stat-card"><div class="label">Avg Deal Size</div><div class="value v-accent">${fmtMoney(m.avgDealValue)}</div><div class="sub">${m.avgDealUnits} machines avg</div></div>`;
+      html += `<div class="stat-card"><div class="label">Follow-ups Due</div><div class="value ${m.overdueCount > 0 ? 'v-hot' : 'v-success'}">${m.followUpCount}</div><div class="sub">${m.overdueCount} overdue</div></div>`;
+      html += '</div>';
+
+      // ── Win / Loss ──
+      html += '<div class="section"><div class="section-title">🏆 Win / Loss Summary</div>';
+      html += '<div class="winloss">';
+      html += `<div class="winloss-card"><div class="big v-success">${m.wonAllTime}</div><div class="wl-label">Deals Won</div><div class="wl-sub">+${m.wonCount} in ${periodLabel} · ${fmtMoney(m.signedValue)}/mo total</div></div>`;
+      html += `<div class="winloss-card"><div class="big v-hot">${m.lostAllTime}</div><div class="wl-label">Deals Lost / Stale</div><div class="wl-sub">+${m.lostCount} in ${periodLabel}</div></div>`;
+      html += '</div></div>';
+
+      // ── Follow-ups ──
+      html += '<div class="section"><div class="section-title">📋 Follow-ups Due <span class="count">' + followUps.length + '</span></div>';
+      if (followUps.length === 0) {
+        html += '<div class="empty-state"><div class="emoji">✅</div><p>No follow-ups due — you\'re all caught up!</p></div>';
+      } else {
+        html += '<div class="cards-grid">';
+        followUps.forEach(f => {
+          const iconClass = f.status;
+          const icon = f.status === 'overdue' ? '⚠️' : f.status === 'due_today' ? '📌' : '📅';
+          const badgeClass = f.status === 'overdue' ? 'badge-overdue' : f.status === 'due_today' ? 'badge-today' : 'badge-upcoming';
+          const badgeText = f.status === 'overdue' ? 'OVERDUE' : f.status === 'due_today' ? 'DUE TODAY' : 'UPCOMING';
+          const priorityBadge = f.priority === 'hot' ? '<span class="badge badge-hot">🔥 HOT</span>' : f.priority === 'warm' ? '<span class="badge badge-warm">🟠 WARM</span>' : '';
+          html += `<div class="briefing-card"><div class="followup-card">
+            <div class="followup-icon ${iconClass}">${icon}</div>
+            <div class="followup-body">
+              <div class="followup-name">${f.prospect_name}</div>
+              <div class="followup-action">${f.action}</div>
+              <div class="followup-meta">
+                <span class="badge ${badgeClass}">${badgeText}</span>
+                ${priorityBadge}
+                <span class="badge badge-type">${f.property_type}</span>
+              </div>
+            </div>
+          </div></div>`;
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+
+      // ── Stage Changes ──
+      html += '<div class="section"><div class="section-title">🔄 Pipeline Movement <span class="count">' + stageChanges.length + '</span></div>';
+      if (stageChanges.length === 0) {
+        html += '<div class="empty-state"><div class="emoji">🔮</div><p>No stage changes in the last ' + periodLabel + '</p></div>';
+      } else {
+        html += '<div class="cards-grid">';
+        stageChanges.forEach(sc => {
+          const dir = isForward(sc.fromStage, sc.toStage);
+          const arrow = dir === 'forward' ? '⬆️' : dir === 'backward' ? '⬇️' : '🔄';
+          html += `<div class="briefing-card"><div class="stage-card">
+            <div class="stage-arrow ${dir}">${arrow}</div>
+            <div class="stage-body">
+              <div class="stage-name">${sc.prospect_name}</div>
+              <div class="stage-desc">${sc.description}</div>
+              <div class="stage-time">${timeAgo(sc.changedAt)}</div>
+            </div>
+          </div></div>`;
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+
+      // ── New Prospects ──
+      html += '<div class="section"><div class="section-title">🆕 New Prospects <span class="count">' + newProspects.length + '</span></div>';
+      if (newProspects.length === 0) {
+        html += '<div class="empty-state"><div class="emoji">📭</div><p>No new prospects in the last ' + periodLabel + '</p></div>';
+      } else {
+        html += '<div class="cards-grid">';
+        newProspects.forEach(p => {
+          const priorityBadge = p.priority === 'hot' ? '<span class="badge badge-hot">🔥 HOT</span>' : p.priority === 'warm' ? '<span class="badge badge-warm">🟠 WARM</span>' : '';
+          html += `<div class="briefing-card"><div class="prospect-card">
+            <div class="prospect-avatar">${getInitials(p.name)}</div>
+            <div class="prospect-body">
+              <div class="prospect-name">${p.name}</div>
+              <div class="prospect-detail">${p.property_type}${p.units ? ' · ' + p.units + ' units' : ''}${p.address ? ' · ' + p.address : ''}</div>
+              <div class="prospect-meta">
+                ${priorityBadge}
+                <span class="badge badge-type">${p.status}</span>
+                <span style="color:var(--dim);font-size:.72rem">${timeAgo(p.created_at)}</span>
+              </div>
+            </div>
+          </div></div>`;
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+
+      document.getElementById('content').innerHTML = html;
+    }
+
+    // Auto-load
+    loadBriefing();
+    // Auto-refresh every 5 minutes
+    setInterval(loadBriefing, 5 * 60 * 1000);
+  </script>
+</body>
+</html>

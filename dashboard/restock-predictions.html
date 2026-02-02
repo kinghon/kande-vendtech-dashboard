@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Restock Predictions — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa;
+      --card: #ffffff;
+      --card-hover: #f7fafc;
+      --border: #e2e8f0;
+      --text: #1a202c;
+      --muted: #718096;
+      --accent: #3182ce;
+      --accent-dim: rgba(49,130,206,0.1);
+      --red: #e53e3e;
+      --red-dim: rgba(229,62,62,0.1);
+      --yellow: #d69e2e;
+      --yellow-dim: rgba(214,158,46,0.1);
+      --green: #38a169;
+      --green-dim: rgba(56,161,105,0.1);
+      --purple: #7b2cbf;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh;
+    }
+    .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+    /* Header */
+    .page-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 28px; flex-wrap: wrap; gap: 16px;
+    }
+    .page-header h1 {
+      font-size: 1.8rem; font-weight: 700;
+      background: linear-gradient(90deg, var(--accent), var(--purple));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .page-header .subtitle { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer;
+      font-size: 0.9rem; font-weight: 500; transition: all 0.2s;
+    }
+    .btn-primary { background: var(--accent); color: #ffffff; }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--card-hover); border-color: var(--accent); }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-icon {
+      width: 32px; height: 32px; padding: 0; display: inline-flex;
+      align-items: center; justify-content: center; border-radius: 6px; font-size: 0.9rem;
+    }
+
+    /* Summary Cards */
+    .summary-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px; margin-bottom: 28px;
+    }
+    .summary-card {
+      background: var(--card); border-radius: 12px; padding: 20px;
+      border: 1px solid var(--border); transition: transform 0.2s, border-color 0.2s;
+    }
+    .summary-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+    .summary-card .icon { font-size: 1.5rem; margin-bottom: 8px; }
+    .summary-card .label {
+      font-size: 0.7rem; color: var(--muted); text-transform: uppercase;
+      font-weight: 600; letter-spacing: 0.05em; margin-bottom: 4px;
+    }
+    .summary-card .value { font-size: 1.8rem; font-weight: 700; }
+    .summary-card .sub { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+    .value.accent { color: var(--accent); }
+    .value.red { color: var(--red); }
+    .value.yellow { color: var(--yellow); }
+    .value.green { color: var(--green); }
+
+    /* Tabs */
+    .tabs {
+      display: flex; gap: 4px; margin-bottom: 24px; background: var(--card);
+      border-radius: 12px; padding: 6px; border: 1px solid var(--border);
+    }
+    .tab-btn {
+      padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer;
+      font-size: 0.85rem; font-weight: 500; background: transparent;
+      color: var(--muted); transition: all 0.2s;
+    }
+    .tab-btn:hover { color: var(--text); background: rgba(0,0,0,0.05); }
+    .tab-btn.active { color: var(--bg); background: var(--accent); font-weight: 600; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Prediction Cards */
+    .predictions-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 16px; margin-bottom: 24px;
+    }
+    .pred-card {
+      background: var(--card); border-radius: 12px; border: 1px solid var(--border);
+      overflow: hidden; transition: transform 0.2s, border-color 0.2s;
+    }
+    .pred-card:hover { transform: translateY(-2px); }
+    .pred-card.urgency-red { border-left: 4px solid var(--red); }
+    .pred-card.urgency-yellow { border-left: 4px solid var(--yellow); }
+    .pred-card.urgency-green { border-left: 4px solid var(--green); }
+    .pred-card-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 16px 8px 16px;
+    }
+    .pred-card-header h3 { font-size: 1rem; font-weight: 600; }
+    .pred-card-body { padding: 0 16px 16px 16px; }
+    .pred-meta {
+      display: flex; gap: 16px; font-size: 0.8rem; color: var(--muted);
+      margin-bottom: 12px; flex-wrap: wrap;
+    }
+    .pred-meta span { display: flex; align-items: center; gap: 4px; }
+
+    /* Progress Bar */
+    .stock-bar-wrap {
+      background: var(--border); border-radius: 6px; height: 8px;
+      margin: 12px 0; overflow: hidden;
+    }
+    .stock-bar {
+      height: 100%; border-radius: 6px; transition: width 0.5s ease;
+    }
+    .stock-bar.red { background: var(--red); }
+    .stock-bar.yellow { background: var(--yellow); }
+    .stock-bar.green { background: var(--green); }
+
+    .stock-info {
+      display: flex; justify-content: space-between; font-size: 0.8rem;
+      color: var(--muted); margin-bottom: 8px;
+    }
+
+    /* Badge */
+    .badge {
+      padding: 4px 10px; border-radius: 20px; font-size: 0.72rem;
+      font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .badge-red { background: var(--red-dim); color: var(--red); }
+    .badge-yellow { background: var(--yellow-dim); color: var(--yellow); }
+    .badge-green { background: var(--green-dim); color: var(--green); }
+    .badge-accent { background: var(--accent-dim); color: var(--accent); }
+
+    /* Days Display */
+    .days-display {
+      font-size: 2.2rem; font-weight: 800; line-height: 1;
+      margin-bottom: 2px;
+    }
+    .days-display.red { color: var(--red); }
+    .days-display.yellow { color: var(--yellow); }
+    .days-display.green { color: var(--green); }
+    .days-label { font-size: 0.75rem; color: var(--muted); }
+
+    .pred-card-actions {
+      display: flex; gap: 8px; margin-top: 12px; padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Restock Log Table */
+    .log-table-wrap {
+      background: var(--card); border-radius: 12px; border: 1px solid var(--border);
+      overflow-x: auto;
+    }
+    .log-table {
+      width: 100%; border-collapse: collapse; font-size: 0.85rem;
+    }
+    .log-table th {
+      text-align: left; padding: 14px 16px; font-size: 0.72rem;
+      text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);
+      border-bottom: 1px solid var(--border); font-weight: 600;
+    }
+    .log-table td {
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+    }
+    .log-table tr:last-child td { border-bottom: none; }
+    .log-table tr:hover { background: rgba(0,0,0,0.02); }
+
+    /* Modal */
+    .modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7); z-index: 1000; align-items: center;
+      justify-content: center; backdrop-filter: blur(4px);
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--card); border-radius: 16px; padding: 28px;
+      max-width: 540px; width: 95%; max-height: 90vh; overflow-y: auto;
+      border: 1px solid var(--border);
+    }
+    .modal h2 {
+      font-size: 1.3rem; margin-bottom: 20px;
+      background: linear-gradient(90deg, var(--accent), var(--purple));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block; font-size: 0.82rem; font-weight: 500;
+      color: var(--muted); margin-bottom: 6px;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 10px 14px; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 0.9rem; color: var(--text);
+      background: var(--bg); outline: none; transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+    .form-group textarea { min-height: 80px; resize: vertical; font-family: inherit; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+
+    /* Settings Panel */
+    .settings-panel {
+      background: var(--card); border-radius: 12px; padding: 20px;
+      border: 1px solid var(--border); margin-bottom: 24px;
+    }
+    .settings-panel h3 {
+      font-size: 1rem; margin-bottom: 16px; color: var(--accent);
+    }
+    .settings-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+    }
+    .setting-item {
+      display: flex; align-items: center; gap: 12px; padding: 12px;
+      background: var(--bg); border-radius: 8px; border: 1px solid var(--border);
+    }
+    .setting-item label {
+      font-size: 0.85rem; color: var(--muted); flex: 1;
+    }
+    .setting-item input {
+      width: 80px; padding: 6px 10px; border: 1px solid var(--border);
+      border-radius: 6px; font-size: 0.85rem; color: var(--text);
+      background: var(--card); text-align: center; outline: none;
+    }
+    .setting-item input:focus {
+      border-color: var(--accent);
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center; padding: 60px 20px; color: var(--muted);
+    }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty-state h3 { color: var(--text); margin-bottom: 8px; }
+    .empty-state p { max-width: 400px; margin: 0 auto; line-height: 1.5; }
+
+    /* Notification Toast */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; padding: 14px 24px;
+      border-radius: 10px; font-size: 0.9rem; font-weight: 500;
+      z-index: 2000; transform: translateY(100px); opacity: 0;
+      transition: all 0.3s ease;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { background: var(--green); color: #fff; }
+    .toast.error { background: var(--red); color: #fff; }
+
+    @media (max-width: 768px) {
+      .page-header h1 { font-size: 1.4rem; }
+      .form-row { grid-template-columns: 1fr; }
+      .summary-grid { grid-template-columns: repeat(2, 1fr); }
+      .predictions-grid { grid-template-columns: 1fr; }
+      .tabs { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <script src="/nav.js"></script>
+  <div class="app">
+    <div class="page-header">
+      <div>
+        <h1>🔮 Restock Predictions</h1>
+        <div class="subtitle">AI-powered inventory forecasting — know when to restock before you run out</div>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <button class="btn btn-secondary" onclick="toggleSettings()">⚙️ Settings</button>
+        <button class="btn btn-primary" onclick="openLogModal()">+ Log Restock</button>
+      </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-grid" id="summary-grid">
+      <div class="summary-card">
+        <div class="icon">🚨</div>
+        <div class="label">Critical (&lt;3 days)</div>
+        <div class="value red" id="stat-critical">0</div>
+        <div class="sub">Need immediate restock</div>
+      </div>
+      <div class="summary-card">
+        <div class="icon">⚠️</div>
+        <div class="label">Warning (3-7 days)</div>
+        <div class="value yellow" id="stat-warning">0</div>
+        <div class="sub">Schedule this week</div>
+      </div>
+      <div class="summary-card">
+        <div class="icon">✅</div>
+        <div class="label">Healthy (&gt;7 days)</div>
+        <div class="value green" id="stat-healthy">0</div>
+        <div class="sub">Good stock levels</div>
+      </div>
+      <div class="summary-card">
+        <div class="icon">📊</div>
+        <div class="label">Avg Daily Velocity</div>
+        <div class="value accent" id="stat-velocity">0</div>
+        <div class="sub">Items sold per day (avg)</div>
+      </div>
+    </div>
+
+    <!-- Settings Panel (hidden by default) -->
+    <div class="settings-panel" id="settings-panel" style="display:none;">
+      <h3>⚙️ Location Capacities</h3>
+      <p style="color:var(--muted);font-size:0.85rem;margin-bottom:16px;">Set machine capacity per location. Default is 150 items.</p>
+      <div class="settings-grid" id="settings-grid"></div>
+      <div style="margin-top:16px;display:flex;gap:12px;justify-content:flex-end;">
+        <button class="btn btn-primary btn-sm" onclick="saveCapacities()">💾 Save Capacities</button>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('predictions')">🔮 Predictions</button>
+      <button class="tab-btn" onclick="switchTab('log')">📝 Restock Log</button>
+    </div>
+
+    <!-- Predictions Tab -->
+    <div class="tab-content active" id="tab-predictions">
+      <div class="predictions-grid" id="predictions-grid"></div>
+      <div id="predictions-empty" class="empty-state" style="display:none;">
+        <div class="icon">🔮</div>
+        <h3>No predictions yet</h3>
+        <p>Add locations and log restock events to start seeing predictions. The system needs at least one restock log per location.</p>
+        <button class="btn btn-primary" style="margin-top:16px;" onclick="openLogModal()">+ Log First Restock</button>
+      </div>
+    </div>
+
+    <!-- Restock Log Tab -->
+    <div class="tab-content" id="tab-log">
+      <div class="log-table-wrap">
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Location</th>
+              <th>Items</th>
+              <th>Notes</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="log-tbody"></tbody>
+        </table>
+      </div>
+      <div id="log-empty" class="empty-state" style="display:none;">
+        <div class="icon">📝</div>
+        <h3>No restock logs</h3>
+        <p>Log your first restock event to start tracking inventory velocity.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log Restock Modal -->
+  <div class="modal-overlay" id="log-modal">
+    <div class="modal">
+      <h2>📋 Log Restock Event</h2>
+      <div class="form-group">
+        <label>Location</label>
+        <select id="log-location">
+          <option value="">— Select Location —</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Restock Date</label>
+          <input type="date" id="log-date">
+        </div>
+        <div class="form-group">
+          <label>Items Restocked</label>
+          <input type="number" id="log-items" placeholder="150" min="1">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <textarea id="log-notes" placeholder="e.g. Full restock, replaced expired snacks..."></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="closeLogModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitRestockLog()">Log Restock</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ===== STATE =====
+    let locations = [];
+    let restockLogs = [];
+    let predictions = [];
+    let capacities = {}; // location_id -> capacity
+
+    // ===== INIT =====
+    document.addEventListener('DOMContentLoaded', async () => {
+      document.getElementById('log-date').value = new Date().toISOString().split('T')[0];
+      await loadAll();
+    });
+
+    async function loadAll() {
+      await Promise.all([loadLocations(), loadRestockLogs(), loadPredictions()]);
+      loadCapacities();
+      renderPredictions();
+      renderLog();
+      renderSettings();
+    }
+
+    // ===== API CALLS =====
+    async function loadLocations() {
+      try {
+        const res = await fetch('/api/locations');
+        locations = await res.json();
+        populateLocationDropdown();
+      } catch (e) { console.error('Failed to load locations:', e); }
+    }
+
+    async function loadRestockLogs() {
+      try {
+        const res = await fetch('/api/restock/logs');
+        restockLogs = await res.json();
+      } catch (e) { restockLogs = []; }
+    }
+
+    async function loadPredictions() {
+      try {
+        const res = await fetch('/api/restock/predictions');
+        predictions = await res.json();
+      } catch (e) { predictions = []; }
+    }
+
+    function loadCapacities() {
+      try {
+        const saved = localStorage.getItem('kv_restock_capacities');
+        if (saved) capacities = JSON.parse(saved);
+      } catch (e) {}
+    }
+
+    function getCapacity(locationId) {
+      return capacities[locationId] || 150;
+    }
+
+    // ===== POPULATE =====
+    function populateLocationDropdown() {
+      const sel = document.getElementById('log-location');
+      sel.innerHTML = '<option value="">— Select Location —</option>';
+      locations.forEach(l => {
+        const name = l.prospect_name || l.name || `Location #${l.id}`;
+        sel.innerHTML += `<option value="${l.id}">${name}</option>`;
+      });
+    }
+
+    // ===== RENDER PREDICTIONS =====
+    function renderPredictions() {
+      const grid = document.getElementById('predictions-grid');
+      const empty = document.getElementById('predictions-empty');
+
+      if (!predictions.length) {
+        grid.innerHTML = '';
+        empty.style.display = 'block';
+        updateStats([]);
+        return;
+      }
+
+      empty.style.display = 'none';
+
+      // Sort by days until empty (soonest first)
+      const sorted = [...predictions].sort((a, b) => a.days_until_empty - b.days_until_empty);
+
+      grid.innerHTML = sorted.map(p => {
+        const urgency = getUrgency(p.days_until_empty);
+        const pct = Math.max(0, Math.min(100, (p.estimated_items / p.capacity) * 100));
+        const locationName = p.location_name || `Location #${p.location_id}`;
+        const lastRestock = p.last_restock_date
+          ? new Date(p.last_restock_date).toLocaleDateString()
+          : 'Never';
+        const daysSinceRestock = p.days_since_restock != null ? p.days_since_restock : '—';
+
+        return `
+          <div class="pred-card urgency-${urgency.color}">
+            <div class="pred-card-header">
+              <h3>${locationName}</h3>
+              <span class="badge badge-${urgency.color}">${urgency.label}</span>
+            </div>
+            <div class="pred-card-body">
+              <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px;">
+                <div>
+                  <div class="days-display ${urgency.color}">${p.days_until_empty === Infinity ? '∞' : Math.round(p.days_until_empty)}</div>
+                  <div class="days-label">days until empty</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:1.1rem;font-weight:700;color:var(--accent);">${p.daily_velocity.toFixed(1)}</div>
+                  <div class="days-label">items/day</div>
+                </div>
+              </div>
+
+              <div class="stock-info">
+                <span>~${Math.round(p.estimated_items)} items remaining</span>
+                <span>${Math.round(pct)}% full</span>
+              </div>
+              <div class="stock-bar-wrap">
+                <div class="stock-bar ${urgency.color}" style="width:${pct}%"></div>
+              </div>
+
+              <div class="pred-meta">
+                <span>📦 Capacity: ${p.capacity}</span>
+                <span>📅 Last: ${lastRestock}</span>
+                <span>⏱️ ${daysSinceRestock}d ago</span>
+              </div>
+
+              <div class="pred-card-actions">
+                <button class="btn btn-primary btn-sm" onclick="quickRestock(${p.location_id})">
+                  📋 Log Restock
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="viewHistory(${p.location_id})">
+                  📊 History
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      updateStats(sorted);
+    }
+
+    function getUrgency(days) {
+      if (days === Infinity || days === null) return { color: 'green', label: 'No Data' };
+      if (days < 3) return { color: 'red', label: 'Critical' };
+      if (days <= 7) return { color: 'yellow', label: 'Warning' };
+      return { color: 'green', label: 'Healthy' };
+    }
+
+    function updateStats(predictions) {
+      let critical = 0, warning = 0, healthy = 0, totalVelocity = 0, velocityCount = 0;
+      predictions.forEach(p => {
+        if (p.days_until_empty < 3) critical++;
+        else if (p.days_until_empty <= 7) warning++;
+        else healthy++;
+        if (p.daily_velocity > 0) {
+          totalVelocity += p.daily_velocity;
+          velocityCount++;
+        }
+      });
+      document.getElementById('stat-critical').textContent = critical;
+      document.getElementById('stat-warning').textContent = warning;
+      document.getElementById('stat-healthy').textContent = healthy;
+      document.getElementById('stat-velocity').textContent = velocityCount > 0
+        ? (totalVelocity / velocityCount).toFixed(1)
+        : '—';
+    }
+
+    // ===== RENDER LOG =====
+    function renderLog() {
+      const tbody = document.getElementById('log-tbody');
+      const empty = document.getElementById('log-empty');
+
+      if (!restockLogs.length) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+
+      empty.style.display = 'none';
+      const sorted = [...restockLogs].sort((a, b) => new Date(b.restocked_at) - new Date(a.restocked_at));
+
+      tbody.innerHTML = sorted.map(log => {
+        const loc = locations.find(l => l.id === log.location_id);
+        const name = loc?.prospect_name || loc?.name || `Location #${log.location_id}`;
+        const date = new Date(log.restocked_at).toLocaleDateString();
+
+        return `
+          <tr>
+            <td>${date}</td>
+            <td>${name}</td>
+            <td><span style="color:var(--accent);font-weight:600;">${log.items_count}</span> items</td>
+            <td style="color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${log.notes || '—'}</td>
+            <td>
+              <button class="btn btn-secondary btn-sm btn-icon" onclick="deleteLog(${log.id})" title="Delete">🗑️</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ===== RENDER SETTINGS =====
+    function renderSettings() {
+      const grid = document.getElementById('settings-grid');
+      if (!locations.length) {
+        grid.innerHTML = '<p style="color:var(--muted)">No locations found. Add locations first.</p>';
+        return;
+      }
+      grid.innerHTML = locations.map(l => {
+        const name = l.prospect_name || l.name || `Location #${l.id}`;
+        const cap = getCapacity(l.id);
+        return `
+          <div class="setting-item">
+            <label>${name}</label>
+            <input type="number" id="cap-${l.id}" value="${cap}" min="1" max="999">
+            <span style="font-size:0.8rem;color:var(--muted)">items</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ===== ACTIONS =====
+    function openLogModal() {
+      document.getElementById('log-modal').classList.add('open');
+      document.getElementById('log-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('log-items').value = '';
+      document.getElementById('log-notes').value = '';
+      document.getElementById('log-location').value = '';
+    }
+
+    function closeLogModal() {
+      document.getElementById('log-modal').classList.remove('open');
+    }
+
+    function quickRestock(locationId) {
+      openLogModal();
+      document.getElementById('log-location').value = locationId;
+      document.getElementById('log-items').value = getCapacity(locationId);
+    }
+
+    async function submitRestockLog() {
+      const location_id = parseInt(document.getElementById('log-location').value);
+      const restocked_at = document.getElementById('log-date').value;
+      const items_count = parseInt(document.getElementById('log-items').value);
+      const notes = document.getElementById('log-notes').value.trim();
+
+      if (!location_id) return showToast('Select a location', 'error');
+      if (!restocked_at) return showToast('Select a date', 'error');
+      if (!items_count || items_count < 1) return showToast('Enter items count', 'error');
+
+      try {
+        const res = await fetch('/api/restock/log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ location_id, restocked_at, items_count, notes })
+        });
+        if (!res.ok) throw new Error('Failed to log restock');
+        closeLogModal();
+        showToast('Restock logged successfully!', 'success');
+        await loadAll();
+      } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+      }
+    }
+
+    async function deleteLog(id) {
+      if (!confirm('Delete this restock log?')) return;
+      try {
+        await fetch(`/api/restock/logs/${id}`, { method: 'DELETE' });
+        showToast('Log deleted', 'success');
+        await loadAll();
+      } catch (e) {
+        showToast('Error deleting log', 'error');
+      }
+    }
+
+    function viewHistory(locationId) {
+      // Switch to log tab and filter
+      switchTab('log');
+      // TODO: Could add location filter in future
+    }
+
+    function toggleSettings() {
+      const panel = document.getElementById('settings-panel');
+      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function saveCapacities() {
+      locations.forEach(l => {
+        const input = document.getElementById(`cap-${l.id}`);
+        if (input) {
+          const val = parseInt(input.value);
+          if (val > 0) capacities[l.id] = val;
+        }
+      });
+      localStorage.setItem('kv_restock_capacities', JSON.stringify(capacities));
+
+      // Also save to server so predictions use it
+      fetch('/api/restock/capacities', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(capacities)
+      }).catch(() => {});
+
+      showToast('Capacities saved!', 'success');
+      loadPredictions().then(() => renderPredictions());
+    }
+
+    // ===== TABS =====
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById(`tab-${tab}`).classList.add('active');
+      event.target ? event.target.classList.add('active') :
+        document.querySelector(`.tab-btn[onclick*="${tab}"]`).classList.add('active');
+    }
+
+    // ===== TOAST =====
+    function showToast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = `toast ${type} show`;
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // Close modal on overlay click
+    document.getElementById('log-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeLogModal();
+    });
+  </script>
+</body>
+</html>

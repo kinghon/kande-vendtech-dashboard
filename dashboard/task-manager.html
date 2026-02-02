@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-sales-32.png">
+  <title>Task Manager — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --bg: #f8fafc; --card: #fff; --border: #e2e8f0; --text: #1e293b; --muted: #64748b; --accent: #3b82f6; --danger: #ef4444; --success: #22c55e; --warn: #f59e0b; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .header h1 { font-size: 1.5rem; background: linear-gradient(90deg, #3b82f6, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .btn { padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.15s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-sm { padding: 5px 10px; font-size: 0.78rem; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: var(--bg); }
+
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .stat-card { background: var(--card); border-radius: 12px; padding: 16px; text-align: center; border: 1px solid var(--border); }
+    .stat-card .number { font-size: 1.8rem; font-weight: 700; }
+    .stat-card .number.danger { color: var(--danger); }
+    .stat-card .number.warn { color: var(--warn); }
+    .stat-card .number.success { color: var(--success); }
+    .stat-card .number.accent { color: var(--accent); }
+    .stat-card .label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+
+    .filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .filter-select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; background: var(--card); color: var(--text); }
+    .filter-btn { padding: 8px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; color: var(--muted); cursor: pointer; font-size: 0.82rem; }
+    .filter-btn:hover, .filter-btn.active { background: rgba(59,130,246,0.1); border-color: var(--accent); color: var(--accent); }
+
+    .task-list { display: flex; flex-direction: column; gap: 6px; }
+    .task-item {
+      display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+      background: var(--card); border-radius: 10px; border: 1px solid var(--border); transition: all 0.15s;
+    }
+    .task-item:hover { border-color: var(--accent); }
+    .task-item.overdue { border-left: 3px solid var(--danger); }
+    .task-item.due-today { border-left: 3px solid var(--warn); }
+    .task-item.completed { opacity: 0.5; }
+    .task-item.completed .task-title { text-decoration: line-through; }
+
+    .task-check { width: 22px; height: 22px; border: 2px solid var(--border); border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
+    .task-check:hover { border-color: var(--accent); background: rgba(59,130,246,0.1); }
+    .task-check.checked { background: var(--success); border-color: var(--success); color: #fff; }
+
+    .task-content { flex: 1; min-width: 0; }
+    .task-title { font-weight: 500; font-size: 0.9rem; margin-bottom: 2px; }
+    .task-meta { display: flex; gap: 12px; font-size: 0.78rem; color: var(--muted); flex-wrap: wrap; }
+    .task-meta .prospect-link { color: var(--accent); text-decoration: none; font-weight: 500; }
+    .task-meta .prospect-link:hover { text-decoration: underline; }
+
+    .task-badges { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+    .badge-high { background: rgba(239,68,68,0.1); color: var(--danger); }
+    .badge-medium { background: rgba(245,158,11,0.1); color: var(--warn); }
+    .badge-low { background: rgba(100,116,139,0.1); color: var(--muted); }
+    .badge-type { background: rgba(59,130,246,0.1); color: var(--accent); }
+    .badge-auto { background: rgba(168,85,247,0.1); color: #a855f7; }
+    .badge-overdue { background: rgba(239,68,68,0.15); color: var(--danger); }
+
+    .task-due { font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+    .task-due.overdue { color: var(--danger); font-weight: 600; }
+    .task-due.today { color: var(--warn); font-weight: 600; }
+
+    .task-actions { display: flex; gap: 4px; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty-state h3 { font-size: 1.2rem; margin-bottom: 8px; color: var(--text); }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--card); border-radius: 12px; padding: 24px; width: 90%; max-width: 500px; border: 1px solid var(--border); }
+    .modal h2 { margin-bottom: 16px; font-size: 1.1rem; }
+    .modal label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; margin-top: 12px; }
+    .modal input, .modal select, .modal textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; }
+    .modal textarea { min-height: 60px; resize: vertical; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+
+    .toast { position: fixed; bottom: 20px; right: 20px; background: var(--success); color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 0.9rem; z-index: 9999; animation: slideIn 0.3s; }
+    @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <h1>📋 Task Manager</h1>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary" onclick="openTaskModal()">+ New Task</button>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="number danger" id="overdueCount">0</div><div class="label">Overdue</div></div>
+      <div class="stat-card"><div class="number warn" id="todayCount">0</div><div class="label">Due Today</div></div>
+      <div class="stat-card"><div class="number accent" id="pendingCount">0</div><div class="label">Pending</div></div>
+      <div class="stat-card"><div class="number success" id="completedCount">0</div><div class="label">Completed</div></div>
+    </div>
+
+    <div class="filters">
+      <button class="filter-btn active" data-filter="pending" onclick="setFilter('pending', this)">📌 Pending</button>
+      <button class="filter-btn" data-filter="overdue" onclick="setFilter('overdue', this)">🔴 Overdue</button>
+      <button class="filter-btn" data-filter="today" onclick="setFilter('today', this)">📅 Today</button>
+      <button class="filter-btn" data-filter="all" onclick="setFilter('all', this)">📊 All</button>
+      <button class="filter-btn" data-filter="completed" onclick="setFilter('completed', this)">✅ Done</button>
+      <select class="filter-select" id="typeFilter" onchange="applyFilters()">
+        <option value="">All Types</option>
+        <option value="email">📧 Email</option>
+        <option value="call">📞 Call</option>
+        <option value="follow_up">🔄 Follow-up</option>
+        <option value="install">🔧 Install</option>
+        <option value="general">📋 General</option>
+      </select>
+      <select class="filter-select" id="priorityFilter" onchange="applyFilters()">
+        <option value="">All Priorities</option>
+        <option value="high">🔴 High</option>
+        <option value="medium">🟡 Medium</option>
+        <option value="low">⚪ Low</option>
+      </select>
+    </div>
+
+    <div id="taskList" class="task-list">
+      <div class="empty-state"><h3>Loading tasks...</h3></div>
+    </div>
+  </div>
+
+  <!-- New Task Modal -->
+  <div class="modal-overlay" id="taskModal">
+    <div class="modal">
+      <h2 id="taskModalTitle">New Task</h2>
+      <input type="hidden" id="taskEditId">
+      <label>Title</label>
+      <input type="text" id="taskTitle" placeholder="e.g., Follow up call with...">
+      <label>Prospect</label>
+      <select id="taskProspect"><option value="">— No prospect —</option></select>
+      <label>Type</label>
+      <select id="taskType">
+        <option value="general">📋 General</option>
+        <option value="email">📧 Email</option>
+        <option value="call">📞 Call</option>
+        <option value="follow_up">🔄 Follow-up</option>
+        <option value="install">🔧 Install</option>
+        <option value="pop_in">🚶 Pop-In</option>
+        <option value="proposal">📝 Proposal</option>
+        <option value="contract">📄 Contract</option>
+      </select>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div>
+          <label>Priority</label>
+          <select id="taskPriority">
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+        <div>
+          <label>Due Date</label>
+          <input type="date" id="taskDueDate">
+        </div>
+      </div>
+      <label>Assigned To</label>
+      <input type="text" id="taskAssigned" value="Kurtis">
+      <label>Description</label>
+      <textarea id="taskDescription" placeholder="Optional details..."></textarea>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeTaskModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveTask()">Save Task</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let allTasks = [];
+    let allProspects = [];
+    let currentStatusFilter = 'pending';
+    const today = new Date().toISOString().split('T')[0];
+
+    async function loadTasks() {
+      try {
+        const [tRes, sRes, pRes] = await Promise.all([
+          fetch('/api/crm-tasks'),
+          fetch('/api/crm-tasks/stats'),
+          fetch('/api/prospects')
+        ]);
+        allTasks = await tRes.json();
+        const stats = await sRes.json();
+        allProspects = await pRes.json();
+
+        document.getElementById('overdueCount').textContent = stats.overdue;
+        document.getElementById('todayCount').textContent = stats.dueToday;
+        document.getElementById('pendingCount').textContent = stats.pending;
+        document.getElementById('completedCount').textContent = stats.completed;
+
+        applyFilters();
+      } catch (e) { console.error('Error:', e); }
+    }
+
+    function setFilter(filter, btn) {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentStatusFilter = filter;
+      applyFilters();
+    }
+
+    function applyFilters() {
+      let tasks = [...allTasks];
+      const typeF = document.getElementById('typeFilter').value;
+      const prioF = document.getElementById('priorityFilter').value;
+
+      if (currentStatusFilter === 'pending') tasks = tasks.filter(t => !t.completed);
+      else if (currentStatusFilter === 'completed') tasks = tasks.filter(t => t.completed);
+      else if (currentStatusFilter === 'overdue') tasks = tasks.filter(t => t.is_overdue);
+      else if (currentStatusFilter === 'today') tasks = tasks.filter(t => !t.completed && t.due_date === today);
+
+      if (typeF) tasks = tasks.filter(t => t.task_type === typeF);
+      if (prioF) tasks = tasks.filter(t => t.priority === prioF);
+
+      renderTasks(tasks);
+    }
+
+    function renderTasks(tasks) {
+      const list = document.getElementById('taskList');
+      if (tasks.length === 0) {
+        list.innerHTML = '<div class="empty-state"><h3>No tasks found</h3><p>Create a task or change filters</p></div>';
+        return;
+      }
+      list.innerHTML = tasks.map(t => {
+        const isOverdue = t.is_overdue;
+        const isDueToday = !t.completed && t.due_date === today;
+        const cls = t.completed ? 'completed' : (isOverdue ? 'overdue' : (isDueToday ? 'due-today' : ''));
+        const typeIcons = { email: '📧', call: '📞', follow_up: '🔄', install: '🔧', pop_in: '🚶', proposal: '📝', contract: '📄', general: '📋' };
+        const dueText = t.due_date ? formatDate(t.due_date) : 'No date';
+        const dueClass = isOverdue ? 'overdue' : (isDueToday ? 'today' : '');
+
+        return `
+          <div class="task-item ${cls}">
+            <div class="task-check ${t.completed ? 'checked' : ''}" onclick="toggleTask(${t.id})">
+              ${t.completed ? '✓' : ''}
+            </div>
+            <div class="task-content">
+              <div class="task-title">${typeIcons[t.task_type] || '📋'} ${t.title}</div>
+              <div class="task-meta">
+                ${t.prospect_name && t.prospect_id ? `<a class="prospect-link" href="/crm/${t.prospect_id}">${t.prospect_name}</a>` : ''}
+                ${t.assigned_to ? `<span>👤 ${t.assigned_to}</span>` : ''}
+                ${t.prospect_stage ? `<span>📌 ${t.prospect_stage.replace(/_/g, ' ')}</span>` : ''}
+              </div>
+            </div>
+            <div class="task-badges">
+              <span class="badge badge-${t.priority}">${t.priority}</span>
+              ${t.auto_generated ? '<span class="badge badge-auto">auto</span>' : ''}
+              ${isOverdue ? '<span class="badge badge-overdue">overdue</span>' : ''}
+            </div>
+            <div class="task-due ${dueClass}">${dueText}</div>
+            <div class="task-actions">
+              <button class="btn btn-sm btn-outline" onclick="editTask(${t.id})" title="Edit">✏️</button>
+              <button class="btn btn-sm btn-outline" onclick="deleteTask(${t.id})" title="Delete">🗑</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function formatDate(d) {
+      if (!d) return '';
+      if (d === today) return 'Today';
+      const diff = Math.round((new Date(d + 'T00:00:00') - new Date(today + 'T00:00:00')) / (1000 * 60 * 60 * 24));
+      if (diff === 1) return 'Tomorrow';
+      if (diff === -1) return 'Yesterday';
+      if (diff < 0) return `${Math.abs(diff)}d overdue`;
+      if (diff < 7) return `In ${diff}d`;
+      return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    async function toggleTask(id) {
+      await fetch(`/api/crm-tasks/${id}/complete`, { method: 'PUT' });
+      loadTasks();
+    }
+
+    async function deleteTask(id) {
+      if (!confirm('Delete this task?')) return;
+      await fetch(`/api/crm-tasks/${id}`, { method: 'DELETE' });
+      showToast('Task deleted');
+      loadTasks();
+    }
+
+    function openTaskModal(task = null) {
+      document.getElementById('taskModal').classList.add('open');
+      document.getElementById('taskModalTitle').textContent = task ? 'Edit Task' : 'New Task';
+      document.getElementById('taskEditId').value = task ? task.id : '';
+      document.getElementById('taskTitle').value = task ? task.title : '';
+      document.getElementById('taskType').value = task ? task.task_type : 'general';
+      document.getElementById('taskPriority').value = task ? task.priority : 'medium';
+      document.getElementById('taskDueDate').value = task ? (task.due_date || '') : today;
+      document.getElementById('taskAssigned').value = task ? (task.assigned_to || 'Kurtis') : 'Kurtis';
+      document.getElementById('taskDescription').value = task ? (task.description || '') : '';
+
+      const sel = document.getElementById('taskProspect');
+      sel.innerHTML = '<option value="">— No prospect —</option>' +
+        allProspects.filter(p => p.status !== 'closed').map(p =>
+          `<option value="${p.id}" ${task && task.prospect_id === p.id ? 'selected' : ''}>${p.name}</option>`
+        ).join('');
+    }
+
+    function closeTaskModal() { document.getElementById('taskModal').classList.remove('open'); }
+
+    function editTask(id) {
+      const task = allTasks.find(t => t.id === id);
+      if (task) openTaskModal(task);
+    }
+
+    async function saveTask() {
+      const editId = document.getElementById('taskEditId').value;
+      const payload = {
+        title: document.getElementById('taskTitle').value,
+        prospect_id: document.getElementById('taskProspect').value || null,
+        task_type: document.getElementById('taskType').value,
+        priority: document.getElementById('taskPriority').value,
+        due_date: document.getElementById('taskDueDate').value || null,
+        assigned_to: document.getElementById('taskAssigned').value,
+        description: document.getElementById('taskDescription').value
+      };
+
+      if (!payload.title) return alert('Title is required');
+
+      if (editId) {
+        await fetch(`/api/crm-tasks/${editId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      } else {
+        await fetch('/api/crm-tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      }
+
+      closeTaskModal();
+      showToast(editId ? 'Task updated' : 'Task created');
+      loadTasks();
+    }
+
+    function showToast(msg) {
+      const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+      document.body.appendChild(t); setTimeout(() => t.remove(), 3000);
+    }
+
+    loadTasks();
+  </script>
+  <script src="/nav.js"></script>
+</body>
+</html>

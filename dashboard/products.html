@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Product Mix Optimizer — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa; --card: #ffffff; --card2: #f7fafc; --border: #e2e8f0;
+      --text: #1a202c; --muted: #718096; --accent: #3182ce; --accent-dim: rgba(49,130,206,0.1);
+      --hot: #e53e3e; --warn: #dd6b20; --success: #38a169; --purple: #7b2cbf;
+      --drinks: #3b82f6; --snacks: #dd6b20; --candy: #e53e3e; --healthy: #38a169; --energy: #7b2cbf;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+    /* Header */
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; }
+    .page-header h1 { font-size: 1.6rem; font-weight: 700; background: linear-gradient(90deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .page-header p { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+    .header-actions { display: flex; gap: 10px; }
+
+    /* Buttons */
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-primary:hover { background: #2b6cb0; }
+    .btn-secondary { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-danger { background: rgba(239,68,68,0.15); color: var(--hot); border: 1px solid rgba(239,68,68,0.3); }
+    .btn-danger:hover { background: rgba(239,68,68,0.25); }
+    .btn-success { background: rgba(34,197,94,0.15); color: var(--success); border: 1px solid rgba(34,197,94,0.3); }
+    .btn-success:hover { background: rgba(34,197,94,0.25); }
+    .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
+    .btn-icon { width: 34px; height: 34px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--card2); border: 1px solid var(--border); color: var(--muted); cursor: pointer; transition: all 0.2s; font-size: 0.9rem; }
+    .btn-icon:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid var(--border); }
+    .tab { padding: 12px 20px; cursor: pointer; font-weight: 500; color: var(--muted); border: none; background: none; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.2s; font-size: 0.9rem; }
+    .tab:hover { color: var(--accent); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* Stats row */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; }
+    .stat-card .value { font-size: 1.6rem; font-weight: 700; }
+    .stat-card .label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+    .value.accent { color: var(--accent); }
+    .value.success { color: var(--success); }
+    .value.warn { color: var(--warn); }
+    .value.purple { color: var(--purple); }
+
+    /* Filters */
+    .filters { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+    .filter-pill { padding: 7px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; color: var(--muted); cursor: pointer; font-size: 0.82rem; font-weight: 500; transition: all 0.15s; }
+    .filter-pill:hover, .filter-pill.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+    .search-box { flex: 1; min-width: 180px; padding: 9px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.85rem; outline: none; }
+    .search-box:focus { border-color: var(--accent); }
+    .search-box::placeholder { color: var(--muted); }
+
+    /* Product Grid */
+    .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .product-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; transition: all 0.2s; position: relative; }
+    .product-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 20px rgba(49,130,206,0.08); }
+    .product-card .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .product-card .product-name { font-size: 1rem; font-weight: 600; }
+    .product-card .product-category { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+    .cat-drinks { background: rgba(59,130,246,0.15); color: var(--drinks); }
+    .cat-snacks { background: rgba(245,158,11,0.15); color: var(--snacks); }
+    .cat-candy { background: rgba(239,68,68,0.15); color: var(--candy); }
+    .cat-healthy { background: rgba(34,197,94,0.15); color: var(--healthy); }
+    .cat-energy { background: rgba(168,85,247,0.15); color: var(--energy); }
+    .product-card .price-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .product-card .price { font-size: 0.85rem; color: var(--muted); }
+    .product-card .price strong { color: var(--text); font-size: 1rem; }
+    .product-card .margin-badge { padding: 3px 10px; border-radius: 8px; font-size: 0.78rem; font-weight: 600; }
+    .margin-high { background: rgba(34,197,94,0.15); color: var(--success); }
+    .margin-mid { background: rgba(245,158,11,0.15); color: var(--warn); }
+    .margin-low { background: rgba(239,68,68,0.15); color: var(--hot); }
+    .product-card .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+    .product-card .tag { padding: 2px 8px; border-radius: 6px; font-size: 0.68rem; background: var(--card2); border: 1px solid var(--border); color: var(--muted); }
+    .product-card .card-actions { display: flex; gap: 6px; margin-top: 12px; justify-content: flex-end; }
+
+    /* Recommendation Panel */
+    .recommend-panel { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 24px; }
+    .recommend-panel h2 { font-size: 1.2rem; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .recommend-panel p { color: var(--muted); font-size: 0.85rem; margin-bottom: 20px; }
+    .property-selector { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .property-btn { padding: 16px; background: var(--card2); border: 2px solid var(--border); border-radius: 12px; cursor: pointer; text-align: center; transition: all 0.2s; }
+    .property-btn:hover { border-color: var(--accent); }
+    .property-btn.selected { border-color: var(--accent); background: var(--accent-dim); }
+    .property-btn .prop-icon { font-size: 1.8rem; margin-bottom: 6px; }
+    .property-btn .prop-label { font-size: 0.85rem; font-weight: 600; }
+    .property-btn .prop-desc { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+
+    .rec-results { display: none; }
+    .rec-results.visible { display: block; }
+    .rec-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+    .rec-header h3 { font-size: 1.1rem; color: var(--accent); }
+    .rec-summary { color: var(--muted); font-size: 0.85rem; }
+    .rec-category { margin-bottom: 20px; }
+    .rec-category h4 { font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+    .rec-products { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+    .rec-product { display: flex; align-items: center; gap: 12px; background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+    .rec-product .rec-rank { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-dim); color: var(--accent); font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .rec-product .rec-info { flex: 1; }
+    .rec-product .rec-name { font-size: 0.88rem; font-weight: 500; }
+    .rec-product .rec-meta { font-size: 0.75rem; color: var(--muted); }
+    .rec-product .rec-price { font-weight: 600; font-size: 0.85rem; color: var(--accent); }
+
+    /* Planogram */
+    .planogram-section { display: none; }
+    .planogram-section.visible { display: block; }
+    .planogram-container { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; }
+    .planogram-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .planogram-header h3 { font-size: 1.1rem; }
+    .planogram-grid { display: grid; gap: 6px; margin-bottom: 20px; }
+    .plano-row { display: grid; gap: 6px; }
+    .plano-slot { background: var(--card2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 8px; text-align: center; min-height: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s; }
+    .plano-slot.filled { border-color: var(--accent); }
+    .plano-slot .slot-name { font-size: 0.72rem; font-weight: 500; line-height: 1.2; }
+    .plano-slot .slot-cat { font-size: 0.6rem; color: var(--muted); margin-top: 2px; }
+    .plano-slot .slot-price { font-size: 0.68rem; color: var(--accent); font-weight: 600; margin-top: 2px; }
+    .plano-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 16px; }
+    .plano-legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--muted); }
+    .plano-legend-color { width: 12px; height: 12px; border-radius: 3px; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; max-width: 560px; width: 95%; max-height: 90vh; overflow-y: auto; }
+    .modal h2 { font-size: 1.2rem; margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.82rem; font-weight: 500; color: var(--muted); margin-bottom: 5px; }
+    .form-group input, .form-group select { width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.9rem; outline: none; }
+    .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .checkbox-group label { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 0.82rem; color: var(--muted); transition: all 0.15s; }
+    .checkbox-group label:hover { border-color: var(--accent); color: var(--accent); }
+    .checkbox-group input:checked + span { color: var(--accent); }
+    .checkbox-group label:has(input:checked) { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+    .checkbox-group input[type="checkbox"] { display: none; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+    .computed-margin { font-size: 0.85rem; color: var(--success); font-weight: 600; padding: 8px 12px; background: rgba(34,197,94,0.08); border-radius: 8px; text-align: center; margin-top: 8px; }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty-state h3 { font-size: 1.1rem; color: var(--text); margin-bottom: 8px; }
+
+    /* Print styles */
+    @media print {
+      body { background: #fff; color: #000; }
+      .app { padding: 10px; }
+      #kv-nav, #kv-nav-mobile, .page-header .header-actions, .tabs, .filters, .card-actions, .btn, .modal-overlay { display: none !important; }
+      .product-card, .stat-card, .recommend-panel, .planogram-container { background: #fff; border: 1px solid #ddd; box-shadow: none; }
+      .product-card:hover { transform: none; box-shadow: none; }
+      .planogram-section.visible { display: block !important; }
+      .rec-results.visible { display: block !important; }
+      * { color: #000 !important; -webkit-text-fill-color: #000 !important; }
+      .product-category, .margin-badge, .tag, .rec-rank { border: 1px solid #999 !important; }
+    }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .page-header { flex-direction: column; align-items: flex-start; }
+      .products-grid { grid-template-columns: 1fr; }
+      .property-selector { grid-template-columns: 1fr 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .tabs { overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1>🧪 Product Mix Optimizer</h1>
+      <p>Manage products and get AI-powered mix recommendations by property type</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="seedProducts()">🌱 Seed Sample Data</button>
+      <button class="btn btn-primary" onclick="openAddModal()">+ Add Product</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-tab="catalog" onclick="switchTab('catalog')">📦 Product Catalog</button>
+    <button class="tab" data-tab="recommend" onclick="switchTab('recommend')">🎯 Mix Recommender</button>
+    <button class="tab" data-tab="planogram" onclick="switchTab('planogram')">🗺️ Planogram</button>
+  </div>
+
+  <!-- ===== CATALOG TAB ===== -->
+  <div id="tab-catalog">
+    <!-- Stats -->
+    <div class="stats-row" id="stats-row"></div>
+
+    <!-- Filters -->
+    <div class="filters">
+      <button class="filter-pill active" onclick="filterCategory('all', this)">All</button>
+      <button class="filter-pill" onclick="filterCategory('Drinks', this)">🥤 Drinks</button>
+      <button class="filter-pill" onclick="filterCategory('Snacks', this)">🍿 Snacks</button>
+      <button class="filter-pill" onclick="filterCategory('Candy', this)">🍬 Candy</button>
+      <button class="filter-pill" onclick="filterCategory('Healthy', this)">🥗 Healthy</button>
+      <button class="filter-pill" onclick="filterCategory('Energy', this)">⚡ Energy</button>
+      <input type="text" class="search-box" placeholder="Search products..." oninput="searchProducts(this.value)">
+    </div>
+
+    <!-- Product grid -->
+    <div class="products-grid" id="products-grid"></div>
+  </div>
+
+  <!-- ===== RECOMMEND TAB ===== -->
+  <div id="tab-recommend" style="display:none">
+    <div class="recommend-panel">
+      <h2>🎯 Product Mix Recommender</h2>
+      <p>Select a property type to get an optimized product mix recommendation based on location demographics and buyer behavior.</p>
+
+      <div class="property-selector">
+        <div class="property-btn" onclick="selectProperty('apartments', this)">
+          <div class="prop-icon">🏢</div>
+          <div class="prop-label">Apartments</div>
+          <div class="prop-desc">Broad mix, energy drinks, snacks, sodas</div>
+        </div>
+        <div class="property-btn" onclick="selectProperty('senior_living', this)">
+          <div class="prop-icon">🏡</div>
+          <div class="prop-label">Senior Living</div>
+          <div class="prop-desc">Healthy options, low caffeine, easy-open</div>
+        </div>
+        <div class="property-btn" onclick="selectProperty('healthcare', this)">
+          <div class="prop-icon">🏥</div>
+          <div class="prop-label">Healthcare</div>
+          <div class="prop-desc">Healthy choices, protein bars, water</div>
+        </div>
+        <div class="property-btn" onclick="selectProperty('industrial', this)">
+          <div class="prop-icon">🏭</div>
+          <div class="prop-label">Industrial</div>
+          <div class="prop-desc">Energy drinks, filling snacks, cold drinks</div>
+        </div>
+        <div class="property-btn" onclick="selectProperty('office', this)">
+          <div class="prop-icon">🏬</div>
+          <div class="prop-label">Office</div>
+          <div class="prop-desc">Premium snacks, sparkling water, healthy</div>
+        </div>
+      </div>
+
+      <div class="rec-results" id="rec-results"></div>
+    </div>
+  </div>
+
+  <!-- ===== PLANOGRAM TAB ===== -->
+  <div id="tab-planogram" style="display:none">
+    <div class="planogram-container">
+      <div class="planogram-header">
+        <div>
+          <h3>🗺️ Planogram Suggestion</h3>
+          <p style="color:var(--muted); font-size:0.85rem; margin-top:4px;">Select a property type above first, then view the suggested slot layout</p>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <select id="plano-property" onchange="generatePlanogram(this.value)" style="padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem;">
+            <option value="">Select property type...</option>
+            <option value="apartments">🏢 Apartments</option>
+            <option value="senior_living">🏡 Senior Living</option>
+            <option value="healthcare">🏥 Healthcare</option>
+            <option value="industrial">🏭 Industrial</option>
+            <option value="office">🏬 Office</option>
+          </select>
+          <button class="btn btn-secondary" onclick="window.print()">🖨️ Print</button>
+        </div>
+      </div>
+      <div id="planogram-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="product-modal">
+  <div class="modal">
+    <h2 id="modal-title">Add Product</h2>
+    <input type="hidden" id="edit-id">
+    <div class="form-group">
+      <label>Product Name</label>
+      <input type="text" id="field-name" placeholder="e.g. Coca-Cola 20oz">
+    </div>
+    <div class="form-group">
+      <label>Category</label>
+      <select id="field-category">
+        <option value="Drinks">🥤 Drinks</option>
+        <option value="Snacks">🍿 Snacks</option>
+        <option value="Candy">🍬 Candy</option>
+        <option value="Healthy">🥗 Healthy</option>
+        <option value="Energy">⚡ Energy</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Cost Price ($)</label>
+        <input type="number" id="field-cost" step="0.01" placeholder="0.75" oninput="calcMarginPreview()">
+      </div>
+      <div class="form-group">
+        <label>Sell Price ($)</label>
+        <input type="number" id="field-sell" step="0.01" placeholder="1.75" oninput="calcMarginPreview()">
+      </div>
+    </div>
+    <div class="computed-margin" id="margin-preview">Margin: --</div>
+    <div class="form-group" style="margin-top:16px;">
+      <label>Recommended For</label>
+      <div class="checkbox-group">
+        <label><input type="checkbox" value="apartments"><span>🏢 Apartments</span></label>
+        <label><input type="checkbox" value="senior_living"><span>🏡 Senior Living</span></label>
+        <label><input type="checkbox" value="healthcare"><span>🏥 Healthcare</span></label>
+        <label><input type="checkbox" value="industrial"><span>🏭 Industrial</span></label>
+        <label><input type="checkbox" value="office"><span>🏬 Office</span></label>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProduct()">Save Product</button>
+    </div>
+  </div>
+</div>
+
+<script src="/nav.js"></script>
+<script>
+/* ── State ── */
+let products = [];
+let currentFilter = 'all';
+let currentSearch = '';
+let selectedProperty = null;
+
+const PROPERTY_LABELS = {
+  apartments: '🏢 Apartments',
+  senior_living: '🏡 Senior Living',
+  healthcare: '🏥 Healthcare',
+  industrial: '🏭 Industrial',
+  office: '🏬 Office'
+};
+
+const CATEGORY_ICONS = {
+  Drinks: '🥤', Snacks: '🍿', Candy: '🍬', Healthy: '🥗', Energy: '⚡'
+};
+
+/* ── API ── */
+async function loadProducts() {
+  const res = await fetch('/api/products');
+  products = await res.json();
+  renderAll();
+}
+
+async function saveProduct() {
+  const id = document.getElementById('edit-id').value;
+  const data = {
+    name: document.getElementById('field-name').value.trim(),
+    category: document.getElementById('field-category').value,
+    cost_price: parseFloat(document.getElementById('field-cost').value) || 0,
+    sell_price: parseFloat(document.getElementById('field-sell').value) || 0,
+    recommended_for: [...document.querySelectorAll('.checkbox-group input:checked')].map(c => c.value)
+  };
+  if (!data.name) return alert('Product name is required');
+  const url = id ? `/api/products/${id}` : '/api/products';
+  const method = id ? 'PUT' : 'POST';
+  await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+  closeModal();
+  loadProducts();
+}
+
+async function deleteProduct(id) {
+  if (!confirm('Delete this product?')) return;
+  await fetch(`/api/products/${id}`, { method: 'DELETE' });
+  loadProducts();
+}
+
+/* ── Seed Data ── */
+async function seedProducts() {
+  if (products.length > 0 && !confirm('This will add sample products. Continue?')) return;
+  const samples = [
+    { name: 'Coca-Cola 20oz', category: 'Drinks', cost_price: 0.75, sell_price: 2.00, recommended_for: ['apartments','industrial','office'] },
+    { name: 'Pepsi 20oz', category: 'Drinks', cost_price: 0.70, sell_price: 2.00, recommended_for: ['apartments','industrial'] },
+    { name: 'Dr Pepper 20oz', category: 'Drinks', cost_price: 0.75, sell_price: 2.00, recommended_for: ['apartments','office'] },
+    { name: 'Gatorade 20oz', category: 'Drinks', cost_price: 0.85, sell_price: 2.50, recommended_for: ['apartments','industrial','healthcare'] },
+    { name: 'Bottled Water 16.9oz', category: 'Drinks', cost_price: 0.25, sell_price: 1.50, recommended_for: ['apartments','senior_living','healthcare','industrial','office'] },
+    { name: 'Sparkling Water', category: 'Drinks', cost_price: 0.45, sell_price: 2.00, recommended_for: ['office','healthcare','senior_living'] },
+    { name: 'Red Bull 8.4oz', category: 'Energy', cost_price: 1.50, sell_price: 3.50, recommended_for: ['apartments','industrial','office'] },
+    { name: 'Monster 16oz', category: 'Energy', cost_price: 1.25, sell_price: 3.00, recommended_for: ['apartments','industrial'] },
+    { name: "Lay's Classic", category: 'Snacks', cost_price: 0.50, sell_price: 1.75, recommended_for: ['apartments','industrial','office'] },
+    { name: 'Doritos Nacho Cheese', category: 'Snacks', cost_price: 0.50, sell_price: 1.75, recommended_for: ['apartments','industrial'] },
+    { name: 'Cheetos Crunchy', category: 'Snacks', cost_price: 0.50, sell_price: 1.75, recommended_for: ['apartments','industrial'] },
+    { name: 'Snickers', category: 'Candy', cost_price: 0.55, sell_price: 1.75, recommended_for: ['apartments','industrial'] },
+    { name: "M&M's Peanut", category: 'Candy', cost_price: 0.55, sell_price: 1.75, recommended_for: ['apartments','industrial','office'] },
+    { name: 'Kind Bar Nuts & Sea Salt', category: 'Healthy', cost_price: 0.85, sell_price: 2.50, recommended_for: ['senior_living','healthcare','office'] },
+    { name: 'RX Bar Chocolate Sea Salt', category: 'Healthy', cost_price: 1.00, sell_price: 3.00, recommended_for: ['healthcare','office'] },
+    { name: 'Belvita Breakfast Biscuits', category: 'Healthy', cost_price: 0.60, sell_price: 1.75, recommended_for: ['senior_living','healthcare','office'] },
+    { name: 'Trail Mix', category: 'Healthy', cost_price: 0.65, sell_price: 2.00, recommended_for: ['senior_living','healthcare','industrial','office'] },
+  ];
+  for (const s of samples) {
+    await fetch('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(s) });
+  }
+  loadProducts();
+}
+
+/* ── Rendering ── */
+function renderAll() {
+  renderStats();
+  renderGrid();
+}
+
+function renderStats() {
+  const cats = {};
+  let totalCost = 0, totalSell = 0;
+  products.forEach(p => {
+    cats[p.category] = (cats[p.category] || 0) + 1;
+    totalCost += p.cost_price || 0;
+    totalSell += p.sell_price || 0;
+  });
+  const avgMargin = products.length > 0 && totalSell > 0 ? ((totalSell - totalCost) / totalSell * 100).toFixed(0) : 0;
+  const topCat = Object.entries(cats).sort((a,b) => b[1] - a[1])[0];
+
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-card"><div class="value accent">${products.length}</div><div class="label">Total Products</div></div>
+    <div class="stat-card"><div class="value success">${avgMargin}%</div><div class="label">Avg Margin</div></div>
+    <div class="stat-card"><div class="value warn">${Object.keys(cats).length}</div><div class="label">Categories</div></div>
+    <div class="stat-card"><div class="value purple">${topCat ? topCat[0] : '—'}</div><div class="label">Top Category</div></div>
+  `;
+}
+
+function renderGrid() {
+  const filtered = products.filter(p => {
+    if (currentFilter !== 'all' && p.category !== currentFilter) return false;
+    if (currentSearch && !p.name.toLowerCase().includes(currentSearch.toLowerCase())) return false;
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    document.getElementById('products-grid').innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1">
+        <div class="icon">📦</div>
+        <h3>No products found</h3>
+        <p>${products.length === 0 ? 'Click "Seed Sample Data" or "Add Product" to get started.' : 'Try a different filter or search term.'}</p>
+      </div>`;
+    return;
+  }
+
+  document.getElementById('products-grid').innerHTML = filtered.map(p => {
+    const margin = p.margin || (p.sell_price ? Math.round(((p.sell_price - (p.cost_price||0)) / p.sell_price) * 100) : 0);
+    const marginClass = margin >= 50 ? 'margin-high' : margin >= 30 ? 'margin-mid' : 'margin-low';
+    const catClass = 'cat-' + (p.category || '').toLowerCase();
+    const tags = (p.recommended_for || []).map(t => `<span class="tag">${PROPERTY_LABELS[t] || t}</span>`).join('');
+
+    return `<div class="product-card">
+      <div class="card-header">
+        <span class="product-name">${p.name}</span>
+        <span class="product-category ${catClass}">${CATEGORY_ICONS[p.category] || ''} ${p.category || 'Other'}</span>
+      </div>
+      <div class="price-row">
+        <span class="price">Cost: <strong>$${(p.cost_price||0).toFixed(2)}</strong> → Sell: <strong>$${(p.sell_price||0).toFixed(2)}</strong></span>
+        <span class="margin-badge ${marginClass}">${margin}%</span>
+      </div>
+      ${tags ? `<div class="tags">${tags}</div>` : ''}
+      <div class="card-actions">
+        <button class="btn-icon" onclick="editProduct(${p.id})" title="Edit">✏️</button>
+        <button class="btn-icon" onclick="deleteProduct(${p.id})" title="Delete" style="color:var(--hot)">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Filters ── */
+function filterCategory(cat, btn) {
+  currentFilter = cat;
+  document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderGrid();
+}
+
+function searchProducts(q) {
+  currentSearch = q;
+  renderGrid();
+}
+
+/* ── Tabs ── */
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.getElementById('tab-catalog').style.display = tab === 'catalog' ? '' : 'none';
+  document.getElementById('tab-recommend').style.display = tab === 'recommend' ? '' : 'none';
+  document.getElementById('tab-planogram').style.display = tab === 'planogram' ? '' : 'none';
+}
+
+/* ── Modal ── */
+function openAddModal() {
+  document.getElementById('modal-title').textContent = 'Add Product';
+  document.getElementById('edit-id').value = '';
+  document.getElementById('field-name').value = '';
+  document.getElementById('field-category').value = 'Drinks';
+  document.getElementById('field-cost').value = '';
+  document.getElementById('field-sell').value = '';
+  document.getElementById('margin-preview').textContent = 'Margin: --';
+  document.querySelectorAll('.checkbox-group input').forEach(c => c.checked = false);
+  document.getElementById('product-modal').classList.add('open');
+}
+
+function editProduct(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('modal-title').textContent = 'Edit Product';
+  document.getElementById('edit-id').value = p.id;
+  document.getElementById('field-name').value = p.name;
+  document.getElementById('field-category').value = p.category || 'Drinks';
+  document.getElementById('field-cost').value = p.cost_price || '';
+  document.getElementById('field-sell').value = p.sell_price || '';
+  calcMarginPreview();
+  document.querySelectorAll('.checkbox-group input').forEach(c => {
+    c.checked = (p.recommended_for || []).includes(c.value);
+  });
+  document.getElementById('product-modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('product-modal').classList.remove('open');
+}
+
+function calcMarginPreview() {
+  const cost = parseFloat(document.getElementById('field-cost').value) || 0;
+  const sell = parseFloat(document.getElementById('field-sell').value) || 0;
+  const el = document.getElementById('margin-preview');
+  if (sell > 0 && cost >= 0) {
+    const margin = ((sell - cost) / sell * 100).toFixed(1);
+    const profit = (sell - cost).toFixed(2);
+    el.textContent = `Margin: ${margin}% — Profit: $${profit} per unit`;
+    el.style.color = margin >= 50 ? 'var(--success)' : margin >= 30 ? 'var(--warn)' : 'var(--hot)';
+  } else {
+    el.textContent = 'Margin: --';
+    el.style.color = 'var(--muted)';
+  }
+}
+
+/* ── Recommendations ── */
+function selectProperty(type, btn) {
+  selectedProperty = type;
+  document.querySelectorAll('.property-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  fetchRecommendation(type);
+}
+
+async function fetchRecommendation(type) {
+  const res = await fetch(`/api/products/recommend/${type}`);
+  const data = await res.json();
+  renderRecommendation(data, type);
+}
+
+function renderRecommendation(data, type) {
+  const el = document.getElementById('rec-results');
+  el.classList.add('visible');
+
+  const label = PROPERTY_LABELS[type] || type;
+  const totalProducts = data.products ? data.products.length : 0;
+  const avgMargin = data.avg_margin ? data.avg_margin.toFixed(0) : 0;
+
+  let html = `
+    <div class="rec-header">
+      <h3>${label} — Recommended Mix (${totalProducts} products)</h3>
+      <div style="display:flex;gap:10px;">
+        <span class="rec-summary">Avg Margin: <strong style="color:var(--success)">${avgMargin}%</strong></span>
+        <button class="btn btn-sm btn-secondary" onclick="switchTab('planogram'); document.getElementById('plano-property').value='${type}'; generatePlanogram('${type}');">View Planogram →</button>
+      </div>
+    </div>
+    <p style="color:var(--muted); font-size:0.85rem; margin-bottom:20px;">${data.strategy || ''}</p>
+  `;
+
+  // Group by category
+  const byCategory = {};
+  (data.products || []).forEach((p, i) => {
+    if (!byCategory[p.category]) byCategory[p.category] = [];
+    byCategory[p.category].push({ ...p, rank: i + 1 });
+  });
+
+  for (const [cat, items] of Object.entries(byCategory)) {
+    html += `<div class="rec-category">
+      <h4>${CATEGORY_ICONS[cat] || '📦'} ${cat} (${items.length})</h4>
+      <div class="rec-products">
+        ${items.map(p => `
+          <div class="rec-product">
+            <div class="rec-rank">${p.rank}</div>
+            <div class="rec-info">
+              <div class="rec-name">${p.name}</div>
+              <div class="rec-meta">Cost $${(p.cost_price||0).toFixed(2)} • ${p.margin||0}% margin</div>
+            </div>
+            <div class="rec-price">$${(p.sell_price||0).toFixed(2)}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+/* ── Planogram ── */
+function generatePlanogram(type) {
+  if (!type) { document.getElementById('planogram-grid').innerHTML = ''; return; }
+
+  const recommended = products.filter(p => (p.recommended_for || []).includes(type));
+  if (recommended.length === 0) {
+    document.getElementById('planogram-grid').innerHTML = '<div class="empty-state"><div class="icon">🗺️</div><h3>No products recommended</h3><p>Tag products for this property type first.</p></div>';
+    return;
+  }
+
+  // Layout: 6 rows x 8 columns (typical vending machine)
+  const ROWS = 6, COLS = 8;
+  const totalSlots = ROWS * COLS;
+
+  // Category distribution by property type
+  const distributions = {
+    apartments:    { Drinks: 0.30, Snacks: 0.25, Candy: 0.15, Healthy: 0.10, Energy: 0.20 },
+    senior_living: { Drinks: 0.25, Snacks: 0.15, Candy: 0.10, Healthy: 0.40, Energy: 0.10 },
+    healthcare:    { Drinks: 0.25, Snacks: 0.10, Candy: 0.05, Healthy: 0.50, Energy: 0.10 },
+    industrial:    { Drinks: 0.25, Snacks: 0.25, Candy: 0.10, Healthy: 0.10, Energy: 0.30 },
+    office:        { Drinks: 0.25, Snacks: 0.20, Candy: 0.05, Healthy: 0.35, Energy: 0.15 }
+  };
+
+  const dist = distributions[type] || distributions.apartments;
+  const slots = [];
+  const catColors = { Drinks: 'var(--drinks)', Snacks: 'var(--snacks)', Candy: 'var(--candy)', Healthy: 'var(--healthy)', Energy: 'var(--energy)' };
+
+  // Allocate slots per category
+  const categories = Object.entries(dist).sort((a,b) => b[1] - a[1]);
+  let remaining = totalSlots;
+  const catSlots = {};
+
+  categories.forEach(([cat, pct], i) => {
+    if (i === categories.length - 1) {
+      catSlots[cat] = remaining;
+    } else {
+      catSlots[cat] = Math.round(totalSlots * pct);
+      remaining -= catSlots[cat];
+    }
+  });
+
+  // Fill slots
+  for (const [cat, count] of Object.entries(catSlots)) {
+    const catProducts = recommended.filter(p => p.category === cat);
+    for (let i = 0; i < count; i++) {
+      if (catProducts.length > 0) {
+        const prod = catProducts[i % catProducts.length];
+        slots.push({ name: prod.name, category: cat, sell_price: prod.sell_price, color: catColors[cat] });
+      } else {
+        // Fill with any available product from recommended
+        const fallback = recommended[i % recommended.length];
+        slots.push({ name: fallback.name, category: fallback.category, sell_price: fallback.sell_price, color: catColors[fallback.category] || 'var(--muted)' });
+      }
+    }
+  }
+
+  // Shuffle a bit for visual variety but keep categories grouped by row
+  // Actually, arrange by row — each row gets a primary category
+  let html = '<div class="planogram-grid">';
+  let idx = 0;
+
+  for (let r = 0; r < ROWS; r++) {
+    html += `<div class="plano-row" style="grid-template-columns: repeat(${COLS}, 1fr)">`;
+    for (let c = 0; c < COLS; c++) {
+      const slot = slots[idx] || { name: 'Empty', category: '', sell_price: 0 };
+      const filled = slot.name !== 'Empty';
+      html += `<div class="plano-slot ${filled ? 'filled' : ''}" style="${filled ? `border-left: 3px solid ${slot.color}` : ''}">
+        <div class="slot-name">${slot.name}</div>
+        <div class="slot-cat">${slot.category}</div>
+        ${filled ? `<div class="slot-price">$${(slot.sell_price||0).toFixed(2)}</div>` : ''}
+      </div>`;
+      idx++;
+    }
+    html += '</div>';
+  }
+
+  html += '</div>';
+
+  // Legend
+  html += '<div class="plano-legend">';
+  for (const [cat, color] of Object.entries(catColors)) {
+    const count = slots.filter(s => s.category === cat).length;
+    if (count > 0) {
+      html += `<div class="plano-legend-item"><div class="plano-legend-color" style="background:${color}"></div>${cat}: ${count} slots (${Math.round(count/totalSlots*100)}%)</div>`;
+    }
+  }
+  html += '</div>';
+
+  document.getElementById('planogram-grid').innerHTML = html;
+}
+
+/* ── Close modal on backdrop click ── */
+document.getElementById('product-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+/* ── Init ── */
+loadProducts();
+</script>
+</body>
+</html>

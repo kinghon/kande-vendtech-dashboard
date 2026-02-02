@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>SEO & Marketing — Kande VendTech</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa; --card: #ffffff; --border: #e2e8f0;
+      --text: #1a202c; --muted: #718096; --accent: #3182ce;
+      --hot: #e53e3e; --warn: #dd6b20; --success: #38a169;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+    /* Tabs */
+    .page-tabs { display: flex; gap: 4px; margin-bottom: 24px; background: var(--card); border-radius: 10px; padding: 4px; border: 1px solid var(--border); overflow-x: auto; }
+    .page-tab {
+      padding: 10px 20px; border-radius: 8px; border: none; background: transparent;
+      color: var(--muted); font-size: 0.85rem; font-weight: 500; cursor: pointer;
+      transition: all 0.15s; white-space: nowrap;
+    }
+    .page-tab:hover { background: #f7fafc; }
+    .page-tab.active { background: var(--accent); color: #fff; font-weight: 600; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Cards & stats */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 24px; }
+    .stat-card {
+      background: var(--card); border-radius: 12px; padding: 18px;
+      border: 1px solid var(--border); text-align: center;
+    }
+    .stat-value { font-size: 1.8rem; font-weight: 700; }
+    .stat-value.good { color: var(--success); }
+    .stat-value.warn { color: var(--warn); }
+    .stat-value.bad { color: var(--hot); }
+    .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; font-weight: 600; }
+    .stat-change { font-size: 0.75rem; margin-top: 4px; }
+    .stat-change.up { color: var(--success); }
+    .stat-change.down { color: var(--hot); }
+
+    .card {
+      background: var(--card); border-radius: 12px; padding: 24px;
+      border: 1px solid var(--border); margin-bottom: 24px;
+    }
+    .card h2 { font-size: 1.1rem; margin-bottom: 16px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+    .chart-container { position: relative; height: 350px; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+    @media (max-width: 768px) {
+      .two-col { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      background: #edf2f7; padding: 10px 14px; text-align: left;
+      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--muted); font-weight: 600;
+    }
+    td { padding: 10px 14px; border-top: 1px solid var(--border); font-size: 0.85rem; }
+    tr:hover { background: #f7fafc; }
+    .pos { font-weight: 700; font-size: 1rem; }
+    .pos.top3 { color: var(--success); }
+    .pos.top10 { color: var(--accent); }
+    .pos.top20 { color: var(--warn); }
+    .pos.low { color: var(--hot); }
+    .change-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 10px;
+      font-size: 0.75rem; font-weight: 600;
+    }
+    .change-badge.up { background: rgba(56,161,105,0.1); color: var(--success); }
+    .change-badge.down { background: rgba(229,62,62,0.1); color: var(--hot); }
+    .change-badge.same { background: rgba(113,128,150,0.1); color: var(--muted); }
+
+    /* Forms */
+    .form-row { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .form-row input, .form-row select {
+      padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border);
+      background: #f7fafc; font-size: 0.85rem; color: var(--text);
+    }
+    .form-row input { flex: 1; min-width: 120px; }
+    .form-row select { min-width: 140px; }
+    .btn {
+      padding: 8px 16px; border-radius: 6px; border: none;
+      font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-danger { background: var(--hot); color: #fff; font-size: 0.75rem; padding: 4px 10px; }
+    .btn-danger:hover { opacity: 0.9; }
+
+    .empty-state { text-align: center; padding: 40px; color: var(--muted); }
+
+    /* Source badges */
+    .source-badge {
+      display: inline-block; padding: 3px 10px; border-radius: 12px;
+      font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+    }
+    .source-seo { background: rgba(49,130,206,0.12); color: var(--accent); }
+    .source-referral { background: rgba(56,161,105,0.12); color: var(--success); }
+    .source-pop-in { background: rgba(128,90,213,0.12); color: #805ad5; }
+    .source-cold-call { background: rgba(221,107,32,0.12); color: var(--warn); }
+    .source-website { background: rgba(236,72,153,0.12); color: #ec4899; }
+    .source-other { background: rgba(113,128,150,0.12); color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Tab navigation -->
+    <div class="page-tabs">
+      <button class="page-tab active" onclick="switchTab('seo')">🔍 SEO Rankings</button>
+      <button class="page-tab" onclick="switchTab('gbp')">📍 Google Business</button>
+      <button class="page-tab" onclick="switchTab('leads')">🎯 Lead Sources</button>
+      <button class="page-tab" onclick="switchTab('spend')">💰 Marketing Spend</button>
+      <button class="page-tab" onclick="switchTab('roi')">📊 ROI Dashboard</button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- TAB 1: SEO Rankings -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <div class="tab-content active" id="tab-seo">
+      <div class="stats-row" id="seoStatsRow"></div>
+
+      <div class="card">
+        <h2>Weekly Keyword Rankings</h2>
+        <div class="chart-container"><canvas id="rankingsChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2>SEO Visibility Score</h2>
+        <div class="chart-container" style="height:200px;"><canvas id="visibilityChart"></canvas></div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <h2>Page Speed Scores</h2>
+          <div id="pageSpeedContent"><p style="color:var(--muted);">Loading...</p></div>
+        </div>
+        <div class="card">
+          <h2>On-Page SEO Health</h2>
+          <div id="onPageContent"><p style="color:var(--muted);">Loading...</p></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Page Speed Trend (Mobile)</h2>
+        <div class="chart-container" style="height:200px;"><canvas id="speedChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2>Competitor Positions</h2>
+        <div id="competitorContent"><p style="color:var(--muted);">Loading...</p></div>
+      </div>
+
+      <div class="card">
+        <h2>Tracked Keywords</h2>
+        <table>
+          <thead><tr><th>Keyword</th><th>Current</th><th>Change</th><th>Best</th><th>URL</th><th>Last Check</th></tr></thead>
+          <tbody id="keywordBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- TAB 2: Google Business Profile -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <div class="tab-content" id="tab-gbp">
+      <div class="stats-row" id="gbpStatsRow"></div>
+
+      <div class="card">
+        <h2>📍 Log GBP Metrics</h2>
+        <p style="font-size:0.8rem;color:var(--muted);margin-bottom:12px;">Enter weekly stats from your Google Business Profile dashboard.</p>
+        <div class="form-row">
+          <input type="date" id="gbpDate" value="">
+          <input type="number" id="gbpViews" placeholder="Profile views" min="0">
+          <input type="number" id="gbpSearches" placeholder="Search appearances" min="0">
+          <input type="number" id="gbpCalls" placeholder="Phone calls" min="0">
+        </div>
+        <div class="form-row">
+          <input type="number" id="gbpDirections" placeholder="Direction requests" min="0">
+          <input type="number" id="gbpWebClicks" placeholder="Website clicks" min="0">
+          <input type="number" id="gbpReviews" placeholder="Total reviews" min="0">
+          <input type="number" id="gbpRating" placeholder="Avg rating (e.g. 4.8)" min="0" max="5" step="0.1">
+          <button class="btn btn-primary" onclick="addGBPMetrics()">Log Metrics</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>GBP Engagement Trend</h2>
+        <div class="chart-container" style="height:280px;"><canvas id="gbpChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2>GBP History</h2>
+        <table>
+          <thead><tr><th>Date</th><th>Views</th><th>Searches</th><th>Calls</th><th>Directions</th><th>Web Clicks</th><th>Reviews</th><th>Rating</th></tr></thead>
+          <tbody id="gbpTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- TAB 3: Lead Sources -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <div class="tab-content" id="tab-leads">
+      <div class="stats-row" id="leadStatsRow"></div>
+
+      <div class="card">
+        <h2>🎯 Track Lead Source</h2>
+        <p style="font-size:0.8rem;color:var(--muted);margin-bottom:12px;">Record where each prospect came from.</p>
+        <div class="form-row">
+          <select id="leadProspect"><option value="">Select prospect...</option></select>
+          <select id="leadSource">
+            <option value="seo">🔍 SEO / Google</option>
+            <option value="referral">🤝 Referral</option>
+            <option value="pop-in">🚶 Pop-in</option>
+            <option value="cold-call">📞 Cold Call</option>
+            <option value="website">🌐 Website Form</option>
+            <option value="other">📝 Other</option>
+          </select>
+          <input type="text" id="leadNotes" placeholder="Notes (optional)">
+          <button class="btn btn-primary" onclick="addLeadSource()">Track</button>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <h2>Lead Source Breakdown</h2>
+          <div class="chart-container" style="height:280px;"><canvas id="leadSourceChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h2>Conversion by Source</h2>
+          <div class="chart-container" style="height:280px;"><canvas id="conversionChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Lead Tracking Log</h2>
+        <table>
+          <thead><tr><th>Date</th><th>Prospect</th><th>Source</th><th>Status</th><th>Notes</th><th></th></tr></thead>
+          <tbody id="leadTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- TAB 4: Marketing Spend -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <div class="tab-content" id="tab-spend">
+      <div class="stats-row" id="spendStatsRow"></div>
+
+      <div class="card">
+        <h2>💰 Log Marketing Spend</h2>
+        <div class="form-row">
+          <input type="date" id="spendDate" value="">
+          <select id="spendChannel">
+            <option value="google-ads">Google Ads</option>
+            <option value="seo-tools">SEO Tools</option>
+            <option value="social-media">Social Media</option>
+            <option value="print">Print / Flyers</option>
+            <option value="networking">Networking</option>
+            <option value="website">Website</option>
+            <option value="other">Other</option>
+          </select>
+          <input type="number" id="spendAmount" placeholder="Amount ($)" min="0" step="0.01">
+          <input type="text" id="spendDesc" placeholder="Description">
+          <button class="btn btn-primary" onclick="addSpend()">Log</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Monthly Spend by Channel</h2>
+        <div class="chart-container" style="height:280px;"><canvas id="spendChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2>Spend History</h2>
+        <table>
+          <thead><tr><th>Date</th><th>Channel</th><th>Amount</th><th>Description</th><th></th></tr></thead>
+          <tbody id="spendTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- TAB 5: ROI Dashboard -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <div class="tab-content" id="tab-roi">
+      <div class="stats-row" id="roiStatsRow"></div>
+
+      <div class="two-col">
+        <div class="card">
+          <h2>Cost per Lead by Channel</h2>
+          <div class="chart-container" style="height:280px;"><canvas id="cplChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h2>Spend vs. Leads</h2>
+          <div class="chart-container" style="height:280px;"><canvas id="spendVsLeadsChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Channel ROI Breakdown</h2>
+        <table>
+          <thead><tr><th>Channel</th><th>Spent</th><th>Leads</th><th>Converted</th><th>Cost/Lead</th><th>Cost/Conv.</th></tr></thead>
+          <tbody id="roiTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ── Tab switching ───────────────────────────────── */
+    function switchTab(id) {
+      document.querySelectorAll('.page-tab').forEach(function(t) { t.classList.remove('active'); });
+      document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+      document.getElementById('tab-' + id).classList.add('active');
+      event.target.classList.add('active');
+      // Load tab-specific data
+      if (id === 'gbp') loadGBP();
+      if (id === 'leads') loadLeads();
+      if (id === 'spend') loadSpend();
+      if (id === 'roi') loadROI();
+    }
+
+    /* ── Helpers ─────────────────────────────────────── */
+    function fmt(n) { return '$' + (n || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
+    function fmtDec(n) { return '$' + (n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function today() { return new Date().toISOString().split('T')[0]; }
+
+    var KEYWORD_COLORS = ['#3182ce','#e53e3e','#38a169','#dd6b20','#805ad5','#d69e2e','#319795','#b83280','#2b6cb0','#c53030','#2f855a','#c05621','#6b46c1','#b7791f'];
+    var SOURCE_COLORS = { seo: '#3182ce', referral: '#38a169', 'pop-in': '#805ad5', 'cold-call': '#dd6b20', website: '#ec4899', other: '#718096' };
+    var CHANNEL_COLORS = { 'google-ads': '#4285f4', 'seo-tools': '#34a853', 'social-media': '#e91e63', 'print': '#ff9800', 'networking': '#9c27b0', 'website': '#00bcd4', 'other': '#607d8b' };
+
+    /* set default dates */
+    document.getElementById('gbpDate').value = today();
+    document.getElementById('spendDate').value = today();
+
+    /* ══════════════════════════════════════════════════ */
+    /* SEO TAB (original functionality preserved)        */
+    /* ══════════════════════════════════════════════════ */
+    async function loadSEOData() {
+      var res = await fetch('/api/seo');
+      var data = await res.json();
+
+      if (!data.history || data.history.length === 0) {
+        document.getElementById('tab-seo').innerHTML = '<div class="empty-state"><h2>No SEO data yet</h2><p>Rankings will be checked weekly.</p></div>';
+        return;
+      }
+      renderSEOStats(data);
+      renderRankingsChart(data);
+      renderVisibilityChart(data);
+      renderPageSpeed(data);
+      renderOnPage(data);
+      renderSpeedTrend(data);
+      renderCompetitors(data);
+      renderKeywordTable(data);
+    }
+
+    function renderSEOStats(data) {
+      var latest = data.history[data.history.length - 1];
+      var prev = data.history.length > 1 ? data.history[data.history.length - 2] : null;
+      var keywords = Object.keys(latest.rankings || {});
+      var positions = keywords.map(function(k) { return latest.rankings[k]; }).filter(function(p) { return p > 0; });
+      var avgPos = positions.length ? (positions.reduce(function(a,b){return a+b;},0) / positions.length).toFixed(1) : '-';
+      var top10 = positions.filter(function(p){return p<=10;}).length;
+      var top20 = positions.filter(function(p){return p<=20;}).length;
+      var visibility = positions.length ? Math.round(positions.reduce(function(s,p){return s+Math.max(0,100-(p-1)*3);},0)/positions.length) : 0;
+
+      var avgChange = '';
+      if (prev) {
+        var prevPositions = keywords.map(function(k){return prev.rankings?.[k];}).filter(function(p){return p>0;});
+        var prevAvg = prevPositions.length ? prevPositions.reduce(function(a,b){return a+b;},0)/prevPositions.length : null;
+        if (prevAvg) {
+          var diff = (prevAvg - parseFloat(avgPos)).toFixed(1);
+          avgChange = diff > 0 ? '<div class="stat-change up">↑ '+diff+' positions</div>' : diff < 0 ? '<div class="stat-change down">↓ '+Math.abs(diff)+' positions</div>' : '';
+        }
+      }
+
+      document.getElementById('seoStatsRow').innerHTML =
+        '<div class="stat-card"><div class="stat-value '+(avgPos<=10?'good':avgPos<=20?'warn':'bad')+'">'+avgPos+'</div><div class="stat-label">Avg Position</div>'+avgChange+'</div>'+
+        '<div class="stat-card"><div class="stat-value good">'+top10+'</div><div class="stat-label">Top 10 Keywords</div></div>'+
+        '<div class="stat-card"><div class="stat-value">'+top20+'</div><div class="stat-label">Top 20 Keywords</div></div>'+
+        '<div class="stat-card"><div class="stat-value '+(visibility>=60?'good':visibility>=30?'warn':'bad')+'">'+visibility+'</div><div class="stat-label">Visibility Score</div></div>'+
+        '<div class="stat-card"><div class="stat-value">'+keywords.length+'</div><div class="stat-label">Tracked Keywords</div></div>';
+    }
+
+    function renderRankingsChart(data) {
+      var keywords = data.keywords || [];
+      var datasets = keywords.map(function(kw, i) {
+        return {
+          label: kw,
+          data: data.history.map(function(h){return{x:h.date,y:h.rankings?.[kw]||null};}),
+          borderColor: KEYWORD_COLORS[i%KEYWORD_COLORS.length],
+          backgroundColor: KEYWORD_COLORS[i%KEYWORD_COLORS.length]+'20',
+          tension: 0.3, pointRadius: 4, pointHoverRadius: 6, fill: false
+        };
+      });
+      new Chart(document.getElementById('rankingsChart').getContext('2d'), {
+        type: 'line', data: { datasets: datasets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          scales: {
+            x: { type: 'time', time: { unit: 'week' }, grid: { color: '#edf2f7' } },
+            y: { reverse: true, min: 1, title: { display: true, text: 'Position (lower = better)' }, grid: { color: '#edf2f7' } }
+          },
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } } }
+        }
+      });
+    }
+
+    function renderVisibilityChart(data) {
+      var visScores = data.history.map(function(h) {
+        var p = Object.values(h.rankings||{}).filter(function(v){return v>0;});
+        return { x: h.date, y: p.length ? Math.round(p.reduce(function(s,v){return s+Math.max(0,100-(v-1)*3);},0)/p.length) : 0 };
+      });
+      new Chart(document.getElementById('visibilityChart').getContext('2d'), {
+        type: 'line',
+        data: { datasets: [{ label: 'Visibility', data: visScores, borderColor: '#3182ce', backgroundColor: 'rgba(49,130,206,0.1)', tension: 0.3, fill: true, pointRadius: 5 }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'time', time: { unit: 'week' } }, y: { min: 0, max: 100 } }, plugins: { legend: { display: false } } }
+      });
+    }
+
+    function renderKeywordTable(data) {
+      var latest = data.history[data.history.length-1];
+      var prev = data.history.length>1?data.history[data.history.length-2]:null;
+      var keywords = data.keywords||[];
+      var best = {};
+      keywords.forEach(function(kw){best[kw]=Math.min.apply(null,data.history.map(function(h){return h.rankings?.[kw]||999;}).filter(function(p){return p>0;}));});
+      document.getElementById('keywordBody').innerHTML = keywords.map(function(kw) {
+        var pos = latest.rankings?.[kw]||'-';
+        var prevPos = prev?.rankings?.[kw];
+        var changeHtml = '<span class="change-badge same">New</span>';
+        if (prevPos && pos!=='-') {
+          var diff = prevPos-pos;
+          if (diff>0) changeHtml='<span class="change-badge up">↑ '+diff+'</span>';
+          else if (diff<0) changeHtml='<span class="change-badge down">↓ '+Math.abs(diff)+'</span>';
+          else changeHtml='<span class="change-badge same">—</span>';
+        }
+        var posClass = pos<=3?'top3':pos<=10?'top10':pos<=20?'top20':'low';
+        return '<tr><td><strong>'+kw+'</strong></td><td><span class="pos '+posClass+'">#'+pos+'</span></td><td>'+changeHtml+'</td><td>#'+(best[kw]===999?'-':best[kw])+'</td><td style="color:var(--muted);font-size:0.8rem;">kandevendtech.com</td><td style="color:var(--muted);font-size:0.8rem;">'+new Date(latest.date).toLocaleDateString()+'</td></tr>';
+      }).join('');
+    }
+
+    function renderPageSpeed(data) {
+      var ps = data.history[data.history.length-1].pageSpeed;
+      if (!ps) { document.getElementById('pageSpeedContent').innerHTML='<p style="color:var(--muted);">No page speed data yet.</p>'; return; }
+      var sc=function(s){return s>=90?'good':s>=50?'warn':'bad';};
+      document.getElementById('pageSpeedContent').innerHTML =
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'+
+          '<div style="text-align:center;padding:12px;background:var(--bg);border-radius:8px;"><div class="stat-value '+sc(ps.mobileScore||0)+'" style="font-size:2rem;">'+(ps.mobileScore||'-')+'</div><div style="font-size:0.8rem;color:var(--muted);">Mobile</div></div>'+
+          '<div style="text-align:center;padding:12px;background:var(--bg);border-radius:8px;"><div class="stat-value '+sc(ps.desktopScore||0)+'" style="font-size:2rem;">'+(ps.desktopScore||'-')+'</div><div style="font-size:0.8rem;color:var(--muted);">Desktop</div></div>'+
+        '</div>'+
+        '<div style="margin-top:12px;font-size:0.85rem;">'+
+          ['FCP|'+ps.fcp,'LCP|'+ps.lcp,'TBT|'+ps.tbt,'CLS|'+ps.cls,'Speed Index|'+ps.speedIndex].map(function(r){var p=r.split('|');return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);"><span>'+p[0]+'</span><strong>'+(p[1]||'-')+'</strong></div>';}).join('')+
+        '</div>';
+    }
+
+    function renderOnPage(data) {
+      var op = data.history[data.history.length-1].onPage;
+      if (!op) { document.getElementById('onPageContent').innerHTML='<p style="color:var(--muted);">No on-page data yet.</p>'; return; }
+      var ck=function(ok,lbl){return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);"><span style="color:'+(ok?'var(--success)':'var(--hot)')+';">'+(ok?'✅':'❌')+'</span><span style="font-size:0.85rem;">'+lbl+'</span></div>';};
+      document.getElementById('onPageContent').innerHTML =
+        ck(op.title,'Title tag')+ ck(op.description,'Meta description')+ ck(op.h1Count>0,'H1 tags: '+op.h1Count)+
+        ck(op.h2Count>0,'H2 tags: '+op.h2Count)+ ck(op.imgsWithoutAlt===0,'Imgs without alt: '+op.imgsWithoutAlt)+
+        ck(op.schema,'Schema/JSON-LD')+ ck(op.canonical,'Canonical URL')+ ck(op.ogTags,'Open Graph tags')+ck(op.ssl,'SSL/HTTPS');
+    }
+
+    function renderSpeedTrend(data) {
+      var d=data.history.filter(function(h){return h.pageSpeed?.mobileScore;}).map(function(h){return{x:h.date,y:h.pageSpeed.mobileScore};});
+      if (!d.length) { document.getElementById('speedChart').parentElement.innerHTML='<p style="color:var(--muted);text-align:center;padding:40px;">Speed trend appears after first check.</p>'; return; }
+      new Chart(document.getElementById('speedChart').getContext('2d'),{type:'line',data:{datasets:[{label:'Mobile Score',data:d,borderColor:'#3182ce',backgroundColor:'rgba(49,130,206,0.1)',tension:0.3,fill:true,pointRadius:5}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{type:'time',time:{unit:'week'}},y:{min:0,max:100}},plugins:{legend:{display:false}}}});
+    }
+
+    function renderCompetitors(data) {
+      var comp=data.history[data.history.length-1].competitors;
+      if(!comp||!Object.keys(comp).length){document.getElementById('competitorContent').innerHTML='<p style="color:var(--muted);">Competitor tracking starts with first check.</p>';return;}
+      var latest=data.history[data.history.length-1];
+      var names=[...new Set(Object.values(comp).flatMap(function(c){return Object.keys(c);}))];
+      var html='<table><thead><tr><th>Keyword</th><th>Us</th>';
+      names.forEach(function(n){html+='<th>'+n+'</th>';});
+      html+='</tr></thead><tbody>';
+      Object.entries(comp).forEach(function(e){
+        var kw=e[0],pos=e[1],ours=latest.rankings?.[kw]||99;
+        html+='<tr><td><strong>'+kw+'</strong></td><td><span class="pos '+(ours<=3?'top3':ours<=10?'top10':ours<=20?'top20':'low')+'">#'+ours+'</span></td>';
+        names.forEach(function(n){var p=pos[n]||'-';html+='<td><span class="pos '+(p<=3?'top3':p<=10?'top10':p<=20?'top20':'low')+'">'+(p!=='-'?'#'+p:'-')+'</span></td>';});
+        html+='</tr>';
+      });
+      html+='</tbody></table>';
+      document.getElementById('competitorContent').innerHTML=html;
+    }
+
+    /* ══════════════════════════════════════════════════ */
+    /* GBP TAB                                           */
+    /* ══════════════════════════════════════════════════ */
+    async function loadGBP() {
+      var data = await fetch('/api/marketing/gbp').then(function(r){return r.json();});
+      renderGBPStats(data);
+      renderGBPChart(data);
+      renderGBPTable(data);
+    }
+
+    function renderGBPStats(data) {
+      if (!data.length) {
+        document.getElementById('gbpStatsRow').innerHTML = '<div class="stat-card" style="grid-column:1/-1;"><div class="stat-value" style="font-size:1.2rem;">No GBP data yet</div><div class="stat-label">Log your first week\'s metrics above</div></div>';
+        return;
+      }
+      var latest = data[data.length-1];
+      var totalViews = data.reduce(function(s,d){return s+(d.views||0);},0);
+      var totalCalls = data.reduce(function(s,d){return s+(d.calls||0);},0);
+      document.getElementById('gbpStatsRow').innerHTML =
+        '<div class="stat-card"><div class="stat-value good">'+(latest.views||0)+'</div><div class="stat-label">Latest Views</div></div>'+
+        '<div class="stat-card"><div class="stat-value">'+(latest.searches||0)+'</div><div class="stat-label">Searches</div></div>'+
+        '<div class="stat-card"><div class="stat-value warn">'+(latest.calls||0)+'</div><div class="stat-label">Calls</div></div>'+
+        '<div class="stat-card"><div class="stat-value">'+(latest.website_clicks||0)+'</div><div class="stat-label">Web Clicks</div></div>'+
+        '<div class="stat-card"><div class="stat-value good">'+(latest.avg_rating||'-')+'</div><div class="stat-label">Rating ⭐</div></div>'+
+        '<div class="stat-card"><div class="stat-value">'+totalViews+'</div><div class="stat-label">Total Views</div></div>';
+    }
+
+    function renderGBPChart(data) {
+      var ctx = document.getElementById('gbpChart');
+      if (!ctx) return;
+      if (window._gbpChart) window._gbpChart.destroy();
+      if (!data.length) return;
+      window._gbpChart = new Chart(ctx.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: data.map(function(d){return d.date;}),
+          datasets: [
+            { label: 'Views', data: data.map(function(d){return d.views||0;}), borderColor: '#3182ce', tension: 0.3 },
+            { label: 'Searches', data: data.map(function(d){return d.searches||0;}), borderColor: '#38a169', tension: 0.3 },
+            { label: 'Calls', data: data.map(function(d){return d.calls||0;}), borderColor: '#dd6b20', tension: 0.3 },
+            { label: 'Web Clicks', data: data.map(function(d){return d.website_clicks||0;}), borderColor: '#805ad5', tension: 0.3 }
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+      });
+    }
+
+    function renderGBPTable(data) {
+      document.getElementById('gbpTableBody').innerHTML = data.slice().reverse().map(function(d) {
+        return '<tr><td>'+d.date+'</td><td>'+(d.views||0)+'</td><td>'+(d.searches||0)+'</td><td>'+(d.calls||0)+'</td><td>'+(d.directions||0)+'</td><td>'+(d.website_clicks||0)+'</td><td>'+(d.reviews||0)+'</td><td>'+(d.avg_rating||'-')+'</td></tr>';
+      }).join('');
+    }
+
+    async function addGBPMetrics() {
+      await fetch('/api/marketing/gbp', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: document.getElementById('gbpDate').value,
+          views: parseInt(document.getElementById('gbpViews').value) || 0,
+          searches: parseInt(document.getElementById('gbpSearches').value) || 0,
+          calls: parseInt(document.getElementById('gbpCalls').value) || 0,
+          directions: parseInt(document.getElementById('gbpDirections').value) || 0,
+          website_clicks: parseInt(document.getElementById('gbpWebClicks').value) || 0,
+          reviews: parseInt(document.getElementById('gbpReviews').value) || 0,
+          avg_rating: parseFloat(document.getElementById('gbpRating').value) || 0
+        })
+      });
+      ['gbpViews','gbpSearches','gbpCalls','gbpDirections','gbpWebClicks','gbpReviews','gbpRating'].forEach(function(id){document.getElementById(id).value='';});
+      loadGBP();
+    }
+
+    /* ══════════════════════════════════════════════════ */
+    /* LEAD SOURCES TAB                                  */
+    /* ══════════════════════════════════════════════════ */
+    var allProspects = [];
+
+    async function loadLeads() {
+      var [leadsRes, prospectsRes] = await Promise.all([
+        fetch('/api/marketing/leads').then(function(r){return r.json();}),
+        fetch('/api/prospects').then(function(r){return r.json();})
+      ]);
+      allProspects = prospectsRes;
+      populateProspectDropdown(prospectsRes);
+      renderLeadStats(leadsRes);
+      renderLeadCharts(leadsRes);
+      renderLeadTable(leadsRes);
+    }
+
+    function populateProspectDropdown(prospects) {
+      var sel = document.getElementById('leadProspect');
+      sel.innerHTML = '<option value="">Select prospect...</option>' +
+        prospects.map(function(p){return '<option value="'+p.id+'">'+p.name+' ('+p.status+')</option>';}).join('');
+    }
+
+    function renderLeadStats(leads) {
+      var sources = {};
+      leads.forEach(function(l){sources[l.source]=(sources[l.source]||0)+1;});
+      var topSource = Object.entries(sources).sort(function(a,b){return b[1]-a[1];})[0];
+      document.getElementById('leadStatsRow').innerHTML =
+        '<div class="stat-card"><div class="stat-value good">'+leads.length+'</div><div class="stat-label">Total Tracked</div></div>'+
+        '<div class="stat-card"><div class="stat-value">'+Object.keys(sources).length+'</div><div class="stat-label">Active Sources</div></div>'+
+        (topSource ? '<div class="stat-card"><div class="stat-value warn">'+topSource[1]+'</div><div class="stat-label">Top: '+topSource[0]+'</div></div>' : '')+
+        '<div class="stat-card"><div class="stat-value">'+leads.filter(function(l){return l.prospect_status==='signed';}).length+'</div><div class="stat-label">Converted</div></div>';
+    }
+
+    function renderLeadCharts(leads) {
+      var sources = {};
+      leads.forEach(function(l){sources[l.source]=(sources[l.source]||0)+1;});
+      var labels = Object.keys(sources);
+      var colors = labels.map(function(s){return SOURCE_COLORS[s]||'#718096';});
+
+      // Pie chart
+      var ctx1 = document.getElementById('leadSourceChart');
+      if (window._lsc) window._lsc.destroy();
+      window._lsc = new Chart(ctx1.getContext('2d'), {
+        type: 'doughnut',
+        data: { labels: labels, datasets: [{ data: Object.values(sources), backgroundColor: colors }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+      });
+
+      // Conversion bar chart
+      var converted = {};
+      leads.forEach(function(l){if(l.prospect_status==='signed'){converted[l.source]=(converted[l.source]||0)+1;}});
+      var ctx2 = document.getElementById('conversionChart');
+      if (window._cc) window._cc.destroy();
+      window._cc = new Chart(ctx2.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: 'Total Leads', data: labels.map(function(s){return sources[s]||0;}), backgroundColor: 'rgba(49,130,206,0.3)', borderColor: '#3182ce', borderWidth: 1 },
+            { label: 'Converted', data: labels.map(function(s){return converted[s]||0;}), backgroundColor: 'rgba(56,161,105,0.5)', borderColor: '#38a169', borderWidth: 1 }
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+      });
+    }
+
+    function renderLeadTable(leads) {
+      document.getElementById('leadTableBody').innerHTML = leads.map(function(l) {
+        var sc = 'source-' + (l.source || 'other');
+        var statusColor = l.prospect_status === 'signed' ? 'var(--success)' : l.prospect_status === 'closed' ? 'var(--hot)' : 'var(--muted)';
+        return '<tr>'+
+          '<td>'+new Date(l.created_at).toLocaleDateString()+'</td>'+
+          '<td>'+l.prospect_name+'</td>'+
+          '<td><span class="source-badge '+sc+'">'+l.source+'</span></td>'+
+          '<td style="color:'+statusColor+';font-weight:600;">'+l.prospect_status+'</td>'+
+          '<td style="color:var(--muted);font-size:0.8rem;">'+(l.notes||'')+'</td>'+
+          '<td><button class="btn btn-danger" onclick="deleteLead('+l.id+')">✕</button></td>'+
+        '</tr>';
+      }).join('');
+    }
+
+    async function addLeadSource() {
+      var prospectId = document.getElementById('leadProspect').value;
+      if (!prospectId) { alert('Please select a prospect.'); return; }
+      await fetch('/api/marketing/leads', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prospect_id: parseInt(prospectId),
+          source: document.getElementById('leadSource').value,
+          notes: document.getElementById('leadNotes').value
+        })
+      });
+      document.getElementById('leadNotes').value = '';
+      loadLeads();
+    }
+
+    async function deleteLead(id) {
+      await fetch('/api/marketing/leads/' + id, { method: 'DELETE' });
+      loadLeads();
+    }
+
+    /* ══════════════════════════════════════════════════ */
+    /* MARKETING SPEND TAB                               */
+    /* ══════════════════════════════════════════════════ */
+    async function loadSpend() {
+      var data = await fetch('/api/marketing/spend').then(function(r){return r.json();});
+      renderSpendStats(data);
+      renderSpendChart(data);
+      renderSpendTable(data);
+    }
+
+    function renderSpendStats(data) {
+      var total = data.reduce(function(s,d){return s+(d.amount||0);},0);
+      var byChannel = {};
+      data.forEach(function(d){byChannel[d.channel]=(byChannel[d.channel]||0)+(d.amount||0);});
+      var topChannel = Object.entries(byChannel).sort(function(a,b){return b[1]-a[1];})[0];
+      var thisMonth = today().slice(0,7);
+      var monthTotal = data.filter(function(d){return (d.date||'').startsWith(thisMonth);}).reduce(function(s,d){return s+(d.amount||0);},0);
+
+      document.getElementById('spendStatsRow').innerHTML =
+        '<div class="stat-card"><div class="stat-value warn">'+fmt(total)+'</div><div class="stat-label">Total Spend</div></div>'+
+        '<div class="stat-card"><div class="stat-value">'+fmt(monthTotal)+'</div><div class="stat-label">This Month</div></div>'+
+        '<div class="stat-card"><div class="stat-value">'+data.length+'</div><div class="stat-label">Entries</div></div>'+
+        (topChannel ? '<div class="stat-card"><div class="stat-value bad">'+fmt(topChannel[1])+'</div><div class="stat-label">Top: '+topChannel[0]+'</div></div>' : '');
+    }
+
+    function renderSpendChart(data) {
+      // Group by month + channel
+      var months = {};
+      data.forEach(function(d) {
+        var m = (d.date||'').slice(0,7);
+        if (!months[m]) months[m] = {};
+        months[m][d.channel] = (months[m][d.channel]||0) + (d.amount||0);
+      });
+      var labels = Object.keys(months).sort();
+      var channels = [...new Set(data.map(function(d){return d.channel;}))];
+
+      var ctx = document.getElementById('spendChart');
+      if (window._sc) window._sc.destroy();
+      window._sc = new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: channels.map(function(ch) {
+            return {
+              label: ch, data: labels.map(function(m){return months[m]?.[ch]||0;}),
+              backgroundColor: CHANNEL_COLORS[ch] || '#718096'
+            };
+          })
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true, ticks: { callback: function(v){return '$'+v;} } } }, plugins: { legend: { position: 'bottom' } } }
+      });
+    }
+
+    function renderSpendTable(data) {
+      document.getElementById('spendTableBody').innerHTML = data.map(function(d) {
+        return '<tr><td>'+d.date+'</td><td><span style="text-transform:capitalize;">'+d.channel.replace(/-/g,' ')+'</span></td><td style="font-weight:600;">'+fmtDec(d.amount)+'</td><td style="color:var(--muted);">'+(d.description||'')+'</td><td><button class="btn btn-danger" onclick="deleteSpend('+d.id+')">✕</button></td></tr>';
+      }).join('');
+    }
+
+    async function addSpend() {
+      var amount = parseFloat(document.getElementById('spendAmount').value);
+      if (!amount || amount <= 0) { alert('Enter a valid amount.'); return; }
+      await fetch('/api/marketing/spend', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: document.getElementById('spendDate').value,
+          channel: document.getElementById('spendChannel').value,
+          amount: amount,
+          description: document.getElementById('spendDesc').value
+        })
+      });
+      document.getElementById('spendAmount').value = '';
+      document.getElementById('spendDesc').value = '';
+      loadSpend();
+    }
+
+    async function deleteSpend(id) {
+      await fetch('/api/marketing/spend/' + id, { method: 'DELETE' });
+      loadSpend();
+    }
+
+    /* ══════════════════════════════════════════════════ */
+    /* ROI DASHBOARD TAB                                 */
+    /* ══════════════════════════════════════════════════ */
+    async function loadROI() {
+      var data = await fetch('/api/marketing/roi').then(function(r){return r.json();});
+      renderROIStats(data);
+      renderROICharts(data);
+      renderROITable(data);
+    }
+
+    function renderROIStats(data) {
+      document.getElementById('roiStatsRow').innerHTML =
+        '<div class="stat-card"><div class="stat-value warn">'+fmt(data.totalSpend)+'</div><div class="stat-label">Total Marketing Spend</div></div>'+
+        '<div class="stat-card"><div class="stat-value good">'+fmt(data.totalRevenue)+'</div><div class="stat-label">Total Revenue</div></div>'+
+        '<div class="stat-card"><div class="stat-value">'+(data.overallROI||'—')+'%</div><div class="stat-label">Overall ROI</div></div>'+
+        '<div class="stat-card"><div class="stat-value">'+data.totalLeads+'</div><div class="stat-label">Tracked Leads</div></div>'+
+        '<div class="stat-card"><div class="stat-value good">'+data.totalConverted+'</div><div class="stat-label">Converted</div></div>'+
+        '<div class="stat-card"><div class="stat-value">'+(data.conversionRate||'—')+'%</div><div class="stat-label">Conversion Rate</div></div>';
+    }
+
+    function renderROICharts(data) {
+      var channels = data.channels || [];
+      var labels = channels.map(function(c){return c.channel;});
+      var colors = labels.map(function(s){return SOURCE_COLORS[s]||CHANNEL_COLORS[s]||'#718096';});
+
+      // Cost per lead
+      var ctx1 = document.getElementById('cplChart');
+      if (window._cpl) window._cpl.destroy();
+      window._cpl = new Chart(ctx1.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{ label: 'Cost per Lead', data: channels.map(function(c){return c.costPerLead||0;}), backgroundColor: colors }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: function(v){return '$'+v;} } } }, plugins: { legend: { display: false } } }
+      });
+
+      // Spend vs Leads scatter
+      var ctx2 = document.getElementById('spendVsLeadsChart');
+      if (window._svl) window._svl.destroy();
+      window._svl = new Chart(ctx2.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: 'Spent', data: channels.map(function(c){return c.spent||0;}), backgroundColor: 'rgba(229,62,62,0.4)', yAxisID: 'y' },
+            { label: 'Leads', data: channels.map(function(c){return c.leads||0;}), backgroundColor: 'rgba(56,161,105,0.6)', yAxisID: 'y1' }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          scales: {
+            y: { type: 'linear', position: 'left', ticks: { callback: function(v){return '$'+v;} } },
+            y1: { type: 'linear', position: 'right', grid: { drawOnChartArea: false } }
+          },
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+
+    function renderROITable(data) {
+      document.getElementById('roiTableBody').innerHTML = (data.channels||[]).map(function(c) {
+        return '<tr><td style="text-transform:capitalize;font-weight:600;">'+c.channel.replace(/-/g,' ')+'</td><td>'+fmt(c.spent)+'</td><td>'+c.leads+'</td><td style="color:var(--success);font-weight:600;">'+c.converted+'</td><td>'+(c.costPerLead!=null?fmtDec(c.costPerLead):'—')+'</td><td>'+(c.costPerConversion!=null?fmtDec(c.costPerConversion):'—')+'</td></tr>';
+      }).join('');
+    }
+
+    /* ── Init ────────────────────────────────────────── */
+    loadSEOData();
+  </script>
+<script src="/nav.js"></script>
+</body>
+</html>

@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Machines & Locations — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
+      --muted: #718096; --accent: #3182ce; --hot: #e53e3e; --warn: #dd6b20;
+      --success: #38a169; --purple: #7b2cbf;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+    /* Nav */
+    .top-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .top-nav .logo { height: 36px; }
+    .top-nav a { color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500; padding: 6px 12px; border-radius: 6px; transition: all 0.2s; }
+    .top-nav a:hover, .top-nav a.active { color: var(--accent); background: rgba(49,130,206,0.08); }
+    .nav-spacer { flex: 1; }
+
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+    .header h1 { font-size: 1.5rem; background: linear-gradient(90deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-danger { background: var(--hot); color: #fff; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+
+    /* Stats */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat { background: var(--card); border-radius: 12px; padding: 16px; text-align: center; border: 1px solid var(--border); }
+    .stat-value { font-size: 1.8rem; font-weight: 700; }
+    .stat-value.accent { color: var(--accent); }
+    .stat-value.success { color: var(--success); }
+    .stat-value.warn { color: var(--warn); }
+    .stat-value.hot { color: var(--hot); }
+    .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 2px solid var(--border); }
+    .tab { padding: 10px 20px; cursor: pointer; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; background: none; border-top: none; border-left: none; border-right: none; font-size: 0.9rem; }
+    .tab:hover { color: var(--accent); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* Table */
+    .table-container { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #f7fafc; padding: 12px 16px; text-align: left; font-size: 0.8rem; text-transform: uppercase; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f7fafc; }
+
+    .badge { padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
+    .badge-available { background: rgba(56,161,105,0.15); color: var(--success); }
+    .badge-deployed { background: rgba(49,130,206,0.15); color: var(--accent); }
+    .badge-repair { background: rgba(229,62,62,0.15); color: var(--hot); }
+    .badge-storage { background: rgba(113,128,150,0.15); color: var(--muted); }
+    .badge-active { background: rgba(56,161,105,0.15); color: var(--success); }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--card); border-radius: 16px; padding: 24px; max-width: 600px; width: 95%; max-height: 90vh; overflow-y: auto; }
+    .modal h2 { font-size: 1.3rem; margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--muted); margin-bottom: 4px; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; color: var(--text); background: var(--card); }
+    .form-group textarea { min-height: 80px; resize: vertical; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+
+    .clickable { cursor: pointer; }
+    .actions-cell { display: flex; gap: 6px; }
+
+    @media (max-width: 768px) {
+      .form-row { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .header { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <nav class="top-nav">
+      <a href="/"><img src="/logo.png" alt="Kande VendTech" class="logo"></a>
+      <a href="/">Dashboard</a>
+      <a href="/crm">CRM</a>
+      <a href="/machines" class="active">Machines</a>
+      <a href="/inventory">Inventory</a>
+      <a href="/finance">Finance</a>
+      <a href="/restock">Restock</a>
+      <a href="/map">Map</a>
+    </nav>
+
+    <div class="header">
+      <h1>🏭 Machines & Locations</h1>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="openMachineModal()">+ Add Machine</button>
+        <button class="btn btn-success" onclick="openLocationModal()">+ Add Location</button>
+      </div>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="machines" onclick="switchTab('machines')">🏭 Machines</button>
+      <button class="tab" data-tab="locations" onclick="switchTab('locations')">📍 Locations</button>
+    </div>
+
+    <!-- Machines Tab -->
+    <div id="tab-machines" class="tab-content">
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Machine</th>
+              <th>Model</th>
+              <th>Serial #</th>
+              <th>Status</th>
+              <th>Location</th>
+              <th>Cost</th>
+              <th>Purchased</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="machines-tbody"></tbody>
+        </table>
+      </div>
+      <div id="machines-empty" class="empty-state" style="display:none;">
+        <div class="icon">🏭</div>
+        <h3>No machines yet</h3>
+        <p>Add your first vending machine to start tracking.</p>
+        <button class="btn btn-primary" style="margin-top:16px;" onclick="openMachineModal()">+ Add Machine</button>
+      </div>
+    </div>
+
+    <!-- Locations Tab -->
+    <div id="tab-locations" class="tab-content" style="display:none;">
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Location</th>
+              <th>Address</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Rev Share</th>
+              <th>Machines</th>
+              <th>Start Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="locations-tbody"></tbody>
+        </table>
+      </div>
+      <div id="locations-empty" class="empty-state" style="display:none;">
+        <div class="icon">📍</div>
+        <h3>No locations yet</h3>
+        <p>Add a signed location to assign machines.</p>
+        <button class="btn btn-success" style="margin-top:16px;" onclick="openLocationModal()">+ Add Location</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Machine Modal -->
+  <div class="modal-overlay" id="machine-modal">
+    <div class="modal">
+      <h2 id="machine-modal-title">Add Machine</h2>
+      <input type="hidden" id="machine-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Machine Name / Label</label>
+          <input type="text" id="machine-name" placeholder="e.g. Machine #1, Lobby Cooler">
+        </div>
+        <div class="form-group">
+          <label>Model</label>
+          <input type="text" id="machine-model" placeholder="e.g. Seaga INF5C, USI 3519">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Serial Number</label>
+          <input type="text" id="machine-serial" placeholder="Serial #">
+        </div>
+        <div class="form-group">
+          <label>Machine Type</label>
+          <select id="machine-type">
+            <option value="smart_cooler">Smart Cooler</option>
+            <option value="combo">Combo (Snack + Drink)</option>
+            <option value="snack">Snack Only</option>
+            <option value="beverage">Beverage Only</option>
+            <option value="frozen">Frozen / Ice Cream</option>
+            <option value="micro_market">Micro Market</option>
+            <option value="coffee">Coffee</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Purchase Cost ($)</label>
+          <input type="number" id="machine-cost" step="0.01" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label>Purchase Date</label>
+          <input type="date" id="machine-purchase-date">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Status</label>
+          <select id="machine-status">
+            <option value="available">Available</option>
+            <option value="deployed">Deployed</option>
+            <option value="needs_repair">Needs Repair</option>
+            <option value="storage">In Storage</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Assign to Location</label>
+          <select id="machine-location">
+            <option value="">— Not Assigned —</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Financing Details</label>
+        <input type="text" id="machine-financing" placeholder="e.g. Chase Ink 0% APR, 18 months, $150/mo">
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="machine-notes" placeholder="Any notes about this machine..."></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="closeMachineModal()">Cancel</button>
+        <button class="btn btn-danger" id="machine-delete-btn" style="display:none;" onclick="deleteMachine()">Delete</button>
+        <button class="btn btn-primary" onclick="saveMachine()">Save Machine</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Location Modal -->
+  <div class="modal-overlay" id="location-modal">
+    <div class="modal">
+      <h2 id="location-modal-title">Add Location</h2>
+      <input type="hidden" id="location-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Location Name</label>
+          <input type="text" id="location-name" placeholder="e.g. Panorama Towers">
+        </div>
+        <div class="form-group">
+          <label>Property Type</label>
+          <select id="location-type">
+            <option value="apartment">Apartment Complex</option>
+            <option value="medical">Medical / Outpatient</option>
+            <option value="warehouse">Warehouse / Industrial</option>
+            <option value="office">Office Building</option>
+            <option value="hotel">Hotel / Hospitality</option>
+            <option value="student">Student Housing</option>
+            <option value="senior">Senior Living</option>
+            <option value="gym">Gym / Fitness</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Address</label>
+        <input type="text" id="location-address" placeholder="Full address">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Contact Name</label>
+          <input type="text" id="location-contact" placeholder="Property manager name">
+        </div>
+        <div class="form-group">
+          <label>Contact Phone</label>
+          <input type="tel" id="location-phone" placeholder="(702) 555-1234">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Revenue Share</label>
+          <select id="location-rev-share-type">
+            <option value="none">$0 / None</option>
+            <option value="flat">Flat Monthly Fee</option>
+            <option value="percentage">Percentage of Revenue</option>
+            <option value="tiered">Tiered / Sliding Scale</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Share Amount</label>
+          <input type="text" id="location-rev-share-amount" placeholder="e.g. $25/mo or 10%">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Contract Start Date</label>
+          <input type="date" id="location-start-date">
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="location-status">
+            <option value="active">Active</option>
+            <option value="setup">Setting Up</option>
+            <option value="pending">Pending Contract</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Placement Spot</label>
+        <input type="text" id="location-placement" placeholder="e.g. Lobby, Mail Room, Break Room, Pool Area">
+      </div>
+      <div class="form-group">
+        <label>Units / Employees / Traffic</label>
+        <input type="text" id="location-units" placeholder="e.g. 350 units, 200 employees">
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="location-notes" placeholder="Contract details, special arrangements..."></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="closeLocationModal()">Cancel</button>
+        <button class="btn btn-danger" id="location-delete-btn" style="display:none;" onclick="deleteLocation()">Delete</button>
+        <button class="btn btn-success" onclick="saveLocation()">Save Location</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let machines = [];
+    let locations = [];
+
+    // ===== DATA LOADING =====
+    async function loadData() {
+      const [mRes, lRes] = await Promise.all([
+        fetch('/api/machines').then(r => r.json()),
+        fetch('/api/locations').then(r => r.json())
+      ]);
+      machines = mRes;
+      locations = lRes;
+      renderStats();
+      renderMachines();
+      renderLocations();
+      populateLocationSelect();
+    }
+
+    function renderStats() {
+      const deployed = machines.filter(m => m.status === 'deployed').length;
+      const available = machines.filter(m => m.status === 'available').length;
+      const repair = machines.filter(m => m.status === 'needs_repair').length;
+      const totalCost = machines.reduce((s, m) => s + (parseFloat(m.cost) || 0), 0);
+      const activeLocations = locations.filter(l => l.status === 'active').length;
+
+      document.getElementById('stats').innerHTML = `
+        <div class="stat"><div class="stat-value accent">${machines.length}</div><div class="stat-label">Total Machines</div></div>
+        <div class="stat"><div class="stat-value success">${deployed}</div><div class="stat-label">Deployed</div></div>
+        <div class="stat"><div class="stat-value warn">${available}</div><div class="stat-label">Available</div></div>
+        <div class="stat"><div class="stat-value hot">${repair}</div><div class="stat-label">Needs Repair</div></div>
+        <div class="stat"><div class="stat-value accent">${activeLocations}</div><div class="stat-label">Active Locations</div></div>
+        <div class="stat"><div class="stat-value">${fmt(totalCost)}</div><div class="stat-label">Total Investment</div></div>
+      `;
+    }
+
+    function fmt(n) { return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
+
+    // ===== MACHINES =====
+    function renderMachines() {
+      const tbody = document.getElementById('machines-tbody');
+      const empty = document.getElementById('machines-empty');
+      if (machines.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+      empty.style.display = 'none';
+      tbody.innerHTML = machines.map(m => {
+        const statusClass = m.status === 'deployed' ? 'badge-deployed' : m.status === 'available' ? 'badge-available' : m.status === 'needs_repair' ? 'badge-repair' : 'badge-storage';
+        const statusLabel = m.status === 'needs_repair' ? 'Repair' : m.status.charAt(0).toUpperCase() + m.status.slice(1);
+        const locName = m.location ? m.location.name : '—';
+        return `<tr class="clickable" ondblclick="editMachine(${m.id})">
+          <td><strong>${m.name || 'Machine #' + m.id}</strong></td>
+          <td>${m.model || '—'}</td>
+          <td style="font-family:monospace;font-size:0.8rem;">${m.serial || '—'}</td>
+          <td><span class="badge ${statusClass}">${statusLabel}</span></td>
+          <td>${locName}</td>
+          <td>${m.cost ? fmt(parseFloat(m.cost)) : '—'}</td>
+          <td>${m.purchase_date || '—'}</td>
+          <td class="actions-cell">
+            <button class="btn btn-secondary btn-sm" onclick="editMachine(${m.id})">Edit</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function populateLocationSelect() {
+      const sel = document.getElementById('machine-location');
+      sel.innerHTML = '<option value="">— Not Assigned —</option>' + locations.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+    }
+
+    function openMachineModal(machine) {
+      document.getElementById('machine-modal-title').textContent = machine ? 'Edit Machine' : 'Add Machine';
+      document.getElementById('machine-id').value = machine ? machine.id : '';
+      document.getElementById('machine-name').value = machine ? machine.name || '' : '';
+      document.getElementById('machine-model').value = machine ? machine.model || '' : '';
+      document.getElementById('machine-serial').value = machine ? machine.serial || '' : '';
+      document.getElementById('machine-type').value = machine ? machine.machine_type || 'smart_cooler' : 'smart_cooler';
+      document.getElementById('machine-cost').value = machine ? machine.cost || '' : '';
+      document.getElementById('machine-purchase-date').value = machine ? machine.purchase_date || '' : '';
+      document.getElementById('machine-status').value = machine ? machine.status || 'available' : 'available';
+      document.getElementById('machine-location').value = machine ? machine.location_id || '' : '';
+      document.getElementById('machine-financing').value = machine ? machine.financing || '' : '';
+      document.getElementById('machine-notes').value = machine ? machine.notes || '' : '';
+      document.getElementById('machine-delete-btn').style.display = machine ? 'inline-block' : 'none';
+      document.getElementById('machine-modal').classList.add('open');
+    }
+
+    function closeMachineModal() { document.getElementById('machine-modal').classList.remove('open'); }
+
+    function editMachine(id) {
+      const m = machines.find(x => x.id === id);
+      if (m) openMachineModal(m);
+    }
+
+    async function saveMachine() {
+      const id = document.getElementById('machine-id').value;
+      const data = {
+        name: document.getElementById('machine-name').value,
+        model: document.getElementById('machine-model').value,
+        serial: document.getElementById('machine-serial').value,
+        machine_type: document.getElementById('machine-type').value,
+        cost: document.getElementById('machine-cost').value,
+        purchase_date: document.getElementById('machine-purchase-date').value,
+        status: document.getElementById('machine-status').value,
+        location_id: document.getElementById('machine-location').value ? parseInt(document.getElementById('machine-location').value) : null,
+        financing: document.getElementById('machine-financing').value,
+        notes: document.getElementById('machine-notes').value
+      };
+
+      if (id) {
+        await fetch(`/api/machines/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      } else {
+        await fetch('/api/machines', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      }
+      closeMachineModal();
+      loadData();
+    }
+
+    async function deleteMachine() {
+      const id = document.getElementById('machine-id').value;
+      if (!id || !confirm('Delete this machine?')) return;
+      await fetch(`/api/machines/${id}`, { method: 'DELETE' });
+      closeMachineModal();
+      loadData();
+    }
+
+    // ===== LOCATIONS =====
+    function renderLocations() {
+      const tbody = document.getElementById('locations-tbody');
+      const empty = document.getElementById('locations-empty');
+      if (locations.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+      empty.style.display = 'none';
+      tbody.innerHTML = locations.map(l => {
+        const statusClass = l.status === 'active' ? 'badge-active' : l.status === 'setup' ? 'badge-deployed' : l.status === 'pending' ? 'badge-storage' : 'badge-repair';
+        const machineCount = l.machines ? l.machines.length : 0;
+        const revShare = l.rev_share_type === 'none' ? '$0' : l.rev_share_amount || '—';
+        return `<tr class="clickable" ondblclick="editLocation(${l.id})">
+          <td><strong>${l.name}</strong></td>
+          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.address || '—'}</td>
+          <td>${formatLocationType(l.property_type)}</td>
+          <td><span class="badge ${statusClass}">${(l.status || 'active').charAt(0).toUpperCase() + (l.status || 'active').slice(1)}</span></td>
+          <td>${revShare}</td>
+          <td>${machineCount}</td>
+          <td>${l.start_date || '—'}</td>
+          <td class="actions-cell">
+            <button class="btn btn-secondary btn-sm" onclick="editLocation(${l.id})">Edit</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function formatLocationType(t) {
+      const types = { apartment: '🏢 Apartment', medical: '🏥 Medical', warehouse: '🏭 Warehouse', office: '🏢 Office', hotel: '🏨 Hotel', student: '🎓 Student', senior: '👴 Senior', gym: '🏋️ Gym', other: '📍 Other' };
+      return types[t] || t || '—';
+    }
+
+    function openLocationModal(loc) {
+      document.getElementById('location-modal-title').textContent = loc ? 'Edit Location' : 'Add Location';
+      document.getElementById('location-id').value = loc ? loc.id : '';
+      document.getElementById('location-name').value = loc ? loc.name || '' : '';
+      document.getElementById('location-type').value = loc ? loc.property_type || 'apartment' : 'apartment';
+      document.getElementById('location-address').value = loc ? loc.address || '' : '';
+      document.getElementById('location-contact').value = loc ? loc.contact_name || '' : '';
+      document.getElementById('location-phone').value = loc ? loc.contact_phone || '' : '';
+      document.getElementById('location-rev-share-type').value = loc ? loc.rev_share_type || 'none' : 'none';
+      document.getElementById('location-rev-share-amount').value = loc ? loc.rev_share_amount || '' : '';
+      document.getElementById('location-start-date').value = loc ? loc.start_date || '' : '';
+      document.getElementById('location-status').value = loc ? loc.status || 'active' : 'active';
+      document.getElementById('location-placement').value = loc ? loc.placement || '' : '';
+      document.getElementById('location-units').value = loc ? loc.units || '' : '';
+      document.getElementById('location-notes').value = loc ? loc.notes || '' : '';
+      document.getElementById('location-delete-btn').style.display = loc ? 'inline-block' : 'none';
+      document.getElementById('location-modal').classList.add('open');
+    }
+
+    function closeLocationModal() { document.getElementById('location-modal').classList.remove('open'); }
+
+    function editLocation(id) {
+      const l = locations.find(x => x.id === id);
+      if (l) openLocationModal(l);
+    }
+
+    async function saveLocation() {
+      const id = document.getElementById('location-id').value;
+      const data = {
+        name: document.getElementById('location-name').value,
+        property_type: document.getElementById('location-type').value,
+        address: document.getElementById('location-address').value,
+        contact_name: document.getElementById('location-contact').value,
+        contact_phone: document.getElementById('location-phone').value,
+        rev_share_type: document.getElementById('location-rev-share-type').value,
+        rev_share_amount: document.getElementById('location-rev-share-amount').value,
+        start_date: document.getElementById('location-start-date').value,
+        status: document.getElementById('location-status').value,
+        placement: document.getElementById('location-placement').value,
+        units: document.getElementById('location-units').value,
+        notes: document.getElementById('location-notes').value
+      };
+
+      if (id) {
+        await fetch(`/api/locations/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      } else {
+        await fetch('/api/locations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      }
+      closeLocationModal();
+      loadData();
+    }
+
+    async function deleteLocation() {
+      const id = document.getElementById('location-id').value;
+      if (!id || !confirm('Delete this location? Machines will be unassigned.')) return;
+      await fetch(`/api/locations/${id}`, { method: 'DELETE' });
+      closeLocationModal();
+      loadData();
+    }
+
+    // ===== TABS =====
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+      document.getElementById(`tab-${tab}`).style.display = 'block';
+    }
+
+    // Close modals on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(m => {
+      m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+    });
+
+    loadData();
+  </script>
+<script src="/nav.js"></script>
+</body>
+</html>

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Kande VendTech — Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #0f172a;
+      --muted: #64748b; --accent: #3b82f6; --accent-light: #eff6ff;
+      --green: #22c55e; --green-light: #f0fdf4;
+      --amber: #f59e0b; --amber-light: #fffbeb;
+      --red: #ef4444; --red-light: #fef2f2;
+      --purple: #8b5cf6; --purple-light: #f5f3ff;
+      --radius: 12px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+    .dashboard { max-width: 1200px; margin: 0 auto; padding: 24px 28px 60px; }
+
+    /* Welcome Banner */
+    .welcome-banner {
+      background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 50%, #7c3aed 100%);
+      border-radius: 16px; padding: 32px 36px; color: #fff; margin-bottom: 28px;
+      position: relative; overflow: hidden;
+    }
+    .welcome-banner::after {
+      content: ''; position: absolute; top: -50%; right: -10%; width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .welcome-banner h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 6px; }
+    .welcome-banner p { font-size: 0.9rem; opacity: 0.85; }
+    .welcome-banner .date { font-size: 0.78rem; opacity: 0.65; margin-top: 4px; }
+
+    /* Quick Stats */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+    .stat-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 20px 22px; transition: box-shadow 0.2s;
+    }
+    .stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+    .stat-card .stat-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .stat-card .stat-value { font-size: 1.8rem; font-weight: 800; line-height: 1; }
+    .stat-card .stat-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-top: 4px; }
+    .stat-card .stat-trend { font-size: 0.72rem; margin-top: 6px; font-weight: 600; }
+    .stat-card .stat-trend.up { color: var(--green); }
+    .stat-card .stat-trend.down { color: var(--red); }
+
+    /* Grid layout */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    .grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 24px; }
+
+    /* Cards */
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 22px 24px; transition: box-shadow 0.2s;
+    }
+    .card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+    }
+    .card-title { font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .card-link { font-size: 0.78rem; color: var(--accent); text-decoration: none; font-weight: 600; }
+    .card-link:hover { text-decoration: underline; }
+
+    /* Pipeline Stages */
+    .pipeline-stages { display: flex; gap: 8px; flex-wrap: wrap; }
+    .pipeline-stage {
+      flex: 1; min-width: 100px; padding: 14px 12px; border-radius: 10px; text-align: center;
+      border: 1px solid var(--border); background: var(--bg);
+    }
+    .pipeline-stage .stage-count { font-size: 1.5rem; font-weight: 800; color: var(--text); }
+    .pipeline-stage .stage-label { font-size: 0.68rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 4px; }
+    .pipeline-stage.highlight { border-color: var(--accent); background: var(--accent-light); }
+    .pipeline-stage.highlight .stage-count { color: var(--accent); }
+
+    /* Task list */
+    .task-list { list-style: none; }
+    .task-item {
+      display: flex; align-items: center; gap: 12px; padding: 10px 0;
+      border-bottom: 1px solid #f1f5f9; font-size: 0.85rem;
+    }
+    .task-item:last-child { border-bottom: none; }
+    .task-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .task-dot.overdue { background: var(--red); }
+    .task-dot.today { background: var(--amber); }
+    .task-dot.upcoming { background: var(--green); }
+    .task-text { flex: 1; color: var(--text); }
+    .task-meta { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+    .task-empty { color: var(--muted); font-size: 0.85rem; padding: 16px 0; text-align: center; }
+
+    /* Route status */
+    .route-status { display: flex; flex-direction: column; gap: 10px; }
+    .route-item {
+      display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+      border-radius: 8px; background: var(--bg); font-size: 0.85rem;
+    }
+    .route-badge {
+      font-size: 0.68rem; font-weight: 700; padding: 3px 8px; border-radius: 6px;
+      text-transform: uppercase;
+    }
+    .route-badge.pending { background: var(--amber-light); color: var(--amber); }
+    .route-badge.active { background: var(--green-light); color: var(--green); }
+    .route-badge.done { background: #f1f5f9; color: var(--muted); }
+    .route-name { font-weight: 600; }
+    .route-stops { margin-left: auto; font-size: 0.78rem; color: var(--muted); }
+    .route-empty { color: var(--muted); font-size: 0.85rem; padding: 16px 0; text-align: center; }
+
+    /* Activity feed */
+    .activity-feed { list-style: none; }
+    .activity-item {
+      display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f8fafc; font-size: 0.83rem;
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-icon {
+      width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center;
+      justify-content: center; font-size: 0.9rem; flex-shrink: 0; background: var(--bg);
+    }
+    .activity-text { flex: 1; }
+    .activity-text strong { font-weight: 600; }
+    .activity-time { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+
+    /* Quick actions */
+    .quick-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .quick-btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); text-decoration: none; font-size: 0.82rem; font-weight: 600;
+      transition: all 0.15s; cursor: pointer;
+    }
+    .quick-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+    .quick-btn .btn-icon { font-size: 1rem; }
+
+    /* Loading */
+    .skeleton { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .pipeline-stages { flex-wrap: wrap; }
+      .pipeline-stage { min-width: 70px; }
+    }
+    @media (max-width: 600px) {
+      .dashboard { padding: 16px; }
+      .welcome-banner { padding: 24px; }
+      .welcome-banner h1 { font-size: 1.3rem; }
+      .quick-actions { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+<script src="/nav.js"></script>
+
+<div class="dashboard">
+  <!-- Welcome Banner -->
+  <div class="welcome-banner">
+    <h1 id="greeting">Good morning, Kurtis 👋</h1>
+    <p id="greeting-sub">Here's what's happening with your vending business today.</p>
+    <div class="date" id="today-date"></div>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon">🎯</div>
+      <div class="stat-value" id="stat-prospects">—</div>
+      <div class="stat-label">Total Prospects</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🔥</div>
+      <div class="stat-value" id="stat-leads">—</div>
+      <div class="stat-label">Active Leads</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🏭</div>
+      <div class="stat-value" id="stat-machines">—</div>
+      <div class="stat-label">Machines Deployed</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">💵</div>
+      <div class="stat-value" id="stat-revenue">—</div>
+      <div class="stat-label">Monthly Revenue</div>
+    </div>
+  </div>
+
+  <!-- Pipeline + Tasks -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🔀 Pipeline Summary</span>
+        <a class="card-link" href="/pipeline-board">View Board →</a>
+      </div>
+      <div class="pipeline-stages" id="pipeline-stages">
+        <div class="pipeline-stage skeleton" style="height:70px"></div>
+        <div class="pipeline-stage skeleton" style="height:70px"></div>
+        <div class="pipeline-stage skeleton" style="height:70px"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">✅ Today's Tasks</span>
+        <a class="card-link" href="/tasks">All Tasks →</a>
+      </div>
+      <ul class="task-list" id="task-list">
+        <li class="task-empty">Loading tasks...</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Routes + Activity -->
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📰 Recent Activity</span>
+        <a class="card-link" href="/crm">View CRM →</a>
+      </div>
+      <ul class="activity-feed" id="activity-feed">
+        <li class="task-empty">Loading activity...</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🛣️ Today's Routes</span>
+        <a class="card-link" href="/routes">View Routes →</a>
+      </div>
+      <div class="route-status" id="route-status">
+        <div class="route-empty">Loading routes...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">⚡ Quick Actions</span>
+    </div>
+    <div class="quick-actions">
+      <a class="quick-btn" href="/crm"><span class="btn-icon">➕</span> Add Prospect</a>
+      <a class="quick-btn" href="/crm"><span class="btn-icon">📍</span> Log Pop-In</a>
+      <a class="quick-btn" href="/proposal-generator"><span class="btn-icon">📝</span> Create Proposal</a>
+      <a class="quick-btn" href="/pipeline-board"><span class="btn-icon">🔀</span> Move Pipeline</a>
+      <a class="quick-btn" href="/tasks"><span class="btn-icon">✅</span> View Tasks</a>
+      <a class="quick-btn" href="/schedule"><span class="btn-icon">📅</span> Schedule</a>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // --- Greeting ---
+  var hour = new Date().getHours();
+  var greetText = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('greeting').textContent = greetText + ', Kurtis 👋';
+
+  var subTexts = [
+    "Here's what's happening with your vending business today.",
+    "Let's keep the momentum going on your vending empire.",
+    "Your vending operation at a glance.",
+    "Time to check in on the business."
+  ];
+  document.getElementById('greeting-sub').textContent = subTexts[Math.floor(Math.random() * subTexts.length)];
+
+  var now = new Date();
+  var opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  document.getElementById('today-date').textContent = now.toLocaleDateString('en-US', opts);
+
+  // --- Helper ---
+  function fmt(n) { return n >= 1000 ? (n/1000).toFixed(1) + 'k' : String(n); }
+  function money(n) { return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
+  function timeAgo(d) {
+    var diff = (Date.now() - new Date(d).getTime()) / 1000;
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+    return Math.floor(diff/86400) + 'd ago';
+  }
+  function actIcon(type) {
+    var map = { call: '📞', email: '📧', pop_in: '📍', note: '📝', meeting: '🤝', proposal_sent: '📝', contract_signed: '📄', 'pop-in': '📍', task: '✅' };
+    return map[type] || '📌';
+  }
+
+  // --- Fetch stats ---
+  fetch('/api/stats').then(function(r) { return r.json(); }).then(function(d) {
+    document.getElementById('stat-prospects').textContent = fmt(d.totalProspects || d.total_prospects || 0);
+    document.getElementById('stat-leads').textContent = fmt(d.activeLeads || d.active_leads || d.hotLeads || 0);
+    document.getElementById('stat-machines').textContent = fmt(d.machinesDeployed || d.machines_deployed || d.totalMachines || 0);
+    document.getElementById('stat-revenue').textContent = money(d.monthlyRevenue || d.monthly_revenue || d.revenue || 0);
+  }).catch(function() {
+    document.getElementById('stat-prospects').textContent = '—';
+  });
+
+  // --- Pipeline stages ---
+  fetch('/api/pipeline/stages').then(function(r) { return r.json(); }).then(function(stages) {
+    return fetch('/api/pipeline/cards').then(function(r) { return r.json(); }).then(function(cards) {
+      var container = document.getElementById('pipeline-stages');
+      if (!stages || !stages.length) {
+        container.innerHTML = '<div class="route-empty">No pipeline stages configured</div>';
+        return;
+      }
+      var counts = {};
+      (Array.isArray(cards) ? cards : []).forEach(function(c) {
+        var sid = c.stage_id || c.stageId || c.stage;
+        counts[sid] = (counts[sid] || 0) + 1;
+      });
+      container.innerHTML = stages.map(function(s, i) {
+        var count = counts[s.id] || 0;
+        var cls = count > 0 ? ' highlight' : '';
+        return '<div class="pipeline-stage' + cls + '">' +
+          '<div class="stage-count">' + count + '</div>' +
+          '<div class="stage-label">' + (s.emoji || '') + ' ' + (s.label || s.name || 'Stage ' + (i+1)) + '</div></div>';
+      }).join('');
+    });
+  }).catch(function() {
+    document.getElementById('pipeline-stages').innerHTML = '<div class="route-empty">Could not load pipeline</div>';
+  });
+
+  // --- Tasks ---
+  fetch('/api/crm-tasks').then(function(r) { return r.json(); }).then(function(data) {
+    var tasks = Array.isArray(data) ? data : (data.tasks || []);
+    var today = new Date().toISOString().split('T')[0];
+    var relevant = tasks.filter(function(t) {
+      if (t.status === 'done' || t.status === 'completed') return false;
+      return true;
+    }).sort(function(a, b) {
+      // overdue first, then today, then by date
+      var ad = a.due_date || a.dueDate || '9999';
+      var bd = b.due_date || b.dueDate || '9999';
+      return ad < bd ? -1 : ad > bd ? 1 : 0;
+    }).slice(0, 6);
+
+    var list = document.getElementById('task-list');
+    if (!relevant.length) {
+      list.innerHTML = '<li class="task-empty">🎉 No tasks due today — you\'re all caught up!</li>';
+      return;
+    }
+    list.innerHTML = relevant.map(function(t) {
+      var due = t.due_date || t.dueDate || '';
+      var cls = due < today ? 'overdue' : due === today ? 'today' : 'upcoming';
+      var label = due < today ? 'Overdue' : due === today ? 'Today' : due;
+      return '<li class="task-item"><span class="task-dot ' + cls + '"></span>' +
+        '<span class="task-text">' + (t.title || t.name || 'Untitled') + '</span>' +
+        '<span class="task-meta">' + label + '</span></li>';
+    }).join('');
+  }).catch(function() {
+    document.getElementById('task-list').innerHTML = '<li class="task-empty">Could not load tasks</li>';
+  });
+
+  // --- Activity feed ---
+  fetch('/api/activities').then(function(r) { return r.json(); }).then(function(data) {
+    var activities = (Array.isArray(data) ? data : (data.activities || [])).slice(0, 8);
+    var feed = document.getElementById('activity-feed');
+    if (!activities.length) {
+      feed.innerHTML = '<li class="task-empty">No recent activity</li>';
+      return;
+    }
+    feed.innerHTML = activities.map(function(a) {
+      var type = a.type || a.activity_type || 'note';
+      var desc = a.description || a.notes || a.title || type;
+      var prospect = a.prospect_name || a.prospectName || '';
+      var time = a.created_at || a.createdAt || a.date || '';
+      return '<li class="activity-item">' +
+        '<div class="activity-icon">' + actIcon(type) + '</div>' +
+        '<div class="activity-text">' + (prospect ? '<strong>' + prospect + '</strong> — ' : '') + desc +
+        (time ? '<div class="activity-time">' + timeAgo(time) + '</div>' : '') +
+        '</div></li>';
+    }).join('');
+  }).catch(function() {
+    document.getElementById('activity-feed').innerHTML = '<li class="task-empty">Could not load activity</li>';
+  });
+
+  // --- Routes ---
+  fetch('/api/routes/templates').then(function(r) { return r.json(); }).then(function(data) {
+    var routes = Array.isArray(data) ? data : (data.routes || []);
+    var container = document.getElementById('route-status');
+    
+    // Filter today's routes or show the most recent
+    var today = new Date().toISOString().split('T')[0];
+    var todayRoutes = routes.filter(function(r) {
+      return (r.date || r.scheduled_date || '').startsWith(today);
+    });
+    var display = todayRoutes.length ? todayRoutes : routes.slice(0, 3);
+
+    if (!display.length) {
+      container.innerHTML = '<div class="route-empty">No routes scheduled today</div>';
+      return;
+    }
+    container.innerHTML = display.map(function(r) {
+      var status = r.status || 'pending';
+      var stops = r.stops || r.stop_count || 0;
+      return '<div class="route-item">' +
+        '<span class="route-badge ' + status + '">' + status + '</span>' +
+        '<span class="route-name">' + (r.name || r.route_name || 'Route') + '</span>' +
+        '<span class="route-stops">' + stops + ' stops</span></div>';
+    }).join('');
+  }).catch(function() {
+    document.getElementById('route-status').innerHTML = '<div class="route-empty">Could not load routes</div>';
+  });
+
+})();
+</script>
+</body>
+</html>

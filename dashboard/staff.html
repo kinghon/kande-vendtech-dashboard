@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Staff Management — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
+      --muted: #718096; --accent: #3182ce; --hot: #e53e3e; --warn: #dd6b20;
+      --success: #38a169; --purple: #7b2cbf;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+    /* Nav */
+    .top-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .top-nav .logo { height: 40px; }
+    .top-nav a { color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500; padding: 6px 12px; border-radius: 6px; transition: all 0.2s; }
+    .top-nav a:hover, .top-nav a.active { color: var(--accent); background: rgba(49,130,206,0.08); }
+    .nav-brand { font-size: 0.9rem; font-weight: 600; color: var(--text); margin-right: 8px; }
+
+    /* Header */
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .page-header h1 { font-size: 1.6rem; font-weight: 700; }
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* Buttons */
+    .btn { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+    .btn-primary:hover { background: #2b6cb0; }
+    .btn-danger { color: var(--hot); border-color: var(--hot); }
+    .btn-danger:hover { background: var(--hot); color: white; }
+    .btn-success { color: var(--success); border-color: var(--success); }
+    .btn-success:hover { background: var(--success); color: white; }
+    .btn-sm { padding: 4px 10px; font-size: 0.78rem; }
+
+    /* Stats Grid */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat-card { background: var(--card); border-radius: 12px; padding: 18px; border: 1px solid var(--border); text-align: center; }
+    .stat-card .value { font-size: 2rem; font-weight: 700; }
+    .stat-card .label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; font-weight: 600; }
+    .value.accent { color: var(--accent); }
+    .value.success { color: var(--success); }
+    .value.warn { color: var(--warn); }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
+    .tab { padding: 10px 20px; font-size: 0.9rem; font-weight: 500; color: var(--muted); background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* Tab Content */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Cards */
+    .card { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); margin-bottom: 16px; }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { text-align: left; padding: 10px 12px; font-weight: 600; color: var(--muted); border-bottom: 2px solid var(--border); font-size: 0.75rem; text-transform: uppercase; }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    tr:hover { background: rgba(49,130,206,0.03); }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+    .badge-active { background: rgba(56,161,105,0.15); color: var(--success); }
+    .badge-inactive { background: rgba(113,128,150,0.15); color: var(--muted); }
+    .badge-role { background: rgba(49,130,206,0.12); color: var(--accent); }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: flex-start; padding: 40px 20px; overflow-y: auto; }
+    .modal-overlay.show { display: flex; }
+    .modal { background: var(--card); border-radius: 12px; padding: 24px; width: 100%; max-width: 560px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .modal h2 { font-size: 1.2rem; margin-bottom: 20px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; font-family: inherit; }
+    .form-group textarea { min-height: 80px; resize: vertical; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+    /* Schedule Grid */
+    .schedule-grid { display: grid; grid-template-columns: 140px repeat(7, 1fr); gap: 1px; background: var(--border); border-radius: 8px; overflow: hidden; font-size: 0.8rem; }
+    .schedule-cell { background: var(--card); padding: 8px; min-height: 60px; }
+    .schedule-header { font-weight: 600; text-align: center; padding: 10px 8px; background: #f8fafc; color: var(--muted); font-size: 0.75rem; text-transform: uppercase; }
+    .schedule-name { font-weight: 600; display: flex; align-items: center; padding: 8px; background: #f8fafc; }
+    .schedule-shift { background: rgba(49,130,206,0.1); border-radius: 4px; padding: 2px 6px; margin: 2px 0; font-size: 0.7rem; color: var(--accent); font-weight: 500; }
+
+    /* Shift Cards */
+    .shift-day-group { margin-bottom: 16px; }
+    .shift-day-label { font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: var(--accent); }
+    .shift-card { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; }
+    .shift-info { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+    .shift-name { font-weight: 600; }
+    .shift-time { color: var(--muted); font-size: 0.85rem; }
+    .shift-hours { color: var(--accent); font-weight: 600; }
+    .shift-location { color: var(--muted); font-size: 0.8rem; }
+
+    /* Notes */
+    .note-item { padding: 10px 14px; border-left: 3px solid var(--accent); margin-bottom: 8px; background: rgba(49,130,206,0.03); border-radius: 0 8px 8px 0; }
+    .note-date { font-size: 0.75rem; color: var(--muted); }
+    .note-text { font-size: 0.85rem; margin-top: 4px; }
+
+    /* Availability */
+    .avail-grid { display: grid; grid-template-columns: 140px repeat(7, 1fr); gap: 1px; background: var(--border); border-radius: 8px; overflow: hidden; }
+    .avail-cell { background: var(--card); padding: 8px; text-align: center; cursor: pointer; transition: all 0.2s; min-height: 40px; display: flex; align-items: center; justify-content: center; }
+    .avail-cell.available { background: rgba(56,161,105,0.15); color: var(--success); }
+    .avail-cell.unavailable { background: rgba(229,62,62,0.08); color: var(--hot); }
+    .avail-cell:hover { opacity: 0.8; }
+
+    /* Business Tips */
+    .tips-card { background: linear-gradient(135deg, rgba(49,130,206,0.05), rgba(123,44,191,0.05)); border: 1px solid rgba(49,130,206,0.2); }
+    .tips-card h3 { color: var(--accent); font-size: 0.9rem; margin-bottom: 8px; }
+    .tips-card ul { list-style: none; font-size: 0.85rem; }
+    .tips-card li { padding: 4px 0; }
+    .tips-card li::before { content: '💡 '; }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 40px; color: var(--muted); }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+
+    /* Week navigation */
+    .week-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .week-label { font-weight: 600; font-size: 0.95rem; min-width: 200px; text-align: center; }
+
+    @media (max-width: 768px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .schedule-grid, .avail-grid { font-size: 0.7rem; grid-template-columns: 100px repeat(7, 1fr); }
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <nav class="top-nav">
+      <a href="/"><img src="/logo.png" alt="Kande VendTech" class="logo"></a>
+      <span class="nav-brand">Operations</span>
+      <a href="/">Dashboard</a>
+      <a href="/crm">CRM</a>
+      <a href="/machines">Machines</a>
+      <a href="/inventory">Inventory</a>
+      <a href="/finance">Finance</a>
+      <a href="/restock">Restock</a>
+      <a href="/staff" class="active">Staff</a>
+      <a href="/clients">Clients</a>
+      <a href="/map">Map</a>
+    </nav>
+
+    <div class="page-header">
+      <h1>👥 Staff Management</h1>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="openAddEmployee()">+ Add Employee</button>
+        <button class="btn" onclick="openAddShift()">+ Log Shift</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card"><div class="value accent" id="stat-total">0</div><div class="label">Total Staff</div></div>
+      <div class="stat-card"><div class="value success" id="stat-active">0</div><div class="label">Active</div></div>
+      <div class="stat-card"><div class="value warn" id="stat-hours">0</div><div class="label">Hours This Week</div></div>
+      <div class="stat-card"><div class="value accent" id="stat-cost">$0</div><div class="label">Labor Cost (Week)</div></div>
+      <div class="stat-card"><div class="value success" id="stat-target">$0</div><div class="label">Revenue Target</div></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('roster')">Roster</button>
+      <button class="tab" onclick="switchTab('shifts')">Shifts</button>
+      <button class="tab" onclick="switchTab('schedule')">Schedule</button>
+      <button class="tab" onclick="switchTab('availability')">Availability</button>
+    </div>
+
+    <!-- Roster Tab -->
+    <div id="tab-roster" class="tab-content active">
+      <div class="card tips-card" style="margin-bottom:16px;">
+        <h3>Staffing Tips</h3>
+        <ul>
+          <li>Always have 2+ part-timers — never rely on one person</li>
+          <li>Hire sequence: stockers → warehouse mgr (15-25 machines) → ops mgr (40+ locations)</li>
+          <li>Screen stockers for vehicle capacity (6+ bins) — post on Craigslist</li>
+          <li>Target: $3,500 revenue per 8 labor hours + expenses</li>
+        </ul>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Role</th>
+              <th>Phone</th>
+              <th>Rate</th>
+              <th>Start Date</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="roster-body"></tbody>
+        </table>
+      </div>
+      <div id="roster-empty" class="empty-state" style="display:none;">
+        <div class="icon">👥</div>
+        <p>No employees yet. Add your first team member!</p>
+      </div>
+    </div>
+
+    <!-- Shifts Tab -->
+    <div id="tab-shifts" class="tab-content">
+      <div class="week-nav">
+        <button class="btn btn-sm" onclick="shiftWeek(-1)">← Prev</button>
+        <span class="week-label" id="shift-week-label">This Week</span>
+        <button class="btn btn-sm" onclick="shiftWeek(1)">Next →</button>
+        <button class="btn btn-sm" onclick="shiftWeek(0)">Today</button>
+      </div>
+      <div id="shifts-list"></div>
+      <div id="shifts-empty" class="empty-state" style="display:none;">
+        <div class="icon">⏱️</div>
+        <p>No shifts logged this week. Log a shift to start tracking hours.</p>
+      </div>
+    </div>
+
+    <!-- Schedule Tab -->
+    <div id="tab-schedule" class="tab-content">
+      <div class="week-nav">
+        <button class="btn btn-sm" onclick="scheduleWeek(-1)">← Prev</button>
+        <span class="week-label" id="schedule-week-label">This Week</span>
+        <button class="btn btn-sm" onclick="scheduleWeek(1)">Next →</button>
+        <button class="btn btn-sm" onclick="scheduleWeek(0)">Today</button>
+      </div>
+      <div class="card" style="overflow-x:auto;">
+        <div class="schedule-grid" id="schedule-grid"></div>
+      </div>
+    </div>
+
+    <!-- Availability Tab -->
+    <div id="tab-availability" class="tab-content">
+      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:12px;">Click cells to toggle availability. Green = available, Red = unavailable.</p>
+      <div class="card" style="overflow-x:auto;">
+        <div class="avail-grid" id="avail-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Employee Modal -->
+  <div class="modal-overlay" id="employee-modal">
+    <div class="modal">
+      <h2 id="employee-modal-title">Add Employee</h2>
+      <input type="hidden" id="emp-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Name *</label>
+          <input type="text" id="emp-name" placeholder="Full name">
+        </div>
+        <div class="form-group">
+          <label>Role *</label>
+          <select id="emp-role">
+            <option value="Stocker">Stocker</option>
+            <option value="Driver">Driver</option>
+            <option value="Warehouse">Warehouse</option>
+            <option value="Sales">Sales</option>
+            <option value="Manager">Manager</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Phone</label>
+          <input type="tel" id="emp-phone" placeholder="(555) 123-4567">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="emp-email" placeholder="email@example.com">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Hourly Rate ($)</label>
+          <input type="number" id="emp-rate" step="0.50" placeholder="15.00">
+        </div>
+        <div class="form-group">
+          <label>Start Date</label>
+          <input type="date" id="emp-start">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="emp-status">
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="emp-notes" placeholder="Vehicle capacity, availability, performance notes..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('employee-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveEmployee()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shift Modal -->
+  <div class="modal-overlay" id="shift-modal">
+    <div class="modal">
+      <h2 id="shift-modal-title">Log Shift</h2>
+      <input type="hidden" id="shift-id">
+      <div class="form-group">
+        <label>Employee *</label>
+        <select id="shift-employee"></select>
+      </div>
+      <div class="form-group">
+        <label>Date *</label>
+        <input type="date" id="shift-date">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Start Time *</label>
+          <input type="time" id="shift-start">
+        </div>
+        <div class="form-group">
+          <label>End Time *</label>
+          <input type="time" id="shift-end">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Location / Task</label>
+        <input type="text" id="shift-location" placeholder="e.g., Warehouse, Route A, Office">
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="shift-notes" placeholder="What was accomplished..."></textarea>
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:8px;">
+        <label style="margin:0;">Calculated Hours:</label>
+        <strong id="shift-calc-hours">0.0</strong>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('shift-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveShift()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Employee Detail Modal -->
+  <div class="modal-overlay" id="detail-modal">
+    <div class="modal" style="max-width:640px;">
+      <h2 id="detail-name">Employee</h2>
+      <div id="detail-content"></div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('detail-modal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let staff = [];
+    let shifts = [];
+    let currentShiftWeekOffset = 0;
+    let currentScheduleWeekOffset = 0;
+
+    // --- Load data ---
+    async function loadData() {
+      try {
+        const [staffRes, shiftsRes] = await Promise.all([
+          fetch('/api/staff').then(r => r.json()),
+          fetch('/api/shifts').then(r => r.json())
+        ]);
+        staff = staffRes;
+        shifts = shiftsRes;
+        renderAll();
+      } catch (e) {
+        console.error('Failed to load data:', e);
+      }
+    }
+
+    function renderAll() {
+      renderStats();
+      renderRoster();
+      renderShifts();
+      renderSchedule();
+      renderAvailability();
+    }
+
+    // --- Stats ---
+    function renderStats() {
+      const active = staff.filter(s => s.status === 'active');
+      const now = new Date();
+      const weekStart = getWeekStart(now);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 7);
+
+      const weekShifts = shifts.filter(s => {
+        const d = new Date(s.date);
+        return d >= weekStart && d < weekEnd;
+      });
+
+      const totalHours = weekShifts.reduce((sum, s) => sum + (s.hours || 0), 0);
+      const laborCost = weekShifts.reduce((sum, s) => {
+        const emp = staff.find(e => e.id === s.employee_id);
+        return sum + ((s.hours || 0) * (emp?.hourly_rate || 0));
+      }, 0);
+
+      // Target: $3,500 per 8 labor hours
+      const targetRevenue = (totalHours / 8) * 3500;
+
+      document.getElementById('stat-total').textContent = staff.length;
+      document.getElementById('stat-active').textContent = active.length;
+      document.getElementById('stat-hours').textContent = totalHours.toFixed(1);
+      document.getElementById('stat-cost').textContent = '$' + laborCost.toFixed(0);
+      document.getElementById('stat-target').textContent = '$' + targetRevenue.toLocaleString(undefined, {maximumFractionDigits:0});
+    }
+
+    // --- Roster ---
+    function renderRoster() {
+      const tbody = document.getElementById('roster-body');
+      const empty = document.getElementById('roster-empty');
+
+      if (staff.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = '';
+        return;
+      }
+      empty.style.display = 'none';
+
+      tbody.innerHTML = staff.sort((a, b) => {
+        if (a.status === 'active' && b.status !== 'active') return -1;
+        if (b.status === 'active' && a.status !== 'active') return 1;
+        return a.name.localeCompare(b.name);
+      }).map(emp => `
+        <tr style="${emp.status === 'inactive' ? 'opacity:0.5;' : ''}">
+          <td><strong style="cursor:pointer;color:var(--accent);" onclick="viewEmployee(${emp.id})">${esc(emp.name)}</strong></td>
+          <td><span class="badge badge-role">${esc(emp.role)}</span></td>
+          <td>${esc(emp.phone || '—')}</td>
+          <td>$${(emp.hourly_rate || 0).toFixed(2)}/hr</td>
+          <td>${emp.start_date ? new Date(emp.start_date).toLocaleDateString() : '—'}</td>
+          <td><span class="badge ${emp.status === 'active' ? 'badge-active' : 'badge-inactive'}">${emp.status}</span></td>
+          <td>
+            <button class="btn btn-sm" onclick="editEmployee(${emp.id})">Edit</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteEmployee(${emp.id})">×</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // --- Shifts ---
+    function getWeekStart(date) {
+      const d = new Date(date);
+      const day = d.getDay();
+      d.setDate(d.getDate() - day);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+
+    function shiftWeek(dir) {
+      if (dir === 0) currentShiftWeekOffset = 0;
+      else currentShiftWeekOffset += dir;
+      renderShifts();
+    }
+
+    function renderShifts() {
+      const now = new Date();
+      const weekStart = getWeekStart(now);
+      weekStart.setDate(weekStart.getDate() + (currentShiftWeekOffset * 7));
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 7);
+
+      const weekLabel = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' — ' +
+        new Date(weekEnd - 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      document.getElementById('shift-week-label').textContent = currentShiftWeekOffset === 0 ? 'This Week' : weekLabel;
+
+      const weekShifts = shifts.filter(s => {
+        const d = new Date(s.date);
+        return d >= weekStart && d < weekEnd;
+      }).sort((a, b) => new Date(a.date) - new Date(b.date) || a.start_time?.localeCompare(b.start_time));
+
+      const container = document.getElementById('shifts-list');
+      const empty = document.getElementById('shifts-empty');
+
+      if (weekShifts.length === 0) {
+        container.innerHTML = '';
+        empty.style.display = '';
+        return;
+      }
+      empty.style.display = 'none';
+
+      // Group by date
+      const grouped = {};
+      weekShifts.forEach(s => {
+        const key = s.date;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(s);
+      });
+
+      container.innerHTML = Object.entries(grouped).map(([date, dayShifts]) => {
+        const d = new Date(date + 'T12:00:00');
+        const dayLabel = d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+        return `
+          <div class="shift-day-group">
+            <div class="shift-day-label">${dayLabel}</div>
+            ${dayShifts.map(s => {
+              const emp = staff.find(e => e.id === s.employee_id);
+              return `
+                <div class="shift-card">
+                  <div class="shift-info">
+                    <span class="shift-name">${esc(emp?.name || 'Unknown')}</span>
+                    <span class="shift-time">${formatTime(s.start_time)} — ${formatTime(s.end_time)}</span>
+                    <span class="shift-hours">${(s.hours || 0).toFixed(1)}h</span>
+                    ${s.location ? `<span class="shift-location">📍 ${esc(s.location)}</span>` : ''}
+                  </div>
+                  <div>
+                    <button class="btn btn-sm" onclick="editShift(${s.id})">Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteShift(${s.id})">×</button>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function formatTime(t) {
+      if (!t) return '—';
+      const [h, m] = t.split(':');
+      const hr = parseInt(h);
+      const ampm = hr >= 12 ? 'PM' : 'AM';
+      return ((hr % 12) || 12) + ':' + m + ' ' + ampm;
+    }
+
+    // --- Schedule Grid ---
+    function scheduleWeek(dir) {
+      if (dir === 0) currentScheduleWeekOffset = 0;
+      else currentScheduleWeekOffset += dir;
+      renderSchedule();
+    }
+
+    function renderSchedule() {
+      const now = new Date();
+      const weekStart = getWeekStart(now);
+      weekStart.setDate(weekStart.getDate() + (currentScheduleWeekOffset * 7));
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 7);
+
+      const weekLabel = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' — ' +
+        new Date(weekEnd - 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      document.getElementById('schedule-week-label').textContent = currentScheduleWeekOffset === 0 ? 'This Week' : weekLabel;
+
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const activeStaff = staff.filter(s => s.status === 'active');
+      const grid = document.getElementById('schedule-grid');
+
+      // Build dates for the week
+      const weekDates = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(weekStart);
+        d.setDate(d.getDate() + i);
+        weekDates.push(d.toISOString().split('T')[0]);
+      }
+
+      let html = '<div class="schedule-header"></div>';
+      weekDates.forEach((date, i) => {
+        const d = new Date(date + 'T12:00:00');
+        html += `<div class="schedule-header">${days[i]}<br>${d.getDate()}</div>`;
+      });
+
+      activeStaff.forEach(emp => {
+        html += `<div class="schedule-name">${esc(emp.name)}</div>`;
+        weekDates.forEach(date => {
+          const dayShifts = shifts.filter(s => s.employee_id === emp.id && s.date === date);
+          html += `<div class="schedule-cell">`;
+          dayShifts.forEach(s => {
+            html += `<div class="schedule-shift">${formatTime(s.start_time)}–${formatTime(s.end_time)}</div>`;
+          });
+          html += `</div>`;
+        });
+      });
+
+      grid.innerHTML = html;
+      grid.style.gridTemplateColumns = `140px repeat(7, 1fr)`;
+
+      if (activeStaff.length === 0) {
+        grid.innerHTML += '<div style="grid-column:1/-1;padding:20px;text-align:center;color:var(--muted);">No active employees. Add staff to see their schedule.</div>';
+      }
+    }
+
+    // --- Availability ---
+    function renderAvailability() {
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const activeStaff = staff.filter(s => s.status === 'active');
+      const grid = document.getElementById('avail-grid');
+
+      let html = '<div class="schedule-header"></div>';
+      days.forEach(d => {
+        html += `<div class="schedule-header">${d}</div>`;
+      });
+
+      activeStaff.forEach(emp => {
+        const avail = emp.availability || {};
+        html += `<div class="schedule-name">${esc(emp.name)}</div>`;
+        days.forEach((day, i) => {
+          const isAvail = avail[i] !== false; // default to available
+          html += `<div class="avail-cell ${isAvail ? 'available' : 'unavailable'}" onclick="toggleAvailability(${emp.id}, ${i})" title="Click to toggle">${isAvail ? '✓' : '✗'}</div>`;
+        });
+      });
+
+      grid.innerHTML = html;
+      grid.style.gridTemplateColumns = `140px repeat(7, 1fr)`;
+    }
+
+    async function toggleAvailability(empId, dayIndex) {
+      const emp = staff.find(e => e.id === empId);
+      if (!emp) return;
+      const avail = emp.availability || {};
+      avail[dayIndex] = avail[dayIndex] === false ? true : false;
+      emp.availability = avail;
+
+      await fetch(`/api/staff/${empId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ availability: avail })
+      });
+      renderAvailability();
+    }
+
+    // --- View Employee Detail ---
+    function viewEmployee(id) {
+      const emp = staff.find(e => e.id === id);
+      if (!emp) return;
+
+      const empShifts = shifts.filter(s => s.employee_id === id).sort((a, b) => new Date(b.date) - new Date(a.date));
+      const totalHours = empShifts.reduce((sum, s) => sum + (s.hours || 0), 0);
+      const totalEarnings = empShifts.reduce((sum, s) => sum + ((s.hours || 0) * (emp.hourly_rate || 0)), 0);
+
+      document.getElementById('detail-name').textContent = emp.name;
+      document.getElementById('detail-content').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+          <div class="stat-card"><div class="value accent">${empShifts.length}</div><div class="label">Total Shifts</div></div>
+          <div class="stat-card"><div class="value success">${totalHours.toFixed(1)}h</div><div class="label">Total Hours</div></div>
+        </div>
+        <div class="card" style="margin-bottom:12px;">
+          <p><strong>Role:</strong> ${esc(emp.role)}</p>
+          <p><strong>Phone:</strong> ${esc(emp.phone || '—')}</p>
+          <p><strong>Email:</strong> ${esc(emp.email || '—')}</p>
+          <p><strong>Rate:</strong> $${(emp.hourly_rate || 0).toFixed(2)}/hr</p>
+          <p><strong>Started:</strong> ${emp.start_date ? new Date(emp.start_date).toLocaleDateString() : '—'}</p>
+          <p><strong>Total Earnings:</strong> $${totalEarnings.toFixed(2)}</p>
+        </div>
+        ${emp.notes ? `
+          <h3 style="font-size:0.9rem;margin-bottom:8px;">Performance Notes</h3>
+          <div class="note-item">
+            <div class="note-text">${esc(emp.notes)}</div>
+          </div>
+        ` : ''}
+        ${empShifts.length > 0 ? `
+          <h3 style="font-size:0.9rem;margin:12px 0 8px;">Recent Shifts</h3>
+          ${empShifts.slice(0, 10).map(s => `
+            <div class="shift-card">
+              <div class="shift-info">
+                <span class="shift-time">${new Date(s.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                <span class="shift-time">${formatTime(s.start_time)} — ${formatTime(s.end_time)}</span>
+                <span class="shift-hours">${(s.hours || 0).toFixed(1)}h</span>
+                ${s.location ? `<span class="shift-location">📍 ${esc(s.location)}</span>` : ''}
+              </div>
+            </div>
+          `).join('')}
+        ` : ''}
+      `;
+      document.getElementById('detail-modal').classList.add('show');
+    }
+
+    // --- Tabs ---
+    function switchTab(name) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('tab-' + name).classList.add('active');
+    }
+
+    // --- Modals ---
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('show');
+    }
+
+    function openAddEmployee() {
+      document.getElementById('employee-modal-title').textContent = 'Add Employee';
+      document.getElementById('emp-id').value = '';
+      document.getElementById('emp-name').value = '';
+      document.getElementById('emp-role').value = 'Stocker';
+      document.getElementById('emp-phone').value = '';
+      document.getElementById('emp-email').value = '';
+      document.getElementById('emp-rate').value = '15.00';
+      document.getElementById('emp-start').value = new Date().toISOString().split('T')[0];
+      document.getElementById('emp-status').value = 'active';
+      document.getElementById('emp-notes').value = '';
+      document.getElementById('employee-modal').classList.add('show');
+    }
+
+    function editEmployee(id) {
+      const emp = staff.find(e => e.id === id);
+      if (!emp) return;
+      document.getElementById('employee-modal-title').textContent = 'Edit Employee';
+      document.getElementById('emp-id').value = emp.id;
+      document.getElementById('emp-name').value = emp.name || '';
+      document.getElementById('emp-role').value = emp.role || 'Stocker';
+      document.getElementById('emp-phone').value = emp.phone || '';
+      document.getElementById('emp-email').value = emp.email || '';
+      document.getElementById('emp-rate').value = emp.hourly_rate || '';
+      document.getElementById('emp-start').value = emp.start_date || '';
+      document.getElementById('emp-status').value = emp.status || 'active';
+      document.getElementById('emp-notes').value = emp.notes || '';
+      document.getElementById('employee-modal').classList.add('show');
+    }
+
+    async function saveEmployee() {
+      const id = document.getElementById('emp-id').value;
+      const data = {
+        name: document.getElementById('emp-name').value.trim(),
+        role: document.getElementById('emp-role').value,
+        phone: document.getElementById('emp-phone').value.trim(),
+        email: document.getElementById('emp-email').value.trim(),
+        hourly_rate: parseFloat(document.getElementById('emp-rate').value) || 0,
+        start_date: document.getElementById('emp-start').value,
+        status: document.getElementById('emp-status').value,
+        notes: document.getElementById('emp-notes').value.trim()
+      };
+      if (!data.name) return alert('Name is required');
+
+      if (id) {
+        await fetch(`/api/staff/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      } else {
+        await fetch('/api/staff', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      }
+      closeModal('employee-modal');
+      loadData();
+    }
+
+    async function deleteEmployee(id) {
+      const emp = staff.find(e => e.id === id);
+      if (!confirm(`Delete ${emp?.name}? This cannot be undone.`)) return;
+      await fetch(`/api/staff/${id}`, { method: 'DELETE' });
+      loadData();
+    }
+
+    // --- Shift CRUD ---
+    function openAddShift() {
+      document.getElementById('shift-modal-title').textContent = 'Log Shift';
+      document.getElementById('shift-id').value = '';
+      document.getElementById('shift-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('shift-start').value = '09:00';
+      document.getElementById('shift-end').value = '17:00';
+      document.getElementById('shift-location').value = '';
+      document.getElementById('shift-notes').value = '';
+      populateEmployeeDropdown();
+      calcShiftHours();
+      document.getElementById('shift-modal').classList.add('show');
+    }
+
+    function editShift(id) {
+      const s = shifts.find(x => x.id === id);
+      if (!s) return;
+      document.getElementById('shift-modal-title').textContent = 'Edit Shift';
+      document.getElementById('shift-id').value = s.id;
+      document.getElementById('shift-date').value = s.date || '';
+      document.getElementById('shift-start').value = s.start_time || '';
+      document.getElementById('shift-end').value = s.end_time || '';
+      document.getElementById('shift-location').value = s.location || '';
+      document.getElementById('shift-notes').value = s.notes || '';
+      populateEmployeeDropdown(s.employee_id);
+      calcShiftHours();
+      document.getElementById('shift-modal').classList.add('show');
+    }
+
+    function populateEmployeeDropdown(selectedId) {
+      const select = document.getElementById('shift-employee');
+      select.innerHTML = staff.filter(s => s.status === 'active').map(e =>
+        `<option value="${e.id}" ${e.id === selectedId ? 'selected' : ''}>${esc(e.name)} (${esc(e.role)})</option>`
+      ).join('');
+      if (staff.length === 0) {
+        select.innerHTML = '<option value="">No employees — add staff first</option>';
+      }
+    }
+
+    function calcShiftHours() {
+      const start = document.getElementById('shift-start').value;
+      const end = document.getElementById('shift-end').value;
+      if (start && end) {
+        const [sh, sm] = start.split(':').map(Number);
+        const [eh, em] = end.split(':').map(Number);
+        let hours = (eh + em / 60) - (sh + sm / 60);
+        if (hours < 0) hours += 24;
+        document.getElementById('shift-calc-hours').textContent = hours.toFixed(1);
+      }
+    }
+
+    document.getElementById('shift-start').addEventListener('change', calcShiftHours);
+    document.getElementById('shift-end').addEventListener('change', calcShiftHours);
+
+    async function saveShift() {
+      const id = document.getElementById('shift-id').value;
+      const start = document.getElementById('shift-start').value;
+      const end = document.getElementById('shift-end').value;
+      const [sh, sm] = start.split(':').map(Number);
+      const [eh, em] = end.split(':').map(Number);
+      let hours = (eh + em / 60) - (sh + sm / 60);
+      if (hours < 0) hours += 24;
+
+      const data = {
+        employee_id: parseInt(document.getElementById('shift-employee').value),
+        date: document.getElementById('shift-date').value,
+        start_time: start,
+        end_time: end,
+        hours: Math.round(hours * 100) / 100,
+        location: document.getElementById('shift-location').value.trim(),
+        notes: document.getElementById('shift-notes').value.trim()
+      };
+      if (!data.employee_id || !data.date) return alert('Employee and date required');
+
+      if (id) {
+        await fetch(`/api/shifts/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      } else {
+        await fetch('/api/shifts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      }
+      closeModal('shift-modal');
+      loadData();
+    }
+
+    async function deleteShift(id) {
+      if (!confirm('Delete this shift?')) return;
+      await fetch(`/api/shifts/${id}`, { method: 'DELETE' });
+      loadData();
+    }
+
+    // --- Util ---
+    function esc(s) {
+      if (!s) return '';
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    // Close modals on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(el => {
+      el.addEventListener('click', e => { if (e.target === el) el.classList.remove('show'); });
+    });
+
+    // Init
+    loadData();
+    setInterval(loadData, 60000);
+  </script>
+<script src="/nav.js"></script>
+</body>
+</html>

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <title>AI Office — Task Board</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; min-height: 100vh; color: #1a202c; }
+    .top-bar { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 12px 20px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+    .top-bar img { height: 36px; }
+    .top-bar h1 { font-size: 1.3rem; font-weight: 700; background: linear-gradient(90deg, #3182ce, #7b2cbf); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .top-bar nav { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+    .top-bar nav a { color: #3182ce; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; border: 1px solid #e2e8f0; transition: all 0.2s; }
+    .top-bar nav a:hover { background: #ebf4ff; border-color: #3182ce; }
+
+    .board-header { padding: 20px 20px 0; display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+    .board-header h2 { font-size: 1.4rem; }
+    .team-stats { display: flex; gap: 16px; padding: 10px 20px; flex-wrap: wrap; }
+    .team-stat { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 16px; text-align: center; min-width: 90px; }
+    .team-stat .num { font-size: 1.5rem; font-weight: 700; color: #3182ce; }
+    .team-stat .lbl { font-size: 0.75rem; color: #718096; }
+
+    .agent-filters { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 20px 10px; }
+    .agent-filter { padding: 4px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; opacity: 0.7; }
+    .agent-filter:hover, .agent-filter.active { opacity: 1; border-color: #1a202c; }
+
+    .board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 0 20px 20px; min-height: calc(100vh - 280px); }
+    @media (max-width: 900px) { .board { grid-template-columns: 1fr; } }
+
+    .column { background: #edf2f7; border-radius: 12px; padding: 12px; min-height: 200px; }
+    .column-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 4px 8px; }
+    .column-header h3 { font-size: 0.95rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .column-header .count { background: #cbd5e0; color: #2d3748; font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; font-weight: 700; }
+    .col-todo .column-header { color: #718096; }
+    .col-progress .column-header { color: #3182ce; }
+    .col-review .column-header { color: #d69e2e; }
+    .col-done .column-header { color: #38a169; }
+
+    .task-card { background: #fff; border-radius: 10px; padding: 14px; margin-bottom: 10px; border: 1px solid #e2e8f0; transition: all 0.2s; cursor: default; }
+    .task-card:hover { border-color: #a0aec0; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .task-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; line-height: 1.4; }
+    .task-desc { color: #718096; font-size: 0.8rem; line-height: 1.5; margin-bottom: 10px; }
+    .task-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .task-agent { padding: 3px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+    .task-tag { padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; color: #718096; background: #f7fafc; border: 1px solid #e2e8f0; }
+    .task-priority { font-size: 0.7rem; margin-left: auto; font-weight: 600; }
+    .priority-high { color: #e53e3e; }
+    .priority-medium { color: #d69e2e; }
+    .priority-low { color: #38a169; }
+    .task-team { font-size: 0.68rem; color: #a0aec0; margin-top: 6px; }
+
+    /* Agent Colors */
+    .agent-atlas { background: rgba(49,130,206,0.15); color: #2b6cb0; }
+    .agent-sage { background: rgba(49,130,206,0.25); color: #2c5282; }
+    .agent-nova { background: rgba(128,90,213,0.15); color: #6b46c1; }
+    .agent-cipher { background: rgba(128,90,213,0.25); color: #553c9a; }
+    .agent-forge { background: rgba(237,100,166,0.15); color: #b83280; }
+    .agent-ivy { background: rgba(237,100,166,0.25); color: #97266d; }
+    .agent-scout { background: rgba(56,161,105,0.15); color: #276749; }
+    .agent-pixel { background: rgba(56,161,105,0.25); color: #22543d; }
+    .agent-raven { background: rgba(113,128,150,0.2); color: #4a5568; }
+    .agent-jarvis { background: rgba(221,107,32,0.15); color: #c05621; }
+
+    .timestamp { color: #a0aec0; font-size: 0.7rem; margin-top: 8px; }
+    .progress-bar { height: 4px; background: #e2e8f0; border-radius: 2px; margin-top: 8px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+    .fill-blue { background: #3182ce; }
+    .fill-green { background: #38a169; }
+    .fill-purple { background: #805ad5; }
+    .fill-pink { background: #d53f8c; }
+    .fill-gray { background: #718096; }
+    .fill-orange { background: #dd6b20; }
+
+    .legend { padding: 10px 20px; }
+    .legend-title { font-size: 0.85rem; font-weight: 700; color: #4a5568; margin-bottom: 8px; }
+    .teams-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+    .team-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; display: flex; gap: 12px; align-items: center; }
+    .team-card .team-icon { font-size: 1.5rem; }
+    .team-card .team-name { font-weight: 700; font-size: 0.85rem; }
+    .team-card .team-members { font-size: 0.78rem; color: #718096; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <img src="/logo.png" alt="Kande VendTech" onerror="this.src='/logo.jpg'">
+    <h1>🏢 AI Office — Task Board</h1>
+    <nav>
+      <a href="/">Dashboard</a>
+      <a href="/crm">CRM</a>
+      <a href="/machines">Machines</a>
+      <a href="/inventory">Inventory</a>
+      <a href="/finance">Finance</a>
+      <a href="/restock">Restock</a>
+      <a href="/map">Map</a>
+      <a href="/ai-office">AI Office</a>
+    </nav>
+  </div>
+
+  <div class="team-stats" id="stats"></div>
+
+  <div class="legend">
+    <div class="legend-title">🏢 Teams (2 agents each + Lead)</div>
+    <div class="teams-grid">
+      <div class="team-card">
+        <div class="team-icon">🎯</div>
+        <div>
+          <div class="team-name">Strategy Team</div>
+          <div class="team-members"><span class="task-agent agent-atlas">Atlas</span> Research · <span class="task-agent agent-sage">Sage</span> Writing</div>
+        </div>
+      </div>
+      <div class="team-card">
+        <div class="team-icon">🏗️</div>
+        <div>
+          <div class="team-name">Framework Team</div>
+          <div class="team-members"><span class="task-agent agent-nova">Nova</span> UI/Pages · <span class="task-agent agent-cipher">Cipher</span> APIs/Tools</div>
+        </div>
+      </div>
+      <div class="team-card">
+        <div class="team-icon">👥</div>
+        <div>
+          <div class="team-name">People Team</div>
+          <div class="team-members"><span class="task-agent agent-forge">Forge</span> Staff · <span class="task-agent agent-ivy">Ivy</span> Clients</div>
+        </div>
+      </div>
+      <div class="team-card">
+        <div class="team-icon">📊</div>
+        <div>
+          <div class="team-name">Analytics Team</div>
+          <div class="team-members"><span class="task-agent agent-scout">Scout</span> Performance · <span class="task-agent agent-pixel">Pixel</span> Planogram</div>
+        </div>
+      </div>
+      <div class="team-card">
+        <div class="team-icon">🔍</div>
+        <div>
+          <div class="team-name">Quality & Leadership</div>
+          <div class="team-members"><span class="task-agent agent-raven">Raven</span> Critic/QA · <span class="task-agent agent-jarvis">Jarvis</span> Lead</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="agent-filters" id="filters"></div>
+  <div class="board" id="board"></div>
+
+  <script>
+    const AGENTS = {
+      atlas:  { label: '🎯 Atlas',  team: 'Strategy',  fill: 'fill-blue' },
+      sage:   { label: '📝 Sage',   team: 'Strategy',  fill: 'fill-blue' },
+      nova:   { label: '🏗️ Nova',   team: 'Framework', fill: 'fill-purple' },
+      cipher: { label: '🔐 Cipher', team: 'Framework', fill: 'fill-purple' },
+      forge:  { label: '⚒️ Forge',  team: 'People',    fill: 'fill-pink' },
+      ivy:    { label: '🌿 Ivy',    team: 'People',    fill: 'fill-pink' },
+      scout:  { label: '📊 Scout',  team: 'Analytics', fill: 'fill-green' },
+      pixel:  { label: '🎨 Pixel',  team: 'Analytics', fill: 'fill-green' },
+      raven:  { label: '🔍 Raven',  team: 'Quality',   fill: 'fill-gray' },
+      jarvis: { label: '🤖 Jarvis', team: 'Lead',      fill: 'fill-orange' },
+    };
+
+    const TASKS = [
+      // === STRATEGY TEAM ===
+      // Atlas — Research
+      { id: 'a1', title: 'Research LV Vending Competitors', desc: 'Identify 5+ competitors in Las Vegas: pricing, services, online presence, weaknesses', agent: 'atlas', status: 'progress', priority: 'high', tags: ['research'], progress: 60 },
+      { id: 'a2', title: 'Target Market Data — LV Properties', desc: 'Research 200+ unit apartments, medical facilities, warehouses, property management companies in LV', agent: 'atlas', status: 'progress', priority: 'high', tags: ['research', 'market'], progress: 50 },
+      { id: 'a3', title: 'Vending Industry Trends 2025-26', desc: 'Smart vending growth, tech trends, consumer preferences, revenue benchmarks per machine type', agent: 'atlas', status: 'progress', priority: 'medium', tags: ['research'], progress: 40 },
+      // Sage — Writing
+      { id: 'sg1', title: 'Go-to-Market Strategy Document', desc: 'Positioning, sales strategy, pricing models, marketing channels, 90-day action plan with milestones', agent: 'sage', status: 'progress', priority: 'high', tags: ['strategy', 'writing'], progress: 20 },
+      { id: 'sg2', title: 'One-Page Sales Reference Sheet', desc: 'Key talking points, objection handling, competitor comparison, ROI framework for reps', agent: 'sage', status: 'todo', priority: 'medium', tags: ['sales', 'writing'] },
+      { id: 'sg3', title: 'Build Strategy HTML Page', desc: 'Polished /strategy page with research + strategy content, collapsible sections, mobile-responsive', agent: 'sage', status: 'todo', priority: 'high', tags: ['build'] },
+
+      // === FRAMEWORK TEAM ===
+      // Nova — UI/Pages
+      { id: 'n1', title: 'AI Office Dashboard Page', desc: 'Architecture diagram, 6 role cards, run history, auto-refresh', agent: 'nova', status: 'done', priority: 'high', tags: ['build'], completedAt: '5:49 AM' },
+      { id: 'n2', title: 'AI Office Run Tracking UI', desc: 'Expandable run cards with subtask details, status badges, timeline view', agent: 'nova', status: 'done', priority: 'medium', tags: ['build'], completedAt: '5:49 AM' },
+      // Cipher — APIs/Tools
+      { id: 'c1', title: 'AI Office API Endpoints', desc: 'GET/POST/PUT /api/ai-office/runs — run tracking, subtask CRUD, status updates', agent: 'cipher', status: 'done', priority: 'high', tags: ['api'], completedAt: '5:49 AM' },
+      { id: 'c2', title: 'Orchestration CLI Script', desc: 'Bash CLI: start/status/update/subtask/complete/fail/list commands with audit logging', agent: 'cipher', status: 'done', priority: 'medium', tags: ['tooling'], completedAt: '5:49 AM' },
+      { id: 'c3', title: 'Audit Log Templates', desc: 'Markdown templates for run logs with subtask results, critic reviews, metrics tracking', agent: 'cipher', status: 'done', priority: 'low', tags: ['templates'], completedAt: '5:49 AM' },
+      { id: 'c4', title: 'Route Optimization Enhancements', desc: 'Enhance /map with multi-stop route optimization, service radius overlay, revenue/labor ratio', agent: 'cipher', status: 'progress', priority: 'medium', tags: ['build', 'maps'], progress: 25 },
+
+      // === PEOPLE TEAM ===
+      // Forge — Staff
+      { id: 'f1', title: 'Staff Management Page', desc: 'Employee roster with roles, hourly rates, start dates, status tracking', agent: 'forge', status: 'progress', priority: 'high', tags: ['build'], progress: 40 },
+      { id: 'f2', title: 'Shift Tracking & Scheduling', desc: 'Weekly schedule grid, shift logging with auto-hours calc, availability marking', agent: 'forge', status: 'progress', priority: 'high', tags: ['build'], progress: 20 },
+      { id: 'f3', title: 'Staff API Endpoints', desc: 'CRUD for employees + shifts with hours calculation and labor cost aggregation', agent: 'forge', status: 'progress', priority: 'high', tags: ['api'], progress: 30 },
+      // Ivy — Clients
+      { id: 'i1', title: 'Client CRM Page', desc: 'Signed client management: touchpoint log, issue tracker, health scores, renewal alerts', agent: 'ivy', status: 'progress', priority: 'high', tags: ['build'], progress: 15 },
+      { id: 'i2', title: 'Issue Tracker System', desc: 'Log and track client issues (machine down, complaints, access) with open/in-progress/resolved flow', agent: 'ivy', status: 'todo', priority: 'high', tags: ['build'] },
+      { id: 'i3', title: 'Client CRM API Endpoints', desc: 'CRUD for clients, touchpoints, issues with health score calculation', agent: 'ivy', status: 'todo', priority: 'high', tags: ['api'] },
+
+      // === ANALYTICS TEAM ===
+      // Scout — Performance
+      { id: 's1', title: 'Product Performance Page', desc: 'Product scoreboard ranked by revenue, velocity, margin. Category charts, top/bottom 5 highlights', agent: 'scout', status: 'progress', priority: 'high', tags: ['build', 'analytics'], progress: 30 },
+      { id: 's2', title: 'Performance API Endpoints', desc: 'Sales logging, aggregated summaries, per-machine breakdowns, swap recommendations engine', agent: 'scout', status: 'progress', priority: 'high', tags: ['api'], progress: 20 },
+      { id: 's3', title: 'Margin Analysis Dashboard', desc: 'Visual showing actual vs target margins (60-65% ambient, 45-50% frozen), profit-per-unit rankings', agent: 'scout', status: 'todo', priority: 'medium', tags: ['analytics'] },
+      // Pixel — Planogram
+      { id: 'p1', title: 'Planogram Visual Editor', desc: 'Grid-based machine slot editor with click-to-assign products. Zone coloring by shelf height.', agent: 'pixel', status: 'progress', priority: 'high', tags: ['build'], progress: 15 },
+      { id: 'p2', title: 'Zone & Placement Rules Engine', desc: 'Auto-warnings for suboptimal placement: high-margin not at eye level, heavy on top shelf', agent: 'pixel', status: 'todo', priority: 'medium', tags: ['build'] },
+      { id: 'p3', title: 'Planogram API Endpoints', desc: 'CRUD for planogram configs, slot assignments, per-machine configurations', agent: 'pixel', status: 'todo', priority: 'medium', tags: ['api'] },
+
+      // === QUALITY & LEADERSHIP ===
+      // Raven — Critic/QA
+      { id: 'r1', title: 'Review Strategy Outputs', desc: 'Verify competitor facts, check market data sources, ensure strategy is actionable not vague', agent: 'raven', status: 'todo', priority: 'high', tags: ['review'] },
+      { id: 'r2', title: 'QA All New Dashboard Pages', desc: 'Test every new page: CRUD works, mobile responsive, no JS errors, consistent styling', agent: 'raven', status: 'todo', priority: 'high', tags: ['qa'] },
+      { id: 'r3', title: 'Cross-Page Integration Check', desc: 'Verify all nav links work, no route conflicts, data flows correctly between systems', agent: 'raven', status: 'todo', priority: 'high', tags: ['qa'] },
+      // Jarvis — Lead
+      { id: 'j1', title: 'AI Office Framework Design', desc: 'Built 6-role framework: Planner, Researcher, Builder, Writer, Critic, Synthesizer', agent: 'jarvis', status: 'done', priority: 'high', tags: ['architecture'], completedAt: '5:42 AM' },
+      { id: 'j2', title: 'Spawn & Coordinate All Teams', desc: 'Deploy 4 parallel teams (10 agents) with task assignments and conflict avoidance strategy', agent: 'jarvis', status: 'done', priority: 'high', tags: ['coordination'], completedAt: '5:47 AM' },
+      { id: 'j3', title: 'Build Kanban Board', desc: 'Live task board tracking all 10 agents across 5 teams with filters and progress', agent: 'jarvis', status: 'done', priority: 'medium', tags: ['build'], completedAt: '5:51 AM' },
+      { id: 'j4', title: 'Final Integration & Deploy', desc: 'Merge all outputs, resolve conflicts, verify everything works, send summary to Kurtis', agent: 'jarvis', status: 'todo', priority: 'high', tags: ['deploy'] },
+    ];
+
+    let activeFilter = 'all';
+
+    function filterAgent(agent) {
+      activeFilter = agent;
+      document.querySelectorAll('.agent-filter').forEach(f => f.classList.remove('active'));
+      event.target.classList.add('active');
+      renderBoard();
+    }
+
+    function renderStats() {
+      const total = TASKS.length;
+      const done = TASKS.filter(t => t.status === 'done').length;
+      const progress = TASKS.filter(t => t.status === 'progress').length;
+      const agents = Object.keys(AGENTS).length;
+      document.getElementById('stats').innerHTML = `
+        <div class="team-stat"><div class="num">${agents}</div><div class="lbl">Agents</div></div>
+        <div class="team-stat"><div class="num">${total}</div><div class="lbl">Total Tasks</div></div>
+        <div class="team-stat"><div class="num" style="color:#3182ce;">${progress}</div><div class="lbl">In Progress</div></div>
+        <div class="team-stat"><div class="num" style="color:#38a169;">${done}</div><div class="lbl">Completed</div></div>
+        <div class="team-stat"><div class="num" style="color:#805ad5;">${Math.round(done/total*100)}%</div><div class="lbl">Progress</div></div>
+      `;
+    }
+
+    function renderFilters() {
+      let html = `<div class="agent-filter active" onclick="filterAgent('all')" style="background:#f7fafc;color:#4a5568;">All (${TASKS.length})</div>`;
+      for (const [key, a] of Object.entries(AGENTS)) {
+        const count = TASKS.filter(t => t.agent === key).length;
+        html += `<div class="agent-filter agent-${key}" onclick="filterAgent('${key}')">${a.label} (${count})</div>`;
+      }
+      document.getElementById('filters').innerHTML = html;
+    }
+
+    function renderBoard() {
+      const filtered = activeFilter === 'all' ? TASKS : TASKS.filter(t => t.agent === activeFilter);
+      const cols = {
+        todo: filtered.filter(t => t.status === 'todo'),
+        progress: filtered.filter(t => t.status === 'progress'),
+        review: filtered.filter(t => t.status === 'review'),
+        done: filtered.filter(t => t.status === 'done')
+      };
+
+      document.getElementById('board').innerHTML = `
+        <div class="column col-todo">
+          <div class="column-header"><h3>📋 To Do</h3><span class="count">${cols.todo.length}</span></div>
+          ${cols.todo.map(renderCard).join('')}
+        </div>
+        <div class="column col-progress">
+          <div class="column-header"><h3>⚡ In Progress</h3><span class="count">${cols.progress.length}</span></div>
+          ${cols.progress.map(renderCard).join('')}
+        </div>
+        <div class="column col-review">
+          <div class="column-header"><h3>🔍 In Review</h3><span class="count">${cols.review.length}</span></div>
+          ${cols.review.map(renderCard).join('')}
+        </div>
+        <div class="column col-done">
+          <div class="column-header"><h3>✅ Done</h3><span class="count">${cols.done.length}</span></div>
+          ${cols.done.map(renderCard).join('')}
+        </div>
+      `;
+    }
+
+    function renderCard(task) {
+      const a = AGENTS[task.agent];
+      const priorityClass = { high: 'priority-high', medium: 'priority-medium', low: 'priority-low' };
+
+      let progressBar = '';
+      if (task.progress !== undefined && task.status === 'progress') {
+        progressBar = `<div class="progress-bar"><div class="progress-fill ${a.fill}" style="width:${task.progress}%"></div></div>`;
+      }
+
+      let completedAt = '';
+      if (task.completedAt) {
+        completedAt = `<div class="timestamp">✅ ${task.completedAt}</div>`;
+      }
+
+      return `
+        <div class="task-card" data-agent="${task.agent}">
+          <div class="task-title">${task.title}</div>
+          <div class="task-desc">${task.desc}</div>
+          <div class="task-meta">
+            <span class="task-agent agent-${task.agent}">${a.label}</span>
+            ${task.tags.map(t => `<span class="task-tag">${t}</span>`).join('')}
+            <span class="task-priority ${priorityClass[task.priority]}">${task.priority.toUpperCase()}</span>
+          </div>
+          <div class="task-team">${a.team} Team</div>
+          ${progressBar}
+          ${completedAt}
+        </div>
+      `;
+    }
+
+    renderStats();
+    renderFilters();
+    renderBoard();
+  </script>
+<script src="/nav.js"></script>
+</body>
+</html>
