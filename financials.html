@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Financial Dashboard — Kandé VendTech</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
+      --muted: #718096; --accent: #3182ce; --accent-dim: rgba(49,130,206,0.1);
+      --green: #38a169; --green-dim: rgba(56,161,105,0.15);
+      --red: #e53e3e; --red-dim: rgba(229,62,62,0.15);
+      --yellow: #dd6b20; --yellow-dim: rgba(221,107,32,0.15);
+      --purple: #7b2cbf; --purple-dim: rgba(123,44,191,0.15);
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app { max-width: 1500px; margin: 0 auto; padding: 20px; }
+
+    /* Top Nav */
+    .top-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .top-nav .logo { height: 36px; }
+    .top-nav a { color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500; padding: 6px 12px; border-radius: 6px; transition: all 0.2s; }
+    .top-nav a:hover, .top-nav a.active { color: var(--accent); background: var(--accent-dim); }
+
+    /* Header */
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+    .header h1 { font-size: 1.5rem; background: linear-gradient(90deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    /* Buttons */
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+    .btn-ghost { background: transparent; color: var(--muted); }
+    .btn-ghost:hover { color: var(--text); }
+
+    /* Quick Stats */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
+    .stat-card .label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 6px; }
+    .stat-card .value { font-size: 1.6rem; font-weight: 700; }
+    .stat-card .sub { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+    .stat-card .change { font-size: 0.75rem; font-weight: 600; margin-top: 4px; }
+    .stat-card .change.up { color: var(--green); }
+    .stat-card .change.down { color: var(--red); }
+    .value.green { color: var(--green); }
+    .value.red { color: var(--red); }
+    .value.accent { color: var(--accent); }
+    .value.yellow { color: var(--yellow); }
+    .value.purple { color: var(--purple); }
+
+    /* Alert Banner */
+    .alert { padding: 12px 16px; border-radius: 8px; font-size: 0.9rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .alert-warning { background: var(--yellow-dim); color: var(--yellow); border: 1px solid rgba(221,107,32,0.3); }
+    .alert-danger { background: var(--red-dim); color: var(--red); border: 1px solid rgba(229,62,62,0.3); }
+
+    /* Period Selector */
+    .period-selector { display: flex; gap: 4px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 4px; }
+    .period-btn { background: none; border: none; color: var(--muted); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s; }
+    .period-btn:hover { color: var(--text); }
+    .period-btn.active { background: var(--accent); color: #fff; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 2px solid var(--border); }
+    .tab { padding: 10px 20px; cursor: pointer; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; background: none; border-top: none; border-left: none; border-right: none; font-size: 0.9rem; }
+    .tab:hover { color: var(--accent); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Section */
+    .section { margin-bottom: 32px; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .section-title { font-size: 1.1rem; font-weight: 600; }
+
+    /* Cards & Charts */
+    .chart-container { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+    .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+    /* Tables */
+    .table-container { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #f7fafc; padding: 12px 16px; text-align: left; font-size: 0.8rem; text-transform: uppercase; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f7fafc; }
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+
+    /* Badges */
+    .badge { padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
+    .badge-green { background: var(--green-dim); color: var(--green); }
+    .badge-red { background: var(--red-dim); color: var(--red); }
+    .badge-yellow { background: var(--yellow-dim); color: var(--yellow); }
+    .badge-accent { background: var(--accent-dim); color: var(--accent); }
+
+    /* Forms */
+    .form-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: 0.8rem; font-weight: 500; color: var(--muted); }
+    .form-group input, .form-group select, .form-group textarea { padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; color: var(--text); background: var(--card); }
+    .form-group input:focus, .form-group select:focus { border-color: var(--accent); outline: none; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--card); border-radius: 16px; padding: 24px; max-width: 600px; width: 95%; max-height: 90vh; overflow-y: auto; }
+    .modal h2 { font-size: 1.3rem; margin-bottom: 20px; }
+    .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
+
+    /* Invoice Preview */
+    .invoice-preview { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 32px; max-width: 700px; }
+    .invoice-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid var(--accent); }
+    .invoice-logo { font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+    .invoice-meta { text-align: right; font-size: 0.85rem; }
+    .invoice-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 24px; }
+    .invoice-party h4 { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+    .invoice-totals { border-top: 2px solid var(--border); padding-top: 16px; margin-top: 16px; }
+    .invoice-total-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 0.95rem; }
+    .invoice-total-row.grand { font-size: 1.2rem; font-weight: 700; color: var(--accent); border-top: 2px solid var(--accent); margin-top: 8px; padding-top: 16px; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .chart-row { grid-template-columns: 1fr; }
+      .stat-grid { grid-template-columns: repeat(2, 1fr); }
+      .header { flex-direction: column; align-items: flex-start; }
+      .invoice-parties { grid-template-columns: 1fr; }
+    }
+
+    /* Print */
+    @media print {
+      .top-nav, .tabs, .period-selector, .btn, .no-print, .header-actions { display: none !important; }
+      .app { max-width: 100%; padding: 0; }
+      body { background: #fff; }
+      .invoice-preview { border: none; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <nav class="top-nav">
+      <a href="/"><img src="/logo.png" alt="Kandé VendTech" class="logo"></a>
+      <a href="/">Dashboard</a>
+      <a href="/crm">CRM</a>
+      <a href="/machines">Machines</a>
+      <a href="/inventory">Inventory</a>
+      <a href="/finance">Finance</a>
+      <a href="/financials" class="active">💰 Financials</a>
+      <a href="/restock">Restock</a>
+      <a href="/map">Map</a>
+    </nav>
+
+    <div class="header">
+      <h1>💰 Financial Dashboard</h1>
+      <div class="header-actions">
+        <div class="period-selector" id="periodSelector">
+          <button class="period-btn" data-period="week">Week</button>
+          <button class="period-btn active" data-period="month">Month</button>
+          <button class="period-btn" data-period="quarter">Quarter</button>
+          <button class="period-btn" data-period="year">Year</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alerts for underperforming locations -->
+    <div id="alertBanner"></div>
+
+    <!-- Quick Stats -->
+    <div class="stat-grid" id="quickStats">
+      <div class="stat-card">
+        <div class="label">Today's Revenue</div>
+        <div class="value green" id="statToday">$0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">This Month</div>
+        <div class="value accent" id="statMonth">$0</div>
+        <div class="change" id="statMonthChange"></div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Avg / Machine</div>
+        <div class="value purple" id="statAvg">$0</div>
+        <div class="sub" id="statMachineCount"></div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Best Machine</div>
+        <div class="value green" id="statBest">—</div>
+        <div class="sub" id="statBestAmt"></div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Worst Machine</div>
+        <div class="value red" id="statWorst">—</div>
+        <div class="sub" id="statWorstAmt"></div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Profit Margin</div>
+        <div class="value" id="statMargin">0%</div>
+        <div class="sub" id="statCosts"></div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="revenue">📈 Revenue</button>
+      <button class="tab" data-tab="costs">💸 Costs</button>
+      <button class="tab" data-tab="profit">📊 Profit & ROI</button>
+      <button class="tab" data-tab="commissions">🤝 Commissions</button>
+    </div>
+
+    <!-- TAB: Revenue -->
+    <div class="tab-content active" id="tab-revenue">
+      <div class="section">
+        <div class="section-header">
+          <h3 class="section-title">Revenue Trend</h3>
+        </div>
+        <div class="chart-container">
+          <canvas id="revenueTrendChart" height="80"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-row">
+        <div class="section">
+          <div class="section-header">
+            <h3 class="section-title">Revenue by Machine</h3>
+          </div>
+          <div class="chart-container">
+            <canvas id="machineBarChart" height="150"></canvas>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-header">
+            <h3 class="section-title">Machine Performance</h3>
+          </div>
+          <div class="table-container" style="max-height:350px;overflow-y:auto;">
+            <table>
+              <thead><tr><th>Machine</th><th>Location</th><th class="text-right">Revenue</th><th>Status</th></tr></thead>
+              <tbody id="machineRevenueTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <h3 class="section-title">Revenue by Location</h3>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Location</th><th>Machines</th><th class="text-right">Revenue</th><th class="text-right">Min Target</th><th class="text-right">Gap</th><th>Status</th></tr></thead>
+            <tbody id="locationRevenueTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Log Revenue Form -->
+      <div class="section">
+        <div class="section-header">
+          <h3 class="section-title">➕ Log Revenue</h3>
+        </div>
+        <div class="form-card">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Machine</label>
+              <select id="revMachine"></select>
+            </div>
+            <div class="form-group">
+              <label>Amount ($)</label>
+              <input type="number" id="revAmount" step="0.01" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="revDate">
+            </div>
+            <div class="form-group">
+              <label>Description</label>
+              <input type="text" id="revDesc" placeholder="Daily collection, etc.">
+            </div>
+          </div>
+          <button class="btn btn-success" onclick="addRevenue()">Add Revenue</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Costs -->
+    <div class="tab-content" id="tab-costs">
+      <div class="chart-row">
+        <div class="section">
+          <div class="section-header">
+            <h3 class="section-title">Cost Breakdown</h3>
+          </div>
+          <div class="chart-container">
+            <canvas id="costPieChart" height="200"></canvas>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-header">
+            <h3 class="section-title">Costs by Category</h3>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead><tr><th>Category</th><th class="text-right">Amount</th><th class="text-right">% of Total</th></tr></thead>
+              <tbody id="costBreakdownTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <h3 class="section-title">COGS by Machine</h3>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Machine</th><th>Location</th><th class="text-right">Product Costs</th><th class="text-right">Revenue</th><th class="text-right">Gross %</th></tr></thead>
+            <tbody id="cogsTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <h3 class="section-title">Labor Costs</h3>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Worker</th><th>Role</th><th class="text-right">Hours</th><th class="text-right">Rate</th><th class="text-right">Total</th><th>Date</th></tr></thead>
+            <tbody id="laborTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Add Expense Form -->
+      <div class="section">
+        <div class="section-header">
+          <h3 class="section-title">➕ Add Expense</h3>
+        </div>
+        <div class="form-card">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Category</label>
+              <select id="expCategory">
+                <option value="COGS">COGS (Product)</option>
+                <option value="Fuel">Fuel</option>
+                <option value="Labor">Labor</option>
+                <option value="Maintenance">Maintenance</option>
+                <option value="Insurance">Insurance</option>
+                <option value="Software">Software/Tech</option>
+                <option value="Supplies">Supplies</option>
+                <option value="Commission">Commission/Rev Share</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Amount ($)</label>
+              <input type="number" id="expAmount" step="0.01" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="expDate">
+            </div>
+            <div class="form-group">
+              <label>Machine (optional)</label>
+              <select id="expMachine"><option value="">— None —</option></select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Location (optional)</label>
+              <select id="expLocation"><option value="">— None —</option></select>
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label>Description</label>
+              <input type="text" id="expDesc" placeholder="Details...">
+            </div>
+          </div>
+          <button class="btn btn-danger" onclick="addExpense()">Add Expense</button>
+        </div>
+      </div>
+
+      <!-- Add Labor Form -->
+      <div class="section">
+        <div class="section-header">
+          <h3 class="section-title">➕ Log Labor</h3>
+        </div>
+        <div class="form-card">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Worker Name</label>
+              <input type="text" id="labWorker" placeholder="Name">
+            </div>
+            <div class="form-group">
+              <label>Role</label>
+              <select id="labRole">
+                <option value="driver">Driver</option>
+                <option value="packer">Packer</option>
+                <option value="technician">Technician</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Hours</label>
+              <input type="number" id="labHours" step="0.25" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label>Rate ($/hr)</label>
+              <input type="number" id="labRate" step="0.01" placeholder="25.00">
+            </div>
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="labDate">
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="addLabor()">Log Labor</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Profit & ROI -->
+    <div class="tab-content" id="tab-profit">
+      <div class="section">
+        <div class="section-header">
+          <h3 class="section-title">📍 Gross Margin by Location</h3>
+        </div>
+        <div class="chart-container">
+          <canvas id="locationProfitChart" height="80"></canvas>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Location</th><th class="text-right">Revenue</th><th class="text-right">Costs</th><th class="text-right">Commission</th><th class="text-right">Gross Profit</th><th class="text-right">Margin</th><th>Status</th></tr></thead>
+            <tbody id="profitLocationTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <h3 class="section-title">🏧 Machine ROI & Break-Even</h3>
+        </div>
+        <div class="chart-container">
+          <canvas id="roiChart" height="80"></canvas>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Machine</th><th>Location</th><th class="text-right">Purchase Cost</th><th class="text-right">Total Revenue</th><th class="text-right">Total Costs</th><th class="text-right">Net Profit</th><th class="text-right">ROI</th><th>Status</th></tr></thead>
+            <tbody id="roiTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Commissions -->
+    <div class="tab-content" id="tab-commissions">
+      <div class="section">
+        <div class="section-header">
+          <h3 class="section-title">🧮 Commission Calculator (Rev Share 3-5%)</h3>
+        </div>
+        <div class="chart-container">
+          <canvas id="commissionChart" height="80"></canvas>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Location</th><th>Client</th><th class="text-right">Rev Share %</th><th class="text-right">Revenue</th><th class="text-right">Commission Due</th></tr></thead>
+            <tbody id="commissionCalcTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <h3 class="section-title">📋 Commission Payments</h3>
+          <button class="btn btn-primary btn-sm" onclick="openCommissionModal()">+ Record Payment</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Location</th><th>Period</th><th class="text-right">Amount</th><th>Status</th><th>Paid Date</th><th>Actions</th></tr></thead>
+            <tbody id="commissionHistoryTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Invoice Generator -->
+      <div class="section">
+        <div class="section-header">
+          <h3 class="section-title">🧾 Generate Commission Invoice</h3>
+        </div>
+        <div class="form-card">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Location</label>
+              <select id="invoiceLocation"></select>
+            </div>
+            <div class="form-group">
+              <label>Period Start</label>
+              <input type="date" id="invoiceStart">
+            </div>
+            <div class="form-group">
+              <label>Period End</label>
+              <input type="date" id="invoiceEnd">
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="generateInvoice()">Generate Invoice</button>
+        </div>
+        <div id="invoicePreview" style="display:none;margin-top:24px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Commission Payment Modal -->
+  <div class="modal-overlay" id="modalCommission">
+    <div class="modal">
+      <h2>Record Commission Payment</h2>
+      <div class="form-row">
+        <div class="form-group"><label>Location</label><select id="cLocation"></select></div>
+        <div class="form-group"><label>Amount ($)</label><input type="number" id="cAmount" step="0.01"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Period Start</label><input type="date" id="cStart"></div>
+        <div class="form-group"><label>Period End</label><input type="date" id="cEnd"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Status</label>
+          <select id="cStatus"><option value="pending">Pending</option><option value="paid">Paid</option></select>
+        </div>
+        <div class="form-group"><label>Paid Date</label><input type="date" id="cPaidDate"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('modalCommission')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveCommission()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    // State
+    // ============================================================
+    let currentPeriod = 'month';
+    let machines = [], locations = [], finances = [], labor = [], commissions = [];
+    let charts = {};
+
+    const $ = id => document.getElementById(id);
+    const fmt = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const pct = n => (Number(n) || 0).toFixed(1) + '%';
+
+    // ============================================================
+    // Init
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', async () => {
+      const today = new Date().toISOString().split('T')[0];
+      document.querySelectorAll('input[type="date"]').forEach(el => { if (!el.value) el.value = today; });
+
+      // Tab switching
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+          tab.classList.add('active');
+          $('tab-' + tab.dataset.tab).classList.add('active');
+        });
+      });
+
+      // Period switching
+      document.querySelectorAll('.period-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentPeriod = btn.dataset.period;
+          refreshAll();
+        });
+      });
+
+      await loadAll();
+      await refreshAll();
+    });
+
+    // ============================================================
+    // API
+    // ============================================================
+    async function api(url, opts) {
+      const res = await fetch(url, opts);
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    async function loadAll() {
+      [machines, locations, finances, labor, commissions] = await Promise.all([
+        api('/api/machines'),
+        api('/api/locations'),
+        api('/api/finances'),
+        api('/api/financials/labor'),
+        api('/api/financials/commissions')
+      ]);
+      populateSelects();
+    }
+
+    function populateSelects() {
+      const machOpts = machines.map(m => `<option value="${m.id}">${m.name || `Machine #${m.id}`}</option>`).join('');
+      const locOpts = locations.map(l => `<option value="${l.id}">${l.name || l.address || `Location #${l.id}`}</option>`).join('');
+
+      $('revMachine').innerHTML = machOpts;
+      $('expMachine').innerHTML = '<option value="">— None —</option>' + machOpts;
+      $('expLocation').innerHTML = '<option value="">— None —</option>' + locOpts;
+      $('invoiceLocation').innerHTML = locOpts;
+      $('cLocation').innerHTML = locOpts;
+    }
+
+    // ============================================================
+    // Date Helpers
+    // ============================================================
+    function dateRange(period) {
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+      let start;
+      if (period === 'week') {
+        const d = new Date(now); d.setDate(d.getDate() - 7);
+        start = d.toISOString().split('T')[0];
+      } else if (period === 'month') {
+        start = today.substring(0, 8) + '01';
+      } else if (period === 'quarter') {
+        const d = new Date(now); d.setMonth(d.getMonth() - 3);
+        start = d.toISOString().split('T')[0];
+      } else if (period === 'year') {
+        start = today.substring(0, 5) + '01-01';
+      } else {
+        start = '2020-01-01';
+      }
+      return { start, end: today };
+    }
+
+    function monthStr(d) { return d.substring(0, 7); }
+
+    // ============================================================
+    // Refresh All
+    // ============================================================
+    async function refreshAll() {
+      await loadAll();
+      const range = dateRange(currentPeriod);
+      const rev = finances.filter(f => f.type === 'revenue');
+      const exp = finances.filter(f => f.type === 'expense');
+
+      // Filter by period (using month field or created_at)
+      const inRange = f => {
+        const d = f.month || (f.created_at || '').substring(0, 7);
+        return d >= range.start.substring(0, 7) && d <= range.end.substring(0, 7);
+      };
+
+      const periodRev = rev.filter(inRange);
+      const periodExp = exp.filter(inRange);
+      const periodLabor = labor.filter(l => l.date >= range.start && l.date <= range.end);
+
+      renderQuickStats(periodRev, periodExp, periodLabor);
+      renderAlerts();
+      renderRevenueTrend(rev);
+      renderMachineRevenue(periodRev);
+      renderLocationRevenue(periodRev);
+      renderCostBreakdown(periodExp, periodLabor);
+      renderCOGS(periodRev, periodExp);
+      renderLaborTable(periodLabor);
+      renderProfitLocation(periodRev, periodExp, periodLabor);
+      renderROI(rev, exp);
+      renderCommissionCalc(periodRev);
+      renderCommissionHistory();
+    }
+
+    // ============================================================
+    // Quick Stats
+    // ============================================================
+    function renderQuickStats(periodRev, periodExp, periodLabor) {
+      const today = new Date().toISOString().split('T')[0];
+      const currentMonth = today.substring(0, 7);
+
+      const todayRev = finances.filter(f => f.type === 'revenue' && f.created_at?.startsWith(today))
+        .reduce((s, f) => s + (f.amount || 0), 0);
+      const monthRev = periodRev.reduce((s, f) => s + (f.amount || 0), 0);
+      const monthExp = periodExp.reduce((s, f) => s + (f.amount || 0), 0);
+      const monthLabor = periodLabor.reduce((s, l) => s + ((l.hours || 0) * (l.rate || 0)), 0);
+      const totalCosts = monthExp + monthLabor;
+      const profit = monthRev - totalCosts;
+      const margin = monthRev > 0 ? (profit / monthRev * 100) : 0;
+
+      const deployedMachines = machines.filter(m => m.status === 'deployed');
+      const avgPerMachine = deployedMachines.length > 0 ? monthRev / deployedMachines.length : 0;
+
+      // Best/worst machine
+      const machRevMap = {};
+      periodRev.forEach(f => {
+        if (f.machine_id) machRevMap[f.machine_id] = (machRevMap[f.machine_id] || 0) + (f.amount || 0);
+      });
+      const machRevArr = Object.entries(machRevMap).map(([id, total]) => ({ id: parseInt(id), total }));
+      machRevArr.sort((a, b) => b.total - a.total);
+      const best = machRevArr[0];
+      const worst = machRevArr[machRevArr.length - 1];
+      const bestMach = best ? machines.find(m => m.id === best.id) : null;
+      const worstMach = worst ? machines.find(m => m.id === worst.id) : null;
+
+      $('statToday').textContent = fmt(todayRev);
+      $('statMonth').textContent = fmt(monthRev);
+      $('statAvg').textContent = fmt(avgPerMachine);
+      $('statMachineCount').textContent = `${deployedMachines.length} deployed`;
+      $('statBest').textContent = bestMach ? (bestMach.name || `#${bestMach.id}`) : '—';
+      $('statBestAmt').textContent = best ? fmt(best.total) : '';
+      $('statWorst').textContent = worstMach ? (worstMach.name || `#${worstMach.id}`) : '—';
+      $('statWorstAmt').textContent = worst ? fmt(worst.total) : '';
+      $('statMargin').textContent = pct(margin);
+      $('statMargin').className = 'value ' + (margin >= 40 ? 'green' : margin >= 20 ? 'yellow' : 'red');
+      $('statCosts').textContent = fmt(totalCosts) + ' costs';
+    }
+
+    // ============================================================
+    // Alerts (underperforming < $2K/month)
+    // ============================================================
+    function renderAlerts() {
+      const currentMonth = new Date().toISOString().substring(0, 7);
+      const monthRev = finances.filter(f => f.type === 'revenue' && f.month === currentMonth);
+
+      const locRevMap = {};
+      monthRev.forEach(f => {
+        if (f.machine_id) {
+          const m = machines.find(mm => mm.id === f.machine_id);
+          if (m && m.location_id) {
+            locRevMap[m.location_id] = (locRevMap[m.location_id] || 0) + (f.amount || 0);
+          }
+        }
+      });
+
+      const underperforming = locations.filter(l => {
+        const rev = locRevMap[l.id] || 0;
+        const min = l.monthly_minimum || 2000;
+        return rev < min && machines.some(m => m.location_id === l.id);
+      });
+
+      if (underperforming.length === 0) {
+        $('alertBanner').innerHTML = '';
+        return;
+      }
+
+      $('alertBanner').innerHTML = underperforming.map(l => {
+        const rev = locRevMap[l.id] || 0;
+        const min = l.monthly_minimum || 2000;
+        return `<div class="alert alert-warning">⚠️ <strong>${l.name || l.address}</strong> is underperforming: ${fmt(rev)} / ${fmt(min)} minimum this month</div>`;
+      }).join('');
+    }
+
+    // ============================================================
+    // Revenue Trend
+    // ============================================================
+    function renderRevenueTrend(rev) {
+      const monthTotals = {};
+      rev.forEach(f => {
+        const m = f.month || (f.created_at || '').substring(0, 7);
+        if (m) monthTotals[m] = (monthTotals[m] || 0) + (f.amount || 0);
+      });
+      const sorted = Object.entries(monthTotals).sort((a, b) => a[0].localeCompare(b[0])).slice(-12);
+
+      if (charts.trend) charts.trend.destroy();
+      charts.trend = new Chart($('revenueTrendChart'), {
+        type: 'line',
+        data: {
+          labels: sorted.map(([m]) => m),
+          datasets: [{
+            label: 'Revenue',
+            data: sorted.map(([, v]) => v),
+            borderColor: '#3182ce',
+            backgroundColor: 'rgba(49,130,206,0.1)',
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { ticks: { callback: v => '$' + v } }
+          }
+        }
+      });
+    }
+
+    // ============================================================
+    // Machine Revenue
+    // ============================================================
+    function renderMachineRevenue(periodRev) {
+      const machRevMap = {};
+      periodRev.forEach(f => {
+        if (f.machine_id) machRevMap[f.machine_id] = (machRevMap[f.machine_id] || 0) + (f.amount || 0);
+      });
+
+      const data = machines.map(m => ({
+        ...m,
+        revenue: machRevMap[m.id] || 0,
+        location: locations.find(l => l.id === m.location_id)
+      })).sort((a, b) => b.revenue - a.revenue);
+
+      // Bar chart
+      if (charts.machineBar) charts.machineBar.destroy();
+      const colors = ['#3182ce', '#38a169', '#7b2cbf', '#dd6b20', '#e53e3e', '#319795', '#d53f8c', '#805ad5'];
+      charts.machineBar = new Chart($('machineBarChart'), {
+        type: 'bar',
+        data: {
+          labels: data.map(m => m.name || `#${m.id}`),
+          datasets: [{
+            label: 'Revenue',
+            data: data.map(m => m.revenue),
+            backgroundColor: data.map((_, i) => colors[i % colors.length]),
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { y: { ticks: { callback: v => '$' + v } } }
+        }
+      });
+
+      // Table
+      $('machineRevenueTable').innerHTML = data.map(m => {
+        const locName = m.location ? (m.location.name || m.location.address) : '—';
+        const status = m.status === 'deployed' ? '<span class="badge badge-green">Deployed</span>' : '<span class="badge badge-yellow">' + (m.status || 'Unknown') + '</span>';
+        return `<tr><td>${m.name || `#${m.id}`}</td><td>${locName}</td><td class="text-right">${fmt(m.revenue)}</td><td>${status}</td></tr>`;
+      }).join('') || '<tr><td colspan="4" style="color:var(--muted);text-align:center;">No machines</td></tr>';
+    }
+
+    // ============================================================
+    // Location Revenue
+    // ============================================================
+    function renderLocationRevenue(periodRev) {
+      const locRevMap = {};
+      periodRev.forEach(f => {
+        if (f.machine_id) {
+          const m = machines.find(mm => mm.id === f.machine_id);
+          if (m && m.location_id) {
+            locRevMap[m.location_id] = (locRevMap[m.location_id] || 0) + (f.amount || 0);
+          }
+        }
+      });
+
+      const data = locations.map(l => {
+        const machCount = machines.filter(m => m.location_id === l.id).length;
+        const rev = locRevMap[l.id] || 0;
+        const min = l.monthly_minimum || 2000;
+        const gap = rev - min;
+        return { ...l, machCount, rev, min, gap };
+      }).sort((a, b) => b.rev - a.rev);
+
+      $('locationRevenueTable').innerHTML = data.map(l => {
+        const status = l.gap >= 0
+          ? '<span class="badge badge-green">✓ On Track</span>'
+          : '<span class="badge badge-red">⚠️ Below Min</span>';
+        const gapClass = l.gap >= 0 ? 'style="color:var(--green)"' : 'style="color:var(--red)"';
+        return `<tr>
+          <td>${l.name || l.address || `#${l.id}`}</td>
+          <td class="text-center">${l.machCount}</td>
+          <td class="text-right">${fmt(l.rev)}</td>
+          <td class="text-right">${fmt(l.min)}</td>
+          <td class="text-right" ${gapClass}>${l.gap >= 0 ? '+' : ''}${fmt(l.gap)}</td>
+          <td>${status}</td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="6" style="color:var(--muted);text-align:center;">No locations</td></tr>';
+    }
+
+    // ============================================================
+    // Cost Breakdown
+    // ============================================================
+    function renderCostBreakdown(periodExp, periodLabor) {
+      const catTotals = {};
+      periodExp.forEach(e => {
+        const cat = e.category || 'Other';
+        catTotals[cat] = (catTotals[cat] || 0) + (e.amount || 0);
+      });
+      const laborTotal = periodLabor.reduce((s, l) => s + ((l.hours || 0) * (l.rate || 0)), 0);
+      if (laborTotal > 0) catTotals['Labor'] = (catTotals['Labor'] || 0) + laborTotal;
+
+      const total = Object.values(catTotals).reduce((s, v) => s + v, 0);
+      const sorted = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
+
+      // Pie chart
+      if (charts.costPie) charts.costPie.destroy();
+      const colors = ['#e53e3e', '#dd6b20', '#d69e2e', '#38a169', '#3182ce', '#7b2cbf', '#d53f8c', '#718096'];
+      charts.costPie = new Chart($('costPieChart'), {
+        type: 'doughnut',
+        data: {
+          labels: sorted.map(([c]) => c),
+          datasets: [{
+            data: sorted.map(([, v]) => v),
+            backgroundColor: sorted.map((_, i) => colors[i % colors.length]),
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'right' } }
+        }
+      });
+
+      // Table
+      $('costBreakdownTable').innerHTML = sorted.map(([cat, amt]) =>
+        `<tr><td>${cat}</td><td class="text-right">${fmt(amt)}</td><td class="text-right">${total > 0 ? pct(amt / total * 100) : '0%'}</td></tr>`
+      ).join('') || '<tr><td colspan="3" style="color:var(--muted);text-align:center;">No expenses</td></tr>';
+    }
+
+    // ============================================================
+    // COGS Table
+    // ============================================================
+    function renderCOGS(periodRev, periodExp) {
+      const machRevMap = {};
+      periodRev.forEach(f => {
+        if (f.machine_id) machRevMap[f.machine_id] = (machRevMap[f.machine_id] || 0) + (f.amount || 0);
+      });
+
+      const machCogMap = {};
+      periodExp.filter(e => e.category === 'COGS' && e.machine_id).forEach(e => {
+        machCogMap[e.machine_id] = (machCogMap[e.machine_id] || 0) + (e.amount || 0);
+      });
+
+      const data = machines.map(m => {
+        const rev = machRevMap[m.id] || 0;
+        const cogs = machCogMap[m.id] || 0;
+        const gross = rev > 0 ? ((rev - cogs) / rev * 100) : 0;
+        return { ...m, rev, cogs, gross, location: locations.find(l => l.id === m.location_id) };
+      }).filter(m => m.rev > 0 || m.cogs > 0).sort((a, b) => b.rev - a.rev);
+
+      $('cogsTable').innerHTML = data.map(m => {
+        const locName = m.location ? (m.location.name || m.location.address) : '—';
+        const grossClass = m.gross >= 60 ? 'style="color:var(--green)"' : m.gross >= 40 ? '' : 'style="color:var(--red)"';
+        return `<tr><td>${m.name || `#${m.id}`}</td><td>${locName}</td><td class="text-right">${fmt(m.cogs)}</td><td class="text-right">${fmt(m.rev)}</td><td class="text-right" ${grossClass}>${pct(m.gross)}</td></tr>`;
+      }).join('') || '<tr><td colspan="5" style="color:var(--muted);text-align:center;">No COGS data</td></tr>';
+    }
+
+    // ============================================================
+    // Labor Table
+    // ============================================================
+    function renderLaborTable(periodLabor) {
+      $('laborTable').innerHTML = periodLabor.sort((a, b) => b.date.localeCompare(a.date)).map(l =>
+        `<tr><td>${l.worker || '—'}</td><td>${l.role || '—'}</td><td class="text-right">${(l.hours || 0).toFixed(1)}</td><td class="text-right">${fmt(l.rate)}/hr</td><td class="text-right">${fmt((l.hours || 0) * (l.rate || 0))}</td><td>${l.date}</td></tr>`
+      ).join('') || '<tr><td colspan="6" style="color:var(--muted);text-align:center;">No labor logs</td></tr>';
+    }
+
+    // ============================================================
+    // Profit by Location
+    // ============================================================
+    function renderProfitLocation(periodRev, periodExp, periodLabor) {
+      const locRevMap = {}, locExpMap = {};
+      periodRev.forEach(f => {
+        if (f.machine_id) {
+          const m = machines.find(mm => mm.id === f.machine_id);
+          if (m && m.location_id) locRevMap[m.location_id] = (locRevMap[m.location_id] || 0) + (f.amount || 0);
+        }
+      });
+      periodExp.forEach(e => {
+        if (e.location_id) locExpMap[e.location_id] = (locExpMap[e.location_id] || 0) + (e.amount || 0);
+        else if (e.machine_id) {
+          const m = machines.find(mm => mm.id === e.machine_id);
+          if (m && m.location_id) locExpMap[m.location_id] = (locExpMap[m.location_id] || 0) + (e.amount || 0);
+        }
+      });
+
+      const data = locations.map(l => {
+        const rev = locRevMap[l.id] || 0;
+        const exp = locExpMap[l.id] || 0;
+        const revShare = l.rev_share_pct || l.revenue_share || 0;
+        const comm = rev * (revShare / 100);
+        const gross = rev - exp - comm;
+        const margin = rev > 0 ? (gross / rev * 100) : 0;
+        const min = l.monthly_minimum || 2000;
+        return { ...l, rev, exp, comm, gross, margin, min, underperforming: rev < min };
+      }).filter(l => l.rev > 0 || l.exp > 0).sort((a, b) => b.rev - a.rev);
+
+      // Chart
+      if (charts.locationProfit) charts.locationProfit.destroy();
+      charts.locationProfit = new Chart($('locationProfitChart'), {
+        type: 'bar',
+        data: {
+          labels: data.map(l => l.name || l.address || `#${l.id}`),
+          datasets: [
+            { label: 'Revenue', data: data.map(l => l.rev), backgroundColor: '#3182ce', borderRadius: 4 },
+            { label: 'Costs', data: data.map(l => l.exp), backgroundColor: '#e53e3e', borderRadius: 4 },
+            { label: 'Gross Profit', data: data.map(l => l.gross), backgroundColor: '#38a169', borderRadius: 4 }
+          ]
+        },
+        options: { responsive: true, scales: { y: { ticks: { callback: v => '$' + v } } } }
+      });
+
+      // Table
+      $('profitLocationTable').innerHTML = data.map(l => {
+        const marginClass = l.margin >= 50 ? 'style="color:var(--green)"' : l.margin >= 25 ? '' : 'style="color:var(--red)"';
+        const status = l.underperforming
+          ? '<span class="badge badge-red">⚠️ Below $2K</span>'
+          : '<span class="badge badge-green">✓ Healthy</span>';
+        return `<tr>
+          <td>${l.name || l.address || `#${l.id}`}</td>
+          <td class="text-right">${fmt(l.rev)}</td>
+          <td class="text-right">${fmt(l.exp)}</td>
+          <td class="text-right">${fmt(l.comm)}</td>
+          <td class="text-right">${fmt(l.gross)}</td>
+          <td class="text-right" ${marginClass}>${pct(l.margin)}</td>
+          <td>${status}</td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="7" style="color:var(--muted);text-align:center;">No data</td></tr>';
+    }
+
+    // ============================================================
+    // ROI Table
+    // ============================================================
+    function renderROI(allRev, allExp) {
+      const machRevMap = {}, machExpMap = {};
+      allRev.forEach(f => {
+        if (f.machine_id) machRevMap[f.machine_id] = (machRevMap[f.machine_id] || 0) + (f.amount || 0);
+      });
+      allExp.forEach(e => {
+        if (e.machine_id) machExpMap[e.machine_id] = (machExpMap[e.machine_id] || 0) + (e.amount || 0);
+      });
+
+      const data = machines.map(m => {
+        const cost = m.purchase_cost || m.cost || 0;
+        const rev = machRevMap[m.id] || 0;
+        const exp = machExpMap[m.id] || 0;
+        const net = rev - exp;
+        const roi = cost > 0 ? ((net / cost) * 100) : 0;
+        const paidOff = net >= cost;
+        return { ...m, cost, rev, exp, net, roi, paidOff, location: locations.find(l => l.id === m.location_id) };
+      }).filter(m => m.cost > 0 || m.rev > 0).sort((a, b) => b.roi - a.roi);
+
+      // Chart
+      if (charts.roi) charts.roi.destroy();
+      charts.roi = new Chart($('roiChart'), {
+        type: 'bar',
+        data: {
+          labels: data.map(m => m.name || `#${m.id}`),
+          datasets: [
+            { label: 'Purchase Cost', data: data.map(m => m.cost), backgroundColor: 'rgba(229,62,62,0.5)', borderRadius: 4 },
+            { label: 'Net Profit', data: data.map(m => Math.max(0, m.net)), backgroundColor: 'rgba(56,161,105,0.7)', borderRadius: 4 }
+          ]
+        },
+        options: { responsive: true, scales: { y: { ticks: { callback: v => '$' + v } } } }
+      });
+
+      // Table
+      $('roiTable').innerHTML = data.map(m => {
+        const locName = m.location ? (m.location.name || m.location.address) : '—';
+        const roiClass = m.roi >= 100 ? 'style="color:var(--green)"' : m.roi >= 50 ? '' : 'style="color:var(--red)"';
+        const status = m.paidOff
+          ? '<span class="badge badge-green">✓ Paid Off</span>'
+          : '<span class="badge badge-yellow">Paying Off</span>';
+        return `<tr>
+          <td>${m.name || `#${m.id}`}</td>
+          <td>${locName}</td>
+          <td class="text-right">${fmt(m.cost)}</td>
+          <td class="text-right">${fmt(m.rev)}</td>
+          <td class="text-right">${fmt(m.exp)}</td>
+          <td class="text-right">${fmt(m.net)}</td>
+          <td class="text-right" ${roiClass}>${pct(m.roi)}</td>
+          <td>${status}</td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="8" style="color:var(--muted);text-align:center;">No machines with cost data</td></tr>';
+    }
+
+    // ============================================================
+    // Commission Calculator
+    // ============================================================
+    function renderCommissionCalc(periodRev) {
+      const locRevMap = {};
+      periodRev.forEach(f => {
+        if (f.machine_id) {
+          const m = machines.find(mm => mm.id === f.machine_id);
+          if (m && m.location_id) locRevMap[m.location_id] = (locRevMap[m.location_id] || 0) + (f.amount || 0);
+        }
+      });
+
+      const data = locations.filter(l => (l.rev_share_pct || l.revenue_share || 0) > 0).map(l => {
+        const rev = locRevMap[l.id] || 0;
+        const pctVal = l.rev_share_pct || l.revenue_share || 0;
+        const comm = rev * (pctVal / 100);
+        return { ...l, rev, pctVal, comm };
+      }).sort((a, b) => b.comm - a.comm);
+
+      // Chart
+      if (charts.commission) charts.commission.destroy();
+      charts.commission = new Chart($('commissionChart'), {
+        type: 'bar',
+        data: {
+          labels: data.map(l => l.name || l.address || `#${l.id}`),
+          datasets: [
+            { label: 'Revenue', data: data.map(l => l.rev), backgroundColor: '#3182ce', borderRadius: 4 },
+            { label: 'Commission Due', data: data.map(l => l.comm), backgroundColor: '#dd6b20', borderRadius: 4 }
+          ]
+        },
+        options: { responsive: true, scales: { y: { ticks: { callback: v => '$' + v } } } }
+      });
+
+      const total = data.reduce((s, l) => s + l.comm, 0);
+      $('commissionCalcTable').innerHTML = data.map(l => {
+        const client = l.contact_name || l.client_name || '—';
+        return `<tr>
+          <td>${l.name || l.address || `#${l.id}`}</td>
+          <td>${client}</td>
+          <td class="text-right">${pct(l.pctVal)}</td>
+          <td class="text-right">${fmt(l.rev)}</td>
+          <td class="text-right" style="color:var(--yellow)">${fmt(l.comm)}</td>
+        </tr>`;
+      }).join('') +
+      (data.length > 0 ? `<tr style="font-weight:700;border-top:2px solid var(--border);"><td colspan="4">Total Commission Due</td><td class="text-right" style="color:var(--yellow)">${fmt(total)}</td></tr>` : '') ||
+      '<tr><td colspan="5" style="color:var(--muted);text-align:center;">No locations with rev share configured</td></tr>';
+    }
+
+    // ============================================================
+    // Commission History
+    // ============================================================
+    function renderCommissionHistory() {
+      $('commissionHistoryTable').innerHTML = commissions.sort((a, b) => (b.period_end || '').localeCompare(a.period_end || '')).map(c => {
+        const loc = locations.find(l => l.id === c.location_id);
+        const locName = loc ? (loc.name || loc.address) : `#${c.location_id}`;
+        const status = c.status === 'paid'
+          ? '<span class="badge badge-green">Paid</span>'
+          : '<span class="badge badge-yellow">Pending</span>';
+        return `<tr>
+          <td>${locName}</td>
+          <td>${c.period_start || '?'} — ${c.period_end || '?'}</td>
+          <td class="text-right">${fmt(c.amount)}</td>
+          <td>${status}</td>
+          <td>${c.paid_date || '—'}</td>
+          <td>
+            ${c.status !== 'paid' ? `<button class="btn btn-sm btn-success" onclick="markPaid(${c.id})">Mark Paid</button>` : ''}
+          </td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="6" style="color:var(--muted);text-align:center;">No commission records</td></tr>';
+    }
+
+    // ============================================================
+    // Actions: Add Revenue
+    // ============================================================
+    async function addRevenue() {
+      const machine_id = parseInt($('revMachine').value);
+      const amount = parseFloat($('revAmount').value);
+      const date = $('revDate').value;
+      const desc = $('revDesc').value;
+      if (!machine_id || !amount || !date) return alert('Fill in machine, amount, and date');
+
+      const month = date.substring(0, 7);
+      await api('/api/finances', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'revenue', machine_id, amount, month, description: desc })
+      });
+      $('revAmount').value = '';
+      $('revDesc').value = '';
+      await refreshAll();
+    }
+
+    // ============================================================
+    // Actions: Add Expense
+    // ============================================================
+    async function addExpense() {
+      const category = $('expCategory').value;
+      const amount = parseFloat($('expAmount').value);
+      const date = $('expDate').value;
+      const machine_id = $('expMachine').value ? parseInt($('expMachine').value) : null;
+      const location_id = $('expLocation').value ? parseInt($('expLocation').value) : null;
+      const desc = $('expDesc').value;
+      if (!amount || !date) return alert('Fill in amount and date');
+
+      const month = date.substring(0, 7);
+      await api('/api/finances', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'expense', category, amount, month, machine_id, location_id, description: desc })
+      });
+      $('expAmount').value = '';
+      $('expDesc').value = '';
+      await refreshAll();
+    }
+
+    // ============================================================
+    // Actions: Add Labor
+    // ============================================================
+    async function addLabor() {
+      const worker = $('labWorker').value;
+      const role = $('labRole').value;
+      const hours = parseFloat($('labHours').value);
+      const rate = parseFloat($('labRate').value);
+      const date = $('labDate').value;
+      if (!worker || !hours || !rate || !date) return alert('Fill in all required fields');
+
+      await api('/api/financials/labor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ worker, role, hours, rate, date })
+      });
+      $('labWorker').value = '';
+      $('labHours').value = '';
+      await refreshAll();
+    }
+
+    // ============================================================
+    // Actions: Commission
+    // ============================================================
+    function openCommissionModal() { $('modalCommission').classList.add('open'); }
+    function closeModal(id) { $(id).classList.remove('open'); }
+
+    async function saveCommission() {
+      const location_id = parseInt($('cLocation').value);
+      const amount = parseFloat($('cAmount').value);
+      const period_start = $('cStart').value;
+      const period_end = $('cEnd').value;
+      const status = $('cStatus').value;
+      const paid_date = $('cPaidDate').value || null;
+      if (!location_id || !amount || !period_start || !period_end) return alert('Fill all required fields');
+
+      await api('/api/financials/commissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ location_id, amount, period_start, period_end, status, paid_date })
+      });
+      closeModal('modalCommission');
+      await refreshAll();
+    }
+
+    async function markPaid(id) {
+      const today = new Date().toISOString().split('T')[0];
+      await api(`/api/financials/commissions/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'paid', paid_date: today })
+      });
+      await refreshAll();
+    }
+
+    // ============================================================
+    // Invoice Generator
+    // ============================================================
+    async function generateInvoice() {
+      const location_id = parseInt($('invoiceLocation').value);
+      const period_start = $('invoiceStart').value;
+      const period_end = $('invoiceEnd').value;
+      if (!location_id || !period_start || !period_end) return alert('Select location and date range');
+
+      const loc = locations.find(l => l.id === location_id);
+      if (!loc) return alert('Location not found');
+
+      const revShare = loc.rev_share_pct || loc.revenue_share || 0;
+      const startMonth = period_start.substring(0, 7);
+      const endMonth = period_end.substring(0, 7);
+
+      // Get revenue for this location in period
+      const locMachines = machines.filter(m => m.location_id === location_id);
+      const machIds = new Set(locMachines.map(m => m.id));
+      const periodRev = finances.filter(f =>
+        f.type === 'revenue' &&
+        machIds.has(f.machine_id) &&
+        f.month >= startMonth && f.month <= endMonth
+      );
+
+      const lineItems = periodRev.map(f => {
+        const mach = machines.find(m => m.id === f.machine_id);
+        return {
+          date: f.month || f.created_at?.substring(0, 10) || '—',
+          machine: mach ? (mach.name || `#${mach.id}`) : `#${f.machine_id}`,
+          amount: f.amount || 0
+        };
+      });
+
+      const totalRev = lineItems.reduce((s, li) => s + li.amount, 0);
+      const commDue = totalRev * (revShare / 100);
+      const invNum = 'KVT-' + Date.now().toString(36).toUpperCase();
+
+      $('invoicePreview').style.display = 'block';
+      $('invoicePreview').innerHTML = `
+        <div class="invoice-preview">
+          <div class="invoice-header">
+            <div>
+              <div class="invoice-logo">🏪 Kandé VendTech</div>
+              <div style="color:var(--muted);font-size:0.85rem;">Commission Statement</div>
+            </div>
+            <div class="invoice-meta">
+              <div><strong>Invoice #${invNum}</strong></div>
+              <div>Date: ${new Date().toISOString().split('T')[0]}</div>
+            </div>
+          </div>
+          <div class="invoice-parties">
+            <div class="invoice-party">
+              <h4>From</h4>
+              <div><strong>Kandé VendTech LLC</strong></div>
+              <div style="color:var(--muted);">Las Vegas, NV</div>
+            </div>
+            <div class="invoice-party">
+              <h4>Bill To</h4>
+              <div><strong>${loc.name || loc.address || 'Client'}</strong></div>
+              <div style="color:var(--muted);">${loc.address || ''}</div>
+              <div style="color:var(--muted);">${loc.contact_name || ''}</div>
+            </div>
+          </div>
+          <div style="margin-bottom:16px;color:var(--muted);font-size:0.9rem;">
+            Period: <strong>${period_start}</strong> — <strong>${period_end}</strong>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead><tr><th>Date</th><th>Machine</th><th class="text-right">Revenue</th></tr></thead>
+              <tbody>
+                ${lineItems.map(li => `<tr><td>${li.date}</td><td>${li.machine}</td><td class="text-right">${fmt(li.amount)}</td></tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+          <div class="invoice-totals">
+            <div class="invoice-total-row"><span>Total Revenue</span><span>${fmt(totalRev)}</span></div>
+            <div class="invoice-total-row"><span>Revenue Share (${revShare}%)</span><span>${fmt(commDue)}</span></div>
+            <div class="invoice-total-row grand"><span>Commission Due</span><span>${fmt(commDue)}</span></div>
+          </div>
+          <div style="margin-top:24px;text-align:center;" class="no-print">
+            <button class="btn btn-primary" onclick="window.print()">🖨️ Print Invoice</button>
+          </div>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>

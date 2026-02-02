@@ -8690,6 +8690,177 @@ app.get('/site-survey', (req, res) => {
   res.sendFile(path.join(__dirname, 'site-survey.html'));
 });
 
+// ===== FINANCIALS MODULE (appended 2026-02-02) =====
+// Labor tracking, commissions, rev share — Skool insights: 3-5% rev share, $2K/month min
+
+// Ensure new collections
+if (!db.laborLogs) db.laborLogs = [];
+if (!db.commissionPayments) db.commissionPayments = [];
+
+// Labor logs API
+app.get('/api/financials/labor', (req, res) => {
+  const { start, end } = req.query;
+  let records = db.laborLogs || [];
+  if (start) records = records.filter(l => l.date >= start);
+  if (end) records = records.filter(l => l.date <= end);
+  res.json(records.sort((a, b) => (b.date || '').localeCompare(a.date || '')));
+});
+
+app.post('/api/financials/labor', (req, res) => {
+  const record = {
+    id: nextId(),
+    worker: req.body.worker,
+    role: req.body.role || 'driver',
+    hours: parseFloat(req.body.hours) || 0,
+    rate: parseFloat(req.body.rate) || 0,
+    date: req.body.date,
+    route_id: req.body.route_id || null,
+    notes: req.body.notes || null,
+    created_at: new Date().toISOString()
+  };
+  db.laborLogs.push(record);
+  saveDB(db);
+  res.json(record);
+});
+
+app.delete('/api/financials/labor/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  db.laborLogs = (db.laborLogs || []).filter(l => l.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// Commission payments API
+app.get('/api/financials/commissions', (req, res) => {
+  const records = (db.commissionPayments || []).sort((a, b) => (b.period_end || '').localeCompare(a.period_end || ''));
+  res.json(records);
+});
+
+app.post('/api/financials/commissions', (req, res) => {
+  const record = {
+    id: nextId(),
+    location_id: parseInt(req.body.location_id),
+    amount: parseFloat(req.body.amount) || 0,
+    period_start: req.body.period_start,
+    period_end: req.body.period_end,
+    status: req.body.status || 'pending',
+    paid_date: req.body.paid_date || null,
+    notes: req.body.notes || null,
+    created_at: new Date().toISOString()
+  };
+  db.commissionPayments.push(record);
+  saveDB(db);
+  res.json(record);
+});
+
+app.put('/api/financials/commissions/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.commissionPayments || []).findIndex(c => c.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  db.commissionPayments[idx] = { ...db.commissionPayments[idx], ...req.body, updated_at: new Date().toISOString() };
+  saveDB(db);
+  res.json(db.commissionPayments[idx]);
+});
+
+app.delete('/api/financials/commissions/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  db.commissionPayments = (db.commissionPayments || []).filter(c => c.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// Quick stats endpoint for financial dashboard
+app.get('/api/financials/quick-stats', (req, res) => {
+  const today = new Date().toISOString().split('T')[0];
+  const currentMonth = today.substring(0, 7);
+  const lastMonth = new Date(); lastMonth.setMonth(lastMonth.getMonth() - 1);
+  const lastMonthStr = lastMonth.toISOString().substring(0, 7);
+
+  const allRev = (db.finances || []).filter(f => f.type === 'revenue');
+  const allExp = (db.finances || []).filter(f => f.type === 'expense');
+
+  const todayRev = allRev.filter(f => (f.created_at || '').startsWith(today)).reduce((s, f) => s + (f.amount || 0), 0);
+  const monthRev = allRev.filter(f => f.month === currentMonth).reduce((s, f) => s + (f.amount || 0), 0);
+  const lastMonthRev = allRev.filter(f => f.month === lastMonthStr).reduce((s, f) => s + (f.amount || 0), 0);
+  const monthExp = allExp.filter(f => f.month === currentMonth).reduce((s, f) => s + (f.amount || 0), 0);
+
+  const monthLabor = (db.laborLogs || [])
+    .filter(l => l.date && l.date.startsWith(currentMonth))
+    .reduce((s, l) => s + ((l.hours || 0) * (l.rate || 0)), 0);
+
+  const totalCosts = monthExp + monthLabor;
+  const profit = monthRev - totalCosts;
+  const margin = monthRev > 0 ? (profit / monthRev * 100) : 0;
+  const changeVsLast = lastMonthRev > 0 ? ((monthRev - lastMonthRev) / lastMonthRev * 100) : 0;
+
+  const deployed = (db.machines || []).filter(m => m.status === 'deployed');
+  const avgPerMachine = deployed.length > 0 ? (monthRev / deployed.length) : 0;
+
+  // Best/worst machine
+  const machRevMap = {};
+  allRev.filter(f => f.month === currentMonth && f.machine_id).forEach(f => {
+    machRevMap[f.machine_id] = (machRevMap[f.machine_id] || 0) + (f.amount || 0);
+  });
+  const sorted = Object.entries(machRevMap).map(([id, total]) => ({ id: parseInt(id), total })).sort((a, b) => b.total - a.total);
+  const best = sorted[0]; const worst = sorted[sorted.length - 1];
+  const bestMach = best ? (db.machines || []).find(m => m.id === best.id) : null;
+  const worstMach = worst ? (db.machines || []).find(m => m.id === worst.id) : null;
+
+  res.json({
+    today_revenue: todayRev,
+    month_revenue: monthRev,
+    last_month_revenue: lastMonthRev,
+    change_vs_last: Math.round(changeVsLast * 10) / 10,
+    month_expenses: monthExp,
+    month_labor: monthLabor,
+    total_costs: totalCosts,
+    profit: profit,
+    profit_margin: Math.round(margin * 10) / 10,
+    avg_per_machine: Math.round(avgPerMachine * 100) / 100,
+    deployed_machines: deployed.length,
+    best_machine: bestMach ? { id: bestMach.id, name: bestMach.name, total: best.total } : null,
+    worst_machine: worstMach ? { id: worstMach.id, name: worstMach.name, total: worst.total } : null
+  });
+});
+
+// Underperforming locations (below $2K/month minimum)
+app.get('/api/financials/underperforming', (req, res) => {
+  const currentMonth = new Date().toISOString().substring(0, 7);
+  const monthRev = (db.finances || []).filter(f => f.type === 'revenue' && f.month === currentMonth);
+
+  const locRevMap = {};
+  monthRev.forEach(f => {
+    if (f.machine_id) {
+      const m = (db.machines || []).find(mm => mm.id === f.machine_id);
+      if (m && m.location_id) {
+        locRevMap[m.location_id] = (locRevMap[m.location_id] || 0) + (f.amount || 0);
+      }
+    }
+  });
+
+  const underperforming = (db.locations || [])
+    .filter(l => {
+      const rev = locRevMap[l.id] || 0;
+      const min = l.monthly_minimum || 2000;
+      const hasMachines = (db.machines || []).some(m => m.location_id === l.id);
+      return hasMachines && rev < min;
+    })
+    .map(l => ({
+      id: l.id,
+      name: l.name || l.address,
+      revenue: locRevMap[l.id] || 0,
+      minimum: l.monthly_minimum || 2000,
+      gap: (locRevMap[l.id] || 0) - (l.monthly_minimum || 2000)
+    }));
+
+  res.json(underperforming);
+});
+
+// Serve the financials page
+app.get('/financials', (req, res) => {
+  res.sendFile(path.join(__dirname, 'financials.html'));
+});
+
 app.listen(PORT, () => {
   console.log(`🤖 Kande VendTech Dashboard running at http://localhost:${PORT}`);
 });
