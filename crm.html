@@ -597,14 +597,18 @@
       };
       
       list.innerHTML = completedToday.map(item => `
-        <div style="display:flex;align-items:center;gap:10px;padding:6px 12px;background:rgba(56,161,105,0.1);border-radius:8px;border:1px solid rgba(56,161,105,0.2);flex-wrap:wrap;">
-          <span style="color:var(--success);">✓</span>
-          <span style="font-size:1rem;">${actionIcon(item.actionType)}</span>
-          <span style="font-weight:500;color:var(--accent);cursor:pointer;text-decoration:underline;" onclick="openFromTodo(${item.prospectId})">${esc(item.name)}</span>
-          <span style="font-size:0.75rem;color:var(--muted);">${item.actionType}</span>
-          <span style="flex:1;"></span>
-          <span style="font-size:0.7rem;color:var(--muted);">Completed: ${formatTimestamp(item.completedAt)}</span>
-          <button onclick="undoComplete(${item.prospectId}, '${item.actionType}')" style="padding:2px 8px;font-size:0.7rem;background:none;border:1px solid var(--muted);border-radius:4px;color:var(--muted);cursor:pointer;">↩ Undo</button>
+        <div style="padding:8px 12px;background:rgba(56,161,105,0.1);border-radius:8px;border:1px solid rgba(56,161,105,0.2);">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <span style="color:var(--success);">✓</span>
+            <span style="font-size:1rem;">${actionIcon(item.actionType)}</span>
+            <span style="font-weight:500;color:var(--accent);cursor:pointer;text-decoration:underline;" onclick="openFromTodo(${item.prospectId})">${esc(item.name)}</span>
+            <span style="font-size:0.75rem;color:var(--muted);">${item.actionType}</span>
+            <span style="flex:1;"></span>
+            <span style="font-size:0.7rem;color:var(--muted);">Completed: ${formatTimestamp(item.completedAt)}</span>
+            <button onclick="undoComplete(${item.prospectId}, '${item.actionType}')" style="padding:2px 8px;font-size:0.7rem;background:none;border:1px solid var(--muted);border-radius:4px;color:var(--muted);cursor:pointer;">↩ Undo</button>
+          </div>
+          ${item.salesNotes ? `<div style="margin-top:6px;padding:4px 10px 4px 32px;font-size:0.8rem;color:#2d3748;">📝 ${esc(item.salesNotes)}</div>` : ''}
+          ${item.nextAction ? `<div style="margin-top:3px;padding:0 10px 0 32px;font-size:0.78rem;color:var(--accent);">➡️ Next: ${esc(item.nextAction)}${item.followupDate ? ' — ' + item.followupDate : ''}</div>` : ''}
         </div>
       `).join('');
     }
@@ -725,23 +729,51 @@
       `}).join('');
     }
 
-    async function completeTodo(id, actionType) {
+    function completeTodo(id, actionType) {
       const p = prospects.find(pr => pr.id === id);
       if (!p) return;
       
+      // Show completion modal
+      document.getElementById('crm-complete-modal').style.display = 'flex';
+      document.getElementById('crm-complete-id').value = id;
+      document.getElementById('crm-complete-action-type').value = actionType;
+      document.getElementById('crm-complete-name').textContent = p.name + ' — ' + actionType;
+      document.getElementById('crm-complete-notes').value = '';
+      document.getElementById('crm-complete-next-action').value = '';
+      document.getElementById('crm-complete-followup').value = '';
+      document.getElementById('crm-complete-notes').focus();
+    }
+
+    function closeCrmCompleteModal() {
+      document.getElementById('crm-complete-modal').style.display = 'none';
+      // Uncheck the checkbox since we cancelled or completed via modal
+      renderTodoList();
+    }
+
+    async function submitCrmCompletion() {
+      const id = parseInt(document.getElementById('crm-complete-id').value);
+      const actionType = document.getElementById('crm-complete-action-type').value;
+      const salesNotes = document.getElementById('crm-complete-notes').value;
+      const nextAction = document.getElementById('crm-complete-next-action').value;
+      const followupDate = document.getElementById('crm-complete-followup').value;
+      
+      const p = prospects.find(pr => pr.id === id);
+      if (!p) return;
+
       // Map action type to activity type
       let activityType = 'other';
       if (actionType === 'Pop In') activityType = 'pop-in';
       else if (actionType === 'Call') activityType = 'call';
       else if (actionType === 'Email') activityType = 'email';
       
-      // Log the completed action as an activity
+      // Log the completed action as an activity (include sales notes)
       const activity = {
         type: activityType,
-        description: actionType === 'Pop In' || actionType === 'Call' || actionType === 'Email' 
-          ? 'Completed from to-do list' 
-          : `Completed: ${actionType}`,
-        date: new Date().toISOString().split('T')[0]
+        description: salesNotes 
+          ? `${actionType} — ${salesNotes}` 
+          : (actionType === 'Pop In' || actionType === 'Call' || actionType === 'Email' ? 'Completed from to-do list' : `Completed: ${actionType}`),
+        date: new Date().toISOString().split('T')[0],
+        next_action: nextAction || null
       };
       
       const res = await fetch(`/api/prospects/${id}/activities`, {
@@ -751,7 +783,6 @@
       });
       
       let activityId = null;
-      // Add the new activity to the local prospect data so it shows in header
       if (res.ok) {
         const newActivity = await res.json();
         activityId = newActivity.id;
@@ -759,24 +790,26 @@
         p.activities.unshift(newActivity);
       }
       
-      // Add to completed today list (with activity ID for undo)
+      // Add to completed today list (include new fields)
       completedToday.push({
         prospectId: id,
         name: p.name,
         actionType: actionType,
         activityId: activityId,
+        salesNotes: salesNotes,
+        nextAction: nextAction,
+        followupDate: followupDate,
         completedAt: Date.now()
       });
       localStorage.setItem('completedToday', JSON.stringify(completedToday));
       
-      // Clear the next action and set follow-up for 7 days
-      const followUpDate = new Date();
-      followUpDate.setDate(followUpDate.getDate() + 7);
+      // Set follow-up based on user input or default 7 days
+      const followUpDate = followupDate ? followupDate : (() => { const d = new Date(); d.setDate(d.getDate() + 7); return d.toISOString().split('T')[0]; })();
       
-      p.next_action = '';
-      p.next_action_date = '';
-      p.needs_action = false;
-      p.follow_up_date = followUpDate.toISOString().split('T')[0];
+      p.next_action = nextAction || '';
+      p.next_action_date = followupDate || '';
+      p.needs_action = !!nextAction;
+      p.follow_up_date = followUpDate;
       p.last_completed_action = actionType;
       p.last_completed_date = new Date().toISOString().split('T')[0];
       
@@ -784,16 +817,16 @@
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          next_action: '', 
-          next_action_date: '', 
-          needs_action: false,
+          next_action: p.next_action, 
+          next_action_date: p.next_action_date, 
+          needs_action: p.needs_action,
           follow_up_date: p.follow_up_date,
           last_completed_action: p.last_completed_action,
           last_completed_date: p.last_completed_date
         })
       });
       
-      // Refresh
+      closeCrmCompleteModal();
       renderProspects();
       renderTodoList();
       renderCompletedToday();
@@ -1860,5 +1893,43 @@
 
     loadData();
   </script>
+
+  <!-- Task Completion Modal -->
+  <div id="crm-complete-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center; padding:20px;">
+    <div style="background:#fff; border-radius:16px; padding:28px; max-width:480px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,0.15);">
+      <h3 style="margin-bottom:4px; font-size:1.1rem;">✅ Task Completed</h3>
+      <p id="crm-complete-name" style="color:#718096; font-size:0.85rem; margin-bottom:20px;"></p>
+      <input type="hidden" id="crm-complete-id">
+      <input type="hidden" id="crm-complete-action-type">
+      
+      <label style="font-size:0.8rem; font-weight:600; color:#4a5568; display:block; margin-bottom:6px;">Sales Notes</label>
+      <textarea id="crm-complete-notes" placeholder="What happened? Key details, who you spoke with..." style="width:100%; padding:10px 14px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.88rem; resize:vertical; min-height:80px; margin-bottom:16px; font-family:inherit;"></textarea>
+      
+      <label style="font-size:0.8rem; font-weight:600; color:#4a5568; display:block; margin-bottom:6px;">Next Action</label>
+      <select id="crm-complete-next-action" style="width:100%; padding:10px 14px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.88rem; margin-bottom:16px; background:#fff;">
+        <option value="">No follow-up needed</option>
+        <option value="Follow-up call">📞 Follow-up call</option>
+        <option value="Follow-up email">📧 Follow-up email</option>
+        <option value="Pop In">🚶 Pop-in visit</option>
+        <option value="Send proposal">📄 Send proposal</option>
+        <option value="Schedule site survey">📋 Schedule site survey</option>
+        <option value="Send contract">📝 Send contract</option>
+        <option value="Send gift basket">🎁 Send gift basket</option>
+        <option value="Schedule meeting">🤝 Schedule meeting</option>
+        <option value="Check in with decision maker">👤 Check in with decision maker</option>
+        <option value="Call">📞 Call</option>
+        <option value="Email">📧 Email</option>
+      </select>
+
+      <label style="font-size:0.8rem; font-weight:600; color:#4a5568; display:block; margin-bottom:6px;">Follow-up Date</label>
+      <input type="date" id="crm-complete-followup" style="width:100%; padding:10px 14px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.88rem; margin-bottom:24px;">
+
+      <div style="display:flex; gap:12px; justify-content:flex-end;">
+        <button onclick="closeCrmCompleteModal()" style="padding:10px 20px; border:1px solid #e2e8f0; border-radius:8px; background:#fff; font-size:0.85rem; font-weight:600; cursor:pointer;">Cancel</button>
+        <button onclick="submitCrmCompletion()" style="padding:10px 24px; border:none; border-radius:8px; background:#38a169; color:#fff; font-size:0.85rem; font-weight:600; cursor:pointer;">Complete & Save</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
