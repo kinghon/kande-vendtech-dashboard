@@ -22,7 +22,16 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'kande2026';
 const VALID_PASSWORDS = [ADMIN_PASSWORD, process.env.SALES_PASSWORD || 'jvending1#'];
 
 // Generate session tokens
-const activeSessions = new Set();
+// Sessions persisted to DB so they survive deploys
+function getActiveSessions() {
+  if (!db.sessions) db.sessions = {};
+  // Clean expired sessions (older than 24h)
+  const now = Date.now();
+  for (const [token, created] of Object.entries(db.sessions)) {
+    if (now - created > 24 * 60 * 60 * 1000) delete db.sessions[token];
+  }
+  return db.sessions;
+}
 
 function generateToken() {
   return crypto.randomBytes(32).toString('hex');
@@ -78,7 +87,8 @@ function requireAuth(req, res, next) {
   const cookies = parseCookies(req);
   const sessionToken = cookies['vendtech_session'];
   
-  if (sessionToken && activeSessions.has(sessionToken)) {
+  const sessions = getActiveSessions();
+  if (sessionToken && sessions[sessionToken]) {
     return next();
   }
   
@@ -131,10 +141,12 @@ app.post('/api/auth/login', (req, res) => {
   
   if (VALID_PASSWORDS.includes(password)) {
     const token = generateToken();
-    activeSessions.add(token);
+    const sessions = getActiveSessions();
+    sessions[token] = Date.now();
+    saveDB(db);
     
-    // Set cookie (7 days)
-    res.setHeader('Set-Cookie', `vendtech_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${7 * 24 * 60 * 60}`);
+    // Set cookie (24 hours)
+    res.setHeader('Set-Cookie', `vendtech_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${24 * 60 * 60}`);
     loginAttempts.delete(ip); // Clear attempts on success
     res.json({ success: true });
   } else {
@@ -155,7 +167,9 @@ app.post('/api/auth/logout', (req, res) => {
   const sessionToken = cookies['vendtech_session'];
   
   if (sessionToken) {
-    activeSessions.delete(sessionToken);
+    const sessions = getActiveSessions();
+    delete sessions[sessionToken];
+    saveDB(db);
   }
   
   res.setHeader('Set-Cookie', 'vendtech_session=; Path=/; HttpOnly; Max-Age=0');
