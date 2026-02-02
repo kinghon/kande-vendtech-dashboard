@@ -923,9 +923,11 @@
               <div class="prospect-name">${p.name}${p.status === 'closed' && p.stale_reason ? `<span style="margin-left:10px;font-size:0.8rem;font-weight:700;color:var(--hot);">⛔ ${esc(p.stale_reason)}</span>` : ''}${p.next_action ? `<span style="margin-left:10px;font-size:0.8rem;font-weight:600;color:var(--accent);background:rgba(49,130,206,0.1);padding:2px 8px;border-radius:4px;">→ ${p.next_action === 'Pop In' ? '🚶' : p.next_action === 'Call' ? '📞' : '📧'} ${esc(p.next_action)}${p.next_action_date ? ' (' + p.next_action_date + ')' : ''}</span>` : ''}</div>
               <span class="saved-indicator" id="saved-${p.id}">✓ Saved</span>
               <div class="badge-row" style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
-                <span class="prospect-badge badge-${getBadgeClass(p)}" onclick="event.stopPropagation(); cycleTag(${p.id})" style="cursor:pointer;" title="Click to change">
-                  ${getBadgeLabel(p)}
-                </span>
+                <select class="status-select" onclick="event.stopPropagation()" onchange="setStatus(${p.id}, this.value)" style="padding:4px 10px;border-radius:12px;font-size:0.7rem;font-weight:700;cursor:pointer;border:none;background:${p.priority === 'hot' ? 'rgba(229,62,62,0.15)' : p.priority === 'warm' ? 'rgba(234,179,8,0.15)' : 'rgba(49,130,206,0.15)'};color:${p.priority === 'hot' ? 'var(--hot)' : p.priority === 'warm' ? 'var(--warm)' : 'var(--accent)'};">
+                  <option value="hot" ${p.priority === 'hot' ? 'selected' : ''}>🔥 HOT</option>
+                  <option value="warm" ${p.priority === 'warm' ? 'selected' : ''}>🟡 WARM</option>
+                  <option value="new" ${!p.priority || p.priority === 'new' || p.priority === 'normal' ? 'selected' : ''}>🆕 NEW</option>
+                </select>
                 <select class="next-action-select" onclick="event.stopPropagation()" onchange="setNextAction(${p.id}, this.value)" style="padding:4px 8px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;border:1px solid ${p.next_action ? 'var(--accent)' : 'var(--border)'};background:${p.next_action ? 'rgba(49,130,206,0.1)' : 'transparent'};color:${p.next_action ? 'var(--accent)' : 'var(--muted)'};">
                   <option value="">📋 + Action</option>
                   <option value="Pop In" ${p.next_action === 'Pop In' ? 'selected' : ''}>🚶 Pop In</option>
@@ -1110,6 +1112,22 @@
         if (el) { el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 1500); }
       });
       renderProspects();
+    }
+
+    function setStatus(id, priority) {
+      const p = prospects.find(p => p.id === id);
+      if (!p) return;
+      p.priority = priority;
+      fetch(`/api/prospects/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priority })
+      }).then(() => {
+        const el = document.getElementById(`saved-${id}`);
+        if (el) { el.style.opacity = '1'; setTimeout(() => el.style.opacity = '0', 1500); }
+      });
+      renderProspects();
+      renderTodoList();
     }
 
     function setNextAction(id, action) {
