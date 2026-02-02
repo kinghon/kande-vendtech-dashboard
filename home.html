@@ -289,18 +289,30 @@
   }
 
   // --- Fetch stats ---
-  fetch('/api/stats').then(function(r) { return r.json(); }).then(function(d) {
+  fetch('/api/stats').then(function(r) {
+    if (!r.ok) throw new Error(r.status);
+    return r.json();
+  }).then(function(d) {
+    if (!d || typeof d !== 'object') throw new Error('bad data');
     document.getElementById('stat-prospects').textContent = fmt(d.totalProspects || d.total_prospects || 0);
     document.getElementById('stat-leads').textContent = fmt(d.activeLeads || d.active_leads || d.hotLeads || 0);
     document.getElementById('stat-machines').textContent = fmt(d.machinesDeployed || d.machines_deployed || d.totalMachines || 0);
     document.getElementById('stat-revenue').textContent = money(d.monthlyRevenue || d.monthly_revenue || d.revenue || 0);
   }).catch(function() {
-    document.getElementById('stat-prospects').textContent = '—';
+    ['stat-prospects', 'stat-leads', 'stat-machines', 'stat-revenue'].forEach(function(id) {
+      document.getElementById(id).textContent = '—';
+    });
   });
 
   // --- Pipeline stages ---
-  fetch('/api/pipeline/stages').then(function(r) { return r.json(); }).then(function(stages) {
-    return fetch('/api/pipeline/cards').then(function(r) { return r.json(); }).then(function(cards) {
+  fetch('/api/pipeline/stages').then(function(r) {
+    if (!r.ok) throw new Error(r.status);
+    return r.json();
+  }).then(function(stages) {
+    return fetch('/api/pipeline/cards').then(function(r) {
+      if (!r.ok) throw new Error(r.status);
+      return r.json();
+    }).then(function(cards) {
       var container = document.getElementById('pipeline-stages');
       if (!stages || !stages.length) {
         container.innerHTML = '<div class="route-empty">No pipeline stages configured</div>';
@@ -324,7 +336,10 @@
   });
 
   // --- Tasks ---
-  fetch('/api/crm-tasks').then(function(r) { return r.json(); }).then(function(data) {
+  fetch('/api/crm-tasks').then(function(r) {
+    if (!r.ok) throw new Error(r.status);
+    return r.json();
+  }).then(function(data) {
     var tasks = Array.isArray(data) ? data : (data.tasks || []);
     var today = new Date().toISOString().split('T')[0];
     var relevant = tasks.filter(function(t) {
@@ -355,7 +370,10 @@
   });
 
   // --- Activity feed ---
-  fetch('/api/activities').then(function(r) { return r.json(); }).then(function(data) {
+  fetch('/api/activities').then(function(r) {
+    if (!r.ok) throw new Error(r.status);
+    return r.json();
+  }).then(function(data) {
     var activities = (Array.isArray(data) ? data : (data.activities || [])).slice(0, 8);
     var feed = document.getElementById('activity-feed');
     if (!activities.length) {
@@ -378,7 +396,10 @@
   });
 
   // --- Routes ---
-  fetch('/api/routes/templates').then(function(r) { return r.json(); }).then(function(data) {
+  fetch('/api/routes/templates').then(function(r) {
+    if (!r.ok) throw new Error(r.status);
+    return r.json();
+  }).then(function(data) {
     var routes = Array.isArray(data) ? data : (data.routes || []);
     var container = document.getElementById('route-status');
     

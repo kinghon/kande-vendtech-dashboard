@@ -156,6 +156,15 @@
       #kv-topbar .kv-hamburger { display: block; }
       .kv-main-content { margin-left: 0; }
     }
+
+    /* Pre-wrap: offset body content before DOMContentLoaded wrapping */
+    body.kv-nav-active:not(.kv-nav-wrapped) {
+      margin-left: 240px; padding-top: 52px;
+    }
+    body.kv-nav-active.kv-nav-wrapped { margin-left: 0; padding-top: 0; }
+    @media (max-width: 1024px) {
+      body.kv-nav-active:not(.kv-nav-wrapped) { margin-left: 0; }
+    }
   `;
   document.head.appendChild(css);
 
@@ -215,18 +224,32 @@
   overlay.id = 'kv-overlay';
   topbar.parentNode.insertBefore(overlay, topbar.nextSibling);
 
-  /* ── Wrap existing content ────────────────────────── */
-  var mainWrap = document.createElement('div');
-  mainWrap.className = 'kv-main-content';
-  while (document.body.childNodes.length > 3) {
-    // Move everything after sidebar+topbar+overlay into the wrapper
-    var node = document.body.childNodes[3];
-    mainWrap.appendChild(node);
-  }
-  document.body.appendChild(mainWrap);
-
-  /* ── Body class ───────────────────────────────────── */
+  /* ── Body class (immediate — enables pre-wrap CSS offset) ── */
   document.body.classList.add('kv-nav-active');
+
+  /* ── Wrap existing content (deferred until DOM is fully parsed) ── */
+  function wrapPageContent() {
+    if (document.querySelector('.kv-main-content')) return;
+    var mainWrap = document.createElement('div');
+    mainWrap.className = 'kv-main-content';
+    var children = Array.prototype.slice.call(document.body.childNodes);
+    children.forEach(function (node) {
+      if (node === sidebar || node === topbar || node === overlay) return;
+      mainWrap.appendChild(node);
+    });
+    document.body.appendChild(mainWrap);
+    document.body.classList.add('kv-nav-wrapped');
+    /* Hide old inline navs */
+    document.querySelectorAll('.top-nav, .topbar').forEach(function (el) {
+      if (el.id !== 'kv-sidebar' && el.id !== 'kv-topbar') el.style.display = 'none';
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', wrapPageContent);
+  } else {
+    wrapPageContent();
+  }
 
   /* ── Toggle groups ────────────────────────────────── */
   sidebar.querySelectorAll('[data-group]').forEach(function (btn) {
@@ -248,8 +271,5 @@
     overlay.classList.remove('open');
   });
 
-  /* ── Hide old inline navs ─────────────────────────── */
-  document.querySelectorAll('.top-nav, .topbar').forEach(function (el) {
-    if (el.id !== 'kv-sidebar' && el.id !== 'kv-topbar') el.style.display = 'none';
-  });
+  /* ── Hide old inline navs — handled inside wrapPageContent ── */
 })();
