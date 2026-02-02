@@ -166,8 +166,14 @@ app.get('/api/auth/status', (req, res) => {
   res.json({ authenticated: true }); // If we get here, we're authenticated (middleware passed)
 });
 
+// Health check endpoint (public, for monitoring)
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '1.0.0' });
+});
+
 // Simple JSON file database
-const DB_FILE = process.env.DB_PATH || '/data/data.json';
+// Use local ./data/ for development, /data/ for Railway production
+const DB_FILE = process.env.DB_PATH || (process.env.RAILWAY_ENVIRONMENT ? '/data/data.json' : path.join(__dirname, 'data', 'data.json'));
 
 function loadDB() {
   try {
@@ -188,6 +194,11 @@ function loadDB() {
 }
 
 function saveDB(db) {
+  // Ensure the directory exists (for local development)
+  const dir = path.dirname(DB_FILE);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
   fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
 }
 

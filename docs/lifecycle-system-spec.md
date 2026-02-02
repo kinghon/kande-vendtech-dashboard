@@ -1315,13 +1315,36 @@ POST    /api/outreach/calls               Log a call
 GET     /api/outreach/calls               List calls (filterable)
 GET     /api/outreach/calls/stats         Call statistics
 
--- Pop-in Visits
-POST    /api/outreach/visits              Log a pop-in visit
-GET     /api/outreach/visits              List visits
+-- Pop-in Visits (Skool: "90% of successful placements are from pop-ins")
+POST    /api/outreach/popins              Log a pop-in visit (outcome, gift basket, DM met, etc.)
+GET     /api/outreach/popins              List pop-ins (filterable by outcome, date, lead)
+GET     /api/outreach/popins/stats        Pop-in metrics (visits, DM connect rate, gift baskets deployed)
+GET     /api/outreach/popins/route        Suggested pop-in route for today (nearby unvisited leads)
+POST    /api/outreach/popins/plan         Plan a pop-in route (select leads, optimize order)
+
+-- Gift Basket Tracking (Skool: bring products + business card every time)
+GET     /api/outreach/gift-baskets        Gift basket inventory status
+POST    /api/outreach/gift-baskets/prep   Log gift basket preparation (quantity, contents)
+GET     /api/outreach/gift-baskets/stats  Deployment stats (baskets left, conversion from basket visits)
+
+-- Referral Tracking (Skool: "Introduce me to 3 other buildings")
+GET     /api/outreach/referrals           All referral relationships
+POST    /api/outreach/referrals           Log a referral (which client referred which lead)
+GET     /api/outreach/referrals/stats     Referral funnel stats (asked, received, converted)
+GET     /api/outreach/referrals/pending   Clients we haven't asked for referrals yet
+
+-- Outreach Sequences (Skool: 8-10 touches to close)
+GET     /api/outreach/sequences           List sequence templates
+POST    /api/outreach/sequences           Create sequence template
+GET     /api/outreach/sequences/:id       Get sequence with steps
+POST    /api/outreach/sequences/:id/enroll  Enroll a lead in a sequence
+GET     /api/outreach/sequences/active    All leads currently in active sequences
+PATCH   /api/outreach/sequences/:id/pause  Pause sequence for a lead (they responded)
 
 -- Unified Activity
 GET     /api/outreach/timeline            All outreach activities, unified timeline
-GET     /api/outreach/stats               Outreach metrics (emails sent, calls made, meetings booked)
+GET     /api/outreach/stats               Outreach metrics (emails sent, calls made, **pop-ins made**, meetings booked)
+GET     /api/outreach/daily-tasks         Today's auto-generated outreach task list from active sequences
 ```
 
 ### 5.3 Dashboard Pages
@@ -2506,9 +2529,22 @@ POST    /api/invoices/:id/send                 Send invoice
 PATCH   /api/invoices/:id/paid                 Mark as paid
 GET     /api/invoices/:id/pdf                  Download PDF
 
--- Commission Payouts
+-- Shrinkage (Skool: theft/vandalism tracking)
+GET     /api/financials/shrinkage               Shrinkage summary (by location, machine, period)
+GET     /api/financials/shrinkage/by-location   Shrinkage ranked by location
+GET     /api/financials/shrinkage/trends        Shrinkage trends over time
+POST    /api/financials/shrinkage/incident      Log a shrinkage/theft incident
+
+-- Route Efficiency (Skool: "#1 scaling bottleneck")
+GET     /api/financials/route-efficiency         Revenue per route-hour, by route
+GET     /api/financials/route-efficiency/trends  Efficiency trends over time
+
+-- Commission Payouts (Skool: 3-5% of gross, max 10%)
 GET     /api/financials/commission-summary      All commissions for period
 GET     /api/financials/commission-forecast     Projected commissions (based on current month pace)
+
+-- Skool Benchmarks
+GET     /api/financials/benchmarks              $200K pace, rev/machine/month, locations below $2K
 ```
 
 ### 11.3 Dashboard Pages
@@ -3058,6 +3094,21 @@ Pick list detail optimized for warehouse flow:
 │ [📥 Export CSV]  [📄 Export PDF]  [📧 Email Report]      │
 └─────────────────────────────────────────────────────────┘
 ```
+
+### 15.2b Skool-Specific Reports (Critical Metrics)
+
+| Report | Frequency | Metric | Target |
+|--------|-----------|--------|--------|
+| **$200K Pace Tracker** | Weekly | Annualized revenue vs $200K goal | 10-15 machines × $1,333/mo |
+| **Revenue Per Machine** | Weekly | Monthly revenue ÷ active machines | $1,333+/machine/month |
+| **Revenue Per Route-Hour** | Weekly | Revenue ÷ total route hours | $50+/hour |
+| **Location Threshold Report** | Monthly | Locations below $2K/month | 0 locations below threshold |
+| **Shrinkage Report** | Monthly | $ lost to theft/vandalism/expiry | < 2% of revenue |
+| **Outreach Velocity** | Weekly | Touches per lead, pop-in rate | 8-10 touches, 60%+ include pop-in |
+| **Referral Pipeline** | Monthly | Referrals asked → received → converted | Every client asked within 30 days |
+| **Rev Share Analysis** | Monthly | Commission % by location vs revenue | All between 3-10% |
+| **Pop-in Conversion** | Weekly | Pop-in visits → meetings → won | Track by gift basket (yes/no) |
+| **"Vending" Language Audit** | On-demand | Scan all templates/emails for banned word | 0 violations |
 
 ### 15.3 API Endpoints
 
@@ -3652,8 +3703,24 @@ OUTREACH        GET/POST   /api/outreach/campaigns
                 POST       /api/outreach/campaigns/:id/leads
                 POST       /api/outreach/campaigns/:id/activate
                 POST       /api/outreach/calls
-                POST       /api/outreach/visits
                 GET        /api/outreach/warmup
+
+POP-INS         POST       /api/outreach/popins
+(Skool: 90%)    GET        /api/outreach/popins
+                GET        /api/outreach/popins/stats
+                GET        /api/outreach/popins/route
+
+GIFT BASKETS    GET        /api/outreach/gift-baskets
+                POST       /api/outreach/gift-baskets/prep
+
+REFERRALS       GET/POST   /api/outreach/referrals
+(Skool: 3 bldgs)GET       /api/outreach/referrals/stats
+                GET        /api/outreach/referrals/pending
+
+SEQUENCES       GET/POST   /api/outreach/sequences
+(Skool: 8-10)   GET       /api/outreach/sequences/:id
+                POST       /api/outreach/sequences/:id/enroll
+                GET        /api/outreach/sequences/active
 
 SURVEYS         GET/POST   /api/surveys
                 GET/PUT    /api/surveys/:id
@@ -3752,9 +3819,16 @@ FINANCIALS      GET        /api/financials/revenue
                 GET        /api/financials/commission-summary
 
 COMMISSIONS     GET/POST   /api/commissions
-                POST       /api/commissions/calculate
+(Skool: 3-5%)   POST      /api/commissions/calculate
                 PATCH      /api/commissions/:id/approve
                 PATCH      /api/commissions/:id/pay
+
+SHRINKAGE       GET        /api/financials/shrinkage
+                GET        /api/financials/shrinkage/by-location
+                POST       /api/financials/shrinkage/incident
+
+BENCHMARKS      GET        /api/financials/benchmarks
+                GET        /api/financials/route-efficiency
 
 INVOICES        GET/POST   /api/invoices
                 GET        /api/invoices/:id
@@ -3780,4 +3854,31 @@ USERS           GET/POST   /api/users
 
 ---
 
-*This specification is the master blueprint for Kande VendTech's complete business management system. Implementation follows the phased approach in Section 18. Each phase is independently valuable — the system works at every stage of buildout.*
+---
+
+## Appendix D: Skool Community Intelligence Reference
+
+> This spec is infused with insights from the Vendingpreneurs Skool community (8,087 posts).  
+> Full research: `clawd/kande-vendtech/research/skool-insights.md`
+
+### Quick Reference — The Rules That Matter
+
+| Rule | Where It Applies | How It's Enforced |
+|------|------------------|-------------------|
+| Never say "vending" | All client-facing docs, emails, proposals, portal | Language scanner auto-flags violations |
+| 8-10 touches to close | Outreach sequences | 10-touch sequence template, touch counter on lead detail |
+| Pop-ins = 90% of placements | Outreach, daily tasks | Pop-in route planner, stats tracking, alerts if no pop-ins |
+| Gift basket every pop-in | Pop-in logging | Gift basket inventory, checkbox on pop-in form |
+| $2K/month minimum | Qualification, survey scoring | Hard gate in scoring algorithm, alerts on active locations |
+| Rev share 3-5% (max 10%) | Proposals, contracts, commissions | Default 5%, warning above 10%, guidance panel |
+| "Introduce me to 3 buildings" | Post-deal, client management | Referral ask automation at 30 days post-install, tracking |
+| Greystar = NetVendor | Qualification, onboarding | Auto-flag on Greystar leads, block proposals without approval |
+| Route efficiency = #1 bottleneck | Operations, scheduling | Revenue-per-route-hour metric, weekly optimization runs |
+| 10-15 great machines = $200K/yr | Financial dashboard | $200K pace tracker, rev/machine/month benchmark |
+| Track theft/vandalism | Operations, driver app, financials | Shrinkage table, driver reporting, monthly shrinkage report |
+
+---
+
+*This specification is the master blueprint for Kande VendTech's complete business management system, enhanced with field-tested intelligence from the Vendingpreneurs Skool community. Implementation follows the phased approach in Section 18. Each phase is independently valuable — the system works at every stage of buildout.*
+
+*Remember: We don't sell vending machines. We install premium AI-powered smart markets. Act accordingly.*
