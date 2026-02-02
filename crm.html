@@ -737,6 +737,7 @@
       document.getElementById('crm-complete-action-type').value = actionType;
       document.getElementById('crm-complete-name').textContent = p.name + ' — ' + actionType;
       document.getElementById('crm-complete-notes').value = '';
+      document.getElementById('crm-complete-status').value = p.priority || 'new';
       document.getElementById('crm-complete-next-action').value = '';
       document.getElementById('crm-complete-followup').value = '';
       document.getElementById('crm-complete-notes').focus();
@@ -752,11 +753,15 @@
       const id = parseInt(document.getElementById('crm-complete-id').value);
       const actionType = document.getElementById('crm-complete-action-type').value;
       const salesNotes = document.getElementById('crm-complete-notes').value;
+      const newStatus = document.getElementById('crm-complete-status').value;
       const nextAction = document.getElementById('crm-complete-next-action').value;
       const followupDate = document.getElementById('crm-complete-followup').value;
       
       const p = prospects.find(pr => pr.id === id);
       if (!p) return;
+      
+      // Update status
+      p.priority = newStatus;
 
       // Map action type to activity type
       let activityType = 'other';
@@ -815,6 +820,7 @@
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
+          priority: p.priority,
           next_action: p.next_action, 
           next_action_date: p.next_action_date, 
           needs_action: p.needs_action,
@@ -1927,6 +1933,13 @@
       <label style="font-size:0.8rem; font-weight:600; color:#4a5568; display:block; margin-bottom:6px;">Sales Notes</label>
       <textarea id="crm-complete-notes" placeholder="What happened? Key details, who you spoke with..." style="width:100%; padding:10px 14px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.88rem; resize:vertical; min-height:80px; margin-bottom:16px; font-family:inherit;"></textarea>
       
+      <label style="font-size:0.8rem; font-weight:600; color:#4a5568; display:block; margin-bottom:6px;">Status</label>
+      <select id="crm-complete-status" style="width:100%; padding:10px 14px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.88rem; margin-bottom:16px; background:#fff;">
+        <option value="hot">🔥 HOT</option>
+        <option value="warm">🟡 WARM</option>
+        <option value="new">🆕 NEW</option>
+      </select>
+
       <label style="font-size:0.8rem; font-weight:600; color:#4a5568; display:block; margin-bottom:6px;">Next Action</label>
       <select id="crm-complete-next-action" style="width:100%; padding:10px 14px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.88rem; margin-bottom:16px; background:#fff;">
         <option value="">No follow-up needed</option>
