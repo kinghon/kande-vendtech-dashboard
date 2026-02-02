@@ -6317,7 +6317,7 @@ app.post('/api/instantly/warmup/:email', async (req, res) => {
 const PIPELINE_STAGES = [
   { id: 'new_lead', label: 'New Lead', order: 0, color: '#3b82f6', emoji: '🆕' },
   { id: 'contacted', label: 'Contacted', order: 1, color: '#8b5cf6', emoji: '📧' },
-  { id: 'pop_in_done', label: 'Pop-In Done', order: 2, color: '#a855f7', emoji: '🚶' },
+  { id: 'pop_in_done', label: 'Outreach Period', order: 2, color: '#a855f7', emoji: '📣' },
   { id: 'interested', label: 'Interested', order: 3, color: '#ec4899', emoji: '👀' },
   { id: 'site_survey', label: 'Site Survey', order: 4, color: '#f97316', emoji: '📋' },
   { id: 'proposal_sent', label: 'Proposal Sent', order: 5, color: '#eab308', emoji: '📝' },
