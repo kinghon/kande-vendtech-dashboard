@@ -611,17 +611,35 @@ app.put('/api/prospects/:id', (req, res) => {
   }
 
   db.prospects[index] = { ...old, ...req.body, updated_at: new Date().toISOString() };
-  // Sync prospect changes to pipeline card (name, contact info, etc.)
+  // Sync ALL prospect changes to pipeline card
   const pipeCard = (db.pipelineCards || []).find(c => c.prospect_id === id);
   if (pipeCard) {
+    // Sync display fields
+    if (req.body.name) pipeCard.company = req.body.name;
+    if (req.body.contact_name) pipeCard.contact = req.body.contact_name;
+    if (req.body.contact_email) pipeCard.contact_email = req.body.contact_email;
+    if (req.body.contact_phone) pipeCard.contact_phone = req.body.contact_phone;
+    if (req.body.property_type) pipeCard.property_type = req.body.property_type;
+    if (req.body.address) pipeCard.address = req.body.address;
+    if (req.body.units) pipeCard.units = req.body.units;
+    if (req.body.priority) pipeCard.priority = req.body.priority;
+    if (req.body.notes !== undefined) pipeCard.notes = req.body.notes;
     pipeCard.updated_at = new Date().toISOString();
-    // Sync status → pipeline stage if status changed explicitly
+    // Sync status → pipeline stage
     if (req.body.status && req.body.status !== old.status) {
-      const statusToStage = { 'new': 'new_lead', 'signed': 'signed', 'closed': null };
+      const statusToStage = {
+        'new': 'new_lead', 'contacted': 'contacted', 'outreach': 'pop_in_done',
+        'interested': 'interested', 'qualified': 'site_survey', 'warm': 'interested',
+        'hot': 'proposal_sent', 'proposal': 'proposal_sent', 'negotiating': 'negotiating',
+        'contract': 'contract_sent', 'signed': 'signed', 'onboarding': 'onboarding',
+        'active': 'active_client', 'closed': null, 'lost': null
+      };
       const newStage = statusToStage[req.body.status];
       if (newStage && pipeCard.stage !== newStage) {
+        const oldStage = pipeCard.stage;
         pipeCard.stage = newStage;
         pipeCard.entered_stage_at = new Date().toISOString();
+        runWorkflowRules && runWorkflowRules('stage_change', { prospect_id: id, old_stage: oldStage, new_stage: newStage });
       }
     }
   }
@@ -730,6 +748,9 @@ app.delete('/api/prospects/:id', (req, res) => {
   db.prospects = db.prospects.filter(p => p.id !== id);
   db.contacts = db.contacts.filter(c => c.prospect_id !== id);
   db.activities = db.activities.filter(a => a.prospect_id !== id);
+  if (db.pipelineCards) db.pipelineCards = db.pipelineCards.filter(c => c.prospect_id !== id);
+  if (db.pipelineTasks) db.pipelineTasks = db.pipelineTasks.filter(t => t.prospect_id !== id);
+  if (db.popInVisits) db.popInVisits = db.popInVisits.filter(v => v.prospect_id !== id);
   saveDB(db);
   res.json({ success: true });
 });
