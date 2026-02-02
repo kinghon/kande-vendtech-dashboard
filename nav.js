@@ -69,31 +69,31 @@
     /* Sidebar */
     #kv-sidebar {
       position: fixed; top: 0; left: 0; bottom: 0; width: 240px; z-index: 9999;
-      background: #0f172a; color: #94a3b8; overflow-y: auto; overflow-x: hidden;
+      background: #f8fafc; color: #475569; overflow-y: auto; overflow-x: hidden; border-right: 1px solid #e2e8f0;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       transition: transform 0.3s ease;
-      scrollbar-width: thin; scrollbar-color: #334155 transparent;
+      scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;
     }
     #kv-sidebar::-webkit-scrollbar { width: 4px; }
-    #kv-sidebar::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+    #kv-sidebar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
 
     .kv-sidebar-brand {
       display: flex; align-items: center; gap: 10px; padding: 20px 18px 16px;
-      border-bottom: 1px solid #1e293b; text-decoration: none;
+      border-bottom: 1px solid #e2e8f0; text-decoration: none;
     }
     .kv-sidebar-brand img { height: 32px; border-radius: 6px; }
-    .kv-sidebar-brand span { font-size: 0.95rem; font-weight: 700; color: #f1f5f9; letter-spacing: -0.3px; }
+    .kv-sidebar-brand span { font-size: 0.95rem; font-weight: 700; color: #0f172a; letter-spacing: -0.3px; }
 
     .kv-nav-section { padding: 8px 0; }
 
     /* Group header (top-level) */
     .kv-nav-group-header {
       display: flex; align-items: center; gap: 10px; padding: 10px 18px; cursor: pointer;
-      font-size: 0.82rem; font-weight: 600; color: #94a3b8; text-decoration: none;
+      font-size: 0.82rem; font-weight: 600; color: #475569; text-decoration: none;
       transition: all 0.15s; user-select: none; border: none; background: none; width: 100%; text-align: left;
     }
-    .kv-nav-group-header:hover { color: #e2e8f0; background: rgba(255,255,255,0.04); }
-    .kv-nav-group-header.active { color: #60a5fa; }
+    .kv-nav-group-header:hover { color: #0f172a; background: #e2e8f0; }
+    .kv-nav-group-header.active { color: #3b82f6; }
     .kv-nav-group-header .kv-icon { font-size: 1rem; width: 22px; text-align: center; flex-shrink: 0; }
     .kv-nav-group-header .kv-chevron {
       margin-left: auto; font-size: 0.65rem; transition: transform 0.2s; color: #475569;
@@ -108,12 +108,12 @@
       color: #64748b; text-decoration: none; font-size: 0.8rem; font-weight: 500;
       transition: all 0.15s; border-left: 2px solid transparent;
     }
-    .kv-nav-items a:hover { color: #cbd5e1; background: rgba(255,255,255,0.03); }
+    .kv-nav-items a:hover { color: #0f172a; background: #e2e8f0; }
     .kv-nav-items a.active {
       color: #60a5fa; background: rgba(96,165,250,0.08); border-left-color: #60a5fa; font-weight: 600;
     }
     .kv-nav-items .kv-badge {
-      font-size: 0.6rem; background: #1e293b; color: #64748b; padding: 1px 6px;
+      font-size: 0.6rem; background: #e2e8f0; color: #64748b; padding: 1px 6px;
       border-radius: 8px; margin-left: auto; text-transform: uppercase; font-weight: 700;
     }
 
