@@ -574,6 +574,8 @@ app.post('/api/prospects', (req, res) => {
   const prospect = { id: nextId(), ...req.body, status: req.body.status || 'new', priority: req.body.priority || 'normal', created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
   db.prospects.push(prospect);
   saveDB(db);
+  // Auto-create pipeline card for new prospect (CRM→Pipeline sync)
+  ensurePipelineCard(prospect.id);
   res.json(prospect);
   geocodeProspect(prospect).then(updated => { if (updated) saveDB(db); });
 });
@@ -609,6 +611,20 @@ app.put('/api/prospects/:id', (req, res) => {
   }
 
   db.prospects[index] = { ...old, ...req.body, updated_at: new Date().toISOString() };
+  // Sync prospect changes to pipeline card (name, contact info, etc.)
+  const pipeCard = (db.pipelineCards || []).find(c => c.prospect_id === id);
+  if (pipeCard) {
+    pipeCard.updated_at = new Date().toISOString();
+    // Sync status → pipeline stage if status changed explicitly
+    if (req.body.status && req.body.status !== old.status) {
+      const statusToStage = { 'new': 'new_lead', 'signed': 'signed', 'closed': null };
+      const newStage = statusToStage[req.body.status];
+      if (newStage && pipeCard.stage !== newStage) {
+        pipeCard.stage = newStage;
+        pipeCard.entered_stage_at = new Date().toISOString();
+      }
+    }
+  }
   saveDB(db);
   res.json(db.prospects[index]);
   if (req.body.address && req.body.address !== oldAddress) {
@@ -683,6 +699,11 @@ app.post('/api/prospects/import', async (req, res) => {
   }
 
   saveDB(db);
+
+  // Auto-create pipeline cards for all imported prospects (CRM→Pipeline sync)
+  results.filter(r => r.status === 'imported' && r.id).forEach(r => {
+    ensurePipelineCard(r.id);
+  });
 
   // Geocode in background after response
   if (geocode && imported > 0) {
@@ -1325,6 +1346,10 @@ app.post('/api/import', (req, res) => {
         db.activities.push({ id: nextId(), prospect_id: prospect.id, type: 'outreach', description: p.outreach_status, next_action: p.next_action, created_at: new Date().toISOString() });
       }
       imported++;
+      // Auto-create pipeline card for imported prospect (CRM→Pipeline sync)
+      if (status !== 'closed') {
+        ensurePipelineCard(prospect.id);
+      }
     } catch (e) { console.error('Import error:', e.message); }
   }
   saveDB(db);
@@ -6559,6 +6584,33 @@ app.post('/api/pipeline/sync', (req, res) => {
   res.json({ synced: created, total: db.pipelineCards.length });
 });
 
+// GET version of pipeline sync (requirement #8)
+app.get('/api/pipeline/sync', (req, res) => {
+  let created = 0;
+  db.prospects.forEach(p => {
+    const existing = db.pipelineCards.find(c => c.prospect_id === p.id);
+    if (!existing) {
+      let stage = 'new_lead';
+      if (p.status === 'signed') stage = 'signed';
+      else if (p.status === 'active') stage = 'contacted';
+      else if (p.status === 'closed') return;
+
+      db.pipelineCards.push({
+        id: nextId(),
+        prospect_id: p.id,
+        stage,
+        position: db.pipelineCards.filter(c => c.stage === stage).length,
+        entered_stage_at: p.created_at || new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+      created++;
+    }
+  });
+  if (created > 0) saveDB(db);
+  res.json({ synced: created, total: db.pipelineCards.length });
+});
+
 // Pipeline stats
 app.get('/api/pipeline/stats', (req, res) => {
   const cards = db.pipelineCards || [];
@@ -8863,4 +8915,29 @@ app.get('/financials', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`🤖 Kande VendTech Dashboard running at http://localhost:${PORT}`);
+
+  // Backfill: ensure all existing prospects have pipeline cards on startup
+  let backfilled = 0;
+  db.prospects.forEach(p => {
+    const existing = (db.pipelineCards || []).find(c => c.prospect_id === p.id);
+    if (!existing && p.status !== 'closed') {
+      let stage = 'new_lead';
+      if (p.status === 'signed') stage = 'signed';
+      else if (p.status === 'active') stage = 'contacted';
+      db.pipelineCards.push({
+        id: nextId(),
+        prospect_id: p.id,
+        stage,
+        position: db.pipelineCards.filter(c => c.stage === stage).length,
+        entered_stage_at: p.created_at || new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+      backfilled++;
+    }
+  });
+  if (backfilled > 0) {
+    saveDB(db);
+    console.log(`🔄 Pipeline backfill: created ${backfilled} pipeline cards for existing prospects`);
+  }
 });

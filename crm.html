@@ -283,6 +283,7 @@
         </div>
       </div>
       <div class="header-actions">
+        <button class="btn btn-secondary" onclick="syncToPipeline()" title="Sync all CRM prospects to Pipeline board" style="border-color:#8b5cf6;color:#8b5cf6;">🔄 Sync to Pipeline</button>
         <a href="/crm/map" class="btn btn-secondary" style="border-color:var(--accent);color:var(--accent);">🚗 Route Planner</a>
         <button class="btn btn-primary" onclick="showAddModal()">+ New Prospect</button>
       </div>
@@ -1482,6 +1483,20 @@
     document.getElementById('typeFilter').addEventListener('change', renderProspects);
 
     // Add new prospect
+    async function syncToPipeline() {
+      try {
+        const res = await fetch('/api/pipeline/sync', { method: 'POST' });
+        const data = await res.json();
+        if (data.synced > 0) {
+          alert(`✅ Synced ${data.synced} prospects to pipeline (${data.total} total cards)`);
+        } else {
+          alert(`✅ All prospects already in pipeline (${data.total} cards)`);
+        }
+      } catch (e) {
+        alert('❌ Sync failed: ' + e.message);
+      }
+    }
+
     function showAddModal() {
       document.getElementById('prospectForm').reset();
       document.getElementById('prospectModal').classList.add('active');
