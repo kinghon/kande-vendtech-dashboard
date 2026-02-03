@@ -3217,6 +3217,7 @@ app.get('/route-planner', (req, res) => res.sendFile(path.join(__dirname, 'route
 app.get('/outreach', (req, res) => res.sendFile(path.join(__dirname, 'outreach.html')));
 app.get('/restock-predictions', (req, res) => res.sendFile(path.join(__dirname, 'restock-predictions.html')));
 app.get('/smart-machines', (req, res) => res.sendFile(path.join(__dirname, 'smart-machines.html')));
+app.get('/apollo', (req, res) => res.sendFile(path.join(__dirname, 'apollo.html')));
 
 // ===== PROPOSED LEADS (Lead Vetting / Approval) =====
 if (!db.proposedLeads) db.proposedLeads = [];

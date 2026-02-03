@@ -14,42 +14,53 @@
       --success: #38a169; --purple: #7b2cbf; --radius: 12px;
     }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-    .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    .app { max-width: 1600px; margin: 0 auto; padding: 20px; }
 
     .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
     .page-header h1 { font-size: 1.6rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
     .page-header .date { font-size: 0.9rem; color: var(--muted); font-weight: 400; }
-    .header-actions { display: flex; gap: 8px; }
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
     .btn:hover { background: #f0f4f8; }
     .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-danger { background: var(--hot); color: #fff; border-color: var(--hot); }
     .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
 
     /* Hero Stats */
-    .hero-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
-    .hero-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; position: relative; overflow: hidden; }
+    .hero-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .hero-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; position: relative; overflow: hidden; }
     .hero-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
     .hero-card.routes::after { background: var(--accent); }
     .hero-card.revenue::after { background: var(--success); }
     .hero-card.alerts::after { background: var(--hot); }
     .hero-card.packing::after { background: var(--purple); }
-    .hero-card .value { font-size: 2.2rem; font-weight: 800; margin-bottom: 4px; }
-    .hero-card .label { font-size: 0.8rem; color: var(--muted); }
-    .hero-card .detail { font-size: 0.78rem; color: var(--muted); margin-top: 8px; }
+    .hero-card.efficiency::after { background: #f6ad55; }
+    .hero-card.incidents::after { background: #fc8181; }
+    .hero-card .value { font-size: 2rem; font-weight: 800; margin-bottom: 4px; }
+    .hero-card .label { font-size: 0.78rem; color: var(--muted); }
+    .hero-card .detail { font-size: 0.75rem; color: var(--muted); margin-top: 6px; }
     .hero-card .value.accent { color: var(--accent); }
     .hero-card .value.success { color: var(--success); }
     .hero-card .value.danger { color: var(--hot); }
     .hero-card .value.purple { color: var(--purple); }
+    .hero-card .value.warn { color: var(--warn); }
+
+    /* Skool Insight Banner */
+    .insight-banner { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; padding: 12px 18px; border-radius: var(--radius); margin-bottom: 20px; font-size: 0.85rem; display: flex; align-items: center; gap: 10px; }
+    .insight-banner .icon { font-size: 1.2rem; }
+    .insight-banner strong { font-weight: 700; }
 
     /* Grid Layout */
     .ops-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
-    @media (max-width: 900px) { .ops-grid { grid-template-columns: 1fr; } }
+    .ops-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 24px; }
+    @media (max-width: 1100px) { .ops-grid-3 { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 900px) { .ops-grid, .ops-grid-3 { grid-template-columns: 1fr; } }
 
     /* Section Card */
     .section-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
     .section-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
     .section-header h3 { font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-    .section-body { padding: 12px 18px; max-height: 400px; overflow-y: auto; }
+    .section-body { padding: 12px 18px; max-height: 380px; overflow-y: auto; }
 
     /* Route Status Cards */
     .route-status { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
@@ -65,13 +76,38 @@
     .progress-fill { height: 100%; border-radius: 3px; background: var(--accent); transition: width 0.3s; }
     .progress-fill.done { background: var(--success); }
 
-    /* Machine Alert Cards */
+    /* Machine Performance Table */
+    .perf-table { width: 100%; border-collapse: collapse; }
+    .perf-table th { text-align: left; padding: 8px 10px; font-size: 0.72rem; text-transform: uppercase; color: var(--muted); background: #f7fafc; }
+    .perf-table td { padding: 8px 10px; font-size: 0.82rem; border-top: 1px solid var(--border); }
+    .perf-table tr:hover td { background: #fafbfc; }
+    .perf-table .underperform { background: rgba(229,62,62,0.04); }
+    .perf-table .underperform td { color: var(--hot); }
+    .velocity-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 700; }
+    .velocity-high { background: rgba(56,161,105,0.15); color: var(--success); }
+    .velocity-medium { background: rgba(221,107,32,0.15); color: var(--warn); }
+    .velocity-low { background: rgba(229,62,62,0.15); color: var(--hot); }
+
+    /* Incident Card */
+    .incident-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .incident-item:last-child { border-bottom: none; }
+    .incident-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
+    .incident-icon.theft { background: rgba(229,62,62,0.1); }
+    .incident-icon.vandalism { background: rgba(221,107,32,0.1); }
+    .incident-icon.maintenance { background: rgba(49,130,206,0.1); }
+    .incident-item .info { flex: 1; }
+    .incident-item .info h4 { font-size: 0.82rem; font-weight: 600; }
+    .incident-item .info span { font-size: 0.72rem; color: var(--muted); display: block; margin-top: 2px; }
+    .incident-date { font-size: 0.7rem; color: var(--muted); white-space: nowrap; }
+
+    /* Alert Cards */
     .alert-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
     .alert-item:last-child { border-bottom: none; }
     .alert-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
     .alert-icon.low-stock { background: rgba(221,107,32,0.1); }
     .alert-icon.error { background: rgba(229,62,62,0.1); }
     .alert-icon.offline { background: rgba(113,128,150,0.1); }
+    .alert-icon.slow { background: rgba(252,129,129,0.2); }
     .alert-item .info { flex: 1; }
     .alert-item .info h4 { font-size: 0.82rem; font-weight: 600; }
     .alert-item .info span { font-size: 0.72rem; color: var(--muted); }
@@ -79,9 +115,10 @@
     .sev-high { background: rgba(229,62,62,0.1); color: var(--hot); }
     .sev-medium { background: rgba(221,107,32,0.1); color: var(--warn); }
     .sev-low { background: rgba(113,128,150,0.1); color: var(--muted); }
+    .sev-review { background: rgba(252,129,129,0.15); color: #c53030; }
 
     /* Driver Map */
-    #driverMap { height: 300px; border-radius: 0 0 var(--radius) var(--radius); z-index: 1; }
+    #driverMap { height: 280px; border-radius: 0 0 var(--radius) var(--radius); z-index: 1; }
 
     /* Activity Feed */
     .activity-item { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.82rem; }
@@ -108,8 +145,29 @@
     .rev-row .val.up { color: var(--success); }
     .rev-row .val.down { color: var(--hot); }
 
+    /* Route Efficiency */
+    .efficiency-card { padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .efficiency-card:last-child { border-bottom: none; }
+    .efficiency-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .efficiency-header h4 { font-size: 0.85rem; font-weight: 600; }
+    .efficiency-header .score { font-size: 0.8rem; font-weight: 700; padding: 2px 10px; border-radius: 10px; }
+    .score-good { background: rgba(56,161,105,0.15); color: var(--success); }
+    .score-ok { background: rgba(221,107,32,0.15); color: var(--warn); }
+    .score-bad { background: rgba(229,62,62,0.15); color: var(--hot); }
+    .efficiency-detail { font-size: 0.75rem; color: var(--muted); }
+
     .empty-state { text-align: center; padding: 24px; color: var(--muted); font-size: 0.85rem; }
     .refresh-note { text-align: center; color: var(--muted); font-size: 0.75rem; margin-top: 16px; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--card); border-radius: 16px; padding: 24px; width: 90%; max-width: 500px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+    .modal h3 { font-size: 1.1rem; margin-bottom: 16px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: var(--muted); }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
   </style>
 </head>
 <body>
@@ -119,10 +177,17 @@
       <h1>📊 Operations <span class="date" id="todayDate"></span></h1>
       <div class="header-actions">
         <button class="btn" onclick="loadOps()">🔄 Refresh</button>
+        <button class="btn btn-danger" onclick="openIncidentModal()">🚨 Log Incident</button>
         <button class="btn btn-primary" onclick="location.href='/schedule'">📅 Schedule</button>
         <button class="btn" onclick="location.href='/routes'">🚛 Routes</button>
         <button class="btn" onclick="location.href='/warehouse'">🏭 Warehouse</button>
       </div>
+    </div>
+
+    <!-- Skool Insight Banner -->
+    <div class="insight-banner">
+      <span class="icon">💡</span>
+      <span><strong>Skool Insight:</strong> Route efficiency is #1 scaling bottleneck. Restock by sales velocity, not fixed schedule. Flag machines under $2K/month for review.</span>
     </div>
 
     <!-- Hero Stats -->
@@ -137,10 +202,20 @@
         <div class="label">Today's Revenue</div>
         <div class="detail" id="heroRevenueDetail">—</div>
       </div>
+      <div class="hero-card efficiency">
+        <div class="value warn" id="heroEfficiency">—</div>
+        <div class="label">Route Efficiency</div>
+        <div class="detail" id="heroEfficiencyDetail">mins/stop avg</div>
+      </div>
       <div class="hero-card alerts">
         <div class="value danger" id="heroAlerts">0</div>
         <div class="label">Active Alerts</div>
         <div class="detail" id="heroAlertsDetail">—</div>
+      </div>
+      <div class="hero-card incidents">
+        <div class="value danger" id="heroIncidents">0</div>
+        <div class="label">Open Incidents</div>
+        <div class="detail" id="heroIncidentsDetail">theft/vandalism/repairs</div>
       </div>
       <div class="hero-card packing">
         <div class="value purple" id="heroPacking">—</div>
@@ -149,8 +224,8 @@
       </div>
     </div>
 
-    <!-- Main Grid -->
-    <div class="ops-grid">
+    <!-- Main Grid Row 1 -->
+    <div class="ops-grid-3">
       <!-- Today's Routes -->
       <div class="section-card">
         <div class="section-header">
@@ -169,8 +244,48 @@
         <div class="section-body" id="machineAlerts"></div>
       </div>
 
+      <!-- Incidents (Theft/Vandalism/Maintenance) -->
+      <div class="section-card">
+        <div class="section-header">
+          <h3>🚨 Incidents</h3>
+          <button class="btn btn-sm btn-danger" onclick="openIncidentModal()">+ Log</button>
+        </div>
+        <div class="section-body" id="incidentsList"></div>
+      </div>
+    </div>
+
+    <!-- Main Grid Row 2 -->
+    <div class="ops-grid">
+      <!-- Underperforming Machines (<$2K/month) -->
+      <div class="section-card">
+        <div class="section-header">
+          <h3>📉 Underperforming Machines</h3>
+          <span style="font-size:0.72rem;color:var(--muted)">&lt;$2K/month = review</span>
+        </div>
+        <div class="section-body">
+          <table class="perf-table" id="underperformTable">
+            <thead>
+              <tr><th>Machine</th><th>Location</th><th>Monthly Rev</th><th>Velocity</th><th>Action</th></tr>
+            </thead>
+            <tbody id="underperformBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Route Efficiency -->
+      <div class="section-card">
+        <div class="section-header">
+          <h3>⚡ Route Efficiency</h3>
+          <span style="font-size:0.72rem;color:var(--muted)">mins/stop · lower = better</span>
+        </div>
+        <div class="section-body" id="routeEfficiency"></div>
+      </div>
+    </div>
+
+    <!-- Main Grid Row 3 -->
+    <div class="ops-grid">
       <!-- Driver Locations -->
-      <div class="section-card" style="grid-column: span 2">
+      <div class="section-card">
         <div class="section-header">
           <h3>📍 Driver Locations</h3>
           <span style="font-size:0.75rem;color:var(--muted)" id="lastGPS">Last updated: —</span>
@@ -178,6 +293,18 @@
         <div id="driverMap"></div>
       </div>
 
+      <!-- Velocity-Based Restock Alerts -->
+      <div class="section-card">
+        <div class="section-header">
+          <h3>🔥 High-Velocity Restock Needed</h3>
+          <span style="font-size:0.72rem;color:var(--muted)">based on sales velocity</span>
+        </div>
+        <div class="section-body" id="velocityAlerts"></div>
+      </div>
+    </div>
+
+    <!-- Main Grid Row 4 -->
+    <div class="ops-grid">
       <!-- Packing Status -->
       <div class="section-card">
         <div class="section-header">
@@ -194,17 +321,59 @@
         </div>
         <div class="section-body" id="revenueSnapshot"></div>
       </div>
+    </div>
 
-      <!-- Activity Feed -->
-      <div class="section-card" style="grid-column: span 2">
-        <div class="section-header">
-          <h3>📝 Activity Feed</h3>
-        </div>
-        <div class="section-body" id="activityFeed" style="max-height:300px"></div>
+    <!-- Activity Feed -->
+    <div class="section-card" style="margin-bottom:24px">
+      <div class="section-header">
+        <h3>📝 Activity Feed</h3>
       </div>
+      <div class="section-body" id="activityFeed" style="max-height:250px"></div>
     </div>
 
     <div class="refresh-note">Auto-refreshes every 60 seconds · Data from today <span id="refreshTime"></span></div>
+  </div>
+
+  <!-- Log Incident Modal -->
+  <div class="modal-overlay" id="incidentModal">
+    <div class="modal">
+      <h3>🚨 Log Incident</h3>
+      <div class="form-group">
+        <label>Machine</label>
+        <select id="incidentMachine"></select>
+      </div>
+      <div class="form-group">
+        <label>Incident Type</label>
+        <select id="incidentType">
+          <option value="theft">🚨 Theft</option>
+          <option value="vandalism">💥 Vandalism</option>
+          <option value="maintenance">🔧 Maintenance/Repair</option>
+          <option value="jam">🍫 Product Jam</option>
+          <option value="power">⚡ Power Issue</option>
+          <option value="other">❓ Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="incidentDesc" rows="3" placeholder="What happened? Any damage or loss?"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Estimated Loss ($)</label>
+        <input type="number" id="incidentLoss" step="0.01" value="0">
+      </div>
+      <div class="form-group">
+        <label>Severity</label>
+        <select id="incidentSeverity">
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeIncidentModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="saveIncident()">Log Incident</button>
+      </div>
+    </div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -230,6 +399,10 @@
         renderPackingStatus(data.packing || []);
         renderRevenueSnapshot(data.revenue || {});
         renderActivityFeed(data.activities || []);
+        renderUnderperformers(data.underperformers || []);
+        renderIncidents(data.incidents || []);
+        renderRouteEfficiency(data.route_efficiency || []);
+        renderVelocityAlerts(data.velocity_alerts || []);
         updateHeroStats(data);
       } catch(e) {
         console.error('Operations load error:', e);
@@ -251,10 +424,24 @@
       const trend = rev.vs_yesterday || 0;
       document.getElementById('heroRevenueDetail').textContent = trend >= 0 ? `↑ $${trend} vs yesterday` : `↓ $${Math.abs(trend)} vs yesterday`;
 
+      // Route efficiency
+      const eff = data.route_efficiency || [];
+      if (eff.length > 0) {
+        const avgEfficiency = eff.reduce((s, e) => s + (e.mins_per_stop || 0), 0) / eff.length;
+        document.getElementById('heroEfficiency').textContent = avgEfficiency.toFixed(1) + 'm';
+        document.getElementById('heroEfficiencyDetail').textContent = avgEfficiency < 15 ? '✓ Excellent' : avgEfficiency < 25 ? 'Good' : 'Needs work';
+      }
+
       const alerts = (data.alerts || []).length;
       document.getElementById('heroAlerts').textContent = alerts;
       const high = (data.alerts || []).filter(a => a.severity === 'high').length;
       document.getElementById('heroAlertsDetail').textContent = high > 0 ? `${high} high priority` : alerts > 0 ? 'All medium/low' : 'All systems normal ✓';
+
+      // Incidents
+      const incidents = (data.incidents || []).filter(i => i.status === 'open').length;
+      document.getElementById('heroIncidents').textContent = incidents;
+      const thefts = (data.incidents || []).filter(i => i.type === 'theft' && i.status === 'open').length;
+      document.getElementById('heroIncidentsDetail').textContent = thefts > 0 ? `${thefts} theft reports` : incidents > 0 ? 'maintenance/repairs' : 'No open incidents';
 
       const packing = data.packing || [];
       if (packing.length > 0) {
@@ -306,9 +493,9 @@
       }
 
       container.innerHTML = alerts.map(a => {
-        const iconClass = a.type === 'error' ? 'error' : a.type === 'offline' ? 'offline' : 'low-stock';
-        const icon = a.type === 'error' ? '❌' : a.type === 'offline' ? '📡' : '📦';
-        const sevClass = a.severity === 'high' ? 'sev-high' : a.severity === 'medium' ? 'sev-medium' : 'sev-low';
+        const iconClass = a.type === 'error' ? 'error' : a.type === 'offline' ? 'offline' : a.type === 'slow' ? 'slow' : 'low-stock';
+        const icon = a.type === 'error' ? '❌' : a.type === 'offline' ? '📡' : a.type === 'slow' ? '🐢' : '📦';
+        const sevClass = a.severity === 'high' ? 'sev-high' : a.severity === 'review' ? 'sev-review' : a.severity === 'medium' ? 'sev-medium' : 'sev-low';
         return `<div class="alert-item">
           <div class="alert-icon ${iconClass}">${icon}</div>
           <div class="info">
@@ -318,6 +505,87 @@
           <span class="alert-severity ${sevClass}">${a.severity || 'medium'}</span>
         </div>`;
       }).join('');
+    }
+
+    function renderUnderperformers(machines) {
+      const tbody = document.getElementById('underperformBody');
+      if (machines.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--success);padding:20px">✓ All machines above $2K/month threshold</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = machines.map(m => {
+        const velocityClass = m.velocity === 'high' ? 'velocity-high' : m.velocity === 'medium' ? 'velocity-medium' : 'velocity-low';
+        return `<tr class="underperform">
+          <td><strong>${m.machine_name || 'Machine'}</strong></td>
+          <td>${m.location || '—'}</td>
+          <td>$${(m.monthly_revenue || 0).toLocaleString()}</td>
+          <td><span class="velocity-badge ${velocityClass}">${m.velocity || 'low'}</span></td>
+          <td><button class="btn btn-sm" onclick="reviewMachine(${m.machine_id})">Review</button></td>
+        </tr>`;
+      }).join('');
+    }
+
+    function renderIncidents(incidents) {
+      const container = document.getElementById('incidentsList');
+      const open = incidents.filter(i => i.status === 'open');
+
+      if (open.length === 0) {
+        container.innerHTML = '<div class="empty-state">✓ No open incidents</div>';
+        return;
+      }
+
+      container.innerHTML = open.map(i => {
+        const iconClass = i.type === 'theft' ? 'theft' : i.type === 'vandalism' ? 'vandalism' : 'maintenance';
+        const icon = i.type === 'theft' ? '🚨' : i.type === 'vandalism' ? '💥' : i.type === 'jam' ? '🍫' : '🔧';
+        return `<div class="incident-item">
+          <div class="incident-icon ${iconClass}">${icon}</div>
+          <div class="info">
+            <h4>${i.machine_name || 'Machine'} — ${i.type}</h4>
+            <span>${i.description || ''}</span>
+            ${i.loss > 0 ? `<span style="color:var(--hot)">Loss: $${i.loss}</span>` : ''}
+          </div>
+          <span class="incident-date">${i.date || ''}</span>
+        </div>`;
+      }).join('');
+    }
+
+    function renderRouteEfficiency(routes) {
+      const container = document.getElementById('routeEfficiency');
+      if (routes.length === 0) {
+        container.innerHTML = '<div class="empty-state">No route data yet</div>';
+        return;
+      }
+
+      container.innerHTML = routes.map(r => {
+        const scoreClass = r.mins_per_stop < 15 ? 'score-good' : r.mins_per_stop < 25 ? 'score-ok' : 'score-bad';
+        return `<div class="efficiency-card">
+          <div class="efficiency-header">
+            <h4>${r.route_name || 'Route'}</h4>
+            <span class="score ${scoreClass}">${r.mins_per_stop || '?'} min/stop</span>
+          </div>
+          <div class="efficiency-detail">${r.stops} stops · ${r.total_time || '?'} min total · ${r.driver || 'Unassigned'}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function renderVelocityAlerts(alerts) {
+      const container = document.getElementById('velocityAlerts');
+      if (alerts.length === 0) {
+        container.innerHTML = '<div class="empty-state">✓ All high-velocity machines stocked</div>';
+        return;
+      }
+
+      container.innerHTML = alerts.map(a => `
+        <div class="alert-item">
+          <div class="alert-icon" style="background:rgba(229,62,62,0.1)">🔥</div>
+          <div class="info">
+            <h4>${a.machine_name || 'Machine'}</h4>
+            <span>${a.products_low || 0} products low · Sells ${a.daily_velocity || '?'}/day</span>
+          </div>
+          <span class="velocity-badge velocity-high">HIGH VELOCITY</span>
+        </div>
+      `).join('');
     }
 
     function renderDriverLocations(drivers) {
@@ -376,8 +644,8 @@
         { label: 'Yesterday', val: '$' + (rev.yesterday || 0).toLocaleString(), cls: '' },
         { label: 'This Week', val: '$' + (rev.week || 0).toLocaleString(), cls: '' },
         { label: 'This Month', val: '$' + (rev.month || 0).toLocaleString(), cls: '' },
-        { label: 'Transactions Today', val: (rev.transactions_today || 0).toLocaleString(), cls: '' },
-        { label: 'Avg per Machine', val: '$' + (rev.avg_per_machine || 0).toFixed(0), cls: '' }
+        { label: 'Avg per Machine', val: '$' + (rev.avg_per_machine || 0).toFixed(0) + '/day', cls: '' },
+        { label: 'Top Machine', val: rev.top_machine || '—', cls: '' }
       ];
 
       container.innerHTML = rows.map(r => `
@@ -402,6 +670,45 @@
           <span class="activity-text">${a.icon || '📝'} ${a.text}</span>
         </div>`;
       }).join('');
+    }
+
+    // Incident Modal
+    async function loadMachinesForIncident() {
+      try {
+        const res = await fetch('/api/machines').then(r => r.json());
+        const machines = Array.isArray(res) ? res : res.machines || [];
+        const sel = document.getElementById('incidentMachine');
+        sel.innerHTML = machines.map(m => `<option value="${m.id}">${m.name || 'Machine ' + m.id} — ${m.location_name || m.address || ''}</option>`).join('');
+      } catch(e) { console.error(e); }
+    }
+
+    function openIncidentModal() {
+      loadMachinesForIncident();
+      document.getElementById('incidentModal').classList.add('open');
+    }
+    function closeIncidentModal() { document.getElementById('incidentModal').classList.remove('open'); }
+
+    async function saveIncident() {
+      const data = {
+        machine_id: parseInt(document.getElementById('incidentMachine').value),
+        type: document.getElementById('incidentType').value,
+        description: document.getElementById('incidentDesc').value,
+        loss: parseFloat(document.getElementById('incidentLoss').value) || 0,
+        severity: document.getElementById('incidentSeverity').value
+      };
+
+      await fetch('/api/operations/incidents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      closeIncidentModal();
+      loadOps();
+    }
+
+    function reviewMachine(machineId) {
+      // TODO: Open machine detail/review modal
+      alert('Review machine #' + machineId + ' — Consider relocation or product mix change if under $2K/month');
     }
 
     // Init

@@ -31,6 +31,7 @@
     {
       label: 'Intelligence', items: [
         { label: 'Product Mix',   href: '/product-mix' },
+        { label: 'Apollo Contacts', href: '/apollo' },
         { label: 'Site Surveys',  href: '/property-analysis' },
         { label: 'Tasks',         href: '/tasks' },
         { label: 'Analytics',     href: '/analytics' }

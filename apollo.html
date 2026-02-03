@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Apollo Contacts — Kande VendTech</title>
+  <script src="/nav.js" defer></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#f5f5f7;--card:#fff;--border:#e2e8f0;--border-hover:#cbd5e1;
+      --text:#1a202c;--muted:#718096;--dim:#a0aec0;
+      --accent:#667eea;--accent2:#764ba2;--accent-dim:rgba(102,126,234,.1);
+      --success:#38a169;--success-dim:rgba(56,161,105,.1);
+      --warn:#d69e2e;--warn-dim:rgba(214,158,46,.1);
+      --hot:#e53e3e;--hot-dim:rgba(229,62,62,.1);
+      --purple:#805ad5;--purple-dim:rgba(128,90,213,.1);
+      --gradient:linear-gradient(135deg,#667eea,#764ba2);
+    }
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    .app{max-width:1440px;margin:0 auto;padding:20px}
+
+    /* Page header */
+    .page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:14px}
+    .page-header h1{font-size:1.7rem;font-weight:700;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .page-header .subtitle{font-size:.82rem;color:var(--muted);margin-top:2px}
+    .header-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+    /* Buttons */
+    .btn{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:.82rem;font-weight:500;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;font-family:inherit}
+    .btn:hover{border-color:var(--accent);color:var(--accent)}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .btn-primary{background:var(--gradient);color:#fff;border:none;font-weight:600}
+    .btn-primary:hover{opacity:.9;box-shadow:0 0 16px rgba(102,126,234,.3)}
+    .btn-success{color:var(--success);border-color:rgba(56,161,105,.3)}
+    .btn-success:hover{background:var(--success);color:#fff}
+    .btn-sm{padding:5px 10px;font-size:.76rem}
+    .btn-outline{background:transparent}
+
+    /* Stats row */
+    .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px}
+    .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center}
+    .stat-card .value{font-size:1.6rem;font-weight:700;color:var(--accent)}
+    .stat-card .label{font-size:.7rem;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+    .stat-card.success .value{color:var(--success)}
+    .stat-card.warn .value{color:var(--warn)}
+    .stat-card.hot .value{color:var(--hot)}
+    .stat-card.purple .value{color:var(--purple)}
+
+    /* Search form */
+    .search-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:24px}
+    .search-panel h3{font-size:1.05rem;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+    .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+    .form-group{display:flex;flex-direction:column;gap:4px}
+    .form-group label{font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+    .form-group input,.form-group select{padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:.88rem;font-family:inherit;background:var(--bg);color:var(--text);transition:border-color .2s}
+    .form-group input:focus,.form-group select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+    .form-actions{display:flex;gap:10px;margin-top:18px;align-items:center;flex-wrap:wrap}
+    .form-actions .search-hint{font-size:.75rem;color:var(--dim);margin-left:auto}
+
+    /* Seniority chips */
+    .chip-group{display:flex;flex-wrap:wrap;gap:6px}
+    .chip{padding:5px 12px;border-radius:16px;border:1px solid var(--border);font-size:.76rem;cursor:pointer;transition:all .2s;background:var(--card);color:var(--muted)}
+    .chip:hover{border-color:var(--accent);color:var(--accent)}
+    .chip.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:600}
+
+    /* Cards / Table */
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:14px}
+    .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+    .card-title{font-size:1.05rem;font-weight:600}
+
+    .table-wrap{overflow-x:auto}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);font-size:.83rem}
+    th{color:var(--muted);font-weight:600;font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0;background:var(--card);z-index:1}
+    tr:hover td{background:rgba(102,126,234,.02)}
+    tr.imported td{background:var(--success-dim)}
+
+    /* Badges */
+    .badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:.7rem;font-weight:600;text-transform:uppercase}
+    .badge-verified{background:var(--success-dim);color:var(--success)}
+    .badge-guessed{background:var(--warn-dim);color:var(--warn)}
+    .badge-unknown{background:rgba(113,128,150,.1);color:var(--muted)}
+    .badge-imported{background:var(--success-dim);color:var(--success)}
+
+    /* Person detail row */
+    .person-name{font-weight:600;color:var(--text)}
+    .person-title{font-size:.78rem;color:var(--muted);margin-top:2px}
+    .person-company{font-weight:500}
+    .person-email{font-size:.82rem;word-break:break-all}
+    .person-linkedin a{color:var(--accent);text-decoration:none;font-size:.78rem}
+    .person-linkedin a:hover{text-decoration:underline}
+
+    /* Toast */
+    .toast{position:fixed;bottom:24px;right:24px;padding:14px 22px;border-radius:10px;color:#fff;font-size:.88rem;font-weight:500;z-index:10001;transform:translateY(100px);opacity:0;transition:all .3s ease;pointer-events:none}
+    .toast.show{transform:translateY(0);opacity:1}
+    .toast.success{background:#38a169}
+    .toast.error{background:#e53e3e}
+    .toast.info{background:#667eea}
+
+    /* Pagination */
+    .pagination{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:20px;padding:16px}
+    .pagination .btn{min-width:100px;justify-content:center}
+    .page-info{font-size:.82rem;color:var(--muted);font-weight:500}
+
+    /* Loading spinner */
+    .spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .loading-overlay{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--muted)}
+    .loading-overlay .spinner{width:32px;height:32px;border-color:var(--border);border-top-color:var(--accent)}
+    .loading-overlay p{margin-top:14px;font-size:.88rem}
+
+    /* Empty state */
+    .empty-state{text-align:center;padding:60px 20px;color:var(--muted)}
+    .empty-state .icon{font-size:3rem;margin-bottom:12px}
+    .empty-state h3{font-size:1.1rem;font-weight:600;color:var(--text);margin-bottom:6px}
+    .empty-state p{font-size:.88rem;max-width:420px;margin:0 auto;line-height:1.6}
+
+    /* Responsive */
+    @media(max-width:768px){
+      .form-grid{grid-template-columns:1fr}
+      .stats-row{grid-template-columns:repeat(2,1fr)}
+      .page-header{flex-direction:column;align-items:flex-start}
+      th:nth-child(5),td:nth-child(5),th:nth-child(6),td:nth-child(6){display:none}
+    }
+
+    /* Status bar */
+    .api-status{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--muted)}
+    .api-status .dot{width:8px;height:8px;border-radius:50%}
+    .api-status .dot.online{background:#38a169}
+    .api-status .dot.offline{background:#e53e3e}
+    .api-status .dot.unknown{background:#d69e2e}
+
+    /* Bulk actions */
+    .bulk-bar{display:none;background:var(--accent-dim);border:1px solid rgba(102,126,234,.3);border-radius:10px;padding:12px 18px;margin-bottom:14px;align-items:center;gap:12px;flex-wrap:wrap}
+    .bulk-bar.show{display:flex}
+    .bulk-bar .count{font-size:.88rem;font-weight:600;color:var(--accent)}
+  </style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1>🔭 Apollo Contacts</h1>
+      <div class="subtitle">Search Apollo.io for decision-makers — property managers, facility directors, operations leads</div>
+    </div>
+    <div class="header-actions">
+      <div class="api-status" id="apiStatus">
+        <span class="dot unknown"></span>
+        <span>Checking API...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card">
+      <div class="value" id="statResults">—</div>
+      <div class="label">Results Found</div>
+    </div>
+    <div class="stat-card success">
+      <div class="value" id="statImported">0</div>
+      <div class="label">Imported</div>
+    </div>
+    <div class="stat-card purple">
+      <div class="value" id="statWithEmail">—</div>
+      <div class="label">With Email</div>
+    </div>
+    <div class="stat-card warn">
+      <div class="value" id="statCredits">—</div>
+      <div class="label">API Credits</div>
+    </div>
+  </div>
+
+  <!-- Search Panel -->
+  <div class="search-panel">
+    <h3>🔍 Search People</h3>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Job Title Keywords</label>
+        <input type="text" id="inputTitle" placeholder="Property Manager, Facility Director, Operations..." value="Property Manager">
+      </div>
+      <div class="form-group">
+        <label>Location</label>
+        <input type="text" id="inputLocation" placeholder="City, State" value="Las Vegas, Nevada">
+      </div>
+      <div class="form-group">
+        <label>Company Name (optional)</label>
+        <input type="text" id="inputCompany" placeholder="e.g. Greystar, CBRE...">
+      </div>
+      <div class="form-group">
+        <label>Industry Keywords (optional)</label>
+        <input type="text" id="inputIndustry" placeholder="Real Estate, Healthcare, Hospitality...">
+      </div>
+      <div class="form-group">
+        <label>Company Size</label>
+        <select id="inputSize">
+          <option value="">Any Size</option>
+          <option value="1,10">1-10 employees</option>
+          <option value="11,20">11-20</option>
+          <option value="21,50">21-50</option>
+          <option value="51,100">51-100</option>
+          <option value="101,200">101-200</option>
+          <option value="201,500">201-500</option>
+          <option value="501,1000">501-1,000</option>
+          <option value="1001,5000" selected>1,001-5,000</option>
+          <option value="5001,10000">5,001-10,000</option>
+          <option value="10001,">10,000+</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Results Per Page</label>
+        <select id="inputPerPage">
+          <option value="10">10</option>
+          <option value="25" selected>25</option>
+          <option value="50">50</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-top:14px">
+      <label style="font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;display:block">Seniority Level</label>
+      <div class="chip-group" id="seniorityChips">
+        <span class="chip active" data-val="director">Director</span>
+        <span class="chip active" data-val="vp">VP</span>
+        <span class="chip active" data-val="manager">Manager</span>
+        <span class="chip" data-val="c_suite">C-Suite</span>
+        <span class="chip" data-val="owner">Owner</span>
+        <span class="chip" data-val="senior">Senior</span>
+        <span class="chip" data-val="entry">Entry</span>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" id="btnSearch" onclick="searchApollo()">🔍 Search Apollo</button>
+      <button class="btn btn-outline" onclick="clearForm()">Clear</button>
+      <span class="search-hint">Free plan: ~95 credits/month · Each search uses ~1 credit</span>
+    </div>
+  </div>
+
+  <!-- Bulk actions bar -->
+  <div class="bulk-bar" id="bulkBar">
+    <span class="count" id="bulkCount">0 selected</span>
+    <button class="btn btn-success btn-sm" onclick="bulkImport()">📥 Import Selected to CRM</button>
+    <button class="btn btn-sm" onclick="clearSelection()">Clear Selection</button>
+  </div>
+
+  <!-- Results -->
+  <div class="card" id="resultsCard" style="display:none">
+    <div class="card-header">
+      <span class="card-title" id="resultsTitle">Results</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" onclick="selectAllVisible()">☑ Select All</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:30px"><input type="checkbox" id="checkAll" onchange="toggleAll(this.checked)"></th>
+            <th>Person</th>
+            <th>Company</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>LinkedIn</th>
+            <th style="width:120px">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+    <div class="pagination" id="pagination" style="display:none">
+      <button class="btn btn-sm" id="btnPrev" onclick="prevPage()" disabled>← Previous</button>
+      <span class="page-info" id="pageInfo">Page 1</span>
+      <button class="btn btn-sm" id="btnNext" onclick="nextPage()">Next →</button>
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  <div class="loading-overlay" id="loadingState" style="display:none">
+    <div class="spinner"></div>
+    <p>Searching Apollo.io...</p>
+  </div>
+
+  <!-- Empty state -->
+  <div class="empty-state" id="emptyState">
+    <div class="icon">🔭</div>
+    <h3>Search for Decision-Makers</h3>
+    <p>Use the search form above to find property managers, facility directors, and operations leads in your target market. Results can be imported directly into your CRM.</p>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  // State
+  let currentPage = 1;
+  let totalResults = 0;
+  let totalPages = 0;
+  let lastSearchPayload = null;
+  let selectedIds = new Set();
+  let peopleCache = {}; // id -> person data
+  let importedEmails = new Set(); // track what's been imported this session
+  let sessionImported = 0;
+
+  // DOM refs
+  const $results = document.getElementById('resultsBody');
+  const $resultsCard = document.getElementById('resultsCard');
+  const $loadingState = document.getElementById('loadingState');
+  const $emptyState = document.getElementById('emptyState');
+  const $pagination = document.getElementById('pagination');
+  const $toast = document.getElementById('toast');
+
+  // ─── API Status Check ─────────────────────────
+  async function checkApiStatus() {
+    const $status = document.getElementById('apiStatus');
+    try {
+      const res = await fetch('/api/apollo/status');
+      const data = await res.json();
+      const dot = $status.querySelector('.dot');
+      const label = $status.querySelector('span:last-child');
+      if (data.configured) {
+        dot.className = 'dot online';
+        label.textContent = 'Apollo API Connected';
+      } else {
+        dot.className = 'dot offline';
+        label.textContent = 'API Key Not Configured';
+      }
+    } catch {
+      const dot = $status.querySelector('.dot');
+      const label = $status.querySelector('span:last-child');
+      dot.className = 'dot offline';
+      label.textContent = 'API Unreachable';
+    }
+  }
+  checkApiStatus();
+
+  // ─── Toast ──────────────────────────────────────
+  window.showToast = function(msg, type) {
+    $toast.textContent = msg;
+    $toast.className = 'toast ' + (type || 'info') + ' show';
+    clearTimeout($toast._timer);
+    $toast._timer = setTimeout(() => $toast.classList.remove('show'), 3500);
+  };
+
+  // ─── Build Search Payload ──────────────────────
+  function buildPayload(page) {
+    const payload = { page: page || 1, per_page: parseInt(document.getElementById('inputPerPage').value) || 25 };
+
+    const title = document.getElementById('inputTitle').value.trim();
+    if (title) {
+      payload.person_titles = title.split(',').map(t => t.trim()).filter(Boolean);
+    }
+
+    const location = document.getElementById('inputLocation').value.trim();
+    if (location) {
+      payload.person_locations = [location];
+    }
+
+    const company = document.getElementById('inputCompany').value.trim();
+    if (company) {
+      payload.q_organization_name = company;
+    }
+
+    const industry = document.getElementById('inputIndustry').value.trim();
+    if (industry) {
+      payload.q_keywords = industry;
+    }
+
+    const size = document.getElementById('inputSize').value;
+    if (size) {
+      payload.organization_num_employees_ranges = [size];
+    }
+
+    // Seniority chips
+    const seniorities = [];
+    document.querySelectorAll('#seniorityChips .chip.active').forEach(c => seniorities.push(c.dataset.val));
+    if (seniorities.length) {
+      payload.person_seniorities = seniorities;
+    }
+
+    return payload;
+  }
+
+  // ─── Search ────────────────────────────────────
+  window.searchApollo = async function() {
+    const btn = document.getElementById('btnSearch');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Searching...';
+
+    currentPage = 1;
+    selectedIds.clear();
+    updateBulkBar();
+
+    $resultsCard.style.display = 'none';
+    $emptyState.style.display = 'none';
+    $loadingState.style.display = 'flex';
+
+    const payload = buildPayload(1);
+    lastSearchPayload = payload;
+
+    try {
+      const res = await fetch('/api/apollo/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(err.error || `API returned ${res.status}`);
+      }
+
+      const data = await res.json();
+      renderResults(data);
+
+    } catch (e) {
+      showToast('Search failed: ' + e.message, 'error');
+      $loadingState.style.display = 'none';
+      $emptyState.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '🔍 Search Apollo';
+    }
+  };
+
+  // ─── Render Results ────────────────────────────
+  function renderResults(data) {
+    $loadingState.style.display = 'none';
+
+    const people = data.people || data.contacts || [];
+    const pagination = data.pagination || {};
+    totalResults = pagination.total_entries || people.length;
+    totalPages = pagination.total_pages || Math.ceil(totalResults / (lastSearchPayload?.per_page || 25));
+    currentPage = pagination.page || currentPage;
+
+    // Update stats
+    document.getElementById('statResults').textContent = totalResults.toLocaleString();
+    const withEmail = people.filter(p => p.email).length;
+    document.getElementById('statWithEmail').textContent = withEmail + '/' + people.length;
+
+    // Update credits if available
+    if (data.credits_used !== undefined || data.rate_limit_remaining !== undefined) {
+      document.getElementById('statCredits').textContent = data.rate_limit_remaining || '—';
+    }
+
+    if (!people.length) {
+      $resultsCard.style.display = 'none';
+      $emptyState.style.display = 'block';
+      $emptyState.querySelector('h3').textContent = 'No Results Found';
+      $emptyState.querySelector('p').textContent = 'Try broadening your search — adjust title keywords, expand the location, or increase company size range.';
+      return;
+    }
+
+    // Cache people
+    people.forEach(p => { if (p.id) peopleCache[p.id] = p; });
+
+    // Build rows
+    $results.innerHTML = people.map(person => {
+      const id = person.id || Math.random().toString(36).slice(2);
+      const fullName = [person.first_name, person.last_name].filter(Boolean).join(' ') || 'Unknown';
+      const title = person.title || '';
+      const org = person.organization || {};
+      const companyName = org.name || person.organization_name || '';
+      const email = person.email || '';
+      const phone = person.phone_number || (person.phone_numbers || [])[0]?.sanitized_number || '';
+      const linkedin = person.linkedin_url || '';
+      const emailStatus = person.email_status || '';
+      const isImported = importedEmails.has(email) || importedEmails.has(id);
+      const checked = selectedIds.has(id) ? 'checked' : '';
+      const importedClass = isImported ? ' imported' : '';
+
+      let emailBadge = '';
+      if (emailStatus === 'verified') emailBadge = '<span class="badge badge-verified">✓</span>';
+      else if (emailStatus === 'guessed') emailBadge = '<span class="badge badge-guessed">~</span>';
+      else if (email) emailBadge = '<span class="badge badge-unknown">?</span>';
+
+      return `<tr class="${importedClass}" data-id="${id}">
+        <td><input type="checkbox" ${checked} onchange="toggleSelect('${id}', this.checked)" ${isImported ? 'disabled' : ''}></td>
+        <td>
+          <div class="person-name">${esc(fullName)}</div>
+          <div class="person-title">${esc(title)}</div>
+        </td>
+        <td class="person-company">${esc(companyName)}</td>
+        <td class="person-email">${esc(email)} ${emailBadge}</td>
+        <td>${esc(phone)}</td>
+        <td class="person-linkedin">${linkedin ? `<a href="${esc(linkedin)}" target="_blank" rel="noopener">Profile ↗</a>` : '—'}</td>
+        <td>
+          ${isImported
+            ? '<span class="badge badge-imported">✓ Imported</span>'
+            : `<button class="btn btn-success btn-sm" onclick="importPerson('${id}', this)">📥 Import</button>`
+          }
+        </td>
+      </tr>`;
+    }).join('');
+
+    $resultsCard.style.display = 'block';
+    document.getElementById('resultsTitle').textContent = `Results — ${totalResults.toLocaleString()} people found`;
+
+    // Pagination
+    if (totalPages > 1) {
+      $pagination.style.display = 'flex';
+      document.getElementById('btnPrev').disabled = currentPage <= 1;
+      document.getElementById('btnNext').disabled = currentPage >= totalPages;
+      document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+    } else {
+      $pagination.style.display = 'none';
+    }
+  }
+
+  // ─── Pagination ────────────────────────────────
+  window.nextPage = async function() {
+    if (currentPage >= totalPages || !lastSearchPayload) return;
+    currentPage++;
+    await loadPage(currentPage);
+  };
+
+  window.prevPage = async function() {
+    if (currentPage <= 1 || !lastSearchPayload) return;
+    currentPage--;
+    await loadPage(currentPage);
+  };
+
+  async function loadPage(page) {
+    $loadingState.style.display = 'flex';
+    $resultsCard.style.display = 'none';
+
+    try {
+      const payload = { ...lastSearchPayload, page };
+      const res = await fetch('/api/apollo/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'API error');
+      renderResults(data);
+    } catch (e) {
+      showToast('Failed to load page: ' + e.message, 'error');
+      $loadingState.style.display = 'none';
+      $resultsCard.style.display = 'block';
+    }
+  }
+
+  // ─── Import Single Person ──────────────────────
+  window.importPerson = async function(id, btn) {
+    const person = peopleCache[id];
+    if (!person) { showToast('Person data not found', 'error'); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+
+    try {
+      const res = await fetch('/api/apollo/import-to-crm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ person, organization: person.organization })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Import failed');
+
+      importedEmails.add(id);
+      if (person.email) importedEmails.add(person.email);
+      sessionImported++;
+      document.getElementById('statImported').textContent = sessionImported;
+
+      // Update row
+      const row = btn.closest('tr');
+      row.classList.add('imported');
+      const checkbox = row.querySelector('input[type=checkbox]');
+      if (checkbox) { checkbox.disabled = true; checkbox.checked = false; }
+      selectedIds.delete(id);
+      updateBulkBar();
+
+      btn.outerHTML = '<span class="badge badge-imported">✓ Imported</span>';
+      showToast(`${data.action === 'created' ? 'Created' : 'Updated'}: ${person.first_name} ${person.last_name}`, 'success');
+
+    } catch (e) {
+      showToast('Import failed: ' + e.message, 'error');
+      btn.disabled = false;
+      btn.innerHTML = '📥 Import';
+    }
+  };
+
+  // ─── Selection / Bulk ──────────────────────────
+  window.toggleSelect = function(id, checked) {
+    if (checked) selectedIds.add(id); else selectedIds.delete(id);
+    updateBulkBar();
+  };
+
+  window.toggleAll = function(checked) {
+    document.querySelectorAll('#resultsBody input[type=checkbox]:not(:disabled)').forEach(cb => {
+      cb.checked = checked;
+      const id = cb.closest('tr').dataset.id;
+      if (checked) selectedIds.add(id); else selectedIds.delete(id);
+    });
+    updateBulkBar();
+  };
+
+  window.selectAllVisible = function() {
+    document.getElementById('checkAll').checked = true;
+    toggleAll(true);
+  };
+
+  window.clearSelection = function() {
+    document.getElementById('checkAll').checked = false;
+    toggleAll(false);
+  };
+
+  function updateBulkBar() {
+    const bar = document.getElementById('bulkBar');
+    const count = selectedIds.size;
+    if (count > 0) {
+      bar.classList.add('show');
+      document.getElementById('bulkCount').textContent = count + ' selected';
+    } else {
+      bar.classList.remove('show');
+    }
+  }
+
+  window.bulkImport = async function() {
+    const ids = [...selectedIds];
+    if (!ids.length) return;
+
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = `Importing ${ids.length}...`;
+
+    let success = 0, failed = 0;
+
+    for (const id of ids) {
+      const person = peopleCache[id];
+      if (!person) { failed++; continue; }
+
+      try {
+        const res = await fetch('/api/apollo/import-to-crm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ person, organization: person.organization })
+        });
+        if (!res.ok) throw new Error('fail');
+
+        importedEmails.add(id);
+        if (person.email) importedEmails.add(person.email);
+        sessionImported++;
+        success++;
+
+        // Update row UI
+        const row = document.querySelector(`tr[data-id="${id}"]`);
+        if (row) {
+          row.classList.add('imported');
+          const cb = row.querySelector('input[type=checkbox]');
+          if (cb) { cb.disabled = true; cb.checked = false; }
+          const actionTd = row.querySelector('td:last-child');
+          if (actionTd) actionTd.innerHTML = '<span class="badge badge-imported">✓ Imported</span>';
+        }
+      } catch {
+        failed++;
+      }
+    }
+
+    selectedIds.clear();
+    updateBulkBar();
+    document.getElementById('checkAll').checked = false;
+    document.getElementById('statImported').textContent = sessionImported;
+
+    btn.disabled = false;
+    btn.textContent = '📥 Import Selected to CRM';
+    showToast(`Imported ${success} contacts${failed ? `, ${failed} failed` : ''}`, success ? 'success' : 'error');
+  };
+
+  // ─── Clear Form ────────────────────────────────
+  window.clearForm = function() {
+    document.getElementById('inputTitle').value = '';
+    document.getElementById('inputLocation').value = 'Las Vegas, Nevada';
+    document.getElementById('inputCompany').value = '';
+    document.getElementById('inputIndustry').value = '';
+    document.getElementById('inputSize').value = '';
+    document.querySelectorAll('#seniorityChips .chip').forEach(c => c.classList.remove('active'));
+  };
+
+  // ─── Seniority Chip Toggles ────────────────────
+  document.querySelectorAll('#seniorityChips .chip').forEach(chip => {
+    chip.addEventListener('click', () => chip.classList.toggle('active'));
+  });
+
+  // ─── Enter key to search ───────────────────────
+  document.querySelectorAll('.search-panel input').forEach(input => {
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') searchApollo(); });
+  });
+
+  // ─── Escape HTML ───────────────────────────────
+  function esc(str) {
+    if (!str) return '';
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+})();
+</script>
+</body>
+</html>
