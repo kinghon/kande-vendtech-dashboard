@@ -294,23 +294,38 @@
   </div>
 
   <script>
-    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1Lf1cU8N2H1TiRXh7n73r1bTUDJ1mGSkL-aNUoVNeHu8/export?format=csv';
+    // Google Sheet sync DISABLED — now using internal CRM API
+    // const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1Lf1cU8N2H1TiRXh7n73r1bTUDJ1mGSkL-aNUoVNeHu8/export?format=csv';
     
     let allProspects = [];
 
     async function loadPipeline() {
       try {
-        const response = await fetch(SHEET_URL);
-        const csv = await response.text();
-        const prospects = parseCSV(csv);
-        allProspects = prospects;
-        updateStats(prospects);
-        renderTable(prospects);
+        const response = await fetch('/api/prospects');
+        const prospects = await response.json();
+        // Transform API data to match expected format
+        allProspects = prospects.map(p => ({
+          'Prospect': p.name || p.company || '',
+          'Company': p.company || '',
+          'Contact': p.contact_name || '',
+          'Email': p.email || '',
+          'Phone': p.phone || '',
+          'Status': p.status || 'new_lead',
+          'Type': p.type || '',
+          'Units': p.units || '',
+          'Address': p.address || '',
+          'Notes': p.notes || '',
+          'Next Action': p.next_action || '',
+          'Last Contact': p.last_contact || '',
+          ...p // include all other fields
+        }));
+        updateStats(allProspects);
+        renderTable(allProspects);
         setupFilters();
       } catch (error) {
         document.getElementById('pipelineContent').innerHTML = `
           <div class="loading">
-            <p>Error loading data. Make sure the sheet is shared publicly.</p>
+            <p>Error loading data from CRM.</p>
             <p style="font-size: 0.8rem; margin-top: 10px; color: #6c757d;">${error.message}</p>
           </div>
         `;
