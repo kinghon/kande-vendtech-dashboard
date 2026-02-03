@@ -10474,7 +10474,288 @@ app.get('/restock', (req, res) => {
 });
 
 // ============================================================
-// END MACHINE MANAGEMENT SYSTEM
+// END MACHINE MANAGEMENT SYSTEM (JSON-based)
+// ============================================================
+
+// =====================================================
+// POSTGRESQL-BACKED MACHINE MANAGEMENT API
+// Endpoints use /api/v2/ prefix where paths conflict with JSON routes.
+// Sub-routes under /api/machines/:id/* are unique — no prefix needed.
+// =====================================================
+
+let pgPool = null;
+try {
+  const { Pool } = require('pg');
+  if (process.env.DATABASE_URL) {
+    pgPool = new Pool({ connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false, max: 10, idleTimeoutMillis: 30000 });
+    pgPool.on('error', (err) => console.error('🐘 PG pool error:', err));
+    console.log('🐘 PostgreSQL pool initialized');
+  } else { console.log('ℹ️  No DATABASE_URL — PG endpoints return 503'); }
+} catch (e) { console.log('ℹ️  pg module not installed'); }
+
+function requirePG(req, res, next) { if (!pgPool) return res.status(503).json({ success: false, error: 'Database not configured' }); next(); }
+function pgSuccess(res, data, meta) { const r = { success: true, data }; if (meta) r.meta = meta; return res.json(r); }
+function pgError(res, status, msg) { return res.status(status).json({ success: false, error: msg }); }
+function parsePagination(q) { const page = Math.max(1, parseInt(q.page) || 1), limit = Math.min(100, Math.max(1, parseInt(q.limit) || 20)); return { page, limit, offset: (page - 1) * limit }; }
+
+// GET /api/v2/machines
+app.get('/api/v2/machines', requirePG, async (req, res) => {
+  try {
+    const { page, limit, offset } = parsePagination(req.query);
+    const cond = [], params = []; let i = 1;
+    if (req.query.status) { cond.push(`m.status = $${i++}`); params.push(req.query.status); }
+    if (req.query.location_type) { cond.push(`m.location_type = $${i++}`); params.push(req.query.location_type); }
+    const where = cond.length ? 'WHERE ' + cond.join(' AND ') : '';
+    const cnt = await pgPool.query(`SELECT COUNT(*) FROM machines m ${where}`, params);
+    const total = parseInt(cnt.rows[0].count);
+    const result = await pgPool.query(`SELECT m.*, z.name AS zone_name, pp.name AS pricing_profile_name,
+      (SELECT COUNT(*) FROM slots s WHERE s.machine_id = m.id AND s.current_qty = 0) AS empty_slots,
+      (SELECT COALESCE(SUM(t.total_price), 0) FROM transactions t WHERE t.machine_id = m.id AND t.sold_at >= NOW() - INTERVAL '30 days') AS revenue_30d
+      FROM machines m LEFT JOIN zones z ON m.zone_id = z.id LEFT JOIN pricing_profiles pp ON m.pricing_profile_id = pp.id ${where}
+      ORDER BY m.created_at DESC LIMIT $${i++} OFFSET $${i++}`, [...params, limit, offset]);
+    pgSuccess(res, result.rows, { page, limit, total, totalPages: Math.ceil(total / limit) });
+  } catch (err) { console.error('GET /api/v2/machines error:', err); pgError(res, 500, err.message); }
+});
+
+// POST /api/v2/machines
+app.post('/api/v2/machines', requirePG, async (req, res) => {
+  const client = await pgPool.connect();
+  try {
+    await client.query('BEGIN');
+    const b = req.body;
+    const { rows: [machine] } = await client.query(`INSERT INTO machines (name, serial_number, model, asset_cost, location_type, address, lat, lng, zone_id,
+      total_slots, slot_rows, slot_cols, has_cashless, connectivity, status, monthly_rev_target, rev_share_pct, pricing_profile_id, notes)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING *`,
+      [b.name, b.serial_number, b.model || 'SandStar AI Smart Cooler', b.asset_cost || 3600, b.location_type, b.address, b.lat, b.lng, b.zone_id,
+       b.total_slots || 60, b.slot_rows || 6, b.slot_cols || 10, b.has_cashless !== false, b.connectivity || 'cellular', b.status || 'staged',
+       b.monthly_rev_target || 2000, b.rev_share_pct || 0, b.pricing_profile_id, b.notes]);
+    let slotNum = 1;
+    for (let r = 1; r <= machine.slot_rows; r++) for (let c = 1; c <= machine.slot_cols; c++)
+      await client.query(`INSERT INTO slots (machine_id, slot_number, row_position, col_position) VALUES ($1, $2, $3, $4)`, [machine.id, slotNum++, r, c]);
+    await client.query('COMMIT');
+    pgSuccess(res, machine);
+  } catch (err) { await client.query('ROLLBACK'); console.error('POST /api/v2/machines error:', err); pgError(res, 500, err.message); }
+  finally { client.release(); }
+});
+
+// GET /api/v2/machines/:id
+app.get('/api/v2/machines/:id', requirePG, async (req, res) => {
+  try {
+    const { rows } = await pgPool.query(`SELECT m.*, z.name AS zone_name, pp.name AS pricing_profile_name
+      FROM machines m LEFT JOIN zones z ON m.zone_id = z.id LEFT JOIN pricing_profiles pp ON m.pricing_profile_id = pp.id WHERE m.id = $1`, [req.params.id]);
+    if (!rows.length) return pgError(res, 404, 'Machine not found');
+    const machine = rows[0];
+    const slotStats = await pgPool.query(`SELECT COUNT(*) AS total_slots, COUNT(*) FILTER (WHERE current_qty = 0) AS empty_slots,
+      COUNT(*) FILTER (WHERE current_qty > 0 AND current_qty <= low_threshold) AS low_slots,
+      ROUND(AVG(current_qty::DECIMAL / NULLIF(max_capacity, 0)) * 100, 1) AS fill_pct FROM slots WHERE machine_id = $1`, [req.params.id]);
+    const revStats = await pgPool.query(`SELECT COALESCE(SUM(total_price), 0) AS revenue_30d, COALESCE(COUNT(*), 0) AS transactions_30d,
+      COALESCE(AVG(total_price), 0) AS avg_ticket_30d FROM transactions WHERE machine_id = $1 AND sold_at >= NOW() - INTERVAL '30 days'`, [req.params.id]);
+    machine.health = { ...slotStats.rows[0], ...revStats.rows[0],
+      revenue_status: parseFloat(revStats.rows[0].revenue_30d) < 800 ? 'pull_candidate' : parseFloat(revStats.rows[0].revenue_30d) < 2000 ? 'underperforming' : 'on_target' };
+    pgSuccess(res, machine);
+  } catch (err) { console.error('GET /api/v2/machines/:id error:', err); pgError(res, 500, err.message); }
+});
+
+// PUT /api/v2/machines/:id
+app.put('/api/v2/machines/:id', requirePG, async (req, res) => {
+  try {
+    const b = req.body; const fields = [], values = []; let i = 1;
+    const updatable = ['name', 'serial_number', 'model', 'location_type', 'address', 'lat', 'lng', 'zone_id', 'has_cashless', 'connectivity', 'status', 'monthly_rev_target', 'rev_share_pct', 'pricing_profile_id', 'notes'];
+    for (const k of updatable) if (b[k] !== undefined) { fields.push(`${k} = $${i++}`); values.push(b[k]); }
+    if (!fields.length) return pgError(res, 400, 'No fields to update');
+    fields.push('updated_at = NOW()'); values.push(req.params.id);
+    const { rows } = await pgPool.query(`UPDATE machines SET ${fields.join(', ')} WHERE id = $${i} RETURNING *`, values);
+    if (!rows.length) return pgError(res, 404, 'Machine not found');
+    pgSuccess(res, rows[0]);
+  } catch (err) { console.error('PUT /api/v2/machines/:id error:', err); pgError(res, 500, err.message); }
+});
+
+// DELETE /api/v2/machines/:id
+app.delete('/api/v2/machines/:id', requirePG, async (req, res) => {
+  try {
+    const { rowCount } = await pgPool.query('DELETE FROM machines WHERE id = $1', [req.params.id]);
+    if (!rowCount) return pgError(res, 404, 'Machine not found');
+    pgSuccess(res, { deleted: true });
+  } catch (err) { console.error('DELETE /api/v2/machines/:id error:', err); pgError(res, 500, err.message); }
+});
+
+// GET /api/machines/:id/slots
+app.get('/api/machines/:id/slots', requirePG, async (req, res) => {
+  try {
+    const { rows } = await pgPool.query(`SELECT s.*, p.name AS product_name, p.brand, p.category, p.default_price, p.unit_cost,
+      predict_stockout(s.id) AS predicted_stockout FROM slots s LEFT JOIN products p ON s.product_id = p.id
+      WHERE s.machine_id = $1 ORDER BY s.row_position, s.col_position`, [req.params.id]);
+    const grid = {}; for (const slot of rows) { if (!grid[slot.row_position]) grid[slot.row_position] = {}; grid[slot.row_position][slot.col_position] = slot; }
+    pgSuccess(res, { slots: rows, grid });
+  } catch (err) { console.error('GET /api/machines/:id/slots error:', err); pgError(res, 500, err.message); }
+});
+
+// PUT /api/machines/:id/slots
+app.put('/api/machines/:id/slots', requirePG, async (req, res) => {
+  try {
+    const b = req.body; if (!b.slot_id) return pgError(res, 400, 'slot_id is required');
+    const fields = [], values = []; let i = 1;
+    for (const k of ['product_id', 'price_override', 'par_level', 'low_threshold', 'max_capacity', 'current_qty'])
+      if (b[k] !== undefined) { fields.push(`${k} = $${i++}`); values.push(b[k]); }
+    if (!fields.length) return pgError(res, 400, 'No fields to update');
+    fields.push('updated_at = NOW()'); values.push(b.slot_id); values.push(req.params.id);
+    const { rows } = await pgPool.query(`UPDATE slots SET ${fields.join(', ')} WHERE id = $${i++} AND machine_id = $${i} RETURNING *`, values);
+    if (!rows.length) return pgError(res, 404, 'Slot not found');
+    pgSuccess(res, rows[0]);
+  } catch (err) { console.error('PUT /api/machines/:id/slots error:', err); pgError(res, 500, err.message); }
+});
+
+// POST /api/machines/:id/restock
+app.post('/api/machines/:id/restock', requirePG, async (req, res) => {
+  const client = await pgPool.connect();
+  try {
+    await client.query('BEGIN');
+    const machineId = req.params.id;
+    const { driver_name, started_at, completed_at, mileage, fuel_cost, items, notes } = req.body;
+    if (!items || !items.length) { await client.query('ROLLBACK'); return pgError(res, 400, 'items array required'); }
+    const durationMin = started_at && completed_at ? Math.round((new Date(completed_at) - new Date(started_at)) / 60000) : null;
+    const laborCost = durationMin ? (durationMin / 60) * 20 : 20;
+    const { rows: [event] } = await client.query(`INSERT INTO restock_events (machine_id, driver_name, started_at, completed_at, duration_min, mileage, fuel_cost, labor_cost, slots_serviced, items_loaded, items_pulled, notes)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [machineId, driver_name, started_at || new Date().toISOString(), completed_at, durationMin, mileage, fuel_cost, laborCost,
+       items.length, items.reduce((s, i) => s + (i.qty_added || 0), 0), items.reduce((s, i) => s + (i.qty_removed || 0), 0), notes]);
+    let totalProductCost = 0;
+    for (const item of items) {
+      const newQty = (item.qty_before || 0) + (item.qty_added || 0) - (item.qty_removed || 0);
+      await client.query(`INSERT INTO restock_items (restock_id, slot_id, product_id, qty_before, qty_added, qty_removed, qty_after, unit_cost, expiry_date, notes)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, [event.id, item.slot_id, item.product_id, item.qty_before || 0, item.qty_added || 0, item.qty_removed || 0, newQty, item.unit_cost, item.expiry_date, item.notes]);
+      await client.query(`UPDATE slots SET current_qty = $1, updated_at = NOW() WHERE id = $2`, [Math.max(0, newQty), item.slot_id]);
+      if (item.qty_added > 0) await client.query(`INSERT INTO inventory_logs (slot_id, machine_id, product_id, change_type, qty_before, qty_change, qty_after, restock_event_id, performed_by)
+        VALUES ($1,$2,$3,'restock',$4,$5,$6,$7,$8)`, [item.slot_id, machineId, item.product_id, item.qty_before || 0, item.qty_added, newQty, event.id, driver_name || 'driver']);
+      if (item.expiry_date && item.qty_added > 0) await client.query(`INSERT INTO slot_expiry_batches (slot_id, quantity, expiry_date) VALUES ($1,$2,$3)`, [item.slot_id, item.qty_added, item.expiry_date]);
+      totalProductCost += (item.qty_added || 0) * (item.unit_cost || 0);
+    }
+    await client.query('UPDATE restock_events SET product_cost = $1 WHERE id = $2', [totalProductCost, event.id]);
+    await client.query('COMMIT');
+    pgSuccess(res, { restock_event_id: event.id, summary: { slots_serviced: items.length, items_loaded: items.reduce((s, i) => s + (i.qty_added || 0), 0),
+      items_pulled: items.reduce((s, i) => s + (i.qty_removed || 0), 0), product_cost: totalProductCost, labor_cost: laborCost, total_cost: totalProductCost + laborCost + (fuel_cost || 0) } });
+  } catch (err) { await client.query('ROLLBACK'); console.error('POST /api/machines/:id/restock error:', err); pgError(res, 500, err.message); }
+  finally { client.release(); }
+});
+
+// GET /api/machines/:id/analytics
+app.get('/api/machines/:id/analytics', requirePG, async (req, res) => {
+  try {
+    const machineId = req.params.id;
+    const interval = req.query.period === '7d' ? '7 days' : req.query.period === '90d' ? '90 days' : '30 days';
+    const summary = await pgPool.query(`SELECT COALESCE(SUM(total_price), 0) AS revenue, COALESCE(SUM(margin), 0) AS gross_margin,
+      COALESCE(AVG(total_price), 0) AS avg_ticket, COUNT(*) AS transactions FROM transactions WHERE machine_id = $1 AND sold_at >= NOW() - $2::INTERVAL`, [machineId, interval]);
+    const topProducts = await pgPool.query(`SELECT p.name, p.category, COUNT(*) AS units_sold, SUM(t.total_price) AS revenue
+      FROM transactions t JOIN products p ON t.product_id = p.id WHERE t.machine_id = $1 AND t.sold_at >= NOW() - $2::INTERVAL GROUP BY p.name, p.category ORDER BY revenue DESC LIMIT 10`, [machineId, interval]);
+    const hourly = await pgPool.query(`SELECT hour_of_day, COUNT(*) AS transactions, SUM(total_price) AS revenue FROM transactions WHERE machine_id = $1 AND sold_at >= NOW() - $2::INTERVAL GROUP BY hour_of_day ORDER BY hour_of_day`, [machineId, interval]);
+    pgSuccess(res, { period: req.query.period || '30d', summary: summary.rows[0], top_products: topProducts.rows, hourly_pattern: hourly.rows });
+  } catch (err) { console.error('GET /api/machines/:id/analytics error:', err); pgError(res, 500, err.message); }
+});
+
+// GET /api/machines/:id/pricing
+app.get('/api/machines/:id/pricing', requirePG, async (req, res) => {
+  try {
+    const { rows: [machine] } = await pgPool.query(`SELECT m.*, pp.name AS profile_name, pp.beverage_mult, pp.snack_mult, pp.candy_mult, pp.incidental_mult
+      FROM machines m LEFT JOIN pricing_profiles pp ON m.pricing_profile_id = pp.id WHERE m.id = $1`, [req.params.id]);
+    if (!machine) return pgError(res, 404, 'Machine not found');
+    const { rows: slots } = await pgPool.query(`SELECT s.id AS slot_id, s.slot_number, s.position_tier, s.price_override, p.name AS product_name, p.category, p.default_price, p.unit_cost,
+      calculate_price($1, s.product_id, s.id) AS calculated_price FROM slots s LEFT JOIN products p ON s.product_id = p.id WHERE s.machine_id = $1 AND s.product_id IS NOT NULL ORDER BY s.row_position, s.col_position`, [req.params.id]);
+    const { rows: profiles } = await pgPool.query('SELECT id, name, location_type FROM pricing_profiles ORDER BY name');
+    pgSuccess(res, { machine_id: req.params.id, profile: machine.profile_name || 'No profile', slots, profiles });
+  } catch (err) { console.error('GET /api/machines/:id/pricing error:', err); pgError(res, 500, err.message); }
+});
+
+// POST /api/machines/:id/pricing
+app.post('/api/machines/:id/pricing', requirePG, async (req, res) => {
+  const client = await pgPool.connect();
+  try {
+    await client.query('BEGIN');
+    const { profile_id, slot_overrides } = req.body;
+    if (profile_id !== undefined) await client.query('UPDATE machines SET pricing_profile_id = $1, updated_at = NOW() WHERE id = $2', [profile_id, req.params.id]);
+    if (slot_overrides) for (const o of slot_overrides) await client.query('UPDATE slots SET price_override = $1, updated_at = NOW() WHERE id = $2 AND machine_id = $3', [o.price, o.slot_id, req.params.id]);
+    await client.query('COMMIT');
+    pgSuccess(res, { updated: true });
+  } catch (err) { await client.query('ROLLBACK'); console.error('POST /api/machines/:id/pricing error:', err); pgError(res, 500, err.message); }
+  finally { client.release(); }
+});
+
+// GET /api/machines/:id/slot-performance
+app.get('/api/machines/:id/slot-performance', requirePG, async (req, res) => {
+  try {
+    const { rows } = await pgPool.query(`SELECT * FROM v_slot_performance WHERE machine_id = $1 ORDER BY row_position, col_position`, [req.params.id]);
+    const heatMap = {}; for (const slot of rows) { if (!heatMap[slot.row_position]) heatMap[slot.row_position] = {}; heatMap[slot.row_position][slot.col_position] = { slot_id: slot.slot_id, product_name: slot.product_name, heat_score: Math.round(parseFloat(slot.heat_score) || 0), revenue_30d: slot.revenue_30d, position_tier: slot.position_tier }; }
+    pgSuccess(res, { slots: rows, heat_map: heatMap });
+  } catch (err) { console.error('GET /api/machines/:id/slot-performance error:', err); pgError(res, 500, err.message); }
+});
+
+// GET /api/v2/products
+app.get('/api/v2/products', requirePG, async (req, res) => {
+  try {
+    const { page, limit, offset } = parsePagination(req.query);
+    const cond = [], params = []; let i = 1;
+    if (req.query.category) { cond.push(`category = $${i++}`); params.push(req.query.category); }
+    if (req.query.search) { cond.push(`(name ILIKE $${i} OR brand ILIKE $${i})`); params.push(`%${req.query.search}%`); i++; }
+    if (req.query.active !== undefined) { cond.push(`is_active = $${i++}`); params.push(req.query.active === 'true'); }
+    const where = cond.length ? 'WHERE ' + cond.join(' AND ') : '';
+    const cnt = await pgPool.query(`SELECT COUNT(*) FROM products ${where}`, params);
+    const { rows } = await pgPool.query(`SELECT * FROM products ${where} ORDER BY popularity DESC LIMIT $${i++} OFFSET $${i}`, [...params, limit, offset]);
+    pgSuccess(res, rows, { page, limit, total: parseInt(cnt.rows[0].count), totalPages: Math.ceil(parseInt(cnt.rows[0].count) / limit) });
+  } catch (err) { console.error('GET /api/v2/products error:', err); pgError(res, 500, err.message); }
+});
+
+// POST /api/v2/products
+app.post('/api/v2/products', requirePG, async (req, res) => {
+  try {
+    const b = req.body;
+    if (!b.name || !b.category || !b.default_price) return pgError(res, 400, 'name, category, default_price required');
+    const unitCost = b.unit_cost || (b.case_price && b.units_per_case ? b.case_price / b.units_per_case : null);
+    if (unitCost && b.default_price < unitCost * 3) return pgError(res, 400, `Price below 3x markup minimum ($${(unitCost * 3).toFixed(2)})`);
+    const { rows: [product] } = await pgPool.query(`INSERT INTO products (name, brand, size, upc, category, case_price, units_per_case, unit_cost, default_price, min_price, max_price, popularity, image_url, is_premium, bundle_eligible, shelf_life_days)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
+      [b.name, b.brand, b.size, b.upc, b.category, b.case_price, b.units_per_case, unitCost, b.default_price, b.min_price || (unitCost ? unitCost * 3 : null), b.max_price, b.popularity || 50, b.image_url, b.is_premium || false, b.bundle_eligible !== false, b.shelf_life_days]);
+    pgSuccess(res, product);
+  } catch (err) { if (err.code === '23505') return pgError(res, 409, 'Product with UPC exists'); console.error('POST /api/v2/products error:', err); pgError(res, 500, err.message); }
+});
+
+// GET /api/machines/:id/restock-history
+app.get('/api/machines/:id/restock-history', requirePG, async (req, res) => {
+  try {
+    const { page, limit, offset } = parsePagination(req.query);
+    const cnt = await pgPool.query('SELECT COUNT(*) FROM restock_events WHERE machine_id = $1', [req.params.id]);
+    const { rows } = await pgPool.query(`SELECT re.*, (SELECT json_agg(ri) FROM restock_items ri WHERE ri.restock_id = re.id) AS line_items
+      FROM restock_events re WHERE re.machine_id = $1 ORDER BY re.started_at DESC LIMIT $2 OFFSET $3`, [req.params.id, limit, offset]);
+    pgSuccess(res, rows, { page, limit, total: parseInt(cnt.rows[0].count), totalPages: Math.ceil(parseInt(cnt.rows[0].count) / limit) });
+  } catch (err) { console.error('GET /api/machines/:id/restock-history error:', err); pgError(res, 500, err.message); }
+});
+
+// GET /api/v2/fleet/overview
+app.get('/api/v2/fleet/overview', requirePG, async (req, res) => {
+  try {
+    const fleet = await pgPool.query(`SELECT COUNT(*) FILTER (WHERE status = 'active') AS active_machines, COUNT(*) FILTER (WHERE status = 'staged') AS staged_machines, COUNT(*) AS total_machines FROM machines`);
+    const rev = await pgPool.query(`SELECT COALESCE(SUM(total_price), 0) AS total_revenue, COALESCE(SUM(margin), 0) AS total_margin, COUNT(*) AS total_transactions FROM transactions WHERE sold_at >= NOW() - INTERVAL '30 days'`);
+    const machines = await pgPool.query(`SELECT m.id, m.name, m.location_type, m.status, COALESCE(SUM(t.total_price), 0) AS revenue_30d, COUNT(t.id) AS transactions_30d
+      FROM machines m LEFT JOIN transactions t ON t.machine_id = m.id AND t.sold_at >= NOW() - INTERVAL '30 days' WHERE m.status IN ('active', 'staged') GROUP BY m.id ORDER BY revenue_30d DESC`);
+    const inv = await pgPool.query(`SELECT COUNT(*) FILTER (WHERE current_qty = 0) AS total_empty_slots, COUNT(*) FILTER (WHERE current_qty > 0 AND current_qty <= low_threshold) AS total_low_slots FROM slots s JOIN machines m ON s.machine_id = m.id WHERE m.status = 'active'`);
+    const pullCandidates = machines.rows.filter(m => m.status === 'active' && parseFloat(m.revenue_30d) < 800);
+    pgSuccess(res, { fleet: fleet.rows[0], revenue_30d: rev.rows[0], machines: machines.rows, inventory: inv.rows[0], alerts: { pull_candidates: pullCandidates.length, empty_slots: parseInt(inv.rows[0].total_empty_slots) } });
+  } catch (err) { console.error('GET /api/v2/fleet/overview error:', err); pgError(res, 500, err.message); }
+});
+
+// GET /api/v2/pricing/profiles
+app.get('/api/v2/pricing/profiles', requirePG, async (req, res) => {
+  try { const { rows } = await pgPool.query('SELECT * FROM pricing_profiles ORDER BY name'); pgSuccess(res, rows); }
+  catch (err) { console.error('GET /api/v2/pricing/profiles error:', err); pgError(res, 500, err.message); }
+});
+
+// Database health check
+app.get('/api/v2/health', async (req, res) => {
+  const r = { server: 'ok', database: 'not_configured' };
+  if (pgPool) { try { const { rows } = await pgPool.query('SELECT NOW() AS time'); r.database = 'connected'; r.db_time = rows[0].time; } catch (e) { r.database = 'error'; r.db_error = e.message; } }
+  res.json({ success: true, data: r });
+});
+
+// END POSTGRESQL API
 // ============================================================
 
 app.listen(PORT, () => {
