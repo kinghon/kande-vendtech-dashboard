@@ -25,6 +25,7 @@
         { label: 'Routes',         href: '/routes' },
         { label: 'Warehouse',      href: '/warehouse' },
         { label: 'Fleet',          href: '/fleet' },
+        { label: 'Restock',        href: '/restock' },
         { label: 'Driver Mobile',  href: '/driver' }
       ]
     },
