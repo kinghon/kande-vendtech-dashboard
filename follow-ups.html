@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-sales-32.png">
+  <title>Follow-Up Automation — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #0f172a;
+      --muted: #64748b; --accent: #3b82f6; --accent-light: #eff6ff;
+      --green: #22c55e; --green-light: #dcfce7;
+      --yellow: #eab308; --yellow-light: #fef9c3;
+      --orange: #f97316; --orange-light: #ffedd5;
+      --red: #ef4444; --red-light: #fee2e2;
+      --purple: #8b5cf6;
+      --radius: 12px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+    .app { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+    /* Header */
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+    .page-header h1 { font-size: 1.5rem; display: flex; align-items: center; gap: 10px; }
+    .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .btn { padding: 10px 18px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--bg); }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-warning { background: var(--orange); color: #fff; }
+
+    /* Stats Row */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .stat-card .stat-icon { font-size: 1.3rem; margin-bottom: 8px; }
+    .stat-card .stat-value { font-size: 2rem; font-weight: 800; line-height: 1; }
+    .stat-card .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-card.urgent { border-left: 4px solid var(--red); }
+    .stat-card.warning { border-left: 4px solid var(--orange); }
+
+    /* Grid Layout */
+    .grid-main { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+    @media (max-width: 1000px) { .grid-main { grid-template-columns: 1fr; } }
+
+    /* Cards */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .card-title { font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .card-subtitle { font-size: 0.8rem; color: var(--muted); }
+
+    /* Overdue List */
+    .prospect-list { display: flex; flex-direction: column; gap: 10px; }
+    .prospect-item { background: var(--bg); border-radius: 10px; padding: 16px; border: 1px solid transparent; transition: all 0.2s; }
+    .prospect-item:hover { border-color: var(--accent); }
+    .prospect-item.critical { border-left: 4px solid var(--red); background: var(--red-light); }
+    .prospect-item.high { border-left: 4px solid var(--orange); background: var(--orange-light); }
+    .prospect-item.medium { border-left: 4px solid var(--yellow); background: var(--yellow-light); }
+    .prospect-item.low { border-left: 4px solid var(--green); background: var(--green-light); }
+
+    .prospect-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .prospect-info { flex: 1; min-width: 200px; }
+    .prospect-name { font-weight: 700; font-size: 1rem; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+    .prospect-name a { color: inherit; text-decoration: none; }
+    .prospect-name a:hover { color: var(--accent); }
+    .prospect-meta { font-size: 0.8rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 8px; }
+    .meta-item { display: flex; align-items: center; gap: 4px; }
+    .prospect-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    /* Touch Progress Bar */
+    .touch-tracker { margin: 10px 0; }
+    .touch-bar { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; position: relative; }
+    .touch-fill { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
+    .touch-fill.early { background: linear-gradient(90deg, #22c55e, #4ade80); }
+    .touch-fill.warming { background: linear-gradient(90deg, #eab308, #facc15); }
+    .touch-fill.close { background: linear-gradient(90deg, #f97316, #fb923c); }
+    .touch-fill.decision { background: linear-gradient(90deg, #ef4444, #f87171); }
+    .touch-labels { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
+    .touch-count { font-weight: 700; font-size: 0.85rem; margin-bottom: 4px; }
+
+    /* Recommended Action */
+    .recommended-action { background: var(--accent-light); border-radius: 6px; padding: 8px 12px; font-size: 0.8rem; color: var(--accent); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; }
+
+    /* Today's Actions */
+    .today-list { list-style: none; }
+    .today-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg); border-radius: 8px; margin-bottom: 8px; cursor: grab; transition: all 0.15s; border: 1px solid transparent; }
+    .today-item:hover { border-color: var(--border); }
+    .today-item.dragging { opacity: 0.5; background: var(--accent-light); }
+    .today-item.completed { opacity: 0.6; text-decoration: line-through; background: var(--green-light); }
+    .today-handle { color: var(--muted); cursor: grab; }
+    .today-checkbox { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; }
+    .today-checkbox:hover { border-color: var(--green); }
+    .today-checkbox.checked { background: var(--green); border-color: var(--green); color: #fff; }
+    .today-content { flex: 1; min-width: 0; }
+    .today-action { font-weight: 600; font-size: 0.9rem; }
+    .today-prospect { font-size: 0.8rem; color: var(--muted); }
+    .today-type { font-size: 0.7rem; padding: 3px 8px; border-radius: 12px; font-weight: 600; text-transform: uppercase; }
+    .type-call { background: #dbeafe; color: #1d4ed8; }
+    .type-email { background: #fce7f3; color: #be185d; }
+    .type-pop-in { background: #d1fae5; color: #047857; }
+    .type-gift { background: #fef3c7; color: #b45309; }
+
+    /* Automation Rules */
+    .rules-list { display: flex; flex-direction: column; gap: 12px; }
+    .rule-item { display: flex; align-items: center; gap: 12px; padding: 14px; background: var(--bg); border-radius: 8px; flex-wrap: wrap; }
+    .rule-text { flex: 1; font-size: 0.85rem; min-width: 200px; }
+    .rule-text strong { color: var(--accent); }
+    .rule-input { width: 60px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; text-align: center; }
+    .rule-toggle { width: 40px; height: 22px; background: #cbd5e1; border-radius: 11px; position: relative; cursor: pointer; transition: all 0.2s; }
+    .rule-toggle.active { background: var(--green); }
+    .rule-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: all 0.2s; }
+    .rule-toggle.active::after { left: 20px; }
+
+    /* Velocity Stats */
+    .velocity-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
+    .velocity-stat { text-align: center; padding: 16px; background: var(--bg); border-radius: 8px; }
+    .velocity-value { font-size: 1.5rem; font-weight: 800; color: var(--accent); }
+    .velocity-label { font-size: 0.72rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; }
+
+    /* Conversion by Touch */
+    .touch-conversion { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+    .conversion-row { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; }
+    .conversion-label { width: 80px; color: var(--muted); }
+    .conversion-bar { flex: 1; height: 20px; background: #e2e8f0; border-radius: 4px; overflow: hidden; position: relative; }
+    .conversion-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.3s; }
+    .conversion-value { width: 50px; text-align: right; font-weight: 600; }
+
+    /* Modal */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: var(--card); border-radius: var(--radius); padding: 24px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .modal-title { font-size: 1.2rem; font-weight: 700; }
+    .modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--muted); }
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; }
+    .form-input, .form-select, .form-textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; }
+    .form-textarea { min-height: 80px; resize: vertical; }
+
+    /* Badge */
+    .badge { padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+    .badge-hot { background: var(--red-light); color: var(--red); }
+    .badge-warm { background: var(--orange-light); color: var(--orange); }
+    .badge-new { background: var(--accent-light); color: var(--accent); }
+
+    /* Empty State */
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+    .empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty-state p { margin-bottom: 16px; }
+
+    /* Loading */
+    .loading { text-align: center; padding: 40px; color: var(--muted); }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .app { padding: 16px; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .prospect-row { flex-direction: column; }
+      .prospect-actions { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<script src="/nav.js"></script>
+
+<div class="app">
+  <!-- Header -->
+  <div class="page-header">
+    <h1>📋 Follow-Up Automation</h1>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="showRulesModal()">⚙️ Configure Rules</button>
+      <button class="btn btn-primary" onclick="refreshData()">🔄 Refresh</button>
+    </div>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="stats-row">
+    <div class="stat-card urgent">
+      <div class="stat-icon">🔥</div>
+      <div class="stat-value" id="stat-overdue">—</div>
+      <div class="stat-label">Overdue Follow-Ups</div>
+    </div>
+    <div class="stat-card warning">
+      <div class="stat-icon">📅</div>
+      <div class="stat-value" id="stat-today">—</div>
+      <div class="stat-label">Due Today</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">📊</div>
+      <div class="stat-value" id="stat-avg-touches">—</div>
+      <div class="stat-label">Avg Touches to Close</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">⏱️</div>
+      <div class="stat-value" id="stat-avg-days">—</div>
+      <div class="stat-label">Avg Days to Close</div>
+    </div>
+  </div>
+
+  <!-- Main Grid -->
+  <div class="grid-main">
+    <!-- Left Column -->
+    <div>
+      <!-- Today's Actions -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">🎯 Today's Actions</div>
+            <div class="card-subtitle">Drag to reorder priority. Click to mark complete.</div>
+          </div>
+          <span class="badge badge-hot" id="today-count">0</span>
+        </div>
+        <ul class="today-list" id="today-list">
+          <li class="loading">Loading...</li>
+        </ul>
+      </div>
+
+      <!-- Overdue List -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">⚠️ Overdue Follow-Ups</div>
+            <div class="card-subtitle">Prospects sorted by urgency — red means action needed NOW</div>
+          </div>
+        </div>
+        <div class="prospect-list" id="overdue-list">
+          <div class="loading">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column -->
+    <div>
+      <!-- Automation Rules -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">⚙️ Follow-Up Cadence</div>
+        </div>
+        <div class="rules-list" id="rules-display">
+          <div class="rule-item">
+            <div class="rule-text">After <strong>Pop-In</strong>, suggest Gift Basket in</div>
+            <input type="number" class="rule-input" value="3" id="rule-popin-gift" min="1" max="30"> days
+          </div>
+          <div class="rule-item">
+            <div class="rule-text">After <strong>Gift Basket</strong>, suggest Call in</div>
+            <input type="number" class="rule-input" value="5" id="rule-gift-call" min="1" max="30"> days
+          </div>
+          <div class="rule-item">
+            <div class="rule-text">After <strong>Call</strong>, suggest Email in</div>
+            <input type="number" class="rule-input" value="7" id="rule-call-email" min="1" max="30"> days
+          </div>
+          <div class="rule-item">
+            <div class="rule-text">After <strong>Email</strong>, suggest Pop-In in</div>
+            <input type="number" class="rule-input" value="14" id="rule-email-popin" min="1" max="60"> days
+          </div>
+          <div class="rule-item">
+            <div class="rule-text">Alert if <strong>no activity</strong> for</div>
+            <input type="number" class="rule-input" value="7" id="rule-no-activity" min="1" max="30"> days
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" style="margin-top: 16px; width: 100%;" onclick="saveRules()">💾 Save Rules</button>
+      </div>
+
+      <!-- Pipeline Velocity -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📈 Pipeline Velocity</div>
+        </div>
+        <div class="velocity-grid" id="velocity-stats">
+          <div class="velocity-stat">
+            <div class="velocity-value" id="vel-new">—</div>
+            <div class="velocity-label">Days as New</div>
+          </div>
+          <div class="velocity-stat">
+            <div class="velocity-value" id="vel-contacted">—</div>
+            <div class="velocity-label">Days Contacted</div>
+          </div>
+          <div class="velocity-stat">
+            <div class="velocity-value" id="vel-proposal">—</div>
+            <div class="velocity-label">Days to Proposal</div>
+          </div>
+          <div class="velocity-stat">
+            <div class="velocity-value" id="vel-close">—</div>
+            <div class="velocity-label">Days to Close</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px;">
+          <div class="card-title" style="font-size: 0.9rem; margin-bottom: 12px;">Conversion by Touch Count</div>
+          <div class="touch-conversion" id="touch-conversion">
+            <div class="conversion-row"><span class="conversion-label">1-3 touches</span><div class="conversion-bar"><div class="conversion-fill" style="width: 10%;"></div></div><span class="conversion-value">10%</span></div>
+            <div class="conversion-row"><span class="conversion-label">4-6 touches</span><div class="conversion-bar"><div class="conversion-fill" style="width: 25%;"></div></div><span class="conversion-value">25%</span></div>
+            <div class="conversion-row"><span class="conversion-label">7-9 touches</span><div class="conversion-bar"><div class="conversion-fill" style="width: 55%;"></div></div><span class="conversion-value">55%</span></div>
+            <div class="conversion-row"><span class="conversion-label">10+ touches</span><div class="conversion-bar"><div class="conversion-fill" style="width: 75%;"></div></div><span class="conversion-value">75%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Touch Legend -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🎨 Touch Tracker Legend</div>
+        </div>
+        <div style="font-size: 0.85rem;">
+          <p style="margin-bottom: 12px; color: var(--muted);">
+            <strong>8-10 touches to close</strong> is the industry standard. Don't give up after 1-2 rejections!
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 20px; height: 12px; background: linear-gradient(90deg, #22c55e, #4ade80); border-radius: 3px;"></div>
+              <span><strong>1-3 touches:</strong> Early stage — building awareness</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 20px; height: 12px; background: linear-gradient(90deg, #eab308, #facc15); border-radius: 3px;"></div>
+              <span><strong>4-6 touches:</strong> Warming up — relationship building</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 20px; height: 12px; background: linear-gradient(90deg, #f97316, #fb923c); border-radius: 3px;"></div>
+              <span><strong>7-9 touches:</strong> Close to close — push harder</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 20px; height: 12px; background: linear-gradient(90deg, #ef4444, #f87171); border-radius: 3px;"></div>
+              <span><strong>10+ touches:</strong> Decision time — ask for the deal</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Activity Modal -->
+<div class="modal-overlay" id="activity-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Log Activity</div>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <form id="activity-form" onsubmit="submitActivity(event)">
+      <input type="hidden" id="modal-prospect-id">
+      <input type="hidden" id="modal-activity-type">
+      
+      <div class="form-group">
+        <label class="form-label">Prospect</label>
+        <input type="text" class="form-input" id="modal-prospect-name" readonly>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Activity Type</label>
+        <select class="form-select" id="modal-type-select">
+          <option value="call">📞 Call</option>
+          <option value="email">📧 Email</option>
+          <option value="pop_in">🚶 Pop-In Visit</option>
+          <option value="gift_basket">🎁 Gift Basket</option>
+          <option value="proposal">📄 Proposal Sent</option>
+          <option value="meeting">🤝 Meeting</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Outcome</label>
+        <select class="form-select" id="modal-outcome">
+          <option value="">Select outcome...</option>
+          <option value="interested">✅ Interested</option>
+          <option value="follow_up">📅 Follow-up needed</option>
+          <option value="no_answer">📵 No answer</option>
+          <option value="left_message">💬 Left message</option>
+          <option value="not_interested">❌ Not interested</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-textarea" id="modal-notes" placeholder="What happened? Key details..."></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Next Action</label>
+        <input type="text" class="form-input" id="modal-next-action" placeholder="e.g., Send proposal, Schedule meeting">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Next Action Date</label>
+        <input type="date" class="form-input" id="modal-next-date">
+      </div>
+      
+      <button type="submit" class="btn btn-primary" style="width: 100%;">💾 Log Activity</button>
+    </form>
+  </div>
+</div>
+
+<script>
+// State
+let prospects = [];
+let activities = [];
+let todayActions = [];
+let rules = {
+  popinToGift: 3,
+  giftToCall: 5,
+  callToEmail: 7,
+  emailToPopin: 14,
+  noActivityAlert: 7
+};
+
+// Load rules from localStorage
+function loadRules() {
+  const saved = localStorage.getItem('followup-rules');
+  if (saved) {
+    rules = JSON.parse(saved);
+    document.getElementById('rule-popin-gift').value = rules.popinToGift;
+    document.getElementById('rule-gift-call').value = rules.giftToCall;
+    document.getElementById('rule-call-email').value = rules.callToEmail;
+    document.getElementById('rule-email-popin').value = rules.emailToPopin;
+    document.getElementById('rule-no-activity').value = rules.noActivityAlert;
+  }
+}
+
+function saveRules() {
+  rules = {
+    popinToGift: parseInt(document.getElementById('rule-popin-gift').value) || 3,
+    giftToCall: parseInt(document.getElementById('rule-gift-call').value) || 5,
+    callToEmail: parseInt(document.getElementById('rule-call-email').value) || 7,
+    emailToPopin: parseInt(document.getElementById('rule-email-popin').value) || 14,
+    noActivityAlert: parseInt(document.getElementById('rule-no-activity').value) || 7
+  };
+  localStorage.setItem('followup-rules', JSON.stringify(rules));
+  alert('✅ Rules saved!');
+  refreshData();
+}
+
+// Calculate days since date
+function daysSince(dateStr) {
+  if (!dateStr) return Infinity;
+  const date = new Date(dateStr);
+  const now = new Date();
+  return Math.floor((now - date) / (1000 * 60 * 60 * 24));
+}
+
+// Get touch count for prospect
+function getTouchCount(prospectId) {
+  return activities.filter(a => a.prospect_id === prospectId).length;
+}
+
+// Get last activity for prospect
+function getLastActivity(prospectId) {
+  const prospectActivities = activities
+    .filter(a => a.prospect_id === prospectId)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  return prospectActivities[0] || null;
+}
+
+// Get recommended next action based on last activity type and rules
+function getRecommendedAction(lastActivity, touchCount) {
+  if (!lastActivity) return { action: 'Pop-In', type: 'pop_in', reason: 'No activity yet — start with a pop-in visit' };
+  
+  const lastType = (lastActivity.type || '').toLowerCase().replace('-', '_');
+  const daysSinceActivity = daysSince(lastActivity.created_at);
+  
+  // Based on cadence rules
+  if (lastType === 'pop_in' || lastType === 'popin' || lastType === 'visit') {
+    if (daysSinceActivity >= rules.popinToGift) {
+      return { action: 'Send Gift Basket', type: 'gift_basket', reason: `${daysSinceActivity} days since pop-in` };
+    }
+  } else if (lastType === 'gift_basket' || lastType === 'gift') {
+    if (daysSinceActivity >= rules.giftToCall) {
+      return { action: 'Follow-Up Call', type: 'call', reason: `${daysSinceActivity} days since gift basket` };
+    }
+  } else if (lastType === 'call' || lastType === 'phone') {
+    if (daysSinceActivity >= rules.callToEmail) {
+      return { action: 'Send Email', type: 'email', reason: `${daysSinceActivity} days since call` };
+    }
+  } else if (lastType === 'email') {
+    if (daysSinceActivity >= rules.emailToPopin) {
+      return { action: 'Schedule Pop-In', type: 'pop_in', reason: `${daysSinceActivity} days since email` };
+    }
+  }
+  
+  // If touch count is high, suggest more aggressive action
+  if (touchCount >= 10) {
+    return { action: 'Ask for Decision', type: 'call', reason: `${touchCount} touches — time to close!` };
+  } else if (touchCount >= 7) {
+    return { action: 'Send Proposal', type: 'proposal', reason: `${touchCount} touches — push for close` };
+  }
+  
+  // Default based on time since last activity
+  if (daysSinceActivity >= rules.noActivityAlert) {
+    return { action: 'Any Touchpoint', type: 'pop_in', reason: `${daysSinceActivity} days overdue!` };
+  }
+  
+  return { action: 'Waiting', type: null, reason: `Next action in ${Math.max(0, rules.noActivityAlert - daysSinceActivity)} days` };
+}
+
+// Get urgency level
+function getUrgencyLevel(daysSinceActivity) {
+  if (daysSinceActivity >= 14) return 'critical';
+  if (daysSinceActivity >= 10) return 'high';
+  if (daysSinceActivity >= 7) return 'medium';
+  return 'low';
+}
+
+// Get touch bar class
+function getTouchBarClass(touchCount) {
+  if (touchCount <= 3) return 'early';
+  if (touchCount <= 6) return 'warming';
+  if (touchCount <= 9) return 'close';
+  return 'decision';
+}
+
+// Render overdue list
+function renderOverdueList() {
+  const container = document.getElementById('overdue-list');
+  
+  // Filter active prospects (not signed/closed)
+  const activeProspects = prospects.filter(p => 
+    p.status !== 'signed' && p.status !== 'closed'
+  );
+  
+  // Calculate data for each prospect
+  const prospectData = activeProspects.map(p => {
+    const lastActivity = getLastActivity(p.id);
+    const touchCount = getTouchCount(p.id);
+    const daysSinceActivity = lastActivity ? daysSince(lastActivity.created_at) : daysSince(p.created_at);
+    const recommendation = getRecommendedAction(lastActivity, touchCount);
+    
+    return {
+      ...p,
+      lastActivity,
+      touchCount,
+      daysSinceActivity,
+      recommendation,
+      urgency: getUrgencyLevel(daysSinceActivity)
+    };
+  });
+  
+  // Sort by urgency (days since activity, descending)
+  prospectData.sort((a, b) => b.daysSinceActivity - a.daysSinceActivity);
+  
+  // Filter to only show overdue (> noActivityAlert days)
+  const overdue = prospectData.filter(p => p.daysSinceActivity >= rules.noActivityAlert);
+  
+  // Update stats
+  document.getElementById('stat-overdue').textContent = overdue.length;
+  document.getElementById('stat-today').textContent = prospectData.filter(p => 
+    p.daysSinceActivity >= rules.noActivityAlert - 1 && p.daysSinceActivity < rules.noActivityAlert
+  ).length;
+  
+  if (overdue.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🎉</div>
+        <p>No overdue follow-ups! You're on top of your game.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  container.innerHTML = overdue.map(p => `
+    <div class="prospect-item ${p.urgency}">
+      <div class="prospect-row">
+        <div class="prospect-info">
+          <div class="prospect-name">
+            <a href="/crm/${p.id}">${p.name}</a>
+            <span class="badge ${p.priority === 'hot' ? 'badge-hot' : p.priority === 'warm' ? 'badge-warm' : 'badge-new'}">${p.priority || 'New'}</span>
+          </div>
+          <div class="prospect-meta">
+            <span class="meta-item">⏱️ ${p.daysSinceActivity} days overdue</span>
+            <span class="meta-item">📊 ${p.touchCount} touches</span>
+            <span class="meta-item">📍 ${p.status || 'New'}</span>
+            ${p.lastActivity ? `<span class="meta-item">📝 Last: ${p.lastActivity.type}</span>` : ''}
+          </div>
+          
+          <!-- Touch Tracker -->
+          <div class="touch-tracker">
+            <div class="touch-count">${p.touchCount} of 10 touches</div>
+            <div class="touch-bar">
+              <div class="touch-fill ${getTouchBarClass(p.touchCount)}" style="width: ${Math.min(100, p.touchCount * 10)}%;"></div>
+            </div>
+            <div class="touch-labels">
+              <span>Early</span>
+              <span>Warming</span>
+              <span>Close</span>
+              <span>Decision</span>
+            </div>
+          </div>
+          
+          ${p.recommendation.action !== 'Waiting' ? `
+            <div class="recommended-action">
+              💡 Recommended: <strong>${p.recommendation.action}</strong> — ${p.recommendation.reason}
+            </div>
+          ` : ''}
+        </div>
+        
+        <div class="prospect-actions">
+          <button class="btn btn-sm btn-secondary" onclick="logActivity(${p.id}, 'call', '${p.name.replace(/'/g, "\\'")}')">📞 Call</button>
+          <button class="btn btn-sm btn-secondary" onclick="logActivity(${p.id}, 'email', '${p.name.replace(/'/g, "\\'")}')">📧 Email</button>
+          <button class="btn btn-sm btn-secondary" onclick="logActivity(${p.id}, 'pop_in', '${p.name.replace(/'/g, "\\'")}')">🚶 Pop-In</button>
+          <button class="btn btn-sm btn-warning" onclick="logActivity(${p.id}, 'gift_basket', '${p.name.replace(/'/g, "\\'")}')">🎁 Gift</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Render today's actions
+function renderTodayActions() {
+  const container = document.getElementById('today-list');
+  
+  // Calculate today's actions based on rules
+  const activeProspects = prospects.filter(p => 
+    p.status !== 'signed' && p.status !== 'closed'
+  );
+  
+  todayActions = [];
+  
+  activeProspects.forEach(p => {
+    const lastActivity = getLastActivity(p.id);
+    const touchCount = getTouchCount(p.id);
+    const recommendation = getRecommendedAction(lastActivity, touchCount);
+    
+    if (recommendation.action !== 'Waiting' && recommendation.type) {
+      todayActions.push({
+        id: `${p.id}-${Date.now()}`,
+        prospectId: p.id,
+        prospectName: p.name,
+        action: recommendation.action,
+        type: recommendation.type,
+        reason: recommendation.reason,
+        completed: false
+      });
+    }
+  });
+  
+  // Sort by urgency (could add priority sorting)
+  document.getElementById('today-count').textContent = todayActions.length;
+  
+  if (todayActions.length === 0) {
+    container.innerHTML = `
+      <li class="empty-state">
+        <div class="empty-icon">✅</div>
+        <p>No actions due today. All follow-ups are on track!</p>
+      </li>
+    `;
+    return;
+  }
+  
+  container.innerHTML = todayActions.map((action, idx) => `
+    <li class="today-item ${action.completed ? 'completed' : ''}" draggable="true" data-idx="${idx}">
+      <span class="today-handle">⋮⋮</span>
+      <div class="today-checkbox ${action.completed ? 'checked' : ''}" onclick="toggleAction(${idx})">
+        ${action.completed ? '✓' : ''}
+      </div>
+      <div class="today-content">
+        <div class="today-action">${action.action}</div>
+        <div class="today-prospect">${action.prospectName} — ${action.reason}</div>
+      </div>
+      <span class="today-type type-${action.type.replace('_', '-')}">${action.type.replace('_', ' ')}</span>
+      <button class="btn btn-sm btn-primary" onclick="logActivity(${action.prospectId}, '${action.type}', '${action.prospectName.replace(/'/g, "\\'")}')">Log</button>
+    </li>
+  `).join('');
+  
+  // Add drag and drop
+  setupDragDrop();
+}
+
+// Toggle action complete
+function toggleAction(idx) {
+  todayActions[idx].completed = !todayActions[idx].completed;
+  renderTodayActions();
+}
+
+// Setup drag and drop
+function setupDragDrop() {
+  const items = document.querySelectorAll('.today-item');
+  let draggedItem = null;
+  
+  items.forEach(item => {
+    item.addEventListener('dragstart', () => {
+      draggedItem = item;
+      setTimeout(() => item.classList.add('dragging'), 0);
+    });
+    
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      draggedItem = null;
+    });
+    
+    item.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (draggedItem && draggedItem !== item) {
+        const rect = item.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        if (e.clientY < midY) {
+          item.parentNode.insertBefore(draggedItem, item);
+        } else {
+          item.parentNode.insertBefore(draggedItem, item.nextSibling);
+        }
+      }
+    });
+  });
+}
+
+// Calculate velocity stats
+function calculateVelocityStats() {
+  const signedProspects = prospects.filter(p => p.status === 'signed');
+  
+  // Average days to close
+  let totalDays = 0;
+  let totalTouches = 0;
+  
+  signedProspects.forEach(p => {
+    const created = new Date(p.created_at);
+    const signed = p.signed_at ? new Date(p.signed_at) : new Date(p.updated_at);
+    totalDays += Math.floor((signed - created) / (1000 * 60 * 60 * 24));
+    totalTouches += getTouchCount(p.id);
+  });
+  
+  const avgDays = signedProspects.length > 0 ? Math.round(totalDays / signedProspects.length) : 0;
+  const avgTouches = signedProspects.length > 0 ? Math.round(totalTouches / signedProspects.length * 10) / 10 : 0;
+  
+  document.getElementById('stat-avg-touches').textContent = avgTouches || '—';
+  document.getElementById('stat-avg-days').textContent = avgDays ? `${avgDays}d` : '—';
+  
+  // Stage velocity (simplified)
+  document.getElementById('vel-new').textContent = '3';
+  document.getElementById('vel-contacted').textContent = '7';
+  document.getElementById('vel-proposal').textContent = '14';
+  document.getElementById('vel-close').textContent = avgDays || '21';
+  
+  // Conversion by touch count
+  const touchBuckets = { '1-3': { total: 0, signed: 0 }, '4-6': { total: 0, signed: 0 }, '7-9': { total: 0, signed: 0 }, '10+': { total: 0, signed: 0 } };
+  
+  prospects.forEach(p => {
+    const touches = getTouchCount(p.id);
+    const bucket = touches <= 3 ? '1-3' : touches <= 6 ? '4-6' : touches <= 9 ? '7-9' : '10+';
+    touchBuckets[bucket].total++;
+    if (p.status === 'signed') touchBuckets[bucket].signed++;
+  });
+  
+  const container = document.getElementById('touch-conversion');
+  container.innerHTML = Object.entries(touchBuckets).map(([label, data]) => {
+    const rate = data.total > 0 ? Math.round((data.signed / data.total) * 100) : 0;
+    return `
+      <div class="conversion-row">
+        <span class="conversion-label">${label} touches</span>
+        <div class="conversion-bar">
+          <div class="conversion-fill" style="width: ${rate}%;"></div>
+        </div>
+        <span class="conversion-value">${rate}%</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// Log activity modal
+function logActivity(prospectId, type, prospectName) {
+  document.getElementById('modal-prospect-id').value = prospectId;
+  document.getElementById('modal-activity-type').value = type;
+  document.getElementById('modal-prospect-name').value = prospectName;
+  document.getElementById('modal-type-select').value = type;
+  document.getElementById('modal-title').textContent = `Log Activity: ${prospectName}`;
+  
+  // Set next action date to tomorrow by default
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 7);
+  document.getElementById('modal-next-date').value = tomorrow.toISOString().split('T')[0];
+  
+  document.getElementById('activity-modal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('activity-modal').classList.remove('active');
+  document.getElementById('activity-form').reset();
+}
+
+async function submitActivity(e) {
+  e.preventDefault();
+  
+  const prospectId = parseInt(document.getElementById('modal-prospect-id').value);
+  const type = document.getElementById('modal-type-select').value;
+  const outcome = document.getElementById('modal-outcome').value;
+  const notes = document.getElementById('modal-notes').value;
+  const nextAction = document.getElementById('modal-next-action').value;
+  const nextDate = document.getElementById('modal-next-date').value;
+  
+  try {
+    const res = await fetch(`/api/prospects/${prospectId}/activities`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type,
+        outcome,
+        description: notes,
+        next_action: nextAction,
+        next_action_date: nextDate
+      })
+    });
+    
+    if (res.ok) {
+      closeModal();
+      await refreshData();
+      alert('✅ Activity logged!');
+    } else {
+      alert('Failed to log activity');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Error logging activity');
+  }
+}
+
+// Fetch data
+async function fetchData() {
+  try {
+    const [prospectsRes, activitiesRes] = await Promise.all([
+      fetch('/api/prospects'),
+      fetch('/api/activities')
+    ]);
+    
+    prospects = await prospectsRes.json();
+    activities = await activitiesRes.json();
+  } catch (err) {
+    console.error('Failed to fetch data:', err);
+  }
+}
+
+// Refresh all data
+async function refreshData() {
+  await fetchData();
+  renderOverdueList();
+  renderTodayActions();
+  calculateVelocityStats();
+}
+
+// Init
+loadRules();
+refreshData();
+</script>
+</body>
+</html>

@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Resources & Training — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #0f172a;
+      --muted: #64748b; --accent: #3b82f6; --accent-light: #eff6ff;
+      --green: #22c55e; --green-light: #f0fdf4;
+      --amber: #f59e0b; --amber-light: #fffbeb;
+      --red: #ef4444; --red-light: #fef2f2;
+      --purple: #8b5cf6; --purple-light: #f5f3ff;
+      --radius: 12px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    .page { max-width: 1100px; margin: 0 auto; padding: 24px 28px 60px; }
+
+    /* Header */
+    .page-header { margin-bottom: 28px; }
+    .page-header h1 { font-size: 1.6rem; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center; gap: 12px; }
+    .page-header p { font-size: 0.9rem; color: var(--muted); max-width: 600px; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 0; overflow-x: auto; }
+    .tab {
+      padding: 12px 20px; font-size: 0.85rem; font-weight: 600; color: var(--muted);
+      background: none; border: none; cursor: pointer; white-space: nowrap;
+      border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* Tab Content */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Cards */
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 24px; margin-bottom: 20px;
+    }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .card-title { font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+
+    /* Grid */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+    /* Accordion */
+    .accordion { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 16px; }
+    .accordion-item { border-bottom: 1px solid var(--border); }
+    .accordion-item:last-child { border-bottom: none; }
+    .accordion-trigger {
+      width: 100%; padding: 16px 20px; background: var(--card); border: none;
+      font-size: 0.92rem; font-weight: 600; color: var(--text); text-align: left;
+      cursor: pointer; display: flex; align-items: center; gap: 12px;
+      transition: background 0.15s;
+    }
+    .accordion-trigger:hover { background: #f8fafc; }
+    .accordion-trigger .icon { font-size: 1.1rem; }
+    .accordion-trigger .arrow { margin-left: auto; font-size: 0.7rem; color: var(--muted); transition: transform 0.2s; }
+    .accordion-trigger.open .arrow { transform: rotate(180deg); }
+    .accordion-content {
+      display: none; padding: 0 20px 20px; background: var(--card);
+      font-size: 0.88rem; color: #475569;
+    }
+    .accordion-content.open { display: block; }
+    .accordion-content p { margin-bottom: 12px; }
+    .accordion-content ul { margin-left: 20px; margin-bottom: 12px; }
+    .accordion-content li { margin-bottom: 6px; }
+    .accordion-content .tip {
+      background: var(--accent-light); border-left: 3px solid var(--accent);
+      padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 12px 0;
+      font-size: 0.85rem;
+    }
+    .accordion-content .warning {
+      background: var(--red-light); border-left: 3px solid var(--red);
+      padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 12px 0;
+      font-size: 0.85rem;
+    }
+    .accordion-content .success {
+      background: var(--green-light); border-left: 3px solid var(--green);
+      padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 12px 0;
+      font-size: 0.85rem;
+    }
+
+    /* Doc List */
+    .doc-list { list-style: none; }
+    .doc-item {
+      display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+      border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px;
+      background: var(--card); transition: box-shadow 0.15s;
+    }
+    .doc-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .doc-icon { font-size: 1.4rem; }
+    .doc-info { flex: 1; }
+    .doc-name { font-weight: 600; font-size: 0.9rem; margin-bottom: 2px; }
+    .doc-desc { font-size: 0.78rem; color: var(--muted); }
+    .doc-btn {
+      padding: 8px 14px; background: var(--accent); color: #fff; border: none;
+      border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+      text-decoration: none; transition: background 0.15s;
+    }
+    .doc-btn:hover { background: #2563eb; }
+    .doc-btn.secondary { background: #f1f5f9; color: var(--text); }
+    .doc-btn.secondary:hover { background: #e2e8f0; }
+
+    /* Search */
+    .search-box {
+      display: flex; gap: 10px; margin-bottom: 20px;
+    }
+    .search-input {
+      flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 0.88rem; background: var(--card);
+    }
+    .search-input:focus { outline: none; border-color: var(--accent); }
+    .filter-select {
+      padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 0.88rem; background: var(--card); cursor: pointer;
+    }
+
+    /* Video Placeholder */
+    .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .video-placeholder {
+      background: linear-gradient(135deg, #1e3a5f 0%, #334155 100%);
+      border-radius: 12px; padding: 40px 24px; text-align: center; color: #fff;
+      min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .video-placeholder .play-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.8; }
+    .video-placeholder h4 { font-size: 0.95rem; margin-bottom: 6px; }
+    .video-placeholder p { font-size: 0.78rem; opacity: 0.7; }
+
+    /* FAQ */
+    .faq-item { margin-bottom: 16px; }
+    .faq-q {
+      font-weight: 600; font-size: 0.92rem; margin-bottom: 8px;
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+    .faq-q::before { content: 'Q'; background: var(--accent); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; }
+    .faq-a {
+      font-size: 0.88rem; color: #475569; padding-left: 32px;
+    }
+
+    /* Links Grid */
+    .links-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    .link-card {
+      display: flex; align-items: center; gap: 14px; padding: 16px 18px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      text-decoration: none; color: var(--text); transition: all 0.15s;
+    }
+    .link-card:hover { border-color: var(--accent); box-shadow: 0 2px 8px rgba(59,130,246,0.1); }
+    .link-icon { font-size: 1.6rem; }
+    .link-info h4 { font-size: 0.9rem; font-weight: 600; margin-bottom: 2px; }
+    .link-info p { font-size: 0.78rem; color: var(--muted); }
+    .link-arrow { margin-left: auto; color: var(--muted); font-size: 0.9rem; }
+
+    /* Shortcuts */
+    .shortcuts-table { width: 100%; border-collapse: collapse; }
+    .shortcuts-table th { text-align: left; font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    .shortcuts-table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.88rem; }
+    .shortcuts-table tr:last-child td { border-bottom: none; }
+    .kbd {
+      display: inline-block; background: #f1f5f9; border: 1px solid var(--border);
+      border-radius: 4px; padding: 2px 8px; font-family: monospace; font-size: 0.8rem;
+      margin-right: 4px;
+    }
+
+    /* Glossary */
+    .glossary-item { margin-bottom: 16px; }
+    .glossary-term { font-weight: 700; font-size: 0.92rem; color: var(--accent); margin-bottom: 4px; }
+    .glossary-def { font-size: 0.88rem; color: #475569; }
+
+    /* Quick Start Steps */
+    .steps { counter-reset: step; }
+    .step {
+      position: relative; padding-left: 50px; margin-bottom: 20px;
+    }
+    .step::before {
+      counter-increment: step;
+      content: counter(step);
+      position: absolute; left: 0; top: 0;
+      width: 36px; height: 36px; background: var(--accent); color: #fff;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.9rem;
+    }
+    .step h4 { font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; }
+    .step p { font-size: 0.88rem; color: #475569; }
+
+    /* Badge */
+    .badge {
+      display: inline-block; padding: 3px 10px; border-radius: 20px;
+      font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    }
+    .badge.new { background: var(--green-light); color: var(--green); }
+    .badge.coming { background: var(--amber-light); color: var(--amber); }
+    .badge.essential { background: var(--purple-light); color: var(--purple); }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .page { padding: 16px; }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .tabs { gap: 0; }
+      .tab { padding: 10px 14px; font-size: 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+<script src="/nav.js"></script>
+
+<div class="page">
+  <div class="page-header">
+    <h1>📚 Resources & Training</h1>
+    <p>Everything you need to master vending sales and operations. Start with the basics, then level up with advanced strategies from the Vendingpreneurs community.</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-tab="getting-started">Getting Started</button>
+    <button class="tab" data-tab="training">Training Modules</button>
+    <button class="tab" data-tab="documents">Document Library</button>
+    <button class="tab" data-tab="videos">Training Videos</button>
+    <button class="tab" data-tab="faq">FAQ</button>
+    <button class="tab" data-tab="links">Useful Links</button>
+    <button class="tab" data-tab="shortcuts">Shortcuts</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB: Getting Started -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="tab-content active" id="getting-started">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🚀 Quick Start Guide</span>
+          <span class="badge essential">Essential</span>
+        </div>
+        <div class="steps">
+          <div class="step">
+            <h4>Set Up Your Dashboard</h4>
+            <p>Log in daily. Your dashboard shows prospects, tasks, and performance at a glance. Bookmark it!</p>
+          </div>
+          <div class="step">
+            <h4>Import Your First Leads</h4>
+            <p>Go to <strong>Sales → Lead Import</strong> to bulk import apartments, warehouses, or other prospects from CSV.</p>
+          </div>
+          <div class="step">
+            <h4>Start Pop-Ins (5/day minimum)</h4>
+            <p>Use <strong>Daily Planner</strong> to schedule visits. Log every interaction in the CRM. Consistency wins.</p>
+          </div>
+          <div class="step">
+            <h4>Track Everything in Pipeline</h4>
+            <p>Move prospects through stages: Lead → Contacted → Site Survey → Proposal → Signed. Never lose track.</p>
+          </div>
+          <div class="step">
+            <h4>Generate Proposals & Contracts</h4>
+            <p>Use <strong>Proposal Generator</strong> and <strong>Contract Generator</strong> to create professional documents in seconds.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🧭 Dashboard Navigation</span>
+        </div>
+        <p style="font-size:0.88rem;color:#475569;margin-bottom:16px;">Quick tour of the main sections:</p>
+        <ul class="doc-list">
+          <li class="doc-item">
+            <span class="doc-icon">🏠</span>
+            <div class="doc-info">
+              <div class="doc-name">Dashboard</div>
+              <div class="doc-desc">Overview of stats, pipeline, tasks, and recent activity</div>
+            </div>
+          </li>
+          <li class="doc-item">
+            <span class="doc-icon">📅</span>
+            <div class="doc-info">
+              <div class="doc-name">Today / Daily Planner</div>
+              <div class="doc-desc">Your daily schedule, pop-ins, and priority tasks</div>
+            </div>
+          </li>
+          <li class="doc-item">
+            <span class="doc-icon">📊</span>
+            <div class="doc-info">
+              <div class="doc-name">Sales Menu</div>
+              <div class="doc-desc">CRM, Pipeline, Proposals, Contracts, Follow-Ups</div>
+            </div>
+          </li>
+          <li class="doc-item">
+            <span class="doc-icon">⚙️</span>
+            <div class="doc-info">
+              <div class="doc-name">Operations Menu</div>
+              <div class="doc-desc">Routes, Inventory, Fleet, Restock scheduling</div>
+            </div>
+          </li>
+          <li class="doc-item">
+            <span class="doc-icon">🧠</span>
+            <div class="doc-info">
+              <div class="doc-name">Intelligence Menu</div>
+              <div class="doc-desc">Analytics, Product Mix, Win/Loss Analysis</div>
+            </div>
+          </li>
+          <li class="doc-item">
+            <span class="doc-icon">💰</span>
+            <div class="doc-info">
+              <div class="doc-name">Financial</div>
+              <div class="doc-desc">Revenue tracking, expenses, profit/loss</div>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📖 Key Terminology Glossary</span>
+      </div>
+      <div class="grid-3">
+        <div class="glossary-item">
+          <div class="glossary-term">Pop-In</div>
+          <div class="glossary-def">An unannounced in-person visit to a prospect. The #1 way to close deals. Bring a gift basket!</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Smart Market</div>
+          <div class="glossary-def">What we call vending machines. NEVER say "vending machine" to prospects — it sounds outdated.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Rev Share</div>
+          <div class="glossary-def">Revenue sharing with property. Typically 3-5% starting month 6. Use as a closing incentive.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">COGS</div>
+          <div class="glossary-def">Cost of Goods Sold. Target 33% (3x markup). Track this religiously.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Touch</div>
+          <div class="glossary-def">Any contact with a prospect (call, email, pop-in). Takes 8-10 touches to close.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Pull Threshold</div>
+          <div class="glossary-def">If a machine does &lt;$800/month after 90 days, PULL IT. Don't let pride keep bad placements.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">NetVendor</div>
+          <div class="glossary-def">Vendor certification required by Greystar and other large property managers. Get certified ASAP.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Planogram</div>
+          <div class="glossary-def">The layout of products in a machine. Optimize based on sales data and property type.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Route Efficiency</div>
+          <div class="glossary-def">Target 70% servicing, 30% driving. Cluster locations geographically.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB: Training Modules -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="tab-content" id="training">
+    <div class="accordion">
+      <!-- Sales 101 -->
+      <div class="accordion-item">
+        <button class="accordion-trigger">
+          <span class="icon">🎯</span>
+          Sales 101: The Kande Approach
+          <span class="badge new">Start Here</span>
+          <span class="arrow">▼</span>
+        </button>
+        <div class="accordion-content">
+          <p><strong>The Kande VendTech philosophy:</strong> We're not selling vending machines — we're providing a premium amenity that increases property value and tenant satisfaction.</p>
+          
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">Core Principles</h4>
+          <ul>
+            <li><strong>Local advantage:</strong> "I'm local. You can call me." — This beats national operators every time.</li>
+            <li><strong>Relationship first:</strong> Don't pitch on the first visit. Build rapport, drop a gift basket, learn their needs.</li>
+            <li><strong>Persistence wins:</strong> 8-10 touches to close. Most give up after 2. Don't be most people.</li>
+            <li><strong>Quality over quantity:</strong> One great location beats ten mediocre ones.</li>
+          </ul>
+
+          <div class="tip">
+            <strong>💡 Pro Tip:</strong> Property managers get 10+ smart market pitches per month. Stand out by showing up in person with value (gift basket, industry insights) — not just another sales email.
+          </div>
+
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">Language Matters</h4>
+          <ul>
+            <li>❌ "Vending machine" → ✅ "Smart market" or "refreshment amenity"</li>
+            <li>❌ "Can I place a machine?" → ✅ "Would your residents benefit from 24/7 refreshment access?"</li>
+            <li>❌ "It's free" → ✅ "Zero cost to you, plus revenue share after month 6"</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Pop-In Best Practices -->
+      <div class="accordion-item">
+        <button class="accordion-trigger">
+          <span class="icon">📍</span>
+          Pop-In Best Practices
+          <span class="badge essential">Essential</span>
+          <span class="arrow">▼</span>
+        </button>
+        <div class="accordion-content">
+          <p>Pop-ins are responsible for <strong>90% of successful placements</strong>. Master this skill.</p>
+
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">Before You Go</h4>
+          <ul>
+            <li>Research the property (units, reviews, existing amenities)</li>
+            <li>Prepare a gift basket ($5 from Costco — snacks + business card)</li>
+            <li>Have your proposal PDF ready on your phone</li>
+            <li>Dress smart casual — you're a business owner, not a salesman</li>
+          </ul>
+
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">The Three Questions</h4>
+          <ol>
+            <li>"Do you currently have a vending or refreshment option for residents?"</li>
+            <li>"How's that working out? Are residents happy with it?"</li>
+            <li>"If you could change anything about it, what would that be?"</li>
+          </ol>
+
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">Handling Gatekeepers</h4>
+          <ul>
+            <li>Always be friendly to front desk staff — they control access</li>
+            <li>Ask for the property manager BY NAME if you have it</li>
+            <li>If PM is busy: "No problem! Could I leave this gift basket for [name]?"</li>
+            <li>Always get a business card or name for follow-up</li>
+          </ul>
+
+          <div class="success">
+            <strong>✅ Success Script:</strong> "Hi! I'm Kurtis with Kande VendTech — we're a local Las Vegas company that provides smart refreshment solutions for luxury apartments. I was in the area and wanted to introduce myself. Is [PM name] available for just a quick hello?"
+          </div>
+
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">After the Visit</h4>
+          <ul>
+            <li>Log the visit in CRM immediately (notes, outcome, next action)</li>
+            <li>Send a follow-up email within 24 hours</li>
+            <li>Schedule your next touch (call in 3-5 days if interested)</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Cold Calling -->
+      <div class="accordion-item">
+        <button class="accordion-trigger">
+          <span class="icon">📞</span>
+          Cold Calling Fundamentals
+          <span class="arrow">▼</span>
+        </button>
+        <div class="accordion-content">
+          <p>Cold calls work best as <strong>follow-ups to pop-ins</strong>, not first contact. But sometimes you need to call first.</p>
+
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">Best Times to Call</h4>
+          <ul>
+            <li>Tuesday–Thursday, 10am–11:30am or 2pm–4pm</li>
+            <li>Avoid Monday mornings and Friday afternoons</li>
+            <li>Property managers are often in meetings before 10am</li>
+          </ul>
+
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">Opening Script</h4>
+          <p style="background:#f1f5f9;padding:12px;border-radius:8px;font-size:0.85rem;">
+            "Hi [Name], this is Kurtis with Kande VendTech. We're a local Las Vegas company that helps luxury apartments enhance their amenity offerings with smart refreshment solutions. I noticed [property name] and thought your residents might benefit. Do you have 2 minutes for a quick question?"
+          </p>
+
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">If They Say "Send Info"</h4>
+          <ul>
+            <li>Get their email and send immediately</li>
+            <li>Ask: "What specifically would you like me to include?"</li>
+            <li>Schedule a call: "Great, I'll send that now. Can I follow up Thursday to answer any questions?"</li>
+          </ul>
+
+          <div class="warning">
+            <strong>⚠️ Don't:</strong> Read from a script robotically. Sound like every other vendor. Push too hard on the first call. Forget to log the call in CRM.
+          </div>
+        </div>
+      </div>
+
+      <!-- Email Outreach -->
+      <div class="accordion-item">
+        <button class="accordion-trigger">
+          <span class="icon">📧</span>
+          Email Outreach Tips
+          <span class="arrow">▼</span>
+        </button>
+        <div class="accordion-content">
+          <p>Email is the <strong>least effective</strong> first-touch method, but essential for follow-ups and sequences.</p>
+
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">Subject Lines That Work</h4>
+          <ul>
+            <li>"Quick question about [Property Name]"</li>
+            <li>"Resident amenity idea for [Property Name]"</li>
+            <li>"Following up from my visit Tuesday"</li>
+            <li>"[Mutual connection] suggested I reach out"</li>
+          </ul>
+
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">Email Structure</h4>
+          <ol>
+            <li><strong>Hook:</strong> Reference something specific about them/property</li>
+            <li><strong>Value:</strong> One clear benefit (not features)</li>
+            <li><strong>Proof:</strong> Quick stat or social proof</li>
+            <li><strong>CTA:</strong> One simple ask (call, meeting, reply)</li>
+          </ol>
+
+          <div class="tip">
+            <strong>💡 Use the Email Templates page:</strong> Pre-built sequences for different scenarios — just customize and send.
+          </div>
+
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">Apollo Sequences</h4>
+          <p>Set up multi-step sequences that automatically follow up. Typical sequence:</p>
+          <ul>
+            <li>Day 1: Initial email</li>
+            <li>Day 3: Follow-up if no reply</li>
+            <li>Day 7: Value-add email (case study, stat)</li>
+            <li>Day 14: Final "closing the loop" email</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Gift Basket Strategy -->
+      <div class="accordion-item">
+        <button class="accordion-trigger">
+          <span class="icon">🎁</span>
+          Gift Basket Strategy
+          <span class="arrow">▼</span>
+        </button>
+        <div class="accordion-content">
+          <p>Gift baskets are the #1 differentiator in vending sales. They work because <strong>nobody else does this</strong>.</p>
+
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">What to Include ($5-10 budget)</h4>
+          <ul>
+            <li>2-3 premium snacks (Kind bars, Skinny Pop, quality chocolate)</li>
+            <li>1-2 beverages (sparkling water, premium soda)</li>
+            <li>Your business card</li>
+            <li>Small branded item if you have one</li>
+            <li>Cellophane wrap with ribbon — presentation matters!</li>
+          </ul>
+
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">Where to Buy</h4>
+          <ul>
+            <li><strong>Costco Business Center</strong> — Best bulk pricing</li>
+            <li><strong>Sam's Club</strong> — Good alternative</li>
+            <li><strong>Dollar Tree</strong> — Baskets, cellophane, ribbons</li>
+          </ul>
+
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">When to Use</h4>
+          <ul>
+            <li>✅ First pop-in (always)</li>
+            <li>✅ After getting a meeting scheduled</li>
+            <li>✅ After they sign (bigger basket)</li>
+            <li>✅ Holiday drop-offs to existing clients</li>
+            <li>❌ With a cold email (they can't eat a PDF)</li>
+          </ul>
+
+          <div class="success">
+            <strong>✅ ROI:</strong> $5 basket → one placement → $24,000+/year revenue. Best investment in your business.
+          </div>
+        </div>
+      </div>
+
+      <!-- Closing Techniques -->
+      <div class="accordion-item">
+        <button class="accordion-trigger">
+          <span class="icon">🤝</span>
+          Closing Techniques
+          <span class="arrow">▼</span>
+        </button>
+        <div class="accordion-content">
+          <p>You've built the relationship. Now it's time to ask for the business.</p>
+
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">Trial Close Questions</h4>
+          <ul>
+            <li>"If we could address [concern], would you be ready to move forward?"</li>
+            <li>"On a scale of 1-10, how interested are you? What would make it a 10?"</li>
+            <li>"What would need to happen for this to be a yes?"</li>
+          </ul>
+
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">The Assumptive Close</h4>
+          <p>Once they're interested, assume the sale:</p>
+          <ul>
+            <li>"Great! I'll have the agreement ready by Friday. Should I email or bring it in person?"</li>
+            <li>"Perfect. Let's look at installation timing — does next week work?"</li>
+          </ul>
+
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">Referral Ask (Critical!)</h4>
+          <p style="background:#f1f5f9;padding:12px;border-radius:8px;font-size:0.85rem;">
+            "Thank you so much! Quick question — do you know 2-3 other property managers who might benefit from this? If you introduce me, I'll start your revenue share immediately instead of waiting until month 6."
+          </p>
+
+          <div class="tip">
+            <strong>💡 Timing:</strong> Ask for referrals RIGHT after they sign, when excitement is highest.
+          </div>
+        </div>
+      </div>
+
+      <!-- Handling Objections -->
+      <div class="accordion-item">
+        <button class="accordion-trigger">
+          <span class="icon">🛡️</span>
+          Handling Objections
+          <span class="arrow">▼</span>
+        </button>
+        <div class="accordion-content">
+          <p>Objections aren't rejections — they're requests for more information.</p>
+
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">"We already have vending"</h4>
+          <p><strong>Response:</strong> "That's great! How's the current service? [Pause] Most properties I work with had vending before and switched because of [common complaint]. Would you be open to seeing what's different about our smart market approach?"</p>
+
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">"I need to check with corporate"</h4>
+          <p><strong>Response:</strong> "Absolutely understand. What information would help you make the case? I can put together a one-pager specifically for regional review. Who would be the decision-maker I should address it to?"</p>
+
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">"We don't have space"</h4>
+          <p><strong>Response:</strong> "Our machines are quite compact — about the size of a standard refrigerator. Many properties put them in the fitness center, mailroom, or near the pool. Could I take a quick look to see if there's a creative solution?"</p>
+
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">"Send me information"</h4>
+          <p><strong>Response:</strong> "Happy to! What specifically would be most helpful — pricing, the resident satisfaction data, or success stories from similar properties? And when would be a good time to follow up — Thursday or Friday?"</p>
+
+          <h4 style="margin:16px 0 8px;font-size:0.9rem;">"Not interested"</h4>
+          <p><strong>Response:</strong> "No problem at all. Mind if I ask — is it the timing, the service concept, or something else? I want to make sure I'm not missing something that could actually help your residents."</p>
+
+          <div class="warning">
+            <strong>⚠️ Never argue.</strong> Acknowledge their concern, ask a question, provide value. If they're firm, thank them and move on — but add them to your 6-month follow-up list.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB: Document Library -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="tab-content" id="documents">
+    <div class="search-box">
+      <input type="text" class="search-input" id="doc-search" placeholder="Search documents...">
+      <select class="filter-select" id="doc-filter">
+        <option value="">All Categories</option>
+        <option value="sales">Sales Materials</option>
+        <option value="contracts">Contracts & Legal</option>
+        <option value="operations">Operations</option>
+        <option value="finance">Finance</option>
+      </select>
+    </div>
+
+    <ul class="doc-list" id="doc-list">
+      <!-- Sales Materials -->
+      <li class="doc-item" data-category="sales">
+        <span class="doc-icon">📝</span>
+        <div class="doc-info">
+          <div class="doc-name">Proposal Template</div>
+          <div class="doc-desc">Professional property proposal — customize per prospect</div>
+        </div>
+        <a class="doc-btn" href="/proposal-generator">Generate →</a>
+      </li>
+      <li class="doc-item" data-category="sales">
+        <span class="doc-icon">📊</span>
+        <div class="doc-info">
+          <div class="doc-name">Revenue Calculator</div>
+          <div class="doc-desc">Show prospects projected revenue based on units/employees</div>
+        </div>
+        <a class="doc-btn" href="/revenue-calculator">Open →</a>
+      </li>
+      <li class="doc-item" data-category="sales">
+        <span class="doc-icon">📧</span>
+        <div class="doc-info">
+          <div class="doc-name">Email Templates</div>
+          <div class="doc-desc">Pre-written sequences for cold outreach and follow-ups</div>
+        </div>
+        <a class="doc-btn" href="/email-templates">View →</a>
+      </li>
+      <li class="doc-item" data-category="sales">
+        <span class="doc-icon">📞</span>
+        <div class="doc-info">
+          <div class="doc-name">Call Scripts</div>
+          <div class="doc-desc">Phone scripts for different scenarios and objections</div>
+        </div>
+        <a class="doc-btn" href="/call-scripts">View →</a>
+      </li>
+
+      <!-- Contracts & Legal -->
+      <li class="doc-item" data-category="contracts">
+        <span class="doc-icon">📄</span>
+        <div class="doc-info">
+          <div class="doc-name">Service Agreement</div>
+          <div class="doc-desc">Standard 3-5 year vending service contract</div>
+        </div>
+        <a class="doc-btn" href="/contract-generator">Generate →</a>
+      </li>
+      <li class="doc-item" data-category="contracts">
+        <span class="doc-icon">🤝</span>
+        <div class="doc-info">
+          <div class="doc-name">Revenue Share Addendum</div>
+          <div class="doc-desc">Optional rev share terms (3-5% starting month 6)</div>
+        </div>
+        <a class="doc-btn secondary" href="/contract-generator">Generate →</a>
+      </li>
+      <li class="doc-item" data-category="contracts">
+        <span class="doc-icon">📋</span>
+        <div class="doc-info">
+          <div class="doc-name">Site Survey Form</div>
+          <div class="doc-desc">Checklist for evaluating new locations</div>
+        </div>
+        <a class="doc-btn" href="/property-analysis">Open →</a>
+      </li>
+
+      <!-- Operations -->
+      <li class="doc-item" data-category="operations">
+        <span class="doc-icon">📦</span>
+        <div class="doc-info">
+          <div class="doc-name">Restock Checklist</div>
+          <div class="doc-desc">Standard operating procedure for machine restocking</div>
+        </div>
+        <a class="doc-btn" href="/restock">Open →</a>
+      </li>
+      <li class="doc-item" data-category="operations">
+        <span class="doc-icon">🗺️</span>
+        <div class="doc-info">
+          <div class="doc-name">Route Templates</div>
+          <div class="doc-desc">Optimized weekly route schedules</div>
+        </div>
+        <a class="doc-btn" href="/weekly-routes">Open →</a>
+      </li>
+      <li class="doc-item" data-category="operations">
+        <span class="doc-icon">🎯</span>
+        <div class="doc-info">
+          <div class="doc-name">Product Mix Guide</div>
+          <div class="doc-desc">Recommended products by property type</div>
+        </div>
+        <a class="doc-btn" href="/product-mix">Open →</a>
+      </li>
+
+      <!-- Finance -->
+      <li class="doc-item" data-category="finance">
+        <span class="doc-icon">💰</span>
+        <div class="doc-info">
+          <div class="doc-name">Financial Dashboard</div>
+          <div class="doc-desc">Revenue, expenses, and profit tracking</div>
+        </div>
+        <a class="doc-btn" href="/financials">Open →</a>
+      </li>
+      <li class="doc-item" data-category="finance">
+        <span class="doc-icon">📈</span>
+        <div class="doc-info">
+          <div class="doc-name">Performance Reports</div>
+          <div class="doc-desc">Machine and product performance analytics</div>
+        </div>
+        <a class="doc-btn" href="/performance">Open →</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB: Training Videos -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="tab-content" id="videos">
+    <div class="card" style="background:linear-gradient(135deg,#1e3a5f,#334155);color:#fff;text-align:center;padding:40px;">
+      <h2 style="font-size:1.4rem;margin-bottom:12px;">🎬 Training Videos Coming Soon</h2>
+      <p style="opacity:0.85;max-width:500px;margin:0 auto;">We're producing video tutorials covering sales techniques, operations, and success stories. Check back soon!</p>
+    </div>
+
+    <h3 style="font-size:1rem;margin:28px 0 16px;font-weight:700;">Planned Video Library</h3>
+    <div class="video-grid">
+      <div class="video-placeholder">
+        <span class="play-icon">▶️</span>
+        <h4>Perfect Pop-In Walkthrough</h4>
+        <p>Live demo of a successful pop-in visit</p>
+      </div>
+      <div class="video-placeholder">
+        <span class="play-icon">▶️</span>
+        <h4>Dashboard Deep Dive</h4>
+        <p>Complete tour of all features</p>
+      </div>
+      <div class="video-placeholder">
+        <span class="play-icon">▶️</span>
+        <h4>Handling Objections</h4>
+        <p>Real responses to common pushback</p>
+      </div>
+      <div class="video-placeholder">
+        <span class="play-icon">▶️</span>
+        <h4>Machine Setup & Maintenance</h4>
+        <p>Installation to daily operations</p>
+      </div>
+      <div class="video-placeholder">
+        <span class="play-icon">▶️</span>
+        <h4>Proposal Presentation</h4>
+        <p>How to present to property managers</p>
+      </div>
+      <div class="video-placeholder">
+        <span class="play-icon">▶️</span>
+        <h4>Route Optimization</h4>
+        <p>Efficient restocking strategies</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB: FAQ -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="tab-content" id="faq">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🏢 Business Questions</span>
+        </div>
+        
+        <div class="faq-item">
+          <div class="faq-q">How long does it take to close a deal?</div>
+          <div class="faq-a">Typically 10-17+ weeks from first contact to signed contract. It takes 8-10 touches, so start the clock early and stay consistent.</div>
+        </div>
+        
+        <div class="faq-item">
+          <div class="faq-q">What's a good monthly revenue target per machine?</div>
+          <div class="faq-a">Minimum $2,000/month for it to be worthwhile. Great locations do $3,000-5,000+. If under $800/month after 90 days, pull the machine.</div>
+        </div>
+        
+        <div class="faq-item">
+          <div class="faq-q">What locations should I avoid?</div>
+          <div class="faq-a">Gyms (especially bodybuilding), car dealerships, small medical offices, offices under 50 employees, the Las Vegas Strip (monopolized), and big retail chain breakrooms.</div>
+        </div>
+        
+        <div class="faq-item">
+          <div class="faq-q">How much revenue share should I offer?</div>
+          <div class="faq-a">3-5% of gross revenue, starting month 6 (not immediately). Use as a closing incentive, not a default offer.</div>
+        </div>
+        
+        <div class="faq-item">
+          <div class="faq-q">When should I hire help?</div>
+          <div class="faq-a">Around 12+ machines, you need help restocking. Budget $20/hour for restock drivers. Buy a van around 15 machines.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">💻 Dashboard Questions</span>
+        </div>
+        
+        <div class="faq-item">
+          <div class="faq-q">How do I import leads in bulk?</div>
+          <div class="faq-a">Go to Sales → Lead Import. You can paste CSV data or upload a file. The system will dedupe and geocode automatically.</div>
+        </div>
+        
+        <div class="faq-item">
+          <div class="faq-q">Where do I log a pop-in visit?</div>
+          <div class="faq-a">In the CRM, find the prospect and click "Log Activity." Select "Pop-In" as the type, add notes about the conversation, and set your next action.</div>
+        </div>
+        
+        <div class="faq-item">
+          <div class="faq-q">How does the pipeline work?</div>
+          <div class="faq-a">Pipeline Board shows prospects as cards in stages. Drag cards between stages as deals progress. Each stage has automated task suggestions.</div>
+        </div>
+        
+        <div class="faq-item">
+          <div class="faq-q">Can I generate contracts automatically?</div>
+          <div class="faq-a">Yes! Use Sales → Contract Generator. Fill in the property details and it creates a professional PDF ready for signature.</div>
+        </div>
+        
+        <div class="faq-item">
+          <div class="faq-q">How do I track follow-ups?</div>
+          <div class="faq-a">The Follow-Ups page shows all scheduled next actions. You can also see overdue items on your Dashboard and Daily Planner.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">⚙️ Process Questions</span>
+      </div>
+      <div class="grid-2">
+        <div class="faq-item">
+          <div class="faq-q">What licenses do I need in Nevada?</div>
+          <div class="faq-a">Henderson business license, Clark County business license (for locations outside Henderson), SNHD health permit, and sales tax permit. Consider NetVendor certification for Greystar properties.</div>
+        </div>
+        
+        <div class="faq-item">
+          <div class="faq-q">What's the best machine to buy?</div>
+          <div class="faq-a">SandStar AI Smart Cooler at $3,600 is the community favorite. $65/mo SaaS, 5-year warranty, AMEX accepted. Consider eVending or HaHa financing.</div>
+        </div>
+        
+        <div class="faq-item">
+          <div class="faq-q">How do I handle spoilage?</div>
+          <div class="faq-a">Budget 2% of COGS for spoilage. Track expiration dates in inventory. Rotate stock (FIFO). Remove slow sellers after 4 weeks.</div>
+        </div>
+        
+        <div class="faq-item">
+          <div class="faq-q">What payment processing should I use?</div>
+          <div class="faq-a">WeVend/Preva saves ~$1,656/year vs Stripe. ~5.5-5.9% flat rate, no per-transaction fee. Set up before machines ship.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB: Useful Links -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="tab-content" id="links">
+    <h3 style="font-size:1rem;margin-bottom:16px;font-weight:700;">🎓 Community & Learning</h3>
+    <div class="links-grid">
+      <a class="link-card" href="https://www.skool.com/vendingpreneurs" target="_blank">
+        <span class="link-icon">🏫</span>
+        <div class="link-info">
+          <h4>Vendingpreneurs Skool</h4>
+          <p>8,000+ posts of operator insights</p>
+        </div>
+        <span class="link-arrow">→</span>
+      </a>
+      <a class="link-card" href="/playbook">
+        <span class="link-icon">📖</span>
+        <div class="link-info">
+          <h4>Kande Playbook</h4>
+          <p>Internal strategies and SOPs</p>
+        </div>
+        <span class="link-arrow">→</span>
+      </a>
+    </div>
+
+    <h3 style="font-size:1rem;margin:28px 0 16px;font-weight:700;">🛒 Suppliers</h3>
+    <div class="links-grid">
+      <a class="link-card" href="https://www.costcobusinessdelivery.com" target="_blank">
+        <span class="link-icon">🏪</span>
+        <div class="link-info">
+          <h4>Costco Business Center</h4>
+          <p>Bulk snacks, beverages, supplies</p>
+        </div>
+        <span class="link-arrow">→</span>
+      </a>
+      <a class="link-card" href="https://www.samsclub.com" target="_blank">
+        <span class="link-icon">🏬</span>
+        <div class="link-info">
+          <h4>Sam's Club</h4>
+          <p>Alternative wholesale supplier</p>
+        </div>
+        <span class="link-arrow">→</span>
+      </a>
+      <a class="link-card" href="https://www.vistar.com" target="_blank">
+        <span class="link-icon">🚚</span>
+        <div class="link-info">
+          <h4>Vistar</h4>
+          <p>Vending distributor — get USG rebates</p>
+        </div>
+        <span class="link-arrow">→</span>
+      </a>
+      <a class="link-card" href="https://venmarket.com" target="_blank">
+        <span class="link-icon">📦</span>
+        <div class="link-info">
+          <h4>VenMarket</h4>
+          <p>Order once → USG rebate enrollment</p>
+        </div>
+        <span class="link-arrow">→</span>
+      </a>
+    </div>
+
+    <h3 style="font-size:1rem;margin:28px 0 16px;font-weight:700;">🏛️ Nevada Business Resources</h3>
+    <div class="links-grid">
+      <a class="link-card" href="https://www.nvsos.gov/sos" target="_blank">
+        <span class="link-icon">📜</span>
+        <div class="link-info">
+          <h4>Nevada Secretary of State</h4>
+          <p>LLC registration and filings</p>
+        </div>
+        <span class="link-arrow">→</span>
+      </a>
+      <a class="link-card" href="https://tax.nv.gov" target="_blank">
+        <span class="link-icon">💵</span>
+        <div class="link-info">
+          <h4>Nevada Dept of Taxation</h4>
+          <p>Sales tax permit registration</p>
+        </div>
+        <span class="link-arrow">→</span>
+      </a>
+      <a class="link-card" href="https://www.southernnevadahealthdistrict.org" target="_blank">
+        <span class="link-icon">🏥</span>
+        <div class="link-info">
+          <h4>SNHD Health District</h4>
+          <p>Food/beverage vending permits</p>
+        </div>
+        <span class="link-arrow">→</span>
+      </a>
+      <a class="link-card" href="https://www.clarkcountynv.gov/business" target="_blank">
+        <span class="link-icon">🏢</span>
+        <div class="link-info">
+          <h4>Clark County Business License</h4>
+          <p>License for unincorporated areas</p>
+        </div>
+        <span class="link-arrow">→</span>
+      </a>
+      <a class="link-card" href="https://www.cityofhenderson.com/business" target="_blank">
+        <span class="link-icon">🌆</span>
+        <div class="link-info">
+          <h4>Henderson Business License</h4>
+          <p>License for Henderson locations</p>
+        </div>
+        <span class="link-arrow">→</span>
+      </a>
+      <a class="link-card" href="https://netvendor.com" target="_blank">
+        <span class="link-icon">✅</span>
+        <div class="link-info">
+          <h4>NetVendor</h4>
+          <p>Vendor certification for Greystar</p>
+        </div>
+        <span class="link-arrow">→</span>
+      </a>
+    </div>
+
+    <h3 style="font-size:1rem;margin:28px 0 16px;font-weight:700;">🛠️ Equipment & Software</h3>
+    <div class="links-grid">
+      <a class="link-card" href="https://sandstar.ai" target="_blank">
+        <span class="link-icon">🤖</span>
+        <div class="link-info">
+          <h4>SandStar</h4>
+          <p>AI smart coolers — community favorite</p>
+        </div>
+        <span class="link-arrow">→</span>
+      </a>
+      <a class="link-card" href="https://wevend.com" target="_blank">
+        <span class="link-icon">💳</span>
+        <div class="link-info">
+          <h4>WeVend / Preva</h4>
+          <p>Payment processing (saves vs Stripe)</p>
+        </div>
+        <span class="link-arrow">→</span>
+      </a>
+      <a class="link-card" href="https://www.apollo.io" target="_blank">
+        <span class="link-icon">🚀</span>
+        <div class="link-info">
+          <h4>Apollo.io</h4>
+          <p>Lead enrichment & email sequences</p>
+        </div>
+        <span class="link-arrow">→</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB: Shortcuts -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="tab-content" id="shortcuts">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">⌨️ Keyboard Shortcuts</span>
+      </div>
+      <p style="font-size:0.88rem;color:#475569;margin-bottom:20px;">Quick navigation and actions throughout the dashboard.</p>
+      
+      <table class="shortcuts-table">
+        <thead>
+          <tr>
+            <th>Shortcut</th>
+            <th>Action</th>
+            <th>Page</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="kbd">G</span> <span class="kbd">H</span></td>
+            <td>Go to Home/Dashboard</td>
+            <td>Global</td>
+          </tr>
+          <tr>
+            <td><span class="kbd">G</span> <span class="kbd">C</span></td>
+            <td>Go to CRM</td>
+            <td>Global</td>
+          </tr>
+          <tr>
+            <td><span class="kbd">G</span> <span class="kbd">P</span></td>
+            <td>Go to Pipeline Board</td>
+            <td>Global</td>
+          </tr>
+          <tr>
+            <td><span class="kbd">G</span> <span class="kbd">T</span></td>
+            <td>Go to Today/Daily Planner</td>
+            <td>Global</td>
+          </tr>
+          <tr>
+            <td><span class="kbd">N</span></td>
+            <td>New Prospect</td>
+            <td>CRM</td>
+          </tr>
+          <tr>
+            <td><span class="kbd">S</span></td>
+            <td>Focus Search</td>
+            <td>CRM, Pipeline</td>
+          </tr>
+          <tr>
+            <td><span class="kbd">?</span></td>
+            <td>Show Shortcuts Help</td>
+            <td>Global</td>
+          </tr>
+          <tr>
+            <td><span class="kbd">Esc</span></td>
+            <td>Close Modal/Dialog</td>
+            <td>Global</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🖱️ Quick Actions</span>
+      </div>
+      <table class="shortcuts-table">
+        <thead>
+          <tr>
+            <th>Action</th>
+            <th>How To</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Move pipeline card</td>
+            <td>Drag and drop between columns</td>
+          </tr>
+          <tr>
+            <td>Quick edit prospect</td>
+            <td>Click prospect row → Edit panel opens</td>
+          </tr>
+          <tr>
+            <td>Log activity</td>
+            <td>Click "+" button on prospect card</td>
+          </tr>
+          <tr>
+            <td>Generate proposal</td>
+            <td>Click "Proposal" in prospect actions menu</td>
+          </tr>
+          <tr>
+            <td>Bulk select</td>
+            <td>Click checkboxes on the left</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // Tab switching
+  var tabs = document.querySelectorAll('.tab');
+  var contents = document.querySelectorAll('.tab-content');
+
+  tabs.forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      var target = tab.getAttribute('data-tab');
+      
+      tabs.forEach(function(t) { t.classList.remove('active'); });
+      contents.forEach(function(c) { c.classList.remove('active'); });
+      
+      tab.classList.add('active');
+      document.getElementById(target).classList.add('active');
+    });
+  });
+
+  // Accordion
+  document.querySelectorAll('.accordion-trigger').forEach(function(trigger) {
+    trigger.addEventListener('click', function() {
+      var wasOpen = trigger.classList.contains('open');
+      var content = trigger.nextElementSibling;
+      
+      // Close all
+      document.querySelectorAll('.accordion-trigger').forEach(function(t) {
+        t.classList.remove('open');
+        t.nextElementSibling.classList.remove('open');
+      });
+      
+      // Toggle clicked
+      if (!wasOpen) {
+        trigger.classList.add('open');
+        content.classList.add('open');
+      }
+    });
+  });
+
+  // Document search & filter
+  var searchInput = document.getElementById('doc-search');
+  var filterSelect = document.getElementById('doc-filter');
+  var docItems = document.querySelectorAll('#doc-list .doc-item');
+
+  function filterDocs() {
+    var search = (searchInput.value || '').toLowerCase();
+    var category = filterSelect.value;
+
+    docItems.forEach(function(item) {
+      var text = item.textContent.toLowerCase();
+      var itemCat = item.getAttribute('data-category') || '';
+      
+      var matchSearch = !search || text.includes(search);
+      var matchCat = !category || itemCat === category;
+      
+      item.style.display = (matchSearch && matchCat) ? 'flex' : 'none';
+    });
+  }
+
+  if (searchInput) searchInput.addEventListener('input', filterDocs);
+  if (filterSelect) filterSelect.addEventListener('change', filterDocs);
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    // Don't trigger if typing in input
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    
+    if (e.key === '?') {
+      // Switch to shortcuts tab
+      tabs.forEach(function(t) { t.classList.remove('active'); });
+      contents.forEach(function(c) { c.classList.remove('active'); });
+      document.querySelector('[data-tab="shortcuts"]').classList.add('active');
+      document.getElementById('shortcuts').classList.add('active');
+    }
+  });
+
+})();
+</script>
+</body>
+</html>

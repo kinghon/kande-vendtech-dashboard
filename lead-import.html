@@ -3,796 +3,561 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-sales-32.png">
   <title>Lead Import — Kande VendTech</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --bg: #f5f7fa;
-      --card: #ffffff;
-      --card-hover: #f7fafc;
-      --border: #e2e8f0;
-      --text: #1a202c;
-      --muted: #718096;
-      --accent: #3182ce;
-      --accent-dim: rgba(49,130,206,0.1);
-      --success: #38a169;
-      --warn: #dd6b20;
-      --hot: #e53e3e;
-      --purple: #7b2cbf;
-      --pink: #d53f8c;
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #0f172a;
+      --muted: #64748b; --accent: #3b82f6; --accent-light: #eff6ff;
+      --green: #22c55e; --green-light: #f0fdf4;
+      --amber: #f59e0b; --amber-light: #fffbeb;
+      --red: #ef4444; --red-light: #fef2f2;
+      --purple: #8b5cf6; --purple-light: #f5f3ff;
+      --radius: 12px;
     }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-    }
-    .app { max-width: 1200px; margin: 0 auto; padding: 20px; }
-    .header {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 28px; flex-wrap: wrap; gap: 16px;
-    }
-    .header h1 {
-      font-size: 1.5rem;
-      background: linear-gradient(90deg, var(--accent), var(--purple));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .header-sub { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+    .page { max-width: 1280px; margin: 0 auto; padding: 24px 28px 80px; }
 
-    /* Tabs */
-    .tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid var(--border); }
-    .tab {
-      padding: 12px 24px; cursor: pointer; color: var(--muted);
-      font-size: 0.9rem; font-weight: 500; border-bottom: 2px solid transparent;
-      transition: all 0.2s; background: none; border-top: none; border-left: none; border-right: none;
+    /* Header */
+    .page-header {
+      background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 50%, #7c3aed 100%);
+      border-radius: 16px; padding: 28px 32px; color: #fff; margin-bottom: 24px;
+      position: relative; overflow: hidden;
     }
-    .tab:hover { color: var(--text); }
-    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
+    .page-header::after {
+      content: ''; position: absolute; top: -50%; right: -10%; width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%); border-radius: 50%;
+    }
+    .page-header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+    .page-header p { font-size: 0.88rem; opacity: 0.8; }
 
-    /* Card */
+    /* Cards */
     .card {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 12px; padding: 24px; margin-bottom: 20px;
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 20px 24px; margin-bottom: 20px;
     }
-    .card h2 { font-size: 1.1rem; margin-bottom: 16px; color: var(--text); }
-    .card h3 { font-size: 0.95rem; margin-bottom: 12px; color: var(--accent); }
+    .card-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
 
-    /* Form */
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .form-group { display: flex; flex-direction: column; gap: 6px; }
-    .form-group.full { grid-column: 1 / -1; }
-    .form-group label { font-size: 0.8rem; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
-    .form-group input, .form-group select, .form-group textarea {
-      padding: 10px 14px; background: var(--bg); border: 1px solid var(--border);
-      border-radius: 8px; color: var(--text); font-size: 0.9rem; transition: border-color 0.2s;
-      font-family: inherit;
+    /* File selector */
+    .file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+    .file-card {
+      background: var(--bg); border: 2px solid var(--border); border-radius: 10px;
+      padding: 16px; cursor: pointer; transition: all 0.15s;
     }
-    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-      outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim);
+    .file-card:hover { border-color: var(--accent); background: var(--accent-light); }
+    .file-card.selected { border-color: var(--accent); background: var(--accent-light); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+    .file-card .file-name { font-weight: 700; font-size: 0.9rem; margin-bottom: 4px; word-break: break-all; }
+    .file-card .file-meta { font-size: 0.78rem; color: var(--muted); display: flex; gap: 12px; }
+    .file-card .file-count { font-weight: 700; color: var(--accent); }
+
+    /* Action bar */
+    .action-bar {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;
+      padding: 14px 18px; background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius);
     }
-    .form-group textarea { resize: vertical; min-height: 60px; }
-    .form-group select { cursor: pointer; }
+    .action-bar .count { font-size: 0.85rem; color: var(--muted); }
+    .action-bar .count strong { color: var(--text); }
+    .spacer { flex: 1; }
 
     /* Buttons */
     .btn {
-      padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer;
-      font-size: 0.9rem; font-weight: 600; transition: all 0.2s; display: inline-flex;
-      align-items: center; gap: 8px;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 18px; border: none; border-radius: 8px; cursor: pointer;
+      font-size: 0.84rem; font-weight: 600; transition: all 0.15s;
+      font-family: inherit; white-space: nowrap;
     }
-    .btn-primary { background: var(--accent); color: #ffffff; }
-    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-    .btn-secondary { background: var(--card-hover); color: var(--text); border: 1px solid var(--border); }
-    .btn-secondary:hover { background: var(--border); }
-    .btn-danger { background: var(--hot); color: #fff; }
-    .btn-danger:hover { opacity: 0.9; }
-    .btn-sm { padding: 6px 14px; font-size: 0.8rem; }
-    .btn-group { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #2563eb; }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-success:hover:not(:disabled) { background: #16a34a; }
+    .btn-outline { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-outline:hover:not(:disabled) { background: var(--bg); color: var(--text); }
+    .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
 
-    /* Drag & Drop Upload */
-    .drop-zone {
-      border: 2px dashed var(--border); border-radius: 12px; padding: 48px 24px;
-      text-align: center; cursor: pointer; transition: all 0.3s;
-      background: var(--card);
+    /* Filters */
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .filter-chip {
+      padding: 6px 14px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 20px; font-size: 0.78rem; font-weight: 600; color: var(--muted);
+      cursor: pointer; transition: all 0.15s;
     }
-    .drop-zone:hover, .drop-zone.dragover {
-      border-color: var(--accent); background: var(--accent-dim);
+    .filter-chip:hover, .filter-chip.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+    .search-box {
+      flex: 1; min-width: 180px; padding: 8px 14px; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 0.84rem; font-family: inherit; background: var(--card);
     }
-    .drop-zone-icon { font-size: 3rem; margin-bottom: 12px; }
-    .drop-zone-text { font-size: 0.95rem; color: var(--text); margin-bottom: 4px; }
-    .drop-zone-sub { font-size: 0.8rem; color: var(--muted); }
-    .drop-zone input[type="file"] { display: none; }
-    .file-info {
-      display: flex; align-items: center; gap: 12px; padding: 12px 16px;
-      background: var(--accent-dim); border-radius: 8px; margin-top: 16px;
-      font-size: 0.85rem;
-    }
-    .file-info .file-name { flex: 1; color: var(--accent); font-weight: 500; }
-    .file-info .file-remove { cursor: pointer; color: var(--hot); font-size: 1.1rem; }
+    .search-box:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
 
-    /* Preview Table */
-    .preview-wrap {
-      overflow-x: auto; margin-top: 16px; border-radius: 8px;
-      border: 1px solid var(--border);
+    /* Sort controls */
+    .sort-controls { display: flex; gap: 6px; align-items: center; }
+    .sort-controls label { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+    .sort-controls select {
+      padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px;
+      font-size: 0.78rem; font-family: inherit; background: var(--card);
     }
-    .preview-table {
-      width: 100%; border-collapse: collapse; font-size: 0.82rem;
-    }
-    .preview-table th {
-      background: var(--card-hover); color: var(--accent); padding: 10px 12px;
-      text-align: left; font-weight: 600; text-transform: uppercase;
-      letter-spacing: 0.5px; font-size: 0.72rem; position: sticky; top: 0;
-    }
-    .preview-table td {
-      padding: 8px 12px; border-top: 1px solid var(--border); color: var(--text);
-      max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
-    .preview-table tr:hover td { background: var(--card-hover); }
-    .preview-table tr.duplicate td { background: rgba(251,191,36,0.08); }
-    .preview-table tr.duplicate td:first-child::before { content: '⚠️ '; }
 
-    /* Status badges */
+    /* Table */
+    .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    thead { background: var(--bg); position: sticky; top: 0; z-index: 1; }
+    th {
+      padding: 12px 14px; text-align: left; font-weight: 700; font-size: 0.75rem;
+      text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted);
+      border-bottom: 2px solid var(--border); white-space: nowrap;
+    }
+    td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+    tr:hover td { background: #f8fafc; }
+    tr.dup td { opacity: 0.5; text-decoration: line-through; }
+    .cb-cell { width: 40px; text-align: center; }
+    input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+
+    /* Badges */
     .badge {
-      display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px;
-      border-radius: 20px; font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+      display: inline-block; padding: 3px 8px; border-radius: 6px;
+      font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
     }
-    .badge-new { background: var(--accent-dim); color: var(--accent); }
-    .badge-dup { background: rgba(251,191,36,0.15); color: var(--warn); }
-    .badge-ok { background: rgba(52,211,153,0.15); color: var(--success); }
-    .badge-err { background: rgba(248,113,113,0.15); color: var(--hot); }
-    .badge-geo { background: rgba(167,139,250,0.15); color: var(--purple); }
+    .badge-high { background: var(--red-light); color: var(--red); }
+    .badge-medium { background: var(--amber-light); color: var(--amber); }
+    .badge-normal { background: #f1f5f9; color: var(--muted); }
+    .badge-dup { background: var(--purple-light); color: var(--purple); }
 
-    /* Geocoding status */
-    .geo-status {
-      display: flex; align-items: center; gap: 12px; padding: 14px 18px;
-      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
-      margin-top: 16px; font-size: 0.85rem;
+    /* Score bar */
+    .score-bar { display: flex; align-items: center; gap: 6px; }
+    .score-fill {
+      height: 6px; border-radius: 3px; background: var(--accent); min-width: 4px;
+      transition: width 0.3s;
     }
-    .geo-progress {
-      flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;
-    }
-    .geo-progress-bar {
-      height: 100%; background: var(--accent); border-radius: 3px;
-      transition: width 0.3s ease;
-    }
+    .score-track { flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; position: relative; overflow: hidden; min-width: 40px; }
+    .score-num { font-size: 0.75rem; font-weight: 700; color: var(--accent); min-width: 24px; }
 
-    /* Stats row */
-    .import-stats {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 12px; margin-bottom: 20px;
+    /* Results banner */
+    .results-banner {
+      padding: 18px 22px; border-radius: var(--radius); margin-bottom: 20px;
+      display: none; animation: slideIn 0.3s ease;
     }
-    .import-stat {
-      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-      padding: 16px; text-align: center;
-    }
-    .import-stat-value { font-size: 1.8rem; font-weight: 700; }
-    .import-stat-value.accent { color: var(--accent); }
-    .import-stat-value.success { color: var(--success); }
-    .import-stat-value.warn { color: var(--warn); }
-    .import-stat-value.hot { color: var(--hot); }
-    .import-stat-label { font-size: 0.72rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; }
+    .results-banner.show { display: block; }
+    .results-banner.success { background: var(--green-light); border: 1px solid #bbf7d0; }
+    .results-banner.error { background: var(--red-light); border: 1px solid #fecaca; }
+    .results-banner .results-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 4px; }
+    .results-banner .results-detail { font-size: 0.84rem; color: var(--muted); }
+    .results-stats { display: flex; gap: 20px; margin-top: 8px; }
+    .results-stat { text-align: center; }
+    .results-stat .num { font-size: 1.4rem; font-weight: 800; }
+    .results-stat .label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; }
+    .results-stat .num.green { color: var(--green); }
+    .results-stat .num.amber { color: var(--amber); }
+    .results-stat .num.red { color: var(--red); }
 
-    /* Result message */
-    .result-msg {
-      padding: 16px 20px; border-radius: 8px; margin-top: 16px; font-size: 0.9rem;
-      display: none;
-    }
-    .result-msg.success { display: block; background: rgba(52,211,153,0.12); color: var(--success); border: 1px solid rgba(52,211,153,0.3); }
-    .result-msg.error { display: block; background: rgba(248,113,113,0.12); color: var(--hot); border: 1px solid rgba(248,113,113,0.3); }
+    /* Loading */
+    .loading { text-align: center; padding: 40px; color: var(--muted); }
+    .spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid #e2e8f0; border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Template download */
-    .template-link {
-      display: inline-flex; align-items: center; gap: 6px; color: var(--accent);
-      text-decoration: none; font-size: 0.85rem; margin-top: 8px;
-    }
-    .template-link:hover { text-decoration: underline; }
+    /* Truncate */
+    .trunc { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .trunc-sm { max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    /* Scrollable table container */
-    .preview-container { max-height: 400px; overflow-y: auto; }
-    .preview-container::-webkit-scrollbar { width: 6px; }
-    .preview-container::-webkit-scrollbar-track { background: var(--bg); }
-    .preview-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    /* Empty state */
+    .empty { text-align: center; padding: 48px 20px; color: var(--muted); }
+    .empty .icon { font-size: 2.4rem; margin-bottom: 12px; }
+    .empty p { font-size: 0.9rem; }
 
-    /* Toast */
-    .toast {
-      position: fixed; bottom: 24px; right: 24px; padding: 14px 24px;
-      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-      color: var(--text); font-size: 0.85rem; z-index: 10000;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4); transform: translateY(100px);
-      opacity: 0; transition: all 0.3s ease;
-    }
-    .toast.show { transform: translateY(0); opacity: 1; }
-
+    /* Responsive */
     @media (max-width: 768px) {
-      .app { padding: 12px; }
-      .form-grid { grid-template-columns: 1fr; }
-      .header h1 { font-size: 1.2rem; }
-      .tabs { overflow-x: auto; }
-      .tab { padding: 10px 16px; font-size: 0.82rem; white-space: nowrap; }
-      .import-stats { grid-template-columns: repeat(2, 1fr); }
-      .drop-zone { padding: 32px 16px; }
-      .preview-table { font-size: 0.75rem; }
+      .page { padding: 16px; }
+      .page-header { padding: 20px 24px; }
+      .page-header h1 { font-size: 1.25rem; }
+      .file-grid { grid-template-columns: 1fr; }
+      .action-bar { flex-direction: column; align-items: stretch; }
+      .spacer { display: none; }
+      th, td { padding: 8px 10px; font-size: 0.78rem; }
+      .trunc, .trunc-sm { max-width: 120px; }
     }
   </style>
 </head>
 <body>
-  <script src="/nav.js"></script>
-  <div class="app">
-    <div class="header">
-      <div>
-        <h1>📥 Lead Import Tool</h1>
-        <div class="header-sub">Bulk import prospects via CSV or add leads manually</div>
-      </div>
-    </div>
+<script src="/nav.js"></script>
 
-    <!-- Tabs -->
-    <div class="tabs">
-      <button class="tab active" data-tab="csv">📁 CSV Import</button>
-      <button class="tab" data-tab="manual">✏️ Manual Entry</button>
-    </div>
+<div class="page">
+  <div class="page-header">
+    <h1>📥 Lead Bulk Import</h1>
+    <p>Import leads from prospecting files into the CRM with automatic deduplication</p>
+  </div>
 
-    <!-- CSV Import Tab -->
-    <div id="tab-csv" class="tab-panel active">
-      <div class="card">
-        <h2>Upload CSV File</h2>
-        <p style="color: var(--muted); font-size: 0.85rem; margin-bottom: 16px;">
-          Upload a CSV with columns: <code style="color: var(--accent);">name, address, phone, email, property_type, notes</code>
-        </p>
+  <!-- Results banner -->
+  <div id="results-banner" class="results-banner"></div>
 
-        <div class="drop-zone" id="dropZone">
-          <div class="drop-zone-icon">📄</div>
-          <div class="drop-zone-text">Drag & drop your CSV file here</div>
-          <div class="drop-zone-sub">or click to browse • max 10MB</div>
-          <input type="file" id="fileInput" accept=".csv,text/csv">
-        </div>
-        <div id="fileInfo" class="file-info" style="display: none;">
-          <span>📎</span>
-          <span class="file-name" id="fileName"></span>
-          <span class="file-remove" id="fileRemove" title="Remove file">✕</span>
-        </div>
-
-        <a href="#" class="template-link" id="downloadTemplate">⬇️ Download CSV template</a>
-      </div>
-
-      <!-- Preview Section (hidden until file parsed) -->
-      <div id="previewSection" style="display: none;">
-        <div class="import-stats" id="importStats"></div>
-
-        <div class="card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-            <h2>Import Preview</h2>
-            <div style="display: flex; gap: 8px; align-items: center;">
-              <label style="font-size: 0.8rem; color: var(--muted); display: flex; align-items: center; gap: 6px;">
-                <input type="checkbox" id="skipDuplicates" checked> Skip duplicates
-              </label>
-              <label style="font-size: 0.8rem; color: var(--muted); display: flex; align-items: center; gap: 6px;">
-                <input type="checkbox" id="geocodeOnImport" checked> Geocode addresses
-              </label>
-            </div>
-          </div>
-
-          <div class="preview-container">
-            <div class="preview-wrap">
-              <table class="preview-table" id="previewTable">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Address</th>
-                    <th>Phone</th>
-                    <th>Email</th>
-                    <th>Type</th>
-                    <th>Notes</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody id="previewBody"></tbody>
-              </table>
-            </div>
-          </div>
-
-          <div id="geoStatus" class="geo-status" style="display: none;">
-            <span id="geoLabel">Geocoding...</span>
-            <div class="geo-progress"><div class="geo-progress-bar" id="geoBar" style="width: 0%"></div></div>
-            <span id="geoCount">0/0</span>
-          </div>
-
-          <div class="btn-group">
-            <button class="btn btn-primary" id="importBtn" disabled>
-              📥 Import Leads
-            </button>
-            <button class="btn btn-secondary" id="clearBtn">🗑️ Clear</button>
-          </div>
-        </div>
-
-        <div id="resultMsg" class="result-msg"></div>
-      </div>
-    </div>
-
-    <!-- Manual Entry Tab -->
-    <div id="tab-manual" class="tab-panel">
-      <div class="card">
-        <h2>Add New Lead</h2>
-        <form id="manualForm">
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Property Name *</label>
-              <input type="text" id="m_name" required placeholder="e.g. Desert Oasis Apartments">
-            </div>
-            <div class="form-group">
-              <label>Property Type</label>
-              <select id="m_property_type">
-                <option value="">Select type...</option>
-                <option value="apartments">Apartments</option>
-                <option value="senior_living">Senior Living</option>
-                <option value="healthcare">Healthcare</option>
-                <option value="industrial">Industrial</option>
-                <option value="office">Office</option>
-                <option value="hotel">Hotel</option>
-                <option value="retail">Retail</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            <div class="form-group full">
-              <label>Address</label>
-              <input type="text" id="m_address" placeholder="e.g. 1234 S Las Vegas Blvd, Las Vegas, NV 89104">
-            </div>
-            <div class="form-group">
-              <label>Phone</label>
-              <input type="tel" id="m_phone" placeholder="(702) 555-0123">
-            </div>
-            <div class="form-group">
-              <label>Email</label>
-              <input type="email" id="m_email" placeholder="manager@property.com">
-            </div>
-            <div class="form-group full">
-              <label>Notes</label>
-              <textarea id="m_notes" placeholder="Any notes about this lead..."></textarea>
-            </div>
-          </div>
-          <div class="btn-group">
-            <button type="submit" class="btn btn-primary">➕ Add Lead</button>
-            <button type="reset" class="btn btn-secondary">Clear Form</button>
-          </div>
-        </form>
-        <div id="manualResult" class="result-msg"></div>
-      </div>
-
-      <!-- Recent Imports -->
-      <div class="card" id="recentCard">
-        <h2>Recently Added</h2>
-        <div id="recentList" style="color: var(--muted); font-size: 0.85rem;">
-          Leads you add will appear here.
-        </div>
-      </div>
+  <!-- Step 1: File Selection -->
+  <div class="card">
+    <div class="card-title">📁 Select Lead File</div>
+    <div id="file-list" class="file-grid">
+      <div class="loading"><div class="spinner"></div><br>Loading files…</div>
     </div>
   </div>
 
-  <!-- Toast -->
-  <div class="toast" id="toast"></div>
+  <!-- Step 2: Preview & Filter -->
+  <div id="preview-section" style="display:none;">
+    <div class="action-bar">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+        <input type="checkbox" id="select-all"> <span style="font-size:0.84rem;font-weight:600;">Select All</span>
+      </label>
+      <span class="count" id="selection-count">0 of 0 selected</span>
+      <div class="spacer"></div>
+      <div class="sort-controls">
+        <label>Sort:</label>
+        <select id="sort-by">
+          <option value="priority">Priority</option>
+          <option value="score">Score</option>
+          <option value="name">Name</option>
+          <option value="units">Units</option>
+          <option value="type">Type</option>
+        </select>
+      </div>
+      <button class="btn btn-success" id="import-btn" disabled>
+        ⬆️ Import Selected
+      </button>
+    </div>
 
-  <script>
-    // ===== State =====
-    let parsedLeads = [];
-    let existingProspects = [];
-    let recentlyAdded = [];
+    <div class="filters">
+      <input type="text" class="search-box" id="search-input" placeholder="🔍 Search leads…">
+      <span class="filter-chip active" data-filter="all">All</span>
+      <span class="filter-chip" data-filter="high">🔥 High Priority</span>
+      <span class="filter-chip" data-filter="medium">🟡 Medium</span>
+      <span class="filter-chip" data-filter="normal">Normal</span>
+      <span class="filter-chip" data-filter="dup">⚠️ Duplicates</span>
+    </div>
 
-    // ===== Tab Switching =====
-    document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-        tab.classList.add('active');
-        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
-      });
-    });
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="cb-cell"><input type="checkbox" id="select-all-head"></th>
+            <th>Name / Company</th>
+            <th>Contact</th>
+            <th>Address</th>
+            <th>Type</th>
+            <th>Units</th>
+            <th>Priority</th>
+            <th>Score</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="leads-tbody"></tbody>
+      </table>
+    </div>
+    <div id="empty-state" class="empty" style="display:none;">
+      <div class="icon">🔍</div>
+      <p>No leads match your filters</p>
+    </div>
+  </div>
+</div>
 
-    // ===== Load Existing Prospects (for duplicate detection) =====
-    async function loadExisting() {
-      try {
-        const res = await fetch('/api/prospects');
-        existingProspects = await res.json();
-      } catch (e) {
-        console.error('Failed to load prospects:', e);
+<script>
+(function() {
+  'use strict';
+
+  var allLeads = [];
+  var selectedFile = null;
+  var existingProspects = [];
+  var activeFilter = 'all';
+  var currentSort = 'priority';
+
+  // DOM refs
+  var fileList = document.getElementById('file-list');
+  var previewSection = document.getElementById('preview-section');
+  var leadsTbody = document.getElementById('leads-tbody');
+  var selectAll = document.getElementById('select-all');
+  var selectAllHead = document.getElementById('select-all-head');
+  var importBtn = document.getElementById('import-btn');
+  var selectionCount = document.getElementById('selection-count');
+  var searchInput = document.getElementById('search-input');
+  var sortBy = document.getElementById('sort-by');
+  var resultsBanner = document.getElementById('results-banner');
+  var emptyState = document.getElementById('empty-state');
+  var filterChips = document.querySelectorAll('.filter-chip');
+
+  // Load existing prospects for dedup check
+  function loadExistingProspects() {
+    return fetch('/api/prospects').then(function(r) { return r.json(); }).then(function(data) {
+      existingProspects = Array.isArray(data) ? data : [];
+    }).catch(function() { existingProspects = []; });
+  }
+
+  // Check if a lead is a duplicate
+  function isDuplicate(lead) {
+    return existingProspects.some(function(p) {
+      if (lead.address && p.address) {
+        var nA = lead.address.toLowerCase().replace(/[.,#\-]/g, '').replace(/\s+/g, ' ').trim();
+        var nB = p.address.toLowerCase().replace(/[.,#\-]/g, '').replace(/\s+/g, ' ').trim();
+        if (nA === nB) return true;
       }
-    }
-    loadExisting();
-
-    // ===== CSV Template Download =====
-    document.getElementById('downloadTemplate').addEventListener('click', (e) => {
-      e.preventDefault();
-      const csv = 'name,address,phone,email,property_type,notes\n' +
-        '"Desert Oasis Apartments","1234 S Las Vegas Blvd, Las Vegas, NV 89104","(702) 555-0100","mgr@desertoasis.com","apartments","200 units, pool area"\n' +
-        '"Sunrise Senior Living","5678 W Sahara Ave, Las Vegas, NV 89146","(702) 555-0200","info@sunrisesenior.com","senior_living","Memory care wing"\n';
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'lead-import-template.csv'; a.click();
-      URL.revokeObjectURL(url);
-      showToast('Template downloaded!');
+      if (lead.name && p.name) {
+        if (lead.name.toLowerCase().trim() === p.name.toLowerCase().trim()) return true;
+      }
+      return false;
     });
+  }
 
-    // ===== Drag & Drop =====
-    const dropZone = document.getElementById('dropZone');
-    const fileInput = document.getElementById('fileInput');
-
-    dropZone.addEventListener('click', () => fileInput.click());
-    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-    dropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropZone.classList.remove('dragover');
-      const file = e.dataTransfer.files[0];
-      if (file) handleFile(file);
-    });
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files[0]) handleFile(e.target.files[0]);
-    });
-
-    document.getElementById('fileRemove').addEventListener('click', () => {
-      clearFile();
-    });
-
-    function handleFile(file) {
-      if (!file.name.toLowerCase().endsWith('.csv')) {
-        showToast('Please upload a CSV file', 'error');
+  // Load file list
+  function loadFiles() {
+    fetch('/api/lead-files').then(function(r) { return r.json(); }).then(function(files) {
+      if (!files.length) {
+        fileList.innerHTML = '<div class="empty"><div class="icon">📭</div><p>No lead files found in prospects directory</p></div>';
         return;
       }
-      if (file.size > 10 * 1024 * 1024) {
-        showToast('File too large (max 10MB)', 'error');
-        return;
-      }
-      document.getElementById('fileInfo').style.display = 'flex';
-      document.getElementById('fileName').textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
-      
-      const reader = new FileReader();
-      reader.onload = (e) => parseCSV(e.target.result);
-      reader.readAsText(file);
-    }
+      fileList.innerHTML = files.map(function(f) {
+        var label = f.filename.replace(/^leads-/, '').replace(/-new\.json$|\.json$/, '').replace(/-/g, ' ');
+        label = label.charAt(0).toUpperCase() + label.slice(1);
+        var sizeKB = Math.round(f.size / 1024);
+        return '<div class="file-card" data-file="' + f.filename + '">' +
+          '<div class="file-name">📄 ' + label + '</div>' +
+          '<div class="file-meta">' +
+            '<span class="file-count">' + f.lead_count + ' leads</span>' +
+            '<span>' + sizeKB + ' KB</span>' +
+          '</div></div>';
+      }).join('');
 
-    function clearFile() {
-      fileInput.value = '';
-      document.getElementById('fileInfo').style.display = 'none';
-      document.getElementById('previewSection').style.display = 'none';
-      parsedLeads = [];
-    }
-
-    // ===== CSV Parser =====
-    function parseCSV(text) {
-      const lines = text.split(/\r?\n/).filter(l => l.trim());
-      if (lines.length < 2) {
-        showToast('CSV must have a header row and at least one data row', 'error');
-        return;
-      }
-
-      const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase().replace(/[^a-z_]/g, ''));
-      const headerMap = {};
-      const knownHeaders = ['name', 'address', 'phone', 'email', 'property_type', 'notes'];
-      
-      // Flexible header matching
-      headers.forEach((h, i) => {
-        if (h.includes('name') && !h.includes('type')) headerMap.name = i;
-        else if (h.includes('address') || h.includes('addr') || h.includes('location')) headerMap.address = i;
-        else if (h.includes('phone') || h.includes('tel')) headerMap.phone = i;
-        else if (h.includes('email') || h.includes('mail')) headerMap.email = i;
-        else if (h.includes('type') || h.includes('property') || h.includes('category')) headerMap.property_type = i;
-        else if (h.includes('note') || h.includes('comment') || h.includes('desc')) headerMap.notes = i;
-      });
-
-      if (headerMap.name === undefined) {
-        // Fallback: assume first 6 columns match CSV format
-        knownHeaders.forEach((h, i) => { if (i < headers.length) headerMap[h] = i; });
-      }
-
-      parsedLeads = [];
-      for (let i = 1; i < lines.length; i++) {
-        const vals = parseCSVLine(lines[i]);
-        if (vals.every(v => !v.trim())) continue; // skip empty rows
-
-        const lead = {
-          name: (vals[headerMap.name] || '').trim(),
-          address: (vals[headerMap.address] || '').trim(),
-          phone: (vals[headerMap.phone] || '').trim(),
-          email: (vals[headerMap.email] || '').trim(),
-          property_type: normalizePropertyType((vals[headerMap.property_type] || '').trim()),
-          notes: (vals[headerMap.notes] || '').trim(),
-          _row: i + 1,
-          _duplicate: false,
-          _dupReason: '',
-          _geocoded: false,
-          _lat: null,
-          _lng: null
-        };
-
-        if (!lead.name && !lead.address) continue; // skip completely empty entries
-
-        // Duplicate detection
-        const dup = findDuplicate(lead);
-        if (dup) {
-          lead._duplicate = true;
-          lead._dupReason = dup;
-        }
-
-        parsedLeads.push(lead);
-      }
-
-      renderPreview();
-    }
-
-    function parseCSVLine(line) {
-      const result = [];
-      let current = '';
-      let inQuotes = false;
-      for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-        if (inQuotes) {
-          if (ch === '"' && line[i + 1] === '"') { current += '"'; i++; }
-          else if (ch === '"') inQuotes = false;
-          else current += ch;
-        } else {
-          if (ch === '"') inQuotes = true;
-          else if (ch === ',') { result.push(current); current = ''; }
-          else current += ch;
-        }
-      }
-      result.push(current);
-      return result;
-    }
-
-    function normalizePropertyType(type) {
-      const t = type.toLowerCase().replace(/[\s-]+/g, '_');
-      const map = {
-        'apartment': 'apartments', 'apartments': 'apartments', 'apt': 'apartments',
-        'senior': 'senior_living', 'senior_living': 'senior_living', 'assisted': 'senior_living',
-        'healthcare': 'healthcare', 'medical': 'healthcare', 'hospital': 'healthcare', 'clinic': 'healthcare',
-        'industrial': 'industrial', 'warehouse': 'industrial', 'factory': 'industrial',
-        'office': 'office', 'commercial': 'office',
-        'hotel': 'hotel', 'motel': 'hotel', 'hospitality': 'hotel',
-        'retail': 'retail', 'shopping': 'retail', 'mall': 'retail'
-      };
-      return map[t] || type || '';
-    }
-
-    function findDuplicate(lead) {
-      // Check against existing prospects
-      for (const p of existingProspects) {
-        if (lead.address && p.address && normalizeAddr(lead.address) === normalizeAddr(p.address))
-          return `Address matches existing: "${p.name}"`;
-        if (lead.name && p.name && lead.name.toLowerCase() === p.name.toLowerCase())
-          return `Name matches existing: "${p.name}"`;
-      }
-      // Check within parsed batch
-      for (const other of parsedLeads) {
-        if (other === lead) continue;
-        if (lead.address && other.address && normalizeAddr(lead.address) === normalizeAddr(other.address))
-          return `Duplicate address in CSV (row ${other._row})`;
-        if (lead.name && other.name && lead.name.toLowerCase() === other.name.toLowerCase())
-          return `Duplicate name in CSV (row ${other._row})`;
-      }
-      return null;
-    }
-
-    function normalizeAddr(addr) {
-      return addr.toLowerCase().replace(/[.,#\-]/g, '').replace(/\s+/g, ' ').trim();
-    }
-
-    // ===== Render Preview =====
-    function renderPreview() {
-      document.getElementById('previewSection').style.display = 'block';
-      const body = document.getElementById('previewBody');
-      body.innerHTML = '';
-
-      const total = parsedLeads.length;
-      const dups = parsedLeads.filter(l => l._duplicate).length;
-      const newLeads = total - dups;
-      const withAddress = parsedLeads.filter(l => l.address).length;
-
-      document.getElementById('importStats').innerHTML = `
-        <div class="import-stat">
-          <div class="import-stat-value accent">${total}</div>
-          <div class="import-stat-label">Total Rows</div>
-        </div>
-        <div class="import-stat">
-          <div class="import-stat-value success">${newLeads}</div>
-          <div class="import-stat-label">New Leads</div>
-        </div>
-        <div class="import-stat">
-          <div class="import-stat-value warn">${dups}</div>
-          <div class="import-stat-label">Duplicates</div>
-        </div>
-        <div class="import-stat">
-          <div class="import-stat-value" style="color: var(--purple)">${withAddress}</div>
-          <div class="import-stat-label">With Address</div>
-        </div>
-      `;
-
-      parsedLeads.forEach((lead, i) => {
-        const tr = document.createElement('tr');
-        if (lead._duplicate) tr.classList.add('duplicate');
-        
-        const typeLabel = lead.property_type ? lead.property_type.replace(/_/g, ' ') : '-';
-        const statusBadge = lead._duplicate
-          ? `<span class="badge badge-dup" title="${lead._dupReason}">Duplicate</span>`
-          : '<span class="badge badge-new">New</span>';
-
-        tr.innerHTML = `
-          <td>${escHtml(lead.name || '-')}</td>
-          <td>${escHtml(lead.address || '-')}</td>
-          <td>${escHtml(lead.phone || '-')}</td>
-          <td>${escHtml(lead.email || '-')}</td>
-          <td style="text-transform: capitalize">${escHtml(typeLabel)}</td>
-          <td>${escHtml(lead.notes || '-')}</td>
-          <td>${statusBadge}</td>
-        `;
-        body.appendChild(tr);
-      });
-
-      const importBtn = document.getElementById('importBtn');
-      importBtn.disabled = newLeads === 0;
-      importBtn.textContent = `📥 Import ${newLeads} Lead${newLeads !== 1 ? 's' : ''}`;
-    }
-
-    // ===== Import =====
-    document.getElementById('importBtn').addEventListener('click', async () => {
-      const skipDups = document.getElementById('skipDuplicates').checked;
-      const doGeocode = document.getElementById('geocodeOnImport').checked;
-      
-      let leadsToImport = skipDups
-        ? parsedLeads.filter(l => !l._duplicate)
-        : [...parsedLeads];
-
-      if (leadsToImport.length === 0) {
-        showToast('No leads to import', 'error');
-        return;
-      }
-
-      const importBtn = document.getElementById('importBtn');
-      importBtn.disabled = true;
-      importBtn.textContent = '⏳ Importing...';
-
-      try {
-        const res = await fetch('/api/prospects/import', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            leads: leadsToImport.map(l => ({
-              name: l.name,
-              address: l.address,
-              phone: l.phone,
-              email: l.email,
-              property_type: l.property_type,
-              notes: l.notes
-            })),
-            geocode: doGeocode
-          })
+      // Attach click handlers
+      fileList.querySelectorAll('.file-card').forEach(function(card) {
+        card.addEventListener('click', function() {
+          fileList.querySelectorAll('.file-card').forEach(function(c) { c.classList.remove('selected'); });
+          card.classList.add('selected');
+          loadLeadFile(card.getAttribute('data-file'));
         });
-
-        const result = await res.json();
-        
-        if (result.error) throw new Error(result.error);
-
-        const msg = document.getElementById('resultMsg');
-        msg.className = 'result-msg success';
-        msg.innerHTML = `
-          ✅ Successfully imported <strong>${result.imported}</strong> lead${result.imported !== 1 ? 's' : ''}
-          ${result.duplicatesSkipped ? ` • ${result.duplicatesSkipped} duplicates skipped` : ''}
-          ${result.geocoded ? ` • ${result.geocoded} addresses geocoded` : ''}
-          <br><a href="/crm" style="color: var(--accent);">View in Sales CRM →</a>
-        `;
-
-        showToast(`${result.imported} leads imported!`);
-        
-        // Refresh existing prospects list
-        await loadExisting();
-
-        importBtn.textContent = '✅ Done!';
-        setTimeout(() => { importBtn.textContent = '📥 Import Leads'; importBtn.disabled = false; }, 2000);
-
-      } catch (e) {
-        const msg = document.getElementById('resultMsg');
-        msg.className = 'result-msg error';
-        msg.textContent = `❌ Import failed: ${e.message}`;
-        importBtn.disabled = false;
-        importBtn.textContent = '📥 Import Leads';
-      }
+      });
+    }).catch(function(e) {
+      fileList.innerHTML = '<div class="empty"><div class="icon">⚠️</div><p>Error loading files: ' + e.message + '</p></div>';
     });
+  }
 
-    document.getElementById('clearBtn').addEventListener('click', clearFile);
+  // Load a specific lead file
+  function loadLeadFile(filename) {
+    selectedFile = filename;
+    leadsTbody.innerHTML = '<tr><td colspan="9" class="loading"><div class="spinner"></div><br>Loading leads…</td></tr>';
+    previewSection.style.display = 'block';
+    resultsBanner.classList.remove('show');
 
-    // ===== Manual Entry =====
-    document.getElementById('manualForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const lead = {
-        name: document.getElementById('m_name').value.trim(),
-        address: document.getElementById('m_address').value.trim(),
-        phone: document.getElementById('m_phone').value.trim(),
-        email: document.getElementById('m_email').value.trim(),
-        property_type: document.getElementById('m_property_type').value,
-        notes: document.getElementById('m_notes').value.trim()
-      };
+    fetch('/api/lead-files/' + encodeURIComponent(filename)).then(function(r) { return r.json(); }).then(function(data) {
+      allLeads = data.leads.map(function(lead, i) {
+        lead._index = i;
+        lead._selected = false;
+        lead._isDup = isDuplicate(lead);
+        if (!lead._isDup) lead._selected = true; // Auto-select non-duplicates
+        return lead;
+      });
 
-      if (!lead.name) {
-        showToast('Property name is required', 'error');
-        return;
-      }
-
-      // Check for duplicates
-      const dup = existingProspects.find(p =>
-        (lead.address && p.address && normalizeAddr(lead.address) === normalizeAddr(p.address)) ||
-        (lead.name && p.name && lead.name.toLowerCase() === p.name.toLowerCase())
-      );
-      
-      if (dup && !confirm(`⚠️ Possible duplicate of "${dup.name}". Import anyway?`)) return;
-
-      try {
-        const res = await fetch('/api/prospects/import', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ leads: [lead], geocode: true })
-        });
-
-        const result = await res.json();
-        if (result.error) throw new Error(result.error);
-
-        const msg = document.getElementById('manualResult');
-        msg.className = 'result-msg success';
-        msg.innerHTML = `✅ Added "<strong>${lead.name}</strong>" 
-          ${result.geocoded ? '• 📍 Geocoded' : ''}
-          <a href="/crm" style="color: var(--accent); margin-left: 8px;">View in CRM →</a>`;
-
-        // Add to recently added
-        recentlyAdded.unshift(lead);
-        renderRecent();
-
-        // Refresh existing prospects
-        await loadExisting();
-
-        // Reset form
-        document.getElementById('manualForm').reset();
-        showToast(`"${lead.name}" added!`);
-
-      } catch (e) {
-        const msg = document.getElementById('manualResult');
-        msg.className = 'result-msg error';
-        msg.textContent = `❌ Failed: ${e.message}`;
-      }
+      renderTable();
+      updateSelectionCount();
+      previewSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }).catch(function(e) {
+      leadsTbody.innerHTML = '<tr><td colspan="9" style="color:var(--red);padding:20px;">Error: ' + e.message + '</td></tr>';
     });
+  }
 
-    function renderRecent() {
-      const el = document.getElementById('recentList');
-      if (recentlyAdded.length === 0) {
-        el.innerHTML = 'Leads you add will appear here.';
-        return;
+  // Sorting
+  function sortLeads(leads) {
+    var sorted = leads.slice();
+    var key = currentSort;
+    sorted.sort(function(a, b) {
+      if (key === 'priority') {
+        var order = { high: 0, medium: 1, normal: 2 };
+        var diff = (order[a.priority] || 2) - (order[b.priority] || 2);
+        if (diff !== 0) return diff;
+        return (b.score || 0) - (a.score || 0);
       }
-      el.innerHTML = recentlyAdded.slice(0, 10).map(l => `
-        <div style="padding: 10px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <strong>${escHtml(l.name)}</strong>
-            <span style="color: var(--muted); margin-left: 8px; font-size: 0.8rem;">${escHtml(l.property_type || '-')}</span>
-          </div>
-          <span style="color: var(--muted); font-size: 0.8rem;">${escHtml(l.address || 'No address')}</span>
-        </div>
-      `).join('');
+      if (key === 'score') return (b.score || 0) - (a.score || 0);
+      if (key === 'units') return (parseInt(b.units) || 0) - (parseInt(a.units) || 0);
+      if (key === 'name') return (a.name || '').localeCompare(b.name || '');
+      if (key === 'type') return (a.property_type || '').localeCompare(b.property_type || '');
+      return 0;
+    });
+    return sorted;
+  }
+
+  // Filtering
+  function filterLeads(leads) {
+    var search = (searchInput.value || '').toLowerCase();
+    return leads.filter(function(lead) {
+      // Priority filter
+      if (activeFilter === 'high' && lead.priority !== 'high') return false;
+      if (activeFilter === 'medium' && lead.priority !== 'medium') return false;
+      if (activeFilter === 'normal' && lead.priority !== 'normal') return false;
+      if (activeFilter === 'dup' && !lead._isDup) return false;
+      // Search
+      if (search) {
+        var haystack = [lead.name, lead.contact_name, lead.address, lead.property_type, lead.company, lead.email, lead.phone].join(' ').toLowerCase();
+        if (haystack.indexOf(search) === -1) return false;
+      }
+      return true;
+    });
+  }
+
+  // Render the table
+  function renderTable() {
+    var filtered = filterLeads(allLeads);
+    var sorted = sortLeads(filtered);
+
+    if (sorted.length === 0) {
+      leadsTbody.innerHTML = '';
+      emptyState.style.display = 'block';
+      return;
+    }
+    emptyState.style.display = 'none';
+
+    var maxScore = 1;
+    allLeads.forEach(function(l) { if (l.score > maxScore) maxScore = l.score; });
+
+    leadsTbody.innerHTML = sorted.map(function(lead) {
+      var priClass = 'badge-' + lead.priority;
+      var priLabel = lead.priority === 'high' ? '🔥 High' : lead.priority === 'medium' ? '🟡 Med' : 'Normal';
+      var scorePct = maxScore > 0 ? Math.min(100, Math.round((lead.score / maxScore) * 100)) : 0;
+      var dupClass = lead._isDup ? ' dup' : '';
+      var statusBadge = lead._isDup ? '<span class="badge badge-dup">⚠️ Duplicate</span>' : '<span class="badge" style="background:#f0fdf4;color:#22c55e;">New</span>';
+
+      return '<tr class="lead-row' + dupClass + '" data-index="' + lead._index + '">' +
+        '<td class="cb-cell"><input type="checkbox" class="lead-cb" data-index="' + lead._index + '"' + (lead._selected ? ' checked' : '') + '></td>' +
+        '<td><div style="font-weight:600;">' + esc(lead.name || '—') + '</div>' +
+          (lead.company && lead.company !== lead.name ? '<div style="font-size:0.75rem;color:var(--muted);">' + esc(lead.company) + '</div>' : '') +
+        '</td>' +
+        '<td><div class="trunc-sm">' + esc(lead.contact_name || '—') + '</div>' +
+          (lead.contact_title ? '<div style="font-size:0.72rem;color:var(--muted);" class="trunc-sm">' + esc(lead.contact_title) + '</div>' : '') +
+          (lead.email ? '<div style="font-size:0.72rem;color:var(--accent);" class="trunc-sm">' + esc(lead.email) + '</div>' : '') +
+        '</td>' +
+        '<td class="trunc">' + esc(lead.address || '—') + '</td>' +
+        '<td><span style="font-size:0.78rem;">' + esc(lead.property_type || '—') + '</span></td>' +
+        '<td style="text-align:center;font-weight:600;">' + (lead.units || '—') + '</td>' +
+        '<td><span class="badge ' + priClass + '">' + priLabel + '</span></td>' +
+        '<td><div class="score-bar">' +
+          '<span class="score-num">' + (lead.score || 0) + '</span>' +
+          '<div class="score-track"><div class="score-fill" style="width:' + scorePct + '%;position:absolute;top:0;left:0;height:100%;"></div></div>' +
+        '</div></td>' +
+        '<td>' + statusBadge + '</td>' +
+      '</tr>';
+    }).join('');
+
+    // Checkbox handlers
+    leadsTbody.querySelectorAll('.lead-cb').forEach(function(cb) {
+      cb.addEventListener('change', function() {
+        var idx = parseInt(cb.getAttribute('data-index'));
+        allLeads[idx]._selected = cb.checked;
+        updateSelectionCount();
+      });
+    });
+  }
+
+  function esc(str) {
+    if (!str) return '';
+    var d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  function updateSelectionCount() {
+    var total = allLeads.filter(function(l) { return !l._isDup; }).length;
+    var selected = allLeads.filter(function(l) { return l._selected && !l._isDup; }).length;
+    var dupCount = allLeads.filter(function(l) { return l._isDup; }).length;
+    selectionCount.innerHTML = '<strong>' + selected + '</strong> of ' + total + ' selected' +
+      (dupCount > 0 ? ' · <span style="color:var(--amber);">' + dupCount + ' duplicates</span>' : '');
+    importBtn.disabled = selected === 0;
+    var allNonDup = allLeads.filter(function(l) { return !l._isDup; });
+    var allSelected = allNonDup.length > 0 && allNonDup.every(function(l) { return l._selected; });
+    selectAll.checked = allSelected;
+    selectAllHead.checked = allSelected;
+  }
+
+  // Select all
+  function toggleSelectAll(checked) {
+    allLeads.forEach(function(l) {
+      if (!l._isDup) l._selected = checked;
+    });
+    renderTable();
+    updateSelectionCount();
+  }
+  selectAll.addEventListener('change', function() { toggleSelectAll(selectAll.checked); });
+  selectAllHead.addEventListener('change', function() { toggleSelectAll(selectAllHead.checked); });
+
+  // Sort
+  sortBy.addEventListener('change', function() {
+    currentSort = sortBy.value;
+    renderTable();
+  });
+
+  // Search
+  var searchTimer;
+  searchInput.addEventListener('input', function() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function() { renderTable(); }, 200);
+  });
+
+  // Filter chips
+  filterChips.forEach(function(chip) {
+    chip.addEventListener('click', function() {
+      filterChips.forEach(function(c) { c.classList.remove('active'); });
+      chip.classList.add('active');
+      activeFilter = chip.getAttribute('data-filter');
+      renderTable();
+    });
+  });
+
+  // Import
+  importBtn.addEventListener('click', function() {
+    var toImport = allLeads.filter(function(l) { return l._selected && !l._isDup; });
+    if (toImport.length === 0) return;
+
+    importBtn.disabled = true;
+    importBtn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;"></div> Importing…';
+
+    fetch('/api/leads/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leads: toImport })
+    }).then(function(r) { return r.json(); }).then(function(result) {
+      showResults(result);
+      // Reload existing prospects for updated dedup
+      loadExistingProspects().then(function() {
+        // Re-check duplicates
+        allLeads.forEach(function(l) { l._isDup = isDuplicate(l); l._selected = false; });
+        renderTable();
+        updateSelectionCount();
+      });
+    }).catch(function(e) {
+      showResults({ error: e.message });
+    }).finally(function() {
+      importBtn.disabled = false;
+      importBtn.innerHTML = '⬆️ Import Selected';
+    });
+  });
+
+  function showResults(result) {
+    if (result.error) {
+      resultsBanner.className = 'results-banner show error';
+      resultsBanner.innerHTML = '<div class="results-title">❌ Import Failed</div><div class="results-detail">' + esc(result.error) + '</div>';
+      return;
     }
 
-    // ===== Utilities =====
-    function escHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
+    resultsBanner.className = 'results-banner show success';
+    resultsBanner.innerHTML =
+      '<div class="results-title">✅ Import Complete</div>' +
+      '<div class="results-stats">' +
+        '<div class="results-stat"><div class="num green">' + result.imported + '</div><div class="label">Imported</div></div>' +
+        '<div class="results-stat"><div class="num amber">' + result.duplicates + '</div><div class="label">Skipped (Dup)</div></div>' +
+        '<div class="results-stat"><div class="num red">' + (result.errors || 0) + '</div><div class="label">Errors</div></div>' +
+        '<div class="results-stat"><div class="num">' + result.total + '</div><div class="label">Total</div></div>' +
+      '</div>' +
+      '<div class="results-detail" style="margin-top:10px;">' +
+        '<a href="/crm" style="color:var(--accent);font-weight:600;">View in CRM →</a>' +
+      '</div>';
 
-    function showToast(msg, type = 'info') {
-      const toast = document.getElementById('toast');
-      toast.textContent = msg;
-      toast.style.borderColor = type === 'error' ? 'var(--hot)' : 'var(--accent)';
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 3000);
-    }
-  </script>
+    resultsBanner.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // Init
+  loadExistingProspects().then(loadFiles);
+})();
+</script>
 </body>
 </html>

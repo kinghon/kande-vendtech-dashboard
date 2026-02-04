@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Competitor Map — Kande VendTech</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa; --card: #ffffff; --card-hover: #f7fafc; --border: #e2e8f0;
+      --text: #1a202c; --muted: #718096; --accent: #3182ce; --accent-dim: rgba(49,130,206,0.1);
+      --success: #38a169; --warn: #dd6b20; --hot: #e53e3e; --purple: #7b2cbf;
+      /* Competitor colors */
+      --royal: #e53e3e; --skytop: #dd6b20; --skala: #ecc94b; --other: #718096; --kande: #38a169;
+    }
+    html, body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; width: 100%; max-width: 100vw; }
+    body.kv-nav-active { padding-top: 0 !important; }
+
+    .app { display: flex; height: 100vh; max-width: 100vw; overflow-x: hidden; padding-top: 52px; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 380px; background: var(--card); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0;
+    }
+    .sidebar-header {
+      padding: 16px 18px; border-bottom: 1px solid var(--border);
+      background: linear-gradient(135deg, rgba(229,62,62,0.08), rgba(221,107,32,0.06));
+    }
+    .sidebar-header h2 { font-size: 1.1rem; display: flex; align-items: center; gap: 8px; }
+    .sidebar-header h2 span { background: linear-gradient(90deg, var(--hot), var(--warn)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .sidebar-subtitle { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+    .sidebar-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .sidebar-content::-webkit-scrollbar { width: 6px; }
+    .sidebar-content::-webkit-scrollbar-track { background: transparent; }
+    .sidebar-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── Sections ── */
+    .section { padding: 16px 18px; border-bottom: 1px solid var(--border); }
+    .section-title { font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+
+    /* ── Stats Cards ── */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat-card {
+      background: var(--bg); border-radius: 10px; padding: 12px; text-align: center;
+      border: 1px solid var(--border);
+    }
+    .stat-card .val { font-size: 1.5rem; font-weight: 700; }
+    .stat-card .val.royal { color: var(--royal); }
+    .stat-card .val.skytop { color: var(--skytop); }
+    .stat-card .val.skala { color: var(--skala); }
+    .stat-card .val.success { color: var(--success); }
+    .stat-card .label { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── Filters ── */
+    .filter-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .filter-btn {
+      padding: 6px 12px; border-radius: 16px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--text); font-size: 0.75rem; cursor: pointer;
+      transition: all 0.15s; display: flex; align-items: center; gap: 4px;
+    }
+    .filter-btn:hover { border-color: var(--accent); }
+    .filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .filter-btn.royal.active { background: var(--royal); border-color: var(--royal); }
+    .filter-btn.skytop.active { background: var(--skytop); border-color: var(--skytop); }
+    .filter-btn.skala.active { background: var(--skala); color: var(--text); border-color: var(--skala); }
+    .filter-btn.other.active { background: var(--other); border-color: var(--other); }
+    .filter-btn.kande.active { background: var(--kande); border-color: var(--kande); }
+    .filter-btn .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+    .search-input {
+      width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--text); font-size: 0.85rem; outline: none;
+    }
+    .search-input:focus { border-color: var(--accent); }
+
+    /* ── Location List ── */
+    .loc-list { max-height: 280px; overflow-y: auto; }
+    .loc-list::-webkit-scrollbar { width: 5px; }
+    .loc-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .loc-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 8px;
+      border-radius: 8px; cursor: pointer; transition: background 0.15s;
+      border-bottom: 1px solid rgba(0,0,0,0.03);
+    }
+    .loc-item:hover { background: var(--card-hover); }
+    .loc-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .loc-info { flex: 1; min-width: 0; }
+    .loc-name { font-size: 0.85rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .loc-addr { font-size: 0.72rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .loc-badge {
+      padding: 2px 8px; border-radius: 10px; font-size: 0.68rem; font-weight: 600;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .loc-badge.royal { background: rgba(229,62,62,0.15); color: var(--royal); }
+    .loc-badge.skytop { background: rgba(221,107,32,0.15); color: var(--skytop); }
+    .loc-badge.skala { background: rgba(236,201,75,0.25); color: #b7791f; }
+    .loc-badge.other { background: rgba(113,128,150,0.15); color: var(--other); }
+
+    /* ── Add Form ── */
+    .add-form { display: none; }
+    .add-form.active { display: block; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--text); font-size: 0.85rem; outline: none;
+      font-family: inherit;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); }
+    .form-group textarea { resize: vertical; min-height: 60px; }
+    .form-row { display: flex; gap: 10px; }
+    .form-row .form-group { flex: 1; }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 10px 16px; border-radius: 8px; border: none; font-size: 0.85rem;
+      font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: center;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-success:hover { opacity: 0.9; }
+    .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
+    .btn-block { width: 100%; }
+    .btn-group { display: flex; gap: 8px; margin-top: 10px; }
+    .btn-group .btn { flex: 1; }
+
+    /* ── Analysis Panel ── */
+    .analysis-card {
+      background: linear-gradient(135deg, rgba(49,130,206,0.08), rgba(56,161,105,0.06));
+      border-radius: 10px; padding: 14px; border: 1px solid var(--border); margin-bottom: 10px;
+    }
+    .analysis-card h4 { font-size: 0.82rem; font-weight: 600; color: var(--accent); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .analysis-card p { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+    .analysis-card ul { font-size: 0.78rem; color: var(--text); margin: 8px 0 0 16px; }
+    .analysis-card li { margin-bottom: 4px; }
+
+    /* ── Map ── */
+    .map-container { flex: 1; position: relative; }
+    #map { width: 100%; height: 100%; background: var(--bg); }
+
+    /* Leaflet light theme */
+    .leaflet-popup-content-wrapper {
+      background: var(--card); color: var(--text); border-radius: 10px;
+      border: 1px solid var(--border); box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+    .leaflet-popup-tip { background: var(--card); }
+    .leaflet-popup-close-button { color: var(--muted) !important; }
+    .leaflet-control-zoom a {
+      background: var(--card) !important; color: var(--text) !important;
+      border-color: var(--border) !important;
+    }
+    .leaflet-control-zoom a:hover { background: var(--card-hover) !important; }
+
+    .popup-title { font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; }
+    .popup-competitor { font-size: 0.78rem; font-weight: 600; margin-bottom: 4px; }
+    .popup-competitor.royal { color: var(--royal); }
+    .popup-competitor.skytop { color: var(--skytop); }
+    .popup-competitor.skala { color: #b7791f; }
+    .popup-addr { font-size: 0.78rem; color: var(--muted); margin-bottom: 6px; }
+    .popup-meta { font-size: 0.72rem; color: var(--muted); margin-bottom: 4px; }
+    .popup-notes { font-size: 0.75rem; color: var(--text); margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); }
+    .popup-btn {
+      display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 0.72rem;
+      text-decoration: none; cursor: pointer; margin-top: 8px; margin-right: 4px;
+      border: 1px solid var(--border); color: var(--accent); background: var(--bg);
+      transition: all 0.15s;
+    }
+    .popup-btn:hover { background: var(--accent-dim); border-color: var(--accent); }
+    .popup-btn.danger { color: var(--hot); }
+    .popup-btn.danger:hover { background: rgba(229,62,62,0.1); border-color: var(--hot); }
+
+    /* Map legend */
+    .map-legend {
+      position: absolute; bottom: 20px; left: 20px; background: var(--card);
+      border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px;
+      z-index: 1000; font-size: 0.75rem; box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+    .legend-title { font-weight: 600; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px; font-size: 0.68rem; }
+    .legend-item { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.3); }
+
+    /* Loading */
+    .loading-overlay {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(245,247,250,0.95); display: flex; align-items: center;
+      justify-content: center; z-index: 2000;
+    }
+    .loading-overlay.hidden { display: none; }
+    .loading-spinner { text-align: center; }
+    .loading-spinner .icon { font-size: 2rem; animation: pulse 1.5s infinite; }
+    .loading-spinner .text { font-size: 0.9rem; color: var(--muted); margin-top: 8px; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    /* Toast notification */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; padding: 14px 20px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 3000;
+      font-size: 0.85rem; display: flex; align-items: center; gap: 8px;
+      transform: translateY(100px); opacity: 0; transition: all 0.3s;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { border-left: 3px solid var(--success); }
+    .toast.error { border-left: 3px solid var(--hot); }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .app { flex-direction: column-reverse; }
+      .sidebar { width: 100%; max-height: 50vh; }
+      .map-container { width: 100%; height: 50vh; }
+      .map-legend { font-size: 0.65rem; padding: 8px 12px; bottom: 10px; left: 10px; }
+      .stats-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .sidebar { max-height: 55vh; }
+      .map-container { height: 45vh; }
+      .section { padding: 12px 14px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .filter-row { gap: 4px; }
+      .filter-btn { padding: 5px 8px; font-size: 0.7rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h2>🎯 <span>Competitor Map</span></h2>
+        <div class="sidebar-subtitle">Track competitor locations & find opportunities</div>
+      </div>
+
+      <div class="sidebar-content">
+        <!-- Stats -->
+        <div class="section">
+          <div class="section-title">📊 Coverage Overview</div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="val royal" id="statRoyal">0</div>
+              <div class="label">Royal ReFresh</div>
+            </div>
+            <div class="stat-card">
+              <div class="val skytop" id="statSkytop">0</div>
+              <div class="label">SkyTop/Canteen</div>
+            </div>
+            <div class="stat-card">
+              <div class="val skala" id="statSkala">0</div>
+              <div class="label">Skala</div>
+            </div>
+            <div class="stat-card">
+              <div class="val success" id="statProspects">0</div>
+              <div class="label">Our Prospects</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="section">
+          <div class="section-title">🔍 Filters</div>
+          <div class="filter-row" id="competitorFilters">
+            <button class="filter-btn royal active" data-filter="royal" onclick="toggleFilter('royal')">
+              <span class="dot" style="background:var(--royal)"></span> Royal ReFresh
+            </button>
+            <button class="filter-btn skytop active" data-filter="skytop" onclick="toggleFilter('skytop')">
+              <span class="dot" style="background:var(--skytop)"></span> SkyTop/Canteen
+            </button>
+            <button class="filter-btn skala active" data-filter="skala" onclick="toggleFilter('skala')">
+              <span class="dot" style="background:var(--skala)"></span> Skala
+            </button>
+            <button class="filter-btn other active" data-filter="other" onclick="toggleFilter('other')">
+              <span class="dot" style="background:var(--other)"></span> Others
+            </button>
+          </div>
+          <div class="filter-row">
+            <button class="filter-btn kande" data-filter="prospects" onclick="toggleFilter('prospects')">
+              <span class="dot" style="background:var(--kande)"></span> Our Prospects
+            </button>
+            <select id="propertyFilter" onchange="applyFilters()" style="flex:1;padding:6px 10px;border-radius:16px;border:1px solid var(--border);font-size:0.75rem;">
+              <option value="">All Property Types</option>
+              <option value="apartments">Apartments</option>
+              <option value="office">Office</option>
+              <option value="industrial">Industrial</option>
+              <option value="healthcare">Healthcare</option>
+              <option value="retail">Retail</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <input type="text" class="search-input" id="searchInput" placeholder="Search locations..." oninput="applyFilters()">
+        </div>
+
+        <!-- Location List -->
+        <div class="section" id="listSection">
+          <div class="section-title">📍 Competitor Locations <span id="locCount" style="color:var(--accent);">(0)</span></div>
+          <div class="loc-list" id="locList"></div>
+        </div>
+
+        <!-- Add Location Form -->
+        <div class="section" id="addSection">
+          <div class="section-title" style="cursor:pointer;" onclick="toggleAddForm()">
+            ➕ Add Competitor Location <span style="font-size:0.9rem;margin-left:auto;" id="formToggle">▼</span>
+          </div>
+          <div class="add-form" id="addForm">
+            <div class="form-group">
+              <label>Competitor *</label>
+              <select id="addCompetitor" required>
+                <option value="">Select competitor...</option>
+                <option value="royal">Royal ReFresh</option>
+                <option value="skytop">SkyTop/Canteen</option>
+                <option value="skala">Skala Industries</option>
+                <option value="first_class">First Class Nevada</option>
+                <option value="rr_vending">R&R Vending</option>
+                <option value="avendco">Avendco</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Location Name *</label>
+              <input type="text" id="addName" placeholder="e.g., Tuscan Highlands Apartments">
+            </div>
+            <div class="form-group">
+              <label>Address *</label>
+              <input type="text" id="addAddress" placeholder="123 Main St, Henderson, NV">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Property Type</label>
+                <select id="addPropertyType">
+                  <option value="">Select type...</option>
+                  <option value="apartments">Apartments</option>
+                  <option value="office">Office</option>
+                  <option value="industrial">Industrial</option>
+                  <option value="healthcare">Healthcare</option>
+                  <option value="retail">Retail</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Source</label>
+                <select id="addSource">
+                  <option value="saw_machine">Saw machine on-site</option>
+                  <option value="online">Online listing/review</option>
+                  <option value="customer">Customer mentioned</option>
+                  <option value="competitor_site">Competitor website</option>
+                  <option value="drive_by">Drive-by sighting</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Notes</label>
+              <textarea id="addNotes" placeholder="Any details about the competitor's setup, service quality, etc."></textarea>
+            </div>
+            <div class="btn-group">
+              <button class="btn btn-secondary" onclick="clearAddForm()">Cancel</button>
+              <button class="btn btn-success" onclick="saveLocation()">💾 Save Location</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Analysis -->
+        <div class="section">
+          <div class="section-title">🧠 Analysis</div>
+          <div class="analysis-card">
+            <h4>📍 Coverage Gaps</h4>
+            <p id="gapAnalysis">Loading analysis...</p>
+          </div>
+          <div class="analysis-card">
+            <h4>🎯 Opportunity Zones</h4>
+            <ul id="opportunityList">
+              <li>Loading...</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="map-container">
+      <div id="map"></div>
+      <div class="map-legend">
+        <div class="legend-title">Competitors</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--royal)"></div> Royal ReFresh</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--skytop)"></div> SkyTop/Canteen</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--skala)"></div> Skala Industries</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--other)"></div> Others</div>
+        <div class="legend-title" style="margin-top:10px;">Ours</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--kande)"></div> Our Prospects</div>
+      </div>
+      <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+          <div class="icon">🎯</div>
+          <div class="text">Loading competitor data...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    /* ── State ── */
+    let competitorLocations = [];
+    let prospects = [];
+    let markers = { competitors: {}, prospects: {} };
+    let map;
+    
+    // Filter state
+    let activeFilters = {
+      royal: true,
+      skytop: true,
+      skala: true,
+      other: true,
+      prospects: false
+    };
+
+    // Competitor color mapping
+    const COMPETITOR_COLORS = {
+      royal: '#e53e3e',
+      skytop: '#dd6b20',
+      skala: '#ecc94b',
+      first_class: '#718096',
+      rr_vending: '#718096',
+      avendco: '#718096',
+      other: '#718096'
+    };
+
+    const COMPETITOR_NAMES = {
+      royal: 'Royal ReFresh',
+      skytop: 'SkyTop/Canteen',
+      skala: 'Skala Industries',
+      first_class: 'First Class Nevada',
+      rr_vending: 'R&R Vending',
+      avendco: 'Avendco',
+      other: 'Other'
+    };
+
+    const SOURCE_LABELS = {
+      saw_machine: '👁️ Saw machine on-site',
+      online: '🌐 Online listing/review',
+      customer: '💬 Customer mentioned',
+      competitor_site: '🔗 Competitor website',
+      drive_by: '🚗 Drive-by sighting',
+      other: '📝 Other'
+    };
+
+    /* ── Map init ── */
+    map = L.map('map', { zoomControl: true }).setView([36.04, -115.06], 11); // Henderson/LV area
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© OpenStreetMap © CARTO', maxZoom: 19, subdomains: 'abcd'
+    }).addTo(map);
+
+    /* ── Marker helpers ── */
+    function createCompetitorIcon(color, size = 20) {
+      return L.divIcon({
+        className: '',
+        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:3px solid rgba(0,0,0,0.4);box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>`,
+        iconSize: [size, size], iconAnchor: [size/2, size/2], popupAnchor: [0, -(size/2 + 4)]
+      });
+    }
+
+    function createProspectIcon() {
+      return L.divIcon({
+        className: '',
+        html: `<div style="width:16px;height:16px;border-radius:50%;background:#38a169;border:2px solid rgba(0,0,0,0.4);box-shadow:0 2px 6px rgba(0,0,0,0.25);"></div>`,
+        iconSize: [16, 16], iconAnchor: [8, 8], popupAnchor: [0, -10]
+      });
+    }
+
+    /* ── Data loading ── */
+    async function loadData() {
+      try {
+        const [compRes, prospRes] = await Promise.all([
+          fetch('/api/competitor-locations').then(r => r.json()),
+          fetch('/api/prospects').then(r => r.json())
+        ]);
+        competitorLocations = compRes;
+        prospects = prospRes.filter(p => p.lat && p.lng);
+
+        updateStats();
+        renderMarkers();
+        renderLocationList();
+        updateAnalysis();
+        document.getElementById('loadingOverlay').classList.add('hidden');
+      } catch (e) {
+        console.error('Load failed:', e);
+        document.getElementById('loadingOverlay').innerHTML =
+          '<div class="loading-spinner"><div class="icon">❌</div><div class="text">Failed to load data</div></div>';
+      }
+    }
+
+    /* ── Stats ── */
+    function updateStats() {
+      const counts = { royal: 0, skytop: 0, skala: 0, other: 0 };
+      competitorLocations.forEach(loc => {
+        if (loc.competitor === 'royal') counts.royal++;
+        else if (loc.competitor === 'skytop') counts.skytop++;
+        else if (loc.competitor === 'skala') counts.skala++;
+        else counts.other++;
+      });
+      
+      document.getElementById('statRoyal').textContent = counts.royal;
+      document.getElementById('statSkytop').textContent = counts.skytop;
+      document.getElementById('statSkala').textContent = counts.skala;
+      document.getElementById('statProspects').textContent = prospects.length;
+    }
+
+    /* ── Markers ── */
+    function renderMarkers() {
+      // Clear existing
+      Object.values(markers.competitors).forEach(m => map.removeLayer(m));
+      Object.values(markers.prospects).forEach(m => map.removeLayer(m));
+      markers.competitors = {};
+      markers.prospects = {};
+
+      const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
+      const propertyFilter = document.getElementById('propertyFilter')?.value || '';
+
+      // Competitor markers
+      competitorLocations.forEach(loc => {
+        if (!loc.lat || !loc.lng) return;
+        
+        // Filter by competitor
+        const compGroup = ['first_class', 'rr_vending', 'avendco'].includes(loc.competitor) ? 'other' : loc.competitor;
+        if (!activeFilters[compGroup]) return;
+        
+        // Property filter
+        if (propertyFilter && loc.property_type !== propertyFilter) return;
+        
+        // Search filter
+        if (search) {
+          const searchable = [loc.name, loc.address, loc.notes || ''].join(' ').toLowerCase();
+          if (!searchable.includes(search)) return;
+        }
+
+        const color = COMPETITOR_COLORS[loc.competitor] || COMPETITOR_COLORS.other;
+        const marker = L.marker([loc.lat, loc.lng], { icon: createCompetitorIcon(color) });
+        
+        const popupHtml = `
+          <div class="popup-competitor ${loc.competitor}">${COMPETITOR_NAMES[loc.competitor] || 'Unknown'}</div>
+          <div class="popup-title">${loc.name}</div>
+          <div class="popup-addr">${loc.address}</div>
+          <div class="popup-meta">
+            ${loc.property_type ? `<span>🏢 ${loc.property_type}</span> · ` : ''}
+            ${SOURCE_LABELS[loc.source] || ''}
+          </div>
+          ${loc.notes ? `<div class="popup-notes">${loc.notes}</div>` : ''}
+          <button class="popup-btn" onclick="openDirections('${loc.address.replace(/'/g, "\\'")}')">🗺️ Directions</button>
+          <button class="popup-btn danger" onclick="deleteLocation(${loc.id})">🗑️ Delete</button>
+        `;
+        marker.bindPopup(popupHtml, { maxWidth: 280 });
+        marker.addTo(map);
+        markers.competitors[loc.id] = marker;
+      });
+
+      // Prospect markers (our leads)
+      if (activeFilters.prospects) {
+        prospects.forEach(p => {
+          if (!p.lat || !p.lng) return;
+          
+          // Property filter
+          if (propertyFilter && p.property_type !== propertyFilter) return;
+          
+          // Search filter
+          if (search) {
+            const searchable = [p.name, p.address || ''].join(' ').toLowerCase();
+            if (!searchable.includes(search)) return;
+          }
+
+          const marker = L.marker([p.lat, p.lng], { icon: createProspectIcon() });
+          
+          const statusBadge = p.status === 'signed' ? '✅ Signed' : 
+                             p.status === 'active' ? '🔵 Active' : '🆕 Prospect';
+          const popupHtml = `
+            <div class="popup-competitor" style="color:var(--success);">Our Prospect</div>
+            <div class="popup-title">${p.name}</div>
+            <div class="popup-addr">${p.address || 'No address'}</div>
+            <div class="popup-meta">${statusBadge}</div>
+            <button class="popup-btn" onclick="window.open('/crm#prospect-${p.id}', '_blank')">📋 View CRM</button>
+          `;
+          marker.bindPopup(popupHtml, { maxWidth: 260 });
+          marker.addTo(map);
+          markers.prospects[p.id] = marker;
+        });
+      }
+    }
+
+    /* ── Location List ── */
+    function renderLocationList() {
+      const container = document.getElementById('locList');
+      const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
+      const propertyFilter = document.getElementById('propertyFilter')?.value || '';
+
+      let filtered = competitorLocations.filter(loc => {
+        const compGroup = ['first_class', 'rr_vending', 'avendco'].includes(loc.competitor) ? 'other' : loc.competitor;
+        if (!activeFilters[compGroup]) return false;
+        if (propertyFilter && loc.property_type !== propertyFilter) return false;
+        if (search) {
+          const searchable = [loc.name, loc.address, loc.notes || ''].join(' ').toLowerCase();
+          if (!searchable.includes(search)) return false;
+        }
+        return true;
+      });
+
+      // Sort by competitor then name
+      filtered.sort((a, b) => {
+        if (a.competitor !== b.competitor) return (a.competitor || '').localeCompare(b.competitor || '');
+        return (a.name || '').localeCompare(b.name || '');
+      });
+
+      document.getElementById('locCount').textContent = `(${filtered.length})`;
+
+      container.innerHTML = filtered.map(loc => {
+        const color = COMPETITOR_COLORS[loc.competitor] || COMPETITOR_COLORS.other;
+        const compClass = ['first_class', 'rr_vending', 'avendco'].includes(loc.competitor) ? 'other' : loc.competitor;
+        return `
+          <div class="loc-item" onclick="focusLocation(${loc.id})">
+            <div class="loc-dot" style="background:${color}"></div>
+            <div class="loc-info">
+              <div class="loc-name">${loc.name}</div>
+              <div class="loc-addr">${loc.address || 'No address'}</div>
+            </div>
+            <span class="loc-badge ${compClass}">${COMPETITOR_NAMES[loc.competitor] || 'Other'}</span>
+          </div>
+        `;
+      }).join('') || '<div style="padding:16px;text-align:center;color:var(--muted);font-size:0.82rem;">No competitor locations found</div>';
+    }
+
+    /* ── Focus on location ── */
+    function focusLocation(id) {
+      const marker = markers.competitors[id];
+      if (marker) {
+        map.setView(marker.getLatLng(), 15);
+        marker.openPopup();
+      }
+    }
+
+    /* ── Filters ── */
+    function toggleFilter(filter) {
+      activeFilters[filter] = !activeFilters[filter];
+      const btn = document.querySelector(`[data-filter="${filter}"]`);
+      if (btn) btn.classList.toggle('active', activeFilters[filter]);
+      applyFilters();
+    }
+
+    function applyFilters() {
+      renderMarkers();
+      renderLocationList();
+    }
+
+    /* ── Add Form ── */
+    function toggleAddForm() {
+      const form = document.getElementById('addForm');
+      const toggle = document.getElementById('formToggle');
+      form.classList.toggle('active');
+      toggle.textContent = form.classList.contains('active') ? '▲' : '▼';
+    }
+
+    function clearAddForm() {
+      document.getElementById('addCompetitor').value = '';
+      document.getElementById('addName').value = '';
+      document.getElementById('addAddress').value = '';
+      document.getElementById('addPropertyType').value = '';
+      document.getElementById('addSource').value = 'saw_machine';
+      document.getElementById('addNotes').value = '';
+    }
+
+    async function saveLocation() {
+      const competitor = document.getElementById('addCompetitor').value;
+      const name = document.getElementById('addName').value.trim();
+      const address = document.getElementById('addAddress').value.trim();
+      const property_type = document.getElementById('addPropertyType').value;
+      const source = document.getElementById('addSource').value;
+      const notes = document.getElementById('addNotes').value.trim();
+
+      if (!competitor || !name || !address) {
+        showToast('Please fill in competitor, name, and address', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/competitor-locations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ competitor, name, address, property_type, source, notes })
+        });
+
+        if (!res.ok) throw new Error('Failed to save');
+
+        const newLoc = await res.json();
+        competitorLocations.push(newLoc);
+        
+        clearAddForm();
+        toggleAddForm();
+        updateStats();
+        renderMarkers();
+        renderLocationList();
+        updateAnalysis();
+
+        // Pan to new location if it has coords
+        if (newLoc.lat && newLoc.lng) {
+          map.setView([newLoc.lat, newLoc.lng], 15);
+        }
+
+        showToast('Competitor location saved!', 'success');
+      } catch (e) {
+        console.error('Save failed:', e);
+        showToast('Failed to save location', 'error');
+      }
+    }
+
+    async function deleteLocation(id) {
+      if (!confirm('Delete this competitor location?')) return;
+      
+      try {
+        await fetch(`/api/competitor-locations/${id}`, { method: 'DELETE' });
+        competitorLocations = competitorLocations.filter(l => l.id !== id);
+        
+        if (markers.competitors[id]) {
+          map.removeLayer(markers.competitors[id]);
+          delete markers.competitors[id];
+        }
+        
+        updateStats();
+        renderLocationList();
+        updateAnalysis();
+        showToast('Location deleted', 'success');
+      } catch (e) {
+        showToast('Failed to delete', 'error');
+      }
+    }
+
+    /* ── Analysis ── */
+    function updateAnalysis() {
+      // Coverage gaps analysis
+      const areas = {
+        henderson: { name: 'Henderson', competitors: 0, prospects: 0, lat: [35.95, 36.08], lng: [-115.15, -114.95] },
+        summerlin: { name: 'Summerlin', competitors: 0, prospects: 0, lat: [36.10, 36.25], lng: [-115.40, -115.25] },
+        spring_valley: { name: 'Spring Valley', competitors: 0, prospects: 0, lat: [36.05, 36.12], lng: [-115.30, -115.20] },
+        north_lv: { name: 'North Las Vegas', competitors: 0, prospects: 0, lat: [36.20, 36.35], lng: [-115.20, -115.05] },
+        downtown: { name: 'Downtown/Strip', competitors: 0, prospects: 0, lat: [36.08, 36.18], lng: [-115.20, -115.10] },
+        green_valley: { name: 'Green Valley', competitors: 0, prospects: 0, lat: [36.00, 36.07], lng: [-115.10, -115.00] }
+      };
+
+      // Count competitors and prospects per area
+      competitorLocations.forEach(loc => {
+        if (!loc.lat || !loc.lng) return;
+        for (const [key, area] of Object.entries(areas)) {
+          if (loc.lat >= area.lat[0] && loc.lat <= area.lat[1] && 
+              loc.lng >= area.lng[0] && loc.lng <= area.lng[1]) {
+            area.competitors++;
+            break;
+          }
+        }
+      });
+
+      prospects.forEach(p => {
+        if (!p.lat || !p.lng) return;
+        for (const [key, area] of Object.entries(areas)) {
+          if (p.lat >= area.lat[0] && p.lat <= area.lat[1] && 
+              p.lng >= area.lng[0] && p.lng <= area.lng[1]) {
+            area.prospects++;
+            break;
+          }
+        }
+      });
+
+      // Find gaps (low competitor density)
+      const gaps = Object.values(areas).filter(a => a.competitors <= 2).map(a => a.name);
+      const hotZones = Object.values(areas).filter(a => a.competitors >= 5).map(a => `${a.name} (${a.competitors})`);
+
+      document.getElementById('gapAnalysis').innerHTML = gaps.length > 0 
+        ? `<strong>Low competition areas:</strong> ${gaps.join(', ')}<br><br>` +
+          (hotZones.length > 0 ? `<strong>Saturated areas:</strong> ${hotZones.join(', ')}` : 'No heavily saturated areas detected.')
+        : 'Competitors are distributed across all major areas.';
+
+      // Opportunity list - prospects near competitors (replacement potential)
+      const opportunities = [];
+      prospects.forEach(p => {
+        if (!p.lat || !p.lng) return;
+        const nearbyCompetitors = competitorLocations.filter(c => {
+          if (!c.lat || !c.lng) return false;
+          const dist = getDistance(p.lat, p.lng, c.lat, c.lng);
+          return dist < 2; // Within 2 km
+        });
+        if (nearbyCompetitors.length > 0) {
+          opportunities.push({
+            name: p.name,
+            competitors: nearbyCompetitors.map(c => COMPETITOR_NAMES[c.competitor] || 'Unknown').join(', '),
+            count: nearbyCompetitors.length
+          });
+        }
+      });
+
+      // Sort by number of nearby competitors
+      opportunities.sort((a, b) => b.count - a.count);
+
+      document.getElementById('opportunityList').innerHTML = opportunities.slice(0, 5).map(o => 
+        `<li><strong>${o.name}</strong> — near ${o.competitors}</li>`
+      ).join('') || '<li>No direct replacement opportunities found. Add more competitor locations.</li>';
+    }
+
+    // Haversine distance in km
+    function getDistance(lat1, lng1, lat2, lng2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLng/2) * Math.sin(dLng/2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    /* ── Helpers ── */
+    function openDirections(address) {
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`, '_blank');
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type} show`;
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    /* ── Init ── */
+    loadData();
+  </script>
+</body>
+</html>

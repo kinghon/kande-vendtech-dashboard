@@ -3,671 +3,1142 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
   <title>Proposal Generator — Kande VendTech</title>
   <style>
-    :root { --accent:#3182ce; --bg:#f7fafc; --card:#fff; --text:#1a202c; --muted:#718096; --border:#e2e8f0; --success:#38a169; --purple:#6B2FA0; --gold:#D4A843; }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
-    .app { max-width: 1600px; margin: 0 auto; padding: 24px 20px 60px; }
-    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
-    .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 20px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #0f172a;
+      --muted: #64748b; --accent: #3b82f6; --accent-light: #eff6ff;
+      --green: #22c55e; --green-light: #f0fdf4;
+      --amber: #f59e0b; --amber-light: #fffbeb;
+      --red: #ef4444; --red-light: #fef2f2;
+      --purple: #8b5cf6; --purple-light: #f5f3ff;
+      --teal: #14b8a6; --teal-light: #f0fdfa;
+      --radius: 12px;
+      --kande-navy: #1e293b;
+      --kande-gold: #d4a843;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+    .page-wrapper { max-width: 1600px; margin: 0 auto; padding: 24px 28px 60px; }
+    .page-header { margin-bottom: 24px; }
+    .page-header h1 { font-size: 1.5rem; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+    .page-header p { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
 
-    /* Layout */
-    .gen-layout { display: grid; grid-template-columns: 420px 1fr; gap: 24px; align-items: start; }
-    @media (max-width: 1100px) { .gen-layout { grid-template-columns: 1fr; } }
+    /* Two-panel layout */
+    .panels { display: grid; grid-template-columns: 400px 1fr; gap: 24px; align-items: start; }
 
     /* Form panel */
-    .form-panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; position: sticky; top: 68px; max-height: calc(100vh - 84px); overflow-y: auto; }
-    .form-panel h2 { font-size: 1.05rem; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
-    .form-section { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
-    .form-section:last-child { border-bottom: none; margin-bottom: 0; }
-    .form-section h3 { font-size: 0.85rem; font-weight: 600; color: var(--purple); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 12px; }
-
-    .field { margin-bottom: 12px; }
-    .field label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
-    .field input, .field select, .field textarea {
-      width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px;
-      font-size: 0.88rem; font-family: inherit; background: #fff; color: var(--text); transition: border-color 0.2s;
+    .form-panel {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 24px; position: sticky; top: 80px; max-height: calc(100vh - 100px); overflow-y: auto;
     }
-    .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(49,130,206,0.1); }
-    .field textarea { resize: vertical; min-height: 70px; }
-    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .form-panel::-webkit-scrollbar { width: 6px; }
+    .form-panel::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 
-    /* CRM dropdown */
-    .crm-select { margin-bottom: 20px; }
-    .crm-select select { font-weight: 600; border-color: var(--purple); background: #faf5ff; }
+    .form-section { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #f1f5f9; }
+    .form-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .form-section h3 {
+      font-size: 0.82rem; font-weight: 700; color: var(--muted); text-transform: uppercase;
+      letter-spacing: 0.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+    }
 
-    /* Action buttons */
-    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
-    .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 0.88rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
-    .btn-primary { background: var(--purple); color: #fff; }
-    .btn-primary:hover { background: #5a2688; }
-    .btn-pdf { background: var(--accent); color: #fff; }
-    .btn-pdf:hover { background: #2c6cb0; }
-    .btn-save { background: var(--success); color: #fff; }
-    .btn-save:hover { background: #2f8a59; }
-    .btn-outline { background: #fff; color: var(--text); border: 1px solid var(--border); }
-    .btn-outline:hover { background: var(--bg); }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 0.85rem; font-family: inherit; background: #fff; color: var(--text);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+    .form-group textarea { resize: vertical; min-height: 70px; }
+    .form-group .hint { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-group select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2364748b' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center;
+    }
 
-    /* Toast */
-    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--success); color: #fff; padding: 12px 24px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; z-index: 10000; box-shadow: 0 4px 20px rgba(0,0,0,0.15); transform: translateY(100px); opacity: 0; transition: all 0.3s; }
-    .toast.show { transform: translateY(0); opacity: 1; }
-    .toast.error { background: #e53e3e; }
+    /* Slider */
+    .slider-wrapper { display: flex; align-items: center; gap: 12px; }
+    .slider-wrapper input[type="range"] {
+      flex: 1; height: 6px; border: none; padding: 0; -webkit-appearance: none;
+      background: #e2e8f0; border-radius: 3px; cursor: pointer;
+    }
+    .slider-wrapper input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+      background: var(--accent); cursor: pointer; border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+    .slider-value { min-width: 40px; text-align: center; font-weight: 700; font-size: 0.9rem; color: var(--accent); }
+
+    /* Buttons */
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+    .btn {
+      padding: 10px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 700;
+      cursor: pointer; border: none; transition: all 0.15s; font-family: inherit;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: #f1f5f9; }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-success:hover { background: #16a34a; }
+    .btn-amber { background: var(--amber); color: #fff; }
+    .btn-amber:hover { background: #d97706; }
+    .btn-sm { padding: 6px 14px; font-size: 0.78rem; }
 
     /* Preview panel */
-    .preview-panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-    .preview-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid var(--border); background: #fafafa; }
-    .preview-header h2 { font-size: 0.95rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-    .preview-tabs { display: flex; gap: 4px; }
-    .preview-tab { padding: 5px 14px; border-radius: 6px; font-size: 0.8rem; font-weight: 500; cursor: pointer; background: transparent; border: 1px solid transparent; color: var(--muted); transition: all 0.15s; }
-    .preview-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .preview-tab:hover:not(.active) { background: var(--bg); }
-    .preview-frame-wrap { position: relative; background: #E8E0EE; overflow: auto; }
-    .preview-frame-wrap iframe { border: none; width: 100%; display: block; }
+    .preview-panel {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      min-height: 600px;
+    }
+    .preview-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 20px; border-bottom: 1px solid var(--border);
+      background: #fafbfc; border-radius: var(--radius) var(--radius) 0 0;
+    }
+    .preview-toolbar-left { display: flex; align-items: center; gap: 8px; }
+    .preview-toolbar-left span { font-size: 0.82rem; font-weight: 700; color: var(--muted); }
+    .preview-toolbar-right { display: flex; gap: 8px; }
 
-    /* Saved proposals list */
-    .saved-list { margin-top: 20px; }
-    .saved-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #fafafa; border-radius: 8px; margin-bottom: 6px; font-size: 0.85rem; border: 1px solid var(--border); }
-    .saved-item .name { font-weight: 600; }
-    .saved-item .date { color: var(--muted); font-size: 0.78rem; }
-    .saved-item .load-btn { font-size: 0.78rem; color: var(--accent); cursor: pointer; font-weight: 600; background: none; border: none; }
+    .preview-empty {
+      padding: 80px 40px; text-align: center; color: var(--muted);
+    }
+    .preview-empty .empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.5; }
+    .preview-empty h3 { font-size: 1rem; margin-bottom: 8px; font-weight: 700; }
+    .preview-empty p { font-size: 0.85rem; }
 
-    /* Print styles — hide everything except the preview */
+    /* Draft management */
+    .drafts-bar {
+      display: flex; align-items: center; gap: 8px; padding: 10px 0; margin-bottom: 12px;
+      border-bottom: 1px solid #f1f5f9; flex-wrap: wrap;
+    }
+    .drafts-bar select { flex: 1; min-width: 0; }
+    .draft-badge {
+      font-size: 0.68rem; background: var(--amber-light); color: var(--amber);
+      padding: 2px 8px; border-radius: 10px; font-weight: 700;
+    }
+
+    /* ===== PROPOSAL PRINT STYLES ===== */
+    .proposal-content { padding: 0; }
+
+    .proposal-content .cover-page {
+      text-align: center; padding: 80px 48px 60px;
+      background: linear-gradient(135deg, var(--kande-navy) 0%, #334155 100%);
+      color: #fff; min-height: 500px; display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      border-radius: 0 0 0 0;
+    }
+    .proposal-content .cover-logo {
+      width: 90px; height: 90px; border-radius: 16px; margin-bottom: 20px;
+      border: 3px solid var(--kande-gold); box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .proposal-content .cover-title {
+      font-size: 2rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px;
+    }
+    .proposal-content .cover-tagline {
+      font-size: 1rem; color: var(--kande-gold); font-weight: 600; margin-bottom: 40px;
+      letter-spacing: 1px; text-transform: uppercase;
+    }
+    .proposal-content .cover-divider {
+      width: 80px; height: 3px; background: var(--kande-gold); margin: 0 auto 40px; border-radius: 2px;
+    }
+    .proposal-content .cover-for {
+      font-size: 0.85rem; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8;
+      margin-bottom: 8px;
+    }
+    .proposal-content .cover-property {
+      font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;
+    }
+    .proposal-content .cover-address {
+      font-size: 0.9rem; color: #cbd5e1;
+    }
+    .proposal-content .cover-date {
+      margin-top: 40px; font-size: 0.8rem; color: #64748b; text-transform: uppercase; letter-spacing: 1px;
+    }
+
+    .proposal-content .section {
+      padding: 36px 48px; border-bottom: 1px solid #f1f5f9;
+    }
+    .proposal-content .section:last-child { border-bottom: none; }
+    .proposal-content .section-title {
+      font-size: 1.15rem; font-weight: 800; color: var(--kande-navy);
+      margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+    }
+    .proposal-content .section-title .sec-num {
+      background: var(--kande-navy); color: var(--kande-gold);
+      width: 28px; height: 28px; border-radius: 50%; display: inline-flex;
+      align-items: center; justify-content: center; font-size: 0.75rem;
+      font-weight: 800; flex-shrink: 0;
+    }
+    .proposal-content p { margin-bottom: 12px; font-size: 0.88rem; line-height: 1.7; color: #334155; }
+    .proposal-content ul { margin: 0 0 12px 20px; }
+    .proposal-content li { margin-bottom: 6px; font-size: 0.86rem; line-height: 1.6; color: #334155; }
+
+    /* Comparison table */
+    .compare-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.82rem; }
+    .compare-table th {
+      text-align: left; padding: 10px 14px; font-weight: 700;
+      border-bottom: 2px solid var(--kande-navy); color: var(--kande-navy);
+      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .compare-table td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; }
+    .compare-table tr:last-child td { border-bottom: none; }
+    .compare-table .check { color: var(--green); font-weight: 700; }
+    .compare-table .cross { color: var(--red); font-weight: 700; }
+    .compare-table .highlight-col { background: var(--green-light); }
+
+    /* Revenue projections card */
+    .revenue-card {
+      background: linear-gradient(135deg, var(--green-light) 0%, #ecfdf5 100%);
+      border: 1px solid #bbf7d0; border-radius: 10px; padding: 24px; margin: 16px 0;
+    }
+    .revenue-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
+    .revenue-row + .revenue-row { border-top: 1px solid #bbf7d0; }
+    .revenue-label { font-size: 0.84rem; color: #166534; font-weight: 500; }
+    .revenue-value { font-size: 1.1rem; color: #166534; font-weight: 800; }
+    .revenue-total { font-size: 1.3rem; }
+    .revenue-note { font-size: 0.75rem; color: #16a34a; margin-top: 12px; font-style: italic; }
+
+    /* Advantage cards */
+    .advantage-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+    .advantage-card {
+      background: #fff; border: 1px solid var(--border); border-radius: 10px;
+      padding: 16px; display: flex; gap: 12px; align-items: flex-start;
+    }
+    .advantage-icon {
+      font-size: 1.4rem; width: 36px; height: 36px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      background: var(--accent-light);
+    }
+    .advantage-card h4 { font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; }
+    .advantage-card p { font-size: 0.76rem; line-height: 1.5; color: var(--muted); margin: 0; }
+
+    /* Steps */
+    .steps-row { display: flex; gap: 16px; margin: 20px 0; }
+    .step-card {
+      flex: 1; text-align: center; background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px 16px; position: relative;
+    }
+    .step-num {
+      width: 36px; height: 36px; border-radius: 50%; background: var(--accent);
+      color: #fff; font-weight: 800; font-size: 1rem; display: inline-flex;
+      align-items: center; justify-content: center; margin-bottom: 10px;
+    }
+    .step-card h4 { font-size: 0.85rem; font-weight: 700; margin-bottom: 4px; }
+    .step-card p { font-size: 0.78rem; color: var(--muted); margin: 0; }
+    .step-arrow {
+      position: absolute; right: -20px; top: 50%; transform: translateY(-50%);
+      font-size: 1.2rem; color: #cbd5e1; z-index: 1;
+    }
+    .step-card:last-child .step-arrow { display: none; }
+
+    /* Testimonial placeholders */
+    .testimonial-card {
+      background: #fafbfc; border: 1px solid var(--border); border-radius: 10px;
+      padding: 20px; margin-bottom: 12px; position: relative;
+    }
+    .testimonial-card::before {
+      content: '"'; position: absolute; top: 8px; left: 16px;
+      font-size: 2rem; color: #cbd5e1; font-family: Georgia, serif;
+    }
+    .testimonial-card .tq { padding-left: 24px; font-size: 0.86rem; font-style: italic; color: #475569; line-height: 1.6; margin-bottom: 8px; }
+    .testimonial-card .tauthor { font-size: 0.78rem; font-weight: 700; color: var(--text); padding-left: 24px; }
+
+    /* What we handle */
+    .handle-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 16px 0; }
+    .handle-item {
+      text-align: center; padding: 16px 12px; background: var(--accent-light);
+      border-radius: 10px;
+    }
+    .handle-item .handle-icon { font-size: 1.6rem; margin-bottom: 6px; }
+    .handle-item h4 { font-size: 0.8rem; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+    .handle-item p { font-size: 0.72rem; color: var(--muted); margin: 0; }
+
+    /* Footer */
+    .proposal-footer {
+      text-align: center; padding: 30px 48px; background: var(--kande-navy);
+      color: #cbd5e1; font-size: 0.78rem;
+    }
+    .proposal-footer strong { color: var(--kande-gold); }
+
+    /* Print styles */
     @media print {
-      body { background: white !important; }
-      .app > *:not(.gen-layout) { display: none !important; }
-      .form-panel, .preview-header, #kv-nav, #kv-nav-mobile, .toast { display: none !important; }
-      .gen-layout { display: block !important; }
+      body { background: #fff !important; }
+      #kv-topnav, #kv-mobile-menu, #kv-overlay, .form-panel, .preview-toolbar, .page-header { display: none !important; }
+      .kv-main-content { padding-top: 0 !important; }
+      .page-wrapper { padding: 0 !important; max-width: none !important; }
+      .panels { display: block !important; }
       .preview-panel { border: none !important; box-shadow: none !important; }
-      .preview-frame-wrap { overflow: visible !important; background: white !important; }
-      .preview-frame-wrap iframe { display: none !important; }
-      #print-target { display: block !important; }
+      .proposal-content .cover-page { min-height: 90vh; page-break-after: always; }
+      .proposal-content .section { page-break-inside: avoid; }
+      .compare-table { page-break-inside: avoid; }
+      .revenue-card { page-break-inside: avoid; }
+      .steps-row { page-break-inside: avoid; }
+    }
+
+    /* Responsive */
+    @media (max-width: 1100px) {
+      .panels { grid-template-columns: 1fr; }
+      .form-panel { position: static; max-height: none; }
+    }
+    @media (max-width: 600px) {
+      .advantage-grid { grid-template-columns: 1fr; }
+      .handle-grid { grid-template-columns: 1fr 1fr; }
+      .steps-row { flex-direction: column; }
+      .step-arrow { display: none !important; }
+      .proposal-content .section { padding: 24px 20px; }
+      .proposal-content .cover-page { padding: 40px 20px; }
     }
   </style>
 </head>
 <body>
-<div class="app">
-  <h1>📝 Proposal Generator</h1>
-  <p class="subtitle">Create customized proposals from the template, preview live, generate PDF, and save to CRM.</p>
+<script src="/nav.js"></script>
+<div class="page-wrapper">
+  <div class="page-header">
+    <h1>📑 Proposal Generator</h1>
+    <p>Create polished, professional proposals for property managers — auto-tailored by property type.</p>
+  </div>
 
-  <div class="gen-layout">
-    <!-- LEFT: Form -->
+  <div class="panels">
+    <!-- LEFT: Input Form -->
     <div class="form-panel">
-      <h2>📋 Proposal Details</h2>
-
-      <!-- CRM Auto-populate -->
-      <div class="crm-select">
-        <div class="field">
-          <label>Auto-populate from CRM</label>
-          <select id="crmProspect" onchange="loadFromCRM()">
-            <option value="">— Select a prospect —</option>
-          </select>
-        </div>
+      <!-- Draft management -->
+      <div class="drafts-bar">
+        <select id="draftSelect" title="Saved drafts">
+          <option value="">— New Proposal —</option>
+        </select>
+        <button class="btn btn-sm btn-secondary" onclick="loadDraft()" title="Load draft">📂</button>
+        <button class="btn btn-sm btn-amber" onclick="saveDraft()" title="Save draft">💾</button>
+        <button class="btn btn-sm btn-secondary" onclick="deleteDraft()" title="Delete draft" style="color:var(--red)">🗑</button>
       </div>
 
       <!-- Property Info -->
       <div class="form-section">
         <h3>🏢 Property Information</h3>
-        <div class="field">
-          <label>Property Name *</label>
-          <input type="text" id="propertyName" placeholder="The Elysian at Green Valley" oninput="updatePreview()">
+        <div class="form-group">
+          <label>Property / Business Name *</label>
+          <input type="text" id="propertyName" placeholder="e.g. The Meridian at Green Valley" oninput="autoGenerate()">
         </div>
-        <div class="field">
-          <label>Property Address</label>
-          <input type="text" id="propertyAddress" placeholder="1234 Green Valley Pkwy, Henderson, NV" oninput="updatePreview()">
+        <div class="form-group">
+          <label>Address</label>
+          <input type="text" id="propertyAddress" placeholder="e.g. 1234 Green Valley Pkwy, Henderson, NV 89052" oninput="autoGenerate()">
         </div>
-        <div class="field-row">
-          <div class="field">
-            <label>Property Type</label>
-            <select id="propertyType" onchange="updatePreview()">
-              <option value="luxury apartment community">Apartment</option>
-              <option value="healthcare facility">Healthcare</option>
-              <option value="office building">Office</option>
-              <option value="senior living community">Senior Living</option>
-              <option value="fitness center">Gym</option>
-              <option value="hotel & hospitality venue">Hotel</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Units / Employees</label>
-            <input type="number" id="unitCount" placeholder="250" oninput="updatePreview()">
-          </div>
-        </div>
-      </div>
-
-      <!-- Contact Info -->
-      <div class="form-section">
-        <h3>👤 Contact</h3>
-        <div class="field-row">
-          <div class="field">
+        <div class="form-row">
+          <div class="form-group">
             <label>Contact Name</label>
-            <input type="text" id="contactName" placeholder="Sarah Chen" oninput="updatePreview()">
+            <input type="text" id="contactName" placeholder="e.g. Sarah Johnson" oninput="autoGenerate()">
           </div>
-          <div class="field">
-            <label>Title</label>
-            <input type="text" id="contactTitle" placeholder="Property Manager" oninput="updatePreview()">
+          <div class="form-group">
+            <label>Contact Title</label>
+            <input type="text" id="contactTitle" placeholder="e.g. Property Manager" oninput="autoGenerate()">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Contact Email</label>
+            <input type="email" id="contactEmail" placeholder="sarah@example.com" oninput="autoGenerate()">
+          </div>
+          <div class="form-group">
+            <label>Contact Phone</label>
+            <input type="tel" id="contactPhone" placeholder="(702) 555-0100" oninput="autoGenerate()">
           </div>
         </div>
       </div>
 
-      <!-- Machine Deployment -->
+      <!-- Property Details -->
       <div class="form-section">
-        <h3>🤖 Deployment</h3>
-        <div class="field-row">
-          <div class="field">
+        <h3>📊 Property Details</h3>
+        <div class="form-group">
+          <label>Property Type *</label>
+          <select id="propertyType" onchange="autoGenerate()">
+            <option value="">Select type…</option>
+            <option value="luxury_apartment">Luxury Apartment Community</option>
+            <option value="apartment">Apartment Complex</option>
+            <option value="senior_living">Senior Living / Assisted Living</option>
+            <option value="office">Office Building</option>
+            <option value="healthcare">Healthcare / Hospital</option>
+            <option value="manufacturing">Manufacturing / Industrial</option>
+            <option value="warehouse">Warehouse / Distribution Center</option>
+            <option value="recreation">Recreation Center / YMCA</option>
+            <option value="hotel">Hotel / Hospitality</option>
+            <option value="education">Education / School</option>
+            <option value="coworking">Co-Working Space</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Estimated Units / Employees</label>
+            <input type="number" id="unitCount" placeholder="e.g. 250" min="1" oninput="autoGenerate()">
+            <div class="hint">Apartments: # units. Office/Industrial: # employees</div>
+          </div>
+          <div class="form-group">
+            <label>Daily Foot Traffic</label>
+            <input type="number" id="footTraffic" placeholder="e.g. 150" min="1" oninput="autoGenerate()">
+            <div class="hint">Avg people passing by machine daily</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
             <label>Machines Proposed</label>
-            <input type="number" id="machineCount" value="2" min="1" max="20" oninput="updatePreview()">
+            <input type="number" id="machineCount" value="1" min="1" max="10" oninput="autoGenerate()">
           </div>
-          <div class="field">
+          <div class="form-group">
             <label>Revenue Share %</label>
-            <input type="number" id="revenueShare" value="10" min="0" max="50" step="0.5" oninput="updatePreview()">
+            <div class="slider-wrapper">
+              <input type="range" id="revShareSlider" min="0" max="10" step="0.5" value="3" oninput="updateRevShare()">
+              <span class="slider-value" id="revShareValue">3%</span>
+            </div>
+            <div class="hint">Industry standard: 3–5% (starting month 6)</div>
           </div>
-        </div>
-      </div>
-
-      <!-- Revenue Projections -->
-      <div class="form-section">
-        <h3>💰 Monthly Revenue Projections</h3>
-        <div class="field-row-3">
-          <div class="field">
-            <label>Conservative ($)</label>
-            <input type="number" id="revConservative" placeholder="2400" oninput="updatePreview()">
-          </div>
-          <div class="field">
-            <label>Target ($)</label>
-            <input type="number" id="revTarget" placeholder="4000" oninput="updatePreview()">
-          </div>
-          <div class="field">
-            <label>Optimistic ($)</label>
-            <input type="number" id="revOptimistic" placeholder="6000" oninput="updatePreview()">
-          </div>
-        </div>
-        <div class="field-row-3" style="margin-top:4px;">
-          <div class="field">
-            <label>Conservative Txns/Day</label>
-            <input type="number" id="txnConservative" value="15" oninput="updatePreview()">
-          </div>
-          <div class="field">
-            <label>Target Txns/Day</label>
-            <input type="number" id="txnTarget" value="25" oninput="updatePreview()">
-          </div>
-          <div class="field">
-            <label>Optimistic Txns/Day</label>
-            <input type="number" id="txnOptimistic" value="40" oninput="updatePreview()">
-          </div>
-        </div>
-        <div class="field">
-          <label>Avg Transaction Value ($)</label>
-          <input type="number" id="avgTransaction" value="3.75" step="0.25" oninput="updatePreview()">
         </div>
       </div>
 
       <!-- Custom Notes -->
       <div class="form-section">
-        <h3>📝 Custom Notes</h3>
-        <div class="field">
-          <label>Notes (included in proposal)</label>
-          <textarea id="customNotes" placeholder="Any custom messaging for this prospect..."></textarea>
+        <h3>✏️ Custom Notes</h3>
+        <div class="form-group">
+          <label>Special Value Propositions</label>
+          <textarea id="customNotes" placeholder="Any custom selling points, special arrangements, or notes for this property…" rows="3" oninput="autoGenerate()"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Proposed Placement Location</label>
+          <input type="text" id="placementNote" placeholder="e.g. Lobby near mailboxes, break room, pool area" oninput="autoGenerate()">
         </div>
       </div>
 
       <!-- Actions -->
-      <div class="actions">
-        <button class="btn btn-pdf" onclick="generatePDF()">🖨️ Generate PDF</button>
-        <button class="btn btn-save" onclick="saveToCRM()">💾 Save to CRM</button>
-        <button class="btn btn-outline" onclick="resetForm()">🔄 Reset</button>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="generateProposal()">📑 Generate Proposal</button>
+        <button class="btn btn-secondary" onclick="resetForm()">🔄 Reset</button>
       </div>
-
-      <!-- Saved proposals -->
-      <div class="saved-list" id="savedList"></div>
     </div>
 
-    <!-- RIGHT: Preview -->
+    <!-- RIGHT: Preview Panel -->
     <div class="preview-panel">
-      <div class="preview-header">
-        <h2>👁️ Live Preview</h2>
-        <div class="preview-tabs">
-          <div class="preview-tab active" onclick="setPreviewScale(0.55)">Fit</div>
-          <div class="preview-tab" onclick="setPreviewScale(0.75)">75%</div>
-          <div class="preview-tab" onclick="setPreviewScale(1)">100%</div>
+      <div class="preview-toolbar">
+        <div class="preview-toolbar-left">
+          <span>📄 Proposal Preview</span>
+        </div>
+        <div class="preview-toolbar-right">
+          <button class="btn btn-sm btn-secondary" onclick="printProposal()">🖨️ Print</button>
+          <button class="btn btn-sm btn-success" onclick="downloadProposal()">⬇️ Download HTML</button>
         </div>
       </div>
-      <div class="preview-frame-wrap" id="previewWrap" style="height: calc(100vh - 160px);">
-        <iframe id="previewFrame" style="transform-origin: top left;"></iframe>
+      <div id="proposalOutput">
+        <div class="preview-empty">
+          <div class="empty-icon">📑</div>
+          <h3>No Proposal Generated</h3>
+          <p>Fill in the property details on the left and click "Generate Proposal" to create a professional proposal.</p>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Hidden print target -->
-<div id="print-target" style="display:none;"></div>
-
-<div class="toast" id="toast"></div>
-
 <script>
-// ===== State =====
-let templateHTML = '';
-let currentScale = 0.55;
-let prospects = [];
-let savedProposals = [];
-let selectedProspectId = null;
-
-// ===== Init =====
-async function init() {
-  await Promise.all([loadTemplate(), loadProspects(), loadSavedProposals()]);
-  // Set default dates
-  const today = new Date();
-  const expiry = new Date(today);
-  expiry.setDate(expiry.getDate() + 30);
-  updatePreview();
-}
-
-// ===== Load template from the sales materials =====
-async function loadTemplate() {
-  try {
-    const res = await fetch('/api/proposal-template');
-    if (res.ok) {
-      templateHTML = await res.text();
-    } else {
-      templateHTML = '<html><body><h1>Template not found</h1><p>Place proposal-template.html in sales/materials/</p></body></html>';
-    }
-  } catch (e) {
-    templateHTML = '<html><body><h1>Error loading template</h1></body></html>';
+/* ===== DATA MODELS ===== */
+const PROPERTY_CONFIG = {
+  luxury_apartment: {
+    label: 'Luxury Apartment Community',
+    productMix: 'Premium beverages (smart water, Celsius, cold brew coffee), gourmet snacks, protein bars, fresh grab-and-go meals, and everyday essentials (phone chargers, headphones, personal care items)',
+    placement: 'lobby near mailboxes and package lockers, fitness center, pool/clubhouse area, or co-working lounge',
+    sellingPoints: [
+      'Adds a premium amenity that increases resident satisfaction and retention',
+      'Attracts prospective residents during tours — a visible lifestyle perk',
+      'Residents can grab essentials without leaving the building',
+      '$54/month average rent premium for properties with modern amenities (NAA study)'
+    ],
+    avgSpendPerPerson: 2.50,
+    conversionRate: 0.08
+  },
+  apartment: {
+    label: 'Apartment Complex',
+    productMix: 'Popular sodas, energy drinks (Celsius, Red Bull), water, chips, candy bars, and essential convenience items',
+    placement: 'main lobby, laundry room, or community room',
+    sellingPoints: [
+      'Zero-cost amenity that differentiates your property',
+      'Residents love 24/7 access to snacks and drinks without driving',
+      'Reduces complaints about lack of on-site services',
+      'Revenue share provides passive income at zero effort'
+    ],
+    avgSpendPerPerson: 2.00,
+    conversionRate: 0.07
+  },
+  senior_living: {
+    label: 'Senior Living Community',
+    productMix: 'Healthy snacks, sugar-free options, low-sodium choices, bottled water, easy-open packages, protein drinks, and comfort items',
+    placement: 'common area near dining, activity room, or main lobby',
+    sellingPoints: [
+      'Gives residents independence and choice between meals',
+      'Curated healthy and dietary-friendly product selection',
+      'Accessible, intuitive touchscreen — no complicated apps required',
+      'Families appreciate the convenience during visits'
+    ],
+    avgSpendPerPerson: 1.80,
+    conversionRate: 0.10
+  },
+  office: {
+    label: 'Office Building',
+    productMix: 'Premium coffee alternatives, sparkling water, protein bars, premium chips, healthy snack options, and energy drinks',
+    placement: 'break room, lobby, or common area on highest-traffic floor',
+    sellingPoints: [
+      'Boosts employee satisfaction and reduces time leaving for snacks',
+      'Premium, curated selection that reflects your workplace culture',
+      'Data-driven restocking ensures favorites are always available',
+      'Replaces outdated vending with modern, cashless smart technology'
+    ],
+    avgSpendPerPerson: 3.00,
+    conversionRate: 0.12
+  },
+  healthcare: {
+    label: 'Healthcare Facility',
+    productMix: 'Healthy snacks, protein bars, nuts, fresh fruit cups, bottled water, low-sugar beverages, and comfort items for visitors',
+    placement: 'staff break room, visitor waiting area, or ER waiting room',
+    sellingPoints: [
+      '24/7 availability matches healthcare shift schedules perfectly',
+      'Healthy options align with your facility\'s wellness mission',
+      'Staff and visitors get fresh food without leaving the building',
+      'Contactless, hygienic purchasing — critical in healthcare settings'
+    ],
+    avgSpendPerPerson: 2.80,
+    conversionRate: 0.15
+  },
+  manufacturing: {
+    label: 'Manufacturing Facility',
+    productMix: 'Energy drinks, filling snacks, cold drinks, sandwiches, candy bars, chips, water, and protein-rich options for hard-working teams',
+    placement: 'main break room and secondary break areas near production floor',
+    sellingPoints: [
+      'Keeps workers energized without leaving the facility',
+      'Serves all shifts — 24/7 automated, always stocked',
+      'Bulk-friendly pricing for blue-collar budgets',
+      'Reduces break time spent driving to convenience stores'
+    ],
+    avgSpendPerPerson: 3.20,
+    conversionRate: 0.18
+  },
+  warehouse: {
+    label: 'Warehouse / Distribution Center',
+    productMix: 'Cold beverages, energy drinks, filling snacks, protein bars, water, Gatorade, and grab-and-go meals',
+    placement: 'main break room, loading dock area break space, or near time clocks',
+    sellingPoints: [
+      '24/7 operations need 24/7 refreshment — we provide both',
+      'High-energy products matched to physically demanding work',
+      'Recession-resistant location with consistent daily demand',
+      'No management involvement needed — we handle everything'
+    ],
+    avgSpendPerPerson: 3.00,
+    conversionRate: 0.20
+  },
+  recreation: {
+    label: 'Recreation Center / YMCA',
+    productMix: 'Sports drinks, water, energy bars, healthy snacks, kids\' snack options, and grab-and-go items for families',
+    placement: 'main lobby near entrance/exit, near courts/gym area, or spectator seating area',
+    sellingPoints: [
+      'Captive audience — families stay 2-4 hours during events and tournaments',
+      'Parents buy for kids; athletes buy post-workout',
+      'Revenue from tournaments and special events can spike significantly',
+      'Healthier alternatives to traditional concession stands'
+    ],
+    avgSpendPerPerson: 2.80,
+    conversionRate: 0.15
+  },
+  hotel: {
+    label: 'Hotel / Hospitality',
+    productMix: 'Premium beverages, snacks, toiletry essentials, phone chargers, and convenience items guests forget to pack',
+    placement: 'lobby, near elevators on guest floors, pool area, or fitness center',
+    sellingPoints: [
+      'Adds a modern amenity guests expect in quality hotels',
+      '24/7 availability — no front desk staffing needed for snacks',
+      'Higher-margin convenience items (chargers, toiletries) boost revenue',
+      'Reduces guest complaints about limited food options after hours'
+    ],
+    avgSpendPerPerson: 3.50,
+    conversionRate: 0.10
+  },
+  education: {
+    label: 'School / Educational Facility',
+    productMix: 'Student-friendly snacks, drinks, healthy options, quick meals, and energy drinks (if permitted)',
+    placement: 'student commons, cafeteria overflow area, teacher\'s lounge, or near gymnasium',
+    sellingPoints: [
+      'Captive audience of students and staff with consistent demand',
+      'Healthy options support school wellness initiatives',
+      'Revenue share can fund school programs or activities',
+      'Cashless technology — no cash handling concerns'
+    ],
+    avgSpendPerPerson: 2.00,
+    conversionRate: 0.12
+  },
+  coworking: {
+    label: 'Co-Working Space',
+    productMix: 'Cold brew, premium beverages, energy drinks, protein snacks, premium chips, fresh items, and tech accessories',
+    placement: 'kitchen/pantry area, main communal space, or near meeting rooms',
+    sellingPoints: [
+      'Enhances the member experience and justifies membership pricing',
+      'Professionals expect premium, curated food and beverage options',
+      'Smart technology fits the innovative, tech-forward coworking brand',
+      'No staff time required — fully automated and self-managing'
+    ],
+    avgSpendPerPerson: 3.50,
+    conversionRate: 0.14
+  },
+  other: {
+    label: 'Commercial Property',
+    productMix: 'A curated selection of popular beverages, snacks, and convenience items tailored to your specific audience',
+    placement: 'high-traffic common area with power outlet and Wi-Fi connectivity',
+    sellingPoints: [
+      'Zero cost to your property — we provide, stock, and maintain everything',
+      'Modern, cashless technology that impresses visitors and tenants',
+      'Data-driven product selection ensures we stock what people actually buy',
+      'Revenue share provides passive income with zero effort'
+    ],
+    avgSpendPerPerson: 2.50,
+    conversionRate: 0.10
   }
-}
+};
 
-// ===== Load CRM prospects =====
-async function loadProspects() {
-  try {
-    const res = await fetch('/api/prospects');
-    prospects = await res.json();
-    const sel = document.getElementById('crmProspect');
-    prospects.sort((a, b) => a.name.localeCompare(b.name)).forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      const badge = p.status === 'signed' ? '✅' : p.priority === 'hot' ? '🔥' : p.priority === 'warm' ? '🟠' : '';
-      opt.textContent = `${badge} ${p.name}${p.property_type ? ' — ' + p.property_type : ''}`;
-      sel.appendChild(opt);
-    });
-  } catch (e) { console.error('Failed to load prospects:', e); }
-}
-
-// ===== Auto-populate from CRM =====
-function loadFromCRM() {
-  const id = parseInt(document.getElementById('crmProspect').value);
-  if (!id) return;
-  const p = prospects.find(pr => pr.id === id);
-  if (!p) return;
-  selectedProspectId = id;
-
-  document.getElementById('propertyName').value = p.name || '';
-  document.getElementById('propertyAddress').value = p.address || '';
-  
-  // Map property type
-  const typeMap = {
-    'apartments': 'luxury apartment community',
-    'apartment': 'luxury apartment community',
-    'multifamily': 'luxury apartment community',
-    'healthcare': 'healthcare facility',
-    'hospital': 'healthcare facility',
-    'office': 'office building',
-    'senior_living': 'senior living community',
-    'senior living': 'senior living community',
-    'gym': 'fitness center',
-    'fitness': 'fitness center',
-    'hotel': 'hotel & hospitality venue',
-    'hospitality': 'hotel & hospitality venue'
-  };
-  const pt = (p.property_type || '').toLowerCase();
-  const mapped = typeMap[pt] || typeMap[Object.keys(typeMap).find(k => pt.includes(k))] || '';
-  if (mapped) {
-    const sel = document.getElementById('propertyType');
-    for (let i = 0; i < sel.options.length; i++) {
-      if (sel.options[i].value === mapped) { sel.selectedIndex = i; break; }
-    }
-  }
-
-  document.getElementById('unitCount').value = p.units || '';
-
-  // Fill contact from primary contact
-  const pc = p.primary_contact || (p.contacts && p.contacts[0]);
-  if (pc) {
-    if (typeof pc === 'string') {
-      document.getElementById('contactName').value = pc;
-    } else {
-      document.getElementById('contactName').value = pc.name || '';
-      document.getElementById('contactTitle').value = pc.role || pc.title || '';
-    }
-  }
-
-  updatePreview();
-  showToast('✅ Loaded from CRM: ' + p.name);
-}
-
-// ===== Gather form data =====
-function getFormData() {
-  const share = parseFloat(document.getElementById('revenueShare').value) || 10;
-  const machines = parseInt(document.getElementById('machineCount').value) || 2;
-  const avgTxn = parseFloat(document.getElementById('avgTransaction').value) || 3.75;
-  const conservative = parseFloat(document.getElementById('revConservative').value) || 0;
-  const target = parseFloat(document.getElementById('revTarget').value) || 0;
-  const optimistic = parseFloat(document.getElementById('revOptimistic').value) || 0;
-  const txnCon = parseInt(document.getElementById('txnConservative').value) || 15;
-  const txnTar = parseInt(document.getElementById('txnTarget').value) || 25;
-  const txnOpt = parseInt(document.getElementById('txnOptimistic').value) || 40;
-
-  // Auto-calc monthly gross if not manually entered
-  const calcGross = (txns) => Math.round(txns * avgTxn * 30 * machines);
-  const conGross = conservative || calcGross(txnCon);
-  const tarGross = target || calcGross(txnTar);
-  const optGross = optimistic || calcGross(txnOpt);
-
-  const today = new Date();
-  const expiry = new Date(today);
-  expiry.setDate(expiry.getDate() + 30);
-  const fmt = (d) => d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  const proposalNum = 'KVT-' + today.getFullYear() + '-' + String(Math.floor(Math.random() * 900) + 100);
-
+/* ===== REVENUE CALCULATIONS ===== */
+function calcRevenue(unitCount, footTraffic, machineCount, revShare, propertyType) {
+  const config = PROPERTY_CONFIG[propertyType] || PROPERTY_CONFIG.other;
+  const dailyTraffic = footTraffic || Math.round((unitCount || 100) * 0.6);
+  const dailyTransactions = Math.round(dailyTraffic * config.conversionRate * machineCount);
+  const dailyRevenue = dailyTransactions * config.avgSpendPerPerson;
+  const monthlyRevenue = Math.round(dailyRevenue * 30);
+  const annualRevenue = monthlyRevenue * 12;
+  const monthlyRevShareAmount = Math.round(monthlyRevenue * (revShare / 100));
+  const annualRevShareAmount = monthlyRevShareAmount * 12;
   return {
-    propertyName: document.getElementById('propertyName').value || '{{Property Name}}',
-    propertyAddress: document.getElementById('propertyAddress').value || '',
-    propertyType: document.getElementById('propertyType').value || 'luxury apartment community',
-    unitCount: document.getElementById('unitCount').value || '',
-    contactName: document.getElementById('contactName').value || '{{Property Contact Name}}',
-    contactTitle: document.getElementById('contactTitle').value || '',
-    machineCount: machines,
-    revenueShare: share,
-    kandeShare: 100 - share,
-    proposalDate: fmt(today),
-    expirationDate: fmt(expiry),
-    proposalNumber: proposalNum,
-    avgTransaction: avgTxn.toFixed(2),
-    txnConservative: txnCon,
-    txnTarget: txnTar,
-    txnOptimistic: txnOpt,
-    conservativeGross: conGross,
-    targetGross: tarGross,
-    optimisticGross: optGross,
-    conservativeShare: Math.round(conGross * share / 100),
-    targetShare: Math.round(tarGross * share / 100),
-    optimisticShare: Math.round(optGross * share / 100),
-    conservativeAnnual: Math.round(conGross * 12 * share / 100),
-    targetAnnual: Math.round(tarGross * 12 * share / 100),
-    optimisticAnnual: Math.round(optGross * 12 * share / 100),
-    customNotes: document.getElementById('customNotes').value || ''
+    dailyTraffic, dailyTransactions, dailyRevenue: Math.round(dailyRevenue),
+    monthlyRevenue, annualRevenue,
+    monthlyRevShareAmount, annualRevShareAmount,
+    avgSpend: config.avgSpendPerPerson
   };
 }
 
-// ===== Replace tokens in template =====
-function fillTemplate(data) {
-  let html = templateHTML;
-  const currency = (n) => n.toLocaleString('en-US');
+/* ===== FORM HELPERS ===== */
+function updateRevShare() {
+  const val = document.getElementById('revShareSlider').value;
+  document.getElementById('revShareValue').textContent = val + '%';
+  autoGenerate();
+}
 
-  const replacements = {
-    '{{Property Name}}': data.propertyName,
-    '{{Property Type}}': data.propertyType,
-    '{{Property Contact Name}}': data.contactName,
-    '{{Proposal Date}}': data.proposalDate,
-    '{{Expiration Date}}': data.expirationDate,
-    '{{Proposal Number}}': data.proposalNumber,
-    '{{Revenue Share %}}': data.revenueShare,
-    '{{Kande Share %}}': data.kandeShare,
-    '{{Total Qty}}': data.machineCount,
-    '{{Estimated Daily Transactions}}': data.txnTarget,
-    '{{Avg Transaction}}': data.avgTransaction,
-    '{{Conservative Daily Txns}}': data.txnConservative,
-    '{{Moderate Daily Txns}}': data.txnTarget,
-    '{{Optimistic Daily Txns}}': data.txnOptimistic,
-    '{{Conservative Monthly Gross}}': currency(data.conservativeGross),
-    '{{Moderate Monthly Gross}}': currency(data.targetGross),
-    '{{Optimistic Monthly Gross}}': currency(data.optimisticGross),
-    '{{Conservative Property Share}}': currency(data.conservativeShare),
-    '{{Moderate Property Share}}': currency(data.targetShare),
-    '{{Optimistic Property Share}}': currency(data.optimisticShare),
-    '{{Conservative Annual}}': currency(data.conservativeAnnual),
-    '{{Moderate Annual}}': currency(data.targetAnnual),
-    '{{Optimistic Annual}}': currency(data.optimisticAnnual),
-    // Defaults for fields not in the form
-    '{{Term Length — e.g., 3 years}}': '3 years',
-    '{{Renewal Terms — e.g., automatic 1-year renewals}}': 'automatic 1-year renewals',
-    '{{Payment Frequency — e.g., monthly, by the 15th of the following month}}': 'monthly, by the 15th of the following month',
-    '{{Payment Frequency — e.g., Monthly, by the 15th of the following month}}': 'Monthly, by the 15th of the following month',
-    '{{Termination Notice — e.g., 60 days}}': '60 days',
-    '{{Exclusivity Terms — e.g., Non-exclusive / Exclusive within designated areas}}': 'Non-exclusive',
-    '{{Restock Frequency — e.g., 2–3× per week minimum}}': '2–3× per week minimum',
-    '{{Maintenance SLA — e.g., 24 hours}}': '24 hours',
-    '{{On-Site SLA — e.g., 4 hours}}': '4 hours',
-    '{{Required Space — e.g., 3ft × 3ft}}': '3ft × 3ft',
-    '{{Machine Dimensions — e.g., 72"H × 26"W × 29"D}}': '72"H × 26"W × 29"D',
-    '{{Capacity — e.g., 150–200 items}}': '150–200 items',
-    '{{CEO Bio — e.g., Kurtis brings a background in operations management, technology, and entrepreneurship to Kande VendTech. Based in Las Vegas, he is personally involved in every property partnership, ensuring white-glove service from first conversation to ongoing operations.}}': 'Kurtis brings a background in operations management, technology, and entrepreneurship to Kande VendTech. Based in Las Vegas, he is personally involved in every property partnership, ensuring white-glove service from first conversation to ongoing operations.'
+function getFormData() {
+  return {
+    propertyName: document.getElementById('propertyName').value.trim(),
+    propertyAddress: document.getElementById('propertyAddress').value.trim(),
+    contactName: document.getElementById('contactName').value.trim(),
+    contactTitle: document.getElementById('contactTitle').value.trim(),
+    contactEmail: document.getElementById('contactEmail').value.trim(),
+    contactPhone: document.getElementById('contactPhone').value.trim(),
+    propertyType: document.getElementById('propertyType').value,
+    unitCount: parseInt(document.getElementById('unitCount').value) || 0,
+    footTraffic: parseInt(document.getElementById('footTraffic').value) || 0,
+    machineCount: parseInt(document.getElementById('machineCount').value) || 1,
+    revShare: parseFloat(document.getElementById('revShareSlider').value) || 3,
+    customNotes: document.getElementById('customNotes').value.trim(),
+    placementNote: document.getElementById('placementNote').value.trim()
   };
-
-  for (const [token, value] of Object.entries(replacements)) {
-    html = html.split(token).join(value);
-  }
-
-  // Replace {{Qty}} tokens generically (for location table rows)
-  html = html.split('{{Qty}}').join('1');
-
-  return html;
 }
 
-// ===== Update preview =====
-let previewTimeout;
-function updatePreview() {
-  clearTimeout(previewTimeout);
-  previewTimeout = setTimeout(() => {
-    const data = getFormData();
-    const html = fillTemplate(data);
-    const iframe = document.getElementById('previewFrame');
-    iframe.srcdoc = html;
-    applyScale(currentScale);
-  }, 150);
+function setFormData(data) {
+  document.getElementById('propertyName').value = data.propertyName || '';
+  document.getElementById('propertyAddress').value = data.propertyAddress || '';
+  document.getElementById('contactName').value = data.contactName || '';
+  document.getElementById('contactTitle').value = data.contactTitle || '';
+  document.getElementById('contactEmail').value = data.contactEmail || '';
+  document.getElementById('contactPhone').value = data.contactPhone || '';
+  document.getElementById('propertyType').value = data.propertyType || '';
+  document.getElementById('unitCount').value = data.unitCount || '';
+  document.getElementById('footTraffic').value = data.footTraffic || '';
+  document.getElementById('machineCount').value = data.machineCount || 1;
+  document.getElementById('revShareSlider').value = data.revShare || 3;
+  document.getElementById('revShareValue').textContent = (data.revShare || 3) + '%';
+  document.getElementById('customNotes').value = data.customNotes || '';
+  document.getElementById('placementNote').value = data.placementNote || '';
 }
 
-// ===== Scale preview =====
-function setPreviewScale(scale) {
-  currentScale = scale;
-  applyScale(scale);
-  document.querySelectorAll('.preview-tab').forEach((t, i) => {
-    t.classList.toggle('active', [0.55, 0.75, 1][i] === scale);
+function resetForm() {
+  document.querySelectorAll('.form-panel input, .form-panel textarea').forEach(el => {
+    if (el.type === 'range') el.value = 3;
+    else if (el.type === 'number' && el.id === 'machineCount') el.value = 1;
+    else el.value = '';
+  });
+  document.getElementById('propertyType').value = '';
+  document.getElementById('revShareValue').textContent = '3%';
+  document.getElementById('proposalOutput').innerHTML = `
+    <div class="preview-empty">
+      <div class="empty-icon">📑</div>
+      <h3>No Proposal Generated</h3>
+      <p>Fill in the property details on the left and click "Generate Proposal" to create a professional proposal.</p>
+    </div>`;
+}
+
+/* ===== AUTO-GENERATE (debounced) ===== */
+let autoTimer = null;
+function autoGenerate() {
+  clearTimeout(autoTimer);
+  autoTimer = setTimeout(() => {
+    const d = getFormData();
+    if (d.propertyName && d.propertyType) generateProposal();
+  }, 600);
+}
+
+/* ===== GENERATE PROPOSAL ===== */
+function generateProposal() {
+  const d = getFormData();
+  if (!d.propertyName) return alert('Please enter a property name.');
+  if (!d.propertyType) return alert('Please select a property type.');
+
+  const config = PROPERTY_CONFIG[d.propertyType] || PROPERTY_CONFIG.other;
+  const rev = calcRevenue(d.unitCount, d.footTraffic, d.machineCount, d.revShare, d.propertyType);
+  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const placement = d.placementNote || config.placement;
+  const machineWord = d.machineCount === 1 ? 'machine' : 'machines';
+  const unitLabel = ['luxury_apartment','apartment','senior_living'].includes(d.propertyType) ? 'units' : 'employees';
+
+  let html = `<div class="proposal-content">`;
+
+  /* ── COVER PAGE ── */
+  html += `
+    <div class="cover-page">
+      <img class="cover-logo" src="/logo.png" alt="Kande VendTech" onerror="this.style.display='none'">
+      <div class="cover-title">Kande VendTech</div>
+      <div class="cover-tagline">Smart Refreshment Solutions</div>
+      <div class="cover-divider"></div>
+      <div class="cover-for">Prepared For</div>
+      <div class="cover-property">${esc(d.propertyName)}</div>
+      ${d.propertyAddress ? `<div class="cover-address">${esc(d.propertyAddress)}</div>` : ''}
+      ${d.contactName ? `<div class="cover-address" style="margin-top:8px">${esc(d.contactName)}${d.contactTitle ? ', ' + esc(d.contactTitle) : ''}</div>` : ''}
+      <div class="cover-date">${today}</div>
+    </div>`;
+
+  /* ── SECTION 1: About Kande VendTech ── */
+  html += `
+    <div class="section">
+      <div class="section-title"><span class="sec-num">1</span> About Kande VendTech</div>
+      <p>Kande VendTech is a Henderson-based smart refreshment company serving the Las Vegas metropolitan area. We deploy <strong>AI-powered smart coolers</strong> that combine the convenience of a vending machine with the intelligence of a modern retail platform.</p>
+      <p>Unlike traditional vending companies, our technology uses <strong>computer vision and weight sensors</strong> to automatically detect what's been taken — no buttons to press, no selections to make. Customers simply open the door, grab what they want, and close it. Payment is processed automatically through their phone or card.</p>
+      <p>Our AI-powered inventory system tracks every product in real time, predicting when restocking is needed and learning which products are most popular at your specific location. This means <strong>fresher products, fewer empty slots, and a selection that continuously improves</strong> based on what your ${unitLabel === 'units' ? 'residents' : 'people'} actually want.</p>
+      <p>As a <strong>locally owned and operated</strong> company, you won't deal with a call center or corporate bureaucracy. You get one phone number — and the owner picks up.</p>
+    </div>`;
+
+  /* ── SECTION 2: Why Smart Vending? ── */
+  html += `
+    <div class="section">
+      <div class="section-title"><span class="sec-num">2</span> Why Smart Vending?</div>
+      <p>The refreshment industry has evolved dramatically. Traditional vending machines with coin slots and spiral dispensers are being replaced by intelligent, data-driven solutions. Here's how they compare:</p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Traditional Vending</th>
+            <th class="highlight-col">Kande Smart Cooler</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Payment</td><td>Cash + outdated card readers</td><td class="highlight-col"><span class="check">✓</span> Contactless tap, Apple/Google Pay, app</td></tr>
+          <tr><td>Product Selection</td><td>Whatever the vendor loads</td><td class="highlight-col"><span class="check">✓</span> AI-optimized based on real purchase data</td></tr>
+          <tr><td>Freshness</td><td>Products often expire on shelf</td><td class="highlight-col"><span class="check">✓</span> Real-time expiry tracking, automatic rotation</td></tr>
+          <tr><td>Restocking</td><td>Fixed schedule (weekly/biweekly)</td><td class="highlight-col"><span class="check">✓</span> Smart alerts — restocked when needed</td></tr>
+          <tr><td>Product Stuck?</td><td>Common — lose money, no recourse</td><td class="highlight-col"><span class="check">✓</span> No spirals — grab & go, never jams</td></tr>
+          <tr><td>Reporting</td><td>None or paper-based</td><td class="highlight-col"><span class="check">✓</span> Real-time dashboard with sales data</td></tr>
+          <tr><td>Look & Feel</td><td>Bulky, dated, industrial</td><td class="highlight-col"><span class="check">✓</span> Sleek, modern, glass-front cooler design</td></tr>
+          <tr><td>Maintenance</td><td>Reactive — call when it breaks</td><td class="highlight-col"><span class="check">✓</span> Remote diagnostics, proactive service</td></tr>
+        </tbody>
+      </table>
+    </div>`;
+
+  /* ── SECTION 3: Proposed Solution ── */
+  html += `
+    <div class="section">
+      <div class="section-title"><span class="sec-num">3</span> Proposed Solution for ${esc(d.propertyName)}</div>
+      <p>Based on your ${config.label.toLowerCase()} with ${d.unitCount ? d.unitCount.toLocaleString() + ' ' + unitLabel : 'your current traffic volume'}, we recommend the following setup:</p>
+      <ul>
+        <li><strong>${d.machineCount} SandStar AI Smart Cooler${d.machineCount > 1 ? 's' : ''}</strong> — glass-front, LED-lit, AI-powered inventory tracking, contactless payment</li>
+        <li><strong>Product Mix:</strong> ${config.productMix}</li>
+        <li><strong>Suggested Placement:</strong> ${esc(placement)}</li>
+        ${d.machineCount > 1 ? `<li><strong>Coverage:</strong> ${d.machineCount} ${machineWord} strategically positioned to maximize accessibility and minimize travel for your ${unitLabel === 'units' ? 'residents' : 'team'}</li>` : ''}
+      </ul>
+      <p>Our product selection is tailored specifically for ${config.label.toLowerCase()} environments. We use data from similar locations to pre-load the most popular items, then our AI continuously optimizes based on actual purchase patterns at your location.</p>
+      ${config.sellingPoints.map(s => `<p>✦ ${s}</p>`).join('')}
+      ${d.customNotes ? `<p style="margin-top:16px; padding:12px 16px; background:var(--amber-light); border-radius:8px; font-size:0.84rem;"><strong>Additional Notes:</strong> ${esc(d.customNotes)}</p>` : ''}
+    </div>`;
+
+  /* ── SECTION 4: Revenue Projections ── */
+  html += `
+    <div class="section">
+      <div class="section-title"><span class="sec-num">4</span> Revenue Projections</div>
+      <p>Based on industry benchmarks for ${config.label.toLowerCase()} locations with ${d.unitCount ? d.unitCount.toLocaleString() + ' ' + unitLabel : 'comparable traffic'} and ${d.machineCount} ${machineWord}:</p>
+      <div class="revenue-card">
+        <div class="revenue-row">
+          <span class="revenue-label">Estimated Daily Traffic</span>
+          <span class="revenue-value">${rev.dailyTraffic.toLocaleString()} people</span>
+        </div>
+        <div class="revenue-row">
+          <span class="revenue-label">Estimated Daily Transactions</span>
+          <span class="revenue-value">${rev.dailyTransactions.toLocaleString()}</span>
+        </div>
+        <div class="revenue-row">
+          <span class="revenue-label">Average Transaction Value</span>
+          <span class="revenue-value">$${rev.avgSpend.toFixed(2)}</span>
+        </div>
+        <div class="revenue-row">
+          <span class="revenue-label">Estimated Monthly Revenue</span>
+          <span class="revenue-value">$${rev.monthlyRevenue.toLocaleString()}</span>
+        </div>
+        <div class="revenue-row">
+          <span class="revenue-label">Estimated Annual Revenue</span>
+          <span class="revenue-value revenue-total">$${rev.annualRevenue.toLocaleString()}</span>
+        </div>
+        ${d.revShare > 0 ? `
+        <div class="revenue-row" style="margin-top:12px; padding-top:12px; border-top:2px solid #86efac;">
+          <span class="revenue-label"><strong>Your Revenue Share (${d.revShare}%)</strong></span>
+          <span class="revenue-value" style="color:#15803d;">$${rev.monthlyRevShareAmount.toLocaleString()}/mo — $${rev.annualRevShareAmount.toLocaleString()}/yr</span>
+        </div>` : ''}
+      </div>
+      <p class="revenue-note">* Projections are estimates based on industry data for similar ${config.label.toLowerCase()} locations. Actual results may vary based on placement, product mix, and seasonal factors.${d.revShare > 0 ? ' Revenue share begins after the initial 6-month launch period.' : ''}</p>
+    </div>`;
+
+  /* ── SECTION 5: Our Competitive Advantage ── */
+  html += `
+    <div class="section">
+      <div class="section-title"><span class="sec-num">5</span> Our Competitive Advantage</div>
+      <p>The Las Vegas vending market has many operators — but very few offer what we do. Here's what makes Kande VendTech different:</p>
+      <div class="advantage-grid">
+        <div class="advantage-card">
+          <div class="advantage-icon">🏠</div>
+          <div>
+            <h4>Locally Owned & Operated</h4>
+            <p>We're Henderson-based, not a franchise or corporate call center. When you call, the owner answers.</p>
+          </div>
+        </div>
+        <div class="advantage-card">
+          <div class="advantage-icon">🤖</div>
+          <div>
+            <h4>AI-Powered Smart Technology</h4>
+            <p>Computer vision, weight sensors, and real-time analytics. Most competitors still use 20-year-old spiral machines.</p>
+          </div>
+        </div>
+        <div class="advantage-card">
+          <div class="advantage-icon">💰</div>
+          <div>
+            <h4>Revenue Share Included</h4>
+            <p>Most local competitors offer 0% commission. We share ${d.revShare}% of revenue because we believe in partnerships, not just placements.</p>
+          </div>
+        </div>
+        <div class="advantage-card">
+          <div class="advantage-icon">📊</div>
+          <div>
+            <h4>Data-Driven Restocking</h4>
+            <p>Our AI predicts demand, tracks inventory, and ensures your machine is never empty or stale. No more "hope and check" schedules.</p>
+          </div>
+        </div>
+        <div class="advantage-card">
+          <div class="advantage-icon">💳</div>
+          <div>
+            <h4>100% Cashless & Contactless</h4>
+            <p>Apple Pay, Google Pay, tap-to-pay cards. Secure, fast, and hygienic — no cash handling, no coin jams.</p>
+          </div>
+        </div>
+        <div class="advantage-card">
+          <div class="advantage-icon">⚡</div>
+          <div>
+            <h4>Rapid Response Service</h4>
+            <p>Issues are often detected remotely before anyone notices. When on-site service is needed, we're same-day in Henderson.</p>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  /* ── SECTION 6: What We Handle ── */
+  html += `
+    <div class="section">
+      <div class="section-title"><span class="sec-num">6</span> What We Handle — At Zero Cost to You</div>
+      <p>We provide a true <strong>full-service, zero-cost partnership</strong>. There is absolutely no financial commitment required from ${esc(d.propertyName)}.</p>
+      <div class="handle-grid">
+        <div class="handle-item">
+          <div class="handle-icon">📦</div>
+          <h4>Equipment</h4>
+          <p>We provide the machine — no purchase, lease, or deposit required</p>
+        </div>
+        <div class="handle-item">
+          <div class="handle-icon">🔧</div>
+          <h4>Installation</h4>
+          <p>Professional setup, configured and tested before we leave</p>
+        </div>
+        <div class="handle-item">
+          <div class="handle-icon">🛒</div>
+          <h4>Product Sourcing</h4>
+          <p>We purchase, curate, and price all inventory</p>
+        </div>
+        <div class="handle-item">
+          <div class="handle-icon">🔄</div>
+          <h4>Restocking</h4>
+          <p>Regular visits to keep the machine full and fresh</p>
+        </div>
+        <div class="handle-item">
+          <div class="handle-icon">🛠️</div>
+          <h4>Maintenance</h4>
+          <p>Cleaning, repairs, and technical support — all covered</p>
+        </div>
+        <div class="handle-item">
+          <div class="handle-icon">📈</div>
+          <h4>Optimization</h4>
+          <p>Ongoing product mix adjustments based on sales data</p>
+        </div>
+      </div>
+      <p style="text-align:center; font-weight:700; color:var(--green); margin-top:16px; font-size:0.92rem;">Your only requirement: an accessible location with a standard power outlet and Wi-Fi access.</p>
+    </div>`;
+
+  /* ── SECTION 7: Next Steps ── */
+  html += `
+    <div class="section">
+      <div class="section-title"><span class="sec-num">7</span> Next Steps — Getting Started Is Simple</div>
+      <p>We've designed our onboarding process to be as easy as possible. Three simple steps:</p>
+      <div class="steps-row">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <h4>Sign Agreement</h4>
+          <p>A simple placement agreement — no complex contracts, no hidden fees.</p>
+          <span class="step-arrow">→</span>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <h4>We Install</h4>
+          <p>We deliver, set up, and stock your smart cooler at a time that works for you.</p>
+          <span class="step-arrow">→</span>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <h4>You Earn</h4>
+          <p>Your ${unitLabel === 'units' ? 'residents' : 'team'} enjoy refreshments and you earn revenue share — hands-free.</p>
+        </div>
+      </div>
+      <p style="text-align:center; margin-top:20px;">Installation typically takes place <strong>within 2 weeks</strong> of signing. We handle all logistics.</p>
+    </div>`;
+
+  /* ── SECTION 8: Testimonials / Case Studies ── */
+  html += `
+    <div class="section">
+      <div class="section-title"><span class="sec-num">8</span> What Our Partners Say</div>
+      <div class="testimonial-card">
+        <div class="tq">The smart cooler has been a hit with our residents. It's always stocked with exactly what they want, and we love that it's completely hands-off for our team. The revenue share is just a bonus.</div>
+        <div class="tauthor">— Property Manager, Luxury Apartment Community</div>
+      </div>
+      <div class="testimonial-card">
+        <div class="tq">We replaced our old vending machines with Kande's smart coolers and the difference is night and day. Better products, better technology, and actual customer service when we need it.</div>
+        <div class="tauthor">— Operations Director, Manufacturing Facility</div>
+      </div>
+      <p style="font-size:0.78rem; color:var(--muted); text-align:center; margin-top:12px; font-style:italic;">Additional references and site visits available upon request.</p>
+    </div>`;
+
+  /* ── FOOTER ── */
+  html += `
+    <div class="proposal-footer">
+      <strong>Kande VendTech</strong> — Smart Refreshment Solutions<br>
+      Henderson, Nevada &nbsp;•&nbsp; kandevendtech.com &nbsp;•&nbsp; kurtis@kandevendtech.com<br><br>
+      This proposal is valid for 30 days from the date above.<br>
+      <span style="font-size:0.7rem; color:#64748b;">Confidential — prepared exclusively for ${esc(d.propertyName)}</span>
+    </div>`;
+
+  html += `</div>`;
+  document.getElementById('proposalOutput').innerHTML = html;
+}
+
+function esc(str) {
+  if (!str) return '';
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+/* ===== PRINT ===== */
+function printProposal() {
+  if (!document.querySelector('.proposal-content')) return alert('Generate a proposal first.');
+  window.print();
+}
+
+/* ===== DOWNLOAD AS STANDALONE HTML ===== */
+function downloadProposal() {
+  const content = document.querySelector('.proposal-content');
+  if (!content) return alert('Generate a proposal first.');
+
+  const d = getFormData();
+  const styles = document.querySelector('style').textContent;
+  const standalone = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proposal — ${esc(d.propertyName)} — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #ffffff; --card: #ffffff; --border: #e2e8f0; --text: #0f172a;
+      --muted: #64748b; --accent: #3b82f6; --accent-light: #eff6ff;
+      --green: #22c55e; --green-light: #f0fdf4;
+      --amber: #f59e0b; --amber-light: #fffbeb;
+      --red: #ef4444; --red-light: #fef2f2;
+      --purple: #8b5cf6; --purple-light: #f5f3ff;
+      --teal: #14b8a6; --teal-light: #f0fdfa;
+      --radius: 12px;
+      --kande-navy: #1e293b;
+      --kande-gold: #d4a843;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fff; color: var(--text); }
+    .proposal-content .cover-page {
+      text-align: center; padding: 80px 48px 60px;
+      background: linear-gradient(135deg, var(--kande-navy) 0%, #334155 100%);
+      color: #fff; min-height: 500px; display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+    }
+    .cover-logo { width: 90px; height: 90px; border-radius: 16px; margin-bottom: 20px; border: 3px solid var(--kande-gold); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .cover-title { font-size: 2rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
+    .cover-tagline { font-size: 1rem; color: var(--kande-gold); font-weight: 600; margin-bottom: 40px; letter-spacing: 1px; text-transform: uppercase; }
+    .cover-divider { width: 80px; height: 3px; background: var(--kande-gold); margin: 0 auto 40px; border-radius: 2px; }
+    .cover-for { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8; margin-bottom: 8px; }
+    .cover-property { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+    .cover-address { font-size: 0.9rem; color: #cbd5e1; }
+    .cover-date { margin-top: 40px; font-size: 0.8rem; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+    .section { padding: 36px 48px; border-bottom: 1px solid #f1f5f9; }
+    .section:last-child { border-bottom: none; }
+    .section-title { font-size: 1.15rem; font-weight: 800; color: var(--kande-navy); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+    .section-title .sec-num { background: var(--kande-navy); color: var(--kande-gold); width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; flex-shrink: 0; }
+    p { margin-bottom: 12px; font-size: 0.88rem; line-height: 1.7; color: #334155; }
+    ul { margin: 0 0 12px 20px; }
+    li { margin-bottom: 6px; font-size: 0.86rem; line-height: 1.6; color: #334155; }
+    .compare-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.82rem; }
+    .compare-table th { text-align: left; padding: 10px 14px; font-weight: 700; border-bottom: 2px solid var(--kande-navy); color: var(--kande-navy); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .compare-table td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; }
+    .compare-table .check { color: var(--green); font-weight: 700; }
+    .compare-table .highlight-col { background: var(--green-light); }
+    .revenue-card { background: linear-gradient(135deg, var(--green-light) 0%, #ecfdf5 100%); border: 1px solid #bbf7d0; border-radius: 10px; padding: 24px; margin: 16px 0; }
+    .revenue-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
+    .revenue-row + .revenue-row { border-top: 1px solid #bbf7d0; }
+    .revenue-label { font-size: 0.84rem; color: #166534; font-weight: 500; }
+    .revenue-value { font-size: 1.1rem; color: #166534; font-weight: 800; }
+    .revenue-total { font-size: 1.3rem; }
+    .revenue-note { font-size: 0.75rem; color: #16a34a; margin-top: 12px; font-style: italic; }
+    .advantage-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+    .advantage-card { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 16px; display: flex; gap: 12px; align-items: flex-start; }
+    .advantage-icon { font-size: 1.4rem; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--accent-light); }
+    .advantage-card h4 { font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; }
+    .advantage-card p { font-size: 0.76rem; line-height: 1.5; color: var(--muted); margin: 0; }
+    .handle-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 16px 0; }
+    .handle-item { text-align: center; padding: 16px 12px; background: var(--accent-light); border-radius: 10px; }
+    .handle-item .handle-icon { font-size: 1.6rem; margin-bottom: 6px; }
+    .handle-item h4 { font-size: 0.8rem; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+    .handle-item p { font-size: 0.72rem; color: var(--muted); margin: 0; }
+    .steps-row { display: flex; gap: 16px; margin: 20px 0; }
+    .step-card { flex: 1; text-align: center; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px 16px; position: relative; }
+    .step-num { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 800; font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+    .step-card h4 { font-size: 0.85rem; font-weight: 700; margin-bottom: 4px; }
+    .step-card p { font-size: 0.78rem; color: var(--muted); margin: 0; }
+    .step-arrow { position: absolute; right: -20px; top: 50%; transform: translateY(-50%); font-size: 1.2rem; color: #cbd5e1; z-index: 1; }
+    .step-card:last-child .step-arrow { display: none; }
+    .testimonial-card { background: #fafbfc; border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 12px; position: relative; }
+    .testimonial-card::before { content: '"'; position: absolute; top: 8px; left: 16px; font-size: 2rem; color: #cbd5e1; font-family: Georgia, serif; }
+    .testimonial-card .tq { padding-left: 24px; font-size: 0.86rem; font-style: italic; color: #475569; line-height: 1.6; margin-bottom: 8px; }
+    .testimonial-card .tauthor { font-size: 0.78rem; font-weight: 700; color: var(--text); padding-left: 24px; }
+    .proposal-footer { text-align: center; padding: 30px 48px; background: var(--kande-navy); color: #cbd5e1; font-size: 0.78rem; }
+    .proposal-footer strong { color: var(--kande-gold); }
+    @media print {
+      .cover-page { min-height: 90vh; page-break-after: always; }
+      .section { page-break-inside: avoid; }
+    }
+    @media (max-width: 600px) {
+      .advantage-grid { grid-template-columns: 1fr; }
+      .handle-grid { grid-template-columns: 1fr 1fr; }
+      .steps-row { flex-direction: column; }
+      .step-arrow { display: none !important; }
+      .section { padding: 24px 20px; }
+      .cover-page { padding: 40px 20px; }
+    }
+  </style>
+</head>
+<body>
+${content.outerHTML}
+</body>
+</html>`;
+
+  const blob = new Blob([standalone], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Proposal-${d.propertyName.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ===== DRAFT MANAGEMENT (localStorage) ===== */
+const DRAFT_KEY = 'kv_proposal_drafts';
+
+function getDrafts() {
+  try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}'); } catch { return {}; }
+}
+
+function refreshDraftList() {
+  const drafts = getDrafts();
+  const sel = document.getElementById('draftSelect');
+  sel.innerHTML = '<option value="">— New Proposal —</option>';
+  Object.keys(drafts).sort((a, b) => b.localeCompare(a)).forEach(key => {
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = drafts[key].propertyName + ' (' + key.split('_')[0] + ')';
+    sel.appendChild(opt);
   });
 }
 
-function applyScale(scale) {
-  const iframe = document.getElementById('previewFrame');
-  const wrap = document.getElementById('previewWrap');
-  // At 100% the template is 8.5in wide (816px)
-  const templateWidth = 816;
-  const availableWidth = wrap.clientWidth;
-  
-  if (scale === 0.55) {
-    // Fit to container
-    const fitScale = Math.min(availableWidth / templateWidth, 0.7);
-    iframe.style.transform = `scale(${fitScale})`;
-    iframe.style.width = templateWidth + 'px';
-    iframe.style.height = '11000px'; // Tall enough for all pages
-    wrap.style.height = Math.round(11000 * fitScale) + 'px';
-  } else {
-    iframe.style.transform = `scale(${scale})`;
-    iframe.style.width = Math.round(templateWidth / scale) + 'px';
-    iframe.style.height = Math.round(11000 / scale) + 'px';
-    wrap.style.height = 'calc(100vh - 160px)';
-  }
+function saveDraft() {
+  const d = getFormData();
+  if (!d.propertyName) return alert('Enter a property name before saving.');
+  const drafts = getDrafts();
+  const key = new Date().toISOString().split('T')[0] + '_' + d.propertyName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
+  drafts[key] = d;
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts));
+  refreshDraftList();
+  document.getElementById('draftSelect').value = key;
+  showToast('Draft saved!');
 }
 
-// ===== Generate PDF via print =====
-function generatePDF() {
-  const data = getFormData();
-  const html = fillTemplate(data);
-  const printWin = window.open('', '_blank');
-  printWin.document.write(html);
-  printWin.document.close();
-  printWin.onload = () => {
-    setTimeout(() => printWin.print(), 500);
-  };
+function loadDraft() {
+  const key = document.getElementById('draftSelect').value;
+  if (!key) return resetForm();
+  const drafts = getDrafts();
+  if (!drafts[key]) return;
+  setFormData(drafts[key]);
+  generateProposal();
+  showToast('Draft loaded.');
 }
 
-// ===== Save to CRM =====
-async function saveToCRM() {
-  const data = getFormData();
-  if (!data.propertyName || data.propertyName === '{{Property Name}}') {
-    showToast('⚠️ Enter a property name first', true);
-    return;
-  }
-
-  const payload = {
-    prospect_id: selectedProspectId || null,
-    property_name: data.propertyName,
-    property_address: data.propertyAddress,
-    property_type: data.propertyType,
-    unit_count: data.unitCount,
-    contact_name: data.contactName,
-    contact_title: data.contactTitle,
-    machine_count: data.machineCount,
-    revenue_share: data.revenueShare,
-    revenue_conservative: data.conservativeGross,
-    revenue_target: data.targetGross,
-    revenue_optimistic: data.optimisticGross,
-    avg_transaction: parseFloat(data.avgTransaction),
-    txn_conservative: data.txnConservative,
-    txn_target: data.txnTarget,
-    txn_optimistic: data.txnOptimistic,
-    custom_notes: data.customNotes,
-    proposal_number: data.proposalNumber,
-    proposal_date: data.proposalDate,
-    expiration_date: data.expirationDate
-  };
-
-  try {
-    const res = await fetch('/api/proposals', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const result = await res.json();
-    if (res.ok) {
-      showToast('✅ Proposal saved to CRM! #' + data.proposalNumber);
-      await loadSavedProposals();
-    } else {
-      showToast('❌ ' + (result.error || 'Save failed'), true);
-    }
-  } catch (e) {
-    showToast('❌ Network error', true);
-  }
+function deleteDraft() {
+  const key = document.getElementById('draftSelect').value;
+  if (!key) return alert('Select a draft to delete.');
+  if (!confirm('Delete this draft?')) return;
+  const drafts = getDrafts();
+  delete drafts[key];
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts));
+  refreshDraftList();
+  showToast('Draft deleted.');
 }
 
-// ===== Load saved proposals =====
-async function loadSavedProposals() {
-  try {
-    const res = await fetch('/api/proposals');
-    savedProposals = await res.json();
-    renderSavedList();
-  } catch (e) { /* ignore */ }
-}
-
-function renderSavedList() {
-  const el = document.getElementById('savedList');
-  if (savedProposals.length === 0) { el.innerHTML = ''; return; }
-  
-  el.innerHTML = '<h3 style="font-size:0.85rem;font-weight:600;color:var(--purple);margin-bottom:8px;">📁 Saved Proposals (' + savedProposals.length + ')</h3>' +
-    savedProposals.slice(0, 10).map(p => `
-      <div class="saved-item">
-        <div>
-          <div class="name">${esc(p.property_name)}</div>
-          <div class="date">${p.proposal_number || ''} · ${new Date(p.created_at).toLocaleDateString()}</div>
-        </div>
-        <button class="load-btn" onclick="loadProposal(${p.id})">Load →</button>
-      </div>
-    `).join('');
-}
-
-// ===== Load a saved proposal back into the form =====
-async function loadProposal(id) {
-  try {
-    const res = await fetch('/api/proposals/' + id);
-    const p = await res.json();
-    if (!res.ok) return showToast('❌ Not found', true);
-
-    document.getElementById('propertyName').value = p.property_name || '';
-    document.getElementById('propertyAddress').value = p.property_address || '';
-    document.getElementById('contactName').value = p.contact_name || '';
-    document.getElementById('contactTitle').value = p.contact_title || '';
-    document.getElementById('unitCount').value = p.unit_count || '';
-    document.getElementById('machineCount').value = p.machine_count || 2;
-    document.getElementById('revenueShare').value = p.revenue_share || 10;
-    document.getElementById('revConservative').value = p.revenue_conservative || '';
-    document.getElementById('revTarget').value = p.revenue_target || '';
-    document.getElementById('revOptimistic').value = p.revenue_optimistic || '';
-    document.getElementById('avgTransaction').value = p.avg_transaction || 3.75;
-    document.getElementById('txnConservative').value = p.txn_conservative || 15;
-    document.getElementById('txnTarget').value = p.txn_target || 25;
-    document.getElementById('txnOptimistic').value = p.txn_optimistic || 40;
-    document.getElementById('customNotes').value = p.custom_notes || '';
-    selectedProspectId = p.prospect_id || null;
-
-    // Set property type
-    if (p.property_type) {
-      const sel = document.getElementById('propertyType');
-      for (let i = 0; i < sel.options.length; i++) {
-        if (sel.options[i].value === p.property_type) { sel.selectedIndex = i; break; }
-      }
-    }
-
-    // Set CRM dropdown
-    if (p.prospect_id) {
-      document.getElementById('crmProspect').value = p.prospect_id;
-    }
-
-    updatePreview();
-    showToast('✅ Loaded: ' + p.property_name);
-  } catch (e) {
-    showToast('❌ Error loading proposal', true);
-  }
-}
-
-// ===== Reset =====
-function resetForm() {
-  document.getElementById('propertyName').value = '';
-  document.getElementById('propertyAddress').value = '';
-  document.getElementById('contactName').value = '';
-  document.getElementById('contactTitle').value = '';
-  document.getElementById('unitCount').value = '';
-  document.getElementById('machineCount').value = 2;
-  document.getElementById('revenueShare').value = 10;
-  document.getElementById('revConservative').value = '';
-  document.getElementById('revTarget').value = '';
-  document.getElementById('revOptimistic').value = '';
-  document.getElementById('avgTransaction').value = 3.75;
-  document.getElementById('txnConservative').value = 15;
-  document.getElementById('txnTarget').value = 25;
-  document.getElementById('txnOptimistic').value = 40;
-  document.getElementById('customNotes').value = '';
-  document.getElementById('crmProspect').value = '';
-  document.getElementById('propertyType').selectedIndex = 0;
-  selectedProspectId = null;
-  updatePreview();
-}
-
-// ===== Helpers =====
-function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-function showToast(msg, isError) {
-  const t = document.getElementById('toast');
+function showToast(msg) {
+  const t = document.createElement('div');
   t.textContent = msg;
-  t.className = 'toast show' + (isError ? ' error' : '');
-  setTimeout(() => t.className = 'toast', 3000);
+  t.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#1e293b;color:#fff;padding:10px 20px;border-radius:8px;font-size:0.85rem;font-weight:600;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,0.2);animation:fadeIn 0.2s ease-out;';
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(() => t.remove(), 300); }, 2000);
 }
 
-// ===== Kick off =====
-init();
-
-// Resize handler
-window.addEventListener('resize', () => applyScale(currentScale));
+/* ===== INIT ===== */
+refreshDraftList();
 </script>
-<script src="/nav.js"></script>
 </body>
 </html>

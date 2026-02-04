@@ -3,795 +3,1072 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
-  <title>Competitor Monitoring — Kande VendTech</title>
+  <title>Competitor Intelligence | Kande VendTech</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root {
-      --bg: #f5f7fa; --card: #ffffff; --card-hover: #f7fafc;
-      --border: #e2e8f0; --border-accent: #cbd5e0;
-      --text: #1a202c; --muted: #718096; --dim: #a0aec0;
-      --accent: #3182ce; --accent-dim: rgba(49,130,206,0.1);
-      --accent-glow: rgba(49,130,206,0.15);
-      --hot: #e53e3e; --warn: #dd6b20; --success: #38a169;
-      --purple: #7b2cbf; --teal: #319795;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg); color: var(--text); min-height: 100vh;
-    }
-    .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
-
-    /* ── Page Header ── */
-    .page-header {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
-    }
-    .page-header h1 {
-      font-size: 1.6rem; font-weight: 700;
-      background: linear-gradient(90deg, var(--accent), var(--teal));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .page-header .subtitle { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
-
-    /* ── Buttons ── */
-    .btn {
-      padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
-      background: var(--card); color: var(--text); font-size: 0.85rem;
-      font-weight: 500; cursor: pointer; transition: all 0.2s;
-      display: inline-flex; align-items: center; gap: 6px;
-    }
-    .btn:hover { border-color: var(--accent); color: var(--accent); }
-    .btn-primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
-    .btn-primary:hover { background: #2b6cb0; box-shadow: 0 0 20px var(--accent-glow); }
-    .btn-danger { color: var(--hot); border-color: rgba(239,68,68,0.3); }
-    .btn-danger:hover { background: var(--hot); color: #fff; }
-    .btn-sm { padding: 4px 10px; font-size: 0.78rem; }
-    .btn-ghost { background: transparent; border-color: transparent; }
-    .btn-ghost:hover { background: var(--accent-dim); }
-
-    /* ── Stats ── */
-    .stats-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 12px; margin-bottom: 24px;
-    }
-    .stat-card {
-      background: var(--card); border-radius: 12px; padding: 18px;
-      border: 1px solid var(--border); text-align: center;
-      transition: border-color 0.2s;
-    }
-    .stat-card:hover { border-color: var(--border-accent); }
-    .stat-card .value { font-size: 2rem; font-weight: 700; color: var(--accent); }
-    .stat-card .label {
-      font-size: 0.7rem; color: var(--muted); margin-top: 4px;
-      text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;
-    }
-
-    /* ── Search / Filter Bar ── */
-    .toolbar {
-      display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;
-    }
-    .search-input {
-      flex: 1; min-width: 200px; padding: 9px 14px 9px 36px;
-      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
-      color: var(--text); font-size: 0.9rem; outline: none; transition: border-color 0.2s;
-    }
-    .search-input:focus { border-color: var(--accent); }
-    .search-input::placeholder { color: var(--dim); }
-    .search-wrap { position: relative; flex: 1; min-width: 200px; }
-    .search-icon {
-      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-      color: var(--dim); font-size: 0.85rem; pointer-events: none;
-    }
-    .filter-select {
-      padding: 9px 14px; background: var(--card); border: 1px solid var(--border);
-      border-radius: 8px; color: var(--text); font-size: 0.85rem; outline: none;
-      cursor: pointer;
-    }
-    .filter-select:focus { border-color: var(--accent); }
-    .filter-select option { background: var(--card); color: var(--text); }
-
-    /* ── View Toggle ── */
-    .view-toggle { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-    .view-btn {
-      padding: 8px 14px; background: transparent; border: none; color: var(--muted);
-      font-size: 0.85rem; cursor: pointer; transition: all 0.2s;
-    }
-    .view-btn.active { background: var(--accent-dim); color: var(--accent); }
-    .view-btn:hover { color: var(--text); }
-
-    /* ── Competitor Cards Grid ── */
-    .cards-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-      gap: 16px; margin-bottom: 24px;
-    }
-    .competitor-card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-      padding: 20px; transition: all 0.25s; cursor: pointer; position: relative;
-    }
-    .competitor-card:hover {
-      border-color: var(--accent); transform: translateY(-2px);
-      box-shadow: 0 8px 30px rgba(49,130,206,0.08);
-    }
-    .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
-    .card-name { font-size: 1.1rem; font-weight: 600; color: var(--text); }
-    .card-website {
-      font-size: 0.78rem; color: var(--accent); text-decoration: none;
-      display: block; margin-top: 2px; word-break: break-all;
-    }
-    .card-website:hover { text-decoration: underline; }
-    .card-actions { display: flex; gap: 4px; }
-    .card-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-    .meta-tag {
-      display: inline-flex; align-items: center; gap: 4px;
-      padding: 3px 10px; border-radius: 6px; font-size: 0.72rem;
-      font-weight: 600; background: rgba(0,0,0,0.05); color: var(--muted);
-    }
-    .meta-tag.locations { background: var(--accent-dim); color: var(--accent); }
-    .meta-tag.phone { background: rgba(34,197,94,0.1); color: var(--success); }
-
-    .card-section { margin-bottom: 10px; }
-    .card-section-label {
-      font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.5px;
-      color: var(--dim); font-weight: 600; margin-bottom: 4px;
-    }
-    .card-section-text { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
-
-    .tag-list { display: flex; flex-wrap: wrap; gap: 4px; }
-    .tag {
-      padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 500;
-      background: rgba(0,0,0,0.06); color: var(--muted);
-    }
-    .tag.strength { background: rgba(34,197,94,0.1); color: var(--success); }
-    .tag.weakness { background: rgba(239,68,68,0.1); color: var(--hot); }
-    .tag.machine-type { background: rgba(167,139,250,0.1); color: var(--purple); }
-    .tag.target { background: rgba(49,130,206,0.08); color: var(--accent); }
-
-    .card-footer {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);
-    }
-    .card-date { font-size: 0.72rem; color: var(--dim); }
-
-    /* ── Table View ── */
-    .table-view { display: none; }
-    .table-view.active { display: block; }
-    .cards-view.active { display: grid; }
-    .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    th {
-      text-align: left; padding: 10px 12px; font-weight: 600; color: var(--muted);
-      border-bottom: 2px solid var(--border); font-size: 0.72rem;
-      text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer;
-      user-select: none; transition: color 0.2s;
-    }
-    th:hover { color: var(--accent); }
-    th.sorted { color: var(--accent); }
-    th .sort-arrow { margin-left: 4px; font-size: 0.65rem; }
-    td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
-    tr:hover { background: rgba(49,130,206,0.04); }
-    td a { color: var(--accent); text-decoration: none; }
-    td a:hover { text-decoration: underline; }
-
-    /* ── Modal ── */
-    .modal-overlay {
-      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
-      backdrop-filter: blur(4px); z-index: 1000;
-      justify-content: center; align-items: flex-start;
-      padding: 40px 20px; overflow-y: auto;
-    }
-    .modal-overlay.show { display: flex; }
-    .modal {
-      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
-      padding: 28px; width: 100%; max-width: 700px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-    }
-    .modal h2 {
-      font-size: 1.2rem; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
-    }
-    .form-group { margin-bottom: 14px; }
-    .form-group label {
-      display: block; font-size: 0.75rem; font-weight: 600;
-      color: var(--muted); margin-bottom: 4px; text-transform: uppercase;
-      letter-spacing: 0.3px;
-    }
-    .form-group input, .form-group select, .form-group textarea {
-      width: 100%; padding: 9px 12px; border: 1px solid var(--border);
-      border-radius: 8px; font-size: 0.9rem; font-family: inherit;
-      background: var(--bg); color: var(--text); outline: none;
-      transition: border-color 0.2s;
-    }
-    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-      border-color: var(--accent);
-    }
-    .form-group input::placeholder, .form-group textarea::placeholder { color: var(--dim); }
-    .form-group textarea { min-height: 70px; resize: vertical; }
-    .form-group select option { background: var(--card); }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-    .form-divider {
-      margin: 18px 0 14px; padding-top: 14px; border-top: 1px solid var(--border);
-      font-size: 0.8rem; font-weight: 600; color: var(--accent);
-    }
-    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 24px; }
-
-    /* ── Empty State ── */
-    .empty-state {
-      text-align: center; padding: 60px 20px; color: var(--muted);
-    }
-    .empty-state .icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.5; }
-    .empty-state h3 { font-size: 1.1rem; color: var(--text); margin-bottom: 6px; }
-    .empty-state p { font-size: 0.9rem; margin-bottom: 16px; }
-
-    /* ── Responsive ── */
+    body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #1e293b; line-height: 1.6; }
+    
+    /* Navigation */
+    .nav { background: white; border-bottom: 1px solid #e2e8f0; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.25rem; color: #059669; display: flex; align-items: center; gap: 0.5rem; text-decoration: none; }
+    .nav-links { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .nav-link { padding: 0.5rem 1rem; text-decoration: none; color: #64748b; border-radius: 6px; font-size: 0.875rem; transition: all 0.2s; }
+    .nav-link:hover { background: #f1f5f9; color: #1e293b; }
+    .nav-link.active { background: #059669; color: white; }
+    .dropdown { position: relative; }
+    .dropdown-btn { padding: 0.5rem 1rem; color: #64748b; border-radius: 6px; font-size: 0.875rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; border: none; background: none; }
+    .dropdown-btn:hover { background: #f1f5f9; color: #1e293b; }
+    .dropdown-content { display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); min-width: 200px; z-index: 1000; }
+    .dropdown:hover .dropdown-content { display: block; }
+    .dropdown-content a { display: block; padding: 0.75rem 1rem; color: #64748b; text-decoration: none; font-size: 0.875rem; }
+    .dropdown-content a:hover { background: #f1f5f9; color: #1e293b; }
+    
+    /* Main Content */
+    .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+    
+    /* Header */
+    .page-header { margin-bottom: 2rem; }
+    .page-header h1 { font-size: 2rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem; }
+    .page-header p { color: #64748b; }
+    
+    /* Tabs */
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; flex-wrap: wrap; }
+    .tab { padding: 0.75rem 1.5rem; background: none; border: none; cursor: pointer; font-size: 0.875rem; font-weight: 500; color: #64748b; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+    .tab:hover { color: #1e293b; }
+    .tab.active { color: #059669; border-bottom-color: #059669; }
+    
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    
+    /* Competitor Cards */
+    .competitor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem; }
+    .competitor-card { background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; transition: all 0.2s; }
+    .competitor-card:hover { box-shadow: 0 10px 25px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .competitor-header { padding: 1.25rem; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 1rem; }
+    .competitor-logo { width: 60px; height: 60px; border-radius: 10px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700; color: #64748b; }
+    .competitor-logo.threat-high { background: #fef2f2; color: #dc2626; }
+    .competitor-logo.threat-medium { background: #fffbeb; color: #d97706; }
+    .competitor-logo.threat-low { background: #f0fdf4; color: #16a34a; }
+    .competitor-info h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .competitor-info .location { font-size: 0.8rem; color: #64748b; display: flex; align-items: center; gap: 0.35rem; }
+    .competitor-rating { margin-left: auto; text-align: right; }
+    .competitor-rating .stars { color: #fbbf24; font-size: 0.875rem; }
+    .competitor-rating .count { font-size: 0.75rem; color: #64748b; }
+    .competitor-body { padding: 1.25rem; }
+    .section-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-bottom: 0.5rem; font-weight: 600; }
+    .strength-item, .weakness-item, .counter-item { display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .strength-item i { color: #059669; margin-top: 0.1rem; }
+    .weakness-item i { color: #dc2626; margin-top: 0.1rem; }
+    .counter-item i { color: #3b82f6; margin-top: 0.1rem; }
+    .competitor-footer { padding: 1rem 1.25rem; background: #f8fafc; border-top: 1px solid #e2e8f0; }
+    .threat-badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+    .threat-badge.high { background: #fef2f2; color: #dc2626; }
+    .threat-badge.medium { background: #fffbeb; color: #d97706; }
+    .threat-badge.low { background: #f0fdf4; color: #16a34a; }
+    
+    /* Comparison Table */
+    .comparison-wrapper { overflow-x: auto; }
+    .comparison-table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; }
+    .comparison-table th, .comparison-table td { padding: 1rem; text-align: center; border-bottom: 1px solid #e2e8f0; font-size: 0.875rem; }
+    .comparison-table th { background: #f8fafc; font-weight: 600; color: #475569; }
+    .comparison-table th:first-child, .comparison-table td:first-child { text-align: left; position: sticky; left: 0; background: white; z-index: 1; }
+    .comparison-table th:first-child { background: #f8fafc; }
+    .comparison-table tr:last-child td { border-bottom: none; }
+    .comparison-table .kande-col { background: #f0fdf4 !important; }
+    .check { color: #059669; font-weight: bold; }
+    .cross { color: #dc2626; }
+    .partial { color: #d97706; }
+    .advantage { background: #dcfce7 !important; font-weight: 600; color: #166534; }
+    
+    /* Objection Cards */
+    .objection-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 1.5rem; }
+    .objection-card { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 1.5rem; }
+    .objection-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .objection-card h3 i { color: #dc2626; }
+    .objection-response { background: #f0fdf4; border-left: 3px solid #059669; padding: 1rem; border-radius: 0 8px 8px 0; margin-top: 1rem; }
+    .objection-response h4 { font-size: 0.8rem; color: #059669; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+    .objection-response p { font-size: 0.9rem; color: #166534; }
+    .weakness-list { margin: 0.75rem 0; }
+    .weakness-list li { font-size: 0.85rem; margin-bottom: 0.35rem; color: #64748b; }
+    
+    /* Market Intel */
+    .intel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
+    .intel-card { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 1.5rem; }
+    .intel-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #1e293b; }
+    .intel-section { margin-bottom: 1rem; }
+    .intel-section h4 { font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; margin-bottom: 0.5rem; font-weight: 600; }
+    .intel-section ul { list-style: none; }
+    .intel-section li { font-size: 0.85rem; margin-bottom: 0.35rem; display: flex; align-items: flex-start; gap: 0.5rem; }
+    .intel-section li i { margin-top: 0.15rem; }
+    .strong-area { color: #dc2626; }
+    .weak-area { color: #059669; }
+    
+    /* Playbook */
+    .playbook-section { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 2rem; margin-bottom: 1.5rem; }
+    .playbook-section h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
+    .playbook-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+    .playbook-item { background: #f8fafc; border-radius: 10px; padding: 1.25rem; }
+    .playbook-item h4 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+    .playbook-item ul { list-style: none; }
+    .playbook-item li { font-size: 0.85rem; margin-bottom: 0.5rem; padding-left: 1.25rem; position: relative; }
+    .playbook-item li::before { content: "→"; position: absolute; left: 0; color: #059669; }
+    
+    /* Quick Reference */
+    .quick-ref { background: linear-gradient(135deg, #059669, #047857); border-radius: 12px; padding: 2rem; color: white; margin-bottom: 2rem; }
+    .quick-ref h2 { font-size: 1.25rem; margin-bottom: 1rem; }
+    .quick-ref-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
+    .quick-ref-item h4 { font-size: 0.8rem; text-transform: uppercase; opacity: 0.8; margin-bottom: 0.5rem; }
+    .quick-ref-item p { font-size: 1rem; font-weight: 500; }
+    
+    /* Mobile */
     @media (max-width: 768px) {
-      .cards-grid { grid-template-columns: 1fr; }
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
-      .form-row, .form-row-3 { grid-template-columns: 1fr; }
-      .page-header { flex-direction: column; align-items: flex-start; }
-      .toolbar { flex-direction: column; }
-      .search-wrap { min-width: 100%; }
+      .nav { flex-direction: column; gap: 1rem; padding: 1rem; }
+      .nav-links { justify-content: center; }
+      .container { padding: 1rem; }
+      .tabs { overflow-x: auto; flex-wrap: nowrap; }
+      .tab { white-space: nowrap; }
+      .competitor-grid, .objection-grid, .intel-grid { grid-template-columns: 1fr; }
+      .comparison-table { font-size: 0.75rem; }
+      .comparison-table th, .comparison-table td { padding: 0.5rem; }
     }
-
-    /* ── Scrollbar styling ── */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: var(--bg); }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--dim); }
   </style>
 </head>
 <body>
-<div class="app">
-  <!-- Header -->
-  <div class="page-header">
-    <div>
-      <h1>🔍 Competitor Intelligence</h1>
-      <div class="subtitle">Track and analyze vending competitors in the Las Vegas market</div>
-    </div>
-    <div style="display:flex;gap:8px;">
-      <button class="btn btn-primary" onclick="openModal()">+ Add Competitor</button>
-    </div>
-  </div>
-
-  <!-- Stats -->
-  <div class="stats-grid" id="stats">
-    <div class="stat-card"><div class="value" id="stat-total">0</div><div class="label">Total Tracked</div></div>
-    <div class="stat-card"><div class="value" id="stat-locations">0</div><div class="label">Est. Combined Locations</div></div>
-    <div class="stat-card"><div class="value" id="stat-smart">0</div><div class="label">Smart Vending</div></div>
-    <div class="stat-card"><div class="value" id="stat-traditional">0</div><div class="label">Traditional</div></div>
-    <div class="stat-card"><div class="value" id="stat-micro">0</div><div class="label">Micro-Market</div></div>
-  </div>
-
-  <!-- Toolbar -->
-  <div class="toolbar">
-    <div class="search-wrap">
-      <span class="search-icon">🔎</span>
-      <input type="text" class="search-input" id="searchInput" placeholder="Search competitors by name, notes, target market...">
-    </div>
-    <select class="filter-select" id="filterType" title="Filter by machine type">
-      <option value="">All Machine Types</option>
-      <option value="traditional">Traditional</option>
-      <option value="smart">Smart Vending</option>
-      <option value="micro-market">Micro-Market</option>
-      <option value="combo">Combo/Multiple</option>
-    </select>
-    <select class="filter-select" id="filterTarget" title="Filter by target market">
-      <option value="">All Markets</option>
-      <option value="apartments">Apartments</option>
-      <option value="offices">Offices</option>
-      <option value="hotels">Hotels/Casinos</option>
-      <option value="retail">Retail</option>
-      <option value="schools">Schools</option>
-      <option value="gyms">Gyms/Fitness</option>
-      <option value="hospitals">Healthcare</option>
-    </select>
-    <div class="view-toggle">
-      <button class="view-btn active" data-view="cards" title="Card view">▦</button>
-      <button class="view-btn" data-view="table" title="Table view">☰</button>
-    </div>
-  </div>
-
-  <!-- Cards View -->
-  <div class="cards-grid cards-view active" id="cardsView"></div>
-
-  <!-- Table View -->
-  <div class="table-view" id="tableView">
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th data-sort="name">Name <span class="sort-arrow"></span></th>
-            <th data-sort="locations_count">Locations <span class="sort-arrow"></span></th>
-            <th data-sort="machine_types">Types <span class="sort-arrow"></span></th>
-            <th data-sort="target_markets">Markets <span class="sort-arrow"></span></th>
-            <th data-sort="pricing_notes">Pricing <span class="sort-arrow"></span></th>
-            <th>Phone</th>
-            <th data-sort="updated_at">Updated <span class="sort-arrow"></span></th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Empty State -->
-  <div class="empty-state" id="emptyState" style="display:none;">
-    <div class="icon">🔍</div>
-    <h3>No competitors tracked yet</h3>
-    <p>Start building your competitive intelligence by adding your first competitor</p>
-    <button class="btn btn-primary" onclick="openModal()">+ Add Competitor</button>
-  </div>
-</div>
-
-<!-- Add/Edit Modal -->
-<div class="modal-overlay" id="modal">
-  <div class="modal">
-    <h2 id="modalTitle">➕ Add Competitor</h2>
-    <input type="hidden" id="editId">
-
-    <div class="form-row">
-      <div class="form-group">
-        <label>Company Name *</label>
-        <input type="text" id="fName" placeholder="e.g. Vegas Vending Co">
+  <nav class="nav">
+    <a href="/home" class="nav-brand">
+      <i class="fas fa-robot"></i> Kande VendTech
+    </a>
+    <div class="nav-links">
+      <a href="/home" class="nav-link">Dashboard</a>
+      <a href="/crm" class="nav-link">CRM</a>
+      <a href="/pipeline" class="nav-link">Pipeline</a>
+      <div class="dropdown">
+        <button class="dropdown-btn">
+          Intelligence <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="dropdown-content">
+          <a href="/market-intel">Market Intel</a>
+          <a href="/competitors" style="background:#f0fdf4;color:#059669;font-weight:600;">Competitors</a>
+          <a href="/win-loss">Win/Loss Analysis</a>
+          <a href="/seo">SEO Tracker</a>
+        </div>
       </div>
-      <div class="form-group">
-        <label>Website</label>
-        <input type="url" id="fWebsite" placeholder="https://...">
+      <a href="/playbook" class="nav-link">Playbook</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <h1><i class="fas fa-chess" style="color:#059669"></i> Competitor Intelligence</h1>
+      <p>Know your competition, win more deals. Quick reference for competitive positioning in Las Vegas.</p>
+    </div>
+
+    <!-- Quick Reference Bar -->
+    <div class="quick-ref">
+      <h2>🎯 Your Competitive Edge</h2>
+      <div class="quick-ref-grid">
+        <div class="quick-ref-item">
+          <h4>Core Differentiator</h4>
+          <p>"I'm local. You can call THIS number, and I pick up."</p>
+        </div>
+        <div class="quick-ref-item">
+          <h4>Tech Advantage</h4>
+          <p>AI Smart Coolers — NO Henderson competitor has this.</p>
+        </div>
+        <div class="quick-ref-item">
+          <h4>Easiest Targets</h4>
+          <p>R&R Vending, First Class NV, Canteen customers</p>
+        </div>
+        <div class="quick-ref-item">
+          <h4>Positioning</h4>
+          <p>"Smart market" not "vending machine"</p>
+        </div>
       </div>
     </div>
 
-    <div class="form-row-3">
-      <div class="form-group">
-        <label>Phone</label>
-        <input type="tel" id="fPhone" placeholder="(702) 555-0000">
-      </div>
-      <div class="form-group">
-        <label>Est. Locations in Vegas</label>
-        <input type="number" id="fLocations" placeholder="0" min="0">
-      </div>
-      <div class="form-group">
-        <label>Contact Person</label>
-        <input type="text" id="fContact" placeholder="Name / Role">
-      </div>
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="competitors">Competitor Profiles</button>
+      <button class="tab" data-tab="comparison">Comparison Table</button>
+      <button class="tab" data-tab="objections">Objection Counters</button>
+      <button class="tab" data-tab="intel">Market Intelligence</button>
+      <button class="tab" data-tab="playbook">Displacement Playbook</button>
     </div>
 
-    <div class="form-divider">Machine & Market Profile</div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label>Machine Types</label>
-        <select id="fMachineTypes" multiple size="3" style="min-height:72px;">
-          <option value="traditional">Traditional</option>
-          <option value="smart">Smart Vending</option>
-          <option value="micro-market">Micro-Market</option>
-          <option value="coffee">Coffee/Specialty</option>
-          <option value="healthy">Healthy/Fresh</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Target Markets</label>
-        <select id="fTargetMarkets" multiple size="3" style="min-height:72px;">
-          <option value="apartments">Apartments</option>
-          <option value="offices">Offices</option>
-          <option value="hotels">Hotels/Casinos</option>
-          <option value="retail">Retail</option>
-          <option value="schools">Schools</option>
-          <option value="gyms">Gyms/Fitness</option>
-          <option value="hospitals">Healthcare</option>
-          <option value="industrial">Industrial</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="form-divider">Pricing & Strategy</div>
-
-    <div class="form-group">
-      <label>Pricing Model</label>
-      <input type="text" id="fPricing" placeholder="e.g. 15% revenue share, $150/mo flat fee, free placement">
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label>Strengths</label>
-        <textarea id="fStrengths" placeholder="What they do well (one per line)&#10;e.g. Large fleet, Fast service"></textarea>
-      </div>
-      <div class="form-group">
-        <label>Weaknesses</label>
-        <textarea id="fWeaknesses" placeholder="Where they're vulnerable (one per line)&#10;e.g. Outdated machines, Poor service"></textarea>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label>Win/Loss Notes</label>
-      <textarea id="fWinLoss" placeholder="Notes on deals won or lost against them..."></textarea>
-    </div>
-
-    <div class="form-group">
-      <label>General Notes</label>
-      <textarea id="fNotes" placeholder="Any other intelligence..."></textarea>
-    </div>
-
-    <div class="modal-actions">
-      <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-danger" id="deleteBtn" style="display:none;" onclick="deleteCompetitor()">Delete</button>
-      <button class="btn btn-primary" onclick="saveCompetitor()">Save</button>
-    </div>
-  </div>
-</div>
-
-<script src="/nav.js"></script>
-<script>
-(function() {
-  'use strict';
-
-  let competitors = [];
-  let sortField = 'name';
-  let sortDir = 'asc';
-  let currentView = 'cards';
-
-  // ── API ──
-  async function fetchCompetitors() {
-    try {
-      const res = await fetch('/api/competitors');
-      competitors = await res.json();
-      render();
-    } catch (e) {
-      console.error('Failed to load competitors:', e);
-    }
-  }
-
-  async function saveToAPI(data, id) {
-    const url = id ? `/api/competitors/${id}` : '/api/competitors';
-    const method = id ? 'PUT' : 'POST';
-    const res = await fetch(url, {
-      method, headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    return res.json();
-  }
-
-  async function deleteFromAPI(id) {
-    await fetch(`/api/competitors/${id}`, { method: 'DELETE' });
-  }
-
-  // ── Rendering ──
-  function render() {
-    const filtered = getFiltered();
-    const sorted = getSorted(filtered);
-
-    renderStats(filtered);
-    renderCards(sorted);
-    renderTable(sorted);
-
-    document.getElementById('emptyState').style.display =
-      competitors.length === 0 ? 'block' : 'none';
-
-    document.getElementById('cardsView').style.display =
-      competitors.length === 0 ? 'none' : (currentView === 'cards' ? 'grid' : 'none');
-    document.getElementById('tableView').style.display =
-      competitors.length === 0 ? 'none' : (currentView === 'table' ? 'block' : 'none');
-  }
-
-  function getFiltered() {
-    const q = document.getElementById('searchInput').value.toLowerCase().trim();
-    const typeFilter = document.getElementById('filterType').value;
-    const targetFilter = document.getElementById('filterTarget').value;
-
-    return competitors.filter(c => {
-      if (q) {
-        const searchable = [c.name, c.notes, c.pricing_notes, c.strengths, c.weaknesses,
-          c.win_loss_notes, c.contact_person, (c.target_markets||[]).join(' '),
-          (c.machine_types||[]).join(' ')].join(' ').toLowerCase();
-        if (!searchable.includes(q)) return false;
-      }
-      if (typeFilter && !(c.machine_types || []).includes(typeFilter)) return false;
-      if (targetFilter && !(c.target_markets || []).includes(targetFilter)) return false;
-      return true;
-    });
-  }
-
-  function getSorted(list) {
-    return [...list].sort((a, b) => {
-      let av = a[sortField], bv = b[sortField];
-      if (sortField === 'locations_count') { av = av || 0; bv = bv || 0; }
-      if (typeof av === 'string') av = av.toLowerCase();
-      if (typeof bv === 'string') bv = bv.toLowerCase();
-      if (Array.isArray(av)) av = av.join(',');
-      if (Array.isArray(bv)) bv = bv.join(',');
-      if (av < bv) return sortDir === 'asc' ? -1 : 1;
-      if (av > bv) return sortDir === 'asc' ? 1 : -1;
-      return 0;
-    });
-  }
-
-  function renderStats(list) {
-    document.getElementById('stat-total').textContent = competitors.length;
-    const totalLoc = competitors.reduce((s, c) => s + (c.locations_count || 0), 0);
-    document.getElementById('stat-locations').textContent = totalLoc;
-
-    const types = competitors.flatMap(c => c.machine_types || []);
-    document.getElementById('stat-smart').textContent = types.filter(t => t === 'smart').length;
-    document.getElementById('stat-traditional').textContent = types.filter(t => t === 'traditional').length;
-    document.getElementById('stat-micro').textContent = types.filter(t => t === 'micro-market').length;
-  }
-
-  function renderCards(list) {
-    const el = document.getElementById('cardsView');
-    if (list.length === 0 && competitors.length > 0) {
-      el.innerHTML = '<div class="empty-state"><div class="icon">🔎</div><h3>No matches</h3><p>Try adjusting your search or filters</p></div>';
-      return;
-    }
-    el.innerHTML = list.map(c => `
-      <div class="competitor-card" onclick="openModal(${c.id})">
-        <div class="card-header">
-          <div>
-            <div class="card-name">${esc(c.name)}</div>
-            ${c.website ? `<a class="card-website" href="${esc(c.website)}" target="_blank" onclick="event.stopPropagation()">${esc(c.website.replace(/^https?:\/\//, ''))}</a>` : ''}
+    <!-- Tab: Competitor Profiles -->
+    <div id="competitors" class="tab-content active">
+      <div class="competitor-grid">
+        
+        <!-- Skala Industries -->
+        <div class="competitor-card">
+          <div class="competitor-header">
+            <div class="competitor-logo threat-high">SK</div>
+            <div class="competitor-info">
+              <h3>Skala Industries</h3>
+              <div class="location"><i class="fas fa-map-marker-alt"></i> Henderson, NV (Green Valley)</div>
+            </div>
+            <div class="competitor-rating">
+              <div class="stars">★★★★★</div>
+              <div class="count">5.0 (126 reviews)</div>
+            </div>
           </div>
-          <div class="card-actions">
-            <button class="btn btn-sm btn-ghost" onclick="event.stopPropagation(); openModal(${c.id})" title="Edit">✏️</button>
-            <button class="btn btn-sm btn-ghost btn-danger" onclick="event.stopPropagation(); quickDelete(${c.id})" title="Delete">🗑️</button>
+          <div class="competitor-body">
+            <div class="section-label">Strengths</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> Perfect 5.0 rating with 126 reviews</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> Henderson-based — direct territory competitor</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> "Elite workplaces & residential" positioning</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> Featured in "Top Luxury Business Leaders 2025"</div>
+            
+            <div class="section-label" style="margin-top:1rem">Weaknesses</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> Minimal website content</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> Perfect 5.0 may indicate review management</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> No AI smart cooler positioning visible</div>
+            
+            <div class="section-label" style="margin-top:1rem">How to Beat Them</div>
+            <div class="counter-item"><i class="fas fa-bullseye"></i> Match premium positioning + add AI tech angle</div>
+            <div class="counter-item"><i class="fas fa-bullseye"></i> More personal service + faster response</div>
+          </div>
+          <div class="competitor-footer">
+            <span class="threat-badge high"><i class="fas fa-exclamation-triangle"></i> High Threat</span>
           </div>
         </div>
 
-        <div class="card-meta">
-          ${c.locations_count ? `<span class="meta-tag locations">📍 ~${c.locations_count} locations</span>` : ''}
-          ${c.phone ? `<span class="meta-tag phone">📞 ${esc(c.phone)}</span>` : ''}
-          ${c.contact_person ? `<span class="meta-tag">👤 ${esc(c.contact_person)}</span>` : ''}
+        <!-- Royal ReFresh -->
+        <div class="competitor-card">
+          <div class="competitor-header">
+            <div class="competitor-logo threat-high">RR</div>
+            <div class="competitor-info">
+              <h3>Royal ReFresh</h3>
+              <div class="location"><i class="fas fa-map-marker-alt"></i> Las Vegas, NV (from Portland)</div>
+            </div>
+            <div class="competitor-rating">
+              <div class="stars">★★★★★</div>
+              <div class="count">4.9 (254 reviews)</div>
+            </div>
+          </div>
+          <div class="competitor-body">
+            <div class="section-label">Strengths</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> Highest review count in LV (254)</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> Fresh food/sandwiches (not just snacks)</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> Coolbreakrooms network membership</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> Biometrics checkout technology</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> Henderson Chamber member</div>
+            
+            <div class="section-label" style="margin-top:1rem">Weaknesses</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> Portland roots — not originally local</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> Focus on corporate offices, not apartments</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> Portland phone (503) still prominent</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> No AI smart cooler tech</div>
+            
+            <div class="section-label" style="margin-top:1rem">How to Beat Them</div>
+            <div class="counter-item"><i class="fas fa-bullseye"></i> "Born and raised in Henderson" > "Expanded from Portland"</div>
+            <div class="counter-item"><i class="fas fa-bullseye"></i> Target luxury apartments (their blind spot)</div>
+            <div class="counter-item"><i class="fas fa-bullseye"></i> AI smart coolers vs traditional micro-market</div>
+          </div>
+          <div class="competitor-footer">
+            <span class="threat-badge high"><i class="fas fa-exclamation-triangle"></i> High Threat</span>
+          </div>
         </div>
 
-        ${c.pricing_notes ? `
-          <div class="card-section">
-            <div class="card-section-label">Pricing Model</div>
-            <div class="card-section-text">${esc(c.pricing_notes)}</div>
+        <!-- SkyTop/Canteen -->
+        <div class="competitor-card">
+          <div class="competitor-header">
+            <div class="competitor-logo threat-medium">SC</div>
+            <div class="competitor-info">
+              <h3>SkyTop Vending (Canteen)</h3>
+              <div class="location"><i class="fas fa-map-marker-alt"></i> Las Vegas, NV (National franchise)</div>
+            </div>
+            <div class="competitor-rating">
+              <div class="stars">★★★☆☆</div>
+              <div class="count">Mixed (51 reviews)</div>
+            </div>
           </div>
-        ` : ''}
-
-        ${(c.machine_types && c.machine_types.length) ? `
-          <div class="card-section">
-            <div class="card-section-label">Machine Types</div>
-            <div class="tag-list">${c.machine_types.map(t => `<span class="tag machine-type">${esc(t)}</span>`).join('')}</div>
+          <div class="competitor-body">
+            <div class="section-label">Strengths</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> Canteen national brand recognition</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> Avenue C micro-market concept</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> Full service (coffee, water, ice, pantry)</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> Established corporate relationships</div>
+            
+            <div class="section-label" style="margin-top:1rem">Weaknesses</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> "This place is a SCAM" review visible</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> Credit card security complaints</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> Only 6 Facebook likes (no social presence)</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> Corporate bureaucracy = slow response</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> Not BBB accredited</div>
+            
+            <div class="section-label" style="margin-top:1rem">How to Beat Them</div>
+            <div class="counter-item"><i class="fas fa-bullseye"></i> "Local owner, not a corporate call center"</div>
+            <div class="counter-item"><i class="fas fa-bullseye"></i> Emphasize secure, modern payment systems</div>
+            <div class="counter-item"><i class="fas fa-bullseye"></i> Skool community confirms Canteen replacement works</div>
           </div>
-        ` : ''}
-
-        ${(c.target_markets && c.target_markets.length) ? `
-          <div class="card-section">
-            <div class="card-section-label">Target Markets</div>
-            <div class="tag-list">${c.target_markets.map(t => `<span class="tag target">${esc(t)}</span>`).join('')}</div>
+          <div class="competitor-footer">
+            <span class="threat-badge medium"><i class="fas fa-exclamation-circle"></i> Medium Threat</span>
           </div>
-        ` : ''}
+        </div>
 
-        ${c.strengths ? `
-          <div class="card-section">
-            <div class="card-section-label">Strengths</div>
-            <div class="tag-list">${c.strengths.split('\n').filter(Boolean).map(s => `<span class="tag strength">✓ ${esc(s.trim())}</span>`).join('')}</div>
+        <!-- Vending Exchange -->
+        <div class="competitor-card">
+          <div class="competitor-header">
+            <div class="competitor-logo threat-medium">VE</div>
+            <div class="competitor-info">
+              <h3>Vending Exchange</h3>
+              <div class="location"><i class="fas fa-map-marker-alt"></i> Naples, FL (NOT local!)</div>
+            </div>
+            <div class="competitor-rating">
+              <div class="stars">★★★★★</div>
+              <div class="count">4.9 (171 reviews)</div>
+            </div>
           </div>
-        ` : ''}
-
-        ${c.weaknesses ? `
-          <div class="card-section">
-            <div class="card-section-label">Weaknesses</div>
-            <div class="tag-list">${c.weaknesses.split('\n').filter(Boolean).map(s => `<span class="tag weakness">✗ ${esc(s.trim())}</span>`).join('')}</div>
+          <div class="competitor-body">
+            <div class="section-label">Strengths</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> Dominates SEO — #1 for "Las Vegas vending"</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> Polished website + city-specific pages</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> "Zero cost" messaging resonates</div>
+            
+            <div class="section-label" style="margin-top:1rem">Weaknesses</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> NOT an operator — just a lead broker</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> HQ in Florida, no LV presence</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> Multiple company aliases (trust issue)</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> Reddit/Facebook: "Vending Exchange is a scam"</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> Not BBB accredited</div>
+            
+            <div class="section-label" style="margin-top:1rem">How to Beat Them</div>
+            <div class="counter-item"><i class="fas fa-bullseye"></i> "We're not a middleman. We install, stock, and service ourselves."</div>
+            <div class="counter-item"><i class="fas fa-bullseye"></i> "You get one phone number — mine."</div>
           </div>
-        ` : ''}
-
-        ${c.win_loss_notes ? `
-          <div class="card-section">
-            <div class="card-section-label">Win/Loss Intel</div>
-            <div class="card-section-text">${esc(c.win_loss_notes).substring(0, 120)}${c.win_loss_notes.length > 120 ? '...' : ''}</div>
+          <div class="competitor-footer">
+            <span class="threat-badge medium"><i class="fas fa-exclamation-circle"></i> Medium Threat (SEO only)</span>
           </div>
-        ` : ''}
+        </div>
 
-        <div class="card-footer">
-          <div class="card-date">Updated ${timeAgo(c.updated_at || c.created_at)}</div>
+        <!-- First Class Nevada -->
+        <div class="competitor-card">
+          <div class="competitor-header">
+            <div class="competitor-logo threat-low">FC</div>
+            <div class="competitor-info">
+              <h3>First Class Nevada</h3>
+              <div class="location"><i class="fas fa-map-marker-alt"></i> Las Vegas, NV</div>
+            </div>
+            <div class="competitor-rating">
+              <div class="stars">★★★☆☆</div>
+              <div class="count">3.3 (40 reviews) ⚠️</div>
+            </div>
+          </div>
+          <div class="competitor-body">
+            <div class="section-label">Strengths</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> Uses Google Posts (active marketing)</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> Statewide coverage (LV + Reno)</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> Full service suite</div>
+            
+            <div class="section-label" style="margin-top:1rem">Weaknesses</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> 3.3 stars = TERRIBLE (below trust threshold)</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> Generic branding, no local personality</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> No social media presence</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> Template website, no testimonials</div>
+            
+            <div class="section-label" style="margin-top:1rem">How to Beat Them</div>
+            <div class="counter-item"><i class="fas fa-bullseye"></i> Their customers are actively looking for alternatives</div>
+            <div class="counter-item"><i class="fas fa-bullseye"></i> "Look at our reviews vs. theirs"</div>
+          </div>
+          <div class="competitor-footer">
+            <span class="threat-badge low"><i class="fas fa-target"></i> Easy Target</span>
+          </div>
+        </div>
+
+        <!-- R&R Vending -->
+        <div class="competitor-card">
+          <div class="competitor-header">
+            <div class="competitor-logo threat-low">RR</div>
+            <div class="competitor-info">
+              <h3>R&R Vending</h3>
+              <div class="location"><i class="fas fa-map-marker-alt"></i> Henderson, NV (Galena Dr)</div>
+            </div>
+            <div class="competitor-rating">
+              <div class="stars">★★★☆☆</div>
+              <div class="count">~3.0 (8 reviews)</div>
+            </div>
+          </div>
+          <div class="competitor-body">
+            <div class="section-label">Strengths</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> Established Henderson presence</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> Physical address in target territory</div>
+            
+            <div class="section-label" style="margin-top:1rem">Weaknesses</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> Terrible website (typo on homepage!)</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> No cashless, no AI, no smart coolers</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> Only 8 reviews (invisible online)</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> "Too busy to be bothered" complaint</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> "Worst customer service EVER" review</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> No micro-market capability</div>
+            
+            <div class="section-label" style="margin-top:1rem">How to Beat Them</div>
+            <div class="counter-item"><i class="fas fa-bullseye"></i> "Same Henderson roots, modern smart markets"</div>
+            <div class="counter-item"><i class="fas fa-bullseye"></i> Direct replacement target — swoop their unhappy customers</div>
+          </div>
+          <div class="competitor-footer">
+            <span class="threat-badge low"><i class="fas fa-target"></i> Easiest Target</span>
+          </div>
+        </div>
+
+        <!-- Avendco -->
+        <div class="competitor-card">
+          <div class="competitor-header">
+            <div class="competitor-logo threat-low">AV</div>
+            <div class="competitor-info">
+              <h3>Avendco Vending</h3>
+              <div class="location"><i class="fas fa-map-marker-alt"></i> Las Vegas, NV</div>
+            </div>
+            <div class="competitor-rating">
+              <div class="stars">★★★★☆</div>
+              <div class="count">3.7 (15 reviews)</div>
+            </div>
+          </div>
+          <div class="competitor-body">
+            <div class="section-label">Strengths</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> 30+ years in Las Vegas (established)</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> Owner-operated, licensed & insured</div>
+            <div class="strength-item"><i class="fas fa-check-circle"></i> Online ordering available</div>
+            
+            <div class="section-label" style="margin-top:1rem">Weaknesses</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> 3.7 stars after 30 years = stagnant</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> Only 15 reviews (not growing)</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> Basic single-page website</div>
+            <div class="weakness-item"><i class="fas fa-times-circle"></i> Likely complacent</div>
+            
+            <div class="section-label" style="margin-top:1rem">How to Beat Them</div>
+            <div class="counter-item"><i class="fas fa-bullseye"></i> Modern tech vs. their old-school approach</div>
+            <div class="counter-item"><i class="fas fa-bullseye"></i> Faster response time, proactive service</div>
+          </div>
+          <div class="competitor-footer">
+            <span class="threat-badge low"><i class="fas fa-target"></i> Low Threat</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Tab: Comparison Table -->
+    <div id="comparison" class="tab-content">
+      <div class="comparison-wrapper">
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th class="kande-col">Kande VendTech</th>
+              <th>Skala</th>
+              <th>Royal ReFresh</th>
+              <th>SkyTop/Canteen</th>
+              <th>Vending Exchange</th>
+              <th>First Class NV</th>
+              <th>R&R Vending</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Local Owner</strong></td>
+              <td class="kande-col advantage"><span class="check">✓</span> Henderson</td>
+              <td><span class="check">✓</span> Henderson</td>
+              <td><span class="partial">◐</span> Portland origin</td>
+              <td><span class="cross">✗</span> National franchise</td>
+              <td><span class="cross">✗</span> Florida HQ</td>
+              <td><span class="check">✓</span></td>
+              <td><span class="check">✓</span> Henderson</td>
+            </tr>
+            <tr>
+              <td><strong>Direct Phone to Owner</strong></td>
+              <td class="kande-col advantage"><span class="check">✓</span></td>
+              <td><span class="check">✓</span></td>
+              <td><span class="partial">◐</span></td>
+              <td><span class="cross">✗</span> Call center</td>
+              <td><span class="cross">✗</span> Lead broker</td>
+              <td><span class="partial">◐</span></td>
+              <td><span class="check">✓</span></td>
+            </tr>
+            <tr>
+              <td><strong>AI Smart Coolers</strong></td>
+              <td class="kande-col advantage"><span class="check">✓</span> SandStar</td>
+              <td><span class="cross">✗</span></td>
+              <td><span class="cross">✗</span></td>
+              <td><span class="cross">✗</span></td>
+              <td><span class="partial">◐</span> Matches</td>
+              <td><span class="cross">✗</span></td>
+              <td><span class="cross">✗</span></td>
+            </tr>
+            <tr>
+              <td><strong>Cashless Payment</strong></td>
+              <td class="kande-col"><span class="check">✓</span></td>
+              <td><span class="check">✓</span></td>
+              <td><span class="check">✓</span></td>
+              <td><span class="check">✓</span></td>
+              <td><span class="check">✓</span></td>
+              <td><span class="check">✓</span></td>
+              <td><span class="cross">✗</span></td>
+            </tr>
+            <tr>
+              <td><strong>Remote Monitoring</strong></td>
+              <td class="kande-col"><span class="check">✓</span></td>
+              <td><span class="check">✓</span></td>
+              <td><span class="check">✓</span></td>
+              <td><span class="check">✓</span></td>
+              <td><span class="partial">◐</span></td>
+              <td><span class="check">✓</span></td>
+              <td><span class="cross">✗</span></td>
+            </tr>
+            <tr>
+              <td><strong>Micro-Market Capable</strong></td>
+              <td class="kande-col"><span class="check">✓</span> Planned</td>
+              <td><span class="check">✓</span></td>
+              <td><span class="check">✓</span></td>
+              <td><span class="check">✓</span> Avenue C</td>
+              <td><span class="check">✓</span></td>
+              <td><span class="check">✓</span></td>
+              <td><span class="cross">✗</span></td>
+            </tr>
+            <tr>
+              <td><strong>Commission/Rev Share</strong></td>
+              <td class="kande-col"><span class="check">✓</span> 3-5%</td>
+              <td><span class="partial">◐</span> Unknown</td>
+              <td><span class="partial">◐</span> Unknown</td>
+              <td><span class="check">✓</span> 5-25%</td>
+              <td><span class="check">✓</span> At $500+</td>
+              <td><span class="partial">◐</span> Unknown</td>
+              <td><span class="partial">◐</span> Unknown</td>
+            </tr>
+            <tr>
+              <td><strong>Contract Flexibility</strong></td>
+              <td class="kande-col advantage"><span class="check">✓</span> Flexible</td>
+              <td><span class="partial">◐</span></td>
+              <td><span class="partial">◐</span></td>
+              <td><span class="cross">✗</span> Corporate</td>
+              <td><span class="partial">◐</span></td>
+              <td><span class="partial">◐</span></td>
+              <td><span class="check">✓</span></td>
+            </tr>
+            <tr>
+              <td><strong>Response Time</strong></td>
+              <td class="kande-col advantage">Same day</td>
+              <td>Unknown</td>
+              <td>Good</td>
+              <td>Slow (corporate)</td>
+              <td>N/A (broker)</td>
+              <td>Unknown</td>
+              <td>"Too busy"</td>
+            </tr>
+            <tr>
+              <td><strong>Google Rating</strong></td>
+              <td class="kande-col">Building</td>
+              <td>5.0 ⭐</td>
+              <td>4.9 ⭐</td>
+              <td>~3.5 ⭐</td>
+              <td>4.9 ⭐</td>
+              <td>3.3 ⭐</td>
+              <td>~3.0 ⭐</td>
+            </tr>
+            <tr>
+              <td><strong>Review Count</strong></td>
+              <td class="kande-col">0 (new)</td>
+              <td>126</td>
+              <td>254</td>
+              <td>51</td>
+              <td>171</td>
+              <td>40</td>
+              <td>8</td>
+            </tr>
+            <tr>
+              <td><strong>BBB Accredited</strong></td>
+              <td class="kande-col">TBD</td>
+              <td>Unknown</td>
+              <td>Unknown</td>
+              <td><span class="cross">✗</span></td>
+              <td><span class="cross">✗</span></td>
+              <td>Unknown</td>
+              <td>Unknown</td>
+            </tr>
+            <tr>
+              <td><strong>Luxury Apartment Focus</strong></td>
+              <td class="kande-col advantage"><span class="check">✓</span> Primary</td>
+              <td><span class="check">✓</span> Residential</td>
+              <td><span class="cross">✗</span> Office focus</td>
+              <td><span class="partial">◐</span></td>
+              <td><span class="partial">◐</span></td>
+              <td><span class="partial">◐</span></td>
+              <td><span class="partial">◐</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab: Objection Counters -->
+    <div id="objections" class="tab-content">
+      <div class="objection-grid">
+        
+        <div class="objection-card">
+          <h3><i class="fas fa-building"></i> "We already use Canteen/SkyTop"</h3>
+          <p>They have the big national brand, but...</p>
+          <ul class="weakness-list">
+            <li>Credit card security complaints on Google</li>
+            <li>Corporate call center — slow response times</li>
+            <li>"SCAM" review publicly visible</li>
+            <li>6 Facebook likes (zero community engagement)</li>
+          </ul>
+          <div class="objection-response">
+            <h4>Your Response</h4>
+            <p>"I've heard that from other properties. The challenge with national franchises is when something breaks at 10 PM, you're calling a 1-800 number. With me, you're calling THIS number, and I pick up. I live in Henderson. Can I show you what a local partnership looks like?"</p>
+          </div>
+        </div>
+
+        <div class="objection-card">
+          <h3><i class="fas fa-crown"></i> "We use Royal ReFresh"</h3>
+          <p>They're good at micro-markets, but...</p>
+          <ul class="weakness-list">
+            <li>Portland company that expanded here — not local roots</li>
+            <li>Focus is corporate offices, not residential</li>
+            <li>No AI smart cooler technology</li>
+            <li>Portland phone number still on materials</li>
+          </ul>
+          <div class="objection-response">
+            <h4>Your Response</h4>
+            <p>"Royal ReFresh does good work. The difference is I'm born and raised Henderson — your residents will see a local face, not a Portland expansion. Plus our AI smart coolers are next-generation tech they're not offering yet. Happy to do a side-by-side demo."</p>
+          </div>
+        </div>
+
+        <div class="objection-card">
+          <h3><i class="fas fa-star"></i> "We use Skala Industries"</h3>
+          <p>Our strongest competitor, but...</p>
+          <ul class="weakness-list">
+            <li>Perfect 5.0 rating might be over-managed</li>
+            <li>Minimal website content</li>
+            <li>No visible AI technology differentiation</li>
+          </ul>
+          <div class="objection-response">
+            <h4>Your Response</h4>
+            <p>"Skala does good work — they're fellow Henderson operators. What I offer differently is our SandStar AI smart coolers that recognize products without scanning, faster restocking, and I'll personally guarantee same-day response. Worth a conversation if you ever want options."</p>
+          </div>
+        </div>
+
+        <div class="objection-card">
+          <h3><i class="fas fa-search"></i> "We found someone through Vending Exchange"</h3>
+          <p>They're just a lead broker...</p>
+          <ul class="weakness-list">
+            <li>Not an actual vending operator — middleman</li>
+            <li>HQ in Florida, no Las Vegas presence</li>
+            <li>Reddit/Facebook operator complaints</li>
+            <li>Quality of matched vendors is inconsistent</li>
+          </ul>
+          <div class="objection-response">
+            <h4>Your Response</h4>
+            <p>"Vending Exchange is actually a lead marketplace in Florida — they just connect you with whoever bought your lead. With me, there's no middleman. I install it, I stock it, I service it. You get my direct number. That's the difference between a broker and a partner."</p>
+          </div>
+        </div>
+
+        <div class="objection-card">
+          <h3><i class="fas fa-map-marker-alt"></i> "We use R&R Vending"</h3>
+          <p>They're local but outdated...</p>
+          <ul class="weakness-list">
+            <li>"Worst customer service I have EVER received" — Google review</li>
+            <li>"Too busy to be bothered" — another review</li>
+            <li>No cashless payment, no smart tech</li>
+            <li>Website has typos, looks unprofessional</li>
+          </ul>
+          <div class="objection-response">
+            <h4>Your Response</h4>
+            <p>"R&R has been around, but their technology hasn't kept up. Your residents expect tap-to-pay, remote monitoring, and modern machines. I'm also Henderson-based, but with smart coolers and 24/7 service. Would you like to see the difference?"</p>
+          </div>
+        </div>
+
+        <div class="objection-card">
+          <h3><i class="fas fa-certificate"></i> "We use First Class Nevada"</h3>
+          <p>Their 3.3 stars tell the story...</p>
+          <ul class="weakness-list">
+            <li>3.3 Google rating — well below trust threshold</li>
+            <li>Generic branding, no local personality</li>
+            <li>No social media presence</li>
+            <li>Template website with no testimonials</li>
+          </ul>
+          <div class="objection-response">
+            <h4>Your Response</h4>
+            <p>"Have you checked their Google reviews lately? A 3.3 rating usually means service issues. I'd love to show you what 5-star service looks like. Can I drop by with a sample of what our machines offer?"</p>
+          </div>
+        </div>
+
+        <div class="objection-card">
+          <h3><i class="fas fa-dollar-sign"></i> "We want higher commission"</h3>
+          <p>Industry standard is 3-5%, starting month 6...</p>
+          <ul class="weakness-list">
+            <li>High commission = poor product selection</li>
+            <li>Operators who overpromise on commission cut corners</li>
+            <li>Canteen offers 5-25% but has terrible service</li>
+          </ul>
+          <div class="objection-response">
+            <h4>Your Response</h4>
+            <p>"I offer 3-5% of gross starting month 6 — that's industry standard. Properties that demand 15-20% end up with operators who cut corners on product quality and service. Would you rather have reliable machines that your residents love, or squeeze a few extra dollars and deal with constant complaints?"</p>
+          </div>
+        </div>
+
+        <div class="objection-card">
+          <h3><i class="fas fa-clock"></i> "We need to think about it"</h3>
+          <p>Standard stall — need to create urgency...</p>
+          <ul class="weakness-list">
+            <li>Often means they're checking other options</li>
+            <li>Decision paralysis is real</li>
+            <li>Need a reason to decide now</li>
+          </ul>
+          <div class="objection-response">
+            <h4>Your Response</h4>
+            <p>"Totally understand — this is a big decision. What would help you move forward? I'm booking installations 3-4 weeks out, so if timing matters, I'd love to get you on the calendar. Can I check back Thursday?"</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Tab: Market Intelligence -->
+    <div id="intel" class="tab-content">
+      <div class="intel-grid">
+        
+        <div class="intel-card">
+          <h3><i class="fas fa-crown" style="color:#059669"></i> Skala Industries</h3>
+          <div class="intel-section">
+            <h4><i class="fas fa-map-marker-alt strong-area"></i> Where They're Strong</h4>
+            <ul>
+              <li><i class="fas fa-circle strong-area" style="font-size:0.5rem"></i> Henderson/Green Valley residential</li>
+              <li><i class="fas fa-circle strong-area" style="font-size:0.5rem"></i> "Elite workplace" corporate accounts</li>
+              <li><i class="fas fa-circle strong-area" style="font-size:0.5rem"></i> Luxury positioning & branding</li>
+            </ul>
+          </div>
+          <div class="intel-section">
+            <h4><i class="fas fa-crosshairs weak-area"></i> Gaps to Exploit</h4>
+            <ul>
+              <li><i class="fas fa-circle weak-area" style="font-size:0.5rem"></i> Thin website content — SEO opportunity</li>
+              <li><i class="fas fa-circle weak-area" style="font-size:0.5rem"></i> No visible AI tech differentiator</li>
+              <li><i class="fas fa-circle weak-area" style="font-size:0.5rem"></i> Henderson Chamber not leveraged</li>
+            </ul>
+          </div>
+          <div class="intel-section">
+            <h4><i class="fas fa-newspaper"></i> Recent News</h4>
+            <ul>
+              <li>Featured in "Top Luxury Small Business Leaders 2025" (Deluxe Version Magazine)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="intel-card">
+          <h3><i class="fas fa-utensils" style="color:#059669"></i> Royal ReFresh</h3>
+          <div class="intel-section">
+            <h4><i class="fas fa-map-marker-alt strong-area"></i> Where They're Strong</h4>
+            <ul>
+              <li><i class="fas fa-circle strong-area" style="font-size:0.5rem"></i> Corporate office break rooms</li>
+              <li><i class="fas fa-circle strong-area" style="font-size:0.5rem"></i> Fresh food/sandwich micro-markets</li>
+              <li><i class="fas fa-circle strong-area" style="font-size:0.5rem"></i> Henderson Chamber member</li>
+            </ul>
+          </div>
+          <div class="intel-section">
+            <h4><i class="fas fa-crosshairs weak-area"></i> Gaps to Exploit</h4>
+            <ul>
+              <li><i class="fas fa-circle weak-area" style="font-size:0.5rem"></i> Luxury apartments (not their focus)</li>
+              <li><i class="fas fa-circle weak-area" style="font-size:0.5rem"></i> Portland roots = not "local local"</li>
+              <li><i class="fas fa-circle weak-area" style="font-size:0.5rem"></i> No AI smart cooler technology</li>
+            </ul>
+          </div>
+          <div class="intel-section">
+            <h4><i class="fas fa-newspaper"></i> Recent News</h4>
+            <ul>
+              <li>Named "Oregon's Fastest Growing Private Companies"</li>
+              <li>Part of Coolbreakrooms Authorized Provider network</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="intel-card">
+          <h3><i class="fas fa-building" style="color:#d97706"></i> SkyTop/Canteen</h3>
+          <div class="intel-section">
+            <h4><i class="fas fa-map-marker-alt strong-area"></i> Where They're Strong</h4>
+            <ul>
+              <li><i class="fas fa-circle strong-area" style="font-size:0.5rem"></i> The Las Vegas Strip (98% monopoly)</li>
+              <li><i class="fas fa-circle strong-area" style="font-size:0.5rem"></i> Large corporate contracts</li>
+              <li><i class="fas fa-circle strong-area" style="font-size:0.5rem"></i> National brand recognition</li>
+            </ul>
+          </div>
+          <div class="intel-section">
+            <h4><i class="fas fa-crosshairs weak-area"></i> Gaps to Exploit</h4>
+            <ul>
+              <li><i class="fas fa-circle weak-area" style="font-size:0.5rem"></i> Residential/apartment sector</li>
+              <li><i class="fas fa-circle weak-area" style="font-size:0.5rem"></i> Small-medium businesses</li>
+              <li><i class="fas fa-circle weak-area" style="font-size:0.5rem"></i> Anywhere service speed matters</li>
+            </ul>
+          </div>
+          <div class="intel-section">
+            <h4><i class="fas fa-newspaper"></i> Recent News</h4>
+            <ul>
+              <li>Skool community reports: "Taking over Canteen locations (customers unhappy)" is a proven strategy</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="intel-card">
+          <h3><i class="fas fa-network-wired" style="color:#d97706"></i> Vending Exchange</h3>
+          <div class="intel-section">
+            <h4><i class="fas fa-map-marker-alt strong-area"></i> Where They're Strong</h4>
+            <ul>
+              <li><i class="fas fa-circle strong-area" style="font-size:0.5rem"></i> SEO — dominates Google searches</li>
+              <li><i class="fas fa-circle strong-area" style="font-size:0.5rem"></i> City-specific landing pages</li>
+              <li><i class="fas fa-circle strong-area" style="font-size:0.5rem"></i> "Zero cost" messaging</li>
+            </ul>
+          </div>
+          <div class="intel-section">
+            <h4><i class="fas fa-crosshairs weak-area"></i> Gaps to Exploit</h4>
+            <ul>
+              <li><i class="fas fa-circle weak-area" style="font-size:0.5rem"></i> Not a real operator — can't compete on service</li>
+              <li><i class="fas fa-circle weak-area" style="font-size:0.5rem"></i> Bad reputation in operator communities</li>
+              <li><i class="fas fa-circle weak-area" style="font-size:0.5rem"></i> No local presence whatsoever</li>
+            </ul>
+          </div>
+          <div class="intel-section">
+            <h4><i class="fas fa-newspaper"></i> Recent News</h4>
+            <ul>
+              <li>Reddit r/VendingHelp: "BUYER BEWARE" post exposing multiple company aliases</li>
+              <li>Website security breach (July 2024)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="intel-card">
+          <h3><i class="fas fa-exclamation-triangle" style="color:#16a34a"></i> First Class Nevada</h3>
+          <div class="intel-section">
+            <h4><i class="fas fa-map-marker-alt strong-area"></i> Where They're Strong</h4>
+            <ul>
+              <li><i class="fas fa-circle strong-area" style="font-size:0.5rem"></i> Statewide coverage (LV + Reno)</li>
+              <li><i class="fas fa-circle strong-area" style="font-size:0.5rem"></i> Uses Google Posts (rare)</li>
+            </ul>
+          </div>
+          <div class="intel-section">
+            <h4><i class="fas fa-crosshairs weak-area"></i> Gaps to Exploit</h4>
+            <ul>
+              <li><i class="fas fa-circle weak-area" style="font-size:0.5rem"></i> 3.3 stars = UNHAPPY CUSTOMERS</li>
+              <li><i class="fas fa-circle weak-area" style="font-size:0.5rem"></i> Henderson market specifically</li>
+              <li><i class="fas fa-circle weak-area" style="font-size:0.5rem"></i> Any property that values service</li>
+            </ul>
+          </div>
+          <div class="intel-section">
+            <h4><i class="fas fa-newspaper"></i> Strategy</h4>
+            <ul>
+              <li>Check if a prospect has First Class → pitch the upgrade</li>
+              <li>Their negative reviews are research gold</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="intel-card">
+          <h3><i class="fas fa-target" style="color:#16a34a"></i> R&R Vending</h3>
+          <div class="intel-section">
+            <h4><i class="fas fa-map-marker-alt strong-area"></i> Where They're Strong</h4>
+            <ul>
+              <li><i class="fas fa-circle strong-area" style="font-size:0.5rem"></i> Henderson address (Galena Dr)</li>
+              <li><i class="fas fa-circle strong-area" style="font-size:0.5rem"></i> Established local presence</li>
+            </ul>
+          </div>
+          <div class="intel-section">
+            <h4><i class="fas fa-crosshairs weak-area"></i> Gaps to Exploit</h4>
+            <ul>
+              <li><i class="fas fa-circle weak-area" style="font-size:0.5rem"></i> EVERYWHERE — they're weak across the board</li>
+              <li><i class="fas fa-circle weak-area" style="font-size:0.5rem"></i> No modern tech at all</li>
+              <li><i class="fas fa-circle weak-area" style="font-size:0.5rem"></i> Terrible customer service reviews</li>
+            </ul>
+          </div>
+          <div class="intel-section">
+            <h4><i class="fas fa-newspaper"></i> Strategy</h4>
+            <ul>
+              <li>Direct replacement target — their customers are begging for an alternative</li>
+              <li>Any Google search reveals their problems</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Tab: Displacement Playbook -->
+    <div id="playbook" class="tab-content">
+      
+      <div class="playbook-section">
+        <h2><i class="fas fa-search" style="color:#dc2626"></i> Signs a Property is Unhappy</h2>
+        <div class="playbook-grid">
+          <div class="playbook-item">
+            <h4><i class="fas fa-eye"></i> Visual Signs</h4>
+            <ul>
+              <li>Machine looks old, dirty, or damaged</li>
+              <li>"Out of Order" sign on machine</li>
+              <li>Half-empty product selection</li>
+              <li>No contactless payment reader</li>
+              <li>Handwritten "cash only" sign</li>
+            </ul>
+          </div>
+          <div class="playbook-item">
+            <h4><i class="fas fa-comment"></i> What Staff Says</h4>
+            <ul>
+              <li>"It's always broken"</li>
+              <li>"Takes forever to get restocked"</li>
+              <li>"We've complained but nothing changes"</li>
+              <li>"The selection is terrible"</li>
+              <li>"I don't even know who our vendor is"</li>
+            </ul>
+          </div>
+          <div class="playbook-item">
+            <h4><i class="fas fa-star-half-alt"></i> Online Indicators</h4>
+            <ul>
+              <li>Property reviews mention vending complaints</li>
+              <li>Current vendor has poor Google reviews</li>
+              <li>No vendor website/social presence</li>
+              <li>Vendor hasn't updated Google profile</li>
+            </ul>
+          </div>
         </div>
       </div>
-    `).join('');
-  }
 
-  function renderTable(list) {
-    const tbody = document.getElementById('tableBody');
-    if (list.length === 0 && competitors.length > 0) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">No matches found</td></tr>';
-      return;
+      <div class="playbook-section">
+        <h2><i class="fas fa-question-circle" style="color:#3b82f6"></i> Questions to Uncover Pain Points</h2>
+        <div class="playbook-grid">
+          <div class="playbook-item">
+            <h4><i class="fas fa-thermometer-half"></i> Temperature Questions</h4>
+            <ul>
+              <li>"Do you have vending service currently?"</li>
+              <li>"How's that working for you?"</li>
+              <li>"When's the last time you saw the vendor?"</li>
+              <li>"If you could change one thing, what would it be?"</li>
+            </ul>
+          </div>
+          <div class="playbook-item">
+            <h4><i class="fas fa-tools"></i> Service Quality</h4>
+            <ul>
+              <li>"How quickly do they respond when something breaks?"</li>
+              <li>"Do they have a direct number for you?"</li>
+              <li>"Are residents/staff happy with the selection?"</li>
+              <li>"How often is the machine fully stocked?"</li>
+            </ul>
+          </div>
+          <div class="playbook-item">
+            <h4><i class="fas fa-file-contract"></i> Contract Situation</h4>
+            <ul>
+              <li>"Are you in a long-term contract?"</li>
+              <li>"When does it come up for renewal?"</li>
+              <li>"Do you have an exclusivity clause?"</li>
+              <li>"What would make you consider switching?"</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="playbook-section">
+        <h2><i class="fas fa-exchange-alt" style="color:#059669"></i> How to Position the Switch</h2>
+        <div class="playbook-grid">
+          <div class="playbook-item">
+            <h4><i class="fas fa-gift"></i> The Offer</h4>
+            <ul>
+              <li>Free trial period (30-60 days)</li>
+              <li>No long-term contract required</li>
+              <li>We handle all removal coordination</li>
+              <li>Installation within 2 weeks of agreement</li>
+              <li>Gift basket for leasing office on day 1</li>
+            </ul>
+          </div>
+          <div class="playbook-item">
+            <h4><i class="fas fa-check-double"></i> Risk Reduction</h4>
+            <ul>
+              <li>"Zero cost to you, ever"</li>
+              <li>"If it doesn't work, I'll remove it for free"</li>
+              <li>"You can cancel anytime with 30 days notice"</li>
+              <li>"I guarantee same-day response"</li>
+            </ul>
+          </div>
+          <div class="playbook-item">
+            <h4><i class="fas fa-trophy"></i> Value Adds</h4>
+            <ul>
+              <li>QR code feedback from residents</li>
+              <li>Monthly performance reports</li>
+              <li>Custom product mix for YOUR property</li>
+              <li>Direct line to owner (me)</li>
+              <li>Revenue share starting month 6</li>
+            </ul>
+          </div>
+          <div class="playbook-item">
+            <h4><i class="fas fa-rocket"></i> Urgency Builders</h4>
+            <ul>
+              <li>"I'm booking 3-4 weeks out"</li>
+              <li>"I only take 2-3 new locations per month"</li>
+              <li>"Want to get you set up before [season/event]"</li>
+              <li>"First property in [building name] gets priority"</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="playbook-section">
+        <h2><i class="fas fa-list-ol" style="color:#7c3aed"></i> Displacement Sequence</h2>
+        <div class="playbook-grid">
+          <div class="playbook-item">
+            <h4><i class="fas fa-circle" style="color:#ef4444"></i> Step 1: Research</h4>
+            <ul>
+              <li>Google the property — check for vending complaints in reviews</li>
+              <li>Identify current vendor (signage on machine)</li>
+              <li>Check vendor's Google reviews</li>
+              <li>Look for contract end dates (ask during pop-in)</li>
+            </ul>
+          </div>
+          <div class="playbook-item">
+            <h4><i class="fas fa-circle" style="color:#f97316"></i> Step 2: Pop-In</h4>
+            <ul>
+              <li>Bring gift basket ($5 from Costco)</li>
+              <li>Ask the 3 questions: Have vending? Like it? Change anything?</li>
+              <li>Take photos of current machine (secretly)</li>
+              <li>Get decision-maker name + contact</li>
+            </ul>
+          </div>
+          <div class="playbook-item">
+            <h4><i class="fas fa-circle" style="color:#eab308"></i> Step 3: Follow Up</h4>
+            <ul>
+              <li>Send comparison email (you vs. current vendor)</li>
+              <li>Include their current vendor's bad reviews</li>
+              <li>Offer no-risk trial</li>
+              <li>Propose site visit to show your machine</li>
+            </ul>
+          </div>
+          <div class="playbook-item">
+            <h4><i class="fas fa-circle" style="color:#22c55e"></i> Step 4: Close</h4>
+            <ul>
+              <li>Bring proposal PDF (professional)</li>
+              <li>Handle contract concerns (most are month-to-month)</li>
+              <li>Offer to coordinate removal with old vendor</li>
+              <li>Set installation date before leaving</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    // URL hash navigation
+    if (window.location.hash) {
+      const tabId = window.location.hash.slice(1);
+      const tab = document.querySelector(`.tab[data-tab="${tabId}"]`);
+      if (tab) tab.click();
     }
-    tbody.innerHTML = list.map(c => `
-      <tr>
-        <td>
-          <strong>${esc(c.name)}</strong>
-          ${c.website ? `<br><a href="${esc(c.website)}" target="_blank" style="font-size:0.75rem;">${esc(c.website.replace(/^https?:\/\//, ''))}</a>` : ''}
-        </td>
-        <td style="text-align:center;">${c.locations_count || '—'}</td>
-        <td>${(c.machine_types || []).map(t => `<span class="tag machine-type">${esc(t)}</span>`).join(' ')}</td>
-        <td>${(c.target_markets || []).map(t => `<span class="tag target">${esc(t)}</span>`).join(' ')}</td>
-        <td style="max-width:200px;"><span style="font-size:0.82rem;">${esc(c.pricing_notes || '—')}</span></td>
-        <td>${esc(c.phone || '—')}</td>
-        <td style="font-size:0.78rem;color:var(--dim);">${timeAgo(c.updated_at || c.created_at)}</td>
-        <td>
-          <button class="btn btn-sm btn-ghost" onclick="openModal(${c.id})" title="Edit">✏️</button>
-          <button class="btn btn-sm btn-ghost btn-danger" onclick="quickDelete(${c.id})" title="Delete">🗑️</button>
-        </td>
-      </tr>
-    `).join('');
-
-    // Highlight sorted column
-    document.querySelectorAll('th[data-sort]').forEach(th => {
-      th.classList.toggle('sorted', th.dataset.sort === sortField);
-      const arrow = th.querySelector('.sort-arrow');
-      if (th.dataset.sort === sortField) {
-        arrow.textContent = sortDir === 'asc' ? '▲' : '▼';
-      } else {
-        arrow.textContent = '';
-      }
-    });
-  }
-
-  // ── Modal ──
-  window.openModal = function(id) {
-    const modal = document.getElementById('modal');
-    const form = modal.querySelector('.modal');
-    document.getElementById('editId').value = '';
-    document.getElementById('modalTitle').textContent = '➕ Add Competitor';
-    document.getElementById('deleteBtn').style.display = 'none';
-
-    // Reset fields
-    ['fName','fWebsite','fPhone','fLocations','fContact','fPricing','fStrengths','fWeaknesses','fWinLoss','fNotes'].forEach(f => {
-      document.getElementById(f).value = '';
-    });
-    document.getElementById('fMachineTypes').selectedIndex = -1;
-    document.getElementById('fTargetMarkets').selectedIndex = -1;
-
-    if (id) {
-      const c = competitors.find(x => x.id === id);
-      if (!c) return;
-      document.getElementById('editId').value = id;
-      document.getElementById('modalTitle').textContent = '✏️ Edit Competitor';
-      document.getElementById('deleteBtn').style.display = 'inline-flex';
-
-      document.getElementById('fName').value = c.name || '';
-      document.getElementById('fWebsite').value = c.website || '';
-      document.getElementById('fPhone').value = c.phone || '';
-      document.getElementById('fLocations').value = c.locations_count || '';
-      document.getElementById('fContact').value = c.contact_person || '';
-      document.getElementById('fPricing').value = c.pricing_notes || '';
-      document.getElementById('fStrengths').value = c.strengths || '';
-      document.getElementById('fWeaknesses').value = c.weaknesses || '';
-      document.getElementById('fWinLoss').value = c.win_loss_notes || '';
-      document.getElementById('fNotes').value = c.notes || '';
-
-      // Multi-selects
-      setMultiSelect('fMachineTypes', c.machine_types || []);
-      setMultiSelect('fTargetMarkets', c.target_markets || []);
-    }
-
-    modal.classList.add('show');
-    setTimeout(() => document.getElementById('fName').focus(), 100);
-  };
-
-  window.closeModal = function() {
-    document.getElementById('modal').classList.remove('show');
-  };
-
-  window.saveCompetitor = async function() {
-    const name = document.getElementById('fName').value.trim();
-    if (!name) { alert('Company name is required'); return; }
-
-    const data = {
-      name,
-      website: document.getElementById('fWebsite').value.trim(),
-      phone: document.getElementById('fPhone').value.trim(),
-      locations_count: parseInt(document.getElementById('fLocations').value) || 0,
-      contact_person: document.getElementById('fContact').value.trim(),
-      pricing_notes: document.getElementById('fPricing').value.trim(),
-      machine_types: getMultiSelect('fMachineTypes'),
-      target_markets: getMultiSelect('fTargetMarkets'),
-      strengths: document.getElementById('fStrengths').value.trim(),
-      weaknesses: document.getElementById('fWeaknesses').value.trim(),
-      win_loss_notes: document.getElementById('fWinLoss').value.trim(),
-      notes: document.getElementById('fNotes').value.trim()
-    };
-
-    const id = document.getElementById('editId').value;
-    await saveToAPI(data, id || null);
-    closeModal();
-    fetchCompetitors();
-  };
-
-  window.deleteCompetitor = async function() {
-    const id = document.getElementById('editId').value;
-    if (!id) return;
-    if (!confirm('Delete this competitor? This cannot be undone.')) return;
-    await deleteFromAPI(id);
-    closeModal();
-    fetchCompetitors();
-  };
-
-  window.quickDelete = async function(id) {
-    const c = competitors.find(x => x.id === id);
-    if (!confirm(`Delete "${c?.name}"?`)) return;
-    await deleteFromAPI(id);
-    fetchCompetitors();
-  };
-
-  // ── Helpers ──
-  function esc(s) {
-    if (!s) return '';
-    const d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
-  }
-
-  function timeAgo(dateStr) {
-    if (!dateStr) return 'never';
-    const d = new Date(dateStr);
-    const now = new Date();
-    const diff = now - d;
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'just now';
-    if (mins < 60) return mins + 'm ago';
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return hrs + 'h ago';
-    const days = Math.floor(hrs / 24);
-    if (days < 30) return days + 'd ago';
-    return d.toLocaleDateString();
-  }
-
-  function getMultiSelect(id) {
-    const sel = document.getElementById(id);
-    return Array.from(sel.selectedOptions).map(o => o.value);
-  }
-
-  function setMultiSelect(id, values) {
-    const sel = document.getElementById(id);
-    Array.from(sel.options).forEach(o => {
-      o.selected = values.includes(o.value);
-    });
-  }
-
-  // ── Event Listeners ──
-  document.getElementById('searchInput').addEventListener('input', render);
-  document.getElementById('filterType').addEventListener('change', render);
-  document.getElementById('filterTarget').addEventListener('change', render);
-
-  // View toggle
-  document.querySelectorAll('.view-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentView = btn.dataset.view;
-      render();
-    });
-  });
-
-  // Table sorting
-  document.querySelectorAll('th[data-sort]').forEach(th => {
-    th.addEventListener('click', () => {
-      const field = th.dataset.sort;
-      if (sortField === field) {
-        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-      } else {
-        sortField = field;
-        sortDir = 'asc';
-      }
-      render();
-    });
-  });
-
-  // Close modal on backdrop click
-  document.getElementById('modal').addEventListener('click', e => {
-    if (e.target.classList.contains('modal-overlay')) closeModal();
-  });
-
-  // Escape key
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeModal();
-  });
-
-  // ── Init ──
-  fetchCompetitors();
-})();
-</script>
+  </script>
 </body>
 </html>

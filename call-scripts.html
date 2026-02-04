@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Call Scripts — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #fafbfc; --card: #ffffff; --border: #e5e7eb; --text: #1f2937;
+      --muted: #6b7280; --accent: #2563eb; --accent-light: #eff6ff;
+      --green: #10b981; --green-light: #ecfdf5;
+      --amber: #f59e0b; --amber-light: #fffbeb;
+      --red: #ef4444; --red-light: #fef2f2;
+      --purple: #8b5cf6; --purple-light: #f5f3ff;
+      --radius: 12px; --radius-sm: 8px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); -webkit-tap-highlight-color: transparent; line-height: 1.5; }
+
+    /* ===== TOP BAR ===== */
+    .topbar { background: #fff; border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; }
+    .topbar .back-btn { color: var(--accent); text-decoration: none; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+    .topbar h1 { font-size: 1.1rem; font-weight: 700; flex: 1; }
+
+    /* ===== CALL TIMER STRIP ===== */
+    .timer-strip { background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%); padding: 12px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; position: sticky; top: 49px; z-index: 99; }
+    .timer-display { font-size: 2rem; font-weight: 800; color: #fff; font-family: 'SF Mono', 'Monaco', monospace; min-width: 100px; }
+    .timer-btns { display: flex; gap: 8px; }
+    .timer-btn { padding: 8px 16px; border-radius: var(--radius-sm); border: none; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.15s; }
+    .timer-btn.start { background: var(--green); color: #fff; }
+    .timer-btn.start:hover { background: #059669; }
+    .timer-btn.pause { background: var(--amber); color: #fff; }
+    .timer-btn.reset { background: rgba(255,255,255,0.2); color: #fff; }
+    .timer-btn.reset:hover { background: rgba(255,255,255,0.3); }
+    .prospect-select { flex: 1; min-width: 200px; padding: 10px 12px; border-radius: var(--radius-sm); border: none; font-size: 0.9rem; background: rgba(255,255,255,0.95); }
+    .prospect-context { color: rgba(255,255,255,0.85); font-size: 0.78rem; margin-left: auto; max-width: 300px; text-align: right; }
+
+    /* ===== OUTCOME BUTTONS ===== */
+    .outcome-strip { background: #fff; border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; gap: 8px; flex-wrap: wrap; overflow-x: auto; }
+    .outcome-btn { padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border); background: #fff; font-size: 0.78rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+    .outcome-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .outcome-btn.voicemail { border-color: var(--muted); }
+    .outcome-btn.voicemail:hover, .outcome-btn.voicemail.active { background: #f3f4f6; border-color: var(--muted); color: var(--muted); }
+    .outcome-btn.interested { border-color: var(--green); }
+    .outcome-btn.interested:hover, .outcome-btn.interested.active { background: var(--green-light); border-color: var(--green); color: var(--green); }
+    .outcome-btn.not-now { border-color: var(--amber); }
+    .outcome-btn.not-now:hover, .outcome-btn.not-now.active { background: var(--amber-light); border-color: var(--amber); color: var(--amber); }
+    .outcome-btn.no { border-color: var(--red); }
+    .outcome-btn.no:hover, .outcome-btn.no.active { background: var(--red-light); border-color: var(--red); color: var(--red); }
+    .outcome-btn.meeting { border-color: var(--accent); }
+    .outcome-btn.meeting:hover, .outcome-btn.meeting.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+
+    /* ===== TABS ===== */
+    .tabs-wrap { padding: 8px 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; background: var(--bg); border-bottom: 1px solid var(--border); }
+    .tabs-wrap::-webkit-scrollbar { display: none; }
+    .tabs { display: flex; gap: 6px; min-width: max-content; }
+    .tab { padding: 10px 16px; border-radius: var(--radius-sm); font-size: 0.82rem; font-weight: 600; cursor: pointer; white-space: nowrap; border: none; background: transparent; color: var(--muted); transition: all 0.2s; user-select: none; }
+    .tab:hover { background: rgba(0,0,0,0.04); color: var(--text); }
+    .tab.active { background: var(--accent); color: #fff; }
+
+    /* ===== CONTENT ===== */
+    .content { padding: 16px; max-width: 900px; margin: 0 auto; padding-bottom: 120px; }
+    .section { display: none; }
+    .section.active { display: block; }
+    
+    /* ===== SCRIPT CARDS ===== */
+    .script-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; }
+    .script-header { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; border-bottom: 1px solid transparent; }
+    .script-card.open .script-header { border-bottom-color: var(--border); }
+    .script-header:active { background: #f9fafb; }
+    .script-title { font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .script-badge { font-size: 0.68rem; font-weight: 600; padding: 3px 10px; border-radius: 10px; }
+    .badge-green { background: var(--green-light); color: var(--green); }
+    .badge-red { background: var(--red-light); color: var(--red); }
+    .badge-amber { background: var(--amber-light); color: var(--amber); }
+    .badge-blue { background: var(--accent-light); color: var(--accent); }
+    .badge-purple { background: var(--purple-light); color: var(--purple); }
+    .chevron { font-size: 0.8rem; color: var(--muted); transition: transform 0.2s; }
+    .script-card.open .chevron { transform: rotate(90deg); }
+    .script-body { display: none; padding: 20px; font-size: 0.95rem; }
+    .script-card.open .script-body { display: block; }
+
+    /* ===== SCRIPT ELEMENTS ===== */
+    .script-text { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-left: 4px solid var(--accent); padding: 16px 20px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin: 12px 0; font-size: 1.1rem; line-height: 1.6; font-style: italic; color: #0c4a6e; }
+    .script-text strong { font-style: normal; font-weight: 700; }
+    
+    .talking-points { margin: 16px 0; }
+    .talking-point { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f3f4f6; }
+    .talking-point:last-child { border-bottom: none; }
+    .tp-checkbox { width: 22px; height: 22px; border: 2px solid var(--border); border-radius: 4px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; margin-top: 2px; }
+    .tp-checkbox:hover { border-color: var(--accent); }
+    .tp-checkbox.checked { background: var(--green); border-color: var(--green); }
+    .tp-checkbox.checked::after { content: '✓'; color: #fff; font-size: 0.75rem; font-weight: 700; }
+    .tp-text { flex: 1; font-size: 1rem; }
+    
+    .objection-block { background: var(--amber-light); border: 1px solid #fcd34d; border-radius: var(--radius-sm); margin: 12px 0; overflow: hidden; }
+    .objection-header { padding: 12px 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+    .objection-header::before { content: '⚡'; }
+    .objection-body { display: none; padding: 0 16px 16px; }
+    .objection-block.open .objection-body { display: block; }
+    .objection-response { background: #fff; border-radius: var(--radius-sm); padding: 12px 16px; margin-top: 8px; font-size: 0.95rem; }
+    
+    .warning-box { background: var(--red-light); border-left: 4px solid var(--red); padding: 14px 18px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin: 12px 0; }
+    .warning-box strong { color: var(--red); }
+    
+    .tip-box { background: var(--green-light); border-left: 4px solid var(--green); padding: 14px 18px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin: 12px 0; }
+    .tip-box strong { color: var(--green); }
+    
+    .next-steps { background: var(--purple-light); border: 1px solid #c4b5fd; border-radius: var(--radius-sm); padding: 16px 20px; margin: 16px 0; }
+    .next-steps h4 { color: var(--purple); margin-bottom: 8px; font-size: 0.9rem; }
+    .next-steps ul { margin: 0; padding-left: 20px; }
+    .next-steps li { margin: 6px 0; }
+
+    h3 { font-size: 1rem; font-weight: 700; margin: 20px 0 10px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+    h4 { font-size: 0.9rem; font-weight: 700; margin: 16px 0 8px; color: var(--muted); }
+
+    /* ===== NOTES PANEL ===== */
+    .notes-panel { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--border); padding: 12px 16px; z-index: 100; box-shadow: 0 -4px 12px rgba(0,0,0,0.08); }
+    .notes-row { display: flex; gap: 10px; max-width: 900px; margin: 0 auto; }
+    .notes-input { flex: 1; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.95rem; resize: none; height: 48px; font-family: inherit; }
+    .notes-input:focus { outline: none; border-color: var(--accent); }
+    .log-btn { padding: 12px 24px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); font-weight: 600; font-size: 0.9rem; cursor: pointer; white-space: nowrap; }
+    .log-btn:hover { background: #1d4ed8; }
+    .log-btn:disabled { background: var(--muted); cursor: not-allowed; }
+
+    /* ===== TOAST ===== */
+    .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #1f2937; color: #fff; padding: 12px 24px; border-radius: var(--radius); font-size: 0.9rem; font-weight: 500; z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+    .toast.show { opacity: 1; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 600px) {
+      .timer-strip { flex-direction: column; align-items: stretch; gap: 10px; }
+      .timer-display { text-align: center; }
+      .timer-btns { justify-content: center; }
+      .prospect-context { text-align: center; max-width: none; margin: 0; }
+      .script-text { font-size: 1rem; padding: 14px 16px; }
+      .notes-row { flex-direction: column; }
+      .log-btn { width: 100%; }
+    }
+
+    /* ===== LARGE TEXT MODE (for on-call reading) ===== */
+    .large-text .script-text { font-size: 1.25rem; }
+    .large-text .tp-text { font-size: 1.1rem; }
+    .large-text .objection-response { font-size: 1.05rem; }
+  </style>
+</head>
+<body>
+  <!-- Top Bar -->
+  <div class="topbar">
+    <a href="/home" class="back-btn">← Dashboard</a>
+    <h1>📞 Call Scripts</h1>
+    <button onclick="document.body.classList.toggle('large-text')" style="background:none;border:1px solid var(--border);padding:6px 10px;border-radius:6px;font-size:0.75rem;cursor:pointer;">Aa+</button>
+  </div>
+
+  <!-- Timer Strip -->
+  <div class="timer-strip">
+    <div class="timer-display" id="timerDisplay">00:00</div>
+    <div class="timer-btns">
+      <button class="timer-btn start" id="timerStart" onclick="toggleTimer()">▶ Start</button>
+      <button class="timer-btn reset" onclick="resetTimer()">↺ Reset</button>
+    </div>
+    <select class="prospect-select" id="prospectSelect" onchange="selectProspect()">
+      <option value="">Select prospect...</option>
+    </select>
+    <div class="prospect-context" id="prospectContext"></div>
+  </div>
+
+  <!-- Outcome Buttons -->
+  <div class="outcome-strip">
+    <button class="outcome-btn voicemail" data-outcome="voicemail" onclick="setOutcome(this)">📭 Voicemail</button>
+    <button class="outcome-btn interested" data-outcome="interested" onclick="setOutcome(this)">✅ Connected - Interested</button>
+    <button class="outcome-btn not-now" data-outcome="not_now" onclick="setOutcome(this)">⏳ Connected - Not Now</button>
+    <button class="outcome-btn no" data-outcome="no" onclick="setOutcome(this)">❌ Connected - No</button>
+    <button class="outcome-btn meeting" data-outcome="meeting" onclick="setOutcome(this)">📅 Scheduled Meeting</button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs-wrap">
+    <div class="tabs">
+      <button class="tab active" data-tab="cold">🥶 Cold Call</button>
+      <button class="tab" data-tab="warm">🔥 Warm Call</button>
+      <button class="tab" data-tab="gatekeeper">🚪 Gatekeeper</button>
+      <button class="tab" data-tab="discovery">🔍 Discovery</button>
+      <button class="tab" data-tab="objections">🛡️ Objections</button>
+      <button class="tab" data-tab="closing">🤝 Closing</button>
+      <button class="tab" data-tab="followup">📬 Follow-Up</button>
+      <button class="tab" data-tab="voicemail">📞 Voicemail</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- ==================== COLD CALL ==================== -->
+    <div class="section active" id="sec-cold">
+      <div class="script-card open">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">📞 Cold Call Opening</div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <div class="script-text">
+            "Hi, this is <strong>Kurtis with Kande VendTech</strong> — we're a local smart refreshment company here in Henderson. I was hoping to speak with whoever handles <strong>amenities or vendor services</strong> for the property. Is that you, or could you point me in the right direction?"
+          </div>
+          
+          <h3>✅ Key Talking Points</h3>
+          <div class="talking-points">
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text">Mention you're <strong>local</strong> — "I'm based right here in Henderson"</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text">Ask if they currently have a <strong>refreshment solution</strong> (not "vending machine")</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text">Mention it's <strong>zero cost</strong> to the property</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text">Say you <strong>handle everything</strong> — install, stock, maintain</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text">Ask for their <strong>direct line or email</strong> if they're busy</div></div>
+          </div>
+
+          <div class="warning-box">
+            <strong>🚫 NEVER SAY:</strong>
+            <ul style="margin:8px 0 0 20px;">
+              <li>"Vending machine" — say "smart market" or "refreshment amenity"</li>
+              <li>"I'm a salesperson" — say "I work with properties like yours"</li>
+              <li>Don't pitch the full offer on call 1 — just qualify and set up next step</li>
+            </ul>
+          </div>
+
+          <div class="next-steps">
+            <h4>🎯 Goal of This Call:</h4>
+            <ul>
+              <li>Identify the decision maker's name and title</li>
+              <li>Get their direct phone/email</li>
+              <li>Set up a pop-in visit or call back time</li>
+              <li>If DM available: transition to Discovery script</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="script-card">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">🎯 Getting to the Decision Maker</div>
+          <span class="script-badge badge-blue">CRITICAL</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <h3>When you reach the front desk:</h3>
+          <div class="script-text">
+            "Hi! I'm Kurtis with Kande VendTech. I work with apartment communities on <strong>amenity upgrades</strong> — specifically smart refreshment stations. Who would be the best person to speak with about property amenities? The property manager?"
+          </div>
+
+          <h3>If they ask "What company are you with?"</h3>
+          <div class="script-text">
+            "Kande VendTech — we're a local Henderson company. We provide <strong>smart refreshment solutions</strong> for residential communities. Zero cost to the property."
+          </div>
+
+          <h3>If the DM isn't available:</h3>
+          <div class="script-text">
+            "No problem! Could you let me know the best time to reach them? And if it's easier, I'd love to get their direct email so I can send over some quick info. What's their name so I know who to ask for?"
+          </div>
+
+          <div class="tip-box">
+            <strong>💡 Pro Tip:</strong> Write down EVERYTHING — name, title, best time to call, direct line, email. This is gold for follow-up.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== WARM CALL ==================== -->
+    <div class="section" id="sec-warm">
+      <div class="script-card open">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">🔥 Following Up After Pop-In</div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <div class="script-text">
+            "Hi [NAME], this is Kurtis with Kande VendTech. I stopped by [PROPERTY] last week and left a gift basket with your team — I hope you got a chance to enjoy some of those snacks! I wanted to follow up and see if you had any questions about bringing a <strong>smart refreshment amenity</strong> to your residents."
+          </div>
+
+          <h3>✅ Key Talking Points</h3>
+          <div class="talking-points">
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text">Reference the gift basket — creates instant recognition</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text">Ask about their <strong>current refreshment setup</strong></div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text">Mention you serve similar properties nearby: "I actually work with [COMPETITOR PROPERTY]"</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text">Offer to <strong>stop by for 10 minutes</strong> to show machine photos</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text">If interested: schedule a site walkthrough</div></div>
+          </div>
+
+          <div class="objection-block">
+            <div class="objection-header" onclick="toggleObjection(this)">"We already have something"</div>
+            <div class="objection-body">
+              <div class="objection-response">
+                "That's great that you're already providing that for residents! Mind if I ask — how's that working for you? Any challenges with service or selection? A lot of properties I work with had older equipment and switched because we offer <strong>AI-powered smart coolers</strong> with 24/7 monitoring. If your current provider ever gives you trouble, I'd love to be your backup option."
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="script-card">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">📧 Following Up After Email</div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <div class="script-text">
+            "Hi [NAME], this is Kurtis with Kande VendTech. I sent you an email a few days ago about our <strong>smart refreshment solutions</strong> for apartment communities. Just wanted to make sure it didn't get buried in your inbox! Do you have a minute to chat, or is there a better time I should call back?"
+          </div>
+
+          <div class="tip-box">
+            <strong>💡 Email + Call Combo:</strong> Send a brief email, then call 2-3 days later referencing it. This "double touch" dramatically increases response rates.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== GATEKEEPER ==================== -->
+    <div class="section" id="sec-gatekeeper">
+      <div class="script-card open">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">🚪 Getting Past the Gatekeeper</div>
+          <span class="script-badge badge-red">CRITICAL</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <h3>The Confident Ask</h3>
+          <div class="script-text">
+            "Hi! I'm calling for [PROPERTY MANAGER NAME]. Is she available?"
+          </div>
+          <p style="color:var(--muted);font-size:0.9rem;margin-top:8px;">If you have the name, use it. Confidence = credibility.</p>
+
+          <h3>If They Ask "What's This About?"</h3>
+          <div class="script-text">
+            "I'm following up on our amenity services — she was interested in learning about our <strong>smart refreshment program</strong> for residents. Can you put me through?"
+          </div>
+
+          <h3>Alternative (No Name Available)</h3>
+          <div class="script-text">
+            "Hi! I'm Kurtis with Kande VendTech. We provide <strong>complimentary amenity upgrades</strong> for apartment communities. Who handles vendor relationships or resident amenities there?"
+          </div>
+
+          <div class="warning-box">
+            <strong>🚫 DON'T SAY:</strong>
+            <ul style="margin:8px 0 0 20px;">
+              <li>"I'm trying to sell something" — you're providing a FREE service</li>
+              <li>"Vending" — triggers outdated, negative image</li>
+              <li>Don't over-explain to the gatekeeper — save details for DM</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="script-card">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">📱 Getting Direct Dial / Cell</div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <h3>After Learning the DM Is Unavailable:</h3>
+          <div class="script-text">
+            "No worries! I know property managers are always running around. Is there a direct line I can reach her at? Or if she prefers email, I can send something over and follow up."
+          </div>
+
+          <h3>If They're Reluctant:</h3>
+          <div class="script-text">
+            "I totally understand — you're protecting her time, which is great. Here's my number: <strong>702-XXX-XXXX</strong>. Could you let her know Kurtis from Kande VendTech called about a <strong>free amenity upgrade</strong> for residents? I'll try back later this week."
+          </div>
+
+          <div class="tip-box">
+            <strong>💡 Always leave your number</strong> — even if they don't write it down, you've planted the seed. Sometimes the gatekeeper mentions it and the DM calls back.
+          </div>
+        </div>
+      </div>
+
+      <div class="script-card">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">🏢 For Corporate/Regional Numbers</div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <div class="script-text">
+            "Hi, I'm trying to reach the property manager for [PROPERTY NAME] in Henderson. I have a proposal for a <strong>resident amenity program</strong> I'd like to discuss. Can you connect me or provide the best contact?"
+          </div>
+
+          <h3>If Routed to Vendor Portal/Email:</h3>
+          <div class="script-text">
+            "I appreciate that! I'll definitely submit through the portal. In the meantime, is there a direct contact at the property level I can reach? I'd love to do a quick site visit to see if our equipment would be a good fit before going through the formal process."
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== DISCOVERY ==================== -->
+    <div class="section" id="sec-discovery">
+      <div class="script-card open">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">🔍 Discovery Call - Qualifying</div>
+          <span class="script-badge badge-green">CORE SCRIPT</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <div class="script-text">
+            "Thanks for taking a few minutes, [NAME]. I know you're busy. Let me ask — <strong>do you currently have any refreshment options</strong> for your residents? A smart market, cooler, anything like that?"
+          </div>
+
+          <h3>✅ Discovery Questions (Check off as you ask)</h3>
+          <div class="talking-points">
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text"><strong>Current setup:</strong> "What do you have now? How's it working?"</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text"><strong>Pain points:</strong> "Any issues with service, selection, or complaints?"</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text"><strong>Unit count:</strong> "How many units do you have here?"</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text"><strong>Foot traffic:</strong> "Where do residents tend to hang out? Lobby, pool, gym?"</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text"><strong>Decision process:</strong> "If you liked what you saw, what would the next steps look like?"</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text"><strong>Timeline:</strong> "Is this something you'd want to explore now or later this year?"</div></div>
+          </div>
+
+          <h3>Transition to Value Prop:</h3>
+          <div class="script-text">
+            "Here's what we do differently: We install <strong>AI-powered smart coolers</strong> — touchscreen, Apple Pay, always stocked. It's a <strong>free amenity</strong> for your property. We handle everything: install, stock, maintain. You just provide a plug. Residents get 24/7 access to drinks, snacks, and essentials without leaving the building."
+          </div>
+
+          <div class="next-steps">
+            <h4>🎯 Goal of Discovery Call:</h4>
+            <ul>
+              <li>Understand their current situation and pain points</li>
+              <li>Qualify: Do they have 100+ units? Any existing contract?</li>
+              <li>Identify decision maker and process</li>
+              <li>Schedule site visit or send proposal</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="script-card">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">📊 Qualifying Questions Deep Dive</div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <h3>Property Size</h3>
+          <div class="script-text">"How many units does the property have? And roughly how many residents would you say are on-site during peak hours?"</div>
+          <p style="color:var(--muted);font-size:0.85rem;margin:8px 0;">Target: 100+ units = green light. Under 100 = evaluate carefully.</p>
+
+          <h3>Existing Contract</h3>
+          <div class="script-text">"Do you have an existing agreement with a refreshment vendor? If so, when does it expire?"</div>
+          <p style="color:var(--muted);font-size:0.85rem;margin:8px 0;">If locked: "No problem — I'll follow up closer to renewal. Mind if I check back in [X months]?"</p>
+
+          <h3>Decision Authority</h3>
+          <div class="script-text">"If you wanted to move forward, is this something you can approve at the property level, or does it need to go through regional?"</div>
+
+          <h3>Budget/Cost Concerns</h3>
+          <div class="script-text">"Just to clarify — this is completely free for the property. We install, stock, and maintain everything. Some properties even earn a small commission once things are running smoothly."</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== OBJECTIONS ==================== -->
+    <div class="section" id="sec-objections">
+      <div class="script-card open">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">🛡️ "We Already Have a Vendor"</div>
+          <span class="script-badge badge-amber">COMMON</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <div class="script-text">
+            "That's great you're already providing that for residents! How's the service been? Are you happy with the selection and response time?"
+          </div>
+          <p style="margin:12px 0;color:var(--muted);">Listen for pain points, then:</p>
+          <div class="script-text">
+            "A lot of properties I work with had similar setups and switched because of service issues or outdated equipment. We use <strong>AI-powered smart coolers</strong> with real-time monitoring — I know when a machine needs attention before you do. If your current provider ever gives you trouble, I'd love to be your backup option. Can I send you my info just in case?"
+          </div>
+        </div>
+      </div>
+
+      <div class="script-card">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">🛡️ "Send Me Some Information"</div>
+          <span class="script-badge badge-amber">COMMON</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <div class="script-text">
+            "Absolutely! What's your email? I'll send over a quick overview. And just so I send the right info — what's most important to you? The equipment, the product selection, or how the service works?"
+          </div>
+          <p style="margin:12px 0;color:var(--muted);">This keeps them engaged and helps you tailor the follow-up.</p>
+          <div class="script-text">
+            "I'll send that over today. Would it be okay if I gave you a quick call Thursday to see if you had any questions?"
+          </div>
+          <div class="tip-box">
+            <strong>💡 Always set the next step</strong> — don't just send info and hope. Schedule the follow-up call on this call.
+          </div>
+        </div>
+      </div>
+
+      <div class="script-card">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">🛡️ "We're Not Interested"</div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <div class="script-text">
+            "I totally understand — I'm sure you get a lot of calls. Quick question though: is it that you're not interested in a refreshment amenity at all, or just not right now? I ask because this is a <strong>free service</strong> that a lot of properties use to boost resident satisfaction."
+          </div>
+          <p style="margin:12px 0;color:var(--muted);">If "not right now":</p>
+          <div class="script-text">
+            "No problem at all. When would be a better time for me to follow up? I'll put it on my calendar and give you a call then."
+          </div>
+          <p style="margin:12px 0;color:var(--muted);">If hard no:</p>
+          <div class="script-text">
+            "Understood. If anything changes or your current situation shifts, feel free to reach out. I'm local — <strong>you can call me directly</strong>. Thanks for your time!"
+          </div>
+        </div>
+      </div>
+
+      <div class="script-card">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">🛡️ "I Need to Check with Corporate"</div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <div class="script-text">
+            "Absolutely — I know these decisions often go through regional. Would it help if I put together a <strong>one-page overview</strong> you could forward to them? I can include photos, the zero-cost model, and how we've worked with similar properties."
+          </div>
+          <p style="margin:12px 0;color:var(--muted);">Then:</p>
+          <div class="script-text">
+            "What's the best way to reach the regional contact? Sometimes I can connect with them directly to answer any questions and save you the back-and-forth."
+          </div>
+        </div>
+      </div>
+
+      <div class="script-card">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">🛡️ "We Tried Vending Before — It Didn't Work"</div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <div class="script-text">
+            "I hear that a lot, actually. Mind if I ask what happened? Was it service issues, the machine was always empty, or residents just didn't use it?"
+          </div>
+          <p style="margin:12px 0;color:var(--muted);">Listen carefully, then address their specific pain:</p>
+          <div class="script-text">
+            "That's exactly why we do things differently. Our equipment has <strong>real-time monitoring</strong> — I can see inventory levels and get alerts before anything runs out. And I'm local, so when something needs attention, I'm 15 minutes away, not a corporate call center. We're not the vending your residents remember."
+          </div>
+        </div>
+      </div>
+
+      <div class="script-card">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">🛡️ "What's the Catch? Why Is It Free?"</div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <div class="script-text">
+            "Great question! There's no catch. We make money when residents buy from the machine — that's our revenue. The property gets a <strong>free amenity</strong> that residents love, and we get a great location with built-in foot traffic. It's a win-win. Some properties even earn a small commission once we're up and running."
+          </div>
+        </div>
+      </div>
+
+      <div class="script-card">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">🛡️ "You're Too New / I Haven't Heard of You"</div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <div class="script-text">
+            "That's fair — we are newer, and honestly, that's an advantage for you. We're actively building our portfolio, which means every property we work with gets <strong>VIP attention</strong>. I'm not managing 500 machines across three states — I'm focused on a small, high-quality portfolio right here in Henderson. Your machine will never sit empty. I'll never take a week to return your call."
+          </div>
+          <p style="margin:12px 0;color:var(--muted);">If they mention competitors:</p>
+          <div class="script-text">
+            "Have you seen the reviews for the big operators? First Class Vending — the Canteen/Compass company — has a 3.3-star rating. Empty machines, phantom charges, voicemails unreturned for days. That's why we exist."
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== CLOSING ==================== -->
+    <div class="section" id="sec-closing">
+      <div class="script-card open">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">🤝 Closing the Deal</div>
+          <span class="script-badge badge-green">MONEY TIME</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <h3>After Positive Discovery/Site Visit:</h3>
+          <div class="script-text">
+            "Based on what we discussed, I think this would be a great fit for [PROPERTY]. Here's what I'd suggest: I'll send over a simple <strong>service agreement</strong> — just outlines that we install and maintain the equipment at no cost to you. Once you sign, we can typically have the machine in place within 2-3 weeks. Does that timeline work for you?"
+          </div>
+
+          <h3>✅ Closing Checklist</h3>
+          <div class="talking-points">
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text">Confirm placement location (lobby, clubhouse, gym, etc.)</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text">Confirm power outlet availability</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text">Discuss product preferences (healthy options, energy drinks, etc.)</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text">Mention commission/rev share (optional, after month 6)</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text">Get signer's name and email for agreement</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text">Set installation date expectation</div></div>
+          </div>
+
+          <div class="tip-box">
+            <strong>💡 The Direct Close:</strong> "Should I send the agreement to this email, or is there someone else who needs to sign?"
+          </div>
+        </div>
+      </div>
+
+      <div class="script-card">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">📋 Trial Close / Soft Ask</div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <div class="script-text">
+            "If everything checks out — no cost, we handle all service, residents get 24/7 access — is there any reason we couldn't move forward?"
+          </div>
+          <p style="margin:12px 0;color:var(--muted);">Listen for final objections, then address them.</p>
+
+          <h3>If They're Hesitant:</h3>
+          <div class="script-text">
+            "I know it's a decision. Here's what I suggest: let's do a <strong>90-day trial</strong>. If residents aren't using it or you're not happy for any reason, I'll remove it — no questions asked. You have nothing to lose."
+          </div>
+        </div>
+      </div>
+
+      <div class="script-card">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">🎁 Referral Ask (Post-Close)</div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <div class="script-text">
+            "I really appreciate you giving us a shot! Quick question — do you know any other property managers in the area who might be interested? If you introduce me to 2-3 other properties, I'll <strong>start your revenue share immediately</strong> instead of waiting the usual 6 months."
+          </div>
+          <div class="tip-box">
+            <strong>💡 Referrals are gold.</strong> One happy property manager knows 5-10 others. Always ask.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== FOLLOW-UP ==================== -->
+    <div class="section" id="sec-followup">
+      <div class="script-card open">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">📬 Follow-Up After Proposal</div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <h3>2-3 Days After Sending Proposal:</h3>
+          <div class="script-text">
+            "Hi [NAME], this is Kurtis with Kande VendTech. I sent over that proposal a few days ago — just wanted to check if you had a chance to review it. Any questions I can answer?"
+          </div>
+
+          <h3>If They Haven't Reviewed It:</h3>
+          <div class="script-text">
+            "No worries — I know you're busy! Would it help if I walked you through it quickly right now? It's a simple one-pager. Or I can call back later this week — what works better?"
+          </div>
+
+          <h3>If They Reviewed But Haven't Decided:</h3>
+          <div class="script-text">
+            "What's holding you back? Is there anything specific you're unsure about? I'm happy to address any concerns."
+          </div>
+        </div>
+      </div>
+
+      <div class="script-card">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">⏰ Follow-Up Cadence (8-10 Touches)</div>
+          <span class="script-badge badge-purple">PERSISTENCE WINS</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <div class="warning-box">
+            <strong>⚠️ It takes 8-10 touches to close.</strong> Most salespeople give up after 2. Don't be most salespeople.
+          </div>
+          
+          <h4>Touch Schedule:</h4>
+          <div class="talking-points">
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text"><strong>Day 1:</strong> Pop-in or initial call + gift basket</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text"><strong>Day 3:</strong> Follow-up email with overview</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text"><strong>Week 1:</strong> Quick call — "Any questions?"</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text"><strong>Week 2:</strong> Second pop-in with new product samples</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text"><strong>Week 3:</strong> Email case study from similar property</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text"><strong>Week 4:</strong> Call to schedule site walkthrough</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text"><strong>Week 6:</strong> Third pop-in — seasonal/new products</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text"><strong>Week 8:</strong> Email with testimonial</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text"><strong>Week 10:</strong> Call — "I have a spot opening on my route"</div></div>
+            <div class="talking-point"><div class="tp-checkbox" onclick="toggleCheck(this)"></div><div class="tp-text"><strong>Week 12:</strong> Final pop-in — "Offer's always open"</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="script-card">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">🔄 Re-Engaging Cold Leads</div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <div class="script-text">
+            "Hi [NAME], this is Kurtis with Kande VendTech. We spoke a few months ago about a <strong>smart refreshment amenity</strong> for [PROPERTY]. At the time, the timing wasn't right — I wanted to check back and see if anything has changed. Are you still happy with your current setup?"
+          </div>
+          <div class="tip-box">
+            <strong>💡 Timing changes.</strong> Contracts expire. Vendors underperform. Decision makers change. Always re-engage old leads every 3-6 months.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== VOICEMAIL ==================== -->
+    <div class="section" id="sec-voicemail">
+      <div class="script-card open">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">📞 Short Voicemail (Under 30 Seconds)</div>
+          <span class="script-badge badge-green">RECOMMENDED</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <div class="script-text">
+            "Hi [NAME], this is Kurtis with Kande VendTech — I'm a local <strong>smart refreshment</strong> provider here in Henderson. I'd love to talk about a <strong>free amenity upgrade</strong> for your residents. Give me a call back at <strong>702-XXX-XXXX</strong>. Thanks!"
+          </div>
+          <p style="margin-top:12px;color:var(--muted);font-size:0.85rem;">⏱️ Target: Under 20 seconds. Short = more likely to get a callback.</p>
+        </div>
+      </div>
+
+      <div class="script-card">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">📞 Longer Voicemail (With Value Prop)</div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <div class="script-text">
+            "Hi [NAME], this is Kurtis with Kande VendTech. We're a Henderson-based company that installs <strong>AI-powered smart markets</strong> in apartment communities — drinks, snacks, essentials, all available 24/7 for residents. It's completely <strong>free for the property</strong> — we handle everything. I'd love to see if [PROPERTY] would be a good fit. My number is <strong>702-XXX-XXXX</strong>. That's Kurtis with Kande VendTech. Thanks!"
+          </div>
+          <p style="margin-top:12px;color:var(--muted);font-size:0.85rem;">⏱️ Target: Under 40 seconds. Repeat your name and number.</p>
+        </div>
+      </div>
+
+      <div class="script-card">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">📞 Follow-Up Voicemail</div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <div class="script-text">
+            "Hi [NAME], it's Kurtis with Kande VendTech again. Just following up on my message from last week. I know you're busy — if calling isn't easy, feel free to shoot me an email at <strong>kurtis@kandevendtech.com</strong> or I can stop by the property. Would love to chat when you have a minute. Talk soon!"
+          </div>
+          <div class="tip-box">
+            <strong>💡 Voicemail Tips:</strong>
+            <ul style="margin:8px 0 0 16px;">
+              <li>Smile when you talk — it comes through in your voice</li>
+              <li>Speak slowly and clearly on your phone number</li>
+              <li>Don't sound desperate — sound helpful</li>
+              <li>Leave 2-3 max before trying email/pop-in instead</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="script-card">
+        <div class="script-header" onclick="toggleScript(this)">
+          <div class="script-title">📞 Urgency Voicemail</div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="script-body">
+          <div class="script-text">
+            "Hi [NAME], this is Kurtis with Kande VendTech. I'm finalizing my route for Henderson and I have a spot opening up. [PROPERTY] would be a perfect fit, but I need to finalize by the end of the week. If you're interested in a <strong>free smart market amenity</strong>, give me a call at <strong>702-XXX-XXXX</strong>. Thanks!"
+          </div>
+          <div class="warning-box">
+            <strong>⚠️ Use sparingly.</strong> Only for qualified prospects who've shown interest. Don't create fake urgency.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Notes Panel -->
+  <div class="notes-panel">
+    <div class="notes-row">
+      <textarea class="notes-input" id="callNotes" placeholder="Quick notes from this call..."></textarea>
+      <button class="log-btn" id="logBtn" onclick="logCall()">📝 Log Call</button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ===== STATE =====
+    let timerRunning = false;
+    let timerSeconds = 0;
+    let timerInterval = null;
+    let selectedOutcome = null;
+    let selectedProspectId = null;
+    let prospects = [];
+
+    // ===== TIMER =====
+    function updateTimerDisplay() {
+      const mins = Math.floor(timerSeconds / 60).toString().padStart(2, '0');
+      const secs = (timerSeconds % 60).toString().padStart(2, '0');
+      document.getElementById('timerDisplay').textContent = `${mins}:${secs}`;
+    }
+
+    function toggleTimer() {
+      const btn = document.getElementById('timerStart');
+      if (timerRunning) {
+        clearInterval(timerInterval);
+        btn.textContent = '▶ Resume';
+        btn.classList.remove('pause');
+        btn.classList.add('start');
+      } else {
+        timerInterval = setInterval(() => {
+          timerSeconds++;
+          updateTimerDisplay();
+        }, 1000);
+        btn.textContent = '⏸ Pause';
+        btn.classList.remove('start');
+        btn.classList.add('pause');
+      }
+      timerRunning = !timerRunning;
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      timerSeconds = 0;
+      updateTimerDisplay();
+      const btn = document.getElementById('timerStart');
+      btn.textContent = '▶ Start';
+      btn.classList.remove('pause');
+      btn.classList.add('start');
+    }
+
+    // ===== PROSPECT SELECTOR =====
+    async function loadProspects() {
+      try {
+        const res = await fetch('/api/prospects');
+        prospects = await res.json();
+        const select = document.getElementById('prospectSelect');
+        select.innerHTML = '<option value="">Select prospect...</option>';
+        prospects.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = `${p.name}${p.property_type ? ' (' + p.property_type + ')' : ''}`;
+          select.appendChild(opt);
+        });
+      } catch (e) {
+        console.error('Failed to load prospects:', e);
+      }
+    }
+
+    function selectProspect() {
+      const select = document.getElementById('prospectSelect');
+      selectedProspectId = select.value ? parseInt(select.value) : null;
+      const context = document.getElementById('prospectContext');
+      
+      if (selectedProspectId) {
+        const p = prospects.find(pr => pr.id === selectedProspectId);
+        if (p) {
+          let info = [];
+          if (p.address) info.push(p.address.split(',')[0]);
+          if (p.units) info.push(p.units + ' units');
+          if (p.contact_name) info.push('📞 ' + p.contact_name);
+          context.textContent = info.join(' · ');
+        }
+      } else {
+        context.textContent = '';
+      }
+    }
+
+    // ===== OUTCOME BUTTONS =====
+    function setOutcome(btn) {
+      document.querySelectorAll('.outcome-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedOutcome = btn.dataset.outcome;
+    }
+
+    // ===== LOG CALL =====
+    async function logCall() {
+      const notes = document.getElementById('callNotes').value.trim();
+      
+      if (!selectedProspectId) {
+        showToast('Please select a prospect first');
+        return;
+      }
+
+      const duration = timerSeconds > 0 ? `${Math.floor(timerSeconds / 60)}m ${timerSeconds % 60}s` : null;
+      
+      const outcomeLabels = {
+        voicemail: 'Left voicemail',
+        interested: 'Connected - Interested',
+        not_now: 'Connected - Not interested now',
+        no: 'Connected - Not interested',
+        meeting: 'Scheduled meeting'
+      };
+
+      let description = selectedOutcome ? outcomeLabels[selectedOutcome] : 'Phone call';
+      if (duration) description += ` (${duration})`;
+      if (notes) description += ` — ${notes}`;
+
+      try {
+        const res = await fetch(`/api/prospects/${selectedProspectId}/activities`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'call',
+            description,
+            outcome: selectedOutcome,
+            duration: timerSeconds
+          })
+        });
+
+        if (res.ok) {
+          showToast('✅ Call logged!');
+          document.getElementById('callNotes').value = '';
+          resetTimer();
+          document.querySelectorAll('.outcome-btn').forEach(b => b.classList.remove('active'));
+          selectedOutcome = null;
+        } else {
+          showToast('Failed to log call');
+        }
+      } catch (e) {
+        showToast('Error: ' + e.message);
+      }
+    }
+
+    // ===== TABS =====
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('sec-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    // ===== SCRIPT CARDS =====
+    function toggleScript(header) {
+      header.parentElement.classList.toggle('open');
+    }
+
+    function toggleObjection(header) {
+      header.parentElement.classList.toggle('open');
+    }
+
+    function toggleCheck(checkbox) {
+      checkbox.classList.toggle('checked');
+    }
+
+    // ===== TOAST =====
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // ===== INIT =====
+    loadProspects();
+  </script>
+</body>
+</html>

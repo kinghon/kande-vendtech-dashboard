@@ -28,6 +28,8 @@
       --purple-dim: rgba(123,44,191,0.1);
       --offline: #a0aec0;
       --offline-dim: rgba(160,174,192,0.1);
+      --teal: #319795;
+      --teal-dim: rgba(49,151,149,0.1);
     }
 
     body {
@@ -44,7 +46,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 28px;
+      margin-bottom: 24px;
       flex-wrap: wrap;
       gap: 16px;
     }
@@ -85,39 +87,88 @@
     /* Summary Stats */
     .stats-row {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 28px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
     }
     .stat-card {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 20px;
+      padding: 18px;
       display: flex;
       flex-direction: column;
       gap: 4px;
     }
     .stat-card .stat-label {
-      font-size: 0.78rem;
+      font-size: 0.72rem;
       color: var(--muted);
       font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
     .stat-card .stat-value {
-      font-size: 1.8rem;
+      font-size: 1.6rem;
       font-weight: 700;
       color: var(--text);
     }
     .stat-card .stat-sub {
-      font-size: 0.78rem;
+      font-size: 0.72rem;
       color: var(--muted);
     }
     .stat-card.accent .stat-value { color: var(--accent); }
     .stat-card.success .stat-value { color: var(--success); }
     .stat-card.warn .stat-value { color: var(--warn); }
     .stat-card.hot .stat-value { color: var(--hot); }
+
+    /* Alerts Section */
+    .alerts-section {
+      margin-bottom: 24px;
+    }
+    .alerts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+    }
+    .alert-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      border-left: 4px solid var(--warn);
+    }
+    .alert-card.critical { border-left-color: var(--hot); }
+    .alert-card.warning { border-left-color: var(--warn); }
+    .alert-card.info { border-left-color: var(--accent); }
+    .alert-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .alert-header .alert-icon { font-size: 1.1rem; }
+    .alert-header h3 { font-size: 0.88rem; font-weight: 600; flex: 1; }
+    .alert-header .alert-count {
+      background: var(--hot-dim);
+      color: var(--hot);
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+    .alert-list { list-style: none; }
+    .alert-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.82rem;
+    }
+    .alert-item:last-child { border-bottom: none; }
+    .alert-item .alert-machine { font-weight: 500; }
+    .alert-item .alert-detail { color: var(--muted); font-size: 0.75rem; }
+    .alert-empty { color: var(--muted); font-size: 0.82rem; padding: 10px 0; text-align: center; }
 
     /* View Toggle */
     .view-toggle {
@@ -167,6 +218,11 @@
       border-color: var(--accent);
     }
     .filter-bar input { min-width: 220px; }
+    .bulk-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 8px;
+    }
 
     /* Machine Cards Grid */
     .machines-grid {
@@ -189,11 +245,24 @@
       box-shadow: 0 4px 16px rgba(49,130,206,0.1);
       transform: translateY(-1px);
     }
+    .machine-card.selected {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+    .machine-card .card-checkbox {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
     .machine-card .card-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       margin-bottom: 12px;
+      padding-right: 28px;
     }
     .machine-card .serial {
       font-size: 1.05rem;
@@ -205,6 +274,14 @@
       color: var(--muted);
       margin-top: 2px;
     }
+    .machine-card .property-link {
+      font-size: 0.75rem;
+      color: var(--accent);
+      text-decoration: none;
+      display: block;
+      margin-top: 4px;
+    }
+    .machine-card .property-link:hover { text-decoration: underline; }
 
     /* Status Badge */
     .status-badge {
@@ -215,7 +292,9 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
+    .status-online { background: var(--success-dim); color: var(--success); }
     .status-active { background: var(--success-dim); color: var(--success); }
+    .status-needs-attention { background: var(--warn-dim); color: var(--warn); }
     .status-needs-service { background: var(--warn-dim); color: var(--warn); }
     .status-available { background: var(--accent-dim); color: var(--accent); }
     .status-offline { background: var(--offline-dim); color: var(--offline); }
@@ -251,13 +330,63 @@
       border-top: 1px solid var(--border);
     }
 
-    /* Map Placeholder */
+    /* Performers Section */
+    .performers-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .performer-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .performer-card h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .performer-list { list-style: none; }
+    .performer-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .performer-item:last-child { border-bottom: none; }
+    .performer-rank {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--muted);
+      margin-right: 10px;
+    }
+    .performer-item:first-child .performer-rank { background: #fef3c7; color: #d97706; }
+    .performer-info { flex: 1; min-width: 0; }
+    .performer-serial { font-size: 0.88rem; font-weight: 600; }
+    .performer-location { font-size: 0.75rem; color: var(--muted); }
+    .performer-revenue { font-size: 0.95rem; font-weight: 700; color: var(--success); }
+    .performer-revenue.worst { color: var(--hot); }
+
+    /* Map Section */
     .map-section {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 24px;
-      margin-bottom: 28px;
+      margin-bottom: 24px;
     }
     .map-section h2 {
       font-size: 1.1rem;
@@ -267,57 +396,51 @@
       align-items: center;
       gap: 8px;
     }
-    .map-placeholder {
+    #fleetMap {
       height: 400px;
       background: linear-gradient(135deg, #e8f4fd 0%, #f0f7ff 50%, #e8f0fe 100%);
       border-radius: 10px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
       position: relative;
       overflow: hidden;
     }
-    .map-placeholder .map-icon { font-size: 3rem; opacity: 0.6; }
-    .map-placeholder .map-text {
-      font-size: 0.95rem;
-      color: var(--muted);
-      font-weight: 500;
-    }
-    .map-placeholder .map-subtext {
-      font-size: 0.78rem;
-      color: var(--muted);
-      opacity: 0.7;
-    }
-    .map-dots {
+    .map-marker {
       position: absolute;
-      width: 100%;
-      height: 100%;
-      top: 0;
-      left: 0;
-    }
-    .map-dot {
-      position: absolute;
-      width: 12px;
-      height: 12px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
-      border: 2px solid #fff;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    }
-    .map-dot.active { background: var(--success); }
-    .map-dot.needs-service { background: var(--warn); }
-    .map-dot.available { background: var(--accent); }
-    .map-dot.offline { background: var(--offline); }
-    .map-dot .dot-label {
-      position: absolute;
-      bottom: -20px;
-      left: 50%;
-      transform: translateX(-50%);
+      border: 3px solid #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      cursor: pointer;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 0.65rem;
-      white-space: nowrap;
-      color: var(--text);
-      font-weight: 500;
+      font-weight: 700;
+      color: #fff;
+      transition: transform 0.2s;
+    }
+    .map-marker:hover { transform: translate(-50%, -50%) scale(1.2); }
+    .map-marker.online { background: var(--success); }
+    .map-marker.needs-attention { background: var(--warn); }
+    .map-marker.offline { background: var(--offline); }
+    .map-marker.available { background: var(--accent); }
+    .map-legend {
+      display: flex;
+      gap: 16px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+    }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
     }
 
     /* Revenue Chart */
@@ -326,7 +449,7 @@
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 24px;
-      margin-bottom: 28px;
+      margin-bottom: 24px;
     }
     .chart-header {
       display: flex;
@@ -361,17 +484,22 @@
       background: var(--card);
       border-radius: 16px;
       width: 100%;
-      max-width: 600px;
-      max-height: 85vh;
+      max-width: 650px;
+      max-height: 90vh;
       overflow-y: auto;
       box-shadow: 0 20px 60px rgba(0,0,0,0.2);
     }
+    .modal.wide { max-width: 800px; }
     .modal-header {
       padding: 20px 24px;
       border-bottom: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
       align-items: center;
+      position: sticky;
+      top: 0;
+      background: var(--card);
+      z-index: 1;
     }
     .modal-header h2 {
       font-size: 1.15rem;
@@ -386,6 +514,33 @@
       padding: 4px;
     }
     .modal-body { padding: 24px; }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      padding: 10px 18px;
+      border: none;
+      background: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all 0.2s;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
 
     /* Forms */
     .form-group {
@@ -422,11 +577,27 @@
       grid-template-columns: 1fr 1fr;
       gap: 12px;
     }
+    .form-row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
     .form-actions {
       display: flex;
       gap: 10px;
       justify-content: flex-end;
       margin-top: 20px;
+    }
+    .form-section {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    .form-section h4 {
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-bottom: 14px;
+      color: var(--text);
     }
 
     /* Status Toggle in Detail */
@@ -445,7 +616,9 @@
       font-weight: 600;
       transition: all 0.2s;
     }
+    .status-toggle button.selected-online { border-color: var(--success); background: var(--success-dim); color: var(--success); }
     .status-toggle button.selected-active { border-color: var(--success); background: var(--success-dim); color: var(--success); }
+    .status-toggle button.selected-needs-attention { border-color: var(--warn); background: var(--warn-dim); color: var(--warn); }
     .status-toggle button.selected-needs-service { border-color: var(--warn); background: var(--warn-dim); color: var(--warn); }
     .status-toggle button.selected-available { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
     .status-toggle button.selected-offline { border-color: var(--offline); background: var(--offline-dim); color: #4a5568; }
@@ -491,7 +664,7 @@
       margin-top: 4px;
     }
 
-    /* Revenue Detail */
+    /* Revenue Table */
     .revenue-section {
       margin-top: 20px;
       padding-top: 20px;
@@ -525,6 +698,39 @@
       background: var(--card-hover);
     }
 
+    /* Planogram Section */
+    .planogram-section {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    .planogram-section h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .planogram-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+    }
+    .planogram-slot {
+      aspect-ratio: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      text-align: center;
+      padding: 4px;
+    }
+    .planogram-slot.empty { background: #fef2f2; border-color: #fecaca; }
+    .planogram-slot.low { background: #fffbeb; border-color: #fde68a; }
+    .planogram-slot .slot-qty { font-weight: 700; font-size: 0.8rem; }
+
     /* Empty State */
     .empty-state {
       text-align: center;
@@ -555,13 +761,34 @@
     .toast.success { background: var(--success); }
     .toast.error { background: var(--hot); }
 
+    /* Demo Mode Banner */
+    .demo-banner {
+      background: linear-gradient(90deg, var(--teal), var(--accent));
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .demo-banner .demo-text {
+      font-size: 0.88rem;
+      font-weight: 500;
+    }
+    .demo-banner .btn { background: rgba(255,255,255,0.2); color: #fff; }
+    .demo-banner .btn:hover { background: rgba(255,255,255,0.3); }
+
     @media (max-width: 768px) {
       .machines-grid { grid-template-columns: 1fr; }
       .stats-row { grid-template-columns: repeat(2, 1fr); }
-      .form-row { grid-template-columns: 1fr; }
+      .form-row, .form-row-3 { grid-template-columns: 1fr; }
       .header { flex-direction: column; align-items: flex-start; }
       .chart-container { height: 220px; }
-      .map-placeholder { height: 280px; }
+      #fleetMap { height: 280px; }
+      .performers-section { grid-template-columns: 1fr; }
+      .bulk-actions { margin-left: 0; width: 100%; }
+      .planogram-grid { grid-template-columns: repeat(4, 1fr); }
     }
   </style>
 </head>
@@ -569,15 +796,22 @@
   <script src="/nav.js"></script>
 
   <div class="app">
+    <!-- Demo Banner -->
+    <div class="demo-banner" id="demoBanner" style="display:none;">
+      <span class="demo-text">📋 Demo Mode — Showing sample machine data until real machines are added</span>
+      <button class="btn btn-sm" onclick="seedDemoData()">Load Sample Fleet</button>
+    </div>
+
     <!-- Header -->
     <div class="header">
-      <h1>🚀 Fleet Management</h1>
+      <h1>🚀 Machine Fleet</h1>
       <div class="header-actions">
         <div class="view-toggle" id="viewToggle">
           <button class="active" data-view="grid">📋 Cards</button>
           <button data-view="map">🗺️ Map</button>
           <button data-view="revenue">💵 Revenue</button>
         </div>
+        <button class="btn btn-secondary" onclick="exportFleetReport()">📥 Export</button>
         <button class="btn btn-primary" onclick="openAddModal()">➕ Add Machine</button>
       </div>
     </div>
@@ -587,41 +821,69 @@
       <div class="stat-card accent">
         <span class="stat-label">Total Machines</span>
         <span class="stat-value" id="statTotal">0</span>
-        <span class="stat-sub" id="statModel">SandStar AI Fleet</span>
+        <span class="stat-sub">in fleet</span>
       </div>
       <div class="stat-card success">
-        <span class="stat-label">Active Rate</span>
-        <span class="stat-value" id="statActiveRate">0%</span>
-        <span class="stat-sub" id="statActiveSub">0 active machines</span>
+        <span class="stat-label">Online</span>
+        <span class="stat-value" id="statOnline">0</span>
+        <span class="stat-sub" id="statOnlineRate">0% active rate</span>
       </div>
       <div class="stat-card">
-        <span class="stat-label">Avg Revenue / Machine</span>
-        <span class="stat-value" id="statAvgRevenue">$0</span>
-        <span class="stat-sub">This month</span>
+        <span class="stat-label">Fleet Revenue</span>
+        <span class="stat-value" id="statRevenue">$0</span>
+        <span class="stat-sub">this month</span>
       </div>
       <div class="stat-card warn">
-        <span class="stat-label">Needs Service</span>
-        <span class="stat-value" id="statNeedsService">0</span>
-        <span class="stat-sub" id="statServiceSub">machines flagged</span>
+        <span class="stat-label">Needs Attention</span>
+        <span class="stat-value" id="statAttention">0</span>
+        <span class="stat-sub">machines flagged</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Avg Revenue</span>
+        <span class="stat-value" id="statAvg">$0</span>
+        <span class="stat-sub">per machine</span>
+      </div>
+    </div>
+
+    <!-- Alerts Section -->
+    <div class="alerts-section" id="alertsSection" style="display:none;">
+      <div class="alerts-grid" id="alertsGrid"></div>
+    </div>
+
+    <!-- Performers Section -->
+    <div class="performers-section" id="performersSection">
+      <div class="performer-card">
+        <h3>🏆 Top Performers</h3>
+        <ul class="performer-list" id="topPerformers"></ul>
+      </div>
+      <div class="performer-card">
+        <h3>⚠️ Needs Improvement</h3>
+        <ul class="performer-list" id="worstPerformers"></ul>
       </div>
     </div>
 
     <!-- Filter Bar -->
     <div class="filter-bar" id="filterBar">
-      <input type="text" id="searchInput" placeholder="🔍 Search serial, location...">
+      <input type="text" id="searchInput" placeholder="🔍 Search serial, location, property...">
       <select id="statusFilter">
         <option value="">All Statuses</option>
-        <option value="active">✅ Active</option>
-        <option value="needs-service">🔧 Needs Service</option>
+        <option value="online">✅ Online</option>
+        <option value="needs-attention">🔧 Needs Attention</option>
         <option value="available">📦 Available</option>
         <option value="offline">⚫ Offline</option>
       </select>
       <select id="sortBy">
         <option value="serial">Sort: Serial #</option>
-        <option value="revenue">Sort: Revenue</option>
+        <option value="revenue">Sort: Revenue ↓</option>
         <option value="restock">Sort: Last Restock</option>
         <option value="status">Sort: Status</option>
+        <option value="location">Sort: Location</option>
       </select>
+      <div class="bulk-actions" id="bulkActions" style="display:none;">
+        <span style="font-size:0.82rem;color:var(--muted);"><span id="selectedCount">0</span> selected</span>
+        <button class="btn btn-sm btn-secondary" onclick="bulkScheduleService()">🔧 Schedule Service</button>
+        <button class="btn btn-sm btn-secondary" onclick="clearSelection()">✕ Clear</button>
+      </div>
     </div>
 
     <!-- Machine Cards Grid (default view) -->
@@ -629,18 +891,13 @@
 
     <!-- Map View -->
     <div class="map-section" id="mapSection" style="display:none;">
-      <h2>🗺️ Machine Locations</h2>
-      <div class="map-placeholder" id="mapPlaceholder">
-        <div class="map-dots" id="mapDots"></div>
-        <span class="map-icon">📍</span>
-        <span class="map-text">Fleet Location Map</span>
-        <span class="map-subtext">Machine locations shown as color-coded dots — Green=Active, Orange=Service, Blue=Available, Gray=Offline</span>
-      </div>
-      <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;">
-        <span style="font-size:0.78rem;display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--success);display:inline-block;"></span> Active</span>
-        <span style="font-size:0.78rem;display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--warn);display:inline-block;"></span> Needs Service</span>
-        <span style="font-size:0.78rem;display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--accent);display:inline-block;"></span> Available</span>
-        <span style="font-size:0.78rem;display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--offline);display:inline-block;"></span> Offline</span>
+      <h2>🗺️ Fleet Distribution</h2>
+      <div id="fleetMap"></div>
+      <div class="map-legend">
+        <span class="legend-item"><span class="legend-dot" style="background:var(--success);"></span> Online</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--warn);"></span> Needs Attention</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--accent);"></span> Available</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--offline);"></span> Offline</span>
       </div>
     </div>
 
@@ -659,14 +916,11 @@
       </div>
       <div id="revenueSummary" style="margin-top:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;"></div>
     </div>
-
-    <!-- Machine cards always below -->
-    <div class="machines-grid" id="machinesGridBelow" style="display:none;"></div>
   </div>
 
   <!-- Add Machine Modal -->
   <div class="modal-overlay" id="addModal">
-    <div class="modal">
+    <div class="modal wide">
       <div class="modal-header">
         <h2>➕ Add New Machine</h2>
         <button class="modal-close" onclick="closeModal('addModal')">&times;</button>
@@ -680,29 +934,97 @@
             </div>
             <div class="form-group">
               <label>Model</label>
-              <input type="text" name="model" value="SandStar AI" placeholder="SandStar AI">
+              <select name="model">
+                <option value="SandStar AI Smart Cooler">SandStar AI Smart Cooler</option>
+                <option value="SandStar AI Freezer">SandStar AI Freezer</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
           </div>
           <div class="form-group">
-            <label>Location *</label>
-            <input type="text" name="location" required placeholder="e.g. The District at Green Valley">
+            <label>Linked Property/Prospect</label>
+            <select name="prospect_id" id="addProspectSelect">
+              <option value="">— Select a property —</option>
+            </select>
           </div>
           <div class="form-row">
+            <div class="form-group">
+              <label>Location Name *</label>
+              <input type="text" name="location" required placeholder="e.g. The District at Green Valley">
+            </div>
+            <div class="form-group">
+              <label>Placement Details</label>
+              <input type="text" name="placement" placeholder="e.g. Clubhouse, Lobby, Breakroom">
+            </div>
+          </div>
+          <div class="form-row-3">
             <div class="form-group">
               <label>Install Date</label>
               <input type="date" name="install_date">
             </div>
             <div class="form-group">
+              <label>Capacity (slots)</label>
+              <input type="number" name="capacity" placeholder="60" value="60">
+            </div>
+            <div class="form-group">
               <label>Status</label>
               <select name="status">
                 <option value="available">Available</option>
-                <option value="active">Active</option>
-                <option value="needs-service">Needs Service</option>
+                <option value="online">Online</option>
+                <option value="needs-attention">Needs Attention</option>
                 <option value="offline">Offline</option>
               </select>
             </div>
           </div>
-          <div class="form-group">
+
+          <div class="form-section">
+            <h4>💰 Revenue Share Terms</h4>
+            <div class="form-row-3">
+              <div class="form-group">
+                <label>Commission Rate (%)</label>
+                <input type="number" name="commission_rate" step="0.1" placeholder="5" value="5">
+              </div>
+              <div class="form-group">
+                <label>Commission Start</label>
+                <select name="commission_start">
+                  <option value="immediate">Immediately</option>
+                  <option value="30days">After 30 Days</option>
+                  <option value="90days">After 90 Days</option>
+                  <option value="6months" selected>After 6 Months</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Contact Person</label>
+                <input type="text" name="site_contact" placeholder="Property Manager name">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>📦 Product Categories</h4>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;">
+              <label style="display:flex;align-items:center;gap:6px;font-weight:normal;font-size:0.85rem;">
+                <input type="checkbox" name="cat_beverages" checked> Beverages
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;font-weight:normal;font-size:0.85rem;">
+                <input type="checkbox" name="cat_snacks" checked> Snacks
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;font-weight:normal;font-size:0.85rem;">
+                <input type="checkbox" name="cat_candy" checked> Candy
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;font-weight:normal;font-size:0.85rem;">
+                <input type="checkbox" name="cat_healthy"> Healthy Options
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;font-weight:normal;font-size:0.85rem;">
+                <input type="checkbox" name="cat_incidentals"> Incidentals
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;font-weight:normal;font-size:0.85rem;">
+                <input type="checkbox" name="cat_frozen"> Frozen
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top:16px;">
             <label>Notes</label>
             <textarea name="notes" placeholder="Additional notes about this machine..."></textarea>
           </div>
@@ -717,12 +1039,20 @@
 
   <!-- Machine Detail Modal -->
   <div class="modal-overlay" id="detailModal">
-    <div class="modal" style="max-width:700px;">
+    <div class="modal wide">
       <div class="modal-header">
         <h2 id="detailTitle">Machine Details</h2>
         <button class="modal-close" onclick="closeModal('detailModal')">&times;</button>
       </div>
-      <div class="modal-body" id="detailBody"></div>
+      <div class="modal-body">
+        <div class="tabs" id="detailTabs">
+          <button class="tab-btn active" data-tab="overview">Overview</button>
+          <button class="tab-btn" data-tab="inventory">Inventory</button>
+          <button class="tab-btn" data-tab="service">Service History</button>
+          <button class="tab-btn" data-tab="revenue">Revenue</button>
+        </div>
+        <div id="detailBody"></div>
+      </div>
     </div>
   </div>
 
@@ -730,12 +1060,15 @@
   <div class="modal-overlay" id="serviceModal">
     <div class="modal">
       <div class="modal-header">
-        <h2>🔧 Add Service Entry</h2>
+        <h2 id="serviceModalTitle">🔧 Add Service Entry</h2>
         <button class="modal-close" onclick="closeModal('serviceModal')">&times;</button>
       </div>
       <div class="modal-body">
         <form id="serviceForm" onsubmit="handleAddService(event)">
-          <input type="hidden" name="machine_id" id="serviceMachineId">
+          <input type="hidden" name="machine_ids" id="serviceMachineIds">
+          <div id="bulkServiceInfo" style="display:none;margin-bottom:16px;padding:10px 14px;background:var(--accent-dim);border-radius:8px;font-size:0.85rem;">
+            Scheduling service for <strong id="bulkServiceCount">0</strong> machines
+          </div>
           <div class="form-row">
             <div class="form-group">
               <label>Service Type *</label>
@@ -760,7 +1093,7 @@
           </div>
           <div class="form-group">
             <label>Notes *</label>
-            <textarea name="notes" required placeholder="What was done..."></textarea>
+            <textarea name="notes" required placeholder="What was done or needs to be done..."></textarea>
           </div>
           <div class="form-group">
             <label>Cost ($)</label>
@@ -796,6 +1129,10 @@
             </div>
           </div>
           <div class="form-group">
+            <label>Transactions Count</label>
+            <input type="number" name="transactions" placeholder="Number of transactions">
+          </div>
+          <div class="form-group">
             <label>Notes</label>
             <input type="text" name="notes" placeholder="e.g. Daily collection">
           </div>
@@ -814,9 +1151,12 @@
   <script>
     // ===== STATE =====
     let machines = [];
+    let prospects = [];
     let currentView = 'grid';
+    let currentDetailTab = 'overview';
     let revenueChart = null;
     let currentDetailId = null;
+    let selectedMachines = new Set();
 
     // ===== API =====
     async function api(url, opts = {}) {
@@ -831,21 +1171,45 @@
     // ===== LOAD =====
     async function loadFleet() {
       try {
-        machines = await api('/api/fleet');
+        [machines, prospects] = await Promise.all([
+          api('/api/fleet'),
+          api('/api/prospects').catch(() => [])
+        ]);
+        
+        // Check if demo mode needed
+        if (machines.length === 0) {
+          document.getElementById('demoBanner').style.display = 'flex';
+        } else {
+          document.getElementById('demoBanner').style.display = 'none';
+        }
+
         renderStats();
+        renderAlerts();
+        renderPerformers();
         renderGrid();
         renderMap();
         renderRevenueChart();
+        populateProspectDropdown();
       } catch (e) {
         console.error('Failed to load fleet:', e);
+        toast('Failed to load fleet data', 'error');
       }
+    }
+
+    function populateProspectDropdown() {
+      const select = document.getElementById('addProspectSelect');
+      select.innerHTML = '<option value="">— Select a property —</option>';
+      prospects.filter(p => p.status === 'signed' || p.status === 'active').forEach(p => {
+        select.innerHTML += `<option value="${p.id}">${esc(p.name)} ${p.address ? '— ' + esc(p.address) : ''}</option>`;
+      });
     }
 
     // ===== STATS =====
     function renderStats() {
       const total = machines.length;
-      const active = machines.filter(m => m.status === 'active').length;
-      const needsService = machines.filter(m => m.status === 'needs-service').length;
+      const online = machines.filter(m => m.status === 'online' || m.status === 'active').length;
+      const needsAttention = machines.filter(m => m.status === 'needs-attention' || m.status === 'needs-service').length;
+      
       const now = new Date();
       const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
       const totalRevThisMonth = machines.reduce((sum, m) => {
@@ -854,11 +1218,178 @@
       const avgRevenue = total > 0 ? totalRevThisMonth / total : 0;
 
       document.getElementById('statTotal').textContent = total;
-      document.getElementById('statActiveRate').textContent = total > 0 ? Math.round((active/total)*100) + '%' : '0%';
-      document.getElementById('statActiveSub').textContent = `${active} active machines`;
-      document.getElementById('statAvgRevenue').textContent = '$' + avgRevenue.toFixed(0);
-      document.getElementById('statNeedsService').textContent = needsService;
-      document.getElementById('statServiceSub').textContent = needsService === 1 ? 'machine flagged' : 'machines flagged';
+      document.getElementById('statOnline').textContent = online;
+      document.getElementById('statOnlineRate').textContent = total > 0 ? Math.round((online/total)*100) + '% active rate' : '0% active rate';
+      document.getElementById('statRevenue').textContent = '$' + totalRevThisMonth.toLocaleString();
+      document.getElementById('statAttention').textContent = needsAttention;
+      document.getElementById('statAvg').textContent = '$' + Math.round(avgRevenue).toLocaleString();
+    }
+
+    // ===== ALERTS =====
+    function renderAlerts() {
+      const now = new Date();
+      const alerts = { offline: [], lowStock: [], maintenanceDue: [], revenueAnomaly: [] };
+
+      // Offline machines
+      alerts.offline = machines.filter(m => m.status === 'offline');
+
+      // Low stock (machines not restocked in 7+ days)
+      const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+      alerts.lowStock = machines.filter(m => {
+        if (m.status !== 'online' && m.status !== 'active') return false;
+        const lastRestock = m.last_restock ? new Date(m.last_restock) : null;
+        return !lastRestock || lastRestock < sevenDaysAgo;
+      });
+
+      // Maintenance due (no service in 30+ days)
+      const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+      alerts.maintenanceDue = machines.filter(m => {
+        const logs = m.service_logs || [];
+        const lastService = logs.filter(l => l.service_type !== 'restock')[0];
+        const lastDate = lastService ? new Date(lastService.service_date || lastService.created_at) : null;
+        return !lastDate || lastDate < thirtyDaysAgo;
+      });
+
+      // Revenue anomaly (50%+ drop from average)
+      const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      const lastMonthKey = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastMonthStr = `${lastMonthKey.getFullYear()}-${String(lastMonthKey.getMonth()+1).padStart(2,'0')}`;
+      alerts.revenueAnomaly = machines.filter(m => {
+        const thisMonth = (m.revenue||[]).filter(r => r.date && r.date.startsWith(monthKey)).reduce((s, r) => s + (r.amount || 0), 0);
+        const lastMonth = (m.revenue||[]).filter(r => r.date && r.date.startsWith(lastMonthStr)).reduce((s, r) => s + (r.amount || 0), 0);
+        return lastMonth > 500 && thisMonth < lastMonth * 0.5;
+      });
+
+      const hasAlerts = alerts.offline.length || alerts.lowStock.length || alerts.maintenanceDue.length || alerts.revenueAnomaly.length;
+      
+      if (!hasAlerts) {
+        document.getElementById('alertsSection').style.display = 'none';
+        return;
+      }
+
+      document.getElementById('alertsSection').style.display = 'block';
+      let html = '';
+
+      if (alerts.offline.length) {
+        html += `
+          <div class="alert-card critical">
+            <div class="alert-header">
+              <span class="alert-icon">🔴</span>
+              <h3>Offline Machines</h3>
+              <span class="alert-count">${alerts.offline.length}</span>
+            </div>
+            <ul class="alert-list">
+              ${alerts.offline.slice(0, 4).map(m => `
+                <li class="alert-item">
+                  <span class="alert-machine">${esc(m.serial)}</span>
+                  <span class="alert-detail">${esc(m.location)}</span>
+                </li>
+              `).join('')}
+              ${alerts.offline.length > 4 ? `<li class="alert-item"><span class="alert-detail">+${alerts.offline.length - 4} more</span></li>` : ''}
+            </ul>
+          </div>`;
+      }
+
+      if (alerts.lowStock.length) {
+        html += `
+          <div class="alert-card warning">
+            <div class="alert-header">
+              <span class="alert-icon">📦</span>
+              <h3>Needs Restock</h3>
+              <span class="alert-count">${alerts.lowStock.length}</span>
+            </div>
+            <ul class="alert-list">
+              ${alerts.lowStock.slice(0, 4).map(m => `
+                <li class="alert-item">
+                  <span class="alert-machine">${esc(m.serial)}</span>
+                  <span class="alert-detail">${m.last_restock ? 'Last: ' + new Date(m.last_restock).toLocaleDateString() : 'Never restocked'}</span>
+                </li>
+              `).join('')}
+              ${alerts.lowStock.length > 4 ? `<li class="alert-item"><span class="alert-detail">+${alerts.lowStock.length - 4} more</span></li>` : ''}
+            </ul>
+          </div>`;
+      }
+
+      if (alerts.maintenanceDue.length) {
+        html += `
+          <div class="alert-card warning">
+            <div class="alert-header">
+              <span class="alert-icon">🔧</span>
+              <h3>Maintenance Due</h3>
+              <span class="alert-count">${alerts.maintenanceDue.length}</span>
+            </div>
+            <ul class="alert-list">
+              ${alerts.maintenanceDue.slice(0, 4).map(m => `
+                <li class="alert-item">
+                  <span class="alert-machine">${esc(m.serial)}</span>
+                  <span class="alert-detail">${esc(m.location)}</span>
+                </li>
+              `).join('')}
+              ${alerts.maintenanceDue.length > 4 ? `<li class="alert-item"><span class="alert-detail">+${alerts.maintenanceDue.length - 4} more</span></li>` : ''}
+            </ul>
+          </div>`;
+      }
+
+      if (alerts.revenueAnomaly.length) {
+        html += `
+          <div class="alert-card info">
+            <div class="alert-header">
+              <span class="alert-icon">📉</span>
+              <h3>Revenue Drop</h3>
+              <span class="alert-count">${alerts.revenueAnomaly.length}</span>
+            </div>
+            <ul class="alert-list">
+              ${alerts.revenueAnomaly.slice(0, 4).map(m => `
+                <li class="alert-item">
+                  <span class="alert-machine">${esc(m.serial)}</span>
+                  <span class="alert-detail">Significant decrease from last month</span>
+                </li>
+              `).join('')}
+            </ul>
+          </div>`;
+      }
+
+      document.getElementById('alertsGrid').innerHTML = html;
+    }
+
+    // ===== PERFORMERS =====
+    function renderPerformers() {
+      const now = new Date();
+      const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      
+      const sorted = machines.map(m => ({
+        ...m,
+        monthRevenue: (m.revenue||[]).filter(r => r.date && r.date.startsWith(monthKey)).reduce((s, r) => s + (r.amount || 0), 0)
+      })).sort((a, b) => b.monthRevenue - a.monthRevenue);
+
+      const top = sorted.slice(0, 5);
+      const worst = sorted.filter(m => m.status === 'online' || m.status === 'active').slice(-5).reverse();
+
+      document.getElementById('topPerformers').innerHTML = top.length === 0 
+        ? '<li class="alert-empty">No revenue data yet</li>'
+        : top.map((m, i) => `
+          <li class="performer-item" onclick="openDetail(${m.id})">
+            <span class="performer-rank">${i + 1}</span>
+            <div class="performer-info">
+              <div class="performer-serial">${esc(m.serial)}</div>
+              <div class="performer-location">${esc(m.location || 'Unassigned')}</div>
+            </div>
+            <span class="performer-revenue">$${m.monthRevenue.toLocaleString()}</span>
+          </li>
+        `).join('');
+
+      document.getElementById('worstPerformers').innerHTML = worst.length === 0
+        ? '<li class="alert-empty">No active machines</li>'
+        : worst.map((m, i) => `
+          <li class="performer-item" onclick="openDetail(${m.id})">
+            <span class="performer-rank">${sorted.length - worst.length + i + 1}</span>
+            <div class="performer-info">
+              <div class="performer-serial">${esc(m.serial)}</div>
+              <div class="performer-location">${esc(m.location || 'Unassigned')}</div>
+            </div>
+            <span class="performer-revenue worst">$${m.monthRevenue.toLocaleString()}</span>
+          </li>
+        `).join('');
     }
 
     // ===== GRID =====
@@ -870,9 +1401,15 @@
       const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
 
       let filtered = machines.filter(m => {
-        if (statusFilter && m.status !== statusFilter) return false;
+        if (statusFilter) {
+          if (statusFilter === 'online' && m.status !== 'online' && m.status !== 'active') return false;
+          if (statusFilter === 'needs-attention' && m.status !== 'needs-attention' && m.status !== 'needs-service') return false;
+          if (statusFilter === 'available' && m.status !== 'available') return false;
+          if (statusFilter === 'offline' && m.status !== 'offline') return false;
+        }
         if (search) {
-          const haystack = `${m.serial} ${m.location} ${m.model} ${m.notes || ''}`.toLowerCase();
+          const prospect = prospects.find(p => p.id === m.prospect_id);
+          const haystack = `${m.serial} ${m.location} ${m.model} ${m.notes || ''} ${prospect?.name || ''} ${m.site_contact || ''}`.toLowerCase();
           if (!haystack.includes(search)) return false;
         }
         return true;
@@ -880,6 +1417,7 @@
 
       filtered.sort((a, b) => {
         if (sortBy === 'serial') return (a.serial || '').localeCompare(b.serial || '');
+        if (sortBy === 'location') return (a.location || '').localeCompare(b.location || '');
         if (sortBy === 'status') return (a.status || '').localeCompare(b.status || '');
         if (sortBy === 'revenue') {
           const aRev = (a.revenue||[]).filter(r=>r.date&&r.date.startsWith(monthKey)).reduce((s,r)=>s+(r.amount||0),0);
@@ -908,24 +1446,34 @@
           <div class="empty-state" style="grid-column:1/-1;">
             <div class="empty-icon">🏭</div>
             <div class="empty-title">No machines found</div>
-            <div class="empty-text">Add your first SandStar AI machine to start tracking your fleet.</div>
+            <div class="empty-text">Add your first machine to start tracking your fleet.</div>
           </div>`;
         return;
       }
 
       grid.innerHTML = filtered.map(m => {
         const monthRevenue = (m.revenue||[]).filter(r=>r.date&&r.date.startsWith(monthKey)).reduce((s,r)=>s+(r.amount||0),0);
-        const statusLabel = { 'active':'Active', 'needs-service':'Needs Service', 'available':'Available', 'offline':'Offline' }[m.status] || m.status;
+        const statusMap = {
+          'online': 'Online', 'active': 'Online',
+          'needs-attention': 'Needs Attention', 'needs-service': 'Needs Attention',
+          'available': 'Available', 'offline': 'Offline'
+        };
+        const statusClass = m.status === 'active' ? 'online' : (m.status === 'needs-service' ? 'needs-attention' : m.status);
+        const statusLabel = statusMap[m.status] || m.status;
         const restockDate = m.last_restock ? new Date(m.last_restock).toLocaleDateString() : 'Never';
+        const prospect = prospects.find(p => p.id === m.prospect_id);
+        const lastTxn = (m.revenue||[])[0];
 
         return `
-          <div class="machine-card" onclick="openDetail(${m.id})">
+          <div class="machine-card ${selectedMachines.has(m.id) ? 'selected' : ''}" onclick="openDetail(${m.id})">
+            <input type="checkbox" class="card-checkbox" ${selectedMachines.has(m.id) ? 'checked' : ''} onclick="event.stopPropagation();toggleSelection(${m.id})">
             <div class="card-header">
               <div>
                 <div class="serial">${esc(m.serial)}</div>
-                <div class="model">${esc(m.model || 'SandStar AI')}</div>
+                <div class="model">${esc(m.model || 'SandStar AI Smart Cooler')}</div>
+                ${prospect ? `<a href="/crm?id=${prospect.id}" class="property-link" onclick="event.stopPropagation()">🏢 ${esc(prospect.name)}</a>` : ''}
               </div>
-              <span class="status-badge status-${m.status}">${statusLabel}</span>
+              <span class="status-badge status-${statusClass}">${statusLabel}</span>
             </div>
             <div class="card-details">
               <div class="detail-item">
@@ -933,20 +1481,20 @@
                 <span class="detail-value">${esc(m.location || 'Unassigned')}</span>
               </div>
               <div class="detail-item">
-                <span class="detail-label">Revenue (This Month)</span>
+                <span class="detail-label">Revenue (Month)</span>
                 <span class="detail-value revenue">$${monthRevenue.toLocaleString()}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Last Transaction</span>
+                <span class="detail-value">${lastTxn ? new Date(lastTxn.date).toLocaleDateString() : '—'}</span>
               </div>
               <div class="detail-item">
                 <span class="detail-label">Last Restock</span>
                 <span class="detail-value">${restockDate}</span>
               </div>
-              <div class="detail-item">
-                <span class="detail-label">Installed</span>
-                <span class="detail-value">${m.install_date ? new Date(m.install_date).toLocaleDateString() : '—'}</span>
-              </div>
             </div>
             <div class="card-actions" onclick="event.stopPropagation()">
-              <button class="btn btn-sm btn-secondary" onclick="openServiceModal(${m.id})">🔧 Service</button>
+              <button class="btn btn-sm btn-secondary" onclick="openServiceModal([${m.id}])">🔧 Service</button>
               <button class="btn btn-sm btn-secondary" onclick="openRevenueModal(${m.id})">💵 Revenue</button>
               <button class="btn btn-sm btn-danger" onclick="deleteMachine(${m.id})" style="margin-left:auto;">🗑</button>
             </div>
@@ -954,24 +1502,60 @@
       }).join('');
     }
 
+    // ===== SELECTION =====
+    function toggleSelection(id) {
+      if (selectedMachines.has(id)) {
+        selectedMachines.delete(id);
+      } else {
+        selectedMachines.add(id);
+      }
+      updateSelectionUI();
+      renderGrid();
+    }
+
+    function clearSelection() {
+      selectedMachines.clear();
+      updateSelectionUI();
+      renderGrid();
+    }
+
+    function updateSelectionUI() {
+      const bulkActions = document.getElementById('bulkActions');
+      const count = selectedMachines.size;
+      if (count > 0) {
+        bulkActions.style.display = 'flex';
+        document.getElementById('selectedCount').textContent = count;
+      } else {
+        bulkActions.style.display = 'none';
+      }
+    }
+
+    function bulkScheduleService() {
+      if (selectedMachines.size === 0) return;
+      openServiceModal(Array.from(selectedMachines));
+    }
+
     // ===== MAP =====
     function renderMap() {
-      const dots = document.getElementById('mapDots');
-      const mapMachines = machines.filter(m => m.location);
+      const mapEl = document.getElementById('fleetMap');
+      if (!mapEl) return;
 
+      const mapMachines = machines.filter(m => m.location);
       if (mapMachines.length === 0) {
-        dots.innerHTML = '';
+        mapEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:0.95rem;">No machines with locations yet</div>';
         return;
       }
 
-      // Distribute dots across the map area with pseudo-random placement
-      dots.innerHTML = mapMachines.map((m, i) => {
+      // Distribute markers with pseudo-random placement
+      mapEl.innerHTML = mapMachines.map((m, i) => {
         const seed = hashCode(m.serial || String(m.id));
-        const x = 10 + (Math.abs(seed) % 80);
-        const y = 10 + (Math.abs(seed * 7) % 75);
+        const x = 8 + (Math.abs(seed) % 84);
+        const y = 8 + (Math.abs(seed * 7) % 78);
+        const statusClass = m.status === 'active' ? 'online' : (m.status === 'needs-service' ? 'needs-attention' : m.status);
         return `
-          <div class="map-dot ${m.status}" style="left:${x}%;top:${y}%;" title="${esc(m.serial)} — ${esc(m.location)}">
-            <span class="dot-label">${esc(m.serial)}</span>
+          <div class="map-marker ${statusClass}" style="left:${x}%;top:${y}%;" 
+               onclick="openDetail(${m.id})" title="${esc(m.serial)} — ${esc(m.location)}">
+            ${i + 1}
           </div>`;
       }).join('');
     }
@@ -1018,7 +1602,7 @@
         grouped[key] += r.amount || 0;
       });
 
-      const labels = Object.keys(grouped).sort();
+      const labels = Object.keys(grouped).sort().slice(-30);
       const data = labels.map(k => grouped[k]);
 
       if (revenueChart) revenueChart.destroy();
@@ -1050,15 +1634,11 @@
       const now = new Date();
       const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
       const thisMonthRev = allRevenue.filter(r => r.date && r.date.startsWith(monthKey)).reduce((s, r) => s + (r.amount || 0), 0);
-      const topMachine = machines.reduce((best, m) => {
-        const rev = (m.revenue||[]).filter(r=>r.date&&r.date.startsWith(monthKey)).reduce((s,r)=>s+(r.amount||0),0);
-        return rev > (best.rev || 0) ? { serial: m.serial, rev } : best;
-      }, { serial: '—', rev: 0 });
 
       document.getElementById('revenueSummary').innerHTML = `
         <div class="stat-card"><span class="stat-label">Total All-Time</span><span class="stat-value" style="font-size:1.3rem;color:var(--success);">$${totalRev.toLocaleString()}</span></div>
         <div class="stat-card"><span class="stat-label">This Month</span><span class="stat-value" style="font-size:1.3rem;color:var(--accent);">$${thisMonthRev.toLocaleString()}</span></div>
-        <div class="stat-card"><span class="stat-label">Top Performer</span><span class="stat-value" style="font-size:1.3rem;">${esc(topMachine.serial)}</span><span class="stat-sub">$${topMachine.rev.toLocaleString()} this month</span></div>
+        <div class="stat-card"><span class="stat-label">Active Machines</span><span class="stat-value" style="font-size:1.3rem;">${machines.filter(m => m.status === 'online' || m.status === 'active').length}</span></div>
       `;
     }
 
@@ -1071,6 +1651,7 @@
 
       document.getElementById('machinesGrid').style.display = currentView === 'grid' ? '' : 'none';
       document.getElementById('filterBar').style.display = currentView === 'grid' ? '' : 'none';
+      document.getElementById('performersSection').style.display = currentView === 'grid' ? '' : 'none';
       document.getElementById('mapSection').style.display = currentView === 'map' ? '' : 'none';
       document.getElementById('revenueSection').style.display = currentView === 'revenue' ? '' : 'none';
     });
@@ -1094,15 +1675,25 @@
 
     function openAddModal() {
       document.getElementById('addForm').reset();
-      document.querySelector('#addForm [name="model"]').value = 'SandStar AI';
       openModal('addModal');
     }
 
-    function openServiceModal(machineId) {
-      document.getElementById('serviceMachineId').value = machineId;
+    function openServiceModal(machineIds) {
+      const isBulk = Array.isArray(machineIds) && machineIds.length > 1;
+      document.getElementById('serviceMachineIds').value = JSON.stringify(machineIds);
       document.getElementById('serviceForm').reset();
-      document.getElementById('serviceMachineId').value = machineId;
+      document.getElementById('serviceMachineIds').value = JSON.stringify(machineIds);
       document.querySelector('#serviceForm [name="service_date"]').value = new Date().toISOString().split('T')[0];
+      
+      if (isBulk) {
+        document.getElementById('bulkServiceInfo').style.display = 'block';
+        document.getElementById('bulkServiceCount').textContent = machineIds.length;
+        document.getElementById('serviceModalTitle').textContent = '🔧 Schedule Bulk Service';
+      } else {
+        document.getElementById('bulkServiceInfo').style.display = 'none';
+        document.getElementById('serviceModalTitle').textContent = '🔧 Add Service Entry';
+      }
+      
       openModal('serviceModal');
     }
 
@@ -1120,57 +1711,140 @@
       const m = machines.find(x => x.id === id);
       if (!m) return;
 
-      document.getElementById('detailTitle').textContent = `${m.serial} — ${m.model || 'SandStar AI'}`;
+      document.getElementById('detailTitle').textContent = `${m.serial} — ${m.model || 'SandStar AI Smart Cooler'}`;
+      renderDetailTab(m, 'overview');
+      openModal('detailModal');
+    }
+
+    function renderDetailTab(m, tab) {
+      currentDetailTab = tab;
+      document.querySelectorAll('#detailTabs .tab-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.tab === tab);
+      });
 
       const now = new Date();
       const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
       const monthRevenue = (m.revenue||[]).filter(r=>r.date&&r.date.startsWith(monthKey)).reduce((s,r)=>s+(r.amount||0),0);
       const totalRevenue = (m.revenue||[]).reduce((s,r)=>s+(r.amount||0),0);
+      const totalTxns = (m.revenue||[]).reduce((s,r)=>s+(r.transactions||0),0);
+      const avgTicket = totalTxns > 0 ? totalRevenue / totalTxns : 0;
       const serviceLogs = (m.service_logs || []).sort((a,b) => new Date(b.service_date||b.created_at) - new Date(a.service_date||a.created_at));
       const revenueEntries = (m.revenue||[]).sort((a,b) => new Date(b.date) - new Date(a.date));
+      const prospect = prospects.find(p => p.id === m.prospect_id);
 
-      const statusOptions = ['active', 'needs-service', 'available', 'offline'];
-      const statusLabels = { 'active':'✅ Active', 'needs-service':'🔧 Needs Service', 'available':'📦 Available', 'offline':'⚫ Offline' };
+      const statusOptions = ['online', 'needs-attention', 'available', 'offline'];
+      const statusLabels = { 'online':'✅ Online', 'needs-attention':'🔧 Needs Attention', 'available':'📦 Available', 'offline':'⚫ Offline' };
 
-      document.getElementById('detailBody').innerHTML = `
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
-          <div class="detail-item">
-            <span class="detail-label">Location</span>
-            <span class="detail-value">${esc(m.location || 'Unassigned')}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Install Date</span>
-            <span class="detail-value">${m.install_date ? new Date(m.install_date).toLocaleDateString() : '—'}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Revenue (This Month)</span>
-            <span class="detail-value revenue">$${monthRevenue.toLocaleString()}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Revenue (All-Time)</span>
-            <span class="detail-value revenue">$${totalRevenue.toLocaleString()}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Last Restock</span>
-            <span class="detail-value">${m.last_restock ? new Date(m.last_restock).toLocaleDateString() : 'Never'}</span>
-          </div>
-        </div>
+      let html = '';
 
-        <div class="form-group">
-          <label>Status</label>
-          <div class="status-toggle">
-            ${statusOptions.map(s => `
-              <button class="${m.status === s ? 'selected-' + s : ''}" onclick="updateStatus(${m.id}, '${s}')">${statusLabels[s]}</button>
-            `).join('')}
+      if (tab === 'overview') {
+        html = `
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+            <div class="detail-item">
+              <span class="detail-label">Location</span>
+              <span class="detail-value">${esc(m.location || 'Unassigned')}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Placement</span>
+              <span class="detail-value">${esc(m.placement || '—')}</span>
+            </div>
+            ${prospect ? `
+            <div class="detail-item">
+              <span class="detail-label">Linked Property</span>
+              <span class="detail-value"><a href="/crm?id=${prospect.id}" style="color:var(--accent);">${esc(prospect.name)}</a></span>
+            </div>` : ''}
+            <div class="detail-item">
+              <span class="detail-label">Site Contact</span>
+              <span class="detail-value">${esc(m.site_contact || '—')}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Install Date</span>
+              <span class="detail-value">${m.install_date ? new Date(m.install_date).toLocaleDateString() : '—'}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Capacity</span>
+              <span class="detail-value">${m.capacity || 60} slots</span>
+            </div>
           </div>
-        </div>
 
-        ${m.notes ? `<div style="margin-top:12px;padding:10px 14px;background:var(--bg);border-radius:8px;font-size:0.85rem;color:var(--muted);">📝 ${esc(m.notes)}</div>` : ''}
+          <div class="form-group">
+            <label>Status</label>
+            <div class="status-toggle">
+              ${statusOptions.map(s => {
+                const isSelected = m.status === s || (s === 'online' && m.status === 'active') || (s === 'needs-attention' && m.status === 'needs-service');
+                return `<button class="${isSelected ? 'selected-' + s : ''}" onclick="updateStatus(${m.id}, '${s}')">${statusLabels[s]}</button>`;
+              }).join('')}
+            </div>
+          </div>
 
-        <div class="service-log">
-          <h3>🔧 Service History <button class="btn btn-xs btn-secondary" onclick="closeModal('detailModal');openServiceModal(${m.id})" style="margin-left:auto;">+ Add</button></h3>
-          ${serviceLogs.length === 0 ? '<div style="color:var(--muted);font-size:0.82rem;padding:8px 0;">No service records yet.</div>' :
-            serviceLogs.slice(0, 10).map(log => `
+          <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:12px;margin-top:20px;padding-top:20px;border-top:1px solid var(--border);">
+            <div class="stat-card" style="padding:14px;">
+              <span class="stat-label">This Month</span>
+              <span class="stat-value revenue" style="font-size:1.3rem;">$${monthRevenue.toLocaleString()}</span>
+            </div>
+            <div class="stat-card" style="padding:14px;">
+              <span class="stat-label">All-Time</span>
+              <span class="stat-value" style="font-size:1.3rem;">$${totalRevenue.toLocaleString()}</span>
+            </div>
+            <div class="stat-card" style="padding:14px;">
+              <span class="stat-label">Transactions</span>
+              <span class="stat-value" style="font-size:1.3rem;">${totalTxns.toLocaleString()}</span>
+            </div>
+            <div class="stat-card" style="padding:14px;">
+              <span class="stat-label">Avg Ticket</span>
+              <span class="stat-value" style="font-size:1.3rem;">$${avgTicket.toFixed(2)}</span>
+            </div>
+          </div>
+
+          ${m.commission_rate ? `
+          <div style="margin-top:20px;padding:14px;background:var(--accent-dim);border-radius:8px;">
+            <div style="font-size:0.82rem;font-weight:600;margin-bottom:4px;">💰 Revenue Share Terms</div>
+            <div style="font-size:0.85rem;color:var(--muted);">
+              ${m.commission_rate}% commission, starting ${m.commission_start || 'after 6 months'}
+            </div>
+          </div>` : ''}
+
+          ${m.notes ? `<div style="margin-top:16px;padding:12px 14px;background:var(--bg);border-radius:8px;font-size:0.85rem;color:var(--muted);">📝 ${esc(m.notes)}</div>` : ''}
+        `;
+      } else if (tab === 'inventory') {
+        const categories = ['cat_beverages', 'cat_snacks', 'cat_candy', 'cat_healthy', 'cat_incidentals', 'cat_frozen'];
+        const catLabels = { cat_beverages: 'Beverages', cat_snacks: 'Snacks', cat_candy: 'Candy', cat_healthy: 'Healthy', cat_incidentals: 'Incidentals', cat_frozen: 'Frozen' };
+        const enabledCats = categories.filter(c => m[c]).map(c => catLabels[c]);
+
+        html = `
+          <div style="margin-bottom:20px;">
+            <h4 style="font-size:0.88rem;font-weight:600;margin-bottom:10px;">Enabled Product Categories</h4>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              ${enabledCats.length > 0 
+                ? enabledCats.map(c => `<span style="padding:6px 12px;background:var(--success-dim);color:var(--success);border-radius:20px;font-size:0.78rem;font-weight:600;">✓ ${c}</span>`).join('')
+                : '<span style="color:var(--muted);font-size:0.85rem;">No categories configured</span>'
+              }
+            </div>
+          </div>
+
+          <div class="planogram-section" style="border-top:none;padding-top:0;margin-top:0;">
+            <h3>📦 Planogram / Slot Layout</h3>
+            <p style="font-size:0.82rem;color:var(--muted);margin-bottom:12px;">Configure detailed slot assignments in the <a href="/restock?machine=${m.id}" style="color:var(--accent);">Restock Manager</a></p>
+            <div class="planogram-grid">
+              ${Array.from({length: Math.min(m.capacity || 60, 30)}, (_, i) => `
+                <div class="planogram-slot">
+                  <span style="font-size:0.65rem;color:var(--muted);">Slot ${i+1}</span>
+                  <span class="slot-qty">—</span>
+                </div>
+              `).join('')}
+            </div>
+            ${(m.capacity || 60) > 30 ? `<div style="text-align:center;margin-top:8px;font-size:0.78rem;color:var(--muted);">+${(m.capacity || 60) - 30} more slots</div>` : ''}
+          </div>
+        `;
+      } else if (tab === 'service') {
+        html = `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h3 style="font-size:0.95rem;font-weight:600;">🔧 Service History</h3>
+            <button class="btn btn-sm btn-secondary" onclick="closeModal('detailModal');openServiceModal([${m.id}])">+ Add Entry</button>
+          </div>
+          ${serviceLogs.length === 0 
+            ? '<div style="color:var(--muted);font-size:0.85rem;padding:20px 0;text-align:center;">No service records yet.</div>' 
+            : serviceLogs.map(log => `
               <div class="log-entry">
                 <div class="log-date">${new Date(log.service_date || log.created_at).toLocaleDateString()} ${log.cost ? '• $' + log.cost : ''}</div>
                 <div class="log-type">${formatServiceType(log.service_type)}</div>
@@ -1179,29 +1853,42 @@
               </div>
             `).join('')
           }
-        </div>
-
-        <div class="revenue-section">
-          <h3>💵 Revenue History <button class="btn btn-xs btn-secondary" onclick="closeModal('detailModal');openRevenueModal(${m.id})" style="margin-left:auto;">+ Add</button></h3>
-          ${revenueEntries.length === 0 ? '<div style="color:var(--muted);font-size:0.82rem;padding:8px 0;">No revenue recorded yet.</div>' : `
+        `;
+      } else if (tab === 'revenue') {
+        html = `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h3 style="font-size:0.95rem;font-weight:600;">💵 Revenue History</h3>
+            <button class="btn btn-sm btn-secondary" onclick="closeModal('detailModal');openRevenueModal(${m.id})">+ Record</button>
+          </div>
+          ${revenueEntries.length === 0 
+            ? '<div style="color:var(--muted);font-size:0.85rem;padding:20px 0;text-align:center;">No revenue recorded yet.</div>' 
+            : `
             <table class="revenue-table">
-              <thead><tr><th>Date</th><th>Amount</th><th>Notes</th></tr></thead>
+              <thead><tr><th>Date</th><th>Amount</th><th>Transactions</th><th>Notes</th></tr></thead>
               <tbody>
-                ${revenueEntries.slice(0, 15).map(r => `
+                ${revenueEntries.map(r => `
                   <tr>
                     <td>${new Date(r.date).toLocaleDateString()}</td>
                     <td style="color:var(--success);font-weight:600;">$${(r.amount||0).toLocaleString()}</td>
+                    <td>${r.transactions || '—'}</td>
                     <td style="color:var(--muted);">${esc(r.notes || '')}</td>
                   </tr>
                 `).join('')}
               </tbody>
             </table>
           `}
-        </div>
-      `;
+        `;
+      }
 
-      openModal('detailModal');
+      document.getElementById('detailBody').innerHTML = html;
     }
+
+    // Tab click handler
+    document.getElementById('detailTabs').addEventListener('click', (e) => {
+      if (e.target.tagName !== 'BUTTON') return;
+      const m = machines.find(x => x.id === currentDetailId);
+      if (m) renderDetailTab(m, e.target.dataset.tab);
+    });
 
     function formatServiceType(t) {
       const labels = {
@@ -1221,6 +1908,16 @@
       e.preventDefault();
       const fd = new FormData(e.target);
       const data = Object.fromEntries(fd);
+      
+      // Convert checkboxes
+      ['cat_beverages', 'cat_snacks', 'cat_candy', 'cat_healthy', 'cat_incidentals', 'cat_frozen'].forEach(k => {
+        data[k] = fd.has(k);
+      });
+      
+      if (data.prospect_id) data.prospect_id = parseInt(data.prospect_id);
+      if (data.capacity) data.capacity = parseInt(data.capacity);
+      if (data.commission_rate) data.commission_rate = parseFloat(data.commission_rate);
+
       try {
         await api('/api/fleet', { method: 'POST', body: JSON.stringify(data) });
         closeModal('addModal');
@@ -1235,14 +1932,19 @@
       e.preventDefault();
       const fd = new FormData(e.target);
       const data = Object.fromEntries(fd);
-      const machineId = data.machine_id;
-      delete data.machine_id;
+      const machineIds = JSON.parse(data.machine_ids);
+      delete data.machine_ids;
+
       try {
-        await api(`/api/fleet/${machineId}/service-logs`, { method: 'POST', body: JSON.stringify(data) });
+        for (const id of machineIds) {
+          await api(`/api/fleet/${id}/service-logs`, { method: 'POST', body: JSON.stringify(data) });
+        }
         closeModal('serviceModal');
-        toast('Service entry logged', 'success');
+        toast(`Service entry logged for ${machineIds.length} machine(s)`, 'success');
+        selectedMachines.clear();
+        updateSelectionUI();
         await loadFleet();
-        openDetail(parseInt(machineId));
+        if (machineIds.length === 1) openDetail(machineIds[0]);
       } catch (err) {
         toast('Failed to log service: ' + err.message, 'error');
       }
@@ -1253,14 +1955,15 @@
       const fd = new FormData(e.target);
       const data = Object.fromEntries(fd);
       data.amount = parseFloat(data.amount);
-      const machineId = data.machine_id;
+      if (data.transactions) data.transactions = parseInt(data.transactions);
+      const machineId = parseInt(data.machine_id);
       delete data.machine_id;
       try {
         await api(`/api/fleet/${machineId}/revenue`, { method: 'POST', body: JSON.stringify(data) });
         closeModal('revenueModal');
         toast('Revenue recorded', 'success');
         await loadFleet();
-        openDetail(parseInt(machineId));
+        openDetail(machineId);
       } catch (err) {
         toast('Failed to record revenue: ' + err.message, 'error');
       }
@@ -1286,6 +1989,53 @@
         loadFleet();
       } catch (err) {
         toast('Failed to delete: ' + err.message, 'error');
+      }
+    }
+
+    // ===== EXPORT =====
+    function exportFleetReport() {
+      const now = new Date();
+      const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      
+      let csv = 'Serial,Model,Location,Status,Install Date,Monthly Revenue,Total Revenue,Last Restock,Commission Rate\n';
+      machines.forEach(m => {
+        const monthRev = (m.revenue||[]).filter(r=>r.date&&r.date.startsWith(monthKey)).reduce((s,r)=>s+(r.amount||0),0);
+        const totalRev = (m.revenue||[]).reduce((s,r)=>s+(r.amount||0),0);
+        csv += `"${m.serial}","${m.model||'SandStar AI'}","${m.location||''}","${m.status}","${m.install_date||''}","${monthRev}","${totalRev}","${m.last_restock||''}","${m.commission_rate||0}%"\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `fleet-report-${now.toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('Fleet report exported', 'success');
+    }
+
+    // ===== DEMO DATA =====
+    async function seedDemoData() {
+      const demoMachines = [
+        { serial: 'SS-AI-001', model: 'SandStar AI Smart Cooler', location: 'The District at Green Valley', placement: 'Clubhouse', status: 'online', capacity: 60, commission_rate: 5, commission_start: '6months', cat_beverages: true, cat_snacks: true, cat_candy: true },
+        { serial: 'SS-AI-002', model: 'SandStar AI Smart Cooler', location: 'Elysian at Hughes Center', placement: 'Lobby', status: 'online', capacity: 60, commission_rate: 5, commission_start: '6months', cat_beverages: true, cat_snacks: true, cat_healthy: true },
+        { serial: 'SS-AI-003', model: 'SandStar AI Freezer', location: 'Henderson Medical Center', placement: 'ER Waiting Area', status: 'needs-attention', capacity: 48, commission_rate: 3, commission_start: '90days', cat_beverages: true, cat_frozen: true },
+        { serial: 'SS-AI-004', model: 'SandStar AI Smart Cooler', location: 'Amazon Distribution Center', placement: 'Breakroom A', status: 'online', capacity: 60, commission_rate: 0, commission_start: 'immediate', cat_beverages: true, cat_snacks: true, cat_incidentals: true },
+        { serial: 'SS-AI-005', model: 'SandStar AI Smart Cooler', location: 'Unassigned', status: 'available', capacity: 60 }
+      ];
+
+      try {
+        for (const m of demoMachines) {
+          try {
+            await api('/api/fleet', { method: 'POST', body: JSON.stringify(m) });
+          } catch (e) {
+            // Ignore duplicates
+          }
+        }
+        toast('Demo fleet loaded!', 'success');
+        loadFleet();
+      } catch (err) {
+        toast('Failed to load demo data', 'error');
       }
     }
 

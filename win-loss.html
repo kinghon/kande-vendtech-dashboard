@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Win/Loss Analysis — Kande VendTech</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #0f172a;
+      --muted: #64748b; --accent: #3b82f6; --accent-light: #eff6ff;
+      --green: #22c55e; --green-light: #f0fdf4;
+      --amber: #f59e0b; --amber-light: #fffbeb;
+      --red: #ef4444; --red-light: #fef2f2;
+      --purple: #8b5cf6; --purple-light: #f5f3ff;
+      --radius: 12px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+    .page { max-width: 1400px; margin: 0 auto; padding: 24px 28px 60px; }
+
+    /* Header */
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px; flex-wrap: wrap; gap: 16px;
+    }
+    .page-header h1 { font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px;
+      border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; transition: all 0.15s; text-decoration: none;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-success:hover { background: #16a34a; }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-outline { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Stats Row */
+    .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 20px; text-align: center;
+    }
+    .stat-card .stat-value { font-size: 2rem; font-weight: 800; line-height: 1; }
+    .stat-card .stat-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; margin-top: 6px; font-weight: 600; }
+    .stat-card .stat-trend { font-size: 0.72rem; margin-top: 4px; font-weight: 600; }
+    .stat-card.green .stat-value { color: var(--green); }
+    .stat-card.red .stat-value { color: var(--red); }
+    .stat-card.blue .stat-value { color: var(--accent); }
+    .stat-card.amber .stat-value { color: var(--amber); }
+    .stat-card.purple .stat-value { color: var(--purple); }
+
+    /* Charts Grid */
+    .charts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 24px; }
+    .chart-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 20px;
+    }
+    .chart-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .chart-container { position: relative; height: 250px; }
+
+    /* Insights Section */
+    .insights-section { margin-bottom: 24px; }
+    .insights-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .insight-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 16px; border-left: 4px solid var(--accent);
+    }
+    .insight-card.positive { border-left-color: var(--green); background: var(--green-light); }
+    .insight-card.negative { border-left-color: var(--red); background: var(--red-light); }
+    .insight-card.neutral { border-left-color: var(--amber); background: var(--amber-light); }
+    .insight-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .insight-text { font-size: 0.9rem; font-weight: 600; line-height: 1.4; }
+    .insight-detail { font-size: 0.78rem; color: var(--muted); margin-top: 6px; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; background: var(--bg); padding: 4px; border-radius: 10px; border: 1px solid var(--border); }
+    .tab {
+      flex: 1; padding: 10px 16px; text-align: center; font-size: 0.85rem; font-weight: 600;
+      background: transparent; border: none; border-radius: 8px; cursor: pointer; color: var(--muted);
+      transition: all 0.15s;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { background: var(--card); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+    /* Table */
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      overflow: hidden; margin-bottom: 24px;
+    }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+    }
+    .card-header h3 { font-size: 1rem; font-weight: 700; }
+    .table-wrapper { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { background: #f8fafc; padding: 12px 16px; text-align: left; font-weight: 600; color: var(--muted); text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.5px; }
+    td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    tr:hover td { background: #fafafa; }
+    tr:last-child td { border-bottom: none; }
+
+    /* Badges */
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; }
+    .badge-won { background: var(--green-light); color: var(--green); }
+    .badge-lost { background: var(--red-light); color: var(--red); }
+    .badge-pending { background: var(--amber-light); color: var(--amber); }
+
+    /* Property Type Badge */
+    .type-badge { padding: 3px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 600; background: #f1f5f9; color: var(--muted); }
+
+    /* Actions */
+    .action-btn { background: none; border: none; padding: 4px 8px; cursor: pointer; color: var(--muted); font-size: 0.9rem; border-radius: 4px; }
+    .action-btn:hover { background: #f1f5f9; color: var(--text); }
+
+    /* Modal */
+    .modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--card); border-radius: 16px; width: 100%; max-width: 600px;
+      max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 24px; border-bottom: 1px solid var(--border);
+    }
+    .modal-header h2 { font-size: 1.1rem; font-weight: 700; }
+    .modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--muted); line-height: 1; }
+    .modal-body { padding: 24px; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+
+    /* Form */
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 0.9rem; font-family: inherit; background: var(--card);
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-hint { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+
+    /* Competitor Table */
+    .competitor-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+    .competitor-row:last-child { border-bottom: none; }
+    .competitor-name { font-weight: 600; }
+    .competitor-count { font-size: 1.2rem; font-weight: 700; color: var(--red); }
+
+    /* Empty State */
+    .empty-state { text-align: center; padding: 48px 24px; color: var(--muted); }
+    .empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty-state p { font-size: 0.9rem; margin-bottom: 16px; }
+
+    /* Post-mortem */
+    .postmortem-section { background: var(--red-light); border: 1px solid #fecaca; border-radius: var(--radius); padding: 20px; margin-top: 16px; }
+    .postmortem-section h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 12px; color: var(--red); }
+
+    /* Responsive */
+    @media (max-width: 1100px) {
+      .stats-row { grid-template-columns: repeat(3, 1fr); }
+      .charts-grid { grid-template-columns: 1fr; }
+      .insights-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 700px) {
+      .page { padding: 16px; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .form-row { grid-template-columns: 1fr; }
+      .tabs { flex-wrap: wrap; }
+      .page-header { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+<script src="/nav.js"></script>
+
+<div class="page">
+  <div class="page-header">
+    <h1>📊 Win/Loss Analysis</h1>
+    <div class="header-actions">
+      <button class="btn btn-success" onclick="openModal('won')">✅ Log Won Deal</button>
+      <button class="btn btn-danger" onclick="openModal('lost')">❌ Log Lost Deal</button>
+    </div>
+  </div>
+
+  <!-- Key Metrics -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card green">
+      <div class="stat-value" id="statWinRate">--</div>
+      <div class="stat-label">Win Rate</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-value" id="statTotalWon">0</div>
+      <div class="stat-label">Deals Won</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-value" id="statTotalLost">0</div>
+      <div class="stat-label">Deals Lost</div>
+    </div>
+    <div class="stat-card amber">
+      <div class="stat-value" id="statAvgDaysWon">--</div>
+      <div class="stat-label">Avg Days to Win</div>
+    </div>
+    <div class="stat-card purple">
+      <div class="stat-value" id="statAvgTouches">--</div>
+      <div class="stat-label">Avg Touches (Won)</div>
+    </div>
+  </div>
+
+  <!-- Auto-Generated Insights -->
+  <div class="insights-section">
+    <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 16px;">💡 AI-Generated Insights</h3>
+    <div class="insights-grid" id="insightsGrid">
+      <div class="insight-card neutral">
+        <div class="insight-icon">📈</div>
+        <div class="insight-text">Log some deals to see insights</div>
+        <div class="insight-detail">Add won and lost deals to generate actionable insights</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3>🏆 Win Reasons</h3>
+      <div class="chart-container">
+        <canvas id="winReasonsChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>❌ Loss Reasons</h3>
+      <div class="chart-container">
+        <canvas id="lossReasonsChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>🏢 Win Rate by Property Type</h3>
+      <div class="chart-container">
+        <canvas id="propertyTypeChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>📞 Win Rate by Touch Count</h3>
+      <div class="chart-container">
+        <canvas id="touchCountChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Competitor Tracking -->
+  <div class="card">
+    <div class="card-header">
+      <h3>🥊 Competitor Losses</h3>
+    </div>
+    <div style="padding: 20px;" id="competitorSection">
+      <div class="empty-state">
+        <p>No competitor losses tracked yet</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deals Table -->
+  <div class="tabs">
+    <button class="tab active" data-tab="all" onclick="switchTab('all')">All Deals</button>
+    <button class="tab" data-tab="won" onclick="switchTab('won')">Won</button>
+    <button class="tab" data-tab="lost" onclick="switchTab('lost')">Lost</button>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3 id="tableTitle">All Closed Deals</h3>
+      <input type="search" placeholder="Search..." id="searchInput" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; width: 200px;">
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Type</th>
+            <th>Outcome</th>
+            <th>Date</th>
+            <th>Days</th>
+            <th>Touches</th>
+            <th>Reason</th>
+            <th>Value</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="dealsTable">
+          <tr><td colspan="9" class="empty-state"><div class="empty-icon">📋</div><p>No deals logged yet</p></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Deal Modal -->
+<div class="modal-overlay" id="dealModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Log Deal</h2>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="dealForm">
+        <input type="hidden" id="dealId">
+        <input type="hidden" id="dealOutcome">
+        
+        <div class="form-group">
+          <label>Property Name *</label>
+          <input type="text" id="propertyName" required placeholder="e.g., Sunset Luxury Apartments">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Property Type</label>
+            <select id="propertyType">
+              <option value="">Select type...</option>
+              <option value="apartments">Luxury Apartments</option>
+              <option value="office">Office Building</option>
+              <option value="industrial">Industrial/Warehouse</option>
+              <option value="healthcare">Healthcare</option>
+              <option value="recreation">Recreation Center</option>
+              <option value="senior">Senior Living</option>
+              <option value="school">School/University</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label id="dateLabel">Date Closed</label>
+            <input type="date" id="closedDate" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Days in Pipeline</label>
+            <input type="number" id="daysToClose" min="0" placeholder="e.g., 45">
+            <div class="form-hint">From first contact to close</div>
+          </div>
+          <div class="form-group">
+            <label>Number of Touches</label>
+            <input type="number" id="touchCount" min="1" placeholder="e.g., 8">
+            <div class="form-hint">Calls, emails, visits, etc.</div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label id="dealValueLabel">Deal Value (Monthly)</label>
+            <input type="number" id="dealValue" min="0" step="100" placeholder="e.g., 2500">
+          </div>
+          <div class="form-group">
+            <label id="reasonLabel">Reason</label>
+            <select id="reasonSelect">
+              <!-- Populated by JS based on outcome -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Won-specific fields -->
+        <div id="wonFields" style="display: none;">
+          <div class="form-group">
+            <label>What Worked? (Key success factors)</label>
+            <textarea id="whatWorked" placeholder="e.g., Local presence was key, they liked that we could respond same-day..."></textarea>
+          </div>
+        </div>
+
+        <!-- Lost-specific fields -->
+        <div id="lostFields" style="display: none;">
+          <div class="form-group">
+            <label>Lost to Competitor?</label>
+            <input type="text" id="competitor" placeholder="e.g., Canteen, Vistar, Five Star...">
+          </div>
+
+          <div class="postmortem-section">
+            <h4>📝 Post-Mortem</h4>
+            <div class="form-group">
+              <label>What Happened?</label>
+              <textarea id="whatHappened" placeholder="Walk through the deal — where did it go wrong?"></textarea>
+            </div>
+            <div class="form-group">
+              <label>What Could We Do Differently?</label>
+              <textarea id="whatDifferent" placeholder="Lessons learned for next time..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Follow-Up Opportunity?</label>
+              <textarea id="followUp" placeholder="Is there a chance to revisit? When?"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Additional Notes</label>
+          <textarea id="notes" placeholder="Any other context..."></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDeal()">Save Deal</button>
+    </div>
+  </div>
+</div>
+
+<!-- View Deal Modal -->
+<div class="modal-overlay" id="viewModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="viewTitle">Deal Details</h2>
+      <button class="modal-close" onclick="closeViewModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="viewContent">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeViewModal()">Close</button>
+      <button class="btn btn-primary" id="editDealBtn">Edit</button>
+      <button class="btn btn-danger" id="deleteDealBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const WIN_REASONS = [
+  { value: 'better_service', label: 'Better Service Promise' },
+  { value: 'local_presence', label: 'Local Presence / Responsiveness' },
+  { value: 'technology', label: 'Technology / Smart Features' },
+  { value: 'price', label: 'Better Pricing' },
+  { value: 'relationship', label: 'Relationship / Trust' },
+  { value: 'no_incumbent', label: 'No Existing Vendor' },
+  { value: 'product_selection', label: 'Product Selection' },
+  { value: 'referral', label: 'Referral / Reputation' },
+  { value: 'timing', label: 'Good Timing' },
+  { value: 'other', label: 'Other' }
+];
+
+const LOSS_REASONS = [
+  { value: 'price', label: 'Price Too High' },
+  { value: 'existing_vendor', label: 'Already Have Vendor' },
+  { value: 'no_budget', label: 'No Budget' },
+  { value: 'bad_timing', label: 'Bad Timing' },
+  { value: 'competitor_won', label: 'Competitor Won' },
+  { value: 'no_response', label: 'No Response / Ghosted' },
+  { value: 'bad_fit', label: 'Not a Good Fit' },
+  { value: 'decision_maker', label: 'Couldn\'t Reach Decision Maker' },
+  { value: 'contract_locked', label: 'Locked into Contract' },
+  { value: 'not_interested', label: 'Not Interested in Vending' },
+  { value: 'internal_decision', label: 'Internal Decision / Corporate' },
+  { value: 'other', label: 'Other' }
+];
+
+const PROPERTY_LABELS = {
+  apartments: 'Luxury Apartments',
+  office: 'Office Building', 
+  industrial: 'Industrial/Warehouse',
+  healthcare: 'Healthcare',
+  recreation: 'Recreation Center',
+  senior: 'Senior Living',
+  school: 'School/University',
+  other: 'Other'
+};
+
+let deals = [];
+let currentTab = 'all';
+let charts = {};
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  loadDeals();
+  document.getElementById('searchInput').addEventListener('input', renderTable);
+  document.getElementById('closedDate').valueAsDate = new Date();
+});
+
+async function loadDeals() {
+  try {
+    const res = await fetch('/api/win-loss');
+    deals = await res.json();
+    updateStats();
+    renderTable();
+    renderCharts();
+    renderInsights();
+    renderCompetitors();
+  } catch (e) {
+    console.error('Error loading deals:', e);
+  }
+}
+
+function updateStats() {
+  const won = deals.filter(d => d.outcome === 'won');
+  const lost = deals.filter(d => d.outcome === 'lost');
+  const total = won.length + lost.length;
+  
+  const winRate = total > 0 ? Math.round((won.length / total) * 100) : 0;
+  const avgDaysWon = won.length > 0 ? Math.round(won.reduce((s, d) => s + (d.days_to_close || 0), 0) / won.length) : 0;
+  const avgTouches = won.length > 0 ? Math.round(won.reduce((s, d) => s + (d.touch_count || 0), 0) / won.length) : 0;
+  
+  document.getElementById('statWinRate').textContent = total > 0 ? `${winRate}%` : '--';
+  document.getElementById('statTotalWon').textContent = won.length;
+  document.getElementById('statTotalLost').textContent = lost.length;
+  document.getElementById('statAvgDaysWon').textContent = won.length > 0 ? avgDaysWon : '--';
+  document.getElementById('statAvgTouches').textContent = won.length > 0 ? avgTouches : '--';
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+  
+  const titles = { all: 'All Closed Deals', won: 'Won Deals', lost: 'Lost Deals' };
+  document.getElementById('tableTitle').textContent = titles[tab];
+  renderTable();
+}
+
+function renderTable() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  let filtered = [...deals];
+  
+  if (currentTab !== 'all') {
+    filtered = filtered.filter(d => d.outcome === currentTab);
+  }
+  
+  if (search) {
+    filtered = filtered.filter(d => 
+      d.property_name?.toLowerCase().includes(search) ||
+      d.reason?.toLowerCase().includes(search) ||
+      d.competitor?.toLowerCase().includes(search)
+    );
+  }
+  
+  filtered.sort((a, b) => new Date(b.closed_date) - new Date(a.closed_date));
+  
+  const tbody = document.getElementById('dealsTable');
+  
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" class="empty-state"><div class="empty-icon">📋</div><p>No deals found</p></td></tr>`;
+    return;
+  }
+  
+  tbody.innerHTML = filtered.map(d => {
+    const reasonLabel = d.outcome === 'won' 
+      ? WIN_REASONS.find(r => r.value === d.reason)?.label 
+      : LOSS_REASONS.find(r => r.value === d.reason)?.label;
+    
+    return `
+      <tr onclick="viewDeal(${d.id})" style="cursor: pointer;">
+        <td><strong>${escapeHtml(d.property_name)}</strong></td>
+        <td><span class="type-badge">${PROPERTY_LABELS[d.property_type] || d.property_type || '--'}</span></td>
+        <td><span class="badge ${d.outcome === 'won' ? 'badge-won' : 'badge-lost'}">${d.outcome === 'won' ? '✅ Won' : '❌ Lost'}</span></td>
+        <td>${formatDate(d.closed_date)}</td>
+        <td>${d.days_to_close || '--'}</td>
+        <td>${d.touch_count || '--'}</td>
+        <td>${reasonLabel || '--'}${d.competitor ? ` (${escapeHtml(d.competitor)})` : ''}</td>
+        <td>${d.deal_value ? '$' + d.deal_value.toLocaleString() + '/mo' : '--'}</td>
+        <td>
+          <button class="action-btn" onclick="event.stopPropagation(); editDeal(${d.id})">✏️</button>
+          <button class="action-btn" onclick="event.stopPropagation(); deleteDeal(${d.id})">🗑️</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderCharts() {
+  const won = deals.filter(d => d.outcome === 'won');
+  const lost = deals.filter(d => d.outcome === 'lost');
+  
+  // Win Reasons Chart
+  const winReasonCounts = {};
+  won.forEach(d => {
+    if (d.reason) {
+      winReasonCounts[d.reason] = (winReasonCounts[d.reason] || 0) + 1;
+    }
+  });
+  
+  if (charts.winReasons) charts.winReasons.destroy();
+  charts.winReasons = new Chart(document.getElementById('winReasonsChart'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(winReasonCounts).map(k => WIN_REASONS.find(r => r.value === k)?.label || k),
+      datasets: [{
+        data: Object.values(winReasonCounts),
+        backgroundColor: ['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#84cc16', '#f97316']
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } }
+    }
+  });
+  
+  // Loss Reasons Chart
+  const lossReasonCounts = {};
+  lost.forEach(d => {
+    if (d.reason) {
+      lossReasonCounts[d.reason] = (lossReasonCounts[d.reason] || 0) + 1;
+    }
+  });
+  
+  if (charts.lossReasons) charts.lossReasons.destroy();
+  charts.lossReasons = new Chart(document.getElementById('lossReasonsChart'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(lossReasonCounts).map(k => LOSS_REASONS.find(r => r.value === k)?.label || k),
+      datasets: [{
+        data: Object.values(lossReasonCounts),
+        backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899']
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } }
+    }
+  });
+  
+  // Property Type Win Rate Chart
+  const typeStats = {};
+  deals.forEach(d => {
+    if (!d.property_type) return;
+    if (!typeStats[d.property_type]) typeStats[d.property_type] = { won: 0, lost: 0 };
+    if (d.outcome === 'won') typeStats[d.property_type].won++;
+    else typeStats[d.property_type].lost++;
+  });
+  
+  const typeLabels = Object.keys(typeStats).map(k => PROPERTY_LABELS[k] || k);
+  const typeWinRates = Object.values(typeStats).map(s => {
+    const total = s.won + s.lost;
+    return total > 0 ? Math.round((s.won / total) * 100) : 0;
+  });
+  
+  if (charts.propertyType) charts.propertyType.destroy();
+  charts.propertyType = new Chart(document.getElementById('propertyTypeChart'), {
+    type: 'bar',
+    data: {
+      labels: typeLabels,
+      datasets: [{
+        label: 'Win Rate %',
+        data: typeWinRates,
+        backgroundColor: typeWinRates.map(r => r >= 50 ? '#22c55e' : r >= 30 ? '#f59e0b' : '#ef4444'),
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } } },
+      plugins: { legend: { display: false } }
+    }
+  });
+  
+  // Touch Count Win Rate Chart
+  const touchBuckets = { '1-3': { won: 0, lost: 0 }, '4-7': { won: 0, lost: 0 }, '8-12': { won: 0, lost: 0 }, '13+': { won: 0, lost: 0 } };
+  deals.forEach(d => {
+    if (!d.touch_count) return;
+    let bucket;
+    if (d.touch_count <= 3) bucket = '1-3';
+    else if (d.touch_count <= 7) bucket = '4-7';
+    else if (d.touch_count <= 12) bucket = '8-12';
+    else bucket = '13+';
+    if (d.outcome === 'won') touchBuckets[bucket].won++;
+    else touchBuckets[bucket].lost++;
+  });
+  
+  const touchLabels = Object.keys(touchBuckets);
+  const touchWinRates = Object.values(touchBuckets).map(s => {
+    const total = s.won + s.lost;
+    return total > 0 ? Math.round((s.won / total) * 100) : 0;
+  });
+  const touchCounts = Object.values(touchBuckets).map(s => s.won + s.lost);
+  
+  if (charts.touchCount) charts.touchCount.destroy();
+  charts.touchCount = new Chart(document.getElementById('touchCountChart'), {
+    type: 'bar',
+    data: {
+      labels: touchLabels.map(l => l + ' touches'),
+      datasets: [{
+        label: 'Win Rate %',
+        data: touchWinRates,
+        backgroundColor: '#3b82f6',
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } } },
+      plugins: { 
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            afterLabel: (ctx) => `Total deals: ${touchCounts[ctx.dataIndex]}`
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderInsights() {
+  const grid = document.getElementById('insightsGrid');
+  const won = deals.filter(d => d.outcome === 'won');
+  const lost = deals.filter(d => d.outcome === 'lost');
+  const total = won.length + lost.length;
+  
+  if (total < 3) {
+    grid.innerHTML = `
+      <div class="insight-card neutral">
+        <div class="insight-icon">📈</div>
+        <div class="insight-text">Need more data</div>
+        <div class="insight-detail">Log at least 3 deals to generate insights</div>
+      </div>
+    `;
+    return;
+  }
+  
+  const insights = [];
+  
+  // Touch count insight (Skool rule: 8-10 touches)
+  const highTouchWon = won.filter(d => d.touch_count >= 8).length;
+  const lowTouchWon = won.filter(d => d.touch_count && d.touch_count < 8).length;
+  const highTouchLost = lost.filter(d => d.touch_count >= 8).length;
+  const lowTouchLost = lost.filter(d => d.touch_count && d.touch_count < 8).length;
+  
+  if (highTouchWon + lowTouchWon > 0) {
+    const highTouchRate = (highTouchWon + highTouchLost) > 0 ? highTouchWon / (highTouchWon + highTouchLost) : 0;
+    const lowTouchRate = (lowTouchWon + lowTouchLost) > 0 ? lowTouchWon / (lowTouchWon + lowTouchLost) : 0;
+    
+    if (highTouchRate > lowTouchRate * 1.3) {
+      const multiplier = lowTouchRate > 0 ? (highTouchRate / lowTouchRate).toFixed(1) : '∞';
+      insights.push({
+        type: 'positive',
+        icon: '📞',
+        text: `Deals with 8+ touches close ${multiplier}x more often`,
+        detail: 'Persistence pays off! Keep following up per the Skool playbook.'
+      });
+    }
+  }
+  
+  // Best property type
+  const typeStats = {};
+  deals.forEach(d => {
+    if (!d.property_type) return;
+    if (!typeStats[d.property_type]) typeStats[d.property_type] = { won: 0, lost: 0 };
+    if (d.outcome === 'won') typeStats[d.property_type].won++;
+    else typeStats[d.property_type].lost++;
+  });
+  
+  let bestType = null, bestRate = 0;
+  Object.entries(typeStats).forEach(([type, stats]) => {
+    const totalType = stats.won + stats.lost;
+    if (totalType >= 2) {
+      const rate = stats.won / totalType;
+      if (rate > bestRate) { bestRate = rate; bestType = type; }
+    }
+  });
+  
+  if (bestType && bestRate > 0.5) {
+    insights.push({
+      type: 'positive',
+      icon: '🏢',
+      text: `${PROPERTY_LABELS[bestType] || bestType} properties have ${Math.round(bestRate * 100)}% win rate`,
+      detail: 'Focus prospecting efforts on this property type!'
+    });
+  }
+  
+  // Most common loss reason
+  const lossReasonCounts = {};
+  lost.forEach(d => {
+    if (d.reason) lossReasonCounts[d.reason] = (lossReasonCounts[d.reason] || 0) + 1;
+  });
+  
+  const topLossReason = Object.entries(lossReasonCounts).sort((a, b) => b[1] - a[1])[0];
+  if (topLossReason && topLossReason[1] >= 2) {
+    const label = LOSS_REASONS.find(r => r.value === topLossReason[0])?.label || topLossReason[0];
+    const pct = Math.round((topLossReason[1] / lost.length) * 100);
+    insights.push({
+      type: 'negative',
+      icon: '⚠️',
+      text: `${pct}% of losses are due to "${label}"`,
+      detail: `Address this objection in your pitch. ${topLossReason[1]} deals lost to this reason.`
+    });
+  }
+  
+  // Competitor insight
+  const competitorLosses = lost.filter(d => d.competitor);
+  if (competitorLosses.length >= 2) {
+    const competitors = {};
+    competitorLosses.forEach(d => {
+      competitors[d.competitor] = (competitors[d.competitor] || 0) + 1;
+    });
+    const topCompetitor = Object.entries(competitors).sort((a, b) => b[1] - a[1])[0];
+    insights.push({
+      type: 'neutral',
+      icon: '🥊',
+      text: `${topCompetitor[0]} is your biggest competitor`,
+      detail: `Lost ${topCompetitor[1]} deals to them. Study their offerings.`
+    });
+  }
+  
+  // Days to close insight
+  const avgDaysWon = won.length > 0 ? won.reduce((s, d) => s + (d.days_to_close || 0), 0) / won.length : 0;
+  const avgDaysLost = lost.length > 0 ? lost.reduce((s, d) => s + (d.days_to_close || 0), 0) / lost.length : 0;
+  
+  if (avgDaysWon > 0 && avgDaysLost > 0) {
+    if (avgDaysLost < avgDaysWon * 0.7) {
+      insights.push({
+        type: 'neutral',
+        icon: '⏱️',
+        text: `Lost deals die faster (${Math.round(avgDaysLost)} days vs ${Math.round(avgDaysWon)} days for wins)`,
+        detail: 'Quick "no" might mean wrong fit. Focus on qualified leads.'
+      });
+    }
+  }
+  
+  // Win rate trend
+  const winRate = total > 0 ? Math.round((won.length / total) * 100) : 0;
+  if (winRate >= 50) {
+    insights.push({
+      type: 'positive',
+      icon: '🎯',
+      text: `${winRate}% overall win rate — above industry average!`,
+      detail: 'Keep doing what you\'re doing.'
+    });
+  } else if (winRate < 30 && total >= 5) {
+    insights.push({
+      type: 'negative',
+      icon: '📉',
+      text: `${winRate}% win rate needs improvement`,
+      detail: 'Review loss reasons and post-mortems for patterns.'
+    });
+  }
+  
+  if (insights.length === 0) {
+    insights.push({
+      type: 'neutral',
+      icon: '📊',
+      text: 'Keep logging deals for more insights',
+      detail: 'Patterns emerge with more data points.'
+    });
+  }
+  
+  grid.innerHTML = insights.map(i => `
+    <div class="insight-card ${i.type}">
+      <div class="insight-icon">${i.icon}</div>
+      <div class="insight-text">${i.text}</div>
+      <div class="insight-detail">${i.detail}</div>
+    </div>
+  `).join('');
+}
+
+function renderCompetitors() {
+  const section = document.getElementById('competitorSection');
+  const competitorLosses = deals.filter(d => d.outcome === 'lost' && d.competitor);
+  
+  if (competitorLosses.length === 0) {
+    section.innerHTML = '<div class="empty-state"><p>No competitor losses tracked yet</p></div>';
+    return;
+  }
+  
+  const competitors = {};
+  competitorLosses.forEach(d => {
+    competitors[d.competitor] = (competitors[d.competitor] || 0) + 1;
+  });
+  
+  const sorted = Object.entries(competitors).sort((a, b) => b[1] - a[1]);
+  
+  section.innerHTML = sorted.map(([name, count]) => `
+    <div class="competitor-row">
+      <div class="competitor-name">🥊 ${escapeHtml(name)}</div>
+      <div class="competitor-count">${count} loss${count > 1 ? 'es' : ''}</div>
+    </div>
+  `).join('');
+}
+
+function openModal(outcome) {
+  document.getElementById('dealModal').classList.add('open');
+  document.getElementById('dealOutcome').value = outcome;
+  document.getElementById('dealId').value = '';
+  document.getElementById('dealForm').reset();
+  document.getElementById('closedDate').valueAsDate = new Date();
+  
+  if (outcome === 'won') {
+    document.getElementById('modalTitle').textContent = '✅ Log Won Deal';
+    document.getElementById('dateLabel').textContent = 'Date Signed';
+    document.getElementById('dealValueLabel').textContent = 'Deal Value (Monthly $)';
+    document.getElementById('reasonLabel').textContent = 'What Won the Deal?';
+    document.getElementById('wonFields').style.display = 'block';
+    document.getElementById('lostFields').style.display = 'none';
+    populateReasons(WIN_REASONS);
+  } else {
+    document.getElementById('modalTitle').textContent = '❌ Log Lost Deal';
+    document.getElementById('dateLabel').textContent = 'Date Lost';
+    document.getElementById('dealValueLabel').textContent = 'Estimated Value Lost (Monthly $)';
+    document.getElementById('reasonLabel').textContent = 'Reason Lost';
+    document.getElementById('wonFields').style.display = 'none';
+    document.getElementById('lostFields').style.display = 'block';
+    populateReasons(LOSS_REASONS);
+  }
+}
+
+function populateReasons(reasons) {
+  const select = document.getElementById('reasonSelect');
+  select.innerHTML = '<option value="">Select reason...</option>' + 
+    reasons.map(r => `<option value="${r.value}">${r.label}</option>`).join('');
+}
+
+function closeModal() {
+  document.getElementById('dealModal').classList.remove('open');
+}
+
+async function saveDeal() {
+  const id = document.getElementById('dealId').value;
+  const outcome = document.getElementById('dealOutcome').value;
+  
+  const data = {
+    property_name: document.getElementById('propertyName').value,
+    property_type: document.getElementById('propertyType').value,
+    closed_date: document.getElementById('closedDate').value,
+    days_to_close: parseInt(document.getElementById('daysToClose').value) || null,
+    touch_count: parseInt(document.getElementById('touchCount').value) || null,
+    deal_value: parseFloat(document.getElementById('dealValue').value) || null,
+    reason: document.getElementById('reasonSelect').value,
+    notes: document.getElementById('notes').value,
+    outcome
+  };
+  
+  if (outcome === 'won') {
+    data.what_worked = document.getElementById('whatWorked').value;
+  } else {
+    data.competitor = document.getElementById('competitor').value;
+    data.what_happened = document.getElementById('whatHappened').value;
+    data.what_different = document.getElementById('whatDifferent').value;
+    data.follow_up = document.getElementById('followUp').value;
+  }
+  
+  if (!data.property_name || !data.closed_date) {
+    alert('Please fill in required fields');
+    return;
+  }
+  
+  try {
+    const url = id ? `/api/win-loss/${id}` : '/api/win-loss';
+    const method = id ? 'PUT' : 'POST';
+    
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    
+    if (!res.ok) throw new Error('Failed to save');
+    
+    closeModal();
+    loadDeals();
+  } catch (e) {
+    alert('Error saving deal: ' + e.message);
+  }
+}
+
+function editDeal(id) {
+  const deal = deals.find(d => d.id === id);
+  if (!deal) return;
+  
+  openModal(deal.outcome);
+  document.getElementById('dealId').value = id;
+  document.getElementById('propertyName').value = deal.property_name || '';
+  document.getElementById('propertyType').value = deal.property_type || '';
+  document.getElementById('closedDate').value = deal.closed_date || '';
+  document.getElementById('daysToClose').value = deal.days_to_close || '';
+  document.getElementById('touchCount').value = deal.touch_count || '';
+  document.getElementById('dealValue').value = deal.deal_value || '';
+  document.getElementById('reasonSelect').value = deal.reason || '';
+  document.getElementById('notes').value = deal.notes || '';
+  
+  if (deal.outcome === 'won') {
+    document.getElementById('whatWorked').value = deal.what_worked || '';
+  } else {
+    document.getElementById('competitor').value = deal.competitor || '';
+    document.getElementById('whatHappened').value = deal.what_happened || '';
+    document.getElementById('whatDifferent').value = deal.what_different || '';
+    document.getElementById('followUp').value = deal.follow_up || '';
+  }
+}
+
+async function deleteDeal(id) {
+  if (!confirm('Delete this deal record?')) return;
+  
+  try {
+    await fetch(`/api/win-loss/${id}`, { method: 'DELETE' });
+    loadDeals();
+  } catch (e) {
+    alert('Error deleting deal');
+  }
+}
+
+function viewDeal(id) {
+  const deal = deals.find(d => d.id === id);
+  if (!deal) return;
+  
+  const reasonLabel = deal.outcome === 'won'
+    ? WIN_REASONS.find(r => r.value === deal.reason)?.label
+    : LOSS_REASONS.find(r => r.value === deal.reason)?.label;
+  
+  document.getElementById('viewTitle').textContent = deal.outcome === 'won' 
+    ? `✅ ${deal.property_name}` 
+    : `❌ ${deal.property_name}`;
+  
+  let html = `
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+      <div><strong>Property Type:</strong> ${PROPERTY_LABELS[deal.property_type] || deal.property_type || '--'}</div>
+      <div><strong>Date:</strong> ${formatDate(deal.closed_date)}</div>
+      <div><strong>Days in Pipeline:</strong> ${deal.days_to_close || '--'}</div>
+      <div><strong>Touches:</strong> ${deal.touch_count || '--'}</div>
+      <div><strong>Value:</strong> ${deal.deal_value ? '$' + deal.deal_value.toLocaleString() + '/mo' : '--'}</div>
+      <div><strong>Reason:</strong> ${reasonLabel || '--'}</div>
+    </div>
+  `;
+  
+  if (deal.outcome === 'won' && deal.what_worked) {
+    html += `
+      <div style="background: var(--green-light); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+        <strong style="color: var(--green);">What Worked:</strong>
+        <p style="margin-top: 8px;">${escapeHtml(deal.what_worked)}</p>
+      </div>
+    `;
+  }
+  
+  if (deal.outcome === 'lost') {
+    if (deal.competitor) {
+      html += `<p style="margin-bottom: 12px;"><strong>Lost to:</strong> ${escapeHtml(deal.competitor)}</p>`;
+    }
+    
+    if (deal.what_happened || deal.what_different || deal.follow_up) {
+      html += `<div class="postmortem-section">
+        <h4>📝 Post-Mortem</h4>`;
+      
+      if (deal.what_happened) {
+        html += `<p style="margin-bottom: 12px;"><strong>What Happened:</strong><br>${escapeHtml(deal.what_happened)}</p>`;
+      }
+      if (deal.what_different) {
+        html += `<p style="margin-bottom: 12px;"><strong>What Could We Do Differently:</strong><br>${escapeHtml(deal.what_different)}</p>`;
+      }
+      if (deal.follow_up) {
+        html += `<p><strong>Follow-Up Opportunity:</strong><br>${escapeHtml(deal.follow_up)}</p>`;
+      }
+      
+      html += `</div>`;
+    }
+  }
+  
+  if (deal.notes) {
+    html += `<div style="margin-top: 16px;"><strong>Notes:</strong><p style="margin-top: 8px; color: var(--muted);">${escapeHtml(deal.notes)}</p></div>`;
+  }
+  
+  document.getElementById('viewContent').innerHTML = html;
+  document.getElementById('editDealBtn').onclick = () => { closeViewModal(); editDeal(id); };
+  document.getElementById('deleteDealBtn').onclick = () => { closeViewModal(); deleteDeal(id); };
+  document.getElementById('viewModal').classList.add('open');
+}
+
+function closeViewModal() {
+  document.getElementById('viewModal').classList.remove('open');
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '--';
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+</script>
+</body>
+</html>

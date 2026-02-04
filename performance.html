@@ -2,772 +2,1158 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
-  <title>Product Performance — Kande VendTech</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Performance Dashboard — Kande VendTech</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --bg: #f5f7fa; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
-      --muted: #718096; --accent: #3182ce; --hot: #e53e3e; --warn: #dd6b20;
-      --success: #38a169; --purple: #7b2cbf;
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #0f172a;
+      --muted: #64748b; --accent: #3b82f6; --accent-light: #eff6ff;
+      --green: #22c55e; --green-light: #dcfce7;
+      --amber: #f59e0b; --amber-light: #fef3c7;
+      --red: #ef4444; --red-light: #fee2e2;
+      --purple: #8b5cf6; --purple-light: #f3e8ff;
+      --teal: #14b8a6; --teal-light: #ccfbf1;
+      --radius: 12px;
     }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-    .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
-
-    .top-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
-    .top-nav .logo { height: 40px; }
-    .top-nav a { color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500; padding: 6px 12px; border-radius: 6px; transition: all 0.2s; }
-    .top-nav a:hover, .top-nav a.active { color: var(--accent); background: rgba(49,130,206,0.08); }
-    .nav-brand { font-size: 0.9rem; font-weight: 600; color: var(--text); margin-right: 8px; }
-
-    h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 4px; }
-    h2 { font-size: 1.2rem; font-weight: 600; margin-bottom: 16px; }
-    .subtitle { color: var(--muted); margin-bottom: 24px; }
-
-    .card { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; }
-
-    /* Filters */
-    .filters { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; align-items: center; }
-    .filter-group { display: flex; align-items: center; gap: 6px; }
-    .filter-group label { font-size: 0.85rem; font-weight: 500; color: var(--muted); }
-    select, input[type="text"], input[type="number"], input[type="date"] {
-      padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem;
-      background: var(--card); color: var(--text); outline: none;
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+    .dashboard { max-width: 1400px; margin: 0 auto; padding: 24px 28px 60px; }
+    
+    /* Header */
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px; flex-wrap: wrap; gap: 16px;
     }
-    select:focus, input:focus { border-color: var(--accent); }
-
-    .btn { padding: 8px 18px; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-    .btn-primary { background: var(--accent); color: white; }
-    .btn-primary:hover { background: #2c6cb5; }
-    .btn-success { background: var(--success); color: white; }
-    .btn-success:hover { background: #2f8c5a; }
-    .btn-danger { background: var(--hot); color: white; }
-    .btn-danger:hover { background: #c53030; }
-    .btn-ghost { background: transparent; color: var(--accent); border: 1px solid var(--border); }
-    .btn-ghost:hover { background: rgba(49,130,206,0.08); }
-    .btn-sm { padding: 5px 12px; font-size: 0.78rem; }
-
-    /* Summary cards */
-    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
-    .summary-card { background: var(--card); border-radius: 12px; padding: 18px; border: 1px solid var(--border); text-align: center; }
-    .summary-card .value { font-size: 1.8rem; font-weight: 700; }
-    .summary-card .label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; font-weight: 600; margin-top: 4px; }
-    .value.accent { color: var(--accent); }
-    .value.success { color: var(--success); }
-    .value.warn { color: var(--warn); }
-    .value.hot { color: var(--hot); }
-
-    /* Layout */
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
-
-    /* Table */
-    .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    th { text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--border); color: var(--muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 600; cursor: pointer; user-select: none; white-space: nowrap; }
-    th:hover { color: var(--accent); }
-    th.sorted-asc::after { content: ' ▲'; }
-    th.sorted-desc::after { content: ' ▼'; }
-    td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
-    tr:hover { background: rgba(49,130,206,0.03); }
-    tr.top-performer { background: rgba(56,161,105,0.06); }
-    tr.bottom-performer { background: rgba(229,62,62,0.06); }
-
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; }
-    .badge-success { background: rgba(56,161,105,0.15); color: var(--success); }
-    .badge-danger { background: rgba(229,62,62,0.15); color: var(--hot); }
-    .badge-warn { background: rgba(221,107,32,0.15); color: var(--warn); }
-    .badge-info { background: rgba(49,130,206,0.15); color: var(--accent); }
-
-    /* Canvas charts */
-    .chart-container { position: relative; width: 100%; }
-    .chart-container canvas { width: 100%; }
-
-    /* Margin bars */
-    .margin-bar-wrap { margin-bottom: 12px; }
-    .margin-bar-label { display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 4px; }
-    .margin-bar { height: 24px; background: var(--border); border-radius: 6px; overflow: hidden; position: relative; }
-    .margin-bar-fill { height: 100%; border-radius: 6px; transition: width 0.5s; }
-    .margin-bar-target { position: absolute; top: 0; height: 100%; width: 2px; background: var(--text); opacity: 0.4; }
-    .margin-bar-target-range { position: absolute; top: 0; height: 100%; background: rgba(56,161,105,0.15); border-left: 2px dashed var(--success); border-right: 2px dashed var(--success); }
-
-    /* Tabs */
-    .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
-    .tab { padding: 10px 20px; font-size: 0.9rem; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
-    .tab:hover { color: var(--accent); }
-    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-
-    /* Sales form */
-    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
-    .form-group { display: flex; flex-direction: column; gap: 4px; }
-    .form-group label { font-size: 0.82rem; font-weight: 500; color: var(--muted); }
-    .form-group input, .form-group select { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; }
-
-    /* Recommendations */
-    .rec-card { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 10px; margin-bottom: 10px; border: 1px solid var(--border); }
-    .rec-card.swap { border-left: 4px solid var(--hot); background: rgba(229,62,62,0.03); }
-    .rec-card.keep { border-left: 4px solid var(--success); background: rgba(56,161,105,0.03); }
-    .rec-icon { font-size: 1.5rem; }
-    .rec-info { flex: 1; }
-    .rec-name { font-weight: 600; font-size: 0.95rem; }
-    .rec-detail { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
-
-    /* Modal */
-    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+    .page-title { font-size: 1.5rem; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+    .last-updated { font-size: 0.78rem; color: var(--muted); }
+    
+    /* KPI Cards */
+    .kpi-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 14px; margin-bottom: 28px; }
+    .kpi-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 18px 16px; text-align: center; transition: all 0.2s;
+    }
+    .kpi-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); transform: translateY(-2px); }
+    .kpi-icon { font-size: 1.3rem; margin-bottom: 6px; }
+    .kpi-value { font-size: 1.6rem; font-weight: 800; line-height: 1.1; }
+    .kpi-label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-top: 4px; }
+    .kpi-trend { font-size: 0.7rem; font-weight: 600; margin-top: 6px; }
+    .kpi-trend.up { color: var(--green); }
+    .kpi-trend.down { color: var(--red); }
+    .kpi-trend.neutral { color: var(--muted); }
+    
+    /* Grid layouts */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    .grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 24px; }
+    .grid-equal-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 24px; }
+    
+    /* Cards */
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 22px 24px;
+    }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .card-title { font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .card-link { font-size: 0.78rem; color: var(--accent); text-decoration: none; font-weight: 600; }
+    .card-link:hover { text-decoration: underline; }
+    
+    /* Pipeline Funnel */
+    .funnel-container { padding: 20px 0; }
+    .funnel-stage {
+      display: flex; align-items: center; gap: 16px; margin-bottom: 10px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .funnel-stage:hover { transform: translateX(4px); }
+    .funnel-stage:hover .funnel-bar { filter: brightness(1.05); }
+    .funnel-label { width: 100px; font-size: 0.78rem; font-weight: 600; color: var(--muted); text-align: right; flex-shrink: 0; }
+    .funnel-bar-wrap { flex: 1; height: 36px; background: var(--bg); border-radius: 6px; overflow: hidden; position: relative; }
+    .funnel-bar { height: 100%; border-radius: 6px; display: flex; align-items: center; justify-content: flex-end; padding-right: 12px; transition: width 0.5s ease; }
+    .funnel-bar span { font-size: 0.82rem; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+    .funnel-count { width: 50px; font-size: 0.9rem; font-weight: 700; text-align: center; }
+    .stage-new { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+    .stage-contacted { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+    .stage-interested { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .stage-proposal { background: linear-gradient(90deg, #ec4899, #f472b6); }
+    .stage-negotiating { background: linear-gradient(90deg, #14b8a6, #2dd4bf); }
+    .stage-signed { background: linear-gradient(90deg, #22c55e, #4ade80); }
+    
+    /* Chart containers */
+    .chart-container { height: 280px; position: relative; }
+    .chart-container-sm { height: 200px; position: relative; }
+    
+    /* Leaderboard */
+    .leaderboard { list-style: none; }
+    .leaderboard-item {
+      display: flex; align-items: center; gap: 12px; padding: 10px 0;
+      border-bottom: 1px solid #f1f5f9; font-size: 0.85rem;
+    }
+    .leaderboard-item:last-child { border-bottom: none; }
+    .leaderboard-rank {
+      width: 24px; height: 24px; border-radius: 50%; display: flex;
+      align-items: center; justify-content: center; font-size: 0.72rem;
+      font-weight: 700; flex-shrink: 0;
+    }
+    .rank-1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #fff; }
+    .rank-2 { background: linear-gradient(135deg, #94a3b8, #64748b); color: #fff; }
+    .rank-3 { background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; }
+    .rank-default { background: var(--bg); color: var(--muted); }
+    .leaderboard-name { flex: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .leaderboard-value { font-weight: 700; color: var(--accent); white-space: nowrap; }
+    .leaderboard-tag { font-size: 0.68rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+    .tag-hot { background: var(--red-light); color: var(--red); }
+    .tag-warm { background: var(--amber-light); color: var(--amber); }
+    .tag-cold { background: #dbeafe; color: #2563eb; }
+    .leaderboard-empty { color: var(--muted); font-size: 0.85rem; padding: 20px 0; text-align: center; }
+    
+    /* Weekly comparison */
+    .weekly-comparison { display: flex; gap: 20px; }
+    .week-col { flex: 1; }
+    .week-label { font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 12px; }
+    .week-stat { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+    .week-stat:last-child { border-bottom: none; }
+    .week-stat-label { font-size: 0.82rem; color: var(--muted); }
+    .week-stat-value { font-size: 0.95rem; font-weight: 700; }
+    .week-stat-value.positive { color: var(--green); }
+    .week-stat-value.negative { color: var(--red); }
+    .comparison-delta { display: flex; align-items: center; gap: 4px; font-size: 0.75rem; font-weight: 600; margin-top: 8px; }
+    .comparison-delta.up { color: var(--green); }
+    .comparison-delta.down { color: var(--red); }
+    
+    /* Goal tracking */
+    .goals-grid { display: grid; gap: 16px; }
+    .goal-item { }
+    .goal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .goal-label { font-size: 0.82rem; font-weight: 600; }
+    .goal-values { font-size: 0.78rem; color: var(--muted); }
+    .goal-bar { height: 10px; background: var(--bg); border-radius: 5px; overflow: hidden; }
+    .goal-progress { height: 100%; border-radius: 5px; transition: width 0.5s ease; }
+    .goal-progress.low { background: var(--red); }
+    .goal-progress.mid { background: var(--amber); }
+    .goal-progress.high { background: var(--green); }
+    .goal-edit { font-size: 0.72rem; color: var(--accent); cursor: pointer; text-decoration: underline; }
+    
+    /* Activity breakdown */
+    .activity-stat { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+    .activity-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+    .activity-type { flex: 1; font-size: 0.82rem; }
+    .activity-count { font-weight: 700; font-size: 0.9rem; }
+    
+    /* Cold prospects alert */
+    .cold-alert { background: var(--amber-light); border: 1px solid #fcd34d; border-radius: var(--radius); padding: 14px 18px; margin-bottom: 16px; }
+    .cold-alert-header { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.9rem; color: #92400e; margin-bottom: 6px; }
+    .cold-alert-text { font-size: 0.82rem; color: #a16207; }
+    
+    /* Wins/losses */
+    .wins-losses { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .wl-section { }
+    .wl-header { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .wl-header.wins { color: var(--green); }
+    .wl-header.losses { color: var(--red); }
+    .wl-list { list-style: none; }
+    .wl-item { font-size: 0.82rem; padding: 6px 0; border-bottom: 1px solid #f1f5f9; }
+    .wl-item:last-child { border-bottom: none; }
+    .wl-empty { font-size: 0.8rem; color: var(--muted); font-style: italic; }
+    
+    /* Modal for stage drill-down */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; display: none; align-items: center; justify-content: center; }
     .modal-overlay.active { display: flex; }
-    .modal { background: var(--card); border-radius: 16px; padding: 24px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
-    .modal h3 { margin-bottom: 16px; }
-
-    @media (max-width: 768px) {
-      .grid-2, .grid-3 { grid-template-columns: 1fr; }
-      .summary-grid { grid-template-columns: repeat(2, 1fr); }
-      .form-grid { grid-template-columns: 1fr; }
+    .modal-content { background: #fff; border-radius: 16px; padding: 28px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .modal-title { font-size: 1.1rem; font-weight: 700; }
+    .modal-close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--muted); }
+    .modal-list { list-style: none; }
+    .modal-list-item { padding: 12px 0; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 12px; }
+    .modal-list-item:last-child { border-bottom: none; }
+    .modal-prospect-name { font-weight: 600; flex: 1; }
+    .modal-prospect-type { font-size: 0.75rem; color: var(--muted); }
+    .modal-empty { color: var(--muted); text-align: center; padding: 30px; }
+    
+    /* Goal edit modal */
+    .goal-form { display: grid; gap: 16px; }
+    .goal-input-group { }
+    .goal-input-label { font-size: 0.82rem; font-weight: 600; margin-bottom: 6px; display: block; }
+    .goal-input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; }
+    .goal-input:focus { outline: none; border-color: var(--accent); }
+    .goal-save-btn { background: var(--accent); color: #fff; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+    .goal-save-btn:hover { background: #2563eb; }
+    
+    /* Loading */
+    .skeleton { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .kpi-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (max-width: 900px) {
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .grid-2, .grid-3, .grid-equal-3 { grid-template-columns: 1fr; }
+      .weekly-comparison { flex-direction: column; }
+      .wins-losses { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .dashboard { padding: 16px; }
+      .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .kpi-card { padding: 14px 12px; }
+      .kpi-value { font-size: 1.3rem; }
+      .funnel-label { width: 70px; font-size: 0.7rem; }
     }
   </style>
 </head>
 <body>
-  <div class="app">
-    <nav class="top-nav">
-      <a href="/"><img src="/logo.png" alt="Kande VendTech" class="logo"></a>
-      <span class="nav-brand">Operations</span>
-      <a href="/">Dashboard</a>
-      <a href="/crm">CRM</a>
-      <a href="/machines">Machines</a>
-      <a href="/inventory">Inventory</a>
-      <a href="/finance">Finance</a>
-      <a href="/restock">Restock</a>
-      <a href="/performance" class="active">Performance</a>
-      <a href="/planogram">Planogram</a>
-      <a href="/map">Map</a>
-    </nav>
-
-    <h1>📊 Product Performance</h1>
-    <p class="subtitle">Track sales velocity, margins, and find your top (and worst) performers</p>
-
-    <!-- Filters -->
-    <div class="filters">
-      <div class="filter-group">
-        <label>Period:</label>
-        <select id="period-filter">
-          <option value="week">This Week</option>
-          <option value="month">This Month</option>
-          <option value="30days" selected>Last 30 Days</option>
-          <option value="all">All Time</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label>Machine:</label>
-        <select id="machine-filter">
-          <option value="">All Machines</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label>Category:</label>
-        <select id="category-filter">
-          <option value="">All Categories</option>
-          <option value="Beverages">Beverages</option>
-          <option value="Snacks">Snacks</option>
-          <option value="Protein/Health">Protein/Health</option>
-          <option value="Candy">Candy</option>
-          <option value="Essentials">Essentials</option>
-          <option value="Frozen">Frozen</option>
-        </select>
-      </div>
-      <button class="btn btn-primary" onclick="loadPerformance()">Apply</button>
-      <div style="flex:1"></div>
-      <button class="btn btn-success" onclick="showSalesModal()">+ Log Sale</button>
-      <button class="btn btn-ghost" onclick="showBulkModal()">📥 Bulk Import</button>
-    </div>
-
-    <!-- Summary Stats -->
-    <div class="summary-grid" id="summary-grid">
-      <div class="summary-card"><div class="value accent" id="s-revenue">$0</div><div class="label">Total Revenue</div></div>
-      <div class="summary-card"><div class="value success" id="s-units">0</div><div class="label">Units Sold</div></div>
-      <div class="summary-card"><div class="value warn" id="s-margin">0%</div><div class="label">Avg Margin</div></div>
-      <div class="summary-card"><div class="value accent" id="s-profit">$0</div><div class="label">Total Profit</div></div>
-      <div class="summary-card"><div class="value success" id="s-velocity">0</div><div class="label">Units/Week</div></div>
-      <div class="summary-card"><div class="value hot" id="s-swaps">0</div><div class="label">Swap Candidates</div></div>
-    </div>
-
-    <!-- Tabs -->
-    <div class="tabs">
-      <div class="tab active" onclick="switchTab('scoreboard')">Scoreboard</div>
-      <div class="tab" onclick="switchTab('charts')">Category Breakdown</div>
-      <div class="tab" onclick="switchTab('margins')">Margin Analysis</div>
-      <div class="tab" onclick="switchTab('recommendations')">Recommendations</div>
-      <div class="tab" onclick="switchTab('sales')">Sales Log</div>
-    </div>
-
-    <!-- Tab: Scoreboard -->
-    <div class="tab-content active" id="tab-scoreboard">
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-          <h2 style="margin-bottom:0">Product Scoreboard</h2>
-          <span style="font-size:0.82rem;color:var(--muted)">
-            <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:rgba(56,161,105,0.2);margin-right:4px;vertical-align:middle;"></span>Top 5
-            <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:rgba(229,62,62,0.2);margin-right:4px;margin-left:12px;vertical-align:middle;"></span>Bottom 5
-          </span>
-        </div>
-        <div class="table-wrap">
-          <table id="scoreboard-table">
-            <thead>
-              <tr>
-                <th data-sort="rank">#</th>
-                <th data-sort="name">Product</th>
-                <th data-sort="category">Category</th>
-                <th data-sort="revenue">Revenue</th>
-                <th data-sort="units">Units</th>
-                <th data-sort="margin">Margin %</th>
-                <th data-sort="profit_per_unit">Profit/Unit</th>
-                <th data-sort="velocity">Units/Wk</th>
-                <th data-sort="status">Status</th>
-              </tr>
-            </thead>
-            <tbody id="scoreboard-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tab: Charts -->
-    <div class="tab-content" id="tab-charts">
-      <div class="grid-2">
-        <div class="card">
-          <h2>Revenue by Category</h2>
-          <div class="chart-container">
-            <canvas id="category-chart" width="400" height="400"></canvas>
-          </div>
-        </div>
-        <div class="card">
-          <h2>Top 5 vs Bottom 5</h2>
-          <div style="margin-bottom:20px">
-            <h3 style="font-size:0.9rem;color:var(--success);margin-bottom:10px">🏆 Top Performers</h3>
-            <div id="top5-list"></div>
-          </div>
-          <div>
-            <h3 style="font-size:0.9rem;color:var(--hot);margin-bottom:10px">⚠️ Bottom Performers</h3>
-            <div id="bottom5-list"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tab: Margins -->
-    <div class="tab-content" id="tab-margins">
-      <div class="grid-2">
-        <div class="card">
-          <h2>Ambient Products — Target 60-65% Margin</h2>
-          <div id="margin-ambient"></div>
-        </div>
-        <div class="card">
-          <h2>Frozen Products — Target 45-50% Margin</h2>
-          <div id="margin-frozen"></div>
-        </div>
-      </div>
-      <div class="card">
-        <h2>Margin Rules</h2>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;font-size:0.9rem;">
-          <div style="padding:14px;border-radius:10px;background:rgba(49,130,206,0.05);border:1px solid rgba(49,130,206,0.2);">
-            <strong>3× Markup Rule</strong><br><span style="color:var(--muted)">Buy at $1 → Sell at $3. Simple and effective.</span>
-          </div>
-          <div style="padding:14px;border-radius:10px;background:rgba(56,161,105,0.05);border:1px solid rgba(56,161,105,0.2);">
-            <strong>Gas Station Parity</strong><br><span style="color:var(--muted)">Price to match gas stations, NOT Walmart.</span>
-          </div>
-          <div style="padding:14px;border-radius:10px;background:rgba(221,107,32,0.05);border:1px solid rgba(221,107,32,0.2);">
-            <strong>Profit per Unit > Margin %</strong><br><span style="color:var(--muted)">$1.70 profit at 57% beats $0.80 at 80%.</span>
-          </div>
-          <div style="padding:14px;border-radius:10px;background:rgba(123,44,191,0.05);border:1px solid rgba(123,44,191,0.2);">
-            <strong>Net Target: 30-35%</strong><br><span style="color:var(--muted)">After COGS, commission, restocking costs.</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tab: Recommendations -->
-    <div class="tab-content" id="tab-recommendations">
-      <div class="card">
-        <h2>Swap Recommendations</h2>
-        <p style="font-size:0.85rem;color:var(--muted);margin-bottom:16px;">Products with &lt;2 units/week velocity are flagged for potential replacement.</p>
-        <div id="rec-list"></div>
-      </div>
-    </div>
-
-    <!-- Tab: Sales Log -->
-    <div class="tab-content" id="tab-sales">
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-          <h2 style="margin-bottom:0">Recent Sales</h2>
-          <button class="btn btn-success btn-sm" onclick="showSalesModal()">+ Log Sale</button>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Product</th>
-                <th>Machine</th>
-                <th>Qty</th>
-                <th>Unit Price</th>
-                <th>Total</th>
-                <th>Profit</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="sales-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Log Sale Modal -->
-  <div class="modal-overlay" id="sale-modal">
-    <div class="modal">
-      <h3>Log a Sale</h3>
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Product</label>
-          <select id="sale-product"></select>
-        </div>
-        <div class="form-group">
-          <label>Machine</label>
-          <select id="sale-machine"><option value="">General</option></select>
-        </div>
-        <div class="form-group">
-          <label>Quantity</label>
-          <input type="number" id="sale-qty" value="1" min="1">
-        </div>
-        <div class="form-group">
-          <label>Date</label>
-          <input type="date" id="sale-date">
-        </div>
-      </div>
-      <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end;">
-        <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
-        <button class="btn btn-success" onclick="submitSale()">Log Sale</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Bulk Import Modal -->
-  <div class="modal-overlay" id="bulk-modal">
-    <div class="modal">
-      <h3>Bulk Import Sales</h3>
-      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:12px;">Paste CSV data: product_name, machine_name, quantity, date (one per line)</p>
-      <textarea id="bulk-data" style="width:100%;height:200px;padding:12px;border:1px solid var(--border);border-radius:8px;font-family:monospace;font-size:0.85rem;" placeholder="Core Water, Machine A, 5, 2025-01-15
-Cheetos Flamin Hot, Machine A, 3, 2025-01-15
-Snickers, Machine B, 2, 2025-01-16"></textarea>
-      <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end;">
-        <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
-        <button class="btn btn-success" onclick="submitBulk()">Import</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // State
-    let products = [];
-    let machines = [];
-    let sales = [];
-    let performanceData = [];
-    let sortField = 'revenue';
-    let sortDir = 'desc';
-
-    // Init
-    async function init() {
-      document.getElementById('sale-date').value = new Date().toISOString().split('T')[0];
-      await Promise.all([loadProducts(), loadMachines()]);
-      await loadPerformance();
-      await loadSales();
-    }
-
-    async function loadProducts() {
-      products = await fetch('/api/products').then(r => r.json());
-      const sel = document.getElementById('sale-product');
-      sel.innerHTML = products.map(p => `<option value="${p.id}">${p.name} ($${(p.sell_price||0).toFixed(2)})</option>`).join('');
-    }
-
-    async function loadMachines() {
-      machines = await fetch('/api/machines').then(r => r.json());
-      const sel = document.getElementById('machine-filter');
-      const saleSel = document.getElementById('sale-machine');
-      const opts = machines.map(m => `<option value="${m.id}">${m.name || m.model || 'Machine #'+m.id}${m.location ? ' @ '+m.location.name : ''}</option>`).join('');
-      sel.innerHTML = '<option value="">All Machines</option>' + opts;
-      saleSel.innerHTML = '<option value="">General</option>' + opts;
-    }
-
-    async function loadPerformance() {
-      const period = document.getElementById('period-filter').value;
-      const machineId = document.getElementById('machine-filter').value;
-      const category = document.getElementById('category-filter').value;
-      let url = `/api/performance/summary?period=${period}`;
-      if (machineId) url += `&machine_id=${machineId}`;
-      if (category) url += `&category=${encodeURIComponent(category)}`;
-      const data = await fetch(url).then(r => r.json());
-      performanceData = data.products || [];
-
-      // Summary stats
-      document.getElementById('s-revenue').textContent = '$' + (data.totalRevenue || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-      document.getElementById('s-units').textContent = (data.totalUnits || 0).toLocaleString();
-      document.getElementById('s-margin').textContent = (data.avgMargin || 0).toFixed(1) + '%';
-      document.getElementById('s-profit').textContent = '$' + (data.totalProfit || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-      document.getElementById('s-velocity').textContent = (data.totalVelocity || 0).toFixed(1);
-      document.getElementById('s-swaps').textContent = data.swapCount || 0;
-
-      renderScoreboard();
-      renderCategoryChart(data.categoryBreakdown || {});
-      renderTopBottom();
-      renderMarginAnalysis();
-      renderRecommendations();
-    }
-
-    async function loadSales() {
-      sales = await fetch('/api/sales').then(r => r.json());
-      renderSalesLog();
-    }
-
-    // Scoreboard
-    function renderScoreboard() {
-      const sorted = [...performanceData].sort((a, b) => {
-        let va = a[sortField], vb = b[sortField];
-        if (typeof va === 'string') return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
-        return sortDir === 'asc' ? va - vb : vb - va;
-      });
-
-      const top5 = sorted.slice(0, 5).map(p => p.product_id);
-      const bottom5 = sorted.length > 5 ? sorted.slice(-5).map(p => p.product_id) : [];
-
-      const tbody = document.getElementById('scoreboard-body');
-      tbody.innerHTML = sorted.map((p, i) => {
-        const isTop = top5.includes(p.product_id) && sorted.length > 5;
-        const isBottom = bottom5.includes(p.product_id);
-        const rowClass = isTop ? 'top-performer' : (isBottom ? 'bottom-performer' : '');
-        const statusBadge = p.velocity < 2 
-          ? '<span class="badge badge-danger">Swap?</span>' 
-          : (p.velocity >= 5 ? '<span class="badge badge-success">Star</span>' : '<span class="badge badge-info">OK</span>');
-        return `<tr class="${rowClass}">
-          <td>${i + 1}</td>
-          <td><strong>${p.name}</strong></td>
-          <td>${p.category || '—'}</td>
-          <td>$${p.revenue.toFixed(2)}</td>
-          <td>${p.units}</td>
-          <td>${p.margin.toFixed(1)}%</td>
-          <td>$${p.profit_per_unit.toFixed(2)}</td>
-          <td>${p.velocity.toFixed(1)}</td>
-          <td>${statusBadge}</td>
-        </tr>`;
-      }).join('');
-
-      // Update sort headers
-      document.querySelectorAll('#scoreboard-table th').forEach(th => {
-        th.classList.remove('sorted-asc', 'sorted-desc');
-        if (th.dataset.sort === sortField) {
-          th.classList.add(sortDir === 'asc' ? 'sorted-asc' : 'sorted-desc');
-        }
-      });
-    }
-
-    // Sort handler
-    document.querySelectorAll('#scoreboard-table th[data-sort]').forEach(th => {
-      th.addEventListener('click', () => {
-        const field = th.dataset.sort;
-        if (sortField === field) { sortDir = sortDir === 'asc' ? 'desc' : 'asc'; }
-        else { sortField = field; sortDir = 'desc'; }
-        renderScoreboard();
-      });
-    });
-
-    // Category donut chart
-    function renderCategoryChart(breakdown) {
-      const canvas = document.getElementById('category-chart');
-      const ctx = canvas.getContext('2d');
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = 400 * dpr;
-      canvas.height = 400 * dpr;
-      ctx.scale(dpr, dpr);
-
-      const categories = Object.keys(breakdown);
-      const values = Object.values(breakdown);
-      const total = values.reduce((s, v) => s + v, 0);
-      if (total === 0) {
-        ctx.fillStyle = '#718096';
-        ctx.font = '14px -apple-system, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('No sales data yet', 200, 200);
-        return;
-      }
-
-      const colors = ['#3182ce', '#38a169', '#dd6b20', '#e53e3e', '#7b2cbf', '#00bcd4'];
-      const cx = 200, cy = 170, outer = 130, inner = 70;
-      let angle = -Math.PI / 2;
-
-      categories.forEach((cat, i) => {
-        const slice = (values[i] / total) * Math.PI * 2;
-        ctx.beginPath();
-        ctx.arc(cx, cy, outer, angle, angle + slice);
-        ctx.arc(cx, cy, inner, angle + slice, angle, true);
-        ctx.closePath();
-        ctx.fillStyle = colors[i % colors.length];
-        ctx.fill();
-        
-        // Label
-        const mid = angle + slice / 2;
-        const lx = cx + Math.cos(mid) * (outer + 20);
-        const ly = cy + Math.sin(mid) * (outer + 20);
-        ctx.fillStyle = '#1a202c';
-        ctx.font = '12px -apple-system, sans-serif';
-        ctx.textAlign = Math.cos(mid) > 0 ? 'left' : 'right';
-        ctx.fillText(`${cat}`, lx, ly - 6);
-        ctx.fillStyle = '#718096';
-        ctx.font = '11px -apple-system, sans-serif';
-        ctx.fillText(`$${values[i].toFixed(0)} (${((values[i]/total)*100).toFixed(0)}%)`, lx, ly + 8);
-
-        angle += slice;
-      });
-
-      // Center text
-      ctx.fillStyle = '#1a202c';
-      ctx.textAlign = 'center';
-      ctx.font = 'bold 20px -apple-system, sans-serif';
-      ctx.fillText('$' + total.toFixed(0), cx, cy - 4);
-      ctx.fillStyle = '#718096';
-      ctx.font = '12px -apple-system, sans-serif';
-      ctx.fillText('Total Revenue', cx, cy + 14);
-
-      // Legend
-      let ly = 330;
-      const legendCols = Math.min(categories.length, 3);
-      const colW = 400 / legendCols;
-      categories.forEach((cat, i) => {
-        const col = i % legendCols;
-        const row = Math.floor(i / legendCols);
-        const lx = col * colW + 20;
-        const y = ly + row * 22;
-        ctx.fillStyle = colors[i % colors.length];
-        ctx.fillRect(lx, y - 4, 10, 10);
-        ctx.fillStyle = '#1a202c';
-        ctx.font = '11px -apple-system, sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(cat, lx + 16, y + 4);
-      });
-    }
-
-    // Top/Bottom performers
-    function renderTopBottom() {
-      const sorted = [...performanceData].sort((a, b) => b.revenue - a.revenue);
-      const top5 = sorted.slice(0, 5);
-      const bottom5 = sorted.length > 5 ? sorted.slice(-5).reverse() : [];
-
-      document.getElementById('top5-list').innerHTML = top5.map((p, i) => `
-        <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;margin-bottom:6px;background:rgba(56,161,105,0.05);">
-          <span style="font-size:1.3rem;font-weight:700;color:var(--success);width:28px;">${i+1}</span>
-          <div style="flex:1">
-            <div style="font-weight:600;font-size:0.9rem;">${p.name}</div>
-            <div style="font-size:0.78rem;color:var(--muted);">${p.category || ''} · ${p.units} units · $${p.profit_per_unit.toFixed(2)}/unit</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-weight:700;color:var(--success);">$${p.revenue.toFixed(2)}</div>
-            <div style="font-size:0.78rem;color:var(--muted);">${p.margin.toFixed(0)}% margin</div>
-          </div>
-        </div>
-      `).join('');
-
-      document.getElementById('bottom5-list').innerHTML = bottom5.length === 0 
-        ? '<div style="color:var(--muted);font-size:0.85rem;padding:8px;">Need more products for comparison</div>'
-        : bottom5.map((p, i) => `
-        <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;margin-bottom:6px;background:rgba(229,62,62,0.05);">
-          <span style="font-size:1.3rem;font-weight:700;color:var(--hot);width:28px;">${sorted.length - bottom5.length + i + 1}</span>
-          <div style="flex:1">
-            <div style="font-weight:600;font-size:0.9rem;">${p.name}</div>
-            <div style="font-size:0.78rem;color:var(--muted);">${p.category || ''} · ${p.units} units · ${p.velocity.toFixed(1)}/wk</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-weight:700;color:var(--hot);">$${p.revenue.toFixed(2)}</div>
-            <div style="font-size:0.78rem;color:var(--muted);">${p.margin.toFixed(0)}% margin</div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    // Margin Analysis
-    function renderMarginAnalysis() {
-      const ambient = performanceData.filter(p => (p.category || '').toLowerCase() !== 'frozen');
-      const frozen = performanceData.filter(p => (p.category || '').toLowerCase() === 'frozen');
-
-      renderMarginBars('margin-ambient', ambient, 60, 65);
-      renderMarginBars('margin-frozen', frozen, 45, 50);
-    }
-
-    function renderMarginBars(containerId, items, targetLow, targetHigh) {
-      const el = document.getElementById(containerId);
-      if (items.length === 0) {
-        el.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:12px;">No products in this category yet</div>';
-        return;
-      }
-      el.innerHTML = items.sort((a,b) => b.margin - a.margin).map(p => {
-        const pct = Math.min(p.margin, 100);
-        const color = p.margin >= targetLow ? 'var(--success)' : (p.margin >= targetLow - 10 ? 'var(--warn)' : 'var(--hot)');
-        return `<div class="margin-bar-wrap">
-          <div class="margin-bar-label">
-            <span>${p.name}</span>
-            <span style="font-weight:600;color:${color}">${p.margin.toFixed(1)}%</span>
-          </div>
-          <div class="margin-bar">
-            <div class="margin-bar-target-range" style="left:${targetLow}%;width:${targetHigh-targetLow}%;"></div>
-            <div class="margin-bar-fill" style="width:${pct}%;background:${color};"></div>
-          </div>
-        </div>`;
-      }).join('');
-    }
-
-    // Recommendations
-    function renderRecommendations() {
-      const recs = [...performanceData].sort((a, b) => a.velocity - b.velocity);
-      const el = document.getElementById('rec-list');
-      if (recs.length === 0) {
-        el.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;">No sales data to analyze yet. Start logging sales to get recommendations.</div>';
-        return;
-      }
-      el.innerHTML = recs.map(p => {
-        const isSwap = p.velocity < 2;
-        return `<div class="rec-card ${isSwap ? 'swap' : 'keep'}">
-          <div class="rec-icon">${isSwap ? '🔄' : '✅'}</div>
-          <div class="rec-info">
-            <div class="rec-name">${p.name}</div>
-            <div class="rec-detail">
-              ${isSwap ? '⚠️ Consider Replacing — ' : ''}
-              ${p.velocity.toFixed(1)} units/week · $${p.profit_per_unit.toFixed(2)} profit/unit · ${p.margin.toFixed(0)}% margin · $${p.revenue.toFixed(2)} revenue
-            </div>
-          </div>
-          <div>
-            <span class="badge ${isSwap ? 'badge-danger' : 'badge-success'}">${isSwap ? 'Low Velocity' : 'Performing'}</span>
-          </div>
-        </div>`;
-      }).join('');
-    }
-
-    // Sales Log
-    function renderSalesLog() {
-      const productMap = {};
-      products.forEach(p => productMap[p.id] = p);
-      const machineMap = {};
-      machines.forEach(m => machineMap[m.id] = m);
-
-      const sorted = [...sales].sort((a, b) => new Date(b.date || b.created_at) - new Date(a.date || a.created_at));
-      document.getElementById('sales-body').innerHTML = sorted.slice(0, 100).map(s => {
-        const prod = productMap[s.product_id];
-        const mach = machineMap[s.machine_id];
-        const cost = prod ? (prod.cost_price || 0) : 0;
-        const price = s.unit_price || (prod ? prod.sell_price : 0) || 0;
-        const profit = (price - cost) * (s.quantity || 1);
-        return `<tr>
-          <td>${s.date || s.created_at?.split('T')[0] || '—'}</td>
-          <td>${prod?.name || 'Product #' + s.product_id}</td>
-          <td>${mach ? (mach.name || mach.model || 'Machine #'+mach.id) : (s.machine_id ? '#'+s.machine_id : '—')}</td>
-          <td>${s.quantity}</td>
-          <td>$${price.toFixed(2)}</td>
-          <td>$${(price * s.quantity).toFixed(2)}</td>
-          <td style="color:${profit >= 0 ? 'var(--success)' : 'var(--hot)'}">$${profit.toFixed(2)}</td>
-          <td><button class="btn btn-danger btn-sm" onclick="deleteSale(${s.id})">✕</button></td>
-        </tr>`;
-      }).join('');
-    }
-
-    // Modals
-    function showSalesModal() {
-      document.getElementById('sale-modal').classList.add('active');
-    }
-    function showBulkModal() {
-      document.getElementById('bulk-modal').classList.add('active');
-    }
-    function closeModals() {
-      document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
-    }
-
-    async function submitSale() {
-      const productId = parseInt(document.getElementById('sale-product').value);
-      const machineId = document.getElementById('sale-machine').value ? parseInt(document.getElementById('sale-machine').value) : null;
-      const quantity = parseInt(document.getElementById('sale-qty').value) || 1;
-      const date = document.getElementById('sale-date').value;
-      const prod = products.find(p => p.id === productId);
-      if (!prod) return alert('Select a product');
-
-      await fetch('/api/sales', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          product_id: productId,
-          machine_id: machineId,
-          quantity,
-          unit_price: prod.sell_price || 0,
-          total: (prod.sell_price || 0) * quantity,
-          date
-        })
-      });
-      closeModals();
-      await loadSales();
-      await loadPerformance();
-    }
-
-    async function submitBulk() {
-      const data = document.getElementById('bulk-data').value.trim();
-      if (!data) return;
-      const lines = data.split('\n').filter(l => l.trim());
-      let imported = 0;
-
-      for (const line of lines) {
-        const parts = line.split(',').map(s => s.trim());
-        if (parts.length < 3) continue;
-        const [productName, machineName, qty, date] = parts;
-        const prod = products.find(p => p.name.toLowerCase().includes(productName.toLowerCase()));
-        const mach = machines.find(m => (m.name || '').toLowerCase().includes((machineName || '').toLowerCase()));
-        if (!prod) continue;
-
-        await fetch('/api/sales', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            product_id: prod.id,
-            machine_id: mach ? mach.id : null,
-            quantity: parseInt(qty) || 1,
-            unit_price: prod.sell_price || 0,
-            total: (prod.sell_price || 0) * (parseInt(qty) || 1),
-            date: date || new Date().toISOString().split('T')[0]
-          })
-        });
-        imported++;
-      }
-      closeModals();
-      alert(`Imported ${imported} sales records`);
-      document.getElementById('bulk-data').value = '';
-      await loadSales();
-      await loadPerformance();
-    }
-
-    async function deleteSale(id) {
-      if (!confirm('Delete this sale?')) return;
-      await fetch(`/api/sales/${id}`, { method: 'DELETE' });
-      await loadSales();
-      await loadPerformance();
-    }
-
-    // Tab switching
-    function switchTab(tab) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-      document.querySelector(`.tab-content#tab-${tab}`).classList.add('active');
-      event.target.classList.add('active');
-    }
-
-    // Click outside modal to close
-    document.querySelectorAll('.modal-overlay').forEach(m => {
-      m.addEventListener('click', e => { if (e.target === m) closeModals(); });
-    });
-
-    init();
-  </script>
 <script src="/nav.js"></script>
+
+<div class="dashboard">
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">📊 Performance Dashboard</h1>
+      <div class="last-updated">Last updated: <span id="last-updated">Loading...</span></div>
+    </div>
+  </div>
+  
+  <!-- Top KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-icon">🎯</div>
+      <div class="kpi-value" id="kpi-total-prospects">—</div>
+      <div class="kpi-label">Total Prospects</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">🔥</div>
+      <div class="kpi-value" id="kpi-hot-leads">—</div>
+      <div class="kpi-label">Hot Leads</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">✅</div>
+      <div class="kpi-value" id="kpi-signed">—</div>
+      <div class="kpi-label">Signed Deals</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">💰</div>
+      <div class="kpi-value" id="kpi-pipeline">—</div>
+      <div class="kpi-label">Pipeline Value</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">📈</div>
+      <div class="kpi-value" id="kpi-conversion">—</div>
+      <div class="kpi-label">Conversion Rate</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">⏱️</div>
+      <div class="kpi-value" id="kpi-avg-days">—</div>
+      <div class="kpi-label">Avg Days to Close</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">📋</div>
+      <div class="kpi-value" id="kpi-week-activities">—</div>
+      <div class="kpi-label">This Week</div>
+    </div>
+  </div>
+  
+  <!-- Pipeline Funnel + Activity Trends -->
+  <div class="grid-2">
+    <!-- Pipeline Funnel -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🔀 Pipeline Funnel</span>
+        <a class="card-link" href="/pipeline-board">View Board →</a>
+      </div>
+      <div class="funnel-container" id="funnel-container">
+        <div class="skeleton" style="height: 200px;"></div>
+      </div>
+    </div>
+    
+    <!-- Activity Trends Chart -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📈 Activity Trends (30 Days)</span>
+      </div>
+      <div class="chart-container">
+        <canvas id="activity-trend-chart"></canvas>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Activity Breakdown + Most Active Days -->
+  <div class="grid-equal-3">
+    <!-- Activity Breakdown Pie -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🥧 Activity Breakdown</span>
+      </div>
+      <div class="chart-container-sm">
+        <canvas id="activity-pie-chart"></canvas>
+      </div>
+      <div id="activity-legend" style="margin-top: 12px;"></div>
+    </div>
+    
+    <!-- Most Active Days -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📅 Most Active Days</span>
+      </div>
+      <div class="chart-container-sm">
+        <canvas id="weekday-chart"></canvas>
+      </div>
+    </div>
+    
+    <!-- This Week's Breakdown -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📊 This Week's Activities</span>
+      </div>
+      <div id="week-activity-breakdown">
+        <div class="skeleton" style="height: 150px;"></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Leaderboards -->
+  <div class="grid-equal-3">
+    <!-- Hottest Prospects -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🔥 Hottest Prospects</span>
+      </div>
+      <ul class="leaderboard" id="lb-hottest">
+        <li class="skeleton" style="height: 45px; margin-bottom: 8px;"></li>
+        <li class="skeleton" style="height: 45px; margin-bottom: 8px;"></li>
+        <li class="skeleton" style="height: 45px;"></li>
+      </ul>
+    </div>
+    
+    <!-- Most Touched -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">👋 Most Touched</span>
+      </div>
+      <ul class="leaderboard" id="lb-touched">
+        <li class="skeleton" style="height: 45px; margin-bottom: 8px;"></li>
+        <li class="skeleton" style="height: 45px; margin-bottom: 8px;"></li>
+        <li class="skeleton" style="height: 45px;"></li>
+      </ul>
+    </div>
+    
+    <!-- Closest to Closing -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🎯 Closest to Closing</span>
+      </div>
+      <ul class="leaderboard" id="lb-closing">
+        <li class="skeleton" style="height: 45px; margin-bottom: 8px;"></li>
+        <li class="skeleton" style="height: 45px; margin-bottom: 8px;"></li>
+        <li class="skeleton" style="height: 45px;"></li>
+      </ul>
+    </div>
+  </div>
+  
+  <!-- Cold Alert + Weekly Comparison -->
+  <div class="grid-2">
+    <!-- Going Cold Alert -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">❄️ Going Cold (14+ Days)</span>
+        <a class="card-link" href="/follow-ups">View All →</a>
+      </div>
+      <div id="cold-prospects">
+        <div class="skeleton" style="height: 120px;"></div>
+      </div>
+    </div>
+    
+    <!-- Weekly Comparison -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📊 This Week vs Last Week</span>
+      </div>
+      <div class="weekly-comparison" id="weekly-comparison">
+        <div class="skeleton" style="height: 150px; flex: 1;"></div>
+        <div class="skeleton" style="height: 150px; flex: 1;"></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Wins/Losses + Goal Tracking -->
+  <div class="grid-2">
+    <!-- Wins & Losses -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🏆 This Week's Results</span>
+      </div>
+      <div class="wins-losses" id="wins-losses">
+        <div class="skeleton" style="height: 120px;"></div>
+        <div class="skeleton" style="height: 120px;"></div>
+      </div>
+    </div>
+    
+    <!-- Goal Tracking -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🎯 Monthly Goals</span>
+        <span class="goal-edit" onclick="openGoalModal()">Edit Goals</span>
+      </div>
+      <div class="goals-grid" id="goals-grid">
+        <div class="skeleton" style="height: 60px; margin-bottom: 12px;"></div>
+        <div class="skeleton" style="height: 60px; margin-bottom: 12px;"></div>
+        <div class="skeleton" style="height: 60px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Stage Drill-Down Modal -->
+<div class="modal-overlay" id="stage-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modal-stage-title">Stage: New Leads</h3>
+      <button class="modal-close" onclick="closeStageModal()">×</button>
+    </div>
+    <ul class="modal-list" id="modal-prospect-list"></ul>
+  </div>
+</div>
+
+<!-- Goal Edit Modal -->
+<div class="modal-overlay" id="goal-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Set Monthly Goals</h3>
+      <button class="modal-close" onclick="closeGoalModal()">×</button>
+    </div>
+    <div class="goal-form">
+      <div class="goal-input-group">
+        <label class="goal-input-label">Pop-Ins Goal</label>
+        <input type="number" class="goal-input" id="goal-popins" placeholder="e.g. 50">
+      </div>
+      <div class="goal-input-group">
+        <label class="goal-input-label">Signed Deals Goal</label>
+        <input type="number" class="goal-input" id="goal-signed" placeholder="e.g. 5">
+      </div>
+      <div class="goal-input-group">
+        <label class="goal-input-label">Revenue Goal ($)</label>
+        <input type="number" class="goal-input" id="goal-revenue" placeholder="e.g. 10000">
+      </div>
+      <button class="goal-save-btn" onclick="saveGoals()">Save Goals</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Global data
+let prospects = [];
+let activities = [];
+let pipelineCards = [];
+let goals = { popins: 50, signed: 5, revenue: 10000 };
+
+// Stage definitions
+const STAGES = [
+  { key: 'new_lead', label: 'New Lead', class: 'stage-new' },
+  { key: 'contacted', label: 'Contacted', class: 'stage-contacted' },
+  { key: 'interested', label: 'Interested', class: 'stage-interested' },
+  { key: 'proposal_sent', label: 'Proposal', class: 'stage-proposal' },
+  { key: 'negotiating', label: 'Negotiating', class: 'stage-negotiating' },
+  { key: 'signed', label: 'Signed', class: 'stage-signed' }
+];
+
+// Activity type colors
+const ACTIVITY_COLORS = {
+  'pop-in': '#3b82f6',
+  'call': '#8b5cf6',
+  'email': '#f59e0b',
+  'basket': '#22c55e',
+  'meeting': '#ec4899',
+  'site-survey': '#14b8a6',
+  'proposal': '#f97316',
+  'other': '#64748b'
+};
+
+// Load all data
+async function loadData() {
+  try {
+    const [prospectRes, activityRes, pipelineRes] = await Promise.all([
+      fetch('/api/prospects').then(r => r.json()),
+      fetch('/api/activities').then(r => r.json()),
+      fetch('/api/pipeline/cards').then(r => r.json()).catch(() => [])
+    ]);
+    
+    prospects = prospectRes || [];
+    activities = activityRes || [];
+    pipelineCards = pipelineRes || [];
+    
+    // Load goals from localStorage
+    const savedGoals = localStorage.getItem('vendtech_goals');
+    if (savedGoals) goals = JSON.parse(savedGoals);
+    
+    renderAll();
+  } catch (err) {
+    console.error('Error loading data:', err);
+    renderDemoData();
+  }
+}
+
+// Generate demo data if real data is sparse
+function renderDemoData() {
+  console.log('Using demo data for visualization');
+  // Demo prospects
+  prospects = [
+    { id: 1, name: 'Luxury Towers Apartments', priority: 'hot', status: 'active', property_type: 'apartments', created_at: new Date(Date.now() - 30*24*60*60*1000).toISOString() },
+    { id: 2, name: 'Henderson Medical Center', priority: 'hot', status: 'active', property_type: 'healthcare', created_at: new Date(Date.now() - 45*24*60*60*1000).toISOString() },
+    { id: 3, name: 'Paradise Valley Senior Living', priority: 'warm', status: 'active', property_type: 'senior_living', created_at: new Date(Date.now() - 20*24*60*60*1000).toISOString() },
+    { id: 4, name: 'Desert Springs Apartments', priority: 'warm', status: 'signed', property_type: 'apartments', created_at: new Date(Date.now() - 60*24*60*60*1000).toISOString() },
+    { id: 5, name: 'Green Valley YMCA', priority: 'normal', status: 'active', property_type: 'recreation', created_at: new Date(Date.now() - 15*24*60*60*1000).toISOString() },
+    { id: 6, name: 'Summerlin Heights', priority: 'hot', status: 'active', property_type: 'apartments', created_at: new Date(Date.now() - 10*24*60*60*1000).toISOString() },
+    { id: 7, name: 'Mesa Distribution Center', priority: 'warm', status: 'signed', property_type: 'industrial', created_at: new Date(Date.now() - 90*24*60*60*1000).toISOString() },
+    { id: 8, name: 'Sunrise Hospital Annex', priority: 'normal', status: 'new', property_type: 'healthcare', created_at: new Date(Date.now() - 5*24*60*60*1000).toISOString() }
+  ];
+  
+  // Demo activities over 30 days
+  activities = [];
+  const types = ['pop-in', 'call', 'email', 'basket', 'meeting', 'site-survey', 'proposal'];
+  for (let i = 0; i < 45; i++) {
+    const daysAgo = Math.floor(Math.random() * 30);
+    const type = types[Math.floor(Math.random() * types.length)];
+    activities.push({
+      id: 100 + i,
+      prospect_id: prospects[Math.floor(Math.random() * prospects.length)].id,
+      type: type,
+      created_at: new Date(Date.now() - daysAgo*24*60*60*1000).toISOString()
+    });
+  }
+  
+  // Demo pipeline cards
+  pipelineCards = [
+    { prospect_id: 1, stage: 'proposal_sent' },
+    { prospect_id: 2, stage: 'negotiating' },
+    { prospect_id: 3, stage: 'interested' },
+    { prospect_id: 4, stage: 'signed' },
+    { prospect_id: 5, stage: 'contacted' },
+    { prospect_id: 6, stage: 'proposal_sent' },
+    { prospect_id: 7, stage: 'signed' },
+    { prospect_id: 8, stage: 'new_lead' }
+  ];
+  
+  renderAll();
+}
+
+function renderAll() {
+  document.getElementById('last-updated').textContent = new Date().toLocaleString();
+  
+  renderKPIs();
+  renderFunnel();
+  renderActivityTrendChart();
+  renderActivityPieChart();
+  renderWeekdayChart();
+  renderWeekActivityBreakdown();
+  renderLeaderboards();
+  renderColdProspects();
+  renderWeeklyComparison();
+  renderWinsLosses();
+  renderGoals();
+}
+
+function renderKPIs() {
+  const total = prospects.length;
+  const hot = prospects.filter(p => p.priority === 'hot').length;
+  const signed = prospects.filter(p => p.status === 'signed').length;
+  
+  // Pipeline value estimation ($2000/month per active prospect)
+  const pipelineValue = prospects.filter(p => p.status !== 'closed' && p.status !== 'signed').length * 2000;
+  
+  // Conversion rate
+  const conversionRate = total > 0 ? ((signed / total) * 100).toFixed(1) : 0;
+  
+  // Avg days to close (for signed prospects)
+  const signedProspects = prospects.filter(p => p.status === 'signed');
+  let avgDays = 0;
+  if (signedProspects.length > 0) {
+    const totalDays = signedProspects.reduce((sum, p) => {
+      const created = new Date(p.created_at);
+      const now = new Date();
+      return sum + Math.floor((now - created) / (1000 * 60 * 60 * 24));
+    }, 0);
+    avgDays = Math.round(totalDays / signedProspects.length);
+  }
+  
+  // This week's activities
+  const weekAgo = new Date(Date.now() - 7*24*60*60*1000);
+  const weekActivities = activities.filter(a => new Date(a.created_at) > weekAgo).length;
+  
+  document.getElementById('kpi-total-prospects').textContent = total;
+  document.getElementById('kpi-hot-leads').textContent = hot;
+  document.getElementById('kpi-signed').textContent = signed;
+  document.getElementById('kpi-pipeline').textContent = '$' + pipelineValue.toLocaleString();
+  document.getElementById('kpi-conversion').textContent = conversionRate + '%';
+  document.getElementById('kpi-avg-days').textContent = avgDays || '—';
+  document.getElementById('kpi-week-activities').textContent = weekActivities;
+}
+
+function renderFunnel() {
+  const container = document.getElementById('funnel-container');
+  
+  // Count prospects at each stage
+  const stageCounts = {};
+  STAGES.forEach(s => stageCounts[s.key] = 0);
+  
+  pipelineCards.forEach(card => {
+    if (stageCounts.hasOwnProperty(card.stage)) {
+      stageCounts[card.stage]++;
+    }
+  });
+  
+  // Also map prospects by status for those without pipeline cards
+  prospects.forEach(p => {
+    const hasCard = pipelineCards.some(c => c.prospect_id === p.id);
+    if (!hasCard) {
+      if (p.status === 'new') stageCounts['new_lead']++;
+      else if (p.status === 'signed') stageCounts['signed']++;
+    }
+  });
+  
+  const maxCount = Math.max(...Object.values(stageCounts), 1);
+  
+  let html = '';
+  STAGES.forEach(stage => {
+    const count = stageCounts[stage.key] || 0;
+    const width = Math.max((count / maxCount) * 100, 5);
+    
+    html += `
+      <div class="funnel-stage" onclick="openStageModal('${stage.key}', '${stage.label}')">
+        <div class="funnel-label">${stage.label}</div>
+        <div class="funnel-bar-wrap">
+          <div class="funnel-bar ${stage.class}" style="width: ${width}%;">
+            <span>${count}</span>
+          </div>
+        </div>
+        <div class="funnel-count">${count}</div>
+      </div>
+    `;
+  });
+  
+  container.innerHTML = html;
+}
+
+function renderActivityTrendChart() {
+  const ctx = document.getElementById('activity-trend-chart').getContext('2d');
+  
+  // Group activities by day for last 30 days
+  const days = [];
+  const counts = [];
+  
+  for (let i = 29; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const dateStr = date.toISOString().split('T')[0];
+    days.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+    
+    const count = activities.filter(a => 
+      a.created_at && a.created_at.split('T')[0] === dateStr
+    ).length;
+    counts.push(count);
+  }
+  
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: days,
+      datasets: [{
+        label: 'Activities',
+        data: counts,
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 2,
+        pointHoverRadius: 5
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        x: {
+          ticks: { maxTicksLimit: 7, font: { size: 10 } },
+          grid: { display: false }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { stepSize: 1, font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
+
+function renderActivityPieChart() {
+  const ctx = document.getElementById('activity-pie-chart').getContext('2d');
+  
+  // Count by type
+  const typeCounts = {};
+  activities.forEach(a => {
+    const type = a.type || 'other';
+    typeCounts[type] = (typeCounts[type] || 0) + 1;
+  });
+  
+  const labels = Object.keys(typeCounts);
+  const data = Object.values(typeCounts);
+  const colors = labels.map(l => ACTIVITY_COLORS[l] || '#64748b');
+  
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: labels.map(l => l.charAt(0).toUpperCase() + l.slice(1).replace('-', ' ')),
+      datasets: [{
+        data: data,
+        backgroundColor: colors,
+        borderWidth: 2,
+        borderColor: '#fff'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { font: { size: 10 }, padding: 8, boxWidth: 12 }
+        }
+      }
+    }
+  });
+}
+
+function renderWeekdayChart() {
+  const ctx = document.getElementById('weekday-chart').getContext('2d');
+  
+  const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const counts = [0, 0, 0, 0, 0, 0, 0];
+  
+  activities.forEach(a => {
+    if (a.created_at) {
+      const day = new Date(a.created_at).getDay();
+      counts[day]++;
+    }
+  });
+  
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: weekdays,
+      datasets: [{
+        label: 'Activities',
+        data: counts,
+        backgroundColor: '#8b5cf6',
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false } },
+        y: { beginAtZero: true, ticks: { stepSize: 1 } }
+      }
+    }
+  });
+}
+
+function renderWeekActivityBreakdown() {
+  const container = document.getElementById('week-activity-breakdown');
+  const weekAgo = new Date(Date.now() - 7*24*60*60*1000);
+  
+  const weekActivities = activities.filter(a => new Date(a.created_at) > weekAgo);
+  
+  const typeCounts = {};
+  weekActivities.forEach(a => {
+    const type = a.type || 'other';
+    typeCounts[type] = (typeCounts[type] || 0) + 1;
+  });
+  
+  const sortedTypes = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
+  
+  if (sortedTypes.length === 0) {
+    container.innerHTML = '<div class="leaderboard-empty">No activities this week yet</div>';
+    return;
+  }
+  
+  let html = '';
+  sortedTypes.forEach(([type, count]) => {
+    const color = ACTIVITY_COLORS[type] || '#64748b';
+    const label = type.charAt(0).toUpperCase() + type.slice(1).replace('-', ' ');
+    html += `
+      <div class="activity-stat">
+        <div class="activity-dot" style="background: ${color};"></div>
+        <div class="activity-type">${label}</div>
+        <div class="activity-count">${count}</div>
+      </div>
+    `;
+  });
+  
+  container.innerHTML = html;
+}
+
+function renderLeaderboards() {
+  // Hottest prospects (by priority and activity)
+  const hottest = prospects
+    .filter(p => p.status !== 'closed' && p.status !== 'signed')
+    .map(p => {
+      const activityCount = activities.filter(a => a.prospect_id === p.id).length;
+      const priorityScore = p.priority === 'hot' ? 100 : p.priority === 'warm' ? 50 : 0;
+      return { ...p, score: priorityScore + activityCount };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+  
+  renderLeaderboard('lb-hottest', hottest, p => ({
+    value: p.priority === 'hot' ? '🔥' : p.priority === 'warm' ? '🟠' : '🆕',
+    tag: p.priority,
+    tagClass: p.priority === 'hot' ? 'tag-hot' : p.priority === 'warm' ? 'tag-warm' : 'tag-cold'
+  }));
+  
+  // Most touched (by activity count)
+  const mostTouched = prospects
+    .filter(p => p.status !== 'closed')
+    .map(p => ({
+      ...p,
+      touchCount: activities.filter(a => a.prospect_id === p.id).length
+    }))
+    .sort((a, b) => b.touchCount - a.touchCount)
+    .slice(0, 5);
+  
+  renderLeaderboard('lb-touched', mostTouched, p => ({
+    value: p.touchCount + ' touches'
+  }));
+  
+  // Closest to closing (in proposal or negotiating stage)
+  const closingStages = ['proposal_sent', 'negotiating'];
+  const closestToClosing = pipelineCards
+    .filter(c => closingStages.includes(c.stage))
+    .map(c => {
+      const prospect = prospects.find(p => p.id === c.prospect_id);
+      const stageLabel = STAGES.find(s => s.key === c.stage)?.label || c.stage;
+      return prospect ? { ...prospect, stage: c.stage, stageLabel } : null;
+    })
+    .filter(Boolean)
+    .slice(0, 5);
+  
+  renderLeaderboard('lb-closing', closestToClosing, p => ({
+    value: p.stageLabel
+  }));
+}
+
+function renderLeaderboard(containerId, items, getDetails) {
+  const container = document.getElementById(containerId);
+  
+  if (items.length === 0) {
+    container.innerHTML = '<li class="leaderboard-empty">No data yet</li>';
+    return;
+  }
+  
+  let html = '';
+  items.forEach((item, idx) => {
+    const details = getDetails(item);
+    const rankClass = idx === 0 ? 'rank-1' : idx === 1 ? 'rank-2' : idx === 2 ? 'rank-3' : 'rank-default';
+    
+    html += `
+      <li class="leaderboard-item">
+        <span class="leaderboard-rank ${rankClass}">${idx + 1}</span>
+        <span class="leaderboard-name">${item.name}</span>
+        ${details.tag ? `<span class="leaderboard-tag ${details.tagClass}">${details.tag}</span>` : ''}
+        <span class="leaderboard-value">${details.value}</span>
+      </li>
+    `;
+  });
+  
+  container.innerHTML = html;
+}
+
+function renderColdProspects() {
+  const container = document.getElementById('cold-prospects');
+  const fourteenDaysAgo = new Date(Date.now() - 14*24*60*60*1000);
+  
+  const coldProspects = prospects
+    .filter(p => p.status !== 'closed' && p.status !== 'signed')
+    .map(p => {
+      const lastActivity = activities
+        .filter(a => a.prospect_id === p.id)
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+      
+      const lastDate = lastActivity ? new Date(lastActivity.created_at) : new Date(p.created_at);
+      const daysSince = Math.floor((Date.now() - lastDate) / (1000*60*60*24));
+      
+      return { ...p, lastDate, daysSince };
+    })
+    .filter(p => p.daysSince >= 14)
+    .sort((a, b) => b.daysSince - a.daysSince)
+    .slice(0, 5);
+  
+  if (coldProspects.length === 0) {
+    container.innerHTML = '<div class="leaderboard-empty">No cold prospects! 🎉</div>';
+    return;
+  }
+  
+  let html = `
+    <div class="cold-alert">
+      <div class="cold-alert-header">⚠️ ${coldProspects.length} prospect${coldProspects.length > 1 ? 's' : ''} going cold</div>
+      <div class="cold-alert-text">These haven't been touched in 14+ days. Time to follow up!</div>
+    </div>
+    <ul class="leaderboard">
+  `;
+  
+  coldProspects.forEach((p, idx) => {
+    html += `
+      <li class="leaderboard-item">
+        <span class="leaderboard-rank rank-default">${idx + 1}</span>
+        <span class="leaderboard-name">${p.name}</span>
+        <span class="leaderboard-value" style="color: var(--red);">${p.daysSince} days</span>
+      </li>
+    `;
+  });
+  
+  html += '</ul>';
+  container.innerHTML = html;
+}
+
+function renderWeeklyComparison() {
+  const container = document.getElementById('weekly-comparison');
+  
+  const now = new Date();
+  const thisWeekStart = new Date(now);
+  thisWeekStart.setDate(now.getDate() - now.getDay());
+  thisWeekStart.setHours(0, 0, 0, 0);
+  
+  const lastWeekStart = new Date(thisWeekStart);
+  lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+  const lastWeekEnd = new Date(thisWeekStart);
+  
+  const thisWeekActivities = activities.filter(a => new Date(a.created_at) >= thisWeekStart);
+  const lastWeekActivities = activities.filter(a => {
+    const d = new Date(a.created_at);
+    return d >= lastWeekStart && d < lastWeekEnd;
+  });
+  
+  // Count by type
+  const countByType = (acts, type) => acts.filter(a => a.type === type).length;
+  
+  const metrics = [
+    { label: 'Total Activities', this: thisWeekActivities.length, last: lastWeekActivities.length },
+    { label: 'Pop-Ins', this: countByType(thisWeekActivities, 'pop-in'), last: countByType(lastWeekActivities, 'pop-in') },
+    { label: 'Calls', this: countByType(thisWeekActivities, 'call'), last: countByType(lastWeekActivities, 'call') },
+    { label: 'Emails', this: countByType(thisWeekActivities, 'email'), last: countByType(lastWeekActivities, 'email') },
+    { label: 'Baskets', this: countByType(thisWeekActivities, 'basket'), last: countByType(lastWeekActivities, 'basket') }
+  ];
+  
+  let html = `
+    <div class="week-col">
+      <div class="week-label">This Week</div>
+      ${metrics.map(m => `
+        <div class="week-stat">
+          <span class="week-stat-label">${m.label}</span>
+          <span class="week-stat-value">${m.this}</span>
+        </div>
+      `).join('')}
+    </div>
+    <div class="week-col">
+      <div class="week-label">Last Week</div>
+      ${metrics.map(m => {
+        const diff = m.this - m.last;
+        const diffClass = diff > 0 ? 'up' : diff < 0 ? 'down' : '';
+        const diffSymbol = diff > 0 ? '↑' : diff < 0 ? '↓' : '';
+        return `
+          <div class="week-stat">
+            <span class="week-stat-label">${m.label}</span>
+            <span class="week-stat-value">${m.last}</span>
+          </div>
+        `;
+      }).join('')}
+      <div class="comparison-delta ${metrics[0].this > metrics[0].last ? 'up' : metrics[0].this < metrics[0].last ? 'down' : ''}">
+        ${metrics[0].this > metrics[0].last ? '↑' : metrics[0].this < metrics[0].last ? '↓' : '→'}
+        ${Math.abs(metrics[0].this - metrics[0].last)} ${metrics[0].this > metrics[0].last ? 'more' : metrics[0].this < metrics[0].last ? 'fewer' : 'same'} activities
+      </div>
+    </div>
+  `;
+  
+  container.innerHTML = html;
+}
+
+function renderWinsLosses() {
+  const container = document.getElementById('wins-losses');
+  
+  const now = new Date();
+  const thisWeekStart = new Date(now);
+  thisWeekStart.setDate(now.getDate() - now.getDay());
+  thisWeekStart.setHours(0, 0, 0, 0);
+  
+  // Find status changes this week via activities
+  const statusChangeActivities = activities.filter(a => 
+    a.type === 'status-change' && new Date(a.created_at) >= thisWeekStart
+  );
+  
+  // Also check prospects updated this week
+  const winsThisWeek = prospects.filter(p => {
+    const updated = new Date(p.updated_at || p.created_at);
+    return p.status === 'signed' && updated >= thisWeekStart;
+  });
+  
+  const lossesThisWeek = prospects.filter(p => {
+    const updated = new Date(p.updated_at || p.created_at);
+    return p.status === 'closed' && updated >= thisWeekStart;
+  });
+  
+  let html = `
+    <div class="wl-section">
+      <div class="wl-header wins">🏆 Wins (${winsThisWeek.length})</div>
+      <ul class="wl-list">
+        ${winsThisWeek.length > 0 
+          ? winsThisWeek.map(p => `<li class="wl-item">✅ ${p.name}</li>`).join('')
+          : '<li class="wl-empty">No wins yet this week</li>'
+        }
+      </ul>
+    </div>
+    <div class="wl-section">
+      <div class="wl-header losses">📉 Stalls/Losses (${lossesThisWeek.length})</div>
+      <ul class="wl-list">
+        ${lossesThisWeek.length > 0 
+          ? lossesThisWeek.map(p => `<li class="wl-item">❌ ${p.name}</li>`).join('')
+          : '<li class="wl-empty">No losses this week</li>'
+        }
+      </ul>
+    </div>
+  `;
+  
+  container.innerHTML = html;
+}
+
+function renderGoals() {
+  const container = document.getElementById('goals-grid');
+  
+  // Get current month's data
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  
+  const monthActivities = activities.filter(a => new Date(a.created_at) >= monthStart);
+  const monthPopins = monthActivities.filter(a => a.type === 'pop-in').length;
+  const monthSigned = prospects.filter(p => {
+    const updated = new Date(p.updated_at || p.created_at);
+    return p.status === 'signed' && updated >= monthStart;
+  }).length;
+  
+  // Estimate revenue from signed deals ($2000/month each)
+  const monthRevenue = monthSigned * 2000;
+  
+  const goalItems = [
+    { label: 'Pop-Ins', current: monthPopins, target: goals.popins, icon: '👋' },
+    { label: 'Signed Deals', current: monthSigned, target: goals.signed, icon: '✅' },
+    { label: 'Revenue', current: monthRevenue, target: goals.revenue, icon: '💰', isCurrency: true }
+  ];
+  
+  let html = '';
+  goalItems.forEach(g => {
+    const pct = g.target > 0 ? Math.min((g.current / g.target) * 100, 100) : 0;
+    const progressClass = pct >= 80 ? 'high' : pct >= 40 ? 'mid' : 'low';
+    const currentDisplay = g.isCurrency ? '$' + g.current.toLocaleString() : g.current;
+    const targetDisplay = g.isCurrency ? '$' + g.target.toLocaleString() : g.target;
+    
+    html += `
+      <div class="goal-item">
+        <div class="goal-header">
+          <span class="goal-label">${g.icon} ${g.label}</span>
+          <span class="goal-values">${currentDisplay} / ${targetDisplay}</span>
+        </div>
+        <div class="goal-bar">
+          <div class="goal-progress ${progressClass}" style="width: ${pct}%;"></div>
+        </div>
+      </div>
+    `;
+  });
+  
+  container.innerHTML = html;
+  
+  // Populate goal inputs
+  document.getElementById('goal-popins').value = goals.popins;
+  document.getElementById('goal-signed').value = goals.signed;
+  document.getElementById('goal-revenue').value = goals.revenue;
+}
+
+// Modal functions
+function openStageModal(stageKey, stageLabel) {
+  const modal = document.getElementById('stage-modal');
+  const title = document.getElementById('modal-stage-title');
+  const list = document.getElementById('modal-prospect-list');
+  
+  title.textContent = 'Stage: ' + stageLabel;
+  
+  // Find prospects in this stage
+  const stageProspects = pipelineCards
+    .filter(c => c.stage === stageKey)
+    .map(c => prospects.find(p => p.id === c.prospect_id))
+    .filter(Boolean);
+  
+  // Also include prospects without cards based on status
+  if (stageKey === 'new_lead') {
+    prospects.filter(p => {
+      const hasCard = pipelineCards.some(c => c.prospect_id === p.id);
+      return !hasCard && p.status === 'new';
+    }).forEach(p => {
+      if (!stageProspects.find(sp => sp.id === p.id)) {
+        stageProspects.push(p);
+      }
+    });
+  }
+  
+  if (stageProspects.length === 0) {
+    list.innerHTML = '<li class="modal-empty">No prospects in this stage</li>';
+  } else {
+    list.innerHTML = stageProspects.map(p => `
+      <li class="modal-list-item">
+        <span class="modal-prospect-name">${p.name}</span>
+        <span class="modal-prospect-type">${p.property_type || 'Unknown type'}</span>
+      </li>
+    `).join('');
+  }
+  
+  modal.classList.add('active');
+}
+
+function closeStageModal() {
+  document.getElementById('stage-modal').classList.remove('active');
+}
+
+function openGoalModal() {
+  document.getElementById('goal-modal').classList.add('active');
+}
+
+function closeGoalModal() {
+  document.getElementById('goal-modal').classList.remove('active');
+}
+
+function saveGoals() {
+  goals.popins = parseInt(document.getElementById('goal-popins').value) || 50;
+  goals.signed = parseInt(document.getElementById('goal-signed').value) || 5;
+  goals.revenue = parseInt(document.getElementById('goal-revenue').value) || 10000;
+  
+  localStorage.setItem('vendtech_goals', JSON.stringify(goals));
+  
+  renderGoals();
+  closeGoalModal();
+}
+
+// Click outside modal to close
+document.querySelectorAll('.modal-overlay').forEach(modal => {
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.classList.remove('active');
+    }
+  });
+});
+
+// Initialize
+loadData();
+</script>
 </body>
 </html>

@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Activity Log — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #0f172a;
+      --muted: #64748b; --accent: #3b82f6; --accent-light: #eff6ff;
+      --green: #22c55e; --green-light: #f0fdf4;
+      --amber: #f59e0b; --amber-light: #fffbeb;
+      --red: #ef4444; --red-light: #fef2f2;
+      --purple: #8b5cf6; --purple-light: #f5f3ff;
+      --teal: #14b8a6; --teal-light: #f0fdfa;
+      --radius: 12px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+    .dashboard { max-width: 1400px; margin: 0 auto; padding: 20px 24px 60px; }
+
+    /* Header */
+    .page-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 24px; flex-wrap: wrap; gap: 16px;
+    }
+    .page-title { display: flex; align-items: center; gap: 12px; }
+    .page-title h1 { font-size: 1.5rem; font-weight: 700; }
+    .page-title .subtitle { font-size: 0.85rem; color: var(--muted); }
+    .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px;
+      font-size: 0.85rem; font-weight: 600; border-radius: 8px; cursor: pointer;
+      border: 1px solid var(--border); background: var(--card); color: var(--text);
+      text-decoration: none; transition: all 0.15s;
+    }
+    .btn:hover { border-color: var(--accent); background: var(--accent-light); }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover { background: #2563eb; }
+    .back-link { color: var(--muted); font-size: 0.85rem; text-decoration: none; display: flex; align-items: center; gap: 4px; }
+    .back-link:hover { color: var(--accent); }
+
+    /* Stats Summary */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 18px 20px; position: relative; overflow: hidden;
+    }
+    .stat-card .stat-icon { font-size: 1.3rem; margin-bottom: 8px; }
+    .stat-card .stat-value { font-size: 1.8rem; font-weight: 800; line-height: 1; }
+    .stat-card .stat-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-top: 4px; }
+    .stat-accent { position: absolute; top: 0; left: 0; width: 4px; height: 100%; }
+    .stat-accent.blue { background: var(--accent); }
+    .stat-accent.green { background: var(--green); }
+    .stat-accent.amber { background: var(--amber); }
+    .stat-accent.purple { background: var(--purple); }
+
+    /* Filter Bar */
+    .filter-bar {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 16px 20px; margin-bottom: 20px; display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; }
+    .filter-group label { font-size: 0.72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; }
+    .filter-group input, .filter-group select {
+      padding: 8px 12px; font-size: 0.85rem; border: 1px solid var(--border);
+      border-radius: 6px; background: var(--bg); min-width: 140px;
+    }
+    .filter-group input:focus, .filter-group select:focus { outline: none; border-color: var(--accent); }
+    .filter-actions { display: flex; gap: 8px; margin-left: auto; }
+
+    /* Content Grid */
+    .content-grid { display: grid; grid-template-columns: 1fr 320px; gap: 20px; }
+
+    /* Activity Feed */
+    .feed-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+    }
+    .feed-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+    }
+    .feed-title { font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .feed-count { font-size: 0.72rem; background: var(--bg); padding: 3px 10px; border-radius: 12px; color: var(--muted); }
+    .feed-list { max-height: 700px; overflow-y: auto; }
+
+    /* Activity Item */
+    .activity-item {
+      display: flex; gap: 14px; padding: 16px 20px; border-bottom: 1px solid #f1f5f9;
+      transition: background 0.15s; cursor: pointer;
+    }
+    .activity-item:hover { background: var(--bg); }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-item.expanded { background: var(--accent-light); }
+    .activity-icon {
+      width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center;
+      justify-content: center; font-size: 1.1rem; flex-shrink: 0;
+    }
+    .activity-icon.created { background: var(--green-light); }
+    .activity-icon.updated { background: var(--accent-light); }
+    .activity-icon.deleted { background: var(--red-light); }
+    .activity-icon.exported { background: var(--purple-light); }
+    .activity-icon.viewed { background: var(--teal-light); }
+    .activity-icon.system { background: #f1f5f9; }
+    .activity-content { flex: 1; min-width: 0; }
+    .activity-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .activity-text { font-size: 0.88rem; font-weight: 500; }
+    .activity-text .entity { color: var(--accent); font-weight: 600; }
+    .activity-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; font-size: 0.75rem; color: var(--muted); }
+    .activity-meta span { display: flex; align-items: center; gap: 3px; }
+    .activity-time { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+
+    /* Activity Detail Expansion */
+    .activity-details {
+      display: none; margin-top: 12px; padding: 12px; background: var(--bg);
+      border-radius: 8px; font-size: 0.8rem;
+    }
+    .activity-item.expanded .activity-details { display: block; }
+    .detail-row { display: flex; gap: 8px; margin-bottom: 6px; }
+    .detail-label { font-weight: 600; color: var(--muted); min-width: 80px; }
+    .detail-value { flex: 1; }
+    .diff-section { margin-top: 8px; }
+    .diff-title { font-weight: 600; margin-bottom: 4px; }
+    .diff-item { display: flex; gap: 8px; padding: 4px 0; border-bottom: 1px dashed #e2e8f0; }
+    .diff-item:last-child { border-bottom: none; }
+    .diff-field { font-weight: 500; min-width: 100px; color: var(--text); }
+    .diff-old { color: var(--red); text-decoration: line-through; }
+    .diff-new { color: var(--green); }
+    .entity-link {
+      display: inline-flex; align-items: center; gap: 4px; color: var(--accent);
+      text-decoration: none; font-weight: 600; margin-top: 8px;
+    }
+    .entity-link:hover { text-decoration: underline; }
+
+    /* Chart Card */
+    .chart-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 16px 20px; margin-bottom: 16px;
+    }
+    .chart-card h3 { font-size: 0.85rem; font-weight: 700; margin-bottom: 12px; }
+    .chart-container { height: 180px; }
+
+    /* Most Active Areas */
+    .areas-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 16px 20px;
+    }
+    .areas-card h3 { font-size: 0.85rem; font-weight: 700; margin-bottom: 12px; }
+    .area-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid #f1f5f9;
+    }
+    .area-item:last-child { border-bottom: none; }
+    .area-name { font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+    .area-count { font-size: 0.8rem; font-weight: 700; color: var(--accent); }
+    .area-bar {
+      flex: 1; max-width: 80px; height: 6px; background: var(--bg); border-radius: 3px;
+      margin: 0 12px; overflow: hidden;
+    }
+    .area-bar-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.3s; }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center; padding: 60px 20px; color: var(--muted);
+    }
+    .empty-state .empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.5; }
+    .empty-state h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+    .empty-state p { font-size: 0.88rem; }
+
+    /* Loading */
+    .loading { text-align: center; padding: 40px; color: var(--muted); }
+    .loading::after {
+      content: ''; display: inline-block; width: 20px; height: 20px;
+      border: 2px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.8s linear infinite; margin-left: 10px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Pagination */
+    .pagination {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 16px 20px; border-top: 1px solid var(--border);
+    }
+    .pagination button {
+      padding: 6px 12px; font-size: 0.8rem; border: 1px solid var(--border);
+      background: var(--card); border-radius: 6px; cursor: pointer;
+    }
+    .pagination button:hover:not(:disabled) { background: var(--accent-light); border-color: var(--accent); }
+    .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .pagination .page-info { font-size: 0.8rem; color: var(--muted); }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .content-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .dashboard { padding: 16px; }
+      .page-header { flex-direction: column; align-items: flex-start; }
+      .filter-bar { flex-direction: column; }
+      .filter-group { width: 100%; }
+      .filter-group input, .filter-group select { width: 100%; }
+      .filter-actions { margin-left: 0; width: 100%; }
+      .filter-actions .btn { flex: 1; justify-content: center; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .activity-item { padding: 12px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <!-- Header -->
+    <div class="page-header">
+      <div class="page-title">
+        <a href="/home" class="back-link">← Dashboard</a>
+        <div>
+          <h1>📋 Activity Log</h1>
+          <div class="subtitle">Complete audit trail of all system activity</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn" onclick="exportToCSV()">📥 Export CSV</button>
+        <button class="btn" onclick="refreshData()">🔄 Refresh</button>
+      </div>
+    </div>
+
+    <!-- Stats Summary -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-accent blue"></div>
+        <div class="stat-icon">📊</div>
+        <div class="stat-value" id="stat-today">0</div>
+        <div class="stat-label">Actions Today</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-accent green"></div>
+        <div class="stat-icon">✨</div>
+        <div class="stat-value" id="stat-created">0</div>
+        <div class="stat-label">Records Created</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-accent amber"></div>
+        <div class="stat-icon">✏️</div>
+        <div class="stat-value" id="stat-updated">0</div>
+        <div class="stat-label">Records Updated</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-accent purple"></div>
+        <div class="stat-icon">🗂️</div>
+        <div class="stat-value" id="stat-total">0</div>
+        <div class="stat-label">Total Activities</div>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label>Action Type</label>
+        <select id="filter-action">
+          <option value="">All Actions</option>
+          <option value="created">Created</option>
+          <option value="updated">Updated</option>
+          <option value="deleted">Deleted</option>
+          <option value="exported">Exported</option>
+          <option value="imported">Imported</option>
+          <option value="viewed">Viewed</option>
+          <option value="login">Login</option>
+          <option value="system">System</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Entity Type</label>
+        <select id="filter-entity">
+          <option value="">All Entities</option>
+          <option value="prospect">Prospect</option>
+          <option value="contact">Contact</option>
+          <option value="activity">Activity</option>
+          <option value="machine">Machine</option>
+          <option value="location">Location</option>
+          <option value="product">Product</option>
+          <option value="finance">Finance</option>
+          <option value="contract">Contract</option>
+          <option value="document">Document</option>
+          <option value="todo">Todo</option>
+          <option value="user">User</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>From Date</label>
+        <input type="date" id="filter-from">
+      </div>
+      <div class="filter-group">
+        <label>To Date</label>
+        <input type="date" id="filter-to">
+      </div>
+      <div class="filter-group">
+        <label>Search</label>
+        <input type="text" id="filter-search" placeholder="Search activities...">
+      </div>
+      <div class="filter-actions">
+        <button class="btn" onclick="applyFilters()">Apply Filters</button>
+        <button class="btn" onclick="clearFilters()">Clear</button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="content-grid">
+      <!-- Activity Feed -->
+      <div class="feed-card">
+        <div class="feed-header">
+          <div class="feed-title">📋 Activity Timeline <span class="feed-count" id="feed-count">0</span></div>
+        </div>
+        <div id="activity-feed" class="feed-list">
+          <div class="loading">Loading activities...</div>
+        </div>
+        <div class="pagination" id="pagination" style="display: none;">
+          <button id="prev-page" onclick="prevPage()">← Previous</button>
+          <span class="page-info"><span id="current-page">1</span> of <span id="total-pages">1</span></span>
+          <button id="next-page" onclick="nextPage()">Next →</button>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <!-- Activity Chart -->
+        <div class="chart-card">
+          <h3>📈 Activity Trend (7 Days)</h3>
+          <div class="chart-container">
+            <canvas id="activity-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- Most Active Areas -->
+        <div class="areas-card">
+          <h3>🎯 Most Active Areas</h3>
+          <div id="active-areas"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    // State
+    let activities = [];
+    let filteredActivities = [];
+    let currentPage = 1;
+    const pageSize = 50;
+    let activityChart = null;
+
+    // Action icons and colors
+    const actionConfig = {
+      created: { icon: '✨', class: 'created', label: 'Created' },
+      updated: { icon: '✏️', class: 'updated', label: 'Updated' },
+      deleted: { icon: '🗑️', class: 'deleted', label: 'Deleted' },
+      exported: { icon: '📥', class: 'exported', label: 'Exported' },
+      imported: { icon: '📤', class: 'updated', label: 'Imported' },
+      viewed: { icon: '👁️', class: 'viewed', label: 'Viewed' },
+      login: { icon: '🔐', class: 'system', label: 'Login' },
+      logout: { icon: '🚪', class: 'system', label: 'Logout' },
+      system: { icon: '⚙️', class: 'system', label: 'System' }
+    };
+
+    // Entity config
+    const entityConfig = {
+      prospect: { icon: '🏢', label: 'Prospect', link: '/crm.html#prospect-' },
+      contact: { icon: '👤', label: 'Contact', link: null },
+      activity: { icon: '📝', label: 'Activity', link: null },
+      machine: { icon: '🤖', label: 'Machine', link: '/machines.html#machine-' },
+      location: { icon: '📍', label: 'Location', link: '/locations.html#location-' },
+      product: { icon: '📦', label: 'Product', link: '/products.html' },
+      finance: { icon: '💰', label: 'Finance', link: '/finances.html' },
+      contract: { icon: '📄', label: 'Contract', link: '/contracts.html#contract-' },
+      document: { icon: '📁', label: 'Document', link: '/documents.html' },
+      todo: { icon: '✅', label: 'Todo', link: '/todos.html' },
+      user: { icon: '👤', label: 'User', link: null },
+      pipeline: { icon: '🔄', label: 'Pipeline', link: '/pipeline.html' },
+      email: { icon: '📧', label: 'Email', link: null }
+    };
+
+    // Load activities
+    async function loadActivities() {
+      try {
+        const res = await fetch('/api/activity-log');
+        activities = await res.json();
+        filteredActivities = [...activities];
+        updateStats();
+        renderActivities();
+        renderChart();
+        renderActiveAreas();
+      } catch (err) {
+        console.error('Failed to load activities:', err);
+        document.getElementById('activity-feed').innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><h3>Failed to load activities</h3><p>Please try refreshing the page.</p></div>';
+      }
+    }
+
+    // Update stats
+    function updateStats() {
+      const today = new Date().toISOString().split('T')[0];
+      const todayCount = activities.filter(a => a.created_at?.startsWith(today)).length;
+      const createdCount = activities.filter(a => a.action === 'created').length;
+      const updatedCount = activities.filter(a => a.action === 'updated').length;
+
+      document.getElementById('stat-today').textContent = todayCount;
+      document.getElementById('stat-created').textContent = createdCount;
+      document.getElementById('stat-updated').textContent = updatedCount;
+      document.getElementById('stat-total').textContent = activities.length;
+      document.getElementById('feed-count').textContent = filteredActivities.length;
+    }
+
+    // Render activities
+    function renderActivities() {
+      const feed = document.getElementById('activity-feed');
+      const pagination = document.getElementById('pagination');
+
+      if (filteredActivities.length === 0) {
+        feed.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><h3>No activities found</h3><p>Try adjusting your filters or wait for new activity.</p></div>';
+        pagination.style.display = 'none';
+        return;
+      }
+
+      const totalPages = Math.ceil(filteredActivities.length / pageSize);
+      const start = (currentPage - 1) * pageSize;
+      const pageActivities = filteredActivities.slice(start, start + pageSize);
+
+      feed.innerHTML = pageActivities.map((a, i) => {
+        const action = actionConfig[a.action] || actionConfig.system;
+        const entity = entityConfig[a.entity_type] || { icon: '📄', label: a.entity_type || 'Unknown' };
+        const time = formatTime(a.created_at);
+        const hasDetails = a.before || a.after || a.details;
+
+        return `
+          <div class="activity-item" data-index="${start + i}" onclick="toggleDetails(this)">
+            <div class="activity-icon ${action.class}">${action.icon}</div>
+            <div class="activity-content">
+              <div class="activity-header">
+                <div class="activity-text">
+                  ${a.user || 'System'} <strong>${action.label.toLowerCase()}</strong>
+                  <span class="entity">${entity.icon} ${a.entity_name || entity.label}</span>
+                  ${a.entity_id ? `<span style="color: var(--muted); font-size: 0.75rem;">#${a.entity_id}</span>` : ''}
+                </div>
+                <div class="activity-time">${time}</div>
+              </div>
+              <div class="activity-meta">
+                ${a.description ? `<span>💬 ${truncate(a.description, 60)}</span>` : ''}
+                ${hasDetails ? '<span>📎 Click for details</span>' : ''}
+              </div>
+              ${hasDetails ? renderDetails(a, entity) : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Update pagination
+      document.getElementById('current-page').textContent = currentPage;
+      document.getElementById('total-pages').textContent = totalPages;
+      document.getElementById('prev-page').disabled = currentPage === 1;
+      document.getElementById('next-page').disabled = currentPage === totalPages;
+      pagination.style.display = totalPages > 1 ? 'flex' : 'none';
+    }
+
+    // Render activity details
+    function renderDetails(activity, entityCfg) {
+      let html = '<div class="activity-details">';
+
+      if (activity.description) {
+        html += `<div class="detail-row"><span class="detail-label">Description</span><span class="detail-value">${activity.description}</span></div>`;
+      }
+
+      if (activity.details) {
+        const details = typeof activity.details === 'string' ? JSON.parse(activity.details) : activity.details;
+        for (const [key, val] of Object.entries(details)) {
+          html += `<div class="detail-row"><span class="detail-label">${formatLabel(key)}</span><span class="detail-value">${val}</span></div>`;
+        }
+      }
+
+      // Show before/after diff
+      if (activity.before && activity.after) {
+        const before = typeof activity.before === 'string' ? JSON.parse(activity.before) : activity.before;
+        const after = typeof activity.after === 'string' ? JSON.parse(activity.after) : activity.after;
+        const changes = getChanges(before, after);
+
+        if (changes.length > 0) {
+          html += '<div class="diff-section"><div class="diff-title">📝 Changes:</div>';
+          for (const change of changes) {
+            html += `
+              <div class="diff-item">
+                <span class="diff-field">${formatLabel(change.field)}</span>
+                <span class="diff-old">${truncate(String(change.old || '(empty)'), 50)}</span>
+                <span>→</span>
+                <span class="diff-new">${truncate(String(change.new || '(empty)'), 50)}</span>
+              </div>
+            `;
+          }
+          html += '</div>';
+        }
+      }
+
+      // Entity link
+      if (activity.entity_id && entityCfg.link) {
+        html += `<a href="${entityCfg.link}${activity.entity_id}" class="entity-link">🔗 View ${entityCfg.label}</a>`;
+      }
+
+      html += '</div>';
+      return html;
+    }
+
+    // Get changes between before/after
+    function getChanges(before, after) {
+      const changes = [];
+      const allKeys = new Set([...Object.keys(before || {}), ...Object.keys(after || {})]);
+      const ignoreKeys = ['updated_at', 'created_at', 'id'];
+
+      for (const key of allKeys) {
+        if (ignoreKeys.includes(key)) continue;
+        const oldVal = before?.[key];
+        const newVal = after?.[key];
+        if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+          changes.push({ field: key, old: oldVal, new: newVal });
+        }
+      }
+      return changes;
+    }
+
+    // Toggle details expansion
+    function toggleDetails(el) {
+      el.classList.toggle('expanded');
+    }
+
+    // Render chart
+    function renderChart() {
+      const ctx = document.getElementById('activity-chart').getContext('2d');
+
+      // Get last 7 days
+      const days = [];
+      const counts = [];
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        days.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
+        counts.push(activities.filter(a => a.created_at?.startsWith(dateStr)).length);
+      }
+
+      if (activityChart) activityChart.destroy();
+
+      activityChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: days,
+          datasets: [{
+            label: 'Activities',
+            data: counts,
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1 } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    // Render most active areas
+    function renderActiveAreas() {
+      const container = document.getElementById('active-areas');
+      const counts = {};
+
+      activities.forEach(a => {
+        const type = a.entity_type || 'unknown';
+        counts[type] = (counts[type] || 0) + 1;
+      });
+
+      const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+      const max = sorted[0]?.[1] || 1;
+
+      if (sorted.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: var(--muted); padding: 20px;">No activity data</div>';
+        return;
+      }
+
+      container.innerHTML = sorted.map(([type, count]) => {
+        const cfg = entityConfig[type] || { icon: '📄', label: type };
+        const pct = (count / max * 100).toFixed(0);
+        return `
+          <div class="area-item">
+            <span class="area-name">${cfg.icon} ${cfg.label}</span>
+            <div class="area-bar"><div class="area-bar-fill" style="width: ${pct}%"></div></div>
+            <span class="area-count">${count}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Apply filters
+    function applyFilters() {
+      const action = document.getElementById('filter-action').value;
+      const entity = document.getElementById('filter-entity').value;
+      const from = document.getElementById('filter-from').value;
+      const to = document.getElementById('filter-to').value;
+      const search = document.getElementById('filter-search').value.toLowerCase();
+
+      filteredActivities = activities.filter(a => {
+        if (action && a.action !== action) return false;
+        if (entity && a.entity_type !== entity) return false;
+        if (from && a.created_at < from) return false;
+        if (to && a.created_at > to + 'T23:59:59') return false;
+        if (search) {
+          const text = [a.entity_name, a.description, a.user, a.action, a.entity_type].join(' ').toLowerCase();
+          if (!text.includes(search)) return false;
+        }
+        return true;
+      });
+
+      currentPage = 1;
+      document.getElementById('feed-count').textContent = filteredActivities.length;
+      renderActivities();
+    }
+
+    // Clear filters
+    function clearFilters() {
+      document.getElementById('filter-action').value = '';
+      document.getElementById('filter-entity').value = '';
+      document.getElementById('filter-from').value = '';
+      document.getElementById('filter-to').value = '';
+      document.getElementById('filter-search').value = '';
+      filteredActivities = [...activities];
+      currentPage = 1;
+      document.getElementById('feed-count').textContent = filteredActivities.length;
+      renderActivities();
+    }
+
+    // Pagination
+    function prevPage() {
+      if (currentPage > 1) { currentPage--; renderActivities(); }
+    }
+    function nextPage() {
+      const totalPages = Math.ceil(filteredActivities.length / pageSize);
+      if (currentPage < totalPages) { currentPage++; renderActivities(); }
+    }
+
+    // Export to CSV
+    function exportToCSV() {
+      const headers = ['Timestamp', 'User', 'Action', 'Entity Type', 'Entity ID', 'Entity Name', 'Description'];
+      const rows = filteredActivities.map(a => [
+        a.created_at,
+        a.user || 'System',
+        a.action,
+        a.entity_type,
+        a.entity_id || '',
+        a.entity_name || '',
+        (a.description || '').replace(/"/g, '""')
+      ]);
+
+      const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `activity-log-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Refresh data
+    function refreshData() {
+      document.getElementById('activity-feed').innerHTML = '<div class="loading">Refreshing...</div>';
+      loadActivities();
+    }
+
+    // Utilities
+    function formatTime(timestamp) {
+      if (!timestamp) return '';
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diff = now - date;
+
+      if (diff < 60000) return 'Just now';
+      if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+      if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+      if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
+
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    }
+
+    function truncate(str, len) {
+      if (!str) return '';
+      return str.length > len ? str.substring(0, len) + '...' : str;
+    }
+
+    function formatLabel(key) {
+      return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    // Init
+    document.addEventListener('DOMContentLoaded', loadActivities);
+
+    // Real-time filter on search input
+    document.getElementById('filter-search').addEventListener('input', debounce(applyFilters, 300));
+
+    function debounce(fn, delay) {
+      let timer;
+      return function(...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), delay);
+      };
+    }
+  </script>
+</body>
+</html>

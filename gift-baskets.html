@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Gift Baskets — Kande VendTech</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{--bg:#f7fafc;--card:#fff;--text:#1a202c;--muted:#718096;--dim:#a0aec0;--border:#e2e8f0;--accent:#3182ce;--accent-bg:rgba(49,130,206,.08);--purple:#6B2FA0;--purple-bg:rgba(107,47,160,.08);--success:#38a169;--success-bg:rgba(56,161,105,.08);--warn:#d69e2e;--warn-bg:rgba(214,158,46,.1);--hot:#e53e3e;--hot-bg:rgba(229,62,62,.08);--gold:#D4A843;--gradient:linear-gradient(135deg,#6B2FA0,#3182ce)}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    .app{max-width:1600px;margin:0 auto;padding:24px 20px 60px}
+
+    /* Header */
+    .page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+    .page-header h1{font-size:1.5rem;font-weight:700;display:flex;align-items:center;gap:10px}
+    .page-header h1 .emoji{font-size:1.6rem}
+    .header-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .header-sub{font-size:.82rem;color:var(--muted);margin-top:2px}
+
+    /* Buttons */
+    .btn{padding:9px 18px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:.84rem;font-weight:500;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;font-family:inherit}
+    .btn:hover{border-color:var(--accent);color:var(--accent)}
+    .btn-primary{background:var(--purple);color:#fff;border:none;font-weight:600}
+    .btn-primary:hover{background:#5a2688;box-shadow:0 2px 8px rgba(107,47,160,.25)}
+    .btn-accent{background:var(--accent);color:#fff;border:none;font-weight:600}
+    .btn-accent:hover{background:#2c6cb0}
+    .btn-success{background:var(--success);color:#fff;border:none;font-weight:600}
+    .btn-success:hover{background:#2f8a59}
+    .btn-danger{color:var(--hot);border-color:rgba(229,62,62,.3)}
+    .btn-danger:hover{background:var(--hot);color:#fff}
+    .btn-sm{padding:6px 12px;font-size:.78rem}
+    .btn-ghost{background:transparent;border:none;color:var(--muted);padding:6px 10px}
+    .btn-ghost:hover{color:var(--text);background:rgba(0,0,0,.04)}
+    .btn-warn{background:var(--warn);color:#fff;border:none;font-weight:600}
+    .btn-warn:hover{background:#c08e24}
+
+    /* Tabs */
+    .main-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:24px;overflow-x:auto}
+    .main-tab{padding:14px 24px;font-size:.9rem;font-weight:600;color:var(--muted);background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;cursor:pointer;transition:all .15s;white-space:nowrap;font-family:inherit;display:flex;align-items:center;gap:8px}
+    .main-tab:hover{color:var(--text)}
+    .main-tab.active{color:var(--purple);border-bottom-color:var(--purple)}
+    .main-tab .count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:10px;font-size:.7rem;font-weight:700;background:var(--accent-bg);color:var(--accent)}
+    .main-tab .count.alert{background:var(--hot-bg);color:var(--hot)}
+    .tab-panel{display:none}
+    .tab-panel.active{display:block}
+
+    /* Stats Row */
+    .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:24px}
+    .stat-card{background:var(--card);border-radius:12px;padding:18px;border:1px solid var(--border);text-align:center;transition:all .15s}
+    .stat-card:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.06)}
+    .stat-label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:6px}
+    .stat-value{font-size:1.8rem;font-weight:700}
+    .stat-sub{font-size:.75rem;color:var(--dim);margin-top:4px}
+    .sc-accent{color:var(--accent)}.sc-success{color:var(--success)}.sc-warn{color:var(--warn)}.sc-hot{color:var(--hot)}.sc-purple{color:var(--purple)}
+
+    /* Cards */
+    .card{background:var(--card);border-radius:12px;padding:20px;border:1px solid var(--border);margin-bottom:16px}
+    .card-title{font-size:1rem;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+
+    /* Table */
+    .table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border);background:var(--card)}
+    table{width:100%;border-collapse:collapse;font-size:.84rem}
+    th{background:#f8fafc;padding:12px 14px;text-align:left;font-weight:600;color:var(--muted);text-transform:uppercase;font-size:.72rem;letter-spacing:.5px;white-space:nowrap;border-bottom:2px solid var(--border);position:sticky;top:0;z-index:1}
+    td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+    tr:hover td{background:rgba(49,130,206,.02)}
+    tr:last-child td{border-bottom:none}
+
+    /* Status badges */
+    .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:8px;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+    .badge-planned{background:#e8eaf6;color:#5c6bc0}
+    .badge-assembled{background:var(--warn-bg);color:#92600e}
+    .badge-delivered{background:var(--success-bg);color:var(--success)}
+    .badge-followup{background:var(--purple-bg);color:var(--purple)}
+    .badge-first-touch{background:#e8f5e9;color:#388e3c}
+    .badge-decision-maker{background:#fff3e0;color:#e65100}
+    .badge-thank-you{background:#e3f2fd;color:#1565c0}
+    .badge-holiday{background:#fce4ec;color:#c62828}
+    .badge-custom{background:#f3e5f5;color:#7b1fa2}
+
+    /* Form */
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .form-group{display:flex;flex-direction:column;gap:4px}
+    .form-group.full{grid-column:1/-1}
+    .form-group label{font-size:.78rem;font-weight:600;color:var(--muted)}
+    .form-group input,.form-group select,.form-group textarea{padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:.88rem;font-family:inherit;color:var(--text);transition:border-color .15s}
+    .form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(49,130,206,.1)}
+    .form-group textarea{resize:vertical;min-height:60px}
+
+    /* Template cards */
+    .templates-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+    .template-card{background:var(--card);border-radius:12px;padding:18px;border:2px solid var(--border);cursor:pointer;transition:all .2s;position:relative}
+    .template-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.08)}
+    .template-card.selected{border-color:var(--purple);background:var(--purple-bg)}
+    .template-card .tc-emoji{font-size:2rem;margin-bottom:8px}
+    .template-card .tc-name{font-size:1rem;font-weight:700;margin-bottom:4px}
+    .template-card .tc-price{font-size:1.2rem;font-weight:700;color:var(--success)}
+    .template-card .tc-desc{font-size:.8rem;color:var(--muted);margin:6px 0}
+    .template-card .tc-items{font-size:.78rem;color:var(--dim);line-height:1.5}
+    .template-card .tc-check{position:absolute;top:12px;right:12px;width:24px;height:24px;border-radius:50%;background:var(--purple);color:#fff;display:none;align-items:center;justify-content:center;font-size:.8rem}
+    .template-card.selected .tc-check{display:flex}
+
+    /* Reminder cards */
+    .reminders-list{display:grid;gap:10px}
+    .reminder-card{display:flex;align-items:center;gap:14px;background:var(--card);border-radius:10px;padding:14px 18px;border:1px solid var(--border);transition:all .15s}
+    .reminder-card:hover{border-color:var(--warn);box-shadow:0 2px 8px rgba(0,0,0,.04)}
+    .reminder-card .r-days{min-width:55px;text-align:center}
+    .reminder-card .r-days .num{font-size:1.4rem;font-weight:700;color:var(--hot)}
+    .reminder-card .r-days .label{font-size:.65rem;color:var(--muted);text-transform:uppercase;font-weight:600}
+    .reminder-card .r-info{flex:1}
+    .reminder-card .r-name{font-weight:600;font-size:.9rem}
+    .reminder-card .r-sub{font-size:.78rem;color:var(--muted)}
+    .reminder-card .r-action{flex-shrink:0}
+    .overdue{color:var(--hot) !important}
+    .warning{color:var(--warn) !important}
+
+    /* Shopping list */
+    .shopping-list{background:var(--card);border-radius:12px;padding:20px;border:1px solid var(--border)}
+    .sl-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+    .sl-category{font-size:.88rem;font-weight:700;color:var(--purple);margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+    .sl-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;font-size:.86rem;border-bottom:1px dashed rgba(0,0,0,.06)}
+    .sl-item:last-child{border-bottom:none}
+    .sl-qty{font-weight:700;color:var(--accent);min-width:30px}
+    .sl-total{margin-top:16px;padding-top:14px;border-top:2px solid var(--border);display:flex;justify-content:space-between;font-weight:700;font-size:1.05rem}
+
+    /* Modal */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10001;align-items:center;justify-content:center;padding:20px}
+    .modal-overlay.open{display:flex}
+    .modal{background:var(--card);border-radius:16px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+    .modal-header h2{font-size:1.2rem;font-weight:700}
+    .modal-close{background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--muted);padding:4px}
+    .modal-close:hover{color:var(--text)}
+    .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+
+    /* Prospect link */
+    .prospect-link{color:var(--accent);text-decoration:none;font-weight:500}
+    .prospect-link:hover{text-decoration:underline}
+
+    /* Filter bar */
+    .filter-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+    .filter-bar select,.filter-bar input{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:.84rem;font-family:inherit}
+
+    /* Empty state */
+    .empty-state{text-align:center;padding:60px 20px;color:var(--muted)}
+    .empty-state .emoji{font-size:3rem;margin-bottom:12px}
+    .empty-state h3{font-size:1.1rem;margin-bottom:6px;color:var(--text)}
+    .empty-state p{font-size:.88rem;max-width:400px;margin:0 auto 16px}
+
+    /* Photo slot */
+    .photo-slot{width:40px;height:40px;border-radius:8px;background:var(--bg);border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:.8rem;color:var(--dim);cursor:pointer;overflow:hidden}
+    .photo-slot img{width:100%;height:100%;object-fit:cover}
+
+    /* Responsive */
+    @media(max-width:768px){
+      .form-grid{grid-template-columns:1fr}
+      .templates-grid{grid-template-columns:1fr}
+      .stats-row{grid-template-columns:repeat(2,1fr)}
+      .filter-bar{flex-direction:column}
+      .page-header{flex-direction:column;align-items:flex-start}
+    }
+  </style>
+</head>
+<body>
+<script src="/nav.js"></script>
+<div class="app">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1><span class="emoji">🎁</span> Gift Basket Tracker</h1>
+      <div class="header-sub">The #1 sales tool in vending — 8-10 touches to close. Track every basket, every follow-up.</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-accent" onclick="openShoppingList()">🛒 Shopping List</button>
+      <button class="btn btn-primary" onclick="openAddModal()">+ New Basket</button>
+    </div>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card"><div class="stat-label">Total Baskets</div><div class="stat-value sc-purple" id="statTotal">0</div><div class="stat-sub">All time</div></div>
+    <div class="stat-card"><div class="stat-label">Delivered</div><div class="stat-value sc-success" id="statDelivered">0</div><div class="stat-sub">Successfully dropped</div></div>
+    <div class="stat-card"><div class="stat-label">Cost This Month</div><div class="stat-value sc-warn" id="statCostMonth">$0</div><div class="stat-sub" id="statMonthLabel">-</div></div>
+    <div class="stat-card"><div class="stat-label">Conversion Rate</div><div class="stat-value sc-accent" id="statConversion">0%</div><div class="stat-sub">Baskets → Signed</div></div>
+    <div class="stat-card"><div class="stat-label">Avg Touches</div><div class="stat-value sc-hot" id="statAvgTouches">—</div><div class="stat-sub">To close a deal</div></div>
+    <div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value" id="statPending">0</div><div class="stat-sub">Planned/Assembled</div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="main-tabs">
+    <button class="main-tab active" data-tab="log">🎁 Basket Log <span class="count" id="logCount">0</span></button>
+    <button class="main-tab" data-tab="reminders">⏰ Reminders <span class="count alert" id="reminderCount">0</span></button>
+    <button class="main-tab" data-tab="templates">📦 Templates</button>
+    <button class="main-tab" data-tab="shopping">🛒 Shopping List</button>
+  </div>
+
+  <!-- Tab: Basket Log -->
+  <div class="tab-panel active" id="tab-log">
+    <div class="filter-bar">
+      <select id="filterStatus" onchange="renderBaskets()">
+        <option value="">All Statuses</option>
+        <option value="planned">Planned</option>
+        <option value="assembled">Assembled</option>
+        <option value="delivered">Delivered</option>
+        <option value="followup_done">Follow-up Done</option>
+      </select>
+      <select id="filterType" onchange="renderBaskets()">
+        <option value="">All Types</option>
+        <option value="first_touch">First Touch</option>
+        <option value="decision_maker">Decision Maker</option>
+        <option value="thank_you">Thank You</option>
+        <option value="holiday">Holiday</option>
+        <option value="custom">Custom</option>
+      </select>
+      <input type="text" id="filterSearch" placeholder="Search recipient..." oninput="renderBaskets()" style="flex:1;min-width:150px">
+    </div>
+    <div id="basketTableWrap"></div>
+  </div>
+
+  <!-- Tab: Reminders -->
+  <div class="tab-panel" id="tab-reminders">
+    <div class="card">
+      <div class="card-title">⏰ Prospects Needing a Basket</div>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px">
+        These prospects haven't received a basket recently. Per Skool community: <strong>8-10 touches to close</strong> — gift baskets are the #1 way to stay top-of-mind.
+      </p>
+      <div id="remindersList" class="reminders-list"></div>
+    </div>
+  </div>
+
+  <!-- Tab: Templates -->
+  <div class="tab-panel" id="tab-templates">
+    <div class="card">
+      <div class="card-title">📦 Basket Templates</div>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px">
+        Pre-defined basket types from the Vendingpreneurs community. Click to use when creating a new basket.
+      </p>
+      <div class="templates-grid" id="templatesGrid"></div>
+    </div>
+  </div>
+
+  <!-- Tab: Shopping List -->
+  <div class="tab-panel" id="tab-shopping">
+    <div id="shoppingListContent"></div>
+  </div>
+
+</div><!-- .app -->
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="basketModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">New Gift Basket</h2>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="form-grid" id="basketForm">
+      <div class="form-group">
+        <label>Prospect *</label>
+        <select id="fProspect" required></select>
+      </div>
+      <div class="form-group">
+        <label>Basket Type *</label>
+        <select id="fType" onchange="onTypeChange()">
+          <option value="first_touch">🌱 First Touch ($25)</option>
+          <option value="decision_maker">🏆 Decision Maker ($50)</option>
+          <option value="thank_you">🎉 Thank You ($30)</option>
+          <option value="holiday">🎄 Holiday ($40)</option>
+          <option value="custom">✏️ Custom</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Delivery Date *</label>
+        <input type="date" id="fDate">
+      </div>
+      <div class="form-group">
+        <label>Cost ($)</label>
+        <input type="number" id="fCost" step="0.01" min="0" placeholder="25.00">
+      </div>
+      <div class="form-group">
+        <label>Delivery Method</label>
+        <select id="fMethod">
+          <option value="drop-off">🚗 Drop-off (in person)</option>
+          <option value="mail">📦 Mail / Ship</option>
+          <option value="courier">🏃 Courier</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="fStatus">
+          <option value="planned">📋 Planned</option>
+          <option value="assembled">🔧 Assembled</option>
+          <option value="delivered">✅ Delivered</option>
+          <option value="followup_done">🎯 Follow-up Done</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Contents</label>
+        <textarea id="fContents" placeholder="e.g., Variety snacks, business card, one-pager brochure..."></textarea>
+      </div>
+      <div class="form-group full">
+        <label>Notes</label>
+        <textarea id="fNotes" placeholder="Any special notes, who to give it to, best time to visit..."></textarea>
+      </div>
+      <div class="form-group full">
+        <label>Photo (base64 or URL)</label>
+        <input type="text" id="fPhoto" placeholder="Paste image URL or leave blank">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" id="btnDelete" style="display:none" onclick="deleteBasket()">Delete</button>
+      <button class="btn btn-primary" id="btnSave" onclick="saveBasket()">Save Basket</button>
+    </div>
+  </div>
+</div>
+
+<!-- Shopping List Modal -->
+<div class="modal-overlay" id="shoppingModal">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <h2>🛒 Costco Shopping List</h2>
+      <button class="modal-close" onclick="closeShoppingModal()">&times;</button>
+    </div>
+    <div id="shoppingModalBody"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeShoppingModal()">Close</button>
+      <button class="btn btn-accent" onclick="copyShoppingList()">📋 Copy to Clipboard</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─────── State ─────── */
+let baskets = [];
+let prospects = [];
+let editingId = null;
+
+const TEMPLATES = {
+  first_touch: {
+    name: 'First Touch', emoji: '🌱', cost: 25, color: '#388e3c',
+    desc: 'First impression — make them remember you.',
+    items: ['Variety snack mix (chips, pretzels, cookies)', 'Bottled water (2-pack)', 'Business card', 'One-pager brochure', 'Small cellophane bag + ribbon'],
+    costco: [
+      { item: 'Frito-Lay Variety Pack (28ct)', qty_per: 4, category: 'Snacks' },
+      { item: 'Kirkland Bottled Water (40ct)', qty_per: 20, category: 'Beverages' },
+      { item: 'Cellophane Gift Bags (50ct)', qty_per: 25, category: 'Supplies' },
+      { item: 'Curling Ribbon Roll', qty_per: 50, category: 'Supplies' }
+    ]
+  },
+  decision_maker: {
+    name: 'Decision Maker', emoji: '🏆', cost: 50, color: '#e65100',
+    desc: 'For the person who signs the contract. Go premium.',
+    items: ['Premium snack assortment (nuts, dried fruit, chocolate)', 'Energy drinks (Celsius 2-pack)', 'Sample products from our cooler', 'Full proposal packet', 'Branded tote bag', 'Handwritten thank-you note'],
+    costco: [
+      { item: 'Kirkland Mixed Nuts (2.5lb)', qty_per: 5, category: 'Snacks' },
+      { item: 'Godiva Chocolate Assortment', qty_per: 3, category: 'Snacks' },
+      { item: 'Celsius Energy Variety (18ct)', qty_per: 6, category: 'Beverages' },
+      { item: 'Reusable Tote Bags (6ct)', qty_per: 6, category: 'Supplies' },
+      { item: 'Thank You Cards (50ct)', qty_per: 50, category: 'Supplies' }
+    ]
+  },
+  thank_you: {
+    name: 'Thank You', emoji: '🎉', cost: 30, color: '#1565c0',
+    desc: 'Celebrate the signed deal — start the relationship right.',
+    items: ['Celebration cookies/brownies', 'Sparkling cider or fancy water', 'Thank-you card (handwritten)', 'Small branded item (pen, magnet)', 'Candy assortment'],
+    costco: [
+      { item: 'Kirkland Gourmet Cookies (24ct)', qty_per: 6, category: 'Snacks' },
+      { item: 'S.Pellegrino Sparkling Water (12ct)', qty_per: 6, category: 'Beverages' },
+      { item: 'Ghirardelli Chocolate Squares', qty_per: 4, category: 'Snacks' },
+      { item: 'Thank You Cards (50ct)', qty_per: 50, category: 'Supplies' }
+    ]
+  },
+  holiday: {
+    name: 'Holiday', emoji: '🎄', cost: 40, color: '#c62828',
+    desc: 'Seasonal touch — keeps you in their mind year-round.',
+    items: ['Seasonal themed snack box', 'Hot cocoa packets or cider mix', 'Candy canes or seasonal candy', 'Holiday card (personalized)', 'Small ornament or seasonal item'],
+    costco: [
+      { item: 'Kirkland Holiday Cookie Tin', qty_per: 1, category: 'Snacks' },
+      { item: 'Swiss Miss Hot Cocoa (50ct)', qty_per: 10, category: 'Beverages' },
+      { item: 'Seasonal Candy Assortment', qty_per: 4, category: 'Snacks' },
+      { item: 'Holiday Cards Box (40ct)', qty_per: 40, category: 'Supplies' }
+    ]
+  },
+  custom: {
+    name: 'Custom', emoji: '✏️', cost: 0, color: '#7b1fa2',
+    desc: 'Build your own — set items and cost.',
+    items: [],
+    costco: []
+  }
+};
+
+/* ─────── API ─────── */
+async function api(url, opts = {}) {
+  const r = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function loadData() {
+  [baskets, prospects] = await Promise.all([
+    api('/api/gift-baskets'),
+    api('/api/prospects')
+  ]);
+  renderAll();
+}
+async function loadStats() {
+  try {
+    const stats = await api('/api/gift-baskets/stats');
+    document.getElementById('statTotal').textContent = stats.total;
+    document.getElementById('statDelivered').textContent = stats.delivered;
+    document.getElementById('statCostMonth').textContent = '$' + (stats.cost_this_month || 0).toFixed(0);
+    document.getElementById('statMonthLabel').textContent = stats.month_label || '';
+    document.getElementById('statConversion').textContent = (stats.conversion_rate || 0).toFixed(0) + '%';
+    document.getElementById('statAvgTouches').textContent = stats.avg_touches ? stats.avg_touches.toFixed(1) : '—';
+    document.getElementById('statPending').textContent = stats.pending;
+  } catch(e) { console.error('Stats error:', e); }
+}
+
+/* ─────── Render ─────── */
+function renderAll() {
+  renderBaskets();
+  renderReminders();
+  renderTemplates();
+  renderShoppingTab();
+  loadStats();
+  updateCounts();
+}
+
+function updateCounts() {
+  document.getElementById('logCount').textContent = baskets.length;
+  const now = new Date();
+  const reminders = getReminders();
+  document.getElementById('reminderCount').textContent = reminders.length;
+}
+
+function prospectName(id) {
+  const p = prospects.find(x => x.id === id);
+  return p ? p.name : 'Unknown';
+}
+
+function renderBaskets() {
+  const filterStatus = document.getElementById('filterStatus').value;
+  const filterType = document.getElementById('filterType').value;
+  const search = document.getElementById('filterSearch').value.toLowerCase();
+
+  let filtered = baskets;
+  if (filterStatus) filtered = filtered.filter(b => b.status === filterStatus);
+  if (filterType) filtered = filtered.filter(b => b.basket_type === filterType);
+  if (search) filtered = filtered.filter(b => prospectName(b.prospect_id).toLowerCase().includes(search));
+
+  filtered.sort((a, b) => new Date(b.delivery_date || b.created_at) - new Date(a.delivery_date || a.created_at));
+
+  if (filtered.length === 0) {
+    document.getElementById('basketTableWrap').innerHTML = `
+      <div class="empty-state">
+        <div class="emoji">🎁</div>
+        <h3>No baskets yet</h3>
+        <p>Gift baskets are the #1 sales tool. Start tracking who gets them and when.</p>
+        <button class="btn btn-primary" onclick="openAddModal()">+ Create First Basket</button>
+      </div>`;
+    return;
+  }
+
+  let html = '<div class="table-wrap"><table><thead><tr>';
+  html += '<th>Status</th><th>Recipient</th><th>Type</th><th>Delivery Date</th><th>Cost</th><th>Method</th><th>Photo</th><th>Notes</th><th></th>';
+  html += '</tr></thead><tbody>';
+
+  filtered.forEach(b => {
+    const statusBadge = {
+      planned: '<span class="badge badge-planned">📋 Planned</span>',
+      assembled: '<span class="badge badge-assembled">🔧 Assembled</span>',
+      delivered: '<span class="badge badge-delivered">✅ Delivered</span>',
+      followup_done: '<span class="badge badge-followup">🎯 Follow-up Done</span>'
+    }[b.status] || b.status;
+
+    const typeBadge = {
+      first_touch: '<span class="badge badge-first-touch">🌱 First Touch</span>',
+      decision_maker: '<span class="badge badge-decision-maker">🏆 Decision Maker</span>',
+      thank_you: '<span class="badge badge-thank-you">🎉 Thank You</span>',
+      holiday: '<span class="badge badge-holiday">🎄 Holiday</span>',
+      custom: '<span class="badge badge-custom">✏️ Custom</span>'
+    }[b.basket_type] || b.basket_type;
+
+    const pName = prospectName(b.prospect_id);
+    const photo = b.photo ? `<div class="photo-slot"><img src="${b.photo}" alt="basket"></div>` : '<div class="photo-slot">📷</div>';
+    const notes = (b.notes || '').substring(0, 50) + ((b.notes || '').length > 50 ? '...' : '');
+
+    html += `<tr onclick="openEditModal(${b.id})" style="cursor:pointer">
+      <td>${statusBadge}</td>
+      <td><a class="prospect-link" href="/crm?id=${b.prospect_id}" onclick="event.stopPropagation()">${pName}</a></td>
+      <td>${typeBadge}</td>
+      <td>${b.delivery_date || '—'}</td>
+      <td style="font-weight:600">$${(b.cost || 0).toFixed(2)}</td>
+      <td>${b.delivery_method === 'drop-off' ? '🚗 Drop-off' : b.delivery_method === 'mail' ? '📦 Mail' : b.delivery_method === 'courier' ? '🏃 Courier' : b.delivery_method || '—'}</td>
+      <td>${photo}</td>
+      <td style="font-size:.78rem;color:var(--muted)">${notes}</td>
+      <td><button class="btn btn-sm btn-ghost" onclick="event.stopPropagation();advanceStatus(${b.id})">▶</button></td>
+    </tr>`;
+  });
+
+  html += '</tbody></table></div>';
+  document.getElementById('basketTableWrap').innerHTML = html;
+}
+
+function getReminders() {
+  const now = new Date();
+  const reminderDays = 14; // remind if no basket in 14 days
+  return prospects
+    .filter(p => p.status !== 'closed' && p.status !== 'signed')
+    .map(p => {
+      const pBaskets = baskets.filter(b => b.prospect_id === p.id && b.status === 'delivered');
+      const lastBasket = pBaskets.sort((a, b) => new Date(b.delivery_date || b.created_at) - new Date(a.delivery_date || a.created_at))[0];
+      const lastDate = lastBasket ? new Date(lastBasket.delivery_date || lastBasket.created_at) : null;
+      const daysSince = lastDate ? Math.floor((now - lastDate) / (1000 * 60 * 60 * 24)) : 999;
+      const totalBaskets = pBaskets.length;
+      return { prospect: p, daysSince, totalBaskets, lastDate };
+    })
+    .filter(r => r.daysSince >= reminderDays || r.totalBaskets === 0)
+    .sort((a, b) => b.daysSince - a.daysSince);
+}
+
+function renderReminders() {
+  const reminders = getReminders();
+  const el = document.getElementById('remindersList');
+
+  if (reminders.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="emoji">✅</div><h3>All caught up!</h3><p>Every active prospect has been touched recently.</p></div>';
+    return;
+  }
+
+  el.innerHTML = reminders.map(r => {
+    const daysClass = r.daysSince > 30 ? 'overdue' : r.daysSince > 14 ? 'warning' : '';
+    const daysLabel = r.totalBaskets === 0 ? 'Never' : `${r.daysSince}d ago`;
+    const sub = r.totalBaskets === 0 ? 'No baskets sent yet — make a first impression!' :
+      `${r.totalBaskets} basket${r.totalBaskets > 1 ? 's' : ''} sent · Last: ${r.lastDate ? r.lastDate.toLocaleDateString() : 'n/a'}`;
+    return `<div class="reminder-card">
+      <div class="r-days"><div class="num ${daysClass}">${r.totalBaskets === 0 ? '∅' : r.daysSince}</div><div class="label">${r.totalBaskets === 0 ? 'never' : 'days'}</div></div>
+      <div class="r-info"><div class="r-name">${r.prospect.name}</div><div class="r-sub">${sub}</div></div>
+      <div class="r-action"><button class="btn btn-sm btn-primary" onclick="quickAdd(${r.prospect.id})">+ Basket</button></div>
+    </div>`;
+  }).join('');
+}
+
+function renderTemplates() {
+  const grid = document.getElementById('templatesGrid');
+  grid.innerHTML = Object.entries(TEMPLATES).map(([key, t]) => {
+    return `<div class="template-card" onclick="selectTemplate('${key}')">
+      <div class="tc-emoji">${t.emoji}</div>
+      <div class="tc-name">${t.name}</div>
+      <div class="tc-price">${t.cost > 0 ? '$' + t.cost : 'Variable'}</div>
+      <div class="tc-desc">${t.desc}</div>
+      <div class="tc-items">${t.items.length > 0 ? t.items.map(i => '• ' + i).join('<br>') : '<em>You define the contents</em>'}</div>
+    </div>`;
+  }).join('');
+}
+
+function selectTemplate(key) {
+  openAddModal();
+  document.getElementById('fType').value = key;
+  onTypeChange();
+}
+
+async function renderShoppingTab() {
+  const content = document.getElementById('shoppingListContent');
+  try {
+    const data = await api('/api/gift-baskets/shopping-list');
+    if (!data.items || data.items.length === 0) {
+      content.innerHTML = `<div class="empty-state"><div class="emoji">🛒</div><h3>No shopping needed</h3><p>Plan some baskets first, then generate your Costco Business Center shopping list.</p></div>`;
+      return;
+    }
+    content.innerHTML = buildShoppingListHTML(data);
+  } catch(e) {
+    content.innerHTML = `<div class="empty-state"><div class="emoji">❌</div><h3>Error loading shopping list</h3><p>${e.message}</p></div>`;
+  }
+}
+
+function buildShoppingListHTML(data) {
+  const categories = {};
+  data.items.forEach(item => {
+    if (!categories[item.category]) categories[item.category] = [];
+    categories[item.category].push(item);
+  });
+
+  let html = '<div class="shopping-list">';
+  html += '<div class="sl-header"><div><strong>🛒 Costco Business Center Shopping List</strong>';
+  html += `<div style="font-size:.8rem;color:var(--muted)">Based on ${data.planned_baskets} planned basket${data.planned_baskets !== 1 ? 's' : ''}</div></div>`;
+  html += `<button class="btn btn-sm btn-accent" onclick="copyShoppingList()">📋 Copy</button></div>`;
+
+  for (const [cat, items] of Object.entries(categories)) {
+    html += `<div class="sl-category">${cat}</div>`;
+    items.forEach(item => {
+      html += `<div class="sl-item"><span>${item.item}</span><span class="sl-qty">×${item.qty}</span></div>`;
+    });
+  }
+
+  html += `<div class="sl-total"><span>Estimated Total</span><span>$${(data.estimated_total || 0).toFixed(2)}</span></div>`;
+  html += '</div>';
+  return html;
+}
+
+/* ─────── Modal Logic ─────── */
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'New Gift Basket';
+  document.getElementById('btnDelete').style.display = 'none';
+  document.getElementById('btnSave').textContent = 'Save Basket';
+
+  // Populate prospect dropdown
+  const sel = document.getElementById('fProspect');
+  sel.innerHTML = '<option value="">— Select Prospect —</option>' +
+    prospects.filter(p => p.status !== 'closed').sort((a,b) => a.name.localeCompare(b.name))
+      .map(p => `<option value="${p.id}">${p.name}${p.priority === 'hot' ? ' 🔥' : p.priority === 'warm' ? ' 🟠' : ''}</option>`).join('');
+
+  document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('fType').value = 'first_touch';
+  document.getElementById('fCost').value = 25;
+  document.getElementById('fMethod').value = 'drop-off';
+  document.getElementById('fStatus').value = 'planned';
+  document.getElementById('fContents').value = TEMPLATES.first_touch.items.join('\n');
+  document.getElementById('fNotes').value = '';
+  document.getElementById('fPhoto').value = '';
+
+  document.getElementById('basketModal').classList.add('open');
+}
+
+function openEditModal(id) {
+  const b = baskets.find(x => x.id === id);
+  if (!b) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'Edit Gift Basket';
+  document.getElementById('btnDelete').style.display = '';
+  document.getElementById('btnSave').textContent = 'Update Basket';
+
+  const sel = document.getElementById('fProspect');
+  sel.innerHTML = '<option value="">— Select Prospect —</option>' +
+    prospects.sort((a,b) => a.name.localeCompare(b.name))
+      .map(p => `<option value="${p.id}"${p.id === b.prospect_id ? ' selected' : ''}>${p.name}</option>`).join('');
+
+  document.getElementById('fDate').value = b.delivery_date || '';
+  document.getElementById('fType').value = b.basket_type || 'custom';
+  document.getElementById('fCost').value = b.cost || 0;
+  document.getElementById('fMethod').value = b.delivery_method || 'drop-off';
+  document.getElementById('fStatus').value = b.status || 'planned';
+  document.getElementById('fContents').value = b.contents || '';
+  document.getElementById('fNotes').value = b.notes || '';
+  document.getElementById('fPhoto').value = b.photo || '';
+
+  document.getElementById('basketModal').classList.add('open');
+}
+
+function quickAdd(prospectId) {
+  openAddModal();
+  document.getElementById('fProspect').value = prospectId;
+}
+
+function closeModal() {
+  document.getElementById('basketModal').classList.remove('open');
+  editingId = null;
+}
+
+function onTypeChange() {
+  const type = document.getElementById('fType').value;
+  const tmpl = TEMPLATES[type];
+  if (tmpl) {
+    if (tmpl.cost > 0) document.getElementById('fCost').value = tmpl.cost;
+    if (tmpl.items.length > 0) document.getElementById('fContents').value = tmpl.items.join('\n');
+  }
+}
+
+async function saveBasket() {
+  const prospectId = parseInt(document.getElementById('fProspect').value);
+  if (!prospectId) return alert('Please select a prospect');
+
+  const payload = {
+    prospect_id: prospectId,
+    basket_type: document.getElementById('fType').value,
+    delivery_date: document.getElementById('fDate').value,
+    cost: parseFloat(document.getElementById('fCost').value) || 0,
+    delivery_method: document.getElementById('fMethod').value,
+    status: document.getElementById('fStatus').value,
+    contents: document.getElementById('fContents').value,
+    notes: document.getElementById('fNotes').value,
+    photo: document.getElementById('fPhoto').value
+  };
+
+  try {
+    if (editingId) {
+      await api(`/api/gift-baskets/${editingId}`, { method: 'PUT', body: JSON.stringify(payload) });
+    } else {
+      await api('/api/gift-baskets', { method: 'POST', body: JSON.stringify(payload) });
+    }
+    closeModal();
+    await loadData();
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+async function deleteBasket() {
+  if (!editingId || !confirm('Delete this basket?')) return;
+  try {
+    await api(`/api/gift-baskets/${editingId}`, { method: 'DELETE' });
+    closeModal();
+    await loadData();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function advanceStatus(id) {
+  const b = baskets.find(x => x.id === id);
+  if (!b) return;
+  const flow = ['planned', 'assembled', 'delivered', 'followup_done'];
+  const idx = flow.indexOf(b.status);
+  if (idx < 0 || idx >= flow.length - 1) return;
+  const next = flow[idx + 1];
+  try {
+    await api(`/api/gift-baskets/${id}`, { method: 'PUT', body: JSON.stringify({ status: next }) });
+    await loadData();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+/* ─────── Shopping List ─────── */
+async function openShoppingList() {
+  try {
+    const data = await api('/api/gift-baskets/shopping-list');
+    document.getElementById('shoppingModalBody').innerHTML = data.items && data.items.length > 0
+      ? buildShoppingListHTML(data)
+      : '<p style="color:var(--muted);padding:20px 0">No planned baskets — plan some first!</p>';
+    document.getElementById('shoppingModal').classList.add('open');
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+function closeShoppingModal() {
+  document.getElementById('shoppingModal').classList.remove('open');
+}
+
+async function copyShoppingList() {
+  try {
+    const data = await api('/api/gift-baskets/shopping-list');
+    if (!data.items || data.items.length === 0) return alert('No items to copy');
+
+    let text = '🛒 COSTCO BUSINESS CENTER - GIFT BASKET SHOPPING LIST\n';
+    text += `Based on ${data.planned_baskets} planned basket(s)\n`;
+    text += '─'.repeat(40) + '\n\n';
+
+    const cats = {};
+    data.items.forEach(i => { if (!cats[i.category]) cats[i.category] = []; cats[i.category].push(i); });
+    for (const [cat, items] of Object.entries(cats)) {
+      text += `${cat.toUpperCase()}\n`;
+      items.forEach(i => { text += `  ☐ ${i.item} — qty: ${i.qty}\n`; });
+      text += '\n';
+    }
+    text += `ESTIMATED TOTAL: $${(data.estimated_total || 0).toFixed(2)}\n`;
+
+    await navigator.clipboard.writeText(text);
+    alert('✅ Shopping list copied!');
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+/* ─────── Tabs ─────── */
+document.querySelectorAll('.main-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+/* ─────── Init ─────── */
+loadData();
+</script>
+</body>
+</html>

@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Weekly Pop-In Routes — Kande VendTech</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #0f172a;
+      --muted: #64748b; --accent: #3b82f6; --accent-light: #eff6ff;
+      --green: #22c55e; --green-light: #f0fdf4;
+      --amber: #f59e0b; --amber-light: #fffbeb;
+      --red: #ef4444; --red-light: #fef2f2;
+      --purple: #8b5cf6; --purple-light: #f5f3ff;
+      --radius: 12px;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+    }
+    a { color: var(--accent); text-decoration: none; }
+
+    /* Layout */
+    .page { max-width: 1400px; margin: 0 auto; padding: 24px 20px 80px; }
+    .page-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+    .page-header h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px; }
+    .page-header .week-label { font-size: 0.9rem; color: var(--muted); font-weight: 500; }
+
+    /* Action bar */
+    .action-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 18px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--card); color: var(--text); font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    }
+    .btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-success { background: var(--green); color: #fff; border-color: var(--green); }
+    .btn-success:hover { background: #16a34a; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
+
+    /* Day tabs */
+    .day-tabs { display: flex; gap: 4px; margin-bottom: 20px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .day-tab {
+      padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--card); color: var(--muted); font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; transition: all 0.15s; white-space: nowrap; flex-shrink: 0;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+    }
+    .day-tab:hover { background: #f1f5f9; }
+    .day-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .day-tab .day-count { font-size: 0.72rem; opacity: 0.8; }
+
+    /* Main grid */
+    .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+    /* Map */
+    .map-card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; min-height: 400px; }
+    #map { width: 100%; height: 450px; }
+
+    /* Stops list */
+    .stops-card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
+    .stops-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .stops-header h3 { font-size: 0.95rem; font-weight: 700; }
+    .stops-header .stop-count { font-size: 0.78rem; color: var(--muted); }
+    .stops-list { max-height: 500px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .stops-empty { padding: 40px 20px; text-align: center; color: var(--muted); font-size: 0.9rem; }
+
+    /* Stop card */
+    .stop-card {
+      padding: 14px 20px; border-bottom: 1px solid #f1f5f9;
+      cursor: grab; transition: background 0.15s; position: relative;
+    }
+    .stop-card:active { cursor: grabbing; }
+    .stop-card:hover { background: #fafbfc; }
+    .stop-card.dragging { opacity: 0.5; background: var(--accent-light); }
+    .stop-card.drag-over { border-top: 3px solid var(--accent); }
+
+    .stop-top { display: flex; align-items: flex-start; gap: 12px; }
+    .stop-num {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; font-weight: 800; flex-shrink: 0;
+    }
+    .stop-info { flex: 1; min-width: 0; }
+    .stop-name { font-size: 0.9rem; font-weight: 700; margin-bottom: 2px; }
+    .stop-address { font-size: 0.78rem; color: var(--muted); margin-bottom: 4px; }
+    .stop-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+    .stop-tag {
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600;
+    }
+    .tag-type { background: var(--accent-light); color: var(--accent); }
+    .tag-priority-hot { background: var(--red-light); color: var(--red); }
+    .tag-priority-warm { background: var(--amber-light); color: var(--amber); }
+    .tag-priority-normal { background: #f1f5f9; color: var(--muted); }
+    .tag-action { background: var(--green-light); color: var(--green); }
+    .tag-overdue { background: var(--red-light); color: var(--red); }
+
+    .stop-contact { font-size: 0.78rem; color: var(--muted); margin-bottom: 6px; }
+    .stop-contact a { color: var(--accent); }
+    .stop-last-visit { font-size: 0.72rem; color: var(--muted); }
+
+    .stop-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+
+    /* Summary bar */
+    .summary-bar {
+      display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .summary-stat {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 14px 20px; flex: 1; min-width: 140px;
+    }
+    .summary-stat .stat-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+    .summary-stat .stat-value { font-size: 1.3rem; font-weight: 800; margin-top: 4px; }
+    .summary-stat .stat-sub { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+
+    /* Loading */
+    .loading { display: flex; align-items: center; justify-content: center; padding: 60px; color: var(--muted); }
+    .spinner { width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 10px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 10000;
+      padding: 12px 20px; border-radius: 8px; background: #1e293b; color: #fff;
+      font-size: 0.85rem; font-weight: 500; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      transform: translateY(100px); opacity: 0; transition: all 0.3s;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { background: #16a34a; }
+    .toast.error { background: #dc2626; }
+
+    /* Print styles */
+    @media print {
+      body { background: #fff !important; }
+      #kv-topnav, #kv-mobile-menu, #kv-overlay, .action-bar, .day-tabs, .map-card, .no-print { display: none !important; }
+      .page { padding: 0; max-width: 100%; }
+      .main-grid { grid-template-columns: 1fr; }
+      .stops-card { border: none; box-shadow: none; }
+      .stop-card { break-inside: avoid; border: 1px solid #ddd; margin-bottom: 8px; border-radius: 6px; }
+      .stops-list { max-height: none; overflow: visible; }
+      .summary-bar { margin-bottom: 12px; }
+      .summary-stat { border: 1px solid #ddd; }
+      .print-header { display: block !important; margin-bottom: 16px; }
+      .print-header h2 { font-size: 18px; margin-bottom: 4px; }
+      .print-header p { font-size: 12px; color: #666; }
+    }
+
+    .print-header { display: none; }
+
+    /* Leaflet popup */
+    .leaflet-popup-content-wrapper {
+      background: #fff; color: var(--text); border-radius: 8px;
+      border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .leaflet-popup-tip { background: #fff; }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .main-grid { grid-template-columns: 1fr; }
+      #map { height: 300px; }
+      .page { padding: 16px 12px 80px; }
+      .summary-bar { gap: 8px; }
+      .summary-stat { padding: 10px 14px; min-width: 100px; }
+      .summary-stat .stat-value { font-size: 1.1rem; }
+      .stop-card { padding: 12px 14px; }
+      .page-header h1 { font-size: 1.2rem; }
+      .day-tab { padding: 8px 14px; }
+    }
+    @media (max-width: 480px) {
+      .summary-bar { flex-direction: column; }
+      .summary-stat { min-width: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="print-header">
+      <h2>🚗 Weekly Pop-In Route Sheet</h2>
+      <p id="printDate"></p>
+    </div>
+
+    <div class="page-header no-print">
+      <h1>🚗 Weekly Pop-In Routes</h1>
+      <span class="week-label" id="weekLabel"></span>
+    </div>
+
+    <div class="action-bar no-print">
+      <button class="btn btn-primary" id="btnGenerate" onclick="generateRoutes()">
+        ⚡ Generate This Week's Routes
+      </button>
+      <button class="btn" onclick="prevWeek()">← Prev Week</button>
+      <button class="btn" onclick="nextWeek()">Next Week →</button>
+      <button class="btn" onclick="goToThisWeek()">Today</button>
+      <div style="flex:1;"></div>
+      <button class="btn" onclick="window.print()">🖨 Print Route Sheet</button>
+    </div>
+
+    <div class="summary-bar" id="summaryBar">
+      <div class="summary-stat">
+        <div class="stat-label">Total Stops</div>
+        <div class="stat-value" id="statStops">—</div>
+        <div class="stat-sub" id="statStopsSub"></div>
+      </div>
+      <div class="summary-stat">
+        <div class="stat-label">Overdue Follow-ups</div>
+        <div class="stat-value" id="statOverdue" style="color:var(--red);">—</div>
+      </div>
+      <div class="summary-stat">
+        <div class="stat-label">Hot Prospects</div>
+        <div class="stat-value" id="statHot" style="color:var(--amber);">—</div>
+      </div>
+      <div class="summary-stat">
+        <div class="stat-label">Est. Drive Time</div>
+        <div class="stat-value" id="statDrive">—</div>
+      </div>
+    </div>
+
+    <div class="day-tabs no-print" id="dayTabs"></div>
+
+    <div class="main-grid">
+      <div class="map-card no-print">
+        <div id="map"></div>
+      </div>
+      <div class="stops-card">
+        <div class="stops-header">
+          <h3 id="stopsTitle">Today's Stops</h3>
+          <span class="stop-count" id="stopCount"></span>
+        </div>
+        <div class="stops-list" id="stopsList">
+          <div class="loading" id="loadingMsg">
+            <div class="spinner"></div>
+            Click "Generate" to build your routes
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="/nav.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    /* ── State ──────────────────────────────────────── */
+    const HOME_BASE = { lat: 36.0304, lng: -114.9817, label: '361 Mullen Ave, Henderson' };
+    const MAX_STOPS_PER_DAY = 6;
+    const MAX_DRIVE_RADIUS_KM = 48; // ~45 min / ~30 miles
+    const DAY_NAMES = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+    const DAY_SHORT = ['Mon','Tue','Wed','Thu','Fri'];
+
+    let weekOffset = 0;
+    let weekRoutes = {}; // { 0: [...stops], 1: [...], ... }  (0=Mon, 4=Fri)
+    let selectedDay = new Date().getDay() - 1; // 0-4 for Mon-Fri
+    if (selectedDay < 0 || selectedDay > 4) selectedDay = 0;
+    let allProspects = [];
+    let map, routeLayer, markersGroup;
+
+    /* ── Map init ──────────────────────────────────── */
+    map = L.map('map').setView([HOME_BASE.lat, HOME_BASE.lng], 12);
+    L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+      attribution: '© Google Maps', maxZoom: 20
+    }).addTo(map);
+    routeLayer = L.layerGroup().addTo(map);
+    markersGroup = L.layerGroup().addTo(map);
+
+    /* ── Helpers ────────────────────────────────────── */
+    function getWeekStart(offset) {
+      const d = new Date();
+      d.setDate(d.getDate() - (d.getDay() || 7) + 1 + (offset * 7));
+      d.setHours(0,0,0,0);
+      return d;
+    }
+
+    function fmtDate(d) {
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function fmtWeek(offset) {
+      const start = getWeekStart(offset);
+      const end = new Date(start); end.setDate(end.getDate() + 4);
+      return `${fmtDate(start)} – ${fmtDate(end)}, ${start.getFullYear()}`;
+    }
+
+    function daysSince(dateStr) {
+      if (!dateStr) return 999;
+      return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000*60*60*24));
+    }
+
+    function haversineKm(lat1, lng1, lat2, lng2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    function toast(msg, type) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = 'toast ' + (type||'') + ' show';
+      setTimeout(() => el.classList.remove('show'), 3000);
+    }
+
+    /* ── Week navigation ───────────────────────────── */
+    function updateWeekLabel() {
+      document.getElementById('weekLabel').textContent = fmtWeek(weekOffset);
+      document.getElementById('printDate').textContent = fmtWeek(weekOffset) + ' — Printed ' + new Date().toLocaleDateString();
+    }
+    function prevWeek() { weekOffset--; updateWeekLabel(); generateRoutes(); }
+    function nextWeek() { weekOffset++; updateWeekLabel(); generateRoutes(); }
+    function goToThisWeek() { weekOffset = 0; selectedDay = Math.max(0, Math.min(4, new Date().getDay()-1)); updateWeekLabel(); generateRoutes(); }
+
+    /* ── Day tabs ──────────────────────────────────── */
+    function renderDayTabs() {
+      const start = getWeekStart(weekOffset);
+      const html = DAY_SHORT.map((d, i) => {
+        const date = new Date(start); date.setDate(date.getDate() + i);
+        const stops = (weekRoutes[i] || []).length;
+        const isToday = date.toDateString() === new Date().toDateString();
+        return `<div class="day-tab ${i===selectedDay?'active':''} ${isToday?'today':''}" onclick="selectDay(${i})">
+          <span>${d} ${fmtDate(date)}</span>
+          <span class="day-count">${stops} stop${stops!==1?'s':''}</span>
+        </div>`;
+      }).join('');
+      document.getElementById('dayTabs').innerHTML = html;
+    }
+
+    function selectDay(day) {
+      selectedDay = day;
+      renderDayTabs();
+      renderStops();
+      renderMap();
+    }
+
+    /* ── Scoring & Route Optimization ──────────────── */
+    function scoreProspect(p) {
+      let score = 0;
+      // Priority
+      if (p.priority === 'hot') score += 30;
+      else if (p.priority === 'warm') score += 20;
+      else score += 5;
+
+      // Days since last activity (more days = higher urgency)
+      const days = daysSince(p.last_activity_date);
+      if (days > 30) score += 25;
+      else if (days > 14) score += 15;
+      else if (days > 7) score += 8;
+
+      // Follow-up due
+      if (p.next_action_date) {
+        const dueIn = daysSince(p.next_action_date);
+        if (dueIn > 0) score += 35; // overdue!
+        else if (dueIn > -3) score += 20; // due soon
+      }
+
+      // Status weighting
+      if (p.status === 'active' || p.status === 'new') score += 10;
+      if (p.status === 'interested' || p.status === 'qualified') score += 15;
+
+      // Has contact info
+      if (p.phone || p.primary_contact) score += 3;
+
+      return score;
+    }
+
+    function suggestAction(p) {
+      const days = daysSince(p.last_activity_date);
+      const touchCount = p.activity_count || 0;
+
+      // Overdue follow-up
+      if (p.next_action_date && daysSince(p.next_action_date) > 0) {
+        return { action: p.next_action || 'Follow-up', icon: '📋', cls: 'tag-overdue' };
+      }
+      // Never visited
+      if (touchCount === 0) {
+        return { action: 'First pop-in + gift basket', icon: '🎁', cls: 'tag-action' };
+      }
+      // 1-2 touches: gift basket follow-up
+      if (touchCount <= 2) {
+        return { action: 'Pop-in with gift basket', icon: '🎁', cls: 'tag-action' };
+      }
+      // 3-5 touches
+      if (touchCount <= 5) {
+        return { action: 'Check-in pop-in', icon: '👋', cls: 'tag-action' };
+      }
+      // 6+ touches: relationship maintenance
+      if (days > 21) {
+        return { action: 'Re-engage pop-in', icon: '🔄', cls: 'tag-action' };
+      }
+      return { action: 'Relationship pop-in', icon: '☕', cls: 'tag-action' };
+    }
+
+    function clusterAndAssign(scored) {
+      // Filter: geocoded, within radius, not signed/closed
+      const eligible = scored.filter(p =>
+        p.lat && p.lng &&
+        p.status !== 'closed' && p.status !== 'signed' &&
+        haversineKm(HOME_BASE.lat, HOME_BASE.lng, p.lat, p.lng) <= MAX_DRIVE_RADIUS_KM
+      );
+
+      // Sort by score descending
+      eligible.sort((a, b) => b._score - a._score);
+
+      // Get all property types for variety
+      const types = [...new Set(eligible.map(p => p.property_type || 'Unknown'))];
+
+      const days = { 0:[], 1:[], 2:[], 3:[], 4:[] };
+      const assigned = new Set();
+
+      // Pass 1: Assign overdue follow-ups first (highest priority)
+      eligible.forEach(p => {
+        if (assigned.has(p.id)) return;
+        if (p.next_action_date && daysSince(p.next_action_date) > 0) {
+          // Find day with fewest stops
+          const dayIdx = Object.entries(days)
+            .filter(([,stops]) => stops.length < MAX_STOPS_PER_DAY)
+            .sort((a,b) => a[1].length - b[1].length)[0];
+          if (dayIdx) {
+            days[dayIdx[0]].push(p);
+            assigned.add(p.id);
+          }
+        }
+      });
+
+      // Pass 2: Fill remaining slots with geographic clustering
+      for (let d = 0; d < 5; d++) {
+        if (days[d].length >= MAX_STOPS_PER_DAY) continue;
+
+        // Get unassigned prospects
+        const remaining = eligible.filter(p => !assigned.has(p.id));
+        if (remaining.length === 0) break;
+
+        // Determine cluster center: either first assigned stop or highest-score unassigned
+        let center = HOME_BASE;
+        if (days[d].length > 0) {
+          center = { lat: days[d][0].lat, lng: days[d][0].lng };
+        } else if (remaining.length > 0) {
+          center = { lat: remaining[0].lat, lng: remaining[0].lng };
+        }
+
+        // Sort remaining by distance to center, but weight by score
+        remaining.forEach(p => {
+          const dist = haversineKm(center.lat, center.lng, p.lat, p.lng);
+          p._clusterScore = p._score - (dist * 2); // Penalize distance
+        });
+        remaining.sort((a, b) => b._clusterScore - a._clusterScore);
+
+        // Track property types used today for variety
+        const usedTypes = new Set(days[d].map(p => p.property_type || 'Unknown'));
+
+        for (const p of remaining) {
+          if (days[d].length >= MAX_STOPS_PER_DAY) break;
+          if (assigned.has(p.id)) continue;
+
+          // Prefer variety in property types (soft constraint)
+          const pType = p.property_type || 'Unknown';
+          if (usedTypes.has(pType) && days[d].length > 0) {
+            // Check if there's an alternative with different type
+            const alt = remaining.find(r =>
+              !assigned.has(r.id) &&
+              (r.property_type || 'Unknown') !== pType &&
+              !usedTypes.has(r.property_type || 'Unknown') &&
+              r._clusterScore > p._clusterScore * 0.7 // within 70% of score
+            );
+            if (alt) continue; // skip this one, the alt will be picked later
+          }
+
+          days[d].push(p);
+          assigned.add(p.id);
+          usedTypes.add(pType);
+
+          // Update center for next pick (moving center)
+          center = { lat: p.lat, lng: p.lng };
+          remaining.forEach(r => {
+            if (!assigned.has(r.id)) {
+              const dist = haversineKm(center.lat, center.lng, r.lat, r.lng);
+              r._clusterScore = r._score - (dist * 2);
+            }
+          });
+          remaining.sort((a, b) => b._clusterScore - a._clusterScore);
+        }
+      }
+
+      // Optimize order within each day (nearest neighbor from home base)
+      for (let d = 0; d < 5; d++) {
+        if (days[d].length <= 1) continue;
+        const optimized = [];
+        const pool = [...days[d]];
+        let current = HOME_BASE;
+
+        while (pool.length > 0) {
+          let nearestIdx = 0;
+          let nearestDist = Infinity;
+          pool.forEach((p, i) => {
+            const dist = haversineKm(current.lat, current.lng, p.lat, p.lng);
+            if (dist < nearestDist) { nearestDist = dist; nearestIdx = i; }
+          });
+          const next = pool.splice(nearestIdx, 1)[0];
+          optimized.push(next);
+          current = { lat: next.lat, lng: next.lng };
+        }
+        days[d] = optimized;
+      }
+
+      return days;
+    }
+
+    /* ── Generate routes ───────────────────────────── */
+    async function generateRoutes() {
+      const btn = document.getElementById('btnGenerate');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0;"></div> Generating...';
+      document.getElementById('loadingMsg').innerHTML = '<div class="spinner"></div> Loading prospects...';
+
+      try {
+        const res = await fetch('/api/prospects');
+        allProspects = await res.json();
+
+        // Score all prospects
+        allProspects.forEach(p => { p._score = scoreProspect(p); });
+
+        // Cluster and assign to days
+        weekRoutes = clusterAndAssign(allProspects);
+
+        // Render
+        updateWeekLabel();
+        renderDayTabs();
+        renderStops();
+        renderMap();
+        updateSummary();
+
+        const totalStops = Object.values(weekRoutes).reduce((s, d) => s + d.length, 0);
+        toast(`✅ Generated ${totalStops} stops across ${Object.values(weekRoutes).filter(d=>d.length>0).length} days`, 'success');
+      } catch (e) {
+        console.error('Generate failed:', e);
+        toast('❌ Failed to generate routes', 'error');
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = '⚡ Generate This Week\'s Routes';
+    }
+
+    /* ── Render stops list ─────────────────────────── */
+    function renderStops() {
+      const stops = weekRoutes[selectedDay] || [];
+      const container = document.getElementById('stopsList');
+      const title = document.getElementById('stopsTitle');
+      const count = document.getElementById('stopCount');
+
+      const start = getWeekStart(weekOffset);
+      const dayDate = new Date(start); dayDate.setDate(dayDate.getDate() + selectedDay);
+      title.textContent = `${DAY_NAMES[selectedDay]}, ${fmtDate(dayDate)}`;
+      count.textContent = `${stops.length} stop${stops.length!==1?'s':''}`;
+
+      if (stops.length === 0) {
+        container.innerHTML = '<div class="stops-empty">No stops scheduled for this day.<br>Click "Generate" to build routes.</div>';
+        return;
+      }
+
+      container.innerHTML = stops.map((p, i) => {
+        const sa = suggestAction(p);
+        const lastVisit = p.last_activity_date ? `Last activity: ${daysSince(p.last_activity_date)}d ago` : 'No previous visits';
+        const contact = p.primary_contact || p.contact_name || '';
+        const phone = p.phone || '';
+        const priorityCls = p.priority === 'hot' ? 'tag-priority-hot' : p.priority === 'warm' ? 'tag-priority-warm' : 'tag-priority-normal';
+
+        return `<div class="stop-card" draggable="true" data-idx="${i}"
+                  ondragstart="dragStart(event)" ondragover="dragOver(event)"
+                  ondragenter="dragEnter(event)" ondragleave="dragLeave(event)"
+                  ondrop="dragDrop(event)" ondragend="dragEnd(event)">
+          <div class="stop-top">
+            <div class="stop-num">${i+1}</div>
+            <div class="stop-info">
+              <div class="stop-name">${esc(p.name)}</div>
+              <div class="stop-address">📍 ${esc(p.address || 'No address')}</div>
+              <div class="stop-meta">
+                ${p.property_type ? `<span class="stop-tag tag-type">${esc(p.property_type)}</span>` : ''}
+                <span class="stop-tag ${priorityCls}">${p.priority === 'hot' ? '🔥 Hot' : p.priority === 'warm' ? '🟠 Warm' : '🆕 Normal'}</span>
+                <span class="stop-tag ${sa.cls}">${sa.icon} ${sa.action}</span>
+              </div>
+              ${contact ? `<div class="stop-contact">👤 ${esc(contact)} ${phone ? `· <a href="tel:${phone}">📞 ${phone}</a>` : ''}</div>` : ''}
+              <div class="stop-last-visit">🕐 ${lastVisit}</div>
+              <div class="stop-actions">
+                <button class="btn btn-sm btn-success" onclick="logVisit(${p.id})">✅ Log Visit</button>
+                <a class="btn btn-sm" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(p.address||'')}" target="_blank">🗺 Directions</a>
+                <a class="btn btn-sm" href="/crm?id=${p.id}" target="_blank">📋 CRM</a>
+                <button class="btn btn-sm" style="color:var(--red);" onclick="removeStop(${selectedDay},${i})">✕</button>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function esc(s) { return (s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    /* ── Render map ────────────────────────────────── */
+    function renderMap() {
+      routeLayer.clearLayers();
+      markersGroup.clearLayers();
+
+      const stops = weekRoutes[selectedDay] || [];
+      if (stops.length === 0) {
+        map.setView([HOME_BASE.lat, HOME_BASE.lng], 12);
+        return;
+      }
+
+      // Home marker
+      L.marker([HOME_BASE.lat, HOME_BASE.lng], {
+        icon: L.divIcon({
+          className: 'custom-marker',
+          html: '<div style="width:32px;height:32px;border-radius:50%;background:#1e293b;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:16px;">🏠</div>',
+          iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -18]
+        })
+      }).addTo(markersGroup).bindPopup(`<strong>Home Base</strong><br>${HOME_BASE.label}`);
+
+      // Stop markers
+      const coords = [[HOME_BASE.lat, HOME_BASE.lng]];
+      stops.forEach((p, i) => {
+        if (!p.lat || !p.lng) return;
+        const sa = suggestAction(p);
+        const color = p.priority === 'hot' ? '#ef4444' : p.priority === 'warm' ? '#f59e0b' : '#3b82f6';
+
+        L.marker([p.lat, p.lng], {
+          icon: L.divIcon({
+            className: 'custom-marker',
+            html: `<div style="width:32px;height:32px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff;">${i+1}</div>`,
+            iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -18]
+          })
+        }).addTo(markersGroup).bindPopup(`
+          <div style="min-width:200px;">
+            <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Stop ${i+1}: ${esc(p.name)}</div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:4px;">📍 ${esc(p.address||'')}</div>
+            <div style="font-size:12px;margin-bottom:4px;">${sa.icon} ${sa.action}</div>
+            ${p.phone ? `<div style="font-size:12px;">📞 <a href="tel:${p.phone}">${p.phone}</a></div>` : ''}
+          </div>
+        `);
+
+        coords.push([p.lat, p.lng]);
+      });
+
+      // Route line
+      if (coords.length > 1) {
+        L.polyline(coords, { color: '#3b82f6', weight: 3, opacity: 0.7, dashArray: '8, 8' }).addTo(routeLayer);
+      }
+
+      // Fit bounds
+      map.fitBounds(coords, { padding: [40, 40] });
+    }
+
+    /* ── Update summary ────────────────────────────── */
+    function updateSummary() {
+      const allStops = Object.values(weekRoutes).flat();
+      const dayStops = weekRoutes[selectedDay] || [];
+
+      document.getElementById('statStops').textContent = allStops.length;
+      document.getElementById('statStopsSub').textContent = `${dayStops.length} today`;
+
+      const overdue = allStops.filter(p => p.next_action_date && daysSince(p.next_action_date) > 0).length;
+      document.getElementById('statOverdue').textContent = overdue;
+
+      const hot = allStops.filter(p => p.priority === 'hot').length;
+      document.getElementById('statHot').textContent = hot;
+
+      // Estimate drive time for selected day
+      if (dayStops.length > 0) {
+        let totalKm = haversineKm(HOME_BASE.lat, HOME_BASE.lng, dayStops[0].lat, dayStops[0].lng);
+        for (let i = 1; i < dayStops.length; i++) {
+          totalKm += haversineKm(dayStops[i-1].lat, dayStops[i-1].lng, dayStops[i].lat, dayStops[i].lng);
+        }
+        const mins = Math.round(totalKm / 0.8); // ~50 km/h avg city driving
+        document.getElementById('statDrive').textContent = mins < 60 ? `${mins}m` : `${Math.floor(mins/60)}h ${mins%60}m`;
+      } else {
+        document.getElementById('statDrive').textContent = '—';
+      }
+    }
+
+    /* ── Drag & Drop ───────────────────────────────── */
+    let dragIdx = null;
+
+    function dragStart(e) {
+      dragIdx = parseInt(e.target.closest('.stop-card').dataset.idx);
+      e.target.closest('.stop-card').classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    }
+    function dragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+    function dragEnter(e) {
+      e.preventDefault();
+      const card = e.target.closest('.stop-card');
+      if (card) card.classList.add('drag-over');
+    }
+    function dragLeave(e) {
+      const card = e.target.closest('.stop-card');
+      if (card) card.classList.remove('drag-over');
+    }
+    function dragDrop(e) {
+      e.preventDefault();
+      const targetIdx = parseInt(e.target.closest('.stop-card').dataset.idx);
+      if (dragIdx !== null && dragIdx !== targetIdx) {
+        const stops = weekRoutes[selectedDay];
+        const [moved] = stops.splice(dragIdx, 1);
+        stops.splice(targetIdx, 0, moved);
+        renderStops();
+        renderMap();
+        updateSummary();
+      }
+      document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    }
+    function dragEnd(e) {
+      document.querySelectorAll('.dragging, .drag-over').forEach(el => {
+        el.classList.remove('dragging', 'drag-over');
+      });
+      dragIdx = null;
+    }
+
+    /* ── Touch drag support (mobile) ───────────────── */
+    let touchDragIdx = null;
+    let touchClone = null;
+
+    document.addEventListener('touchstart', function(e) {
+      const card = e.target.closest('.stop-card');
+      if (!card) return;
+      const touch = e.touches[0];
+      touchDragIdx = parseInt(card.dataset.idx);
+      // Long press to start drag
+      card._touchTimer = setTimeout(() => {
+        card.classList.add('dragging');
+        // Create visual clone
+        touchClone = card.cloneNode(true);
+        touchClone.style.cssText = 'position:fixed;z-index:9999;opacity:0.8;pointer-events:none;width:' + card.offsetWidth + 'px;left:' + touch.clientX + 'px;top:' + (touch.clientY - 20) + 'px;';
+        document.body.appendChild(touchClone);
+      }, 300);
+    }, { passive: true });
+
+    document.addEventListener('touchmove', function(e) {
+      if (!touchClone) return;
+      const touch = e.touches[0];
+      touchClone.style.left = touch.clientX + 'px';
+      touchClone.style.top = (touch.clientY - 20) + 'px';
+    }, { passive: true });
+
+    document.addEventListener('touchend', function(e) {
+      const card = e.target.closest('.stop-card');
+      if (card) clearTimeout(card._touchTimer);
+      if (touchClone) {
+        const touch = e.changedTouches[0];
+        const target = document.elementFromPoint(touch.clientX, touch.clientY);
+        const targetCard = target?.closest('.stop-card');
+        if (targetCard && touchDragIdx !== null) {
+          const targetIdx = parseInt(targetCard.dataset.idx);
+          if (touchDragIdx !== targetIdx) {
+            const stops = weekRoutes[selectedDay];
+            const [moved] = stops.splice(touchDragIdx, 1);
+            stops.splice(targetIdx, 0, moved);
+            renderStops();
+            renderMap();
+            updateSummary();
+          }
+        }
+        document.body.removeChild(touchClone);
+        touchClone = null;
+      }
+      document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+      touchDragIdx = null;
+    }, { passive: true });
+
+    /* ── Remove stop ───────────────────────────────── */
+    function removeStop(day, idx) {
+      weekRoutes[day].splice(idx, 1);
+      renderDayTabs();
+      renderStops();
+      renderMap();
+      updateSummary();
+    }
+
+    /* ── Log visit ─────────────────────────────────── */
+    async function logVisit(prospectId) {
+      const prospect = allProspects.find(p => p.id === prospectId);
+      if (!prospect) return;
+
+      const notes = prompt(`Quick notes for ${prospect.name}:`, '');
+      if (notes === null) return; // cancelled
+
+      const outcome = confirm('Was the contact interested?') ? 'interested' : 'neutral';
+      const giftBasket = confirm('Did you leave a gift basket?');
+
+      try {
+        const res = await fetch('/api/weekly-routes/log-visit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prospect_id: prospectId,
+            notes: notes,
+            outcome: outcome,
+            gift_basket_given: giftBasket,
+            visitor: 'Kurtis'
+          })
+        });
+        if (!res.ok) throw new Error('Failed');
+        toast(`✅ Visit logged for ${prospect.name}`, 'success');
+
+        // Remove from today's route (visited!)
+        const dayStops = weekRoutes[selectedDay] || [];
+        const idx = dayStops.findIndex(p => p.id === prospectId);
+        if (idx !== -1) {
+          dayStops[idx]._visited = true;
+          renderStops();
+        }
+      } catch (e) {
+        toast('❌ Failed to log visit', 'error');
+      }
+    }
+
+    /* ── Init ──────────────────────────────────────── */
+    updateWeekLabel();
+    renderDayTabs();
+
+    // Auto-generate on load
+    generateRoutes();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - Kande VendTech</title>
+  <link rel="icon" href="/favicon.ico">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+      --radius: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-800);
+      line-height: 1.5;
+    }
+
+    /* Header */
+    .header {
+      background: white;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 1rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .back-link {
+      color: var(--gray-500);
+      text-decoration: none;
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .back-link:hover { color: var(--primary); }
+
+    /* Main Layout */
+    .main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.5rem;
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+      .main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      position: sticky;
+      top: 80px;
+      height: fit-content;
+    }
+
+    .nav-section {
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.875rem 1rem;
+      color: var(--gray-600);
+      text-decoration: none;
+      border-left: 3px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .nav-item:hover {
+      background: var(--gray-50);
+      color: var(--gray-900);
+    }
+
+    .nav-item.active {
+      background: #eff6ff;
+      color: var(--primary);
+      border-left-color: var(--primary);
+      font-weight: 500;
+    }
+
+    .nav-item svg {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    /* Content Area */
+    .content {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .section {
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .section-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--gray-200);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .section-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--gray-900);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .section-body {
+      padding: 1.25rem;
+    }
+
+    /* Form Elements */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--gray-700);
+    }
+
+    input, select, textarea {
+      padding: 0.625rem 0.875rem;
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius);
+      font-size: 0.9375rem;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .input-hint {
+      font-size: 0.75rem;
+      color: var(--gray-500);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.625rem 1.25rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-radius: var(--radius);
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-primary:hover { background: var(--primary-dark); }
+
+    .btn-secondary {
+      background: white;
+      color: var(--gray-700);
+      border: 1px solid var(--gray-300);
+    }
+    .btn-secondary:hover { background: var(--gray-50); }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+    .btn-success:hover { background: #059669; }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+    .btn-danger:hover { background: #dc2626; }
+
+    .btn-sm {
+      padding: 0.375rem 0.75rem;
+      font-size: 0.8125rem;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    /* Toggle Switch */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .toggle-row:last-child { border-bottom: none; }
+
+    .toggle-info h4 {
+      font-size: 0.9375rem;
+      font-weight: 500;
+      color: var(--gray-800);
+    }
+
+    .toggle-info p {
+      font-size: 0.8125rem;
+      color: var(--gray-500);
+    }
+
+    .toggle {
+      position: relative;
+      width: 48px;
+      height: 26px;
+      flex-shrink: 0;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--gray-300);
+      border-radius: 26px;
+      transition: 0.3s;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      bottom: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: 0.3s;
+    }
+
+    .toggle input:checked + .toggle-slider {
+      background: var(--primary);
+    }
+
+    .toggle input:checked + .toggle-slider:before {
+      transform: translateX(22px);
+    }
+
+    /* Pipeline Stages */
+    .stage-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .stage-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      background: var(--gray-50);
+      border-radius: var(--radius);
+      border: 1px solid var(--gray-200);
+    }
+
+    .stage-color {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      border: 2px solid rgba(0,0,0,0.1);
+      cursor: pointer;
+    }
+
+    .stage-name {
+      flex: 1;
+      font-size: 0.9375rem;
+      padding: 0.375rem 0.625rem;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      background: transparent;
+    }
+
+    .stage-name:hover {
+      border-color: var(--gray-300);
+    }
+
+    .stage-name:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: white;
+    }
+
+    .stage-default {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      background: var(--primary);
+      color: white;
+      border-radius: 4px;
+    }
+
+    .stage-actions {
+      display: flex;
+      gap: 0.25rem;
+    }
+
+    .stage-btn {
+      padding: 0.375rem;
+      background: transparent;
+      border: none;
+      color: var(--gray-400);
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .stage-btn:hover {
+      background: var(--gray-200);
+      color: var(--gray-700);
+    }
+
+    /* Data Management Cards */
+    .data-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .data-card {
+      padding: 1.25rem;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      text-align: center;
+    }
+
+    .data-card h4 {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .data-card p {
+      font-size: 0.8125rem;
+      color: var(--gray-500);
+      margin-bottom: 1rem;
+    }
+
+    /* Integration Cards */
+    .integration-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .integration-card {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+    }
+
+    .integration-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius);
+      background: var(--gray-100);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .integration-info {
+      flex: 1;
+    }
+
+    .integration-info h4 {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .integration-info p {
+      font-size: 0.8125rem;
+      color: var(--gray-500);
+    }
+
+    .integration-status {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.625rem;
+      border-radius: 12px;
+      font-weight: 500;
+    }
+
+    .status-connected {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .status-pending {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .status-disconnected {
+      background: var(--gray-100);
+      color: var(--gray-600);
+    }
+
+    /* Users Table */
+    .users-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .users-table th,
+    .users-table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .users-table th {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--gray-500);
+      background: var(--gray-50);
+    }
+
+    .user-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .user-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+
+    .role-badge {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .role-admin {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .role-sales {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .role-driver {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    /* Logo Upload */
+    .logo-upload {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .logo-preview {
+      width: 80px;
+      height: 80px;
+      border-radius: var(--radius);
+      border: 2px dashed var(--gray-300);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--gray-400);
+      font-size: 2rem;
+      background: var(--gray-50);
+      overflow: hidden;
+    }
+
+    .logo-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    /* Toast Notifications */
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      padding: 1rem 1.5rem;
+      background: var(--gray-800);
+      color: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast.success { background: var(--success); }
+    .toast.error { background: var(--danger); }
+
+    /* Hidden sections */
+    .settings-section {
+      display: none;
+    }
+
+    .settings-section.active {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* Mobile sidebar */
+    @media (max-width: 768px) {
+      .sidebar {
+        position: static;
+      }
+
+      .nav-section {
+        display: flex;
+        overflow-x: auto;
+        gap: 0;
+      }
+
+      .nav-item {
+        flex-direction: column;
+        padding: 0.75rem;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+      }
+
+      .nav-item.active {
+        border-left: none;
+        border-bottom-color: var(--primary);
+      }
+
+      .nav-item svg {
+        width: 24px;
+        height: 24px;
+      }
+    }
+
+    /* Color picker */
+    input[type="color"] {
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    /* File input styling */
+    input[type="file"] {
+      display: none;
+    }
+
+    .file-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.625rem 1rem;
+      background: var(--gray-100);
+      color: var(--gray-700);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+
+    .file-label:hover {
+      background: var(--gray-200);
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <div>
+        <a href="/home" class="back-link">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+          Back to Dashboard
+        </a>
+        <h1>⚙️ Settings</h1>
+      </div>
+      <button class="btn btn-primary" onclick="saveAllSettings()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg>
+        Save Changes
+      </button>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <nav class="nav-section">
+        <a class="nav-item active" data-section="business">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+          Business
+        </a>
+        <a class="nav-item" data-section="defaults">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+          Defaults
+        </a>
+        <a class="nav-item" data-section="pipeline">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
+          Pipeline
+        </a>
+        <a class="nav-item" data-section="notifications">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          Notifications
+        </a>
+        <a class="nav-item" data-section="data">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
+          Data
+        </a>
+        <a class="nav-item" data-section="integrations">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+          Integrations
+        </a>
+        <a class="nav-item" data-section="users">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          Users
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Content Sections -->
+    <div class="content">
+      <!-- Business Profile Section -->
+      <div id="section-business" class="settings-section active">
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">🏢 Business Profile</h2>
+          </div>
+          <div class="section-body">
+            <div class="form-grid">
+              <div class="form-group full-width">
+                <label>Company Name</label>
+                <input type="text" id="company_name" placeholder="Kande VendTech LLC">
+              </div>
+              <div class="form-group full-width">
+                <label>Street Address</label>
+                <input type="text" id="address" placeholder="123 Main Street">
+              </div>
+              <div class="form-group">
+                <label>City</label>
+                <input type="text" id="city" placeholder="Henderson">
+              </div>
+              <div class="form-group">
+                <label>State</label>
+                <input type="text" id="state" placeholder="NV">
+              </div>
+              <div class="form-group">
+                <label>ZIP Code</label>
+                <input type="text" id="zip" placeholder="89052">
+              </div>
+              <div class="form-group">
+                <label>Phone</label>
+                <input type="tel" id="phone" placeholder="(702) 555-0100">
+              </div>
+              <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="email" placeholder="info@kandevendtech.com">
+              </div>
+              <div class="form-group">
+                <label>Website</label>
+                <input type="url" id="website" placeholder="https://kandevendtech.com">
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">🖼️ Company Logo</h2>
+          </div>
+          <div class="section-body">
+            <div class="logo-upload">
+              <div class="logo-preview" id="logo-preview">
+                <span>📷</span>
+              </div>
+              <div>
+                <label class="file-label" for="logo-upload">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  Upload Logo
+                </label>
+                <input type="file" id="logo-upload" accept="image/*">
+                <p class="input-hint" style="margin-top: 0.5rem;">Recommended: 200x200px PNG or JPG</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">🕐 Business Hours</h2>
+          </div>
+          <div class="section-body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Monday - Friday</label>
+                <input type="text" id="hours_weekday" placeholder="8:00 AM - 5:00 PM">
+              </div>
+              <div class="form-group">
+                <label>Saturday</label>
+                <input type="text" id="hours_saturday" placeholder="9:00 AM - 2:00 PM">
+              </div>
+              <div class="form-group">
+                <label>Sunday</label>
+                <input type="text" id="hours_sunday" placeholder="Closed">
+              </div>
+              <div class="form-group">
+                <label>Emergency Contact</label>
+                <input type="tel" id="emergency_phone" placeholder="(702) 555-0911">
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Default Values Section -->
+      <div id="section-defaults" class="settings-section">
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">💰 Financial Defaults</h2>
+          </div>
+          <div class="section-body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Default Commission Rate (%)</label>
+                <input type="number" id="default_commission" min="0" max="100" step="0.5" placeholder="5">
+                <span class="input-hint">Revenue share paid to locations (typically 3-5%)</span>
+              </div>
+              <div class="form-group">
+                <label>Default Contract Length (months)</label>
+                <input type="number" id="default_contract_months" min="1" max="120" placeholder="36">
+                <span class="input-hint">Standard agreement term</span>
+              </div>
+              <div class="form-group">
+                <label>Default Machine Revenue Estimate ($/month)</label>
+                <input type="number" id="default_revenue_estimate" min="0" step="100" placeholder="2000">
+                <span class="input-hint">Used for projections and scoring</span>
+              </div>
+              <div class="form-group">
+                <label>Minimum Revenue Threshold ($/month)</label>
+                <input type="number" id="min_revenue_threshold" min="0" step="100" placeholder="800">
+                <span class="input-hint">Pull machine if below this for 90 days</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">📅 Follow-up Defaults</h2>
+          </div>
+          <div class="section-body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Default Follow-up Interval (days)</label>
+                <input type="number" id="default_followup_days" min="1" max="365" placeholder="7">
+                <span class="input-hint">Days between prospect touchpoints</span>
+              </div>
+              <div class="form-group">
+                <label>Hot Lead Follow-up (days)</label>
+                <input type="number" id="hot_followup_days" min="1" max="30" placeholder="2">
+                <span class="input-hint">Faster follow-up for hot prospects</span>
+              </div>
+              <div class="form-group">
+                <label>Stale Prospect Days</label>
+                <input type="number" id="stale_days" min="7" max="365" placeholder="30">
+                <span class="input-hint">Mark inactive after this many days</span>
+              </div>
+              <div class="form-group">
+                <label>Expected Touches to Close</label>
+                <input type="number" id="touches_to_close" min="1" max="50" placeholder="10">
+                <span class="input-hint">Average touchpoints before signing</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">📦 Inventory Defaults</h2>
+          </div>
+          <div class="section-body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Target COGS (%)</label>
+                <input type="number" id="target_cogs" min="0" max="100" placeholder="33">
+                <span class="input-hint">Target cost of goods sold</span>
+              </div>
+              <div class="form-group">
+                <label>Spoilage Budget (%)</label>
+                <input type="number" id="spoilage_budget" min="0" max="20" step="0.5" placeholder="2">
+                <span class="input-hint">Expected product loss</span>
+              </div>
+              <div class="form-group">
+                <label>Low Stock Alert (units)</label>
+                <input type="number" id="low_stock_alert" min="1" max="100" placeholder="10">
+                <span class="input-hint">Alert when inventory falls below</span>
+              </div>
+              <div class="form-group">
+                <label>Restock Frequency (days)</label>
+                <input type="number" id="restock_frequency" min="1" max="30" placeholder="7">
+                <span class="input-hint">Standard restock interval</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Pipeline Section -->
+      <div id="section-pipeline" class="settings-section">
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">📊 Pipeline Stages</h2>
+            <button class="btn btn-sm btn-secondary" onclick="addStage()">+ Add Stage</button>
+          </div>
+          <div class="section-body">
+            <div class="stage-list" id="stage-list">
+              <!-- Stages populated by JS -->
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">🎯 Default Stage Settings</h2>
+          </div>
+          <div class="section-body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Default Stage for New Prospects</label>
+                <select id="default_stage">
+                  <!-- Options populated by JS -->
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Auto-advance after Days in Stage</label>
+                <input type="number" id="auto_advance_days" min="0" max="365" placeholder="0">
+                <span class="input-hint">0 = disabled</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Notifications Section -->
+      <div id="section-notifications" class="settings-section">
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">🔔 Alert Preferences</h2>
+          </div>
+          <div class="section-body">
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <h4>Follow-up Reminders</h4>
+                <p>Get notified when prospects need follow-up</p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="notify_followups" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <h4>Low Inventory Alerts</h4>
+                <p>Alert when machine inventory is low</p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="notify_inventory" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <h4>Revenue Milestones</h4>
+                <p>Celebrate when machines hit revenue goals</p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="notify_revenue">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <h4>Contract Expirations</h4>
+                <p>Reminder 30 days before contracts expire</p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="notify_contracts" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <h4>Machine Offline Alerts</h4>
+                <p>Alert when machines lose connectivity</p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="notify_offline" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <h4>New Lead Notifications</h4>
+                <p>Get notified when new leads come in</p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="notify_leads" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">⏰ Threshold Settings</h2>
+          </div>
+          <div class="section-body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Follow-up Overdue (days)</label>
+                <input type="number" id="threshold_followup" min="1" max="30" placeholder="3">
+                <span class="input-hint">Alert when follow-up is this many days overdue</span>
+              </div>
+              <div class="form-group">
+                <label>Contract Warning (days)</label>
+                <input type="number" id="threshold_contract" min="7" max="90" placeholder="30">
+                <span class="input-hint">Days before expiration to warn</span>
+              </div>
+              <div class="form-group">
+                <label>Machine Offline (minutes)</label>
+                <input type="number" id="threshold_offline" min="5" max="1440" placeholder="60">
+                <span class="input-hint">Alert after this many minutes offline</span>
+              </div>
+              <div class="form-group">
+                <label>Daily Digest Time</label>
+                <input type="time" id="digest_time" value="08:00">
+                <span class="input-hint">When to send daily summary</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">📧 Email Preferences</h2>
+            <span class="integration-status status-pending">Coming Soon</span>
+          </div>
+          <div class="section-body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Notification Email</label>
+                <input type="email" id="notification_email" placeholder="alerts@kandevendtech.com" disabled>
+              </div>
+              <div class="form-group">
+                <label>Email Frequency</label>
+                <select id="email_frequency" disabled>
+                  <option value="instant">Instant</option>
+                  <option value="hourly">Hourly Digest</option>
+                  <option value="daily" selected>Daily Digest</option>
+                  <option value="weekly">Weekly Summary</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Data Management Section -->
+      <div id="section-data" class="settings-section">
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">📤 Export Data</h2>
+          </div>
+          <div class="section-body">
+            <div class="data-cards">
+              <div class="data-card">
+                <h4>Export All Data</h4>
+                <p>Download complete database backup</p>
+                <button class="btn btn-primary btn-sm" onclick="exportData('json')">Download JSON</button>
+              </div>
+              <div class="data-card">
+                <h4>Export Prospects</h4>
+                <p>Download prospect list as CSV</p>
+                <button class="btn btn-secondary btn-sm" onclick="exportData('prospects')">Download CSV</button>
+              </div>
+              <div class="data-card">
+                <h4>Export Financials</h4>
+                <p>Download financial records</p>
+                <button class="btn btn-secondary btn-sm" onclick="exportData('finances')">Download CSV</button>
+              </div>
+              <div class="data-card">
+                <h4>Export Activities</h4>
+                <p>Download activity log</p>
+                <button class="btn btn-secondary btn-sm" onclick="exportData('activities')">Download CSV</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">📥 Import Data</h2>
+          </div>
+          <div class="section-body">
+            <div class="form-grid">
+              <div class="form-group full-width">
+                <label>Import Type</label>
+                <select id="import_type">
+                  <option value="prospects">Prospects (CSV)</option>
+                  <option value="products">Products (CSV)</option>
+                  <option value="full">Full Backup (JSON)</option>
+                </select>
+              </div>
+              <div class="form-group full-width">
+                <label class="file-label" for="import-file">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                  Choose File
+                </label>
+                <input type="file" id="import-file" accept=".csv,.json">
+                <span class="input-hint" id="import-filename">No file selected</span>
+              </div>
+              <div class="form-group">
+                <button class="btn btn-primary" onclick="importData()">Import Data</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">⚠️ Danger Zone</h2>
+          </div>
+          <div class="section-body">
+            <div class="data-cards">
+              <div class="data-card" style="border-color: var(--warning);">
+                <h4>Clear Demo Data</h4>
+                <p>Remove sample/test records</p>
+                <button class="btn btn-secondary btn-sm" onclick="clearDemoData()">Clear Demo Data</button>
+              </div>
+              <div class="data-card" style="border-color: var(--danger);">
+                <h4>Reset to Defaults</h4>
+                <p>Reset all settings to defaults</p>
+                <button class="btn btn-danger btn-sm" onclick="resetSettings()">Reset Settings</button>
+              </div>
+              <div class="data-card" style="border-color: var(--danger);">
+                <h4>Delete All Data</h4>
+                <p>Permanently delete everything</p>
+                <button class="btn btn-danger btn-sm" onclick="deleteAllData()">Delete Everything</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Integrations Section -->
+      <div id="section-integrations" class="settings-section">
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">🔗 Connected Services</h2>
+          </div>
+          <div class="section-body">
+            <div class="integration-grid">
+              <div class="integration-card">
+                <div class="integration-icon">📅</div>
+                <div class="integration-info">
+                  <h4>Google Calendar</h4>
+                  <p>Sync appointments and follow-ups</p>
+                </div>
+                <span class="integration-status status-disconnected">Not Connected</span>
+              </div>
+              <div class="integration-card">
+                <div class="integration-icon">📧</div>
+                <div class="integration-info">
+                  <h4>Email Provider</h4>
+                  <p>Send automated emails</p>
+                </div>
+                <span class="integration-status status-disconnected">Not Connected</span>
+              </div>
+              <div class="integration-card">
+                <div class="integration-icon">💳</div>
+                <div class="integration-info">
+                  <h4>Stripe / WeVend</h4>
+                  <p>Payment processing</p>
+                </div>
+                <span class="integration-status status-pending">Pending Setup</span>
+              </div>
+              <div class="integration-card">
+                <div class="integration-icon">📊</div>
+                <div class="integration-info">
+                  <h4>QuickBooks</h4>
+                  <p>Accounting integration</p>
+                </div>
+                <span class="integration-status status-disconnected">Not Connected</span>
+              </div>
+              <div class="integration-card">
+                <div class="integration-icon">📡</div>
+                <div class="integration-info">
+                  <h4>Machine Telemetry</h4>
+                  <p>SandStar / Parlevel data</p>
+                </div>
+                <span class="integration-status status-pending">Pending Setup</span>
+              </div>
+              <div class="integration-card">
+                <div class="integration-icon">📍</div>
+                <div class="integration-info">
+                  <h4>Google Maps</h4>
+                  <p>Route optimization</p>
+                </div>
+                <span class="integration-status status-connected">Connected</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">🔑 API Keys</h2>
+          </div>
+          <div class="section-body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Google Maps API Key</label>
+                <input type="password" id="google_maps_key" placeholder="••••••••••••••••">
+              </div>
+              <div class="form-group">
+                <label>Stripe API Key</label>
+                <input type="password" id="stripe_key" placeholder="••••••••••••••••">
+              </div>
+              <div class="form-group">
+                <label>Telemetry API Key</label>
+                <input type="password" id="telemetry_key" placeholder="••••••••••••••••">
+              </div>
+              <div class="form-group">
+                <label>Webhook Secret</label>
+                <input type="password" id="webhook_secret" placeholder="••••••••••••••••">
+              </div>
+            </div>
+            <p class="input-hint" style="margin-top: 1rem;">⚠️ API keys are stored securely and not exposed in exports.</p>
+          </div>
+        </section>
+      </div>
+
+      <!-- Users Section -->
+      <div id="section-users" class="settings-section">
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">👥 Team Members</h2>
+            <button class="btn btn-sm btn-secondary" onclick="addUser()" disabled>+ Add User</button>
+          </div>
+          <div class="section-body">
+            <table class="users-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body">
+                <tr>
+                  <td>
+                    <div class="user-row">
+                      <div class="user-avatar">KH</div>
+                      <span>Kurtis Hon</span>
+                    </div>
+                  </td>
+                  <td>kurtis@kandevendtech.com</td>
+                  <td><span class="role-badge role-admin">Admin</span></td>
+                  <td><span class="integration-status status-connected">Active</span></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="user-row">
+                      <div class="user-avatar" style="background: var(--success);">JV</div>
+                      <span>J Vending (Sales)</span>
+                    </div>
+                  </td>
+                  <td>sales@kandevendtech.com</td>
+                  <td><span class="role-badge role-sales">Sales</span></td>
+                  <td><span class="integration-status status-connected">Active</span></td>
+                  <td>
+                    <button class="btn btn-sm btn-secondary" disabled>Edit</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="input-hint" style="margin-top: 1rem;">🔒 Multi-user management coming soon. Currently supports admin and sales roles.</p>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">🛡️ Role Permissions</h2>
+          </div>
+          <div class="section-body">
+            <table class="users-table">
+              <thead>
+                <tr>
+                  <th>Permission</th>
+                  <th>Admin</th>
+                  <th>Sales</th>
+                  <th>Driver</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>View Dashboard</td>
+                  <td>✅</td>
+                  <td>✅</td>
+                  <td>✅</td>
+                </tr>
+                <tr>
+                  <td>Manage Prospects</td>
+                  <td>✅</td>
+                  <td>✅</td>
+                  <td>❌</td>
+                </tr>
+                <tr>
+                  <td>View Financials</td>
+                  <td>✅</td>
+                  <td>❌</td>
+                  <td>❌</td>
+                </tr>
+                <tr>
+                  <td>Manage Inventory</td>
+                  <td>✅</td>
+                  <td>❌</td>
+                  <td>✅</td>
+                </tr>
+                <tr>
+                  <td>System Settings</td>
+                  <td>✅</td>
+                  <td>❌</td>
+                  <td>❌</td>
+                </tr>
+                <tr>
+                  <td>Export Data</td>
+                  <td>✅</td>
+                  <td>❌</td>
+                  <td>❌</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">
+    <span id="toast-message">Settings saved!</span>
+  </div>
+
+  <script>
+    // Default pipeline stages
+    const defaultStages = [
+      { id: 'new_lead', name: 'New Lead', color: '#6b7280', isDefault: true },
+      { id: 'contacted', name: 'Contacted', color: '#3b82f6', isDefault: false },
+      { id: 'pop_in_done', name: 'Pop-in Done', color: '#8b5cf6', isDefault: false },
+      { id: 'interested', name: 'Interested', color: '#f59e0b', isDefault: false },
+      { id: 'site_survey', name: 'Site Survey', color: '#10b981', isDefault: false },
+      { id: 'proposal_sent', name: 'Proposal Sent', color: '#ec4899', isDefault: false },
+      { id: 'negotiating', name: 'Negotiating', color: '#f97316', isDefault: false },
+      { id: 'contract_sent', name: 'Contract Sent', color: '#14b8a6', isDefault: false },
+      { id: 'signed', name: 'Signed', color: '#22c55e', isDefault: false },
+      { id: 'onboarding', name: 'Onboarding', color: '#06b6d4', isDefault: false },
+      { id: 'active_client', name: 'Active Client', color: '#84cc16', isDefault: false }
+    ];
+
+    let settings = {};
+    let stages = [...defaultStages];
+
+    // Navigation
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        const section = item.dataset.section;
+        
+        // Update nav
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        
+        // Update content
+        document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
+        document.getElementById(`section-${section}`).classList.add('active');
+      });
+    });
+
+    // Load settings
+    async function loadSettings() {
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          settings = await res.json();
+          populateSettings();
+        }
+      } catch (e) {
+        console.error('Error loading settings:', e);
+      }
+    }
+
+    function populateSettings() {
+      // Business profile
+      document.getElementById('company_name').value = settings.company_name || '';
+      document.getElementById('address').value = settings.address || '';
+      document.getElementById('city').value = settings.city || '';
+      document.getElementById('state').value = settings.state || '';
+      document.getElementById('zip').value = settings.zip || '';
+      document.getElementById('phone').value = settings.phone || '';
+      document.getElementById('email').value = settings.email || '';
+      document.getElementById('website').value = settings.website || '';
+      document.getElementById('hours_weekday').value = settings.hours_weekday || '';
+      document.getElementById('hours_saturday').value = settings.hours_saturday || '';
+      document.getElementById('hours_sunday').value = settings.hours_sunday || '';
+      document.getElementById('emergency_phone').value = settings.emergency_phone || '';
+
+      // Defaults
+      document.getElementById('default_commission').value = settings.default_commission || 5;
+      document.getElementById('default_contract_months').value = settings.default_contract_months || 36;
+      document.getElementById('default_revenue_estimate').value = settings.default_revenue_estimate || 2000;
+      document.getElementById('min_revenue_threshold').value = settings.min_revenue_threshold || 800;
+      document.getElementById('default_followup_days').value = settings.default_followup_days || 7;
+      document.getElementById('hot_followup_days').value = settings.hot_followup_days || 2;
+      document.getElementById('stale_days').value = settings.stale_days || 30;
+      document.getElementById('touches_to_close').value = settings.touches_to_close || 10;
+      document.getElementById('target_cogs').value = settings.target_cogs || 33;
+      document.getElementById('spoilage_budget').value = settings.spoilage_budget || 2;
+      document.getElementById('low_stock_alert').value = settings.low_stock_alert || 10;
+      document.getElementById('restock_frequency').value = settings.restock_frequency || 7;
+
+      // Notifications
+      document.getElementById('notify_followups').checked = settings.notify_followups !== false;
+      document.getElementById('notify_inventory').checked = settings.notify_inventory !== false;
+      document.getElementById('notify_revenue').checked = settings.notify_revenue === true;
+      document.getElementById('notify_contracts').checked = settings.notify_contracts !== false;
+      document.getElementById('notify_offline').checked = settings.notify_offline !== false;
+      document.getElementById('notify_leads').checked = settings.notify_leads !== false;
+      document.getElementById('threshold_followup').value = settings.threshold_followup || 3;
+      document.getElementById('threshold_contract').value = settings.threshold_contract || 30;
+      document.getElementById('threshold_offline').value = settings.threshold_offline || 60;
+      document.getElementById('digest_time').value = settings.digest_time || '08:00';
+
+      // Pipeline stages
+      if (settings.stages && settings.stages.length > 0) {
+        stages = settings.stages;
+      }
+      renderStages();
+    }
+
+    function renderStages() {
+      const list = document.getElementById('stage-list');
+      const select = document.getElementById('default_stage');
+      
+      list.innerHTML = stages.map((stage, i) => `
+        <div class="stage-item" data-id="${stage.id}">
+          <input type="color" class="stage-color" value="${stage.color}" onchange="updateStageColor('${stage.id}', this.value)">
+          <input type="text" class="stage-name" value="${stage.name}" onchange="updateStageName('${stage.id}', this.value)">
+          ${stage.isDefault ? '<span class="stage-default">Default</span>' : `<button class="stage-btn" onclick="setDefaultStage('${stage.id}')" title="Set as default">⭐</button>`}
+          <div class="stage-actions">
+            <button class="stage-btn" onclick="moveStage(${i}, -1)" ${i === 0 ? 'disabled' : ''}>↑</button>
+            <button class="stage-btn" onclick="moveStage(${i}, 1)" ${i === stages.length - 1 ? 'disabled' : ''}>↓</button>
+            <button class="stage-btn" onclick="deleteStage('${stage.id}')" style="color: var(--danger);">✕</button>
+          </div>
+        </div>
+      `).join('');
+
+      select.innerHTML = stages.map(s => 
+        `<option value="${s.id}" ${s.isDefault ? 'selected' : ''}>${s.name}</option>`
+      ).join('');
+    }
+
+    function addStage() {
+      const id = 'stage_' + Date.now();
+      stages.push({ id, name: 'New Stage', color: '#6b7280', isDefault: false });
+      renderStages();
+    }
+
+    function updateStageName(id, name) {
+      const stage = stages.find(s => s.id === id);
+      if (stage) stage.name = name;
+    }
+
+    function updateStageColor(id, color) {
+      const stage = stages.find(s => s.id === id);
+      if (stage) stage.color = color;
+    }
+
+    function setDefaultStage(id) {
+      stages.forEach(s => s.isDefault = s.id === id);
+      renderStages();
+    }
+
+    function moveStage(index, direction) {
+      const newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= stages.length) return;
+      [stages[index], stages[newIndex]] = [stages[newIndex], stages[index]];
+      renderStages();
+    }
+
+    function deleteStage(id) {
+      if (stages.length <= 1) {
+        showToast('Cannot delete last stage', 'error');
+        return;
+      }
+      stages = stages.filter(s => s.id !== id);
+      if (!stages.some(s => s.isDefault)) stages[0].isDefault = true;
+      renderStages();
+    }
+
+    // Gather all settings
+    function gatherSettings() {
+      return {
+        // Business profile
+        company_name: document.getElementById('company_name').value,
+        address: document.getElementById('address').value,
+        city: document.getElementById('city').value,
+        state: document.getElementById('state').value,
+        zip: document.getElementById('zip').value,
+        phone: document.getElementById('phone').value,
+        email: document.getElementById('email').value,
+        website: document.getElementById('website').value,
+        hours_weekday: document.getElementById('hours_weekday').value,
+        hours_saturday: document.getElementById('hours_saturday').value,
+        hours_sunday: document.getElementById('hours_sunday').value,
+        emergency_phone: document.getElementById('emergency_phone').value,
+
+        // Defaults
+        default_commission: parseFloat(document.getElementById('default_commission').value) || 5,
+        default_contract_months: parseInt(document.getElementById('default_contract_months').value) || 36,
+        default_revenue_estimate: parseFloat(document.getElementById('default_revenue_estimate').value) || 2000,
+        min_revenue_threshold: parseFloat(document.getElementById('min_revenue_threshold').value) || 800,
+        default_followup_days: parseInt(document.getElementById('default_followup_days').value) || 7,
+        hot_followup_days: parseInt(document.getElementById('hot_followup_days').value) || 2,
+        stale_days: parseInt(document.getElementById('stale_days').value) || 30,
+        touches_to_close: parseInt(document.getElementById('touches_to_close').value) || 10,
+        target_cogs: parseFloat(document.getElementById('target_cogs').value) || 33,
+        spoilage_budget: parseFloat(document.getElementById('spoilage_budget').value) || 2,
+        low_stock_alert: parseInt(document.getElementById('low_stock_alert').value) || 10,
+        restock_frequency: parseInt(document.getElementById('restock_frequency').value) || 7,
+
+        // Notifications
+        notify_followups: document.getElementById('notify_followups').checked,
+        notify_inventory: document.getElementById('notify_inventory').checked,
+        notify_revenue: document.getElementById('notify_revenue').checked,
+        notify_contracts: document.getElementById('notify_contracts').checked,
+        notify_offline: document.getElementById('notify_offline').checked,
+        notify_leads: document.getElementById('notify_leads').checked,
+        threshold_followup: parseInt(document.getElementById('threshold_followup').value) || 3,
+        threshold_contract: parseInt(document.getElementById('threshold_contract').value) || 30,
+        threshold_offline: parseInt(document.getElementById('threshold_offline').value) || 60,
+        digest_time: document.getElementById('digest_time').value,
+
+        // Pipeline
+        stages: stages,
+        default_stage: document.getElementById('default_stage').value,
+        auto_advance_days: parseInt(document.getElementById('auto_advance_days').value) || 0,
+
+        updated_at: new Date().toISOString()
+      };
+    }
+
+    // Save settings
+    async function saveAllSettings() {
+      const data = gatherSettings();
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        if (res.ok) {
+          settings = data;
+          showToast('Settings saved successfully!', 'success');
+        } else {
+          showToast('Failed to save settings', 'error');
+        }
+      } catch (e) {
+        console.error('Error saving settings:', e);
+        showToast('Error saving settings', 'error');
+      }
+    }
+
+    // Export data
+    async function exportData(type) {
+      try {
+        const res = await fetch(`/api/export/${type}`);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `vendtech-${type}-${new Date().toISOString().split('T')[0]}.${type === 'json' ? 'json' : 'csv'}`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast(`Exported ${type} successfully!`, 'success');
+      } catch (e) {
+        console.error('Export error:', e);
+        showToast('Export failed', 'error');
+      }
+    }
+
+    // Import data
+    async function importData() {
+      const type = document.getElementById('import_type').value;
+      const file = document.getElementById('import-file').files[0];
+      if (!file) {
+        showToast('Please select a file', 'error');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', type);
+
+      try {
+        const res = await fetch('/api/import', {
+          method: 'POST',
+          body: formData
+        });
+        const result = await res.json();
+        if (res.ok) {
+          showToast(`Imported ${result.count || 0} records!`, 'success');
+        } else {
+          showToast(result.error || 'Import failed', 'error');
+        }
+      } catch (e) {
+        console.error('Import error:', e);
+        showToast('Import failed', 'error');
+      }
+    }
+
+    // File input display
+    document.getElementById('import-file').addEventListener('change', (e) => {
+      const filename = e.target.files[0]?.name || 'No file selected';
+      document.getElementById('import-filename').textContent = filename;
+    });
+
+    // Danger zone actions
+    async function clearDemoData() {
+      if (!confirm('This will remove all demo/test data. Continue?')) return;
+      try {
+        const res = await fetch('/api/data/clear-demo', { method: 'POST' });
+        if (res.ok) {
+          showToast('Demo data cleared!', 'success');
+        }
+      } catch (e) {
+        showToast('Failed to clear demo data', 'error');
+      }
+    }
+
+    async function resetSettings() {
+      if (!confirm('This will reset all settings to defaults. Your data will NOT be deleted. Continue?')) return;
+      try {
+        const res = await fetch('/api/settings/reset', { method: 'POST' });
+        if (res.ok) {
+          await loadSettings();
+          showToast('Settings reset to defaults!', 'success');
+        }
+      } catch (e) {
+        showToast('Failed to reset settings', 'error');
+      }
+    }
+
+    async function deleteAllData() {
+      const confirmText = prompt('Type "DELETE" to confirm permanent deletion of ALL data:');
+      if (confirmText !== 'DELETE') {
+        showToast('Deletion cancelled', 'error');
+        return;
+      }
+      try {
+        const res = await fetch('/api/data/delete-all', { method: 'POST' });
+        if (res.ok) {
+          showToast('All data deleted!', 'success');
+          setTimeout(() => location.reload(), 1500);
+        }
+      } catch (e) {
+        showToast('Failed to delete data', 'error');
+      }
+    }
+
+    // Toast
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-message').textContent = message;
+      toast.className = `toast ${type} show`;
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // Logo upload preview
+    document.getElementById('logo-upload').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const preview = document.getElementById('logo-preview');
+          preview.innerHTML = `<img src="${e.target.result}" alt="Logo">`;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Initialize
+    loadSettings();
+  </script>
+</body>
+</html>

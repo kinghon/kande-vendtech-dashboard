@@ -1,0 +1,1919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Service & Maintenance Log — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa;
+      --card: #ffffff;
+      --card-hover: #f7fafc;
+      --border: #e2e8f0;
+      --text: #1a202c;
+      --muted: #718096;
+      --accent: #3182ce;
+      --accent-dim: rgba(49,130,206,0.1);
+      --success: #38a169;
+      --success-dim: rgba(56,161,105,0.1);
+      --warn: #dd6b20;
+      --warn-dim: rgba(221,107,32,0.1);
+      --hot: #e53e3e;
+      --hot-dim: rgba(229,62,62,0.1);
+      --purple: #7b2cbf;
+      --purple-dim: rgba(123,44,191,0.1);
+      --info: #3182ce;
+      --info-dim: rgba(49,130,206,0.1);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .app { max-width: 1500px; margin: 0 auto; padding: 20px; }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--accent), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .back-link {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .back-link:hover { color: var(--accent); }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-danger { background: var(--hot); color: #fff; }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+    .btn-xs { padding: 4px 8px; font-size: 0.72rem; border-radius: 5px; }
+
+    /* Stats Row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .stat-card .stat-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .stat-card .stat-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .stat-card .stat-sub {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .stat-card.accent .stat-value { color: var(--accent); }
+    .stat-card.success .stat-value { color: var(--success); }
+    .stat-card.warn .stat-value { color: var(--warn); }
+    .stat-card.hot .stat-value { color: var(--hot); }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--muted);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tab-btn:hover { color: var(--text); background: var(--bg); }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Tables */
+    .table-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    .table-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .table-header h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .table-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    th {
+      background: var(--bg);
+      font-weight: 600;
+      color: var(--muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    tr:hover { background: var(--card-hover); }
+    tr:last-child td { border-bottom: none; }
+
+    /* Badges */
+    .badge {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .badge-critical { background: var(--hot-dim); color: var(--hot); }
+    .badge-high { background: var(--warn-dim); color: var(--warn); }
+    .badge-medium { background: var(--accent-dim); color: var(--accent); }
+    .badge-low { background: var(--success-dim); color: var(--success); }
+    .badge-open { background: var(--hot-dim); color: var(--hot); }
+    .badge-in-progress { background: var(--warn-dim); color: var(--warn); }
+    .badge-resolved { background: var(--success-dim); color: var(--success); }
+    .badge-restock { background: var(--accent-dim); color: var(--accent); }
+    .badge-repair { background: var(--hot-dim); color: var(--hot); }
+    .badge-maintenance { background: var(--warn-dim); color: var(--warn); }
+    .badge-cleaning { background: var(--purple-dim); color: var(--purple); }
+    .badge-overdue { background: var(--hot-dim); color: var(--hot); animation: pulse 2s infinite; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    /* Filter Bar */
+    .filter-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .filter-bar input,
+    .filter-bar select {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      background: var(--card);
+      color: var(--text);
+    }
+    .filter-bar input:focus,
+    .filter-bar select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: var(--card);
+      border-radius: 16px;
+      max-width: 600px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-header h2 {
+      font-size: 1.15rem;
+      font-weight: 600;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      cursor: pointer;
+      color: var(--muted);
+      padding: 4px;
+    }
+    .modal-close:hover { color: var(--text); }
+    .modal-body { padding: 24px; }
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* Forms */
+    .form-group { margin-bottom: 18px; }
+    .form-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: var(--text);
+      background: var(--card);
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .form-group textarea { min-height: 80px; resize: vertical; }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    /* Quick Add Form */
+    .quick-add {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .quick-add h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .quick-add-form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      align-items: end;
+    }
+    .quick-add-form input,
+    .quick-add-form select {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+    .quick-add-form .form-field label {
+      display: block;
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    /* Calendar */
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+      background: var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .calendar-day-header {
+      background: var(--bg);
+      padding: 10px;
+      text-align: center;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .calendar-day {
+      background: var(--card);
+      min-height: 100px;
+      padding: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .calendar-day:hover { background: var(--card-hover); }
+    .calendar-day.other-month { opacity: 0.4; }
+    .calendar-day.today { background: var(--accent-dim); }
+    .calendar-day .day-number {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .calendar-event {
+      font-size: 0.68rem;
+      padding: 3px 6px;
+      border-radius: 4px;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+    }
+    .calendar-event.maintenance { background: var(--warn-dim); color: var(--warn); }
+    .calendar-event.cleaning { background: var(--purple-dim); color: var(--purple); }
+    .calendar-event.overdue { background: var(--hot-dim); color: var(--hot); }
+    .calendar-nav {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .calendar-nav h3 { font-size: 1.1rem; font-weight: 600; }
+    .calendar-nav button {
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .calendar-nav button:hover { border-color: var(--accent); }
+
+    /* Inventory Table */
+    .inventory-status { display: flex; align-items: center; gap: 6px; }
+    .inventory-bar {
+      width: 60px;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .inventory-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s;
+    }
+    .inventory-bar-fill.good { background: var(--success); }
+    .inventory-bar-fill.low { background: var(--warn); }
+    .inventory-bar-fill.critical { background: var(--hot); }
+
+    /* Machine Detail Panel */
+    .machine-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .machine-panel h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .machine-selector {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .machine-chip {
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--card);
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .machine-chip:hover { border-color: var(--accent); }
+    .machine-chip.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .machine-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .machine-stat {
+      text-align: center;
+      padding: 16px;
+      background: var(--bg);
+      border-radius: 10px;
+    }
+    .machine-stat .value {
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+    .machine-stat .label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .reliability-score {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .reliability-bar {
+      width: 100px;
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .reliability-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.5; }
+    .empty-state h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .empty-state p { font-size: 0.9rem; }
+
+    /* Action Links */
+    .action-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.82rem;
+      cursor: pointer;
+    }
+    .action-link:hover { text-decoration: underline; }
+    .action-links { display: flex; gap: 12px; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .form-row { grid-template-columns: 1fr; }
+      .quick-add-form { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      th, td { padding: 10px 8px; font-size: 0.78rem; }
+      .calendar-day { min-height: 70px; padding: 4px; }
+      .calendar-day .day-number { font-size: 0.75rem; }
+      .calendar-event { font-size: 0.6rem; padding: 2px 4px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <a href="/home" class="back-link">← Back to Dashboard</a>
+    
+    <div class="header">
+      <h1>🔧 Service & Maintenance Log</h1>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="openModal('service-modal')">➕ Log Service Visit</button>
+        <button class="btn btn-secondary" onclick="openModal('issue-modal')">🚨 Report Issue</button>
+        <button class="btn btn-secondary" onclick="exportServiceData()">📊 Export</button>
+      </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="stats-row" id="stats-row">
+      <div class="stat-card accent">
+        <span class="stat-label">Total Visits (30d)</span>
+        <span class="stat-value" id="stat-visits">0</span>
+        <span class="stat-sub" id="stat-visits-sub">--</span>
+      </div>
+      <div class="stat-card warn">
+        <span class="stat-label">Open Issues</span>
+        <span class="stat-value" id="stat-issues">0</span>
+        <span class="stat-sub" id="stat-issues-sub">--</span>
+      </div>
+      <div class="stat-card success">
+        <span class="stat-label">Avg Uptime</span>
+        <span class="stat-value" id="stat-uptime">--</span>
+        <span class="stat-sub">last 30 days</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Avg Visit Interval</span>
+        <span class="stat-value" id="stat-interval">--</span>
+        <span class="stat-sub">days between visits</span>
+      </div>
+      <div class="stat-card hot">
+        <span class="stat-label">Overdue Tasks</span>
+        <span class="stat-value" id="stat-overdue">0</span>
+        <span class="stat-sub" id="stat-overdue-sub">needs attention</span>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="visits">📋 Service Visits</button>
+      <button class="tab-btn" data-tab="issues">🚨 Issues</button>
+      <button class="tab-btn" data-tab="schedule">📅 Schedule</button>
+      <button class="tab-btn" data-tab="parts">🔩 Parts & Supplies</button>
+      <button class="tab-btn" data-tab="history">📊 Machine History</button>
+    </div>
+
+    <!-- Tab: Service Visits -->
+    <div class="tab-content active" id="tab-visits">
+      <!-- Quick Add Form -->
+      <div class="quick-add">
+        <h3>⚡ Quick Log</h3>
+        <div class="quick-add-form">
+          <div class="form-field">
+            <label>Date</label>
+            <input type="date" id="quick-date" value="">
+          </div>
+          <div class="form-field">
+            <label>Machine</label>
+            <select id="quick-machine"></select>
+          </div>
+          <div class="form-field">
+            <label>Type</label>
+            <select id="quick-type">
+              <option value="restock">Restock</option>
+              <option value="repair">Repair</option>
+              <option value="maintenance">Maintenance</option>
+              <option value="cleaning">Cleaning</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Duration (min)</label>
+            <input type="number" id="quick-duration" placeholder="30" min="1">
+          </div>
+          <div class="form-field">
+            <label>Notes</label>
+            <input type="text" id="quick-notes" placeholder="Optional notes...">
+          </div>
+          <button class="btn btn-success" onclick="quickAddVisit()">✓ Log</button>
+        </div>
+      </div>
+
+      <!-- Visits Table -->
+      <div class="table-card">
+        <div class="table-header">
+          <h3>📋 Recent Service Visits</h3>
+          <div class="table-actions">
+            <div class="filter-bar">
+              <select id="filter-machine">
+                <option value="">All Machines</option>
+              </select>
+              <select id="filter-type">
+                <option value="">All Types</option>
+                <option value="restock">Restock</option>
+                <option value="repair">Repair</option>
+                <option value="maintenance">Maintenance</option>
+                <option value="cleaning">Cleaning</option>
+              </select>
+              <input type="date" id="filter-from" placeholder="From">
+              <input type="date" id="filter-to" placeholder="To">
+            </div>
+          </div>
+        </div>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Machine</th>
+                <th>Location</th>
+                <th>Type</th>
+                <th>Duration</th>
+                <th>Issues Found</th>
+                <th>Notes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="visits-table"></tbody>
+          </table>
+        </div>
+        <div id="visits-empty" class="empty-state" style="display:none;">
+          <div class="icon">📋</div>
+          <h3>No service visits logged</h3>
+          <p>Use the quick log form above or click "Log Service Visit" to add your first entry.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Issues -->
+    <div class="tab-content" id="tab-issues">
+      <div class="table-card">
+        <div class="table-header">
+          <h3>🚨 Open Issues</h3>
+          <div class="table-actions">
+            <select id="filter-issue-status">
+              <option value="open">Open</option>
+              <option value="in_progress">In Progress</option>
+              <option value="resolved">Resolved</option>
+              <option value="">All</option>
+            </select>
+            <select id="filter-issue-priority">
+              <option value="">All Priorities</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+        </div>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Machine</th>
+                <th>Issue</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Reported</th>
+                <th>Assigned To</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="issues-table"></tbody>
+          </table>
+        </div>
+        <div id="issues-empty" class="empty-state" style="display:none;">
+          <div class="icon">✅</div>
+          <h3>No open issues</h3>
+          <p>All machines are running smoothly!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Schedule -->
+    <div class="tab-content" id="tab-schedule">
+      <div class="table-card">
+        <div class="table-header">
+          <h3>📅 Maintenance Schedule</h3>
+          <div class="table-actions">
+            <button class="btn btn-sm btn-secondary" onclick="openModal('schedule-modal')">➕ Add Task</button>
+          </div>
+        </div>
+        
+        <div style="padding: 20px;">
+          <div class="calendar-nav">
+            <button onclick="changeMonth(-1)">◀</button>
+            <h3 id="calendar-title">February 2026</h3>
+            <button onclick="changeMonth(1)">▶</button>
+            <button class="btn btn-sm btn-secondary" onclick="goToToday()">Today</button>
+          </div>
+          
+          <div class="calendar-grid" id="calendar-grid">
+            <div class="calendar-day-header">Sun</div>
+            <div class="calendar-day-header">Mon</div>
+            <div class="calendar-day-header">Tue</div>
+            <div class="calendar-day-header">Wed</div>
+            <div class="calendar-day-header">Thu</div>
+            <div class="calendar-day-header">Fri</div>
+            <div class="calendar-day-header">Sat</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upcoming Tasks -->
+      <div class="table-card">
+        <div class="table-header">
+          <h3>⏰ Upcoming & Overdue Tasks</h3>
+        </div>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Due Date</th>
+                <th>Machine</th>
+                <th>Task</th>
+                <th>Frequency</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="schedule-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Parts & Supplies -->
+    <div class="tab-content" id="tab-parts">
+      <div class="table-card">
+        <div class="table-header">
+          <h3>🔩 Parts Inventory</h3>
+          <div class="table-actions">
+            <button class="btn btn-sm btn-primary" onclick="openModal('part-modal')">➕ Add Part</button>
+          </div>
+        </div>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Part Name</th>
+                <th>SKU</th>
+                <th>Category</th>
+                <th>In Stock</th>
+                <th>Min Stock</th>
+                <th>Status</th>
+                <th>Cost</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="parts-table"></tbody>
+          </table>
+        </div>
+        <div id="parts-empty" class="empty-state" style="display:none;">
+          <div class="icon">🔩</div>
+          <h3>No parts in inventory</h3>
+          <p>Add spare parts and supplies to track inventory levels.</p>
+        </div>
+      </div>
+
+      <!-- Reorder Alerts -->
+      <div class="table-card" id="reorder-section" style="display:none;">
+        <div class="table-header" style="background: var(--warn-dim);">
+          <h3 style="color: var(--warn);">⚠️ Reorder Alerts</h3>
+        </div>
+        <div id="reorder-alerts" style="padding: 16px;"></div>
+      </div>
+    </div>
+
+    <!-- Tab: Machine History -->
+    <div class="tab-content" id="tab-history">
+      <div class="machine-panel">
+        <h3>📊 Select Machine</h3>
+        <div class="machine-selector" id="machine-selector"></div>
+        
+        <div id="machine-detail" style="display:none;">
+          <div class="machine-stats">
+            <div class="machine-stat">
+              <div class="value" id="detail-visits">0</div>
+              <div class="label">Total Visits</div>
+            </div>
+            <div class="machine-stat">
+              <div class="value" id="detail-repairs">0</div>
+              <div class="label">Repairs</div>
+            </div>
+            <div class="machine-stat">
+              <div class="value" id="detail-cost">$0</div>
+              <div class="label">Repair Costs</div>
+            </div>
+            <div class="machine-stat">
+              <div class="value" id="detail-uptime">--</div>
+              <div class="label">Uptime %</div>
+            </div>
+            <div class="machine-stat">
+              <div class="value">
+                <span class="reliability-score">
+                  <span id="detail-reliability">--</span>
+                  <span class="reliability-bar"><span class="reliability-bar-fill" id="reliability-fill" style="width:0%;background:var(--success);"></span></span>
+                </span>
+              </div>
+              <div class="label">Reliability Score</div>
+            </div>
+          </div>
+
+          <h4 style="margin: 20px 0 12px; font-size: 0.95rem; font-weight: 600;">Service History</h4>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Duration</th>
+                <th>Issues</th>
+                <th>Cost</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="history-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Service Visit Modal -->
+  <div class="modal-overlay" id="service-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Log Service Visit</h2>
+        <button class="modal-close" onclick="closeModal('service-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Date *</label>
+            <input type="date" id="visit-date" required>
+          </div>
+          <div class="form-group">
+            <label>Machine *</label>
+            <select id="visit-machine" required></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Visit Type *</label>
+            <select id="visit-type" required>
+              <option value="restock">Restock</option>
+              <option value="repair">Repair</option>
+              <option value="maintenance">Preventive Maintenance</option>
+              <option value="cleaning">Cleaning</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Duration (minutes)</label>
+            <input type="number" id="visit-duration" placeholder="30" min="1">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Issues Found</label>
+          <textarea id="visit-issues" placeholder="Describe any issues discovered during the visit..."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Parts Used</label>
+            <input type="text" id="visit-parts" placeholder="e.g., Card reader, motor belt">
+          </div>
+          <div class="form-group">
+            <label>Cost ($)</label>
+            <input type="number" id="visit-cost" placeholder="0.00" step="0.01" min="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea id="visit-notes" placeholder="Additional notes..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('service-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveServiceVisit()">Save Visit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Issue Modal -->
+  <div class="modal-overlay" id="issue-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="issue-modal-title">Report Issue</h2>
+        <button class="modal-close" onclick="closeModal('issue-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="issue-id">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Machine *</label>
+            <select id="issue-machine" required></select>
+          </div>
+          <div class="form-group">
+            <label>Priority *</label>
+            <select id="issue-priority" required>
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Issue Description *</label>
+          <textarea id="issue-description" placeholder="Describe the issue..." required></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Status</label>
+            <select id="issue-status">
+              <option value="open">Open</option>
+              <option value="in_progress">In Progress</option>
+              <option value="resolved">Resolved</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Assigned To</label>
+            <input type="text" id="issue-assigned" placeholder="Name or leave blank">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Resolution Notes</label>
+          <textarea id="issue-resolution" placeholder="How was this issue resolved?"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('issue-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveIssue()">Save Issue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Schedule Task Modal -->
+  <div class="modal-overlay" id="schedule-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Add Maintenance Task</h2>
+        <button class="modal-close" onclick="closeModal('schedule-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Machine *</label>
+            <select id="task-machine" required></select>
+          </div>
+          <div class="form-group">
+            <label>Task Type *</label>
+            <select id="task-type" required>
+              <option value="cleaning">Cleaning</option>
+              <option value="inspection">Inspection</option>
+              <option value="maintenance">General Maintenance</option>
+              <option value="calibration">Calibration</option>
+              <option value="filter_change">Filter Change</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Task Description</label>
+          <input type="text" id="task-description" placeholder="e.g., Deep clean interior, check seals">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Frequency *</label>
+            <select id="task-frequency" required>
+              <option value="weekly">Weekly</option>
+              <option value="biweekly">Bi-Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="once">One-Time</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Next Due Date *</label>
+            <input type="date" id="task-due" required>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('schedule-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveScheduleTask()">Save Task</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Parts Modal -->
+  <div class="modal-overlay" id="part-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Add Part to Inventory</h2>
+        <button class="modal-close" onclick="closeModal('part-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Part Name *</label>
+            <input type="text" id="part-name" placeholder="e.g., Card Reader Module" required>
+          </div>
+          <div class="form-group">
+            <label>SKU / Part Number</label>
+            <input type="text" id="part-sku" placeholder="Optional">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Category</label>
+            <select id="part-category">
+              <option value="electronics">Electronics</option>
+              <option value="mechanical">Mechanical</option>
+              <option value="consumables">Consumables</option>
+              <option value="cleaning">Cleaning Supplies</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Unit Cost ($)</label>
+            <input type="number" id="part-cost" placeholder="0.00" step="0.01" min="0">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Current Stock *</label>
+            <input type="number" id="part-stock" placeholder="0" min="0" required>
+          </div>
+          <div class="form-group">
+            <label>Minimum Stock (Reorder Point)</label>
+            <input type="number" id="part-min" placeholder="5" min="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <input type="text" id="part-notes" placeholder="Supplier, compatible machines, etc.">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('part-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="savePart()">Save Part</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let machines = [];
+    let locations = [];
+    let serviceVisits = [];
+    let serviceIssues = [];
+    let maintenanceSchedule = [];
+    let partsInventory = [];
+    let currentMonth = new Date();
+    let selectedMachineId = null;
+
+    // Init
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('quick-date').valueAsDate = new Date();
+      document.getElementById('visit-date').valueAsDate = new Date();
+      
+      // Set default filter dates (last 30 days)
+      const today = new Date();
+      const thirtyDaysAgo = new Date(today);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      document.getElementById('filter-to').valueAsDate = today;
+      document.getElementById('filter-from').valueAsDate = thirtyDaysAgo;
+      document.getElementById('task-due').valueAsDate = today;
+
+      loadAllData();
+      setupTabs();
+      setupFilters();
+    });
+
+    // Load all data
+    async function loadAllData() {
+      try {
+        const [machinesRes, locationsRes, visitsRes, issuesRes, scheduleRes, partsRes] = await Promise.all([
+          fetch('/api/machines').then(r => r.json()),
+          fetch('/api/locations').then(r => r.json()),
+          fetch('/api/service/visits').then(r => r.json()),
+          fetch('/api/service/issues').then(r => r.json()),
+          fetch('/api/service/schedule').then(r => r.json()),
+          fetch('/api/service/parts').then(r => r.json())
+        ]);
+        
+        machines = machinesRes;
+        locations = locationsRes;
+        serviceVisits = visitsRes;
+        serviceIssues = issuesRes;
+        maintenanceSchedule = scheduleRes;
+        partsInventory = partsRes;
+        
+        populateMachineDropdowns();
+        renderStats();
+        renderVisitsTable();
+        renderIssuesTable();
+        renderCalendar();
+        renderScheduleTable();
+        renderPartsTable();
+        renderMachineSelector();
+      } catch (err) {
+        console.error('Error loading data:', err);
+      }
+    }
+
+    // Populate machine dropdowns
+    function populateMachineDropdowns() {
+      const selects = ['quick-machine', 'visit-machine', 'issue-machine', 'task-machine', 'filter-machine'];
+      selects.forEach(id => {
+        const select = document.getElementById(id);
+        if (!select) return;
+        const isFilter = id === 'filter-machine';
+        select.innerHTML = isFilter ? '<option value="">All Machines</option>' : '';
+        machines.forEach(m => {
+          const loc = locations.find(l => l.id === m.location_id);
+          const option = document.createElement('option');
+          option.value = m.id;
+          option.textContent = `${m.name || m.serial_number}${loc ? ' @ ' + (loc.name || loc.address) : ''}`;
+          select.appendChild(option);
+        });
+      });
+    }
+
+    // Setup tabs
+    function setupTabs() {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+        });
+      });
+    }
+
+    // Setup filters
+    function setupFilters() {
+      ['filter-machine', 'filter-type', 'filter-from', 'filter-to'].forEach(id => {
+        document.getElementById(id)?.addEventListener('change', renderVisitsTable);
+      });
+      ['filter-issue-status', 'filter-issue-priority'].forEach(id => {
+        document.getElementById(id)?.addEventListener('change', renderIssuesTable);
+      });
+    }
+
+    // Render stats
+    function renderStats() {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const recentVisits = serviceVisits.filter(v => new Date(v.date) >= thirtyDaysAgo);
+      const openIssues = serviceIssues.filter(i => i.status !== 'resolved');
+      const criticalIssues = openIssues.filter(i => i.priority === 'critical');
+      
+      // Overdue tasks
+      const today = new Date().toISOString().split('T')[0];
+      const overdue = maintenanceSchedule.filter(t => t.next_due < today && t.status !== 'completed');
+      
+      // Calculate avg visit interval
+      let avgInterval = '--';
+      if (serviceVisits.length >= 2) {
+        const sorted = [...serviceVisits].sort((a, b) => new Date(a.date) - new Date(b.date));
+        let totalDays = 0;
+        for (let i = 1; i < sorted.length; i++) {
+          totalDays += (new Date(sorted[i].date) - new Date(sorted[i-1].date)) / (1000 * 60 * 60 * 24);
+        }
+        avgInterval = Math.round(totalDays / (sorted.length - 1)) + 'd';
+      }
+      
+      // Uptime calculation (simplified: 100% - (repair hours / total hours) * 100)
+      const repairHours = recentVisits.filter(v => v.type === 'repair').reduce((sum, v) => sum + (v.duration || 0), 0) / 60;
+      const totalHours = machines.length * 24 * 30;
+      const uptime = totalHours > 0 ? Math.round((1 - repairHours / totalHours) * 100) : 100;
+      
+      document.getElementById('stat-visits').textContent = recentVisits.length;
+      document.getElementById('stat-visits-sub').textContent = `${recentVisits.filter(v => v.type === 'repair').length} repairs`;
+      document.getElementById('stat-issues').textContent = openIssues.length;
+      document.getElementById('stat-issues-sub').textContent = criticalIssues.length > 0 ? `${criticalIssues.length} critical!` : 'none critical';
+      document.getElementById('stat-uptime').textContent = uptime + '%';
+      document.getElementById('stat-interval').textContent = avgInterval;
+      document.getElementById('stat-overdue').textContent = overdue.length;
+    }
+
+    // Render visits table
+    function renderVisitsTable() {
+      const machineFilter = document.getElementById('filter-machine').value;
+      const typeFilter = document.getElementById('filter-type').value;
+      const fromDate = document.getElementById('filter-from').value;
+      const toDate = document.getElementById('filter-to').value;
+      
+      let filtered = [...serviceVisits];
+      if (machineFilter) filtered = filtered.filter(v => v.machine_id == machineFilter);
+      if (typeFilter) filtered = filtered.filter(v => v.type === typeFilter);
+      if (fromDate) filtered = filtered.filter(v => v.date >= fromDate);
+      if (toDate) filtered = filtered.filter(v => v.date <= toDate);
+      
+      filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+      
+      const tbody = document.getElementById('visits-table');
+      const empty = document.getElementById('visits-empty');
+      
+      if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+      
+      empty.style.display = 'none';
+      tbody.innerHTML = filtered.map(v => {
+        const machine = machines.find(m => m.id === v.machine_id);
+        const location = machine ? locations.find(l => l.id === machine.location_id) : null;
+        return `
+          <tr>
+            <td>${formatDate(v.date)}</td>
+            <td>${machine?.name || machine?.serial_number || 'Unknown'}</td>
+            <td>${location?.name || location?.address || '--'}</td>
+            <td><span class="badge badge-${v.type}">${v.type}</span></td>
+            <td>${v.duration ? v.duration + ' min' : '--'}</td>
+            <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${v.issues_found || ''}">${v.issues_found || '--'}</td>
+            <td style="max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${v.notes || ''}">${v.notes || '--'}</td>
+            <td>
+              <div class="action-links">
+                <span class="action-link" onclick="editVisit(${v.id})">Edit</span>
+                <span class="action-link" style="color:var(--hot)" onclick="deleteVisit(${v.id})">Delete</span>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Render issues table
+    function renderIssuesTable() {
+      const statusFilter = document.getElementById('filter-issue-status').value;
+      const priorityFilter = document.getElementById('filter-issue-priority').value;
+      
+      let filtered = [...serviceIssues];
+      if (statusFilter) filtered = filtered.filter(i => i.status === statusFilter);
+      if (priorityFilter) filtered = filtered.filter(i => i.priority === priorityFilter);
+      
+      // Sort: critical first, then by date
+      const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+      filtered.sort((a, b) => {
+        if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+          return priorityOrder[a.priority] - priorityOrder[b.priority];
+        }
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+      
+      const tbody = document.getElementById('issues-table');
+      const empty = document.getElementById('issues-empty');
+      
+      if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+      
+      empty.style.display = 'none';
+      tbody.innerHTML = filtered.map(i => {
+        const machine = machines.find(m => m.id === i.machine_id);
+        return `
+          <tr>
+            <td>${machine?.name || machine?.serial_number || 'Unknown'}</td>
+            <td style="max-width:250px;">${i.description}</td>
+            <td><span class="badge badge-${i.priority}">${i.priority}</span></td>
+            <td><span class="badge badge-${i.status.replace('_', '-')}">${i.status.replace('_', ' ')}</span></td>
+            <td>${formatDate(i.created_at)}</td>
+            <td>${i.assigned_to || '--'}</td>
+            <td>
+              <div class="action-links">
+                <span class="action-link" onclick="editIssue(${i.id})">Edit</span>
+                ${i.status !== 'resolved' ? `<span class="action-link" style="color:var(--success)" onclick="resolveIssue(${i.id})">Resolve</span>` : ''}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Calendar rendering
+    function renderCalendar() {
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth();
+      
+      document.getElementById('calendar-title').textContent = 
+        currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      const startPad = firstDay.getDay();
+      const daysInMonth = lastDay.getDate();
+      
+      const grid = document.getElementById('calendar-grid');
+      // Keep headers
+      const headers = Array.from(grid.querySelectorAll('.calendar-day-header'));
+      grid.innerHTML = '';
+      headers.forEach(h => grid.appendChild(h));
+      
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Previous month padding
+      const prevMonthLast = new Date(year, month, 0).getDate();
+      for (let i = startPad - 1; i >= 0; i--) {
+        const day = document.createElement('div');
+        day.className = 'calendar-day other-month';
+        day.innerHTML = `<div class="day-number">${prevMonthLast - i}</div>`;
+        grid.appendChild(day);
+      }
+      
+      // Current month days
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const day = document.createElement('div');
+        day.className = 'calendar-day' + (dateStr === today ? ' today' : '');
+        
+        // Find tasks for this day
+        const dayTasks = maintenanceSchedule.filter(t => t.next_due === dateStr);
+        const overdueTasks = maintenanceSchedule.filter(t => t.next_due < dateStr && t.status !== 'completed' && d === 1 && dateStr.slice(0, 7) === today.slice(0, 7));
+        
+        let eventsHtml = '';
+        dayTasks.slice(0, 3).forEach(t => {
+          const machine = machines.find(m => m.id === t.machine_id);
+          eventsHtml += `<div class="calendar-event ${t.type}" title="${machine?.name}: ${t.description || t.type}">${machine?.name?.substring(0, 8) || 'Machine'}</div>`;
+        });
+        if (dayTasks.length > 3) {
+          eventsHtml += `<div class="calendar-event" style="background:var(--muted);color:#fff;">+${dayTasks.length - 3} more</div>`;
+        }
+        
+        day.innerHTML = `<div class="day-number">${d}</div>${eventsHtml}`;
+        grid.appendChild(day);
+      }
+      
+      // Next month padding
+      const endPad = 42 - (startPad + daysInMonth);
+      for (let i = 1; i <= endPad; i++) {
+        const day = document.createElement('div');
+        day.className = 'calendar-day other-month';
+        day.innerHTML = `<div class="day-number">${i}</div>`;
+        grid.appendChild(day);
+      }
+    }
+
+    function changeMonth(delta) {
+      currentMonth.setMonth(currentMonth.getMonth() + delta);
+      renderCalendar();
+    }
+
+    function goToToday() {
+      currentMonth = new Date();
+      renderCalendar();
+    }
+
+    // Render schedule table
+    function renderScheduleTable() {
+      const today = new Date().toISOString().split('T')[0];
+      const upcoming = maintenanceSchedule
+        .filter(t => t.status !== 'completed')
+        .sort((a, b) => new Date(a.next_due) - new Date(b.next_due));
+      
+      const tbody = document.getElementById('schedule-table');
+      tbody.innerHTML = upcoming.map(t => {
+        const machine = machines.find(m => m.id === t.machine_id);
+        const isOverdue = t.next_due < today;
+        return `
+          <tr>
+            <td><span class="${isOverdue ? 'badge badge-overdue' : ''}">${formatDate(t.next_due)}</span></td>
+            <td>${machine?.name || machine?.serial_number || 'Unknown'}</td>
+            <td>${t.description || t.type}</td>
+            <td>${t.frequency}</td>
+            <td><span class="badge ${isOverdue ? 'badge-overdue' : 'badge-medium'}">${isOverdue ? 'Overdue' : 'Pending'}</span></td>
+            <td>
+              <div class="action-links">
+                <span class="action-link" style="color:var(--success)" onclick="completeTask(${t.id})">Complete</span>
+                <span class="action-link" style="color:var(--hot)" onclick="deleteTask(${t.id})">Delete</span>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Render parts table
+    function renderPartsTable() {
+      const tbody = document.getElementById('parts-table');
+      const empty = document.getElementById('parts-empty');
+      const reorderSection = document.getElementById('reorder-section');
+      
+      if (partsInventory.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        reorderSection.style.display = 'none';
+        return;
+      }
+      
+      empty.style.display = 'none';
+      
+      // Check for low stock
+      const lowStock = partsInventory.filter(p => p.current_stock <= (p.min_stock || 0));
+      if (lowStock.length > 0) {
+        reorderSection.style.display = 'block';
+        document.getElementById('reorder-alerts').innerHTML = lowStock.map(p => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg);border-radius:8px;margin-bottom:8px;">
+            <div>
+              <strong>${p.name}</strong>
+              <span style="color:var(--hot);margin-left:10px;">Only ${p.current_stock} left (min: ${p.min_stock || 0})</span>
+            </div>
+            <button class="btn btn-sm btn-warn" onclick="openReorderModal(${p.id})">Reorder</button>
+          </div>
+        `).join('');
+      } else {
+        reorderSection.style.display = 'none';
+      }
+      
+      tbody.innerHTML = partsInventory.map(p => {
+        const stockPercent = p.min_stock > 0 ? Math.min(100, (p.current_stock / p.min_stock) * 50) : 100;
+        let stockClass = 'good';
+        if (p.current_stock <= (p.min_stock || 0)) stockClass = 'critical';
+        else if (p.current_stock <= (p.min_stock || 0) * 2) stockClass = 'low';
+        
+        return `
+          <tr>
+            <td><strong>${p.name}</strong></td>
+            <td>${p.sku || '--'}</td>
+            <td>${p.category || '--'}</td>
+            <td>${p.current_stock}</td>
+            <td>${p.min_stock || '--'}</td>
+            <td>
+              <div class="inventory-status">
+                <div class="inventory-bar">
+                  <div class="inventory-bar-fill ${stockClass}" style="width:${stockPercent}%"></div>
+                </div>
+                <span class="badge badge-${stockClass === 'critical' ? 'critical' : stockClass === 'low' ? 'high' : 'low'}">${stockClass}</span>
+              </div>
+            </td>
+            <td>${p.unit_cost ? '$' + p.unit_cost.toFixed(2) : '--'}</td>
+            <td>
+              <div class="action-links">
+                <span class="action-link" onclick="adjustStock(${p.id})">Adjust</span>
+                <span class="action-link" style="color:var(--hot)" onclick="deletePart(${p.id})">Delete</span>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Render machine selector for history tab
+    function renderMachineSelector() {
+      const selector = document.getElementById('machine-selector');
+      selector.innerHTML = machines.map(m => `
+        <div class="machine-chip ${selectedMachineId === m.id ? 'active' : ''}" onclick="selectMachine(${m.id})">
+          ${m.name || m.serial_number}
+        </div>
+      `).join('');
+    }
+
+    function selectMachine(id) {
+      selectedMachineId = id;
+      renderMachineSelector();
+      renderMachineHistory();
+    }
+
+    function renderMachineHistory() {
+      const detail = document.getElementById('machine-detail');
+      if (!selectedMachineId) {
+        detail.style.display = 'none';
+        return;
+      }
+      
+      detail.style.display = 'block';
+      
+      const machineVisits = serviceVisits.filter(v => v.machine_id === selectedMachineId);
+      const repairs = machineVisits.filter(v => v.type === 'repair');
+      const totalCost = machineVisits.reduce((sum, v) => sum + (v.cost || 0), 0);
+      
+      // Calculate uptime (simplified)
+      const repairMinutes = repairs.reduce((sum, v) => sum + (v.duration || 0), 0);
+      const totalMinutes = 30 * 24 * 60; // 30 days
+      const uptime = Math.round((1 - repairMinutes / totalMinutes) * 100);
+      
+      // Reliability score (simple: fewer repairs = higher score)
+      const reliability = Math.max(0, 100 - repairs.length * 10);
+      
+      document.getElementById('detail-visits').textContent = machineVisits.length;
+      document.getElementById('detail-repairs').textContent = repairs.length;
+      document.getElementById('detail-cost').textContent = '$' + totalCost.toFixed(2);
+      document.getElementById('detail-uptime').textContent = uptime + '%';
+      document.getElementById('detail-reliability').textContent = reliability + '%';
+      
+      const reliabilityFill = document.getElementById('reliability-fill');
+      reliabilityFill.style.width = reliability + '%';
+      reliabilityFill.style.background = reliability >= 80 ? 'var(--success)' : reliability >= 50 ? 'var(--warn)' : 'var(--hot)';
+      
+      const historyTable = document.getElementById('history-table');
+      historyTable.innerHTML = machineVisits
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .map(v => `
+          <tr>
+            <td>${formatDate(v.date)}</td>
+            <td><span class="badge badge-${v.type}">${v.type}</span></td>
+            <td>${v.duration ? v.duration + ' min' : '--'}</td>
+            <td>${v.issues_found || '--'}</td>
+            <td>${v.cost ? '$' + v.cost.toFixed(2) : '--'}</td>
+            <td>${v.notes || '--'}</td>
+          </tr>
+        `).join('');
+    }
+
+    // Modal functions
+    function openModal(id) {
+      document.getElementById(id).classList.add('active');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+      // Reset issue modal
+      if (id === 'issue-modal') {
+        document.getElementById('issue-id').value = '';
+        document.getElementById('issue-modal-title').textContent = 'Report Issue';
+        document.getElementById('issue-description').value = '';
+        document.getElementById('issue-resolution').value = '';
+        document.getElementById('issue-assigned').value = '';
+        document.getElementById('issue-status').value = 'open';
+        document.getElementById('issue-priority').value = 'medium';
+      }
+    }
+
+    // Quick add visit
+    async function quickAddVisit() {
+      const date = document.getElementById('quick-date').value;
+      const machine_id = document.getElementById('quick-machine').value;
+      const type = document.getElementById('quick-type').value;
+      const duration = document.getElementById('quick-duration').value;
+      const notes = document.getElementById('quick-notes').value;
+      
+      if (!date || !machine_id) {
+        alert('Please select date and machine');
+        return;
+      }
+      
+      try {
+        await fetch('/api/service/visits', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date, machine_id: parseInt(machine_id), type, duration: parseInt(duration) || null, notes })
+        });
+        
+        // Reset form
+        document.getElementById('quick-duration').value = '';
+        document.getElementById('quick-notes').value = '';
+        
+        await loadAllData();
+      } catch (err) {
+        alert('Error saving visit: ' + err.message);
+      }
+    }
+
+    // Save service visit
+    async function saveServiceVisit() {
+      const data = {
+        date: document.getElementById('visit-date').value,
+        machine_id: parseInt(document.getElementById('visit-machine').value),
+        type: document.getElementById('visit-type').value,
+        duration: parseInt(document.getElementById('visit-duration').value) || null,
+        issues_found: document.getElementById('visit-issues').value,
+        parts_used: document.getElementById('visit-parts').value,
+        cost: parseFloat(document.getElementById('visit-cost').value) || null,
+        notes: document.getElementById('visit-notes').value
+      };
+      
+      if (!data.date || !data.machine_id) {
+        alert('Please fill required fields');
+        return;
+      }
+      
+      try {
+        await fetch('/api/service/visits', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        closeModal('service-modal');
+        await loadAllData();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    // Edit visit
+    async function editVisit(id) {
+      const visit = serviceVisits.find(v => v.id === id);
+      if (!visit) return;
+      
+      document.getElementById('visit-date').value = visit.date;
+      document.getElementById('visit-machine').value = visit.machine_id;
+      document.getElementById('visit-type').value = visit.type;
+      document.getElementById('visit-duration').value = visit.duration || '';
+      document.getElementById('visit-issues').value = visit.issues_found || '';
+      document.getElementById('visit-parts').value = visit.parts_used || '';
+      document.getElementById('visit-cost').value = visit.cost || '';
+      document.getElementById('visit-notes').value = visit.notes || '';
+      
+      openModal('service-modal');
+    }
+
+    // Delete visit
+    async function deleteVisit(id) {
+      if (!confirm('Delete this service visit?')) return;
+      try {
+        await fetch(`/api/service/visits/${id}`, { method: 'DELETE' });
+        await loadAllData();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    // Save issue
+    async function saveIssue() {
+      const id = document.getElementById('issue-id').value;
+      const data = {
+        machine_id: parseInt(document.getElementById('issue-machine').value),
+        priority: document.getElementById('issue-priority').value,
+        description: document.getElementById('issue-description').value,
+        status: document.getElementById('issue-status').value,
+        assigned_to: document.getElementById('issue-assigned').value,
+        resolution_notes: document.getElementById('issue-resolution').value
+      };
+      
+      if (!data.machine_id || !data.description) {
+        alert('Please fill required fields');
+        return;
+      }
+      
+      try {
+        const url = id ? `/api/service/issues/${id}` : '/api/service/issues';
+        const method = id ? 'PUT' : 'POST';
+        await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        closeModal('issue-modal');
+        await loadAllData();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    // Edit issue
+    function editIssue(id) {
+      const issue = serviceIssues.find(i => i.id === id);
+      if (!issue) return;
+      
+      document.getElementById('issue-id').value = issue.id;
+      document.getElementById('issue-modal-title').textContent = 'Edit Issue';
+      document.getElementById('issue-machine').value = issue.machine_id;
+      document.getElementById('issue-priority').value = issue.priority;
+      document.getElementById('issue-description').value = issue.description;
+      document.getElementById('issue-status').value = issue.status;
+      document.getElementById('issue-assigned').value = issue.assigned_to || '';
+      document.getElementById('issue-resolution').value = issue.resolution_notes || '';
+      
+      openModal('issue-modal');
+    }
+
+    // Resolve issue
+    async function resolveIssue(id) {
+      const notes = prompt('Resolution notes (optional):');
+      try {
+        await fetch(`/api/service/issues/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'resolved', resolution_notes: notes, resolved_at: new Date().toISOString() })
+        });
+        await loadAllData();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    // Save schedule task
+    async function saveScheduleTask() {
+      const data = {
+        machine_id: parseInt(document.getElementById('task-machine').value),
+        type: document.getElementById('task-type').value,
+        description: document.getElementById('task-description').value,
+        frequency: document.getElementById('task-frequency').value,
+        next_due: document.getElementById('task-due').value
+      };
+      
+      if (!data.machine_id || !data.next_due) {
+        alert('Please fill required fields');
+        return;
+      }
+      
+      try {
+        await fetch('/api/service/schedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        closeModal('schedule-modal');
+        await loadAllData();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    // Complete task
+    async function completeTask(id) {
+      const task = maintenanceSchedule.find(t => t.id === id);
+      if (!task) return;
+      
+      // Calculate next due date based on frequency
+      const today = new Date();
+      let nextDue = new Date(today);
+      switch (task.frequency) {
+        case 'weekly': nextDue.setDate(nextDue.getDate() + 7); break;
+        case 'biweekly': nextDue.setDate(nextDue.getDate() + 14); break;
+        case 'monthly': nextDue.setMonth(nextDue.getMonth() + 1); break;
+        case 'quarterly': nextDue.setMonth(nextDue.getMonth() + 3); break;
+        case 'once': nextDue = null; break;
+      }
+      
+      try {
+        if (task.frequency === 'once') {
+          await fetch(`/api/service/schedule/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'completed', completed_at: today.toISOString() })
+          });
+        } else {
+          await fetch(`/api/service/schedule/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ next_due: nextDue.toISOString().split('T')[0], last_completed: today.toISOString() })
+          });
+        }
+        await loadAllData();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    // Delete task
+    async function deleteTask(id) {
+      if (!confirm('Delete this scheduled task?')) return;
+      try {
+        await fetch(`/api/service/schedule/${id}`, { method: 'DELETE' });
+        await loadAllData();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    // Save part
+    async function savePart() {
+      const data = {
+        name: document.getElementById('part-name').value,
+        sku: document.getElementById('part-sku').value,
+        category: document.getElementById('part-category').value,
+        unit_cost: parseFloat(document.getElementById('part-cost').value) || null,
+        current_stock: parseInt(document.getElementById('part-stock').value) || 0,
+        min_stock: parseInt(document.getElementById('part-min').value) || null,
+        notes: document.getElementById('part-notes').value
+      };
+      
+      if (!data.name) {
+        alert('Part name is required');
+        return;
+      }
+      
+      try {
+        await fetch('/api/service/parts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        closeModal('part-modal');
+        await loadAllData();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    // Adjust stock
+    async function adjustStock(id) {
+      const part = partsInventory.find(p => p.id === id);
+      if (!part) return;
+      
+      const newStock = prompt(`Current stock: ${part.current_stock}\nEnter new stock level:`, part.current_stock);
+      if (newStock === null) return;
+      
+      try {
+        await fetch(`/api/service/parts/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ current_stock: parseInt(newStock) || 0 })
+        });
+        await loadAllData();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    // Delete part
+    async function deletePart(id) {
+      if (!confirm('Delete this part from inventory?')) return;
+      try {
+        await fetch(`/api/service/parts/${id}`, { method: 'DELETE' });
+        await loadAllData();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    // Export data
+    function exportServiceData() {
+      const data = {
+        visits: serviceVisits,
+        issues: serviceIssues,
+        schedule: maintenanceSchedule,
+        parts: partsInventory,
+        exported_at: new Date().toISOString()
+      };
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `service-log-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Helpers
+    function formatDate(dateStr) {
+      if (!dateStr) return '--';
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+  </script>
+</body>
+</html>

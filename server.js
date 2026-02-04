@@ -246,6 +246,7 @@ if (!db.emailSequences) db.emailSequences = [];
 if (!db.emailSends) db.emailSends = [];
 if (!db.contracts) db.contracts = [];
 if (!db.competitors) db.competitors = [];
+if (!db.competitorLocations) db.competitorLocations = [];
 if (!db.revenue) db.revenue = [];
 if (!db.micromarkets) db.micromarkets = [];
 if (!db.smartMachines) db.smartMachines = [];
@@ -1357,7 +1358,7 @@ app.get('/api/stats', (req, res) => {
 
 // ===== IMPORT / RESET =====
 app.post('/api/reset', (req, res) => {
-  db = { prospects: [], contacts: [], activities: [], machines: [], locations: [], products: [], suppliers: [], finances: [], creditCards: [], restocks: [], aiOfficeRuns: [], staff: [], shifts: [], clients: [], touchpoints: [], issues: [], sales: [], planograms: [], marketingSpend: [], leadSources: [], gbpMetrics: [], competitors: [], revenue: [], contracts: [], emailTemplates: [], emailSequences: [], emailSends: [], restockLogs: [], salesVelocity: [], restockCapacities: {}, micromarkets: [], smartMachines: [], machineTelemetry: [], todos: [], nextId: 1 };
+  db = { prospects: [], contacts: [], activities: [], machines: [], locations: [], products: [], suppliers: [], finances: [], creditCards: [], restocks: [], aiOfficeRuns: [], staff: [], shifts: [], clients: [], touchpoints: [], issues: [], sales: [], planograms: [], marketingSpend: [], leadSources: [], gbpMetrics: [], competitors: [], competitorLocations: [], revenue: [], contracts: [], emailTemplates: [], emailSequences: [], emailSends: [], restockLogs: [], salesVelocity: [], restockCapacities: {}, micromarkets: [], smartMachines: [], machineTelemetry: [], todos: [], nextId: 1 };
   saveDB(db);
   res.json({ success: true });
 });
@@ -2502,6 +2503,101 @@ app.delete('/api/competitors/:id', (req, res) => {
   res.json({ success: true });
 });
 
+// ===== COMPETITOR LOCATIONS API (for mapping) =====
+// Geocode helper for competitor locations
+async function geocodeCompetitorLocation(loc) {
+  if (!loc.address || (loc.lat && loc.lng)) return false;
+  const coords = await geocodeAddress(loc.address);
+  if (coords) { loc.lat = coords.lat; loc.lng = coords.lng; return true; }
+  return false;
+}
+
+app.get('/api/competitor-locations', (req, res) => {
+  const { competitor, property_type, q } = req.query;
+  let records = db.competitorLocations || [];
+  if (competitor) records = records.filter(c => c.competitor === competitor);
+  if (property_type) records = records.filter(c => c.property_type === property_type);
+  if (q) {
+    const query = q.toLowerCase();
+    records = records.filter(c => {
+      const searchable = [c.name, c.address, c.notes || ''].join(' ').toLowerCase();
+      return searchable.includes(query);
+    });
+  }
+  res.json(records.sort((a, b) => (a.name || '').localeCompare(b.name || '')));
+});
+
+app.post('/api/competitor-locations', async (req, res) => {
+  const loc = {
+    id: nextId(),
+    competitor: req.body.competitor || 'other',
+    name: req.body.name || 'Unknown',
+    address: req.body.address || '',
+    property_type: req.body.property_type || '',
+    source: req.body.source || 'other',
+    notes: req.body.notes || '',
+    lat: req.body.lat || null,
+    lng: req.body.lng || null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  if (!db.competitorLocations) db.competitorLocations = [];
+  db.competitorLocations.push(loc);
+  saveDB(db);
+  res.json(loc);
+  // Geocode in background
+  geocodeCompetitorLocation(loc).then(updated => { if (updated) saveDB(db); });
+});
+
+app.put('/api/competitor-locations/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.competitorLocations || []).findIndex(c => c.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Competitor location not found' });
+  const oldAddress = db.competitorLocations[idx].address;
+  db.competitorLocations[idx] = {
+    ...db.competitorLocations[idx],
+    ...req.body,
+    id,
+    updated_at: new Date().toISOString()
+  };
+  saveDB(db);
+  res.json(db.competitorLocations[idx]);
+  // Re-geocode if address changed
+  if (req.body.address && req.body.address !== oldAddress) {
+    db.competitorLocations[idx].lat = null;
+    db.competitorLocations[idx].lng = null;
+    geocodeCompetitorLocation(db.competitorLocations[idx]).then(updated => { if (updated) saveDB(db); });
+  }
+});
+
+app.delete('/api/competitor-locations/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  db.competitorLocations = (db.competitorLocations || []).filter(c => c.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// Get competitor locations stats
+app.get('/api/competitor-locations/stats', (req, res) => {
+  const locs = db.competitorLocations || [];
+  const byCompetitor = {};
+  const byPropertyType = {};
+  
+  locs.forEach(loc => {
+    byCompetitor[loc.competitor] = (byCompetitor[loc.competitor] || 0) + 1;
+    if (loc.property_type) {
+      byPropertyType[loc.property_type] = (byPropertyType[loc.property_type] || 0) + 1;
+    }
+  });
+  
+  res.json({
+    total: locs.length,
+    byCompetitor,
+    byPropertyType,
+    withCoordinates: locs.filter(l => l.lat && l.lng).length
+  });
+});
+
 // ===== CONTRACTS API =====
 app.get('/api/contracts', (req, res) => {
   const { prospect_id, status } = req.query;
@@ -3207,6 +3303,7 @@ app.get('/performance', (req, res) => res.sendFile(path.join(__dirname, 'perform
 app.get('/planogram', (req, res) => res.sendFile(path.join(__dirname, 'planogram.html')));
 app.get('/contracts', (req, res) => res.sendFile(path.join(__dirname, 'contracts.html')));
 app.get('/competitors', (req, res) => res.sendFile(path.join(__dirname, 'competitors.html')));
+app.get('/competitor-map', (req, res) => res.sendFile(path.join(__dirname, 'competitor-map.html')));
 app.get('/revenue', (req, res) => res.sendFile(path.join(__dirname, 'revenue.html')));
 app.get('/analytics', (req, res) => res.sendFile(path.join(__dirname, 'analytics.html')));
 app.get('/trends', (req, res) => res.sendFile(path.join(__dirname, 'trends.html')));
@@ -3224,6 +3321,8 @@ app.get('/revenue-calculator', (req, res) => res.sendFile(path.join(__dirname, '
 app.get('/mobile', (req, res) => res.sendFile(path.join(__dirname, 'mobile.html')));
 app.get('/quick', (req, res) => res.sendFile(path.join(__dirname, 'mobile.html')));
 app.get('/vendors', (req, res) => res.sendFile(path.join(__dirname, 'vendors.html')));
+app.get('/onboarding', (req, res) => res.sendFile(path.join(__dirname, 'onboarding.html')));
+app.get('/setup', (req, res) => res.sendFile(path.join(__dirname, 'onboarding.html')));
 
 // ===== PROPOSED LEADS (Lead Vetting / Approval) =====
 if (!db.proposedLeads) db.proposedLeads = [];
@@ -14609,6 +14708,1204 @@ app.get('/api/goals/summary', (req, res) => {
     streaks: db.goalsAchievements?.streaks || { current: 0, best: 0 }
   });
 });
+
+// ===== DOCUMENTS & FILES API =====
+// Initialize documents collection
+if (!db.documents) db.documents = [];
+
+// Serve documents page
+app.get('/documents', (req, res) => {
+  res.sendFile(path.join(__dirname, 'documents.html'));
+});
+app.get('/files', (req, res) => {
+  res.sendFile(path.join(__dirname, 'documents.html'));
+});
+
+// Get all documents
+app.get('/api/documents', (req, res) => {
+  const { category, prospect_id, search } = req.query;
+  let docs = db.documents || [];
+  
+  if (category) docs = docs.filter(d => d.category === category);
+  if (prospect_id) docs = docs.filter(d => d.prospect_id == prospect_id);
+  if (search) {
+    const s = search.toLowerCase();
+    docs = docs.filter(d => d.name.toLowerCase().includes(s) || (d.notes || '').toLowerCase().includes(s));
+  }
+  
+  // Return without the data field for listing (too large)
+  const list = docs.map(d => ({
+    id: d.id,
+    name: d.name,
+    category: d.category,
+    prospect_id: d.prospect_id,
+    notes: d.notes,
+    mime_type: d.mime_type,
+    size: d.size,
+    created_at: d.created_at,
+    updated_at: d.updated_at,
+    // Include thumbnail for images (first 100 chars of base64)
+    data: d.mime_type?.startsWith('image/') ? d.data : null
+  }));
+  
+  res.json(list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
+});
+
+// Get single document (with full data)
+app.get('/api/documents/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const doc = (db.documents || []).find(d => d.id === id);
+  if (!doc) return res.status(404).json({ error: 'Document not found' });
+  res.json(doc);
+});
+
+// Upload document
+app.post('/api/documents', (req, res) => {
+  const { name, category, prospect_id, notes, mime_type, size, data } = req.body;
+  
+  if (!name || !name.trim()) {
+    return res.status(400).json({ error: 'name is required' });
+  }
+  if (!data) {
+    return res.status(400).json({ error: 'data is required' });
+  }
+  
+  const doc = {
+    id: nextId(),
+    name: name.trim(),
+    category: category || 'other',
+    prospect_id: prospect_id ? parseInt(prospect_id) : null,
+    notes: notes || '',
+    mime_type: mime_type || 'application/octet-stream',
+    size: size || 0,
+    data: data, // base64 encoded
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  
+  if (!db.documents) db.documents = [];
+  db.documents.push(doc);
+  saveDB(db);
+  
+  // Return without data for response efficiency
+  res.json({ ...doc, data: doc.mime_type?.startsWith('image/') ? doc.data : undefined });
+});
+
+// Update document metadata
+app.put('/api/documents/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.documents || []).findIndex(d => d.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Document not found' });
+  
+  const { name, category, prospect_id, notes } = req.body;
+  
+  if (name !== undefined) db.documents[idx].name = name;
+  if (category !== undefined) db.documents[idx].category = category;
+  if (prospect_id !== undefined) db.documents[idx].prospect_id = prospect_id ? parseInt(prospect_id) : null;
+  if (notes !== undefined) db.documents[idx].notes = notes;
+  db.documents[idx].updated_at = new Date().toISOString();
+  
+  saveDB(db);
+  
+  const doc = db.documents[idx];
+  res.json({ ...doc, data: doc.mime_type?.startsWith('image/') ? doc.data : undefined });
+});
+
+// Delete document
+app.delete('/api/documents/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.documents || []).findIndex(d => d.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Document not found' });
+  
+  db.documents.splice(idx, 1);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// Get documents stats
+app.get('/api/documents/stats', (req, res) => {
+  const docs = db.documents || [];
+  const totalSize = docs.reduce((sum, d) => sum + (d.size || 0), 0);
+  
+  const byCategory = {};
+  docs.forEach(d => {
+    byCategory[d.category] = (byCategory[d.category] || 0) + 1;
+  });
+  
+  const recent = docs
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 10)
+    .map(d => ({ id: d.id, name: d.name, category: d.category, created_at: d.created_at }));
+  
+  res.json({
+    total: docs.length,
+    totalSize,
+    byCategory,
+    recent
+  });
+});
+
+// ===== ACTIVITY LOG API =====
+// Initialize activity log collection
+if (!db.activityLog) db.activityLog = [];
+
+// Helper function to log activity (call this from other endpoints or use middleware)
+function logActivity({ action, entity_type, entity_id, entity_name, user, description, before, after, details }) {
+  const entry = {
+    id: nextId(),
+    action: action || 'system', // created, updated, deleted, exported, imported, viewed, login, system
+    entity_type: entity_type || null, // prospect, contact, machine, location, product, etc.
+    entity_id: entity_id || null,
+    entity_name: entity_name || null,
+    user: user || 'System',
+    description: description || null,
+    before: before ? JSON.stringify(before) : null,
+    after: after ? JSON.stringify(after) : null,
+    details: details ? JSON.stringify(details) : null,
+    created_at: new Date().toISOString()
+  };
+  db.activityLog.push(entry);
+  // Keep only last 10000 entries to prevent unbounded growth
+  if (db.activityLog.length > 10000) {
+    db.activityLog = db.activityLog.slice(-10000);
+  }
+  saveDB(db);
+  return entry;
+}
+
+// Get activity log with optional filters
+app.get('/api/activity-log', (req, res) => {
+  const { action, entity_type, from, to, user, limit } = req.query;
+  let logs = [...(db.activityLog || [])];
+  
+  // Apply filters
+  if (action) logs = logs.filter(l => l.action === action);
+  if (entity_type) logs = logs.filter(l => l.entity_type === entity_type);
+  if (user) logs = logs.filter(l => l.user?.toLowerCase().includes(user.toLowerCase()));
+  if (from) logs = logs.filter(l => l.created_at >= from);
+  if (to) logs = logs.filter(l => l.created_at <= to + 'T23:59:59.999Z');
+  
+  // Sort by newest first
+  logs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  
+  // Limit results
+  const maxResults = Math.min(parseInt(limit) || 1000, 5000);
+  logs = logs.slice(0, maxResults);
+  
+  res.json(logs);
+});
+
+// Get activity log stats
+app.get('/api/activity-log/stats', (req, res) => {
+  const logs = db.activityLog || [];
+  const today = new Date().toISOString().split('T')[0];
+  
+  const todayCount = logs.filter(l => l.created_at?.startsWith(today)).length;
+  const actionCounts = {};
+  const entityCounts = {};
+  const userCounts = {};
+  
+  logs.forEach(l => {
+    actionCounts[l.action] = (actionCounts[l.action] || 0) + 1;
+    if (l.entity_type) entityCounts[l.entity_type] = (entityCounts[l.entity_type] || 0) + 1;
+    if (l.user) userCounts[l.user] = (userCounts[l.user] || 0) + 1;
+  });
+  
+  // Daily counts for last 7 days
+  const dailyCounts = {};
+  for (let i = 0; i < 7; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const dateStr = date.toISOString().split('T')[0];
+    dailyCounts[dateStr] = logs.filter(l => l.created_at?.startsWith(dateStr)).length;
+  }
+  
+  res.json({
+    total: logs.length,
+    today: todayCount,
+    byAction: actionCounts,
+    byEntity: entityCounts,
+    byUser: userCounts,
+    daily: dailyCounts
+  });
+});
+
+// Manually log an activity (for external integrations)
+app.post('/api/activity-log', (req, res) => {
+  const entry = logActivity(req.body);
+  res.json(entry);
+});
+
+// Serve activity log page
+app.get('/activity-log', (req, res) => {
+  res.sendFile(path.join(__dirname, 'activity-log.html'));
+});
+
+// Backfill activity log from existing activities (one-time migration)
+function backfillActivityLog() {
+  if (db.activityLog && db.activityLog.length > 0) return; // Already has data
+  
+  console.log('📋 Backfilling activity log from existing activities...');
+  let count = 0;
+  
+  // Import from prospect activities
+  (db.activities || []).forEach(a => {
+    const prospect = db.prospects.find(p => p.id === a.prospect_id);
+    db.activityLog.push({
+      id: nextId(),
+      action: a.type?.includes('status') ? 'updated' : 'created',
+      entity_type: 'prospect',
+      entity_id: a.prospect_id,
+      entity_name: prospect?.name || 'Unknown',
+      user: 'System',
+      description: a.description || `${a.type}: ${a.notes || ''}`,
+      before: null,
+      after: null,
+      details: JSON.stringify({ type: a.type, outcome: a.outcome }),
+      created_at: a.created_at
+    });
+    count++;
+  });
+  
+  // Log existing prospects as "created"
+  (db.prospects || []).forEach(p => {
+    // Only if not already logged via activities
+    const hasLog = db.activityLog.some(l => l.entity_type === 'prospect' && l.entity_id === p.id && l.action === 'created');
+    if (!hasLog) {
+      db.activityLog.push({
+        id: nextId(),
+        action: 'created',
+        entity_type: 'prospect',
+        entity_id: p.id,
+        entity_name: p.name,
+        user: 'System',
+        description: 'Prospect record imported',
+        before: null,
+        after: null,
+        details: null,
+        created_at: p.created_at || new Date().toISOString()
+      });
+      count++;
+    }
+  });
+  
+  // Log existing machines
+  (db.machines || []).forEach(m => {
+    db.activityLog.push({
+      id: nextId(),
+      action: 'created',
+      entity_type: 'machine',
+      entity_id: m.id,
+      entity_name: m.name,
+      user: 'System',
+      description: 'Machine record imported',
+      before: null,
+      after: null,
+      details: null,
+      created_at: m.created_at || new Date().toISOString()
+    });
+    count++;
+  });
+  
+  // Log existing locations
+  (db.locations || []).forEach(l => {
+    db.activityLog.push({
+      id: nextId(),
+      action: 'created',
+      entity_type: 'location',
+      entity_id: l.id,
+      entity_name: l.name,
+      user: 'System',
+      description: 'Location record imported',
+      before: null,
+      after: null,
+      details: null,
+      created_at: l.created_at || new Date().toISOString()
+    });
+    count++;
+  });
+  
+  // Log existing contracts
+  (db.contracts || []).forEach(c => {
+    const prospect = db.prospects.find(p => p.id === c.prospect_id);
+    db.activityLog.push({
+      id: nextId(),
+      action: 'created',
+      entity_type: 'contract',
+      entity_id: c.id,
+      entity_name: prospect?.name || `Contract #${c.id}`,
+      user: 'System',
+      description: 'Contract record imported',
+      before: null,
+      after: null,
+      details: null,
+      created_at: c.created_at || new Date().toISOString()
+    });
+    count++;
+  });
+  
+  if (count > 0) {
+    // Sort by created_at
+    db.activityLog.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    saveDB(db);
+    console.log(`📋 Backfilled ${count} activity log entries from existing data`);
+  }
+}
+
+// Run backfill on startup
+backfillActivityLog();
+
+// ===== CALENDAR EVENTS API =====
+if (!db.calendarEvents) db.calendarEvents = [];
+
+// Calendar page route
+app.get('/calendar', (req, res) => res.sendFile(path.join(__dirname, 'calendar.html')));
+
+// Get all calendar events
+app.get('/api/calendar/events', (req, res) => {
+  const { from, to, type, prospect_id } = req.query;
+  let events = db.calendarEvents || [];
+  
+  if (from) events = events.filter(e => e.date >= from);
+  if (to) events = events.filter(e => e.date <= to);
+  if (type) events = events.filter(e => e.type === type);
+  if (prospect_id) events = events.filter(e => e.prospect_id === parseInt(prospect_id));
+  
+  // Enrich with prospect names
+  const enriched = events.map(e => {
+    const prospect = e.prospect_id ? db.prospects.find(p => p.id === e.prospect_id) : null;
+    return { ...e, prospect_name: prospect?.name || null };
+  });
+  
+  res.json(enriched.sort((a, b) => {
+    const dateA = new Date(a.date + (a.time ? 'T' + a.time : 'T00:00'));
+    const dateB = new Date(b.date + (b.time ? 'T' + b.time : 'T00:00'));
+    return dateA - dateB;
+  }));
+});
+
+// Get single calendar event
+app.get('/api/calendar/events/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const event = (db.calendarEvents || []).find(e => e.id === id);
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+  
+  const prospect = event.prospect_id ? db.prospects.find(p => p.id === event.prospect_id) : null;
+  res.json({ ...event, prospect_name: prospect?.name || null });
+});
+
+// Create calendar event
+app.post('/api/calendar/events', (req, res) => {
+  if (!req.body.title || !req.body.title.trim()) {
+    return res.status(400).json({ error: 'title is required' });
+  }
+  if (!req.body.date) {
+    return res.status(400).json({ error: 'date is required' });
+  }
+  
+  const event = {
+    id: nextId(),
+    title: req.body.title.trim(),
+    type: req.body.type || 'task', // popin, call, meeting, restock, task
+    date: req.body.date,
+    time: req.body.time || null,
+    duration: req.body.duration ? parseInt(req.body.duration) : null,
+    prospect_id: req.body.prospect_id ? parseInt(req.body.prospect_id) : null,
+    location: req.body.location || null,
+    notes: req.body.notes || null,
+    reminder: req.body.reminder || null,
+    completed: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  
+  if (!db.calendarEvents) db.calendarEvents = [];
+  db.calendarEvents.push(event);
+  saveDB(db);
+  
+  // Also log as activity if linked to prospect
+  if (event.prospect_id && event.type !== 'task') {
+    db.activities.push({
+      id: nextId(),
+      prospect_id: event.prospect_id,
+      type: event.type === 'popin' ? 'pop-in' : event.type,
+      description: `Scheduled: ${event.title}`,
+      next_action: event.title,
+      next_action_date: event.date,
+      created_at: new Date().toISOString()
+    });
+    saveDB(db);
+  }
+  
+  res.json(event);
+});
+
+// Update calendar event
+app.put('/api/calendar/events/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.calendarEvents || []).findIndex(e => e.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Event not found' });
+  
+  const old = db.calendarEvents[idx];
+  db.calendarEvents[idx] = {
+    ...old,
+    title: req.body.title !== undefined ? req.body.title : old.title,
+    type: req.body.type !== undefined ? req.body.type : old.type,
+    date: req.body.date !== undefined ? req.body.date : old.date,
+    time: req.body.time !== undefined ? req.body.time : old.time,
+    duration: req.body.duration !== undefined ? (req.body.duration ? parseInt(req.body.duration) : null) : old.duration,
+    prospect_id: req.body.prospect_id !== undefined ? (req.body.prospect_id ? parseInt(req.body.prospect_id) : null) : old.prospect_id,
+    location: req.body.location !== undefined ? req.body.location : old.location,
+    notes: req.body.notes !== undefined ? req.body.notes : old.notes,
+    reminder: req.body.reminder !== undefined ? req.body.reminder : old.reminder,
+    completed: req.body.completed !== undefined ? req.body.completed : old.completed,
+    updated_at: new Date().toISOString()
+  };
+  
+  saveDB(db);
+  res.json(db.calendarEvents[idx]);
+});
+
+// Delete calendar event
+app.delete('/api/calendar/events/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  if (!db.calendarEvents) db.calendarEvents = [];
+  const idx = db.calendarEvents.findIndex(e => e.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Event not found' });
+  
+  db.calendarEvents.splice(idx, 1);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// Mark event complete
+app.post('/api/calendar/events/:id/complete', (req, res) => {
+  const id = parseInt(req.params.id);
+  const event = (db.calendarEvents || []).find(e => e.id === id);
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+  
+  event.completed = true;
+  event.completed_at = new Date().toISOString();
+  event.updated_at = new Date().toISOString();
+  
+  // If linked to prospect, log completion
+  if (event.prospect_id) {
+    db.activities.push({
+      id: nextId(),
+      prospect_id: event.prospect_id,
+      type: event.type === 'popin' ? 'pop-in' : event.type,
+      description: `Completed: ${event.title}`,
+      outcome: req.body.outcome || null,
+      notes: req.body.notes || null,
+      created_at: new Date().toISOString()
+    });
+  }
+  
+  saveDB(db);
+  res.json(event);
+});
+
+// Get calendar summary/stats
+app.get('/api/calendar/stats', (req, res) => {
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const weekStart = new Date(now);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  
+  const events = db.calendarEvents || [];
+  const todayEvents = events.filter(e => e.date === today && !e.completed);
+  const weekEvents = events.filter(e => {
+    return e.date >= weekStart.toISOString().split('T')[0] && 
+           e.date <= weekEnd.toISOString().split('T')[0] &&
+           !e.completed;
+  });
+  
+  // Count by type
+  const byType = {};
+  weekEvents.forEach(e => {
+    byType[e.type] = (byType[e.type] || 0) + 1;
+  });
+  
+  // Upcoming (next 7 days)
+  const upcoming = events.filter(e => {
+    const d = new Date(e.date);
+    return d >= now && d <= new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) && !e.completed;
+  }).sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 5);
+  
+  res.json({
+    today: todayEvents.length,
+    thisWeek: weekEvents.length,
+    byType,
+    upcoming,
+    overdue: events.filter(e => e.date < today && !e.completed).length
+  });
+});
+
+// =====================================================
+// MACHINE SYSTEM API (Phase 1)
+// Per-machine inventory tracking with slot-level granularity
+// =====================================================
+
+// Ensure machine system collections exist
+if (!db.machineSlots) db.machineSlots = [];
+if (!db.machineAlerts) db.machineAlerts = [];
+if (!db.restockHistory) db.restockHistory = [];
+if (!db.slotProducts) db.slotProducts = [];
+
+// Helper: Generate slot grid for a new machine
+function generateMachineSlots(machineId, rows = 6, cols = 8) {
+  const slots = [];
+  for (let r = 1; r <= rows; r++) {
+    const rowLetter = String.fromCharCode(64 + r); // A, B, C, etc.
+    for (let c = 1; c <= cols; c++) {
+      // Calculate zone based on position
+      let zone = 'center';
+      if (r >= Math.floor(rows / 2) && r <= Math.ceil(rows / 2) + 1) {
+        zone = c >= cols - 1 ? 'payment_adj' : 'eye_level';
+      } else if (r <= 2) {
+        zone = 'reach_level';
+      } else if (r >= rows - 1) {
+        zone = 'bend_level';
+      } else if (c >= cols - 1) {
+        zone = 'payment_adj';
+      } else if ((c === 1 || c === cols) && (r === 1 || r === rows)) {
+        zone = 'corner';
+      }
+      
+      slots.push({
+        id: nextId(),
+        machine_id: machineId,
+        position_code: `${rowLetter}${c}`,
+        row_num: r,
+        column_num: c,
+        zone: zone,
+        product_id: null,
+        product_name: null,
+        current_quantity: 0,
+        capacity: 10,
+        restock_trigger: 3,
+        earliest_expiry: null,
+        expiry_batches: [],
+        custom_price: null,
+        use_default_price: true,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+    }
+  }
+  return slots;
+}
+
+// Helper: Calculate machine health score
+function calculateMachineHealth(machine, slots) {
+  let score = 100;
+  
+  const activeSlots = slots.filter(s => s.product_id && s.is_active);
+  if (activeSlots.length === 0) return 0;
+  
+  // Stock health (-20 max)
+  const lowStock = activeSlots.filter(s => s.current_quantity <= s.restock_trigger).length;
+  const outOfStock = activeSlots.filter(s => s.current_quantity === 0).length;
+  score -= Math.min(20, (lowStock * 2) + (outOfStock * 5));
+  
+  // Expiring soon (-15 max)
+  const now = new Date();
+  const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const expiring = activeSlots.filter(s => s.earliest_expiry && new Date(s.earliest_expiry) <= weekFromNow).length;
+  score -= Math.min(15, expiring * 3);
+  
+  // Online status (-15)
+  if (machine.last_online) {
+    const hoursSinceOnline = (Date.now() - new Date(machine.last_online).getTime()) / (1000 * 60 * 60);
+    if (hoursSinceOnline > 24) score -= 15;
+    else if (hoursSinceOnline > 4) score -= 5;
+  }
+  
+  // Slot utilization bonus (+10 max)
+  const utilization = activeSlots.length / slots.length;
+  score += Math.round(utilization * 10);
+  
+  return Math.max(0, Math.min(100, score));
+}
+
+// ===== MACHINE SYSTEM ENDPOINTS =====
+
+// GET /api/machine-system/machines - List all machines with stats
+app.get('/api/machine-system/machines', (req, res) => {
+  const machines = db.machines.map(m => {
+    const slots = (db.machineSlots || []).filter(s => s.machine_id === m.id);
+    const location = db.locations.find(l => l.id === m.location_id);
+    const activeSlots = slots.filter(s => s.product_id && s.is_active);
+    const lowStock = activeSlots.filter(s => s.current_quantity <= s.restock_trigger);
+    const outOfStock = activeSlots.filter(s => s.current_quantity === 0);
+    const alerts = (db.machineAlerts || []).filter(a => a.machine_id === m.id && a.status === 'active');
+    
+    // Calculate 30-day revenue (mock for now, will connect to real sales data)
+    const revenue30Day = (db.revenue || [])
+      .filter(r => r.machine_id === m.id && new Date(r.date) >= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
+      .reduce((sum, r) => sum + (r.amount || 0), 0);
+    
+    return {
+      ...m,
+      location: location || null,
+      slots: {
+        total: slots.length,
+        active: activeSlots.length,
+        lowStock: lowStock.length,
+        outOfStock: outOfStock.length
+      },
+      alerts: {
+        total: alerts.length,
+        critical: alerts.filter(a => a.severity === 'critical').length
+      },
+      performance: {
+        healthScore: calculateMachineHealth(m, slots),
+        monthlyRevenue: revenue30Day,
+        pullRisk: revenue30Day > 0 && revenue30Day < 800
+      }
+    };
+  });
+  
+  res.json(machines);
+});
+
+// GET /api/machine-system/machines/:id - Get machine with full slot grid
+app.get('/api/machine-system/machines/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const machine = db.machines.find(m => m.id === id);
+  if (!machine) return res.status(404).json({ error: 'Machine not found' });
+  
+  // Get or create slots
+  let slots = (db.machineSlots || []).filter(s => s.machine_id === id);
+  if (slots.length === 0) {
+    const rows = machine.config?.rows || 6;
+    const cols = machine.config?.columnsPerRow || 8;
+    slots = generateMachineSlots(id, rows, cols);
+    db.machineSlots = [...(db.machineSlots || []), ...slots];
+    saveDB(db);
+  }
+  
+  const location = db.locations.find(l => l.id === machine.location_id);
+  const alerts = (db.machineAlerts || []).filter(a => a.machine_id === id && a.status === 'active');
+  
+  // Enrich slots with product info
+  const enrichedSlots = slots.map(s => {
+    if (s.product_id) {
+      const product = db.products.find(p => p.id === s.product_id) || 
+                     (db.slotProducts || []).find(p => p.id === s.product_id);
+      return { ...s, product };
+    }
+    return s;
+  });
+  
+  res.json({
+    ...machine,
+    location,
+    slots: enrichedSlots,
+    alerts,
+    healthScore: calculateMachineHealth(machine, slots)
+  });
+});
+
+// POST /api/machine-system/machines - Create machine with auto-generated slots
+app.post('/api/machine-system/machines', (req, res) => {
+  if (!req.body.name || !req.body.name.trim()) {
+    return res.status(400).json({ error: 'name is required' });
+  }
+  
+  const machine = {
+    id: nextId(),
+    name: req.body.name,
+    serial_number: req.body.serial_number || `KV-${Date.now()}`,
+    model: req.body.model || 'SandStar AI Smart Cooler',
+    location_id: req.body.location_id || null,
+    config: req.body.config || { rows: 6, columnsPerRow: 8, totalSlots: 48 },
+    status: req.body.status || 'pending_install',
+    last_online: null,
+    last_restock: null,
+    last_maintenance: null,
+    agreement: req.body.agreement || { revSharePercent: 0 },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  
+  db.machines.push(machine);
+  
+  // Auto-generate slots
+  const rows = machine.config.rows || 6;
+  const cols = machine.config.columnsPerRow || 8;
+  const slots = generateMachineSlots(machine.id, rows, cols);
+  db.machineSlots = [...(db.machineSlots || []), ...slots];
+  
+  saveDB(db);
+  res.json({ ...machine, slots });
+});
+
+// PUT /api/machine-system/machines/:id - Update machine
+app.put('/api/machine-system/machines/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = db.machines.findIndex(m => m.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Machine not found' });
+  
+  db.machines[idx] = { 
+    ...db.machines[idx], 
+    ...req.body, 
+    updated_at: new Date().toISOString() 
+  };
+  saveDB(db);
+  res.json(db.machines[idx]);
+});
+
+// ===== SLOT ENDPOINTS =====
+
+// GET /api/machine-system/machines/:id/slots - Get all slots for machine
+app.get('/api/machine-system/machines/:id/slots', (req, res) => {
+  const machineId = parseInt(req.params.id);
+  const machine = db.machines.find(m => m.id === machineId);
+  if (!machine) return res.status(404).json({ error: 'Machine not found' });
+  
+  let slots = (db.machineSlots || []).filter(s => s.machine_id === machineId);
+  
+  // Auto-generate if missing
+  if (slots.length === 0) {
+    const rows = machine.config?.rows || 6;
+    const cols = machine.config?.columnsPerRow || 8;
+    slots = generateMachineSlots(machineId, rows, cols);
+    db.machineSlots = [...(db.machineSlots || []), ...slots];
+    saveDB(db);
+  }
+  
+  // Enrich with product info
+  const enrichedSlots = slots.map(s => {
+    if (s.product_id) {
+      const product = db.products.find(p => p.id === s.product_id);
+      return { ...s, product };
+    }
+    return s;
+  }).sort((a, b) => {
+    // Sort by row then column
+    if (a.row_num !== b.row_num) return a.row_num - b.row_num;
+    return a.column_num - b.column_num;
+  });
+  
+  res.json({
+    machine_id: machineId,
+    slots: enrichedSlots,
+    summary: {
+      total: slots.length,
+      active: slots.filter(s => s.product_id && s.is_active).length,
+      empty: slots.filter(s => !s.product_id).length,
+      lowStock: slots.filter(s => s.product_id && s.current_quantity <= s.restock_trigger).length,
+      outOfStock: slots.filter(s => s.product_id && s.current_quantity === 0).length
+    }
+  });
+});
+
+// PUT /api/machine-system/machines/:id/slots/:slotId - Update slot (product, quantity, pricing)
+app.put('/api/machine-system/machines/:id/slots/:slotId', (req, res) => {
+  const machineId = parseInt(req.params.id);
+  const slotId = parseInt(req.params.slotId);
+  
+  const slotIdx = (db.machineSlots || []).findIndex(s => s.id === slotId && s.machine_id === machineId);
+  if (slotIdx === -1) return res.status(404).json({ error: 'Slot not found' });
+  
+  const oldSlot = db.machineSlots[slotIdx];
+  const updates = { ...req.body, updated_at: new Date().toISOString() };
+  
+  // If assigning a product, get product name for display
+  if (req.body.product_id && req.body.product_id !== oldSlot.product_id) {
+    const product = db.products.find(p => p.id === req.body.product_id);
+    if (product) {
+      updates.product_name = product.name;
+    }
+  }
+  
+  db.machineSlots[slotIdx] = { ...oldSlot, ...updates };
+  saveDB(db);
+  
+  // Generate alerts if needed
+  checkSlotAlerts(db.machineSlots[slotIdx]);
+  
+  res.json(db.machineSlots[slotIdx]);
+});
+
+// POST /api/machine-system/machines/:id/slots/:slotId/restock - Record restock
+app.post('/api/machine-system/machines/:id/slots/:slotId/restock', (req, res) => {
+  const machineId = parseInt(req.params.id);
+  const slotId = parseInt(req.params.slotId);
+  
+  const slotIdx = (db.machineSlots || []).findIndex(s => s.id === slotId && s.machine_id === machineId);
+  if (slotIdx === -1) return res.status(404).json({ error: 'Slot not found' });
+  
+  const slot = db.machineSlots[slotIdx];
+  const { quantity_added, expiry_date, notes, restocked_by } = req.body;
+  
+  if (!quantity_added || quantity_added <= 0) {
+    return res.status(400).json({ error: 'quantity_added must be positive' });
+  }
+  
+  const previousQuantity = slot.current_quantity || 0;
+  const newQuantity = Math.min(previousQuantity + quantity_added, slot.capacity);
+  
+  // Record restock history
+  const restockRecord = {
+    id: nextId(),
+    slot_id: slotId,
+    machine_id: machineId,
+    quantity_added,
+    previous_quantity: previousQuantity,
+    new_quantity: newQuantity,
+    expiry_date: expiry_date || null,
+    restocked_by: restocked_by || 'unknown',
+    notes: notes || null,
+    created_at: new Date().toISOString()
+  };
+  
+  if (!db.restockHistory) db.restockHistory = [];
+  db.restockHistory.push(restockRecord);
+  
+  // Update slot
+  db.machineSlots[slotIdx].current_quantity = newQuantity;
+  db.machineSlots[slotIdx].updated_at = new Date().toISOString();
+  
+  // Update expiry tracking
+  if (expiry_date) {
+    const batches = slot.expiry_batches || [];
+    batches.push({ quantity: quantity_added, expiryDate: expiry_date, addedDate: new Date().toISOString() });
+    db.machineSlots[slotIdx].expiry_batches = batches;
+    
+    // Update earliest expiry
+    const dates = batches.map(b => new Date(b.expiryDate)).filter(d => !isNaN(d));
+    if (dates.length > 0) {
+      db.machineSlots[slotIdx].earliest_expiry = new Date(Math.min(...dates)).toISOString().split('T')[0];
+    }
+  }
+  
+  // Update machine last_restock
+  const machineIdx = db.machines.findIndex(m => m.id === machineId);
+  if (machineIdx !== -1) {
+    db.machines[machineIdx].last_restock = new Date().toISOString();
+  }
+  
+  saveDB(db);
+  
+  // Clear any low stock alerts for this slot
+  clearSlotAlerts(slotId, ['low_stock', 'out_of_stock']);
+  
+  res.json({
+    success: true,
+    restock: restockRecord,
+    slot: db.machineSlots[slotIdx]
+  });
+});
+
+// GET /api/machine-system/machines/:id/inventory - Get inventory summary
+app.get('/api/machine-system/machines/:id/inventory', (req, res) => {
+  const machineId = parseInt(req.params.id);
+  const machine = db.machines.find(m => m.id === machineId);
+  if (!machine) return res.status(404).json({ error: 'Machine not found' });
+  
+  const slots = (db.machineSlots || []).filter(s => s.machine_id === machineId);
+  const activeSlots = slots.filter(s => s.product_id && s.is_active);
+  
+  // Group by category
+  const byCategory = {};
+  activeSlots.forEach(s => {
+    const product = db.products.find(p => p.id === s.product_id);
+    const category = product?.category || 'other';
+    if (!byCategory[category]) {
+      byCategory[category] = { slots: 0, quantity: 0, capacity: 0, value: 0 };
+    }
+    byCategory[category].slots++;
+    byCategory[category].quantity += s.current_quantity || 0;
+    byCategory[category].capacity += s.capacity || 0;
+    if (product) {
+      byCategory[category].value += (s.current_quantity || 0) * (product.cost_price || 0);
+    }
+  });
+  
+  // Low stock items
+  const lowStock = activeSlots
+    .filter(s => s.current_quantity <= s.restock_trigger)
+    .map(s => {
+      const product = db.products.find(p => p.id === s.product_id);
+      return {
+        slot_id: s.id,
+        position: s.position_code,
+        product_name: s.product_name || product?.name,
+        current: s.current_quantity,
+        capacity: s.capacity,
+        trigger: s.restock_trigger,
+        needed: s.capacity - s.current_quantity
+      };
+    })
+    .sort((a, b) => a.current - b.current);
+  
+  // Expiring soon
+  const now = new Date();
+  const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const expiring = activeSlots
+    .filter(s => s.earliest_expiry && new Date(s.earliest_expiry) <= weekFromNow)
+    .map(s => {
+      const product = db.products.find(p => p.id === s.product_id);
+      return {
+        slot_id: s.id,
+        position: s.position_code,
+        product_name: s.product_name || product?.name,
+        expires: s.earliest_expiry,
+        quantity: s.current_quantity,
+        daysUntilExpiry: Math.ceil((new Date(s.earliest_expiry) - now) / (1000 * 60 * 60 * 24))
+      };
+    })
+    .sort((a, b) => new Date(a.expires) - new Date(b.expires));
+  
+  // Overall stats
+  const totalQuantity = activeSlots.reduce((sum, s) => sum + (s.current_quantity || 0), 0);
+  const totalCapacity = activeSlots.reduce((sum, s) => sum + (s.capacity || 0), 0);
+  const totalValue = activeSlots.reduce((sum, s) => {
+    const product = db.products.find(p => p.id === s.product_id);
+    return sum + ((s.current_quantity || 0) * (product?.cost_price || 0));
+  }, 0);
+  
+  res.json({
+    machine_id: machineId,
+    machine_name: machine.name,
+    summary: {
+      totalSlots: slots.length,
+      activeSlots: activeSlots.length,
+      emptySlots: slots.filter(s => !s.product_id).length,
+      totalQuantity,
+      totalCapacity,
+      fillPercent: totalCapacity > 0 ? Math.round((totalQuantity / totalCapacity) * 100) : 0,
+      estimatedValue: Math.round(totalValue * 100) / 100
+    },
+    byCategory,
+    lowStock,
+    expiring,
+    lastRestock: machine.last_restock
+  });
+});
+
+// Helper: Check and generate alerts for a slot
+function checkSlotAlerts(slot) {
+  if (!slot.product_id || !slot.is_active) return;
+  
+  const alerts = [];
+  
+  // Out of stock
+  if (slot.current_quantity === 0) {
+    alerts.push({
+      id: nextId(),
+      machine_id: slot.machine_id,
+      slot_id: slot.id,
+      alert_type: 'out_of_stock',
+      severity: 'critical',
+      title: `Out of Stock: ${slot.position_code}`,
+      message: `${slot.product_name || 'Product'} is out of stock at position ${slot.position_code}`,
+      context: { position: slot.position_code, product_id: slot.product_id },
+      status: 'active',
+      created_at: new Date().toISOString()
+    });
+  }
+  // Low stock
+  else if (slot.current_quantity <= slot.restock_trigger) {
+    alerts.push({
+      id: nextId(),
+      machine_id: slot.machine_id,
+      slot_id: slot.id,
+      alert_type: 'low_stock',
+      severity: 'warning',
+      title: `Low Stock: ${slot.position_code}`,
+      message: `${slot.product_name || 'Product'} at ${slot.position_code} has only ${slot.current_quantity} units`,
+      context: { position: slot.position_code, current: slot.current_quantity, trigger: slot.restock_trigger },
+      status: 'active',
+      created_at: new Date().toISOString()
+    });
+  }
+  
+  // Expiring soon
+  if (slot.earliest_expiry) {
+    const daysUntil = Math.ceil((new Date(slot.earliest_expiry) - new Date()) / (1000 * 60 * 60 * 24));
+    if (daysUntil <= 0) {
+      alerts.push({
+        id: nextId(),
+        machine_id: slot.machine_id,
+        slot_id: slot.id,
+        alert_type: 'expired',
+        severity: 'critical',
+        title: `EXPIRED: ${slot.position_code}`,
+        message: `Product at ${slot.position_code} has expired!`,
+        context: { position: slot.position_code, expiry: slot.earliest_expiry },
+        status: 'active',
+        created_at: new Date().toISOString()
+      });
+    } else if (daysUntil <= 7) {
+      alerts.push({
+        id: nextId(),
+        machine_id: slot.machine_id,
+        slot_id: slot.id,
+        alert_type: 'expiring_soon',
+        severity: 'warning',
+        title: `Expiring Soon: ${slot.position_code}`,
+        message: `Product at ${slot.position_code} expires in ${daysUntil} days`,
+        context: { position: slot.position_code, expiry: slot.earliest_expiry, daysUntil },
+        status: 'active',
+        created_at: new Date().toISOString()
+      });
+    }
+  }
+  
+  // Add alerts (avoiding duplicates)
+  if (!db.machineAlerts) db.machineAlerts = [];
+  alerts.forEach(alert => {
+    const existing = db.machineAlerts.find(a => 
+      a.slot_id === alert.slot_id && 
+      a.alert_type === alert.alert_type && 
+      a.status === 'active'
+    );
+    if (!existing) {
+      db.machineAlerts.push(alert);
+    }
+  });
+  
+  saveDB(db);
+}
+
+// Helper: Clear alerts for a slot
+function clearSlotAlerts(slotId, types) {
+  if (!db.machineAlerts) return;
+  
+  db.machineAlerts = db.machineAlerts.map(a => {
+    if (a.slot_id === slotId && types.includes(a.alert_type) && a.status === 'active') {
+      return { ...a, status: 'resolved', resolved_at: new Date().toISOString() };
+    }
+    return a;
+  });
+  
+  saveDB(db);
+}
+
+// GET /api/machine-system/machines/:id/alerts - Get alerts for machine
+app.get('/api/machine-system/machines/:id/alerts', (req, res) => {
+  const machineId = parseInt(req.params.id);
+  const { status } = req.query;
+  
+  let alerts = (db.machineAlerts || []).filter(a => a.machine_id === machineId);
+  if (status) {
+    alerts = alerts.filter(a => a.status === status);
+  }
+  
+  res.json(alerts.sort((a, b) => {
+    // Critical first, then by date
+    if (a.severity === 'critical' && b.severity !== 'critical') return -1;
+    if (b.severity === 'critical' && a.severity !== 'critical') return 1;
+    return new Date(b.created_at) - new Date(a.created_at);
+  }));
+});
+
+// POST /api/machine-system/alerts/:id/acknowledge - Acknowledge alert
+app.post('/api/machine-system/alerts/:id/acknowledge', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.machineAlerts || []).findIndex(a => a.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Alert not found' });
+  
+  db.machineAlerts[idx].status = 'acknowledged';
+  db.machineAlerts[idx].acknowledged_at = new Date().toISOString();
+  db.machineAlerts[idx].acknowledged_by = req.body.by || 'user';
+  
+  saveDB(db);
+  res.json(db.machineAlerts[idx]);
+});
+
+// POST /api/machine-system/alerts/:id/resolve - Resolve alert
+app.post('/api/machine-system/alerts/:id/resolve', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.machineAlerts || []).findIndex(a => a.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Alert not found' });
+  
+  db.machineAlerts[idx].status = 'resolved';
+  db.machineAlerts[idx].resolved_at = new Date().toISOString();
+  db.machineAlerts[idx].resolved_by = req.body.by || 'user';
+  
+  saveDB(db);
+  res.json(db.machineAlerts[idx]);
+});
+
+// GET /api/machine-system/inventory/low-stock - Global low stock report
+app.get('/api/machine-system/inventory/low-stock', (req, res) => {
+  const slots = (db.machineSlots || []).filter(s => 
+    s.product_id && 
+    s.is_active && 
+    s.current_quantity <= s.restock_trigger
+  );
+  
+  const items = slots.map(s => {
+    const machine = db.machines.find(m => m.id === s.machine_id);
+    const product = db.products.find(p => p.id === s.product_id);
+    return {
+      slot_id: s.id,
+      machine_id: s.machine_id,
+      machine_name: machine?.name,
+      position: s.position_code,
+      product_id: s.product_id,
+      product_name: s.product_name || product?.name,
+      current: s.current_quantity,
+      capacity: s.capacity,
+      trigger: s.restock_trigger,
+      needed: s.capacity - s.current_quantity,
+      is_out: s.current_quantity === 0
+    };
+  }).sort((a, b) => {
+    // Out of stock first, then by quantity
+    if (a.is_out && !b.is_out) return -1;
+    if (!a.is_out && b.is_out) return 1;
+    return a.current - b.current;
+  });
+  
+  // Group by machine for restock planning
+  const byMachine = {};
+  items.forEach(item => {
+    if (!byMachine[item.machine_id]) {
+      byMachine[item.machine_id] = {
+        machine_id: item.machine_id,
+        machine_name: item.machine_name,
+        items: [],
+        totalNeeded: 0
+      };
+    }
+    byMachine[item.machine_id].items.push(item);
+    byMachine[item.machine_id].totalNeeded += item.needed;
+  });
+  
+  res.json({
+    total: items.length,
+    outOfStock: items.filter(i => i.is_out).length,
+    items,
+    byMachine: Object.values(byMachine)
+  });
+});
+
+// GET /api/machine-system/products - Get products available for slots
+app.get('/api/machine-system/products', (req, res) => {
+  // Return existing products formatted for slot assignment
+  const products = db.products.map(p => ({
+    id: p.id,
+    name: p.name,
+    brand: p.brand,
+    category: p.category,
+    image_url: p.image || p.image_url,
+    wholesale_cost: p.cost_price || p.wholesale_cost,
+    vending_price: p.sell_price || p.vending_price,
+    margin: p.margin
+  }));
+  
+  res.json(products);
+});
+
+// ===== END MACHINE SYSTEM API =====
 
 app.listen(PORT, () => {
   console.log(`🤖 Kande VendTech Dashboard running at http://localhost:${PORT}`);

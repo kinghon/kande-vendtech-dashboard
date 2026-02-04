@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
-  <title>Kande VendTech — Dashboard</title>
+  <title>Kande VendTech — Executive Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
@@ -15,141 +16,199 @@
       --amber: #f59e0b; --amber-light: #fffbeb;
       --red: #ef4444; --red-light: #fef2f2;
       --purple: #8b5cf6; --purple-light: #f5f3ff;
+      --teal: #14b8a6; --teal-light: #f0fdfa;
       --radius: 12px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow: 0 4px 12px rgba(0,0,0,0.06);
     }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
-    .dashboard { max-width: 1200px; margin: 0 auto; padding: 24px 28px 60px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+    .dashboard { max-width: 1400px; margin: 0 auto; padding: 20px 24px 60px; }
 
     /* Welcome Banner */
     .welcome-banner {
       background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 50%, #7c3aed 100%);
-      border-radius: 16px; padding: 32px 36px; color: #fff; margin-bottom: 28px;
-      position: relative; overflow: hidden;
+      border-radius: 16px; padding: 28px 32px; color: #fff; margin-bottom: 24px;
+      position: relative; overflow: hidden; display: flex; justify-content: space-between; align-items: flex-start;
     }
     .welcome-banner::after {
-      content: ''; position: absolute; top: -50%; right: -10%; width: 300px; height: 300px;
-      background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+      content: ''; position: absolute; top: -50%; right: -5%; width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
       border-radius: 50%;
     }
-    .welcome-banner h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 6px; }
-    .welcome-banner p { font-size: 0.9rem; opacity: 0.85; }
-    .welcome-banner .date { font-size: 0.78rem; opacity: 0.65; margin-top: 4px; }
-
-    /* Quick Stats */
-    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
-    .stat-card {
-      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 20px 22px; transition: box-shadow 0.2s;
+    .welcome-left { position: relative; z-index: 1; }
+    .welcome-banner h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+    .welcome-banner .date { font-size: 0.88rem; opacity: 0.85; }
+    .welcome-banner .sub { font-size: 0.82rem; opacity: 0.7; margin-top: 8px; }
+    .weather-widget {
+      position: relative; z-index: 1; text-align: right;
+      background: rgba(255,255,255,0.12); border-radius: 12px; padding: 12px 16px;
+      backdrop-filter: blur(8px);
     }
-    .stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
-    .stat-card .stat-icon { font-size: 1.4rem; margin-bottom: 8px; }
-    .stat-card .stat-value { font-size: 1.8rem; font-weight: 800; line-height: 1; }
-    .stat-card .stat-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-top: 4px; }
-    .stat-card .stat-trend { font-size: 0.72rem; margin-top: 6px; font-weight: 600; }
-    .stat-card .stat-trend.up { color: var(--green); }
-    .stat-card .stat-trend.down { color: var(--red); }
+    .weather-widget .weather-temp { font-size: 1.8rem; font-weight: 700; line-height: 1; }
+    .weather-widget .weather-desc { font-size: 0.78rem; opacity: 0.85; }
+    .weather-widget .weather-loc { font-size: 0.72rem; opacity: 0.6; margin-top: 2px; }
 
-    /* Grid layout */
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
-    .grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 24px; }
+    /* KPI Grid */
+    .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 24px; }
+    .kpi-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 18px 20px; transition: all 0.2s; position: relative; overflow: hidden;
+    }
+    .kpi-card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+    .kpi-card .kpi-icon { font-size: 1.3rem; margin-bottom: 8px; }
+    .kpi-card .kpi-value { font-size: 1.7rem; font-weight: 800; line-height: 1; }
+    .kpi-card .kpi-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-top: 4px; }
+    .kpi-card .kpi-trend { font-size: 0.72rem; margin-top: 8px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+    .kpi-card .kpi-trend.up { color: var(--green); }
+    .kpi-card .kpi-trend.down { color: var(--red); }
+    .kpi-card .kpi-trend.neutral { color: var(--muted); }
+    .kpi-accent { position: absolute; top: 0; left: 0; width: 4px; height: 100%; }
+    .kpi-accent.blue { background: var(--accent); }
+    .kpi-accent.green { background: var(--green); }
+    .kpi-accent.amber { background: var(--amber); }
+    .kpi-accent.red { background: var(--red); }
+    .kpi-accent.purple { background: var(--purple); }
+
+    /* Main Grid Layout */
+    .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 24px; }
+    .main-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 24px; }
 
     /* Cards */
     .card {
       background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 22px 24px; transition: box-shadow 0.2s;
+      padding: 20px 22px; transition: box-shadow 0.2s;
     }
-    .card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    .card:hover { box-shadow: var(--shadow-sm); }
     .card-header {
-      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
+      padding-bottom: 12px; border-bottom: 1px solid var(--border);
     }
-    .card-title { font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-    .card-link { font-size: 0.78rem; color: var(--accent); text-decoration: none; font-weight: 600; }
+    .card-title { font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .card-badge {
+      font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 10px;
+      background: var(--red-light); color: var(--red);
+    }
+    .card-link { font-size: 0.75rem; color: var(--accent); text-decoration: none; font-weight: 600; }
     .card-link:hover { text-decoration: underline; }
 
-    /* Pipeline Stages */
-    .pipeline-stages { display: flex; gap: 8px; flex-wrap: wrap; }
-    .pipeline-stage {
-      flex: 1; min-width: 100px; padding: 14px 12px; border-radius: 10px; text-align: center;
-      border: 1px solid var(--border); background: var(--bg);
-    }
-    .pipeline-stage .stage-count { font-size: 1.5rem; font-weight: 800; color: var(--text); }
-    .pipeline-stage .stage-label { font-size: 0.68rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 4px; }
-    .pipeline-stage.highlight { border-color: var(--accent); background: var(--accent-light); }
-    .pipeline-stage.highlight .stage-count { color: var(--accent); }
+    /* Priorities Section */
+    .priorities-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+    .priority-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+    .priority-card.urgent { border-left: 4px solid var(--red); }
+    .priority-card.warning { border-left: 4px solid var(--amber); }
+    .priority-card.info { border-left: 4px solid var(--accent); }
+    .priority-title { font-size: 0.82rem; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .priority-count { font-size: 0.68rem; padding: 2px 8px; border-radius: 10px; background: var(--bg); }
 
-    /* Task list */
-    .task-list { list-style: none; }
-    .task-item {
-      display: flex; align-items: center; gap: 12px; padding: 10px 0;
-      border-bottom: 1px solid #f1f5f9; font-size: 0.85rem;
+    .priority-list { list-style: none; }
+    .priority-item {
+      display: flex; align-items: flex-start; gap: 10px; padding: 10px 0;
+      border-bottom: 1px solid #f1f5f9; font-size: 0.82rem;
     }
-    .task-item:last-child { border-bottom: none; }
-    .task-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .task-dot.overdue { background: var(--red); }
-    .task-dot.today { background: var(--amber); }
-    .task-dot.upcoming { background: var(--green); }
-    .task-text { flex: 1; color: var(--text); }
-    .task-meta { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
-    .task-empty { color: var(--muted); font-size: 0.85rem; padding: 16px 0; text-align: center; }
+    .priority-item:last-child { border-bottom: none; }
+    .priority-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+    .priority-dot.red { background: var(--red); }
+    .priority-dot.amber { background: var(--amber); }
+    .priority-dot.green { background: var(--green); }
+    .priority-content { flex: 1; min-width: 0; }
+    .priority-name { font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .priority-meta { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+    .priority-empty { color: var(--muted); font-size: 0.82rem; padding: 16px 0; text-align: center; }
 
-    /* Route status */
-    .route-status { display: flex; flex-direction: column; gap: 10px; }
-    .route-item {
-      display: flex; align-items: center; gap: 12px; padding: 10px 14px;
-      border-radius: 8px; background: var(--bg); font-size: 0.85rem;
+    /* Quick Actions */
+    .quick-actions-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .action-btn {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 20px 16px; background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); text-decoration: none; color: var(--text);
+      transition: all 0.2s; text-align: center; cursor: pointer;
     }
-    .route-badge {
-      font-size: 0.68rem; font-weight: 700; padding: 3px 8px; border-radius: 6px;
-      text-transform: uppercase;
-    }
-    .route-badge.pending { background: var(--amber-light); color: var(--amber); }
-    .route-badge.active { background: var(--green-light); color: var(--green); }
-    .route-badge.done { background: #f1f5f9; color: var(--muted); }
-    .route-name { font-weight: 600; }
-    .route-stops { margin-left: auto; font-size: 0.78rem; color: var(--muted); }
-    .route-empty { color: var(--muted); font-size: 0.85rem; padding: 16px 0; text-align: center; }
+    .action-btn:hover { border-color: var(--accent); background: var(--accent-light); transform: translateY(-2px); box-shadow: var(--shadow); }
+    .action-btn .action-icon { font-size: 1.6rem; margin-bottom: 8px; }
+    .action-btn .action-label { font-size: 0.82rem; font-weight: 600; }
+    .action-btn .action-desc { font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
 
-    /* Activity feed */
-    .activity-feed { list-style: none; }
+    /* Activity Feed */
+    .activity-feed { list-style: none; max-height: 400px; overflow-y: auto; }
     .activity-item {
-      display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f8fafc; font-size: 0.83rem;
+      display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f8fafc; font-size: 0.82rem;
     }
     .activity-item:last-child { border-bottom: none; }
     .activity-icon {
-      width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center;
-      justify-content: center; font-size: 0.9rem; flex-shrink: 0; background: var(--bg);
+      width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center;
+      justify-content: center; font-size: 1rem; flex-shrink: 0; background: var(--bg);
     }
-    .activity-text { flex: 1; }
+    .activity-icon.green { background: var(--green-light); }
+    .activity-icon.blue { background: var(--accent-light); }
+    .activity-icon.amber { background: var(--amber-light); }
+    .activity-icon.red { background: var(--red-light); }
+    .activity-icon.purple { background: var(--purple-light); }
+    .activity-content { flex: 1; min-width: 0; }
+    .activity-text { color: var(--text); }
     .activity-text strong { font-weight: 600; }
     .activity-time { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
 
-    /* Quick actions */
-    .quick-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-    .quick-btn {
-      display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px;
-      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-      color: var(--text); text-decoration: none; font-size: 0.82rem; font-weight: 600;
-      transition: all 0.15s; cursor: pointer;
+    /* Charts */
+    .charts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 24px; }
+    .chart-container { height: 180px; position: relative; }
+
+    /* Alerts */
+    .alerts-card { background: var(--amber-light); border: 1px solid #fde68a; }
+    .alert-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 0;
+      border-bottom: 1px solid rgba(245,158,11,0.2); font-size: 0.82rem;
     }
-    .quick-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
-    .quick-btn .btn-icon { font-size: 1rem; }
+    .alert-item:last-child { border-bottom: none; }
+    .alert-icon { font-size: 1rem; }
+    .alert-text { flex: 1; color: #92400e; }
+    .alert-action { font-size: 0.72rem; color: var(--amber); font-weight: 600; cursor: pointer; }
+    .alert-action:hover { text-decoration: underline; }
+
+    /* Quick Links */
+    .quick-links { display: flex; flex-wrap: wrap; gap: 10px; }
+    .quick-link {
+      display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px;
+      background: var(--bg); border-radius: 8px; color: var(--text);
+      text-decoration: none; font-size: 0.78rem; font-weight: 600;
+      transition: all 0.15s;
+    }
+    .quick-link:hover { background: var(--accent-light); color: var(--accent); }
+    .quick-link .link-icon { font-size: 0.9rem; }
+
+    /* Pipeline Mini */
+    .pipeline-mini { display: flex; gap: 4px; align-items: flex-end; margin-top: 8px; }
+    .pipeline-bar {
+      flex: 1; background: var(--accent); border-radius: 4px 4px 0 0;
+      min-height: 20px; position: relative; transition: all 0.3s;
+    }
+    .pipeline-bar:hover { opacity: 0.8; }
+    .pipeline-bar .bar-label {
+      position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+      font-size: 0.65rem; color: var(--muted); white-space: nowrap; padding-bottom: 4px;
+    }
+    .pipeline-bar .bar-count {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 0.72rem; font-weight: 700; color: #fff;
+    }
 
     /* Loading */
     .skeleton { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
     /* Responsive */
-    @media (max-width: 900px) {
-      .stats-row { grid-template-columns: repeat(2, 1fr); }
-      .grid-2, .grid-3 { grid-template-columns: 1fr; }
-      .pipeline-stages { flex-wrap: wrap; }
-      .pipeline-stage { min-width: 70px; }
+    @media (max-width: 1100px) {
+      .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+      .main-grid { grid-template-columns: 1fr; }
+      .main-grid-3, .charts-grid, .priorities-grid { grid-template-columns: 1fr; }
+      .quick-actions-grid { grid-template-columns: repeat(2, 1fr); }
     }
-    @media (max-width: 600px) {
+    @media (max-width: 700px) {
       .dashboard { padding: 16px; }
-      .welcome-banner { padding: 24px; }
+      .welcome-banner { flex-direction: column; gap: 16px; padding: 22px; }
       .welcome-banner h1 { font-size: 1.3rem; }
-      .quick-actions { flex-direction: column; }
+      .weather-widget { text-align: left; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .quick-actions-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
@@ -157,97 +216,181 @@
 <script src="/nav.js"></script>
 
 <div class="dashboard">
-  <!-- Welcome Banner -->
+  <!-- Welcome Banner with Weather -->
   <div class="welcome-banner">
-    <h1 id="greeting">Good morning, Kurtis 👋</h1>
-    <p id="greeting-sub">Here's what's happening with your vending business today.</p>
-    <div class="date" id="today-date"></div>
-  </div>
-
-  <!-- Quick Stats -->
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-icon">🎯</div>
-      <div class="stat-value" id="stat-prospects">—</div>
-      <div class="stat-label">Total Prospects</div>
+    <div class="welcome-left">
+      <h1 id="greeting">Good morning, Kurtis 👋</h1>
+      <div class="date" id="today-date"></div>
+      <div class="sub" id="greeting-sub">Let's build that vending empire today.</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon">🔥</div>
-      <div class="stat-value" id="stat-leads">—</div>
-      <div class="stat-label">Active Leads</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">🏭</div>
-      <div class="stat-value" id="stat-machines">—</div>
-      <div class="stat-label">Machines Deployed</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">💵</div>
-      <div class="stat-value" id="stat-revenue">—</div>
-      <div class="stat-label">Monthly Revenue</div>
+    <div class="weather-widget" id="weather-widget">
+      <div class="weather-temp" id="weather-temp">—°</div>
+      <div class="weather-desc" id="weather-desc">Loading...</div>
+      <div class="weather-loc">📍 Las Vegas, NV</div>
     </div>
   </div>
 
-  <!-- Pipeline + Tasks -->
-  <div class="grid-2">
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">🔀 Pipeline Summary</span>
-        <a class="card-link" href="/pipeline-board">View Board →</a>
-      </div>
-      <div class="pipeline-stages" id="pipeline-stages">
-        <div class="pipeline-stage skeleton" style="height:70px"></div>
-        <div class="pipeline-stage skeleton" style="height:70px"></div>
-        <div class="pipeline-stage skeleton" style="height:70px"></div>
-      </div>
+  <!-- KPI Summary Row -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-accent blue"></div>
+      <div class="kpi-icon">🎯</div>
+      <div class="kpi-value" id="kpi-prospects">—</div>
+      <div class="kpi-label">Total Prospects</div>
+      <div class="kpi-trend neutral" id="kpi-prospects-trend">Loading...</div>
     </div>
+    <div class="kpi-card">
+      <div class="kpi-accent red"></div>
+      <div class="kpi-icon">🔥</div>
+      <div class="kpi-value" id="kpi-hot">—</div>
+      <div class="kpi-label">Hot Leads</div>
+      <div class="kpi-trend neutral" id="kpi-hot-trend">Ready to close</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-accent green"></div>
+      <div class="kpi-icon">✅</div>
+      <div class="kpi-value" id="kpi-signed">—</div>
+      <div class="kpi-label">Signed Deals</div>
+      <div class="kpi-trend neutral" id="kpi-signed-trend">Contracts active</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-accent amber"></div>
+      <div class="kpi-icon">💵</div>
+      <div class="kpi-value" id="kpi-revenue">—</div>
+      <div class="kpi-label">This Month</div>
+      <div class="kpi-trend neutral" id="kpi-revenue-trend">Loading...</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-accent purple"></div>
+      <div class="kpi-icon">📊</div>
+      <div class="kpi-value" id="kpi-pipeline">—</div>
+      <div class="kpi-label">Pipeline Value</div>
+      <div class="kpi-trend neutral" id="kpi-pipeline-trend">Potential revenue</div>
+    </div>
+  </div>
 
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">✅ Today's Tasks</span>
-        <a class="card-link" href="/tasks">All Tasks →</a>
+  <!-- Today's Priorities -->
+  <div class="priorities-grid">
+    <div class="priority-card urgent">
+      <div class="priority-title">
+        🚨 Overdue Follow-ups
+        <span class="priority-count" id="overdue-count">0</span>
       </div>
-      <ul class="task-list" id="task-list">
-        <li class="task-empty">Loading tasks...</li>
+      <ul class="priority-list" id="overdue-list">
+        <li class="priority-empty">Loading...</li>
       </ul>
     </div>
-  </div>
-
-  <!-- Routes + Activity -->
-  <div class="grid-3">
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">📰 Recent Activity</span>
-        <a class="card-link" href="/crm">View CRM →</a>
+    <div class="priority-card warning">
+      <div class="priority-title">
+        📅 Scheduled Today
+        <span class="priority-count" id="scheduled-count">0</span>
       </div>
-      <ul class="activity-feed" id="activity-feed">
-        <li class="task-empty">Loading activity...</li>
+      <ul class="priority-list" id="scheduled-list">
+        <li class="priority-empty">Loading...</li>
       </ul>
     </div>
-
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">🛣️ Today's Routes</span>
-        <a class="card-link" href="/routes">View Routes →</a>
+    <div class="priority-card info">
+      <div class="priority-title">
+        ✅ Tasks Due Today
+        <span class="priority-count" id="tasks-count">0</span>
       </div>
-      <div class="route-status" id="route-status">
-        <div class="route-empty">Loading routes...</div>
-      </div>
+      <ul class="priority-list" id="tasks-list">
+        <li class="priority-empty">Loading...</li>
+      </ul>
     </div>
   </div>
 
   <!-- Quick Actions -->
+  <div class="quick-actions-grid">
+    <a class="action-btn" href="/crm#add">
+      <span class="action-icon">➕</span>
+      <span class="action-label">Add Prospect</span>
+      <span class="action-desc">New lead entry</span>
+    </a>
+    <a class="action-btn" href="/crm#activity">
+      <span class="action-icon">📍</span>
+      <span class="action-label">Log Activity</span>
+      <span class="action-desc">Pop-in, call, email</span>
+    </a>
+    <a class="action-btn" href="/proposal-generator">
+      <span class="action-icon">📝</span>
+      <span class="action-label">Generate Proposal</span>
+      <span class="action-desc">Create PDF proposal</span>
+    </a>
+    <a class="action-btn" href="/pipeline-board">
+      <span class="action-icon">🔀</span>
+      <span class="action-label">View Pipeline</span>
+      <span class="action-desc">Kanban board</span>
+    </a>
+  </div>
+
+  <!-- Activity Feed + Alerts -->
+  <div class="main-grid">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📰 Recent Activity</span>
+        <a class="card-link" href="/crm">View All →</a>
+      </div>
+      <ul class="activity-feed" id="activity-feed">
+        <li class="priority-empty">Loading activity...</li>
+      </ul>
+    </div>
+
+    <div class="card alerts-card" id="alerts-card" style="display:none;">
+      <div class="card-header" style="border-bottom-color: rgba(245,158,11,0.3);">
+        <span class="card-title">⚠️ Alerts & Notifications</span>
+        <a class="card-link" href="/tasks" style="color: #b45309;">View All →</a>
+      </div>
+      <div id="alerts-list"></div>
+    </div>
+  </div>
+
+  <!-- Charts Section -->
+  <div class="charts-grid">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🔀 Pipeline Funnel</span>
+      </div>
+      <div class="pipeline-mini" id="pipeline-funnel"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📈 Activity Trend (7 days)</span>
+      </div>
+      <div class="chart-container">
+        <canvas id="activity-chart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">💰 Revenue Trend</span>
+      </div>
+      <div class="chart-container">
+        <canvas id="revenue-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Links -->
   <div class="card">
     <div class="card-header">
-      <span class="card-title">⚡ Quick Actions</span>
+      <span class="card-title">🔗 Quick Links</span>
     </div>
-    <div class="quick-actions">
-      <a class="quick-btn" href="/crm"><span class="btn-icon">➕</span> Add Prospect</a>
-      <a class="quick-btn" href="/crm"><span class="btn-icon">📍</span> Log Pop-In</a>
-      <a class="quick-btn" href="/proposal-generator"><span class="btn-icon">📝</span> Create Proposal</a>
-      <a class="quick-btn" href="/pipeline-board"><span class="btn-icon">🔀</span> Move Pipeline</a>
-      <a class="quick-btn" href="/tasks"><span class="btn-icon">✅</span> View Tasks</a>
-      <a class="quick-btn" href="/schedule"><span class="btn-icon">📅</span> Schedule</a>
+    <div class="quick-links">
+      <a class="quick-link" href="/crm"><span class="link-icon">👥</span> CRM</a>
+      <a class="quick-link" href="/pipeline-board"><span class="link-icon">🔀</span> Pipeline</a>
+      <a class="quick-link" href="/tasks"><span class="link-icon">✅</span> Tasks</a>
+      <a class="quick-link" href="/daily-planner"><span class="link-icon">📅</span> Daily Planner</a>
+      <a class="quick-link" href="/calendar"><span class="link-icon">🗓️</span> Calendar</a>
+      <a class="quick-link" href="/call-scripts"><span class="link-icon">📞</span> Call Scripts</a>
+      <a class="quick-link" href="/email-templates"><span class="link-icon">📧</span> Email Templates</a>
+      <a class="quick-link" href="/proposal-generator"><span class="link-icon">📝</span> Proposals</a>
+      <a class="quick-link" href="/contract-generator"><span class="link-icon">📄</span> Contracts</a>
+      <a class="quick-link" href="/fleet"><span class="link-icon">🏭</span> Fleet</a>
+      <a class="quick-link" href="/financials"><span class="link-icon">💵</span> Financials</a>
+      <a class="quick-link" href="/analytics"><span class="link-icon">📊</span> Analytics</a>
+      <a class="quick-link" href="/competitors"><span class="link-icon">🔍</span> Competitors</a>
+      <a class="quick-link" href="/playbook"><span class="link-icon">📖</span> Playbook</a>
     </div>
   </div>
 </div>
@@ -256,24 +399,7 @@
 (function() {
   'use strict';
 
-  // --- Greeting ---
-  var hour = new Date().getHours();
-  var greetText = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  document.getElementById('greeting').textContent = greetText + ', Kurtis 👋';
-
-  var subTexts = [
-    "Here's what's happening with your vending business today.",
-    "Let's keep the momentum going on your vending empire.",
-    "Your vending operation at a glance.",
-    "Time to check in on the business."
-  ];
-  document.getElementById('greeting-sub').textContent = subTexts[Math.floor(Math.random() * subTexts.length)];
-
-  var now = new Date();
-  var opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-  document.getElementById('today-date').textContent = now.toLocaleDateString('en-US', opts);
-
-  // --- Helper ---
+  // --- Helpers ---
   function fmt(n) { return n >= 1000 ? (n/1000).toFixed(1) + 'k' : String(n); }
   function money(n) { return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
   function timeAgo(d) {
@@ -284,146 +410,334 @@
     return Math.floor(diff/86400) + 'd ago';
   }
   function actIcon(type) {
-    var map = { call: '📞', email: '📧', pop_in: '📍', note: '📝', meeting: '🤝', proposal_sent: '📝', contract_signed: '📄', 'pop-in': '📍', task: '✅' };
+    var map = { 
+      call: '📞', email: '📧', pop_in: '📍', note: '📝', meeting: '🤝', 
+      proposal_sent: '📝', contract_signed: '📄', 'pop-in': '📍', task: '✅',
+      'status-change': '🔄', text: '💬', linkedin: '💼', referral: '🤝',
+      site_survey: '📐', follow_up: '🔔', voicemail: '📱'
+    };
     return map[type] || '📌';
   }
+  function actColor(type) {
+    var map = { 
+      call: 'blue', email: 'purple', pop_in: 'green', 'pop-in': 'green',
+      meeting: 'amber', proposal_sent: 'amber', contract_signed: 'green',
+      'status-change': 'blue', site_survey: 'green'
+    };
+    return map[type] || '';
+  }
 
-  // --- Fetch stats ---
-  fetch('/api/stats').then(function(r) {
-    if (!r.ok) throw new Error(r.status);
-    return r.json();
-  }).then(function(d) {
-    if (!d || typeof d !== 'object') throw new Error('bad data');
-    document.getElementById('stat-prospects').textContent = fmt(d.totalProspects || d.total_prospects || 0);
-    document.getElementById('stat-leads').textContent = fmt(d.activeLeads || d.active_leads || d.hotLeads || 0);
-    document.getElementById('stat-machines').textContent = fmt(d.machinesDeployed || d.machines_deployed || d.totalMachines || 0);
-    document.getElementById('stat-revenue').textContent = money(d.monthlyRevenue || d.monthly_revenue || d.revenue || 0);
-  }).catch(function() {
-    ['stat-prospects', 'stat-leads', 'stat-machines', 'stat-revenue'].forEach(function(id) {
-      document.getElementById(id).textContent = '—';
-    });
-  });
+  // --- Greeting ---
+  var hour = new Date().getHours();
+  var greetText = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('greeting').textContent = greetText + ', Kurtis 👋';
 
-  // --- Pipeline stages ---
-  fetch('/api/pipeline/stages').then(function(r) {
-    if (!r.ok) throw new Error(r.status);
-    return r.json();
-  }).then(function(stages) {
-    return fetch('/api/pipeline/cards').then(function(r) {
-      if (!r.ok) throw new Error(r.status);
-      return r.json();
-    }).then(function(cards) {
-      var container = document.getElementById('pipeline-stages');
-      if (!stages || !stages.length) {
-        container.innerHTML = '<div class="route-empty">No pipeline stages configured</div>';
-        return;
+  var subTexts = [
+    "Let's build that vending empire today.",
+    "Time to close some deals! 💪",
+    "Your pipeline is waiting.",
+    "Another day, another opportunity.",
+    "Let's make moves today."
+  ];
+  document.getElementById('greeting-sub').textContent = subTexts[Math.floor(Math.random() * subTexts.length)];
+
+  var now = new Date();
+  var opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  document.getElementById('today-date').textContent = now.toLocaleDateString('en-US', opts);
+  var today = now.toISOString().split('T')[0];
+
+  // --- Weather (Las Vegas) ---
+  fetch('https://api.open-meteo.com/v1/forecast?latitude=36.17&longitude=-115.14&current=temperature_2m,weather_code&temperature_unit=fahrenheit&timezone=America/Los_Angeles')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.current) {
+        var temp = Math.round(data.current.temperature_2m);
+        document.getElementById('weather-temp').textContent = temp + '°F';
+        var codes = {
+          0: '☀️ Clear', 1: '🌤️ Mostly Clear', 2: '⛅ Partly Cloudy', 3: '☁️ Cloudy',
+          45: '🌫️ Foggy', 48: '🌫️ Rime Fog', 51: '🌧️ Light Drizzle', 53: '🌧️ Drizzle',
+          55: '🌧️ Heavy Drizzle', 61: '🌧️ Light Rain', 63: '🌧️ Rain', 65: '🌧️ Heavy Rain',
+          71: '🌨️ Light Snow', 73: '🌨️ Snow', 75: '🌨️ Heavy Snow', 80: '🌦️ Showers',
+          95: '⛈️ Thunderstorm'
+        };
+        document.getElementById('weather-desc').textContent = codes[data.current.weather_code] || 'Clear';
       }
-      var counts = {};
-      (Array.isArray(cards) ? cards : []).forEach(function(c) {
-        var sid = c.stage_id || c.stageId || c.stage;
-        counts[sid] = (counts[sid] || 0) + 1;
-      });
-      container.innerHTML = stages.map(function(s, i) {
-        var count = counts[s.id] || 0;
-        var cls = count > 0 ? ' highlight' : '';
-        return '<div class="pipeline-stage' + cls + '">' +
-          '<div class="stage-count">' + count + '</div>' +
-          '<div class="stage-label">' + (s.emoji || '') + ' ' + (s.label || s.name || 'Stage ' + (i+1)) + '</div></div>';
-      }).join('');
+    })
+    .catch(function() {
+      document.getElementById('weather-temp').textContent = '—';
+      document.getElementById('weather-desc').textContent = 'Unavailable';
     });
-  }).catch(function() {
-    document.getElementById('pipeline-stages').innerHTML = '<div class="route-empty">Could not load pipeline</div>';
-  });
 
-  // --- Tasks ---
-  fetch('/api/crm-tasks').then(function(r) {
-    if (!r.ok) throw new Error(r.status);
-    return r.json();
-  }).then(function(data) {
-    var tasks = Array.isArray(data) ? data : (data.tasks || []);
-    var today = new Date().toISOString().split('T')[0];
-    var relevant = tasks.filter(function(t) {
-      if (t.status === 'done' || t.status === 'completed') return false;
-      return true;
-    }).sort(function(a, b) {
-      // overdue first, then today, then by date
-      var ad = a.due_date || a.dueDate || '9999';
-      var bd = b.due_date || b.dueDate || '9999';
-      return ad < bd ? -1 : ad > bd ? 1 : 0;
-    }).slice(0, 6);
+  // --- Fetch all data ---
+  Promise.all([
+    fetch('/api/stats').then(r => r.ok ? r.json() : {}),
+    fetch('/api/prospects').then(r => r.ok ? r.json() : []),
+    fetch('/api/activities').then(r => r.ok ? r.json() : []),
+    fetch('/api/crm-tasks').then(r => r.ok ? r.json() : []),
+    fetch('/api/pipeline/cards').then(r => r.ok ? r.json() : []),
+    fetch('/api/pipeline/stages').then(r => r.ok ? r.json() : []),
+    fetch('/api/finances/summary').then(r => r.ok ? r.json() : {})
+  ]).then(function(results) {
+    var stats = results[0] || {};
+    var prospects = results[1] || [];
+    var activities = results[2] || [];
+    var tasks = Array.isArray(results[3]) ? results[3] : (results[3].tasks || []);
+    var pipelineCards = results[4] || [];
+    var pipelineStages = results[5] || [];
+    var finances = results[6] || {};
 
-    var list = document.getElementById('task-list');
-    if (!relevant.length) {
-      list.innerHTML = '<li class="task-empty">🎉 No tasks due today — you\'re all caught up!</li>';
-      return;
-    }
-    list.innerHTML = relevant.map(function(t) {
-      var due = t.due_date || t.dueDate || '';
-      var cls = due < today ? 'overdue' : due === today ? 'today' : 'upcoming';
-      var label = due < today ? 'Overdue' : due === today ? 'Today' : due;
-      return '<li class="task-item"><span class="task-dot ' + cls + '"></span>' +
-        '<span class="task-text">' + (t.title || t.name || 'Untitled') + '</span>' +
-        '<span class="task-meta">' + label + '</span></li>';
-    }).join('');
-  }).catch(function() {
-    document.getElementById('task-list').innerHTML = '<li class="task-empty">Could not load tasks</li>';
-  });
-
-  // --- Activity feed ---
-  fetch('/api/activities').then(function(r) {
-    if (!r.ok) throw new Error(r.status);
-    return r.json();
-  }).then(function(data) {
-    var activities = (Array.isArray(data) ? data : (data.activities || [])).slice(0, 8);
-    var feed = document.getElementById('activity-feed');
-    if (!activities.length) {
-      feed.innerHTML = '<li class="task-empty">No recent activity</li>';
-      return;
-    }
-    feed.innerHTML = activities.map(function(a) {
-      var type = a.type || a.activity_type || 'note';
-      var desc = a.description || a.notes || a.title || type;
-      var prospect = a.prospect_name || a.prospectName || '';
-      var time = a.created_at || a.createdAt || a.date || '';
-      return '<li class="activity-item">' +
-        '<div class="activity-icon">' + actIcon(type) + '</div>' +
-        '<div class="activity-text">' + (prospect ? '<strong>' + prospect + '</strong> — ' : '') + desc +
-        (time ? '<div class="activity-time">' + timeAgo(time) + '</div>' : '') +
-        '</div></li>';
-    }).join('');
-  }).catch(function() {
-    document.getElementById('activity-feed').innerHTML = '<li class="task-empty">Could not load activity</li>';
-  });
-
-  // --- Routes ---
-  fetch('/api/routes/templates').then(function(r) {
-    if (!r.ok) throw new Error(r.status);
-    return r.json();
-  }).then(function(data) {
-    var routes = Array.isArray(data) ? data : (data.routes || []);
-    var container = document.getElementById('route-status');
+    // --- KPIs ---
+    document.getElementById('kpi-prospects').textContent = fmt(prospects.length);
+    document.getElementById('kpi-hot').textContent = fmt(prospects.filter(p => p.priority === 'hot').length);
+    document.getElementById('kpi-signed').textContent = fmt(prospects.filter(p => p.status === 'signed').length);
+    document.getElementById('kpi-revenue').textContent = money(finances.currentRevenue || 0);
     
-    // Filter today's routes or show the most recent
-    var today = new Date().toISOString().split('T')[0];
-    var todayRoutes = routes.filter(function(r) {
-      return (r.date || r.scheduled_date || '').startsWith(today);
-    });
-    var display = todayRoutes.length ? todayRoutes : routes.slice(0, 3);
+    // Pipeline value estimate ($2K/month per prospect in advanced stages)
+    var advancedStages = ['proposal_sent', 'negotiating', 'contract_sent'];
+    var pipelineValue = pipelineCards.filter(c => advancedStages.includes(c.stage)).length * 24000;
+    document.getElementById('kpi-pipeline').textContent = money(pipelineValue);
+    
+    // Trend calculations
+    var weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    var newThisWeek = prospects.filter(p => new Date(p.created_at) > weekAgo).length;
+    document.getElementById('kpi-prospects-trend').innerHTML = newThisWeek > 0 
+      ? '<span style="color:var(--green)">↑ ' + newThisWeek + ' this week</span>' 
+      : 'No new this week';
+    
+    var weekActivities = activities.filter(a => new Date(a.created_at) > weekAgo).length;
+    document.getElementById('kpi-hot-trend').innerHTML = weekActivities + ' activities this week';
 
-    if (!display.length) {
-      container.innerHTML = '<div class="route-empty">No routes scheduled today</div>';
-      return;
+    // Revenue trend
+    if (finances.lastRevenue && finances.currentRevenue) {
+      var revChange = ((finances.currentRevenue - finances.lastRevenue) / (finances.lastRevenue || 1) * 100).toFixed(0);
+      var trendEl = document.getElementById('kpi-revenue-trend');
+      if (revChange > 0) {
+        trendEl.className = 'kpi-trend up';
+        trendEl.innerHTML = '↑ ' + revChange + '% vs last month';
+      } else if (revChange < 0) {
+        trendEl.className = 'kpi-trend down';
+        trendEl.innerHTML = '↓ ' + Math.abs(revChange) + '% vs last month';
+      } else {
+        trendEl.innerHTML = 'Same as last month';
+      }
     }
-    container.innerHTML = display.map(function(r) {
-      var status = r.status || 'pending';
-      var stops = r.stops || r.stop_count || 0;
-      return '<div class="route-item">' +
-        '<span class="route-badge ' + status + '">' + status + '</span>' +
-        '<span class="route-name">' + (r.name || r.route_name || 'Route') + '</span>' +
-        '<span class="route-stops">' + stops + ' stops</span></div>';
+
+    // --- Priorities: Overdue Follow-ups ---
+    var overdue = prospects.filter(function(p) {
+      var nextDate = p.next_action_date;
+      return nextDate && nextDate < today && p.status !== 'signed' && p.status !== 'closed';
+    }).sort((a, b) => (a.next_action_date || '').localeCompare(b.next_action_date || '')).slice(0, 3);
+
+    document.getElementById('overdue-count').textContent = overdue.length;
+    var overdueList = document.getElementById('overdue-list');
+    if (overdue.length === 0) {
+      overdueList.innerHTML = '<li class="priority-empty">🎉 No overdue follow-ups!</li>';
+    } else {
+      overdueList.innerHTML = overdue.map(function(p) {
+        var daysOver = Math.floor((new Date(today) - new Date(p.next_action_date)) / 86400000);
+        return '<li class="priority-item"><span class="priority-dot red"></span><div class="priority-content">' +
+          '<div class="priority-name">' + p.name + '</div>' +
+          '<div class="priority-meta">' + (p.next_action || 'Follow up') + ' · ' + daysOver + ' day' + (daysOver > 1 ? 's' : '') + ' overdue</div>' +
+          '</div></li>';
+      }).join('');
+    }
+
+    // --- Priorities: Scheduled Today ---
+    var scheduledToday = activities.filter(function(a) {
+      var aDate = (a.scheduled_date || a.next_action_date || '').split('T')[0];
+      return aDate === today;
+    }).slice(0, 3);
+
+    document.getElementById('scheduled-count').textContent = scheduledToday.length;
+    var scheduledList = document.getElementById('scheduled-list');
+    if (scheduledToday.length === 0) {
+      scheduledList.innerHTML = '<li class="priority-empty">No activities scheduled today</li>';
+    } else {
+      scheduledList.innerHTML = scheduledToday.map(function(a) {
+        var prospect = prospects.find(p => p.id === a.prospect_id);
+        return '<li class="priority-item"><span class="priority-dot amber"></span><div class="priority-content">' +
+          '<div class="priority-name">' + (prospect ? prospect.name : 'Unknown') + '</div>' +
+          '<div class="priority-meta">' + (a.type || 'Activity') + ': ' + (a.description || '').slice(0, 40) + '</div>' +
+          '</div></li>';
+      }).join('');
+    }
+
+    // --- Priorities: Tasks Due Today ---
+    var tasksDue = tasks.filter(function(t) {
+      var due = (t.due_date || t.dueDate || '').split('T')[0];
+      return due === today && t.status !== 'done' && t.status !== 'completed';
+    }).slice(0, 3);
+
+    document.getElementById('tasks-count').textContent = tasksDue.length;
+    var tasksList = document.getElementById('tasks-list');
+    if (tasksDue.length === 0) {
+      tasksList.innerHTML = '<li class="priority-empty">🎉 No tasks due today!</li>';
+    } else {
+      tasksList.innerHTML = tasksDue.map(function(t) {
+        return '<li class="priority-item"><span class="priority-dot green"></span><div class="priority-content">' +
+          '<div class="priority-name">' + (t.title || t.name || 'Untitled') + '</div>' +
+          '<div class="priority-meta">' + (t.category || 'Task') + '</div>' +
+          '</div></li>';
+      }).join('');
+    }
+
+    // --- Activity Feed ---
+    var recentActivities = activities.slice(0, 10);
+    var feed = document.getElementById('activity-feed');
+    if (recentActivities.length === 0) {
+      feed.innerHTML = '<li class="priority-empty">No recent activity</li>';
+    } else {
+      feed.innerHTML = recentActivities.map(function(a) {
+        var prospect = prospects.find(p => p.id === a.prospect_id);
+        var pName = prospect ? prospect.name : '';
+        var desc = a.description || a.notes || a.type || '';
+        var time = a.created_at || '';
+        var iconColor = actColor(a.type);
+        return '<li class="activity-item">' +
+          '<div class="activity-icon ' + iconColor + '">' + actIcon(a.type) + '</div>' +
+          '<div class="activity-content"><div class="activity-text">' + 
+          (pName ? '<strong>' + pName + '</strong> — ' : '') + desc.slice(0, 60) +
+          '</div><div class="activity-time">' + timeAgo(time) + '</div></div></li>';
+      }).join('');
+    }
+
+    // --- Alerts ---
+    var alerts = [];
+    // Overdue items
+    if (overdue.length > 0) {
+      alerts.push({ icon: '🚨', text: overdue.length + ' overdue follow-up' + (overdue.length > 1 ? 's' : '') + ' need attention', action: 'View', href: '/crm' });
+    }
+    // Hot leads without recent activity
+    var hotNoActivity = prospects.filter(function(p) {
+      if (p.priority !== 'hot') return false;
+      var lastAct = activities.filter(a => a.prospect_id === p.id).sort((a,b) => new Date(b.created_at) - new Date(a.created_at))[0];
+      if (!lastAct) return true;
+      var daysSince = (Date.now() - new Date(lastAct.created_at).getTime()) / 86400000;
+      return daysSince > 3;
+    });
+    if (hotNoActivity.length > 0) {
+      alerts.push({ icon: '🔥', text: hotNoActivity.length + ' hot lead' + (hotNoActivity.length > 1 ? 's' : '') + ' need follow-up', action: 'View', href: '/crm?priority=hot' });
+    }
+    // Low pipeline
+    if (pipelineCards.filter(c => c.stage === 'new_lead' || c.stage === 'contacted').length < 3) {
+      alerts.push({ icon: '📊', text: 'Pipeline is low — time for more prospecting!', action: 'Add', href: '/crm#add' });
+    }
+
+    var alertsCard = document.getElementById('alerts-card');
+    var alertsList = document.getElementById('alerts-list');
+    if (alerts.length > 0) {
+      alertsCard.style.display = 'block';
+      alertsList.innerHTML = alerts.slice(0, 3).map(function(a) {
+        return '<div class="alert-item"><span class="alert-icon">' + a.icon + '</span>' +
+          '<span class="alert-text">' + a.text + '</span>' +
+          '<a class="alert-action" href="' + a.href + '">' + a.action + ' →</a></div>';
+      }).join('');
+    }
+
+    // --- Pipeline Funnel ---
+    var stageOrder = ['new_lead', 'contacted', 'pop_in_done', 'interested', 'site_survey', 'proposal_sent', 'negotiating', 'contract_sent', 'signed'];
+    var stageCounts = {};
+    pipelineCards.forEach(function(c) {
+      var s = c.stage || 'new_lead';
+      stageCounts[s] = (stageCounts[s] || 0) + 1;
+    });
+    var maxCount = Math.max(1, ...Object.values(stageCounts));
+    var funnelEl = document.getElementById('pipeline-funnel');
+    
+    var stageLabels = {
+      new_lead: 'New', contacted: 'Contact', pop_in_done: 'Pop-in', interested: 'Interest',
+      site_survey: 'Survey', proposal_sent: 'Proposal', negotiating: 'Negotiate', 
+      contract_sent: 'Contract', signed: 'Signed'
+    };
+    
+    funnelEl.innerHTML = stageOrder.map(function(s) {
+      var count = stageCounts[s] || 0;
+      var height = Math.max(30, (count / maxCount) * 100);
+      var colors = ['#3b82f6', '#60a5fa', '#93c5fd', '#fbbf24', '#f59e0b', '#f97316', '#ef4444', '#22c55e', '#10b981'];
+      var idx = stageOrder.indexOf(s);
+      return '<div class="pipeline-bar" style="height:' + height + 'px;background:' + colors[idx] + '">' +
+        '<span class="bar-label">' + (stageLabels[s] || s) + '</span>' +
+        (count > 0 ? '<span class="bar-count">' + count + '</span>' : '') + '</div>';
     }).join('');
-  }).catch(function() {
-    document.getElementById('route-status').innerHTML = '<div class="route-empty">Could not load routes</div>';
+
+    // --- Activity Chart (7 days) ---
+    var activityByDay = {};
+    for (var i = 6; i >= 0; i--) {
+      var d = new Date(now);
+      d.setDate(d.getDate() - i);
+      var key = d.toISOString().split('T')[0];
+      activityByDay[key] = 0;
+    }
+    activities.forEach(function(a) {
+      var d = (a.created_at || '').split('T')[0];
+      if (activityByDay.hasOwnProperty(d)) activityByDay[d]++;
+    });
+    var labels = Object.keys(activityByDay).map(function(d) {
+      return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' });
+    });
+    
+    new Chart(document.getElementById('activity-chart'), {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Activities',
+          data: Object.values(activityByDay),
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59,130,246,0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: '#3b82f6'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { stepSize: 1 } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+
+    // --- Revenue Chart ---
+    var months = finances.months || {};
+    var monthLabels = Object.keys(months).sort().slice(-6);
+    var revenueData = monthLabels.map(function(m) { return months[m].revenue || 0; });
+    
+    if (monthLabels.length > 0) {
+      new Chart(document.getElementById('revenue-chart'), {
+        type: 'bar',
+        data: {
+          labels: monthLabels.map(function(m) {
+            var [y, mo] = m.split('-');
+            return new Date(y, parseInt(mo) - 1).toLocaleDateString('en-US', { month: 'short' });
+          }),
+          datasets: [{
+            label: 'Revenue',
+            data: revenueData,
+            backgroundColor: '#22c55e',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + (v >= 1000 ? (v/1000) + 'k' : v); } } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    } else {
+      document.getElementById('revenue-chart').parentElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:0.85rem;">No revenue data yet</div>';
+    }
+
+  }).catch(function(err) {
+    console.error('Dashboard load error:', err);
   });
 
 })();

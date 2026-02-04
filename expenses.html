@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Expense Tracker — Kande VendTech</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #0f172a;
+      --muted: #64748b; --accent: #3b82f6; --accent-light: #eff6ff;
+      --green: #22c55e; --green-light: #f0fdf4;
+      --amber: #f59e0b; --amber-light: #fffbeb;
+      --red: #ef4444; --red-light: #fef2f2;
+      --purple: #8b5cf6; --purple-light: #f5f3ff;
+      --radius: 12px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+    .page { max-width: 1400px; margin: 0 auto; padding: 24px 28px 60px; }
+    
+    /* Header */
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+    .page-title { font-size: 1.5rem; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+    .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    
+    /* Buttons */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--text); transition: all 0.15s; }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover { background: #2563eb; border-color: #2563eb; color: #fff; }
+    .btn-danger { background: var(--red); color: #fff; border-color: var(--red); }
+    .btn-danger:hover { background: #dc2626; border-color: #dc2626; }
+    .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
+    
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 4px; margin-bottom: 24px; width: fit-content; }
+    .tab { padding: 10px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: var(--muted); background: none; border: none; transition: all 0.15s; }
+    .tab:hover { color: var(--text); }
+    .tab.active { background: var(--accent); color: #fff; }
+    
+    /* Stats row */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; }
+    .stat-card .stat-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .stat-card .stat-value { font-size: 1.6rem; font-weight: 800; line-height: 1; }
+    .stat-card .stat-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-top: 4px; }
+    .stat-card .stat-trend { font-size: 0.72rem; margin-top: 6px; font-weight: 600; }
+    .stat-card .stat-trend.up { color: var(--red); }
+    .stat-card .stat-trend.down { color: var(--green); }
+    
+    /* Cards */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 24px; margin-bottom: 20px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .card-title { font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    
+    /* Grid layout */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+    
+    /* Form */
+    .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-label { font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; }
+    .form-input, .form-select, .form-textarea { padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; width: 100%; background: var(--card); color: var(--text); }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+    .form-textarea { resize: vertical; min-height: 80px; }
+    .form-check { display: flex; align-items: center; gap: 8px; }
+    .form-check input { width: 16px; height: 16px; accent-color: var(--accent); }
+    .form-check label { font-size: 0.85rem; font-weight: 500; }
+    
+    /* Table */
+    .table-container { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { text-align: left; padding: 12px 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.5px; border-bottom: 2px solid var(--border); background: var(--bg); cursor: pointer; white-space: nowrap; }
+    th:hover { color: var(--text); }
+    th.sorted { color: var(--accent); }
+    th .sort-icon { margin-left: 4px; font-size: 0.65rem; }
+    td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:hover { background: var(--accent-light); }
+    
+    /* Badges */
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; }
+    .badge-inventory { background: #dbeafe; color: #1e40af; }
+    .badge-gas { background: #fef3c7; color: #92400e; }
+    .badge-equipment { background: #e0e7ff; color: #3730a3; }
+    .badge-marketing { background: #fce7f3; color: #9d174d; }
+    .badge-software { background: #f3e8ff; color: #6b21a8; }
+    .badge-insurance { background: #dcfce7; color: #166534; }
+    .badge-professional { background: #fee2e2; color: #991b1b; }
+    .badge-office { background: #e0f2fe; color: #075985; }
+    .badge-other { background: #f1f5f9; color: #475569; }
+    .badge-recurring { background: var(--amber-light); color: var(--amber); }
+    .badge-receipt { background: var(--green-light); color: var(--green); }
+    .badge-no-receipt { background: var(--red-light); color: var(--red); }
+    
+    /* Filters */
+    .filters { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .filter-group { display: flex; align-items: center; gap: 6px; }
+    .filter-label { font-size: 0.78rem; font-weight: 600; color: var(--muted); }
+    .filter-select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.82rem; background: var(--card); }
+    .filter-input { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.82rem; width: 150px; }
+    
+    /* Chart container */
+    .chart-container { position: relative; height: 280px; }
+    
+    /* Budget progress */
+    .budget-list { display: flex; flex-direction: column; gap: 12px; }
+    .budget-item { padding: 12px; background: var(--bg); border-radius: 8px; }
+    .budget-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .budget-category { font-weight: 600; font-size: 0.85rem; }
+    .budget-amounts { font-size: 0.78rem; color: var(--muted); }
+    .budget-bar { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+    .budget-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+    .budget-fill.ok { background: var(--green); }
+    .budget-fill.warning { background: var(--amber); }
+    .budget-fill.danger { background: var(--red); }
+    .budget-alert { font-size: 0.72rem; margin-top: 6px; font-weight: 600; }
+    .budget-alert.warning { color: var(--amber); }
+    .budget-alert.danger { color: var(--red); }
+    
+    /* Tax report */
+    .tax-table { margin-top: 16px; }
+    .tax-table td:last-child { text-align: right; font-weight: 600; }
+    .tax-total { font-size: 1.1rem; font-weight: 800; }
+    
+    /* Mileage summary */
+    .mileage-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+    .mileage-stat { text-align: center; padding: 16px; background: var(--bg); border-radius: 8px; }
+    .mileage-value { font-size: 1.4rem; font-weight: 800; color: var(--accent); }
+    .mileage-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
+    
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--card); border-radius: var(--radius); padding: 28px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .modal-title { font-size: 1.1rem; font-weight: 700; }
+    .modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--muted); line-height: 1; }
+    .modal-close:hover { color: var(--text); }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    
+    /* Section visibility */
+    .section { display: none; }
+    .section.active { display: block; }
+    
+    /* Empty state */
+    .empty-state { text-align: center; padding: 40px; color: var(--muted); }
+    .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+    
+    /* Receipt status */
+    .receipt-icon { font-size: 1rem; }
+    
+    /* Actions column */
+    .actions { display: flex; gap: 6px; }
+    
+    /* Responsive */
+    @media (max-width: 1000px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .form-grid { grid-template-columns: 1fr 1fr; }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .page { padding: 16px; }
+      .stats-row { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .filters { flex-direction: column; align-items: stretch; }
+      .mileage-stats { grid-template-columns: 1fr; }
+      .tabs { width: 100%; overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+<script src="/nav.js"></script>
+
+<div class="page">
+  <!-- Header -->
+  <div class="page-header">
+    <h1 class="page-title">💸 Expense Tracker</h1>
+    <div class="header-actions">
+      <button class="btn" onclick="exportCSV()">📥 Export CSV</button>
+      <button class="btn btn-primary" onclick="openModal('expense')">➕ Add Expense</button>
+    </div>
+  </div>
+  
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-tab="expenses">Expenses</button>
+    <button class="tab" data-tab="summary">Monthly Summary</button>
+    <button class="tab" data-tab="budgets">Budgets</button>
+    <button class="tab" data-tab="tax">Tax Reports</button>
+  </div>
+  
+  <!-- Stats Row -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon">💵</div>
+      <div class="stat-value" id="stat-total">$0</div>
+      <div class="stat-label">This Month</div>
+      <div class="stat-trend" id="stat-trend-total"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">📊</div>
+      <div class="stat-value" id="stat-avg">$0</div>
+      <div class="stat-label">Daily Avg</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🔁</div>
+      <div class="stat-value" id="stat-recurring">$0</div>
+      <div class="stat-label">Recurring</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🧾</div>
+      <div class="stat-value" id="stat-receipts">0%</div>
+      <div class="stat-label">Receipts Tracked</div>
+    </div>
+  </div>
+  
+  <!-- EXPENSES TAB -->
+  <div class="section active" id="section-expenses">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📝 Expense Log</span>
+      </div>
+      
+      <div class="filters">
+        <div class="filter-group">
+          <span class="filter-label">Category:</span>
+          <select class="filter-select" id="filter-category">
+            <option value="">All Categories</option>
+            <option value="inventory">Inventory/COGS</option>
+            <option value="gas">Gas/Mileage</option>
+            <option value="equipment">Equipment/Machines</option>
+            <option value="marketing">Marketing</option>
+            <option value="software">Software/Subscriptions</option>
+            <option value="insurance">Insurance</option>
+            <option value="professional">Professional Services</option>
+            <option value="office">Office Supplies</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">From:</span>
+          <input type="date" class="filter-input" id="filter-from">
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">To:</span>
+          <input type="date" class="filter-input" id="filter-to">
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Search:</span>
+          <input type="text" class="filter-input" id="filter-search" placeholder="Vendor or description...">
+        </div>
+      </div>
+      
+      <div class="table-container">
+        <table id="expense-table">
+          <thead>
+            <tr>
+              <th data-sort="date">Date <span class="sort-icon">↕</span></th>
+              <th data-sort="amount">Amount <span class="sort-icon">↕</span></th>
+              <th data-sort="category">Category <span class="sort-icon">↕</span></th>
+              <th data-sort="vendor">Vendor <span class="sort-icon">↕</span></th>
+              <th>Description</th>
+              <th>Receipt</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="expense-tbody">
+            <tr><td colspan="7" class="empty-state"><div class="empty-icon">📭</div>No expenses recorded yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <!-- MONTHLY SUMMARY TAB -->
+  <div class="section" id="section-summary">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🥧 Expenses by Category</span>
+          <select class="filter-select" id="summary-month">
+            <!-- Populated by JS -->
+          </select>
+        </div>
+        <div class="chart-container">
+          <canvas id="category-chart"></canvas>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📈 Month-over-Month</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="mom-chart"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📊 Budget vs Actual</span>
+      </div>
+      <div class="chart-container" style="height: 320px;">
+        <canvas id="budget-chart"></canvas>
+      </div>
+    </div>
+  </div>
+  
+  <!-- BUDGETS TAB -->
+  <div class="section" id="section-budgets">
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">💰 Monthly Budgets</span>
+          <button class="btn btn-sm" onclick="openModal('budget')">Set Budgets</button>
+        </div>
+        <div class="budget-list" id="budget-list">
+          <div class="empty-state"><div class="empty-icon">📋</div>No budgets set yet</div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">⚠️ Budget Alerts</span>
+        </div>
+        <div id="budget-alerts">
+          <div class="empty-state">No alerts</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- TAX REPORTS TAB -->
+  <div class="section" id="section-tax">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📋 Expenses by Category (Tax Year)</span>
+          <select class="filter-select" id="tax-year">
+            <!-- Populated by JS -->
+          </select>
+        </div>
+        <table class="tax-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th style="text-align: right;">Total</th>
+            </tr>
+          </thead>
+          <tbody id="tax-category-tbody"></tbody>
+          <tfoot>
+            <tr>
+              <td><strong>Total Deductible Expenses</strong></td>
+              <td class="tax-total" id="tax-total">$0</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🚗 Mileage Log Summary</span>
+        </div>
+        <div class="mileage-stats" id="mileage-stats">
+          <div class="mileage-stat">
+            <div class="mileage-value" id="mileage-total">0</div>
+            <div class="mileage-label">Total Miles</div>
+          </div>
+          <div class="mileage-stat">
+            <div class="mileage-value" id="mileage-rate">$0.67</div>
+            <div class="mileage-label">IRS Rate (2024)</div>
+          </div>
+          <div class="mileage-stat">
+            <div class="mileage-value" id="mileage-deduction">$0</div>
+            <div class="mileage-label">Deduction</div>
+          </div>
+        </div>
+        <p style="margin-top: 16px; font-size: 0.82rem; color: var(--muted);">
+          Note: Track mileage in Gas/Mileage expenses with "miles:" in description for automatic calculation.
+        </p>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🧾 Receipt Tracking Status</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>With Receipt</th>
+            <th>Missing Receipt</th>
+            <th>% Complete</th>
+          </tr>
+        </thead>
+        <tbody id="receipt-status-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Expense Modal -->
+<div class="modal-overlay" id="expense-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="expense-modal-title">Add Expense</h2>
+      <button class="modal-close" onclick="closeModal('expense')">&times;</button>
+    </div>
+    <form id="expense-form">
+      <input type="hidden" id="expense-id">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input type="date" class="form-input" id="expense-date" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Amount</label>
+          <input type="number" step="0.01" class="form-input" id="expense-amount" placeholder="0.00" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-select" id="expense-category" required>
+            <option value="">Select category...</option>
+            <option value="inventory">Inventory/COGS</option>
+            <option value="gas">Gas/Mileage</option>
+            <option value="equipment">Equipment/Machines</option>
+            <option value="marketing">Marketing</option>
+            <option value="software">Software/Subscriptions</option>
+            <option value="insurance">Insurance</option>
+            <option value="professional">Professional Services</option>
+            <option value="office">Office Supplies</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Vendor</label>
+          <input type="text" class="form-input" id="expense-vendor" placeholder="e.g., Costco, Shell">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Description</label>
+          <textarea class="form-textarea" id="expense-description" placeholder="What was this expense for?"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Receipt</label>
+          <input type="file" class="form-input" id="expense-receipt" accept="image/*,.pdf">
+        </div>
+        <div class="form-group" style="justify-content: flex-end;">
+          <div class="form-check" style="margin-top: 20px;">
+            <input type="checkbox" id="expense-recurring">
+            <label for="expense-recurring">🔁 Recurring expense</label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closeModal('expense')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Expense</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Budget Modal -->
+<div class="modal-overlay" id="budget-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">Set Monthly Budgets</h2>
+      <button class="modal-close" onclick="closeModal('budget')">&times;</button>
+    </div>
+    <form id="budget-form">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="form-group" style="flex-direction: row; align-items: center; justify-content: space-between;">
+          <label class="form-label" style="flex: 1;">Inventory/COGS</label>
+          <input type="number" step="1" class="form-input" style="width: 120px;" data-cat="inventory" placeholder="$0">
+        </div>
+        <div class="form-group" style="flex-direction: row; align-items: center; justify-content: space-between;">
+          <label class="form-label" style="flex: 1;">Gas/Mileage</label>
+          <input type="number" step="1" class="form-input" style="width: 120px;" data-cat="gas" placeholder="$0">
+        </div>
+        <div class="form-group" style="flex-direction: row; align-items: center; justify-content: space-between;">
+          <label class="form-label" style="flex: 1;">Equipment/Machines</label>
+          <input type="number" step="1" class="form-input" style="width: 120px;" data-cat="equipment" placeholder="$0">
+        </div>
+        <div class="form-group" style="flex-direction: row; align-items: center; justify-content: space-between;">
+          <label class="form-label" style="flex: 1;">Marketing</label>
+          <input type="number" step="1" class="form-input" style="width: 120px;" data-cat="marketing" placeholder="$0">
+        </div>
+        <div class="form-group" style="flex-direction: row; align-items: center; justify-content: space-between;">
+          <label class="form-label" style="flex: 1;">Software/Subscriptions</label>
+          <input type="number" step="1" class="form-input" style="width: 120px;" data-cat="software" placeholder="$0">
+        </div>
+        <div class="form-group" style="flex-direction: row; align-items: center; justify-content: space-between;">
+          <label class="form-label" style="flex: 1;">Insurance</label>
+          <input type="number" step="1" class="form-input" style="width: 120px;" data-cat="insurance" placeholder="$0">
+        </div>
+        <div class="form-group" style="flex-direction: row; align-items: center; justify-content: space-between;">
+          <label class="form-label" style="flex: 1;">Professional Services</label>
+          <input type="number" step="1" class="form-input" style="width: 120px;" data-cat="professional" placeholder="$0">
+        </div>
+        <div class="form-group" style="flex-direction: row; align-items: center; justify-content: space-between;">
+          <label class="form-label" style="flex: 1;">Office Supplies</label>
+          <input type="number" step="1" class="form-input" style="width: 120px;" data-cat="office" placeholder="$0">
+        </div>
+        <div class="form-group" style="flex-direction: row; align-items: center; justify-content: space-between;">
+          <label class="form-label" style="flex: 1;">Other</label>
+          <input type="number" step="1" class="form-input" style="width: 120px;" data-cat="other" placeholder="$0">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closeModal('budget')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Budgets</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  
+  const CATEGORIES = {
+    inventory: { label: 'Inventory/COGS', color: '#3b82f6' },
+    gas: { label: 'Gas/Mileage', color: '#f59e0b' },
+    equipment: { label: 'Equipment/Machines', color: '#8b5cf6' },
+    marketing: { label: 'Marketing', color: '#ec4899' },
+    software: { label: 'Software/Subscriptions', color: '#a855f7' },
+    insurance: { label: 'Insurance', color: '#22c55e' },
+    professional: { label: 'Professional Services', color: '#ef4444' },
+    office: { label: 'Office Supplies', color: '#06b6d4' },
+    other: { label: 'Other', color: '#64748b' }
+  };
+  
+  const IRS_MILEAGE_RATE = 0.67; // 2024 rate
+  
+  let expenses = [];
+  let budgets = {};
+  let sortCol = 'date';
+  let sortDir = 'desc';
+  let categoryChart = null;
+  let momChart = null;
+  let budgetChart = null;
+  
+  // Initialize
+  async function init() {
+    await loadExpenses();
+    await loadBudgets();
+    setupTabs();
+    setupFilters();
+    setupSorting();
+    setupForms();
+    populateMonthSelectors();
+    render();
+  }
+  
+  // API
+  async function loadExpenses() {
+    try {
+      const res = await fetch('/api/expenses');
+      if (res.ok) expenses = await res.json();
+    } catch (e) { console.error('Failed to load expenses:', e); }
+  }
+  
+  async function loadBudgets() {
+    try {
+      const res = await fetch('/api/expense-budgets');
+      if (res.ok) budgets = await res.json();
+    } catch (e) { console.error('Failed to load budgets:', e); }
+  }
+  
+  async function saveExpense(data) {
+    const method = data.id ? 'PUT' : 'POST';
+    const url = data.id ? `/api/expenses/${data.id}` : '/api/expenses';
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to save expense');
+    return res.json();
+  }
+  
+  async function deleteExpense(id) {
+    const res = await fetch(`/api/expenses/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete expense');
+  }
+  
+  async function saveBudgets(data) {
+    const res = await fetch('/api/expense-budgets', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to save budgets');
+    return res.json();
+  }
+  
+  // Tabs
+  function setupTabs() {
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(`section-${tab.dataset.tab}`).classList.add('active');
+        if (tab.dataset.tab === 'summary') renderCharts();
+        if (tab.dataset.tab === 'tax') renderTaxReports();
+      });
+    });
+  }
+  
+  // Filters
+  function setupFilters() {
+    ['filter-category', 'filter-from', 'filter-to', 'filter-search'].forEach(id => {
+      document.getElementById(id).addEventListener('change', renderTable);
+      document.getElementById(id).addEventListener('input', renderTable);
+    });
+    
+    // Set default date range to current month
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    document.getElementById('filter-from').value = firstDay.toISOString().split('T')[0];
+  }
+  
+  // Sorting
+  function setupSorting() {
+    document.querySelectorAll('#expense-table th[data-sort]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.sort;
+        if (sortCol === col) {
+          sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+          sortCol = col;
+          sortDir = col === 'date' ? 'desc' : 'asc';
+        }
+        renderTable();
+      });
+    });
+  }
+  
+  // Forms
+  function setupForms() {
+    document.getElementById('expense-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = {
+        date: document.getElementById('expense-date').value,
+        amount: parseFloat(document.getElementById('expense-amount').value),
+        category: document.getElementById('expense-category').value,
+        vendor: document.getElementById('expense-vendor').value,
+        description: document.getElementById('expense-description').value,
+        recurring: document.getElementById('expense-recurring').checked,
+        has_receipt: !!document.getElementById('expense-receipt').files.length
+      };
+      const id = document.getElementById('expense-id').value;
+      if (id) data.id = parseInt(id);
+      
+      try {
+        const saved = await saveExpense(data);
+        if (id) {
+          const idx = expenses.findIndex(e => e.id === parseInt(id));
+          if (idx >= 0) expenses[idx] = saved;
+        } else {
+          expenses.push(saved);
+        }
+        closeModal('expense');
+        render();
+      } catch (e) { alert('Error saving expense: ' + e.message); }
+    });
+    
+    document.getElementById('budget-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const newBudgets = {};
+      document.querySelectorAll('#budget-form input[data-cat]').forEach(input => {
+        const val = parseFloat(input.value);
+        if (val > 0) newBudgets[input.dataset.cat] = val;
+      });
+      
+      try {
+        budgets = await saveBudgets(newBudgets);
+        closeModal('budget');
+        render();
+      } catch (e) { alert('Error saving budgets: ' + e.message); }
+    });
+    
+    // Set default date to today
+    document.getElementById('expense-date').value = new Date().toISOString().split('T')[0];
+  }
+  
+  // Modals
+  window.openModal = function(type, data = null) {
+    if (type === 'expense') {
+      document.getElementById('expense-modal-title').textContent = data ? 'Edit Expense' : 'Add Expense';
+      document.getElementById('expense-id').value = data?.id || '';
+      document.getElementById('expense-date').value = data?.date || new Date().toISOString().split('T')[0];
+      document.getElementById('expense-amount').value = data?.amount || '';
+      document.getElementById('expense-category').value = data?.category || '';
+      document.getElementById('expense-vendor').value = data?.vendor || '';
+      document.getElementById('expense-description').value = data?.description || '';
+      document.getElementById('expense-recurring').checked = data?.recurring || false;
+      document.getElementById('expense-modal').classList.add('open');
+    } else if (type === 'budget') {
+      document.querySelectorAll('#budget-form input[data-cat]').forEach(input => {
+        input.value = budgets[input.dataset.cat] || '';
+      });
+      document.getElementById('budget-modal').classList.add('open');
+    }
+  };
+  
+  window.closeModal = function(type) {
+    document.getElementById(`${type}-modal`).classList.remove('open');
+  };
+  
+  window.editExpense = function(id) {
+    const expense = expenses.find(e => e.id === id);
+    if (expense) openModal('expense', expense);
+  };
+  
+  window.deleteExpenseConfirm = async function(id) {
+    if (!confirm('Delete this expense?')) return;
+    try {
+      await deleteExpense(id);
+      expenses = expenses.filter(e => e.id !== id);
+      render();
+    } catch (e) { alert('Error deleting expense: ' + e.message); }
+  };
+  
+  // Render
+  function render() {
+    renderStats();
+    renderTable();
+    renderBudgetList();
+  }
+  
+  function getFilteredExpenses() {
+    const cat = document.getElementById('filter-category').value;
+    const from = document.getElementById('filter-from').value;
+    const to = document.getElementById('filter-to').value;
+    const search = document.getElementById('filter-search').value.toLowerCase();
+    
+    return expenses.filter(e => {
+      if (cat && e.category !== cat) return false;
+      if (from && e.date < from) return false;
+      if (to && e.date > to) return false;
+      if (search && !e.vendor?.toLowerCase().includes(search) && !e.description?.toLowerCase().includes(search)) return false;
+      return true;
+    });
+  }
+  
+  function renderStats() {
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
+    
+    const thisMonthExpenses = expenses.filter(e => e.date?.startsWith(currentMonth));
+    const lastMonthExpenses = expenses.filter(e => e.date?.startsWith(lastMonthStr));
+    
+    const thisTotal = thisMonthExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+    const lastTotal = lastMonthExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+    const recurring = thisMonthExpenses.filter(e => e.recurring).reduce((s, e) => s + (e.amount || 0), 0);
+    const withReceipt = thisMonthExpenses.filter(e => e.has_receipt).length;
+    const receiptPct = thisMonthExpenses.length > 0 ? Math.round((withReceipt / thisMonthExpenses.length) * 100) : 0;
+    
+    const dayOfMonth = now.getDate();
+    const avgDaily = dayOfMonth > 0 ? thisTotal / dayOfMonth : 0;
+    
+    document.getElementById('stat-total').textContent = '$' + thisTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    document.getElementById('stat-avg').textContent = '$' + avgDaily.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    document.getElementById('stat-recurring').textContent = '$' + recurring.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    document.getElementById('stat-receipts').textContent = receiptPct + '%';
+    
+    const diff = thisTotal - lastTotal;
+    const trendEl = document.getElementById('stat-trend-total');
+    if (lastTotal > 0) {
+      const pct = Math.round((diff / lastTotal) * 100);
+      if (diff > 0) {
+        trendEl.className = 'stat-trend up';
+        trendEl.textContent = `↑ ${pct}% vs last month`;
+      } else if (diff < 0) {
+        trendEl.className = 'stat-trend down';
+        trendEl.textContent = `↓ ${Math.abs(pct)}% vs last month`;
+      } else {
+        trendEl.textContent = '';
+      }
+    } else {
+      trendEl.textContent = '';
+    }
+  }
+  
+  function renderTable() {
+    const filtered = getFilteredExpenses();
+    
+    // Sort
+    filtered.sort((a, b) => {
+      let aVal = a[sortCol];
+      let bVal = b[sortCol];
+      if (sortCol === 'amount') {
+        aVal = aVal || 0;
+        bVal = bVal || 0;
+      }
+      if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    
+    // Update sort indicators
+    document.querySelectorAll('#expense-table th[data-sort]').forEach(th => {
+      th.classList.toggle('sorted', th.dataset.sort === sortCol);
+      const icon = th.querySelector('.sort-icon');
+      if (th.dataset.sort === sortCol) {
+        icon.textContent = sortDir === 'asc' ? '↑' : '↓';
+      } else {
+        icon.textContent = '↕';
+      }
+    });
+    
+    const tbody = document.getElementById('expense-tbody');
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-icon">📭</div>No expenses found</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = filtered.map(e => `
+      <tr>
+        <td>${formatDate(e.date)}</td>
+        <td><strong>$${(e.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></td>
+        <td><span class="badge badge-${e.category}">${CATEGORIES[e.category]?.label || e.category}</span>
+            ${e.recurring ? '<span class="badge badge-recurring" style="margin-left:4px;">🔁</span>' : ''}</td>
+        <td>${e.vendor || '—'}</td>
+        <td>${e.description || '—'}</td>
+        <td>${e.has_receipt ? '<span class="badge badge-receipt">✓ Yes</span>' : '<span class="badge badge-no-receipt">✗ No</span>'}</td>
+        <td class="actions">
+          <button class="btn btn-sm" onclick="editExpense(${e.id})">✏️</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteExpenseConfirm(${e.id})">🗑</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+  
+  function renderBudgetList() {
+    const container = document.getElementById('budget-list');
+    const alertsContainer = document.getElementById('budget-alerts');
+    
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const monthExpenses = expenses.filter(e => e.date?.startsWith(currentMonth));
+    
+    // Calculate spending by category
+    const spending = {};
+    monthExpenses.forEach(e => {
+      if (!spending[e.category]) spending[e.category] = 0;
+      spending[e.category] += e.amount || 0;
+    });
+    
+    const alerts = [];
+    const budgetItems = Object.keys(CATEGORIES).map(cat => {
+      const budget = budgets[cat] || 0;
+      const spent = spending[cat] || 0;
+      const pct = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
+      const status = pct >= 100 ? 'danger' : pct >= 80 ? 'warning' : 'ok';
+      
+      if (budget > 0 && pct >= 80) {
+        alerts.push({ category: cat, pct, status });
+      }
+      
+      if (budget > 0 || spent > 0) {
+        return `
+          <div class="budget-item">
+            <div class="budget-header">
+              <span class="budget-category">${CATEGORIES[cat].label}</span>
+              <span class="budget-amounts">$${spent.toFixed(0)} / $${budget.toFixed(0)}</span>
+            </div>
+            <div class="budget-bar">
+              <div class="budget-fill ${status}" style="width: ${pct}%"></div>
+            </div>
+            ${status !== 'ok' ? `<div class="budget-alert ${status}">${status === 'danger' ? '🚨 Over budget!' : '⚠️ Approaching limit (' + Math.round(pct) + '%)'}</div>` : ''}
+          </div>
+        `;
+      }
+      return '';
+    }).filter(Boolean);
+    
+    container.innerHTML = budgetItems.length > 0 ? budgetItems.join('') : '<div class="empty-state"><div class="empty-icon">📋</div>No budgets set. Click "Set Budgets" to get started.</div>';
+    
+    alertsContainer.innerHTML = alerts.length > 0 ? alerts.map(a => `
+      <div class="budget-item">
+        <div class="budget-alert ${a.status}">${a.status === 'danger' ? '🚨' : '⚠️'} ${CATEGORIES[a.category].label}: ${Math.round(a.pct)}% used</div>
+      </div>
+    `).join('') : '<div class="empty-state">✅ All budgets on track!</div>';
+  }
+  
+  function populateMonthSelectors() {
+    const months = [];
+    const now = new Date();
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+    
+    const summarySelect = document.getElementById('summary-month');
+    summarySelect.innerHTML = months.map((m, i) => `<option value="${m}"${i === 0 ? ' selected' : ''}>${formatMonth(m)}</option>`).join('');
+    summarySelect.addEventListener('change', renderCharts);
+    
+    const years = [...new Set(months.map(m => m.split('-')[0]))];
+    const taxSelect = document.getElementById('tax-year');
+    taxSelect.innerHTML = years.map((y, i) => `<option value="${y}"${i === 0 ? ' selected' : ''}>${y}</option>`).join('');
+    taxSelect.addEventListener('change', renderTaxReports);
+  }
+  
+  function renderCharts() {
+    const selectedMonth = document.getElementById('summary-month').value;
+    const monthExpenses = expenses.filter(e => e.date?.startsWith(selectedMonth));
+    
+    // Category pie chart
+    const categoryData = {};
+    monthExpenses.forEach(e => {
+      if (!categoryData[e.category]) categoryData[e.category] = 0;
+      categoryData[e.category] += e.amount || 0;
+    });
+    
+    const catLabels = Object.keys(categoryData).map(c => CATEGORIES[c]?.label || c);
+    const catValues = Object.values(categoryData);
+    const catColors = Object.keys(categoryData).map(c => CATEGORIES[c]?.color || '#64748b');
+    
+    if (categoryChart) categoryChart.destroy();
+    categoryChart = new Chart(document.getElementById('category-chart'), {
+      type: 'doughnut',
+      data: {
+        labels: catLabels,
+        datasets: [{ data: catValues, backgroundColor: catColors, borderWidth: 0 }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'right', labels: { boxWidth: 12, padding: 12 } }
+        }
+      }
+    });
+    
+    // Month-over-month bar chart
+    const months = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+    
+    const momData = months.map(m => {
+      return expenses.filter(e => e.date?.startsWith(m)).reduce((s, e) => s + (e.amount || 0), 0);
+    });
+    
+    if (momChart) momChart.destroy();
+    momChart = new Chart(document.getElementById('mom-chart'), {
+      type: 'bar',
+      data: {
+        labels: months.map(formatMonth),
+        datasets: [{ label: 'Expenses', data: momData, backgroundColor: '#3b82f6', borderRadius: 6 }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { callback: v => '$' + v } }
+        }
+      }
+    });
+    
+    // Budget vs Actual
+    const budgetLabels = Object.keys(CATEGORIES);
+    const actualData = budgetLabels.map(c => {
+      return expenses.filter(e => e.date?.startsWith(selectedMonth) && e.category === c).reduce((s, e) => s + (e.amount || 0), 0);
+    });
+    const budgetData = budgetLabels.map(c => budgets[c] || 0);
+    
+    if (budgetChart) budgetChart.destroy();
+    budgetChart = new Chart(document.getElementById('budget-chart'), {
+      type: 'bar',
+      data: {
+        labels: budgetLabels.map(c => CATEGORIES[c].label),
+        datasets: [
+          { label: 'Budget', data: budgetData, backgroundColor: '#e2e8f0', borderRadius: 4 },
+          { label: 'Actual', data: actualData, backgroundColor: '#3b82f6', borderRadius: 4 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } },
+        scales: {
+          y: { beginAtZero: true, ticks: { callback: v => '$' + v } }
+        }
+      }
+    });
+  }
+  
+  function renderTaxReports() {
+    const year = document.getElementById('tax-year').value;
+    const yearExpenses = expenses.filter(e => e.date?.startsWith(year));
+    
+    // Category totals
+    const categoryTotals = {};
+    yearExpenses.forEach(e => {
+      if (!categoryTotals[e.category]) categoryTotals[e.category] = 0;
+      categoryTotals[e.category] += e.amount || 0;
+    });
+    
+    const tbody = document.getElementById('tax-category-tbody');
+    const sorted = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
+    tbody.innerHTML = sorted.map(([cat, total]) => `
+      <tr>
+        <td>${CATEGORIES[cat]?.label || cat}</td>
+        <td>$${total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+      </tr>
+    `).join('');
+    
+    const totalDeductible = sorted.reduce((s, [, t]) => s + t, 0);
+    document.getElementById('tax-total').textContent = '$' + totalDeductible.toLocaleString('en-US', { minimumFractionDigits: 2 });
+    
+    // Mileage calculation
+    let totalMiles = 0;
+    yearExpenses.filter(e => e.category === 'gas').forEach(e => {
+      const desc = (e.description || '').toLowerCase();
+      const match = desc.match(/miles?:\s*(\d+(?:\.\d+)?)/i);
+      if (match) totalMiles += parseFloat(match[1]);
+    });
+    
+    document.getElementById('mileage-total').textContent = totalMiles.toLocaleString();
+    document.getElementById('mileage-deduction').textContent = '$' + (totalMiles * IRS_MILEAGE_RATE).toLocaleString('en-US', { minimumFractionDigits: 2 });
+    
+    // Receipt tracking
+    const receiptStatus = {};
+    yearExpenses.forEach(e => {
+      if (!receiptStatus[e.category]) receiptStatus[e.category] = { with: 0, without: 0 };
+      if (e.has_receipt) receiptStatus[e.category].with++;
+      else receiptStatus[e.category].without++;
+    });
+    
+    const receiptTbody = document.getElementById('receipt-status-tbody');
+    receiptTbody.innerHTML = Object.entries(receiptStatus).map(([cat, data]) => {
+      const total = data.with + data.without;
+      const pct = total > 0 ? Math.round((data.with / total) * 100) : 0;
+      return `
+        <tr>
+          <td>${CATEGORIES[cat]?.label || cat}</td>
+          <td>${data.with}</td>
+          <td>${data.without}</td>
+          <td><span class="badge ${pct >= 80 ? 'badge-receipt' : pct >= 50 ? 'badge-recurring' : 'badge-no-receipt'}">${pct}%</span></td>
+        </tr>
+      `;
+    }).join('');
+  }
+  
+  // CSV Export
+  window.exportCSV = function() {
+    const filtered = getFilteredExpenses();
+    if (filtered.length === 0) {
+      alert('No expenses to export');
+      return;
+    }
+    
+    const headers = ['Date', 'Amount', 'Category', 'Vendor', 'Description', 'Recurring', 'Has Receipt'];
+    const rows = filtered.map(e => [
+      e.date,
+      e.amount,
+      CATEGORIES[e.category]?.label || e.category,
+      e.vendor || '',
+      (e.description || '').replace(/"/g, '""'),
+      e.recurring ? 'Yes' : 'No',
+      e.has_receipt ? 'Yes' : 'No'
+    ]);
+    
+    const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `expenses-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  
+  // Helpers
+  function formatDate(dateStr) {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  
+  function formatMonth(monthStr) {
+    const [year, month] = monthStr.split('-');
+    const d = new Date(year, parseInt(month) - 1, 1);
+    return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  }
+  
+  // Init
+  init();
+})();
+</script>
+</body>
+</html>

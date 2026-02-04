@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Contacts Directory — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
+      --muted: #718096; --accent: #3182ce; --hot: #e53e3e; --warn: #dd6b20;
+      --success: #38a169; --purple: #7b2cbf; --teal: #319795;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+    /* Nav */
+    .top-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .top-nav .logo { height: 40px; }
+    .top-nav a { color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500; padding: 6px 12px; border-radius: 6px; transition: all 0.2s; }
+    .top-nav a:hover, .top-nav a.active { color: var(--accent); background: rgba(49,130,206,0.08); }
+    .nav-brand { font-size: 0.9rem; font-weight: 600; color: var(--text); margin-right: 8px; }
+
+    /* Header */
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .page-header h1 { font-size: 1.6rem; font-weight: 700; }
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* Buttons */
+    .btn { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+    .btn-primary:hover { background: #2b6cb0; }
+    .btn-danger { color: var(--hot); border-color: var(--hot); }
+    .btn-danger:hover { background: var(--hot); color: white; }
+    .btn-success { color: var(--success); border-color: var(--success); }
+    .btn-success:hover { background: var(--success); color: white; }
+    .btn-warn { color: var(--warn); border-color: var(--warn); }
+    .btn-warn:hover { background: var(--warn); color: white; }
+    .btn-sm { padding: 4px 10px; font-size: 0.78rem; }
+    .btn-icon { padding: 6px 10px; }
+
+    /* Stats Grid */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat-card { background: var(--card); border-radius: 12px; padding: 18px; border: 1px solid var(--border); text-align: center; }
+    .stat-card .value { font-size: 2rem; font-weight: 700; }
+    .stat-card .label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; font-weight: 600; }
+    .value.accent { color: var(--accent); }
+    .value.success { color: var(--success); }
+    .value.warn { color: var(--warn); }
+    .value.hot { color: var(--hot); }
+    .value.purple { color: var(--purple); }
+    .value.teal { color: var(--teal); }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid var(--border); overflow-x: auto; }
+    .tab { padding: 10px 20px; font-size: 0.9rem; font-weight: 500; color: var(--muted); background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; white-space: nowrap; }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Cards */
+    .card { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); margin-bottom: 16px; }
+
+    /* Filter bar */
+    .filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .filter-bar input, .filter-bar select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; }
+    .filter-bar input[type="text"] { min-width: 200px; }
+
+    /* View Toggle */
+    .view-toggle { display: flex; gap: 4px; background: var(--bg); border-radius: 8px; padding: 4px; }
+    .view-toggle button { padding: 6px 12px; border: none; background: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+    .view-toggle button.active { background: var(--card); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+    /* Contact Cards Grid */
+    .contacts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+    .contact-card { background: var(--card); border-radius: 12px; padding: 16px; border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; }
+    .contact-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(49,130,206,0.1); }
+    .contact-card.expanded { grid-column: 1 / -1; max-width: 800px; }
+    .contact-header { display: flex; gap: 12px; align-items: flex-start; }
+    .contact-avatar { width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--purple)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.2rem; flex-shrink: 0; overflow: hidden; }
+    .contact-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .contact-info { flex: 1; min-width: 0; }
+    .contact-name { font-weight: 600; font-size: 1rem; margin-bottom: 2px; }
+    .contact-title { font-size: 0.8rem; color: var(--muted); }
+    .contact-company { font-size: 0.85rem; color: var(--text); margin-top: 4px; }
+    .contact-company a { color: var(--accent); text-decoration: none; }
+    .contact-company a:hover { text-decoration: underline; }
+    .contact-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+    .tag-decision-maker { background: rgba(123,44,191,0.15); color: var(--purple); }
+    .tag-influencer { background: rgba(49,130,206,0.15); color: var(--accent); }
+    .tag-gatekeeper { background: rgba(221,107,32,0.15); color: var(--warn); }
+    .tag-champion { background: rgba(56,161,105,0.15); color: var(--success); }
+    .tag-technical { background: rgba(49,151,149,0.15); color: var(--teal); }
+    .contact-meta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; font-size: 0.8rem; color: var(--muted); }
+    .contact-meta span { display: flex; align-items: center; gap: 4px; }
+    .contact-actions { display: flex; gap: 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+
+    /* Expanded Contact Details */
+    .contact-details { display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+    .contact-card.expanded .contact-details { display: block; }
+    .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .detail-section { margin-bottom: 16px; }
+    .detail-section h4 { font-size: 0.8rem; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; font-weight: 600; }
+    .detail-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.85rem; }
+    .detail-item .icon { width: 20px; text-align: center; }
+
+    /* Communication History */
+    .comm-log { max-height: 300px; overflow-y: auto; }
+    .comm-item { display: flex; gap: 12px; padding: 10px; border-left: 3px solid var(--accent); margin-bottom: 8px; background: rgba(49,130,206,0.03); border-radius: 0 8px 8px 0; }
+    .comm-item.call { border-color: var(--success); }
+    .comm-item.email { border-color: var(--accent); }
+    .comm-item.meeting { border-color: var(--purple); }
+    .comm-item.note { border-color: var(--muted); }
+    .comm-icon { font-size: 1.1rem; flex-shrink: 0; }
+    .comm-body { flex: 1; }
+    .comm-date { font-size: 0.75rem; color: var(--muted); }
+    .comm-text { font-size: 0.85rem; margin-top: 4px; }
+
+    /* Table View */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { text-align: left; padding: 10px 12px; font-weight: 600; color: var(--muted); border-bottom: 2px solid var(--border); font-size: 0.75rem; text-transform: uppercase; position: sticky; top: 0; background: var(--card); }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    tr:hover { background: rgba(49,130,206,0.03); }
+    tr.clickable { cursor: pointer; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: flex-start; padding: 40px 20px; overflow-y: auto; }
+    .modal-overlay.show { display: flex; }
+    .modal { background: var(--card); border-radius: 12px; padding: 24px; width: 100%; max-width: 700px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .modal h2 { font-size: 1.2rem; margin-bottom: 20px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; font-family: inherit; }
+    .form-group textarea { min-height: 80px; resize: vertical; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+    .multi-input { display: flex; flex-direction: column; gap: 8px; }
+    .multi-input-row { display: flex; gap: 8px; }
+    .multi-input-row input { flex: 1; }
+    .multi-input-row select { width: 100px; }
+    .add-input-btn { font-size: 0.8rem; color: var(--accent); background: none; border: none; cursor: pointer; text-align: left; padding: 4px 0; }
+    .add-input-btn:hover { text-decoration: underline; }
+    .checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .checkbox-item { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; }
+    .checkbox-item input { width: auto; }
+
+    /* Relationship Map */
+    .rel-map { padding: 20px; }
+    .rel-tree { margin-left: 20px; }
+    .rel-node { padding: 8px 0; position: relative; }
+    .rel-node::before { content: ''; position: absolute; left: -16px; top: 0; bottom: 50%; border-left: 2px solid var(--border); border-bottom: 2px solid var(--border); width: 12px; }
+    .rel-node:first-child::before { top: 50%; }
+    .rel-node:last-child::before { border-left: none; }
+    .rel-node-card { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+    .rel-node-card:hover { border-color: var(--accent); }
+    .rel-node-card .influence { width: 8px; height: 8px; border-radius: 50%; }
+    .influence-high { background: var(--success); }
+    .influence-medium { background: var(--warn); }
+    .influence-low { background: var(--muted); }
+
+    /* Import/Export */
+    .import-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 40px; text-align: center; margin-bottom: 20px; transition: all 0.2s; }
+    .import-zone:hover, .import-zone.dragover { border-color: var(--accent); background: rgba(49,130,206,0.05); }
+    .import-zone input { display: none; }
+    .import-preview { max-height: 300px; overflow: auto; margin-top: 16px; }
+
+    /* Empty State */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty-state .icon { font-size: 4rem; margin-bottom: 16px; }
+    .empty-state h3 { font-size: 1.2rem; margin-bottom: 8px; color: var(--text); }
+
+    @media (max-width: 768px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .contacts-grid { grid-template-columns: 1fr; }
+      .form-row, .form-row-3 { grid-template-columns: 1fr; }
+      .filter-bar { flex-direction: column; }
+      .filter-bar input[type="text"] { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <nav class="top-nav">
+      <a href="/"><img src="/logo.png" alt="Kande VendTech" class="logo"></a>
+      <span class="nav-brand">Sales</span>
+      <a href="/">Dashboard</a>
+      <a href="/crm">CRM</a>
+      <a href="/contacts" class="active">Contacts</a>
+      <a href="/pipeline">Pipeline</a>
+      <a href="/outreach">Outreach</a>
+      <a href="/map">Map</a>
+      <a href="/apollo">Apollo</a>
+    </nav>
+
+    <div class="page-header">
+      <h1>📇 Contacts Directory</h1>
+      <div class="header-actions">
+        <button class="btn" onclick="openImportModal()">📥 Import</button>
+        <button class="btn" onclick="exportCSV()">📤 Export CSV</button>
+        <button class="btn" onclick="exportVCard()">📤 vCard</button>
+        <button class="btn btn-primary" onclick="openAddContact()">+ Add Contact</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card"><div class="value accent" id="stat-total">0</div><div class="label">Total Contacts</div></div>
+      <div class="stat-card"><div class="value purple" id="stat-decision-makers">0</div><div class="label">Decision Makers</div></div>
+      <div class="stat-card"><div class="value success" id="stat-champions">0</div><div class="label">Champions</div></div>
+      <div class="stat-card"><div class="value warn" id="stat-need-contact">0</div><div class="label">Need Follow-up</div></div>
+      <div class="stat-card"><div class="value teal" id="stat-properties">0</div><div class="label">Properties</div></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('directory')">Directory</button>
+      <button class="tab" onclick="switchTab('relationships')">Relationships</button>
+      <button class="tab" onclick="switchTab('recent')">Recent Activity</button>
+    </div>
+
+    <!-- Directory Tab -->
+    <div id="tab-directory" class="tab-content active">
+      <div class="filter-bar">
+        <input type="text" id="search-contacts" placeholder="🔍 Search name, company, role..." oninput="renderContacts()">
+        <select id="filter-property-type" onchange="renderContacts()">
+          <option value="">All Property Types</option>
+          <option value="apartments">Apartments</option>
+          <option value="senior_living">Senior Living</option>
+          <option value="healthcare">Healthcare</option>
+          <option value="industrial">Industrial</option>
+          <option value="office">Office</option>
+          <option value="recreation">Recreation</option>
+          <option value="education">Education</option>
+        </select>
+        <select id="filter-tag" onchange="renderContacts()">
+          <option value="">All Roles</option>
+          <option value="decision_maker">Decision Maker</option>
+          <option value="influencer">Influencer</option>
+          <option value="gatekeeper">Gatekeeper</option>
+          <option value="champion">Champion</option>
+          <option value="technical">Technical</option>
+        </select>
+        <select id="filter-status" onchange="renderContacts()">
+          <option value="">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="prospect">Prospect</option>
+          <option value="inactive">Inactive</option>
+        </select>
+        <div class="view-toggle">
+          <button id="view-cards" class="active" onclick="setView('cards')">🃏 Cards</button>
+          <button id="view-table" onclick="setView('table')">📋 Table</button>
+        </div>
+      </div>
+
+      <div id="contacts-cards-view" class="contacts-grid"></div>
+      <div id="contacts-table-view" class="card" style="display:none;">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Title</th>
+                <th>Company/Property</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Tags</th>
+                <th>Last Contact</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="contacts-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Relationships Tab -->
+    <div id="tab-relationships" class="tab-content">
+      <div class="card">
+        <h3 style="margin-bottom: 16px;">🔗 Relationship Map</h3>
+        <p style="color: var(--muted); font-size: 0.85rem; margin-bottom: 20px;">
+          View organizational hierarchies and influence levels across your contacts.
+        </p>
+        <div class="filter-bar">
+          <select id="rel-property" onchange="renderRelationships()">
+            <option value="">Select Property...</option>
+          </select>
+        </div>
+        <div id="relationship-map" class="rel-map">
+          <div class="empty-state">
+            <div class="icon">🔗</div>
+            <h3>Select a Property</h3>
+            <p>Choose a property to view its contact hierarchy</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom: 16px;">📊 Influence Levels</h3>
+        <div id="influence-summary"></div>
+      </div>
+    </div>
+
+    <!-- Recent Activity Tab -->
+    <div id="tab-recent" class="tab-content">
+      <div class="card">
+        <h3 style="margin-bottom: 16px;">📅 Recent Communications</h3>
+        <div id="recent-communications" class="comm-log"></div>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom: 16px;">📌 Upcoming Touchpoints</h3>
+        <div id="upcoming-touchpoints"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Contact Modal -->
+  <div class="modal-overlay" id="modal-contact">
+    <div class="modal">
+      <h2 id="modal-contact-title">Add Contact</h2>
+      <form id="contact-form" onsubmit="saveContact(event)">
+        <input type="hidden" id="contact-id">
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>First Name *</label>
+            <input type="text" id="contact-first-name" required>
+          </div>
+          <div class="form-group">
+            <label>Last Name *</label>
+            <input type="text" id="contact-last-name" required>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Title/Role</label>
+            <input type="text" id="contact-title" placeholder="e.g., Property Manager">
+          </div>
+          <div class="form-group">
+            <label>Link to Prospect</label>
+            <select id="contact-prospect"></select>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>Phone Numbers</label>
+          <div class="multi-input" id="phones-container">
+            <div class="multi-input-row">
+              <input type="tel" name="phone" placeholder="(702) 555-0123">
+              <select name="phone-type">
+                <option value="work">Work</option>
+                <option value="mobile">Mobile</option>
+                <option value="home">Home</option>
+              </select>
+            </div>
+          </div>
+          <button type="button" class="add-input-btn" onclick="addPhoneRow()">+ Add another phone</button>
+        </div>
+        
+        <div class="form-group">
+          <label>Email Addresses</label>
+          <div class="multi-input" id="emails-container">
+            <div class="multi-input-row">
+              <input type="email" name="email" placeholder="contact@example.com">
+              <select name="email-type">
+                <option value="work">Work</option>
+                <option value="personal">Personal</option>
+              </select>
+            </div>
+          </div>
+          <button type="button" class="add-input-btn" onclick="addEmailRow()">+ Add another email</button>
+        </div>
+        
+        <div class="form-group">
+          <label>Tags/Roles</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item"><input type="checkbox" name="tags" value="decision_maker"> Decision Maker</label>
+            <label class="checkbox-item"><input type="checkbox" name="tags" value="influencer"> Influencer</label>
+            <label class="checkbox-item"><input type="checkbox" name="tags" value="gatekeeper"> Gatekeeper</label>
+            <label class="checkbox-item"><input type="checkbox" name="tags" value="champion"> Champion</label>
+            <label class="checkbox-item"><input type="checkbox" name="tags" value="technical"> Technical</label>
+          </div>
+        </div>
+        
+        <div class="form-row-3">
+          <div class="form-group">
+            <label>Preferred Contact</label>
+            <select id="contact-preferred-method">
+              <option value="">Not specified</option>
+              <option value="phone">Phone</option>
+              <option value="email">Email</option>
+              <option value="text">Text/SMS</option>
+              <option value="in-person">In Person</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Influence Level</label>
+            <select id="contact-influence">
+              <option value="">Not specified</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Birthday</label>
+            <input type="date" id="contact-birthday">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>Reports To</label>
+          <select id="contact-reports-to">
+            <option value="">None / Unknown</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea id="contact-notes" placeholder="Any relevant notes about this contact..."></textarea>
+        </div>
+        
+        <div class="modal-actions">
+          <button type="button" class="btn" onclick="closeModal('modal-contact')">Cancel</button>
+          <button type="button" class="btn btn-danger" id="delete-contact-btn" onclick="deleteContact()" style="display:none;">Delete</button>
+          <button type="submit" class="btn btn-primary">Save Contact</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Note Modal -->
+  <div class="modal-overlay" id="modal-note">
+    <div class="modal" style="max-width: 500px;">
+      <h2>Add Note</h2>
+      <form id="note-form" onsubmit="saveNote(event)">
+        <input type="hidden" id="note-contact-id">
+        <div class="form-group">
+          <label>Type</label>
+          <select id="note-type">
+            <option value="note">📝 Note</option>
+            <option value="call">📞 Phone Call</option>
+            <option value="email">✉️ Email</option>
+            <option value="meeting">🤝 Meeting</option>
+            <option value="pop-in">🚶 Pop-in Visit</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea id="note-text" required placeholder="What happened?"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Next Touchpoint</label>
+          <input type="date" id="note-next-date">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn" onclick="closeModal('modal-note')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Note</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Import Modal -->
+  <div class="modal-overlay" id="modal-import">
+    <div class="modal">
+      <h2>📥 Import Contacts</h2>
+      <div class="import-zone" id="import-zone" onclick="document.getElementById('import-file').click()">
+        <input type="file" id="import-file" accept=".csv,.vcf" onchange="handleImportFile(event)">
+        <div class="icon">📁</div>
+        <p><strong>Click to upload</strong> or drag and drop</p>
+        <p style="font-size: 0.8rem; color: var(--muted); margin-top: 8px;">Supports CSV and vCard (.vcf) files</p>
+      </div>
+      <div id="import-preview" class="import-preview" style="display:none;">
+        <h4 style="margin-bottom: 12px;">Preview (<span id="import-count">0</span> contacts)</h4>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Title</th><th>Company</th><th>Phone</th><th>Email</th></tr></thead>
+            <tbody id="import-preview-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closeModal('modal-import')">Cancel</button>
+        <button type="button" class="btn btn-primary" id="import-confirm-btn" onclick="confirmImport()" disabled>Import Contacts</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contact Detail Modal -->
+  <div class="modal-overlay" id="modal-detail">
+    <div class="modal" style="max-width: 800px;">
+      <div id="contact-detail-content"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closeModal('modal-detail')">Close</button>
+        <button type="button" class="btn" onclick="editCurrentContact()">✏️ Edit</button>
+        <button type="button" class="btn btn-primary" onclick="addNoteToCurrentContact()">+ Add Note</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let contacts = [];
+    let prospects = [];
+    let activities = [];
+    let currentView = 'cards';
+    let expandedContactId = null;
+    let currentContactId = null;
+    let importData = [];
+
+    async function loadData() {
+      try {
+        const [contactsRes, prospectsRes, activitiesRes] = await Promise.all([
+          fetch('/api/directory/contacts'),
+          fetch('/api/prospects'),
+          fetch('/api/activities')
+        ]);
+        contacts = await contactsRes.json();
+        prospects = await prospectsRes.json();
+        activities = await activitiesRes.json();
+        
+        updateStats();
+        renderContacts();
+        populateProspectDropdown();
+        populateReportsToDropdown();
+        populateRelPropertyDropdown();
+        renderRecentCommunications();
+        renderUpcomingTouchpoints();
+      } catch (e) {
+        console.error('Error loading data:', e);
+      }
+    }
+
+    function updateStats() {
+      document.getElementById('stat-total').textContent = contacts.length;
+      document.getElementById('stat-decision-makers').textContent = contacts.filter(c => (c.tags || []).includes('decision_maker')).length;
+      document.getElementById('stat-champions').textContent = contacts.filter(c => (c.tags || []).includes('champion')).length;
+      
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const needContact = contacts.filter(c => {
+        if (!c.last_contact_date) return true;
+        return new Date(c.last_contact_date) < thirtyDaysAgo;
+      }).length;
+      document.getElementById('stat-need-contact').textContent = needContact;
+      
+      const uniqueProspects = new Set(contacts.map(c => c.prospect_id).filter(Boolean));
+      document.getElementById('stat-properties').textContent = uniqueProspects.size;
+    }
+
+    function getFilteredContacts() {
+      const search = document.getElementById('search-contacts').value.toLowerCase();
+      const propertyType = document.getElementById('filter-property-type').value;
+      const tagFilter = document.getElementById('filter-tag').value;
+      const statusFilter = document.getElementById('filter-status').value;
+      
+      return contacts.filter(c => {
+        if (search) {
+          const searchStr = `${c.name || ''} ${c.first_name || ''} ${c.last_name || ''} ${c.title || ''} ${c.company || ''} ${c.prospect_name || ''}`.toLowerCase();
+          if (!searchStr.includes(search)) return false;
+        }
+        if (propertyType && c.property_type !== propertyType) return false;
+        if (tagFilter && !(c.tags || []).includes(tagFilter)) return false;
+        if (statusFilter && c.status !== statusFilter) return false;
+        return true;
+      });
+    }
+
+    function renderContacts() {
+      const filtered = getFilteredContacts();
+      
+      if (currentView === 'cards') {
+        renderCardsView(filtered);
+      } else {
+        renderTableView(filtered);
+      }
+    }
+
+    function renderCardsView(contacts) {
+      const container = document.getElementById('contacts-cards-view');
+      
+      if (contacts.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state" style="grid-column: 1/-1;">
+            <div class="icon">📇</div>
+            <h3>No Contacts Found</h3>
+            <p>Add your first contact or adjust your filters</p>
+          </div>`;
+        return;
+      }
+      
+      container.innerHTML = contacts.map(c => {
+        const initials = getInitials(c);
+        const tags = (c.tags || []).map(t => `<span class="tag tag-${t}">${formatTag(t)}</span>`).join('');
+        const lastContact = c.last_contact_date ? formatDate(c.last_contact_date) : 'Never';
+        const primaryPhone = (c.phones || [])[0]?.number || c.phone || '';
+        const primaryEmail = (c.emails || [])[0]?.address || c.email || '';
+        
+        return `
+          <div class="contact-card ${expandedContactId === c.id ? 'expanded' : ''}" onclick="toggleContactCard(${c.id})">
+            <div class="contact-header">
+              <div class="contact-avatar">${c.photo_url ? `<img src="${c.photo_url}" alt="">` : initials}</div>
+              <div class="contact-info">
+                <div class="contact-name">${c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim()}</div>
+                <div class="contact-title">${c.title || ''}</div>
+                ${c.prospect_name ? `<div class="contact-company"><a href="/prospect/${c.prospect_id}">${c.prospect_name}</a></div>` : ''}
+                <div class="contact-tags">${tags}</div>
+              </div>
+            </div>
+            <div class="contact-meta">
+              ${primaryPhone ? `<span>📱 ${primaryPhone}</span>` : ''}
+              ${primaryEmail ? `<span>✉️ ${primaryEmail}</span>` : ''}
+              <span>🕐 ${lastContact}</span>
+            </div>
+            <div class="contact-actions">
+              ${primaryPhone ? `<a href="tel:${primaryPhone}" class="btn btn-sm btn-success" onclick="event.stopPropagation()">📞 Call</a>` : ''}
+              ${primaryEmail ? `<a href="mailto:${primaryEmail}" class="btn btn-sm" onclick="event.stopPropagation()">✉️ Email</a>` : ''}
+              <button class="btn btn-sm" onclick="event.stopPropagation(); openNoteModal(${c.id})">📝 Note</button>
+            </div>
+            <div class="contact-details">
+              ${renderContactDetails(c)}
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function renderContactDetails(c) {
+      const phones = (c.phones || []).map(p => `
+        <div class="detail-item"><span class="icon">📱</span> ${p.number} <span style="color:var(--muted);font-size:0.75rem;">(${p.type})</span></div>
+      `).join('') || (c.phone ? `<div class="detail-item"><span class="icon">📱</span> ${c.phone}</div>` : '<div class="detail-item" style="color:var(--muted);">No phone</div>');
+      
+      const emails = (c.emails || []).map(e => `
+        <div class="detail-item"><span class="icon">✉️</span> ${e.address} <span style="color:var(--muted);font-size:0.75rem;">(${e.type})</span></div>
+      `).join('') || (c.email ? `<div class="detail-item"><span class="icon">✉️</span> ${c.email}</div>` : '<div class="detail-item" style="color:var(--muted);">No email</div>');
+      
+      const contactActivities = activities.filter(a => a.contact_id === c.id || (a.prospect_id === c.prospect_id && a.description?.toLowerCase().includes(c.name?.toLowerCase() || '')));
+      const recentComms = contactActivities.slice(0, 5).map(a => `
+        <div class="comm-item ${a.type}">
+          <div class="comm-icon">${getActivityIcon(a.type)}</div>
+          <div class="comm-body">
+            <div class="comm-date">${formatDate(a.created_at)}</div>
+            <div class="comm-text">${a.description || a.type}</div>
+          </div>
+        </div>
+      `).join('') || '<div style="color:var(--muted);font-size:0.85rem;">No communication history</div>';
+      
+      return `
+        <div class="detail-grid">
+          <div class="detail-section">
+            <h4>Contact Info</h4>
+            ${phones}
+            ${emails}
+            ${c.preferred_contact_method ? `<div class="detail-item"><span class="icon">⭐</span> Prefers ${c.preferred_contact_method}</div>` : ''}
+            ${c.birthday ? `<div class="detail-item"><span class="icon">🎂</span> ${formatDate(c.birthday)}</div>` : ''}
+          </div>
+          <div class="detail-section">
+            <h4>Organization</h4>
+            ${c.reports_to_name ? `<div class="detail-item"><span class="icon">👆</span> Reports to: ${c.reports_to_name}</div>` : ''}
+            ${c.influence ? `<div class="detail-item"><span class="icon">💪</span> Influence: ${c.influence}</div>` : ''}
+            ${c.property_type ? `<div class="detail-item"><span class="icon">🏢</span> ${c.property_type}</div>` : ''}
+          </div>
+        </div>
+        ${c.notes ? `<div class="detail-section"><h4>Notes</h4><p style="font-size:0.85rem;">${c.notes}</p></div>` : ''}
+        <div class="detail-section">
+          <h4>Communication History</h4>
+          <div class="comm-log">${recentComms}</div>
+        </div>
+      `;
+    }
+
+    function renderTableView(contacts) {
+      const tbody = document.getElementById('contacts-table-body');
+      
+      if (contacts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">No contacts found</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = contacts.map(c => {
+        const tags = (c.tags || []).map(t => `<span class="tag tag-${t}">${formatTag(t)}</span>`).join(' ');
+        const primaryPhone = (c.phones || [])[0]?.number || c.phone || '-';
+        const primaryEmail = (c.emails || [])[0]?.address || c.email || '-';
+        const lastContact = c.last_contact_date ? formatDate(c.last_contact_date) : 'Never';
+        
+        return `
+          <tr class="clickable" onclick="openContactDetail(${c.id})">
+            <td><strong>${c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim()}</strong></td>
+            <td>${c.title || '-'}</td>
+            <td>${c.prospect_name || '-'}</td>
+            <td>${primaryPhone}</td>
+            <td>${primaryEmail}</td>
+            <td>${tags || '-'}</td>
+            <td>${lastContact}</td>
+            <td>
+              <button class="btn btn-sm" onclick="event.stopPropagation(); editContact(${c.id})">✏️</button>
+              <button class="btn btn-sm" onclick="event.stopPropagation(); openNoteModal(${c.id})">📝</button>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    function setView(view) {
+      currentView = view;
+      document.getElementById('view-cards').classList.toggle('active', view === 'cards');
+      document.getElementById('view-table').classList.toggle('active', view === 'table');
+      document.getElementById('contacts-cards-view').style.display = view === 'cards' ? 'grid' : 'none';
+      document.getElementById('contacts-table-view').style.display = view === 'table' ? 'block' : 'none';
+      renderContacts();
+    }
+
+    function toggleContactCard(id) {
+      expandedContactId = expandedContactId === id ? null : id;
+      renderContacts();
+    }
+
+    function openContactDetail(id) {
+      currentContactId = id;
+      const c = contacts.find(x => x.id === id);
+      if (!c) return;
+      
+      const content = document.getElementById('contact-detail-content');
+      const initials = getInitials(c);
+      const tags = (c.tags || []).map(t => `<span class="tag tag-${t}">${formatTag(t)}</span>`).join('');
+      
+      content.innerHTML = `
+        <div class="contact-header" style="margin-bottom:20px;">
+          <div class="contact-avatar" style="width:72px;height:72px;font-size:1.5rem;">${c.photo_url ? `<img src="${c.photo_url}" alt="">` : initials}</div>
+          <div class="contact-info">
+            <div class="contact-name" style="font-size:1.4rem;">${c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim()}</div>
+            <div class="contact-title" style="font-size:0.95rem;">${c.title || ''}</div>
+            ${c.prospect_name ? `<div class="contact-company" style="font-size:1rem;"><a href="/prospect/${c.prospect_id}">${c.prospect_name}</a></div>` : ''}
+            <div class="contact-tags" style="margin-top:8px;">${tags}</div>
+          </div>
+        </div>
+        ${renderContactDetails(c)}
+      `;
+      
+      openModal('modal-detail');
+    }
+
+    function editCurrentContact() {
+      closeModal('modal-detail');
+      editContact(currentContactId);
+    }
+
+    function addNoteToCurrentContact() {
+      closeModal('modal-detail');
+      openNoteModal(currentContactId);
+    }
+
+    // Modal functions
+    function openModal(id) {
+      document.getElementById(id).classList.add('show');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('show');
+    }
+
+    function openAddContact() {
+      document.getElementById('modal-contact-title').textContent = 'Add Contact';
+      document.getElementById('contact-form').reset();
+      document.getElementById('contact-id').value = '';
+      document.getElementById('delete-contact-btn').style.display = 'none';
+      resetMultiInputs();
+      openModal('modal-contact');
+    }
+
+    function editContact(id) {
+      const c = contacts.find(x => x.id === id);
+      if (!c) return;
+      
+      document.getElementById('modal-contact-title').textContent = 'Edit Contact';
+      document.getElementById('contact-id').value = c.id;
+      
+      const [firstName, ...lastParts] = (c.name || `${c.first_name || ''} ${c.last_name || ''}`).trim().split(' ');
+      document.getElementById('contact-first-name').value = c.first_name || firstName || '';
+      document.getElementById('contact-last-name').value = c.last_name || lastParts.join(' ') || '';
+      document.getElementById('contact-title').value = c.title || '';
+      document.getElementById('contact-prospect').value = c.prospect_id || '';
+      document.getElementById('contact-preferred-method').value = c.preferred_contact_method || '';
+      document.getElementById('contact-influence').value = c.influence || '';
+      document.getElementById('contact-birthday').value = c.birthday || '';
+      document.getElementById('contact-reports-to').value = c.reports_to || '';
+      document.getElementById('contact-notes').value = c.notes || '';
+      
+      // Populate phones
+      const phonesContainer = document.getElementById('phones-container');
+      phonesContainer.innerHTML = '';
+      const phones = c.phones || (c.phone ? [{number: c.phone, type: 'work'}] : [{number: '', type: 'work'}]);
+      phones.forEach(p => addPhoneRow(p.number, p.type));
+      
+      // Populate emails
+      const emailsContainer = document.getElementById('emails-container');
+      emailsContainer.innerHTML = '';
+      const emails = c.emails || (c.email ? [{address: c.email, type: 'work'}] : [{address: '', type: 'work'}]);
+      emails.forEach(e => addEmailRow(e.address, e.type));
+      
+      // Set tags
+      document.querySelectorAll('input[name="tags"]').forEach(cb => {
+        cb.checked = (c.tags || []).includes(cb.value);
+      });
+      
+      document.getElementById('delete-contact-btn').style.display = 'inline-flex';
+      openModal('modal-contact');
+    }
+
+    function resetMultiInputs() {
+      document.getElementById('phones-container').innerHTML = `
+        <div class="multi-input-row">
+          <input type="tel" name="phone" placeholder="(702) 555-0123">
+          <select name="phone-type"><option value="work">Work</option><option value="mobile">Mobile</option><option value="home">Home</option></select>
+        </div>`;
+      document.getElementById('emails-container').innerHTML = `
+        <div class="multi-input-row">
+          <input type="email" name="email" placeholder="contact@example.com">
+          <select name="email-type"><option value="work">Work</option><option value="personal">Personal</option></select>
+        </div>`;
+    }
+
+    function addPhoneRow(value = '', type = 'work') {
+      const container = document.getElementById('phones-container');
+      const row = document.createElement('div');
+      row.className = 'multi-input-row';
+      row.innerHTML = `
+        <input type="tel" name="phone" placeholder="(702) 555-0123" value="${value}">
+        <select name="phone-type">
+          <option value="work" ${type === 'work' ? 'selected' : ''}>Work</option>
+          <option value="mobile" ${type === 'mobile' ? 'selected' : ''}>Mobile</option>
+          <option value="home" ${type === 'home' ? 'selected' : ''}>Home</option>
+        </select>
+        <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">×</button>`;
+      container.appendChild(row);
+    }
+
+    function addEmailRow(value = '', type = 'work') {
+      const container = document.getElementById('emails-container');
+      const row = document.createElement('div');
+      row.className = 'multi-input-row';
+      row.innerHTML = `
+        <input type="email" name="email" placeholder="contact@example.com" value="${value}">
+        <select name="email-type">
+          <option value="work" ${type === 'work' ? 'selected' : ''}>Work</option>
+          <option value="personal" ${type === 'personal' ? 'selected' : ''}>Personal</option>
+        </select>
+        <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">×</button>`;
+      container.appendChild(row);
+    }
+
+    async function saveContact(e) {
+      e.preventDefault();
+      
+      const id = document.getElementById('contact-id').value;
+      const firstName = document.getElementById('contact-first-name').value.trim();
+      const lastName = document.getElementById('contact-last-name').value.trim();
+      
+      // Collect phones
+      const phoneInputs = document.querySelectorAll('#phones-container input[name="phone"]');
+      const phoneTypes = document.querySelectorAll('#phones-container select[name="phone-type"]');
+      const phones = [];
+      phoneInputs.forEach((input, i) => {
+        if (input.value.trim()) {
+          phones.push({ number: input.value.trim(), type: phoneTypes[i]?.value || 'work' });
+        }
+      });
+      
+      // Collect emails
+      const emailInputs = document.querySelectorAll('#emails-container input[name="email"]');
+      const emailTypes = document.querySelectorAll('#emails-container select[name="email-type"]');
+      const emails = [];
+      emailInputs.forEach((input, i) => {
+        if (input.value.trim()) {
+          emails.push({ address: input.value.trim(), type: emailTypes[i]?.value || 'work' });
+        }
+      });
+      
+      // Collect tags
+      const tags = [];
+      document.querySelectorAll('input[name="tags"]:checked').forEach(cb => tags.push(cb.value));
+      
+      const data = {
+        first_name: firstName,
+        last_name: lastName,
+        name: `${firstName} ${lastName}`.trim(),
+        title: document.getElementById('contact-title').value.trim(),
+        prospect_id: parseInt(document.getElementById('contact-prospect').value) || null,
+        phones,
+        emails,
+        phone: phones[0]?.number || '',
+        email: emails[0]?.address || '',
+        tags,
+        preferred_contact_method: document.getElementById('contact-preferred-method').value,
+        influence: document.getElementById('contact-influence').value,
+        birthday: document.getElementById('contact-birthday').value || null,
+        reports_to: parseInt(document.getElementById('contact-reports-to').value) || null,
+        notes: document.getElementById('contact-notes').value.trim()
+      };
+      
+      try {
+        const url = id ? `/api/directory/contacts/${id}` : '/api/directory/contacts';
+        const method = id ? 'PUT' : 'POST';
+        
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        if (res.ok) {
+          closeModal('modal-contact');
+          loadData();
+        } else {
+          const err = await res.json();
+          alert('Error: ' + (err.error || 'Failed to save'));
+        }
+      } catch (e) {
+        alert('Error saving contact');
+      }
+    }
+
+    async function deleteContact() {
+      const id = document.getElementById('contact-id').value;
+      if (!id || !confirm('Delete this contact?')) return;
+      
+      try {
+        await fetch(`/api/directory/contacts/${id}`, { method: 'DELETE' });
+        closeModal('modal-contact');
+        loadData();
+      } catch (e) {
+        alert('Error deleting contact');
+      }
+    }
+
+    function openNoteModal(contactId) {
+      document.getElementById('note-contact-id').value = contactId;
+      document.getElementById('note-form').reset();
+      openModal('modal-note');
+    }
+
+    async function saveNote(e) {
+      e.preventDefault();
+      
+      const contactId = document.getElementById('note-contact-id').value;
+      const contact = contacts.find(c => c.id === parseInt(contactId));
+      if (!contact) return;
+      
+      const data = {
+        prospect_id: contact.prospect_id,
+        contact_id: parseInt(contactId),
+        type: document.getElementById('note-type').value,
+        description: document.getElementById('note-text').value.trim(),
+        next_action_date: document.getElementById('note-next-date').value || null
+      };
+      
+      try {
+        await fetch(`/api/prospects/${contact.prospect_id}/activities`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        // Update contact's last_contact_date
+        await fetch(`/api/directory/contacts/${contactId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ last_contact_date: new Date().toISOString() })
+        });
+        
+        closeModal('modal-note');
+        loadData();
+      } catch (e) {
+        alert('Error saving note');
+      }
+    }
+
+    // Populate dropdowns
+    function populateProspectDropdown() {
+      const select = document.getElementById('contact-prospect');
+      select.innerHTML = '<option value="">Select property...</option>' + 
+        prospects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    }
+
+    function populateReportsToDropdown() {
+      const select = document.getElementById('contact-reports-to');
+      select.innerHTML = '<option value="">None / Unknown</option>' + 
+        contacts.map(c => `<option value="${c.id}">${c.name || `${c.first_name} ${c.last_name}`}</option>`).join('');
+    }
+
+    function populateRelPropertyDropdown() {
+      const select = document.getElementById('rel-property');
+      const uniqueProspects = [...new Set(contacts.map(c => c.prospect_id).filter(Boolean))];
+      select.innerHTML = '<option value="">Select Property...</option>' + 
+        uniqueProspects.map(pid => {
+          const p = prospects.find(x => x.id === pid);
+          return p ? `<option value="${pid}">${p.name}</option>` : '';
+        }).join('');
+    }
+
+    // Relationship mapping
+    function renderRelationships() {
+      const prospectId = parseInt(document.getElementById('rel-property').value);
+      const container = document.getElementById('relationship-map');
+      
+      if (!prospectId) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">🔗</div>
+            <h3>Select a Property</h3>
+            <p>Choose a property to view its contact hierarchy</p>
+          </div>`;
+        return;
+      }
+      
+      const propertyContacts = contacts.filter(c => c.prospect_id === prospectId);
+      if (propertyContacts.length === 0) {
+        container.innerHTML = '<div style="color:var(--muted);text-align:center;padding:40px;">No contacts for this property</div>';
+        return;
+      }
+      
+      // Build hierarchy
+      const topLevel = propertyContacts.filter(c => !c.reports_to || !propertyContacts.find(x => x.id === c.reports_to));
+      
+      function renderNode(contact) {
+        const subordinates = propertyContacts.filter(c => c.reports_to === contact.id);
+        const influenceClass = contact.influence === 'high' ? 'influence-high' : contact.influence === 'medium' ? 'influence-medium' : 'influence-low';
+        
+        return `
+          <div class="rel-node">
+            <div class="rel-node-card" onclick="openContactDetail(${contact.id})">
+              <div class="influence ${influenceClass}"></div>
+              <div>
+                <div style="font-weight:600;">${contact.name || `${contact.first_name} ${contact.last_name}`}</div>
+                <div style="font-size:0.75rem;color:var(--muted);">${contact.title || ''}</div>
+              </div>
+            </div>
+            ${subordinates.length > 0 ? `<div class="rel-tree">${subordinates.map(renderNode).join('')}</div>` : ''}
+          </div>`;
+      }
+      
+      container.innerHTML = topLevel.map(renderNode).join('');
+      
+      // Render influence summary
+      const influenceSummary = document.getElementById('influence-summary');
+      const highCount = propertyContacts.filter(c => c.influence === 'high').length;
+      const medCount = propertyContacts.filter(c => c.influence === 'medium').length;
+      const lowCount = propertyContacts.filter(c => c.influence === 'low').length;
+      
+      influenceSummary.innerHTML = `
+        <div style="display:flex;gap:20px;flex-wrap:wrap;">
+          <div><span class="influence influence-high" style="display:inline-block;margin-right:6px;"></span> High: ${highCount}</div>
+          <div><span class="influence influence-medium" style="display:inline-block;margin-right:6px;"></span> Medium: ${medCount}</div>
+          <div><span class="influence influence-low" style="display:inline-block;margin-right:6px;"></span> Low/Unknown: ${lowCount}</div>
+        </div>`;
+    }
+
+    // Recent communications
+    function renderRecentCommunications() {
+      const container = document.getElementById('recent-communications');
+      const recentActivities = activities
+        .filter(a => a.contact_id || a.type === 'call' || a.type === 'email' || a.type === 'meeting' || a.type === 'pop-in')
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 20);
+      
+      if (recentActivities.length === 0) {
+        container.innerHTML = '<div style="color:var(--muted);text-align:center;padding:40px;">No recent communications</div>';
+        return;
+      }
+      
+      container.innerHTML = recentActivities.map(a => {
+        const prospect = prospects.find(p => p.id === a.prospect_id);
+        const contact = contacts.find(c => c.id === a.contact_id);
+        
+        return `
+          <div class="comm-item ${a.type}">
+            <div class="comm-icon">${getActivityIcon(a.type)}</div>
+            <div class="comm-body">
+              <div class="comm-date">${formatDate(a.created_at)} ${contact ? `· ${contact.name || contact.first_name}` : ''} ${prospect ? `· ${prospect.name}` : ''}</div>
+              <div class="comm-text">${a.description || a.type}</div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function renderUpcomingTouchpoints() {
+      const container = document.getElementById('upcoming-touchpoints');
+      const upcoming = activities
+        .filter(a => a.next_action_date && new Date(a.next_action_date) >= new Date())
+        .sort((a, b) => new Date(a.next_action_date) - new Date(b.next_action_date))
+        .slice(0, 10);
+      
+      if (upcoming.length === 0) {
+        container.innerHTML = '<div style="color:var(--muted);text-align:center;padding:40px;">No upcoming touchpoints scheduled</div>';
+        return;
+      }
+      
+      container.innerHTML = upcoming.map(a => {
+        const prospect = prospects.find(p => p.id === a.prospect_id);
+        const daysUntil = Math.ceil((new Date(a.next_action_date) - new Date()) / (1000 * 60 * 60 * 24));
+        const urgencyClass = daysUntil <= 1 ? 'hot' : daysUntil <= 3 ? 'warn' : 'accent';
+        
+        return `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid var(--border);">
+            <div>
+              <div style="font-weight:600;">${prospect?.name || 'Unknown'}</div>
+              <div style="font-size:0.85rem;color:var(--muted);">${a.next_action || 'Follow up'}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:0.85rem;color:var(--${urgencyClass});">${formatDate(a.next_action_date)}</div>
+              <div style="font-size:0.75rem;color:var(--muted);">${daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tomorrow' : `In ${daysUntil} days`}</div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // Import/Export
+    function openImportModal() {
+      importData = [];
+      document.getElementById('import-file').value = '';
+      document.getElementById('import-preview').style.display = 'none';
+      document.getElementById('import-confirm-btn').disabled = true;
+      openModal('modal-import');
+    }
+
+    function handleImportFile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const content = evt.target.result;
+        if (file.name.endsWith('.vcf')) {
+          importData = parseVCard(content);
+        } else {
+          importData = parseCSV(content);
+        }
+        renderImportPreview();
+      };
+      reader.readAsText(file);
+    }
+
+    function parseCSV(content) {
+      const lines = content.trim().split('\n');
+      if (lines.length < 2) return [];
+      
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
+      const contacts = [];
+      
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim().replace(/['"]/g, ''));
+        const obj = {};
+        headers.forEach((h, idx) => obj[h] = values[idx] || '');
+        
+        contacts.push({
+          first_name: obj['first name'] || obj['first_name'] || obj['firstname'] || '',
+          last_name: obj['last name'] || obj['last_name'] || obj['lastname'] || '',
+          name: obj['name'] || obj['full name'] || '',
+          title: obj['title'] || obj['job title'] || obj['role'] || '',
+          company: obj['company'] || obj['organization'] || obj['property'] || '',
+          phone: obj['phone'] || obj['telephone'] || obj['mobile'] || '',
+          email: obj['email'] || obj['e-mail'] || ''
+        });
+      }
+      
+      return contacts;
+    }
+
+    function parseVCard(content) {
+      const cards = content.split('BEGIN:VCARD').slice(1);
+      return cards.map(card => {
+        const lines = card.split('\n');
+        const contact = { first_name: '', last_name: '', title: '', company: '', phone: '', email: '' };
+        
+        lines.forEach(line => {
+          if (line.startsWith('FN:')) contact.name = line.replace('FN:', '').trim();
+          if (line.startsWith('N:')) {
+            const parts = line.replace('N:', '').split(';');
+            contact.last_name = parts[0]?.trim() || '';
+            contact.first_name = parts[1]?.trim() || '';
+          }
+          if (line.startsWith('TITLE:')) contact.title = line.replace('TITLE:', '').trim();
+          if (line.startsWith('ORG:')) contact.company = line.replace('ORG:', '').trim();
+          if (line.startsWith('TEL')) contact.phone = line.split(':').pop().trim();
+          if (line.startsWith('EMAIL')) contact.email = line.split(':').pop().trim();
+        });
+        
+        if (!contact.name) contact.name = `${contact.first_name} ${contact.last_name}`.trim();
+        return contact;
+      }).filter(c => c.name || c.first_name || c.email);
+    }
+
+    function renderImportPreview() {
+      const preview = document.getElementById('import-preview');
+      const tbody = document.getElementById('import-preview-body');
+      const count = document.getElementById('import-count');
+      
+      count.textContent = importData.length;
+      tbody.innerHTML = importData.slice(0, 20).map(c => `
+        <tr>
+          <td>${c.name || `${c.first_name} ${c.last_name}`}</td>
+          <td>${c.title || '-'}</td>
+          <td>${c.company || '-'}</td>
+          <td>${c.phone || '-'}</td>
+          <td>${c.email || '-'}</td>
+        </tr>`).join('');
+      
+      if (importData.length > 20) {
+        tbody.innerHTML += `<tr><td colspan="5" style="text-align:center;color:var(--muted);">...and ${importData.length - 20} more</td></tr>`;
+      }
+      
+      preview.style.display = 'block';
+      document.getElementById('import-confirm-btn').disabled = importData.length === 0;
+    }
+
+    async function confirmImport() {
+      if (importData.length === 0) return;
+      
+      try {
+        const res = await fetch('/api/directory/contacts/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contacts: importData })
+        });
+        
+        const result = await res.json();
+        alert(`Imported ${result.imported} contacts`);
+        closeModal('modal-import');
+        loadData();
+      } catch (e) {
+        alert('Error importing contacts');
+      }
+    }
+
+    function exportCSV() {
+      const filtered = getFilteredContacts();
+      const headers = ['Name', 'First Name', 'Last Name', 'Title', 'Company', 'Phone', 'Email', 'Tags', 'Notes'];
+      const rows = filtered.map(c => [
+        c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim(),
+        c.first_name || '',
+        c.last_name || '',
+        c.title || '',
+        c.prospect_name || '',
+        (c.phones || [])[0]?.number || c.phone || '',
+        (c.emails || [])[0]?.address || c.email || '',
+        (c.tags || []).join('; '),
+        (c.notes || '').replace(/"/g, '""')
+      ]);
+      
+      const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
+      downloadFile(csv, 'contacts.csv', 'text/csv');
+    }
+
+    function exportVCard() {
+      const filtered = getFilteredContacts();
+      const vcards = filtered.map(c => {
+        const name = c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim();
+        const phone = (c.phones || [])[0]?.number || c.phone || '';
+        const email = (c.emails || [])[0]?.address || c.email || '';
+        
+        return `BEGIN:VCARD
+VERSION:3.0
+FN:${name}
+N:${c.last_name || ''};${c.first_name || ''};;;
+${c.title ? `TITLE:${c.title}` : ''}
+${c.prospect_name ? `ORG:${c.prospect_name}` : ''}
+${phone ? `TEL:${phone}` : ''}
+${email ? `EMAIL:${email}` : ''}
+${c.notes ? `NOTE:${c.notes.replace(/\n/g, '\\n')}` : ''}
+END:VCARD`;
+      }).join('\n\n');
+      
+      downloadFile(vcards, 'contacts.vcf', 'text/vcard');
+    }
+
+    function downloadFile(content, filename, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Tab switching
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+      
+      if (tabName === 'relationships') {
+        renderRelationships();
+      }
+    }
+
+    // Helpers
+    function getInitials(c) {
+      const name = c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim();
+      const parts = name.split(' ').filter(Boolean);
+      return parts.length >= 2 ? `${parts[0][0]}${parts[parts.length-1][0]}`.toUpperCase() : (parts[0] || 'C')[0].toUpperCase();
+    }
+
+    function formatTag(tag) {
+      return tag.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function getActivityIcon(type) {
+      const icons = { call: '📞', email: '✉️', meeting: '🤝', 'pop-in': '🚶', note: '📝', outreach: '📤', 'status-change': '🔄' };
+      return icons[type] || '📌';
+    }
+
+    // Drag and drop for import
+    const importZone = document.getElementById('import-zone');
+    importZone.addEventListener('dragover', e => { e.preventDefault(); importZone.classList.add('dragover'); });
+    importZone.addEventListener('dragleave', () => importZone.classList.remove('dragover'));
+    importZone.addEventListener('drop', e => {
+      e.preventDefault();
+      importZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        document.getElementById('import-file').files = e.dataTransfer.files;
+        handleImportFile({ target: { files: [file] } });
+      }
+    });
+
+    // Close modals on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', e => {
+        if (e.target === overlay) overlay.classList.remove('show');
+      });
+    });
+
+    // Init
+    loadData();
+  </script>
+</body>
+</html>

@@ -3,547 +3,1286 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Weekly Reports — Kande VendTech</title>
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Reports — Kande VendTech</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --bg: #0f1117; --card: #1a1d2e; --card2: #22263a; --border: #2d3148;
-      --text: #e2e8f0; --muted: #8892a8; --accent: #667eea;
-      --accent2: #764ba2; --success: #48bb78; --warn: #ed8936;
-      --hot: #fc5c65; --blue: #4299e1; --teal: #38b2ac;
-      --gradient: linear-gradient(135deg, #667eea, #764ba2);
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #0f172a;
+      --muted: #64748b; --accent: #3b82f6; --accent-light: #eff6ff;
+      --green: #22c55e; --green-light: #f0fdf4;
+      --amber: #f59e0b; --amber-light: #fffbeb;
+      --red: #ef4444; --red-light: #fef2f2;
+      --purple: #8b5cf6; --purple-light: #f5f3ff;
+      --radius: 12px;
     }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px;
-    }
-    .app { max-width: 1400px; margin: 0 auto; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+    .dashboard { max-width: 1200px; margin: 0 auto; padding: 24px 28px 60px; }
 
-    /* Header */
-    .page-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
-    .page-header h1 {
-      font-size: 1.6rem; font-weight: 700;
-      background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    /* Page Header */
+    .page-header {
+      background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 50%, #7c3aed 100%);
+      border-radius: 16px; padding: 28px 36px; color: #fff; margin-bottom: 28px;
+      position: relative; overflow: hidden;
     }
-    .header-actions { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+    .page-header::after {
+      content: ''; position: absolute; top: -50%; right: -10%; width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .page-header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 12px; }
+    .page-header p { font-size: 0.88rem; opacity: 0.85; }
 
-    /* Range picker */
-    .range-picker { display: flex; gap: 6px; flex-wrap: wrap; }
-    .range-btn {
-      padding: 7px 14px; border: 1px solid var(--border); background: var(--card);
-      color: var(--muted); border-radius: 8px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s;
-    }
-    .range-btn:hover { border-color: var(--accent); color: var(--text); }
-    .range-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    /* Grid Layout */
+    .grid-3 { display: grid; grid-template-columns: 320px 1fr; gap: 24px; }
+    @media (max-width: 900px) { .grid-3 { grid-template-columns: 1fr; } }
 
-    .btn-export {
-      padding: 7px 16px; background: var(--gradient); color: #fff; border: none;
-      border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: 600; transition: opacity 0.2s;
+    /* Cards */
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 22px 24px;
     }
-    .btn-export:hover { opacity: 0.85; }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+    }
+    .card-title { font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
 
-    /* Summary Cards */
-    .summary-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 14px; margin-bottom: 28px;
+    /* Report Type Selector */
+    .report-types { display: flex; flex-direction: column; gap: 8px; }
+    .report-type-btn {
+      display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+      background: var(--bg); border: 2px solid transparent; border-radius: 10px;
+      cursor: pointer; transition: all 0.15s; text-align: left;
     }
-    .summary-card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
-      padding: 20px; position: relative; overflow: hidden; transition: transform 0.2s, border-color 0.2s;
-    }
-    .summary-card:hover { transform: translateY(-2px); border-color: var(--accent); }
-    .summary-card .card-icon { font-size: 1.8rem; margin-bottom: 8px; }
-    .summary-card .card-value { font-size: 2rem; font-weight: 800; line-height: 1.1; }
-    .summary-card .card-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
-    .summary-card .card-change {
-      display: inline-block; font-size: 0.75rem; padding: 2px 8px; border-radius: 20px; margin-top: 8px; font-weight: 600;
-    }
-    .change-up { background: rgba(72,187,120,0.15); color: var(--success); }
-    .change-down { background: rgba(252,92,101,0.15); color: var(--hot); }
-    .change-flat { background: rgba(136,146,168,0.15); color: var(--muted); }
-    .val-accent { color: var(--accent); }
-    .val-success { color: var(--success); }
-    .val-warn { color: var(--warn); }
-    .val-hot { color: var(--hot); }
-    .val-blue { color: var(--blue); }
-    .val-teal { color: var(--teal); }
+    .report-type-btn:hover { border-color: var(--accent); background: var(--accent-light); }
+    .report-type-btn.active { border-color: var(--accent); background: var(--accent-light); }
+    .report-type-btn .rt-icon { font-size: 1.3rem; }
+    .report-type-btn .rt-info { flex: 1; }
+    .report-type-btn .rt-name { font-size: 0.88rem; font-weight: 600; color: var(--text); }
+    .report-type-btn .rt-desc { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
 
-    /* Sections */
-    .section { margin-bottom: 28px; }
-    .section-title {
-      font-size: 1.15rem; font-weight: 700; margin-bottom: 16px;
-      display: flex; align-items: center; gap: 10px;
+    /* Form Controls */
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    input[type="date"], select, input[type="text"] {
+      width: 100%; padding: 10px 14px; font-size: 0.88rem; border: 1px solid var(--border);
+      border-radius: 8px; background: var(--card); color: var(--text);
     }
-    .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
 
-    /* Two-col layout */
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    @media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } }
+    /* Checkboxes */
+    .checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .checkbox-item {
+      display: flex; align-items: center; gap: 6px; padding: 8px 12px;
+      background: var(--bg); border-radius: 6px; font-size: 0.82rem; cursor: pointer;
+    }
+    .checkbox-item:hover { background: var(--accent-light); }
+    .checkbox-item input { width: 16px; height: 16px; accent-color: var(--accent); }
 
-    /* Card panels */
-    .panel {
-      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
-      padding: 20px; margin-bottom: 16px;
+    /* Action Buttons */
+    .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px;
+      font-size: 0.88rem; font-weight: 600; border-radius: 10px; cursor: pointer;
+      transition: all 0.15s; border: none;
     }
-    .panel-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #2563eb; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59,130,246,0.3); }
+    .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-success:hover { background: #16a34a; }
 
-    /* Conversion pipeline */
-    .pipeline-flow { display: flex; align-items: center; gap: 0; margin: 16px 0; flex-wrap: wrap; }
-    .pipeline-stage {
-      flex: 1; min-width: 80px; text-align: center; padding: 14px 8px;
-      background: var(--card2); border: 1px solid var(--border); position: relative;
-    }
-    .pipeline-stage:first-child { border-radius: 10px 0 0 10px; }
-    .pipeline-stage:last-child { border-radius: 0 10px 10px 0; }
-    .pipeline-stage .stage-count { font-size: 1.5rem; font-weight: 800; }
-    .pipeline-stage .stage-name { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
-    .pipeline-arrow { color: var(--accent); font-size: 1.2rem; padding: 0 4px; flex-shrink: 0; }
-    .pipeline-stage .stage-rate { font-size: 0.7rem; color: var(--success); margin-top: 4px; font-weight: 600; }
+    /* Preview Section */
+    .preview-section { margin-top: 24px; }
+    .preview-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .preview-title { font-size: 1rem; font-weight: 700; }
+    .preview-actions { display: flex; gap: 8px; }
 
-    /* Leaderboard table */
-    .lb-table { width: 100%; border-collapse: collapse; }
-    .lb-table th {
-      text-align: left; font-size: 0.7rem; color: var(--muted); text-transform: uppercase;
-      padding: 8px 12px; border-bottom: 1px solid var(--border); letter-spacing: 0.5px;
+    /* Report Preview */
+    .report-preview {
+      background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+      min-height: 400px; padding: 32px; position: relative;
     }
-    .lb-table td {
-      padding: 10px 12px; border-bottom: 1px solid rgba(45,49,72,0.5); font-size: 0.85rem;
+    .report-preview.loading::after {
+      content: 'Generating report...'; position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%); color: var(--muted); font-size: 0.9rem;
     }
-    .lb-table tr:hover td { background: rgba(102,126,234,0.04); }
-    .lb-rank { font-weight: 800; color: var(--accent); }
-    .lb-bar {
-      height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; min-width: 60px;
+    .report-preview .empty-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 350px; color: var(--muted); text-align: center;
     }
-    .lb-bar-fill { height: 100%; border-radius: 3px; background: var(--gradient); transition: width 0.6s; }
+    .report-preview .empty-state .icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.5; }
+    .report-preview .empty-state h3 { font-size: 1rem; font-weight: 600; margin-bottom: 4px; color: var(--text); }
+    .report-preview .empty-state p { font-size: 0.85rem; }
 
-    /* Highlights */
-    .highlights-list { list-style: none; }
-    .highlights-list li {
-      padding: 10px 14px; border-left: 3px solid var(--accent); margin-bottom: 8px;
-      background: var(--card2); border-radius: 0 8px 8px 0; font-size: 0.85rem; line-height: 1.5;
-    }
-    .highlights-list li .hl-icon { margin-right: 8px; }
-    .highlights-list li.hl-success { border-left-color: var(--success); }
-    .highlights-list li.hl-warn { border-left-color: var(--warn); }
-    .highlights-list li.hl-hot { border-left-color: var(--hot); }
+    /* Report Content Styling */
+    .report-content { font-size: 0.9rem; line-height: 1.6; }
+    .report-content .report-title { font-size: 1.5rem; font-weight: 700; color: var(--text); margin-bottom: 4px; text-align: center; }
+    .report-content .report-subtitle { font-size: 0.85rem; color: var(--muted); text-align: center; margin-bottom: 24px; }
+    .report-content .report-logo { text-align: center; margin-bottom: 16px; }
+    .report-content .report-logo img { height: 50px; }
+    .report-content table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    .report-content th { background: var(--bg); text-align: left; padding: 10px 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); border-bottom: 2px solid var(--border); }
+    .report-content td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    .report-content tr:hover td { background: var(--accent-light); }
+    .report-content .summary-box { background: var(--bg); border-radius: 10px; padding: 16px 20px; margin: 16px 0; }
+    .report-content .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .report-content .summary-row:last-child { margin-bottom: 0; font-weight: 700; border-top: 1px solid var(--border); padding-top: 8px; }
+    .report-content .summary-label { color: var(--muted); }
+    .report-content .summary-value { font-weight: 600; }
+    .report-content .section-title { font-size: 1rem; font-weight: 700; margin: 24px 0 12px; padding-bottom: 8px; border-bottom: 2px solid var(--accent); }
+    .report-content .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin: 16px 0; }
+    .report-content .stat-item { background: var(--bg); border-radius: 10px; padding: 16px; text-align: center; }
+    .report-content .stat-item .value { font-size: 1.5rem; font-weight: 800; color: var(--accent); }
+    .report-content .stat-item .label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
 
-    /* CSS Charts */
-    .chart-container { padding: 10px 0; }
-    .chart-label-row { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--muted); margin-bottom: 8px; }
+    /* Report History */
+    .history-list { max-height: 300px; overflow-y: auto; }
+    .history-item {
+      display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+      border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s;
+    }
+    .history-item:hover { background: var(--accent-light); }
+    .history-item:last-child { border-bottom: none; }
+    .history-item .hi-icon { font-size: 1.2rem; }
+    .history-item .hi-info { flex: 1; }
+    .history-item .hi-name { font-size: 0.85rem; font-weight: 600; }
+    .history-item .hi-meta { font-size: 0.72rem; color: var(--muted); }
+    .history-item .hi-action { font-size: 0.75rem; color: var(--accent); font-weight: 600; }
+    .history-empty { padding: 24px; text-align: center; color: var(--muted); font-size: 0.85rem; }
 
-    /* Bar chart */
-    .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 140px; padding-top: 10px; }
-    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
-    .bar-fill {
-      width: 100%; border-radius: 4px 4px 0 0; background: var(--gradient);
-      transition: height 0.6s ease; min-height: 2px; position: relative;
+    /* Schedule Modal */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+      z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.2s;
     }
-    .bar-fill:hover { opacity: 0.8; }
-    .bar-fill .bar-tooltip {
-      display: none; position: absolute; top: -24px; left: 50%; transform: translateX(-50%);
-      background: #000; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; white-space: nowrap;
+    .modal-overlay.active { opacity: 1; visibility: visible; }
+    .modal {
+      background: var(--card); border-radius: 16px; width: 90%; max-width: 500px;
+      padding: 28px; transform: scale(0.95); transition: transform 0.2s;
     }
-    .bar-fill:hover .bar-tooltip { display: block; }
-    .bar-label { font-size: 0.6rem; color: var(--muted); margin-top: 6px; text-align: center; }
+    .modal-overlay.active .modal { transform: scale(1); }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .modal-title { font-size: 1.1rem; font-weight: 700; }
+    .modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--muted); }
+    .modal-close:hover { color: var(--text); }
 
-    /* Line chart (CSS) */
-    .line-chart { position: relative; height: 120px; margin: 10px 0; }
-    .line-chart-bg {
-      position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between;
-    }
-    .line-chart-bg .grid-line { height: 1px; background: rgba(45,49,72,0.5); }
-    .line-chart-points { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 0; }
-    .line-point-col {
-      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;
-    }
-    .line-dot {
-      width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
-      border: 2px solid var(--bg); position: relative; z-index: 2; flex-shrink: 0;
-    }
-    .line-dot:hover { transform: scale(1.4); }
-    .line-dot .dot-tooltip {
-      display: none; position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
-      background: #000; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; white-space: nowrap;
-    }
-    .line-dot:hover .dot-tooltip { display: block; }
-    .line-stem { width: 2px; background: linear-gradient(to top, transparent, var(--accent)); flex-shrink: 0; }
-
-    /* Avg time badges */
-    .avg-time-grid { display: flex; flex-wrap: wrap; gap: 10px; }
-    .avg-time-badge {
-      background: var(--card2); border: 1px solid var(--border); border-radius: 10px;
-      padding: 12px 16px; text-align: center; flex: 1; min-width: 100px;
-    }
-    .avg-time-badge .atb-days { font-size: 1.4rem; font-weight: 800; color: var(--accent); }
-    .avg-time-badge .atb-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
-
-    /* Activity summary */
-    .activity-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; }
-    .activity-stat {
-      background: var(--card2); border-radius: 10px; padding: 14px; text-align: center;
-    }
-    .activity-stat .as-icon { font-size: 1.4rem; }
-    .activity-stat .as-val { font-size: 1.3rem; font-weight: 800; margin-top: 4px; }
-    .activity-stat .as-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
-
-    /* Loading */
-    .loading { text-align: center; padding: 60px; color: var(--muted); }
-    .loading .spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* Print */
+    /* Print Styles */
     @media print {
-      body { background: #fff; color: #1a202c; padding: 10px; }
-      .page-header, .header-actions { display: none; }
-      .panel, .summary-card { border: 1px solid #e2e8f0; background: #fff; break-inside: avoid; }
-      .summary-card .card-value, .pipeline-stage .stage-count, .lb-rank,
-      .avg-time-badge .atb-days, .activity-stat .as-val { color: #1a202c; }
-      .bar-fill { background: #667eea; }
-      .line-dot { background: #667eea; border-color: #fff; }
-      .highlights-list li { background: #f7fafc; }
-      :root { --bg: #fff; --card: #fff; --card2: #f7fafc; --border: #e2e8f0; --text: #1a202c; --muted: #718096; }
-      #kv-nav, #kv-nav-mobile { display: none !important; }
-      body.kv-nav-active { padding-top: 0 !important; }
-      .section-title::after { background: #e2e8f0; }
-      .print-header { display: block !important; text-align: center; margin-bottom: 20px; }
-      .print-header h1 { font-size: 1.5rem; color: #1a202c; }
-      .print-header p { color: #718096; font-size: 0.85rem; }
+      body { background: #fff; }
+      .dashboard { padding: 0; max-width: none; }
+      .page-header, .card:not(.preview-card), .btn-group, .preview-header, .preview-actions { display: none !important; }
+      .grid-3 { display: block; }
+      .report-preview { border: none; padding: 0; box-shadow: none; }
+      .report-content { font-size: 11pt; }
+      .report-content table { page-break-inside: avoid; }
     }
-    .print-header { display: none; }
 
-    /* Mobile */
-    @media (max-width: 600px) {
-      .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-      .summary-card .card-value { font-size: 1.4rem; }
-      .pipeline-flow { flex-direction: column; }
-      .pipeline-stage { border-radius: 8px !important; width: 100%; }
-      .pipeline-arrow { transform: rotate(90deg); }
-      .page-header { flex-direction: column; align-items: flex-start; }
-      .header-actions { margin-left: 0; width: 100%; }
-      .range-picker { width: 100%; }
+    /* Toast Notification */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; background: var(--text); color: #fff;
+      padding: 14px 20px; border-radius: 10px; font-size: 0.88rem; font-weight: 500;
+      transform: translateY(100px); opacity: 0; transition: all 0.3s;
+      z-index: 1001;
     }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { background: var(--green); }
+    .toast.error { background: var(--red); }
   </style>
 </head>
 <body>
-  <div class="print-header">
-    <h1>📊 Kande VendTech — Weekly Performance Report</h1>
-    <p id="printDateRange"></p>
+<script src="/nav.js"></script>
+
+<div class="dashboard">
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1>📊 Reports</h1>
+    <p>Generate and download comprehensive business reports</p>
   </div>
-  <div class="app">
-    <div class="page-header">
-      <h1>📊 Weekly Performance Report</h1>
-      <div class="header-actions">
-        <div class="range-picker">
-          <button class="range-btn active" data-range="thisWeek">This Week</button>
-          <button class="range-btn" data-range="lastWeek">Last Week</button>
-          <button class="range-btn" data-range="last30">Last 30 Days</button>
-          <button class="range-btn" data-range="last90">Last 90 Days</button>
+
+  <div class="grid-3">
+    <!-- Left: Report Builder -->
+    <div>
+      <!-- Report Types -->
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header">
+          <span class="card-title">📋 Report Type</span>
         </div>
-        <button class="btn-export" onclick="window.print()">🖨 Export PDF</button>
+        <div class="report-types" id="report-types">
+          <button class="report-type-btn active" data-type="pipeline">
+            <span class="rt-icon">🔀</span>
+            <div class="rt-info">
+              <div class="rt-name">Sales Pipeline</div>
+              <div class="rt-desc">Prospects by stage and status</div>
+            </div>
+          </button>
+          <button class="report-type-btn" data-type="activity">
+            <span class="rt-icon">📅</span>
+            <div class="rt-info">
+              <div class="rt-name">Activity Report</div>
+              <div class="rt-desc">All activities by date range</div>
+            </div>
+          </button>
+          <button class="report-type-btn" data-type="revenue">
+            <span class="rt-icon">💰</span>
+            <div class="rt-info">
+              <div class="rt-name">Revenue Report</div>
+              <div class="rt-desc">Revenue by location & period</div>
+            </div>
+          </button>
+          <button class="report-type-btn" data-type="commission">
+            <span class="rt-icon">🤝</span>
+            <div class="rt-info">
+              <div class="rt-name">Commission Report</div>
+              <div class="rt-desc">Rev share calculations</div>
+            </div>
+          </button>
+          <button class="report-type-btn" data-type="prospects">
+            <span class="rt-icon">📇</span>
+            <div class="rt-info">
+              <div class="rt-name">Prospect List Export</div>
+              <div class="rt-desc">Full prospect data export</div>
+            </div>
+          </button>
+          <button class="report-type-btn" data-type="machine">
+            <span class="rt-icon">🏭</span>
+            <div class="rt-info">
+              <div class="rt-name">Machine Performance</div>
+              <div class="rt-desc">Sales & revenue by machine</div>
+            </div>
+          </button>
+          <button class="report-type-btn" data-type="expense">
+            <span class="rt-icon">📉</span>
+            <div class="rt-info">
+              <div class="rt-name">Expense Report</div>
+              <div class="rt-desc">Costs and expenditures</div>
+            </div>
+          </button>
+          <button class="report-type-btn" data-type="service">
+            <span class="rt-icon">🔧</span>
+            <div class="rt-info">
+              <div class="rt-name">Service History</div>
+              <div class="rt-desc">Restocks and maintenance</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header">
+          <span class="card-title">🎛️ Filters</span>
+        </div>
+        
+        <div class="form-group">
+          <label>Date Range</label>
+          <div class="form-row">
+            <input type="date" id="date-from">
+            <input type="date" id="date-to">
+          </div>
+        </div>
+
+        <div class="form-group" id="filter-property-type">
+          <label>Property Type</label>
+          <select id="property-type">
+            <option value="">All Types</option>
+            <option value="apartments">Apartments</option>
+            <option value="senior_living">Senior Living</option>
+            <option value="healthcare">Healthcare</option>
+            <option value="industrial">Industrial</option>
+            <option value="office">Office</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="filter-status">
+          <label>Status</label>
+          <select id="status-filter">
+            <option value="">All Statuses</option>
+            <option value="new">New</option>
+            <option value="active">Active</option>
+            <option value="signed">Signed</option>
+            <option value="closed">Closed</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="filter-machine" style="display:none;">
+          <label>Machine</label>
+          <select id="machine-filter">
+            <option value="">All Machines</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="filter-columns" style="display:none;">
+          <label>Include Columns</label>
+          <div class="checkbox-group" id="column-checkboxes">
+            <label class="checkbox-item"><input type="checkbox" value="name" checked> Name</label>
+            <label class="checkbox-item"><input type="checkbox" value="address" checked> Address</label>
+            <label class="checkbox-item"><input type="checkbox" value="phone" checked> Phone</label>
+            <label class="checkbox-item"><input type="checkbox" value="email" checked> Email</label>
+            <label class="checkbox-item"><input type="checkbox" value="status" checked> Status</label>
+            <label class="checkbox-item"><input type="checkbox" value="property_type" checked> Type</label>
+            <label class="checkbox-item"><input type="checkbox" value="units"> Units</label>
+            <label class="checkbox-item"><input type="checkbox" value="notes"> Notes</label>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button class="btn btn-primary" id="generate-btn">📊 Generate Report</button>
+          <button class="btn btn-secondary" id="schedule-btn">⏰ Schedule</button>
+        </div>
+      </div>
+
+      <!-- Report History -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🕐 Recent Reports</span>
+        </div>
+        <div class="history-list" id="history-list">
+          <div class="history-empty">No reports generated yet</div>
+        </div>
       </div>
     </div>
 
-    <div id="content">
-      <div class="loading"><div class="spinner"></div><p style="margin-top:12px">Loading report data…</p></div>
+    <!-- Right: Preview & Export -->
+    <div>
+      <div class="card preview-card">
+        <div class="preview-header">
+          <span class="preview-title" id="preview-title">Report Preview</span>
+          <div class="preview-actions">
+            <button class="btn btn-secondary" id="export-csv" disabled>📥 CSV</button>
+            <button class="btn btn-secondary" id="export-excel" disabled>📊 Excel</button>
+            <button class="btn btn-success" id="export-pdf" disabled>📄 PDF</button>
+          </div>
+        </div>
+        <div class="report-preview" id="report-preview">
+          <div class="empty-state">
+            <div class="icon">📊</div>
+            <h3>Select a Report Type</h3>
+            <p>Choose a report type and configure filters, then click Generate</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
+</div>
 
-  <script src="/nav.js"></script>
-  <script>
-    let currentRange = 'thisWeek';
-    let reportData = null;
+<!-- Schedule Modal -->
+<div class="modal-overlay" id="schedule-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">⏰ Schedule Report</span>
+      <button class="modal-close" id="close-modal">&times;</button>
+    </div>
+    <div class="form-group">
+      <label>Frequency</label>
+      <select id="schedule-frequency">
+        <option value="weekly">Weekly (Every Monday)</option>
+        <option value="monthly">Monthly (1st of month)</option>
+        <option value="daily">Daily</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Email Recipients</label>
+      <input type="text" id="schedule-email" placeholder="email@example.com">
+    </div>
+    <div class="form-group">
+      <label>Include Format</label>
+      <div class="checkbox-group">
+        <label class="checkbox-item"><input type="checkbox" value="pdf" checked> PDF</label>
+        <label class="checkbox-item"><input type="checkbox" value="csv"> CSV</label>
+        <label class="checkbox-item"><input type="checkbox" value="excel"> Excel</label>
+      </div>
+    </div>
+    <div class="btn-group" style="justify-content: flex-end;">
+      <button class="btn btn-secondary" id="cancel-schedule">Cancel</button>
+      <button class="btn btn-primary" id="save-schedule">Save Schedule</button>
+    </div>
+    <p style="font-size: 0.75rem; color: var(--muted); margin-top: 16px; text-align: center;">
+      ℹ️ Scheduled reports are a placeholder feature — email delivery coming soon
+    </p>
+  </div>
+</div>
 
-    // Range button handlers
-    document.querySelectorAll('.range-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentRange = btn.dataset.range;
-        loadReport();
-      });
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  // State
+  let currentReportType = 'pipeline';
+  let reportData = null;
+  let reportHistory = JSON.parse(localStorage.getItem('reportHistory') || '[]');
+
+  // DOM Elements
+  const reportTypeBtns = document.querySelectorAll('.report-type-btn');
+  const generateBtn = document.getElementById('generate-btn');
+  const scheduleBtn = document.getElementById('schedule-btn');
+  const exportCsv = document.getElementById('export-csv');
+  const exportExcel = document.getElementById('export-excel');
+  const exportPdf = document.getElementById('export-pdf');
+  const reportPreview = document.getElementById('report-preview');
+  const previewTitle = document.getElementById('preview-title');
+  const historyList = document.getElementById('history-list');
+  const scheduleModal = document.getElementById('schedule-modal');
+  const toast = document.getElementById('toast');
+
+  // Initialize
+  init();
+
+  function init() {
+    // Set default dates (last 30 days)
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today - 30 * 24 * 60 * 60 * 1000);
+    document.getElementById('date-to').value = today.toISOString().split('T')[0];
+    document.getElementById('date-from').value = thirtyDaysAgo.toISOString().split('T')[0];
+
+    // Event listeners
+    reportTypeBtns.forEach(btn => {
+      btn.addEventListener('click', () => selectReportType(btn.dataset.type));
     });
 
-    function getWeeksParam() {
-      switch (currentRange) {
-        case 'thisWeek': return 1;
-        case 'lastWeek': return 2;
-        case 'last30': return 5;
-        case 'last90': return 13;
-        default: return 1;
-      }
-    }
+    generateBtn.addEventListener('click', generateReport);
+    scheduleBtn.addEventListener('click', () => scheduleModal.classList.add('active'));
+    document.getElementById('close-modal').addEventListener('click', () => scheduleModal.classList.remove('active'));
+    document.getElementById('cancel-schedule').addEventListener('click', () => scheduleModal.classList.remove('active'));
+    document.getElementById('save-schedule').addEventListener('click', saveSchedule);
 
-    async function loadReport() {
-      const weeks = getWeeksParam();
-      try {
-        const res = await fetch(`/api/reports/weekly?weeks=${weeks}`);
-        reportData = await res.json();
-        renderReport(reportData);
-      } catch (err) {
-        document.getElementById('content').innerHTML = `<div class="panel" style="text-align:center;color:var(--hot);">Error loading report: ${err.message}</div>`;
-      }
-    }
+    exportCsv.addEventListener('click', () => exportReport('csv'));
+    exportExcel.addEventListener('click', () => exportReport('excel'));
+    exportPdf.addEventListener('click', () => exportReport('pdf'));
 
-    function pctChange(curr, prev) {
-      if (!prev || prev === 0) return curr > 0 ? { val: '+100%', cls: 'change-up' } : { val: '—', cls: 'change-flat' };
-      const pct = ((curr - prev) / prev * 100).toFixed(0);
-      if (pct > 0) return { val: `+${pct}%`, cls: 'change-up' };
-      if (pct < 0) return { val: `${pct}%`, cls: 'change-down' };
-      return { val: '0%', cls: 'change-flat' };
-    }
+    // Load machines for filter
+    loadMachines();
 
-    function fmt(n) { return typeof n === 'number' ? n.toLocaleString() : '0'; }
-    function fmtMoney(n) { return '$' + (n || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
+    // Render history
+    renderHistory();
+  }
 
-    function renderReport(data) {
-      const ws = data.weeklyStats || [];
-      const curr = ws[ws.length - 1] || {};
-      const prev = ws.length >= 2 ? ws[ws.length - 2] : {};
-      const conv = data.conversionByType || {};
-      const avg = data.avgTimeInStage || {};
-      const highlights = data.highlights || [];
-      const activity = data.activitySummary || {};
+  function selectReportType(type) {
+    currentReportType = type;
+    reportTypeBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.type === type));
 
-      // Print date range
-      const now = new Date();
-      document.getElementById('printDateRange').textContent = `Generated ${now.toLocaleDateString()} — ${currentRange === 'thisWeek' ? 'This Week' : currentRange === 'lastWeek' ? 'Last Week' : currentRange === 'last30' ? 'Last 30 Days' : 'Last 90 Days'}`;
+    // Show/hide relevant filters
+    const filterPropertyType = document.getElementById('filter-property-type');
+    const filterStatus = document.getElementById('filter-status');
+    const filterMachine = document.getElementById('filter-machine');
+    const filterColumns = document.getElementById('filter-columns');
 
-      // Totals across all weeks
-      const totalNew = ws.reduce((s, w) => s + (w.newProspects || 0), 0);
-      const totalWon = ws.reduce((s, w) => s + (w.wonCount || 0), 0);
-      const totalLost = ws.reduce((s, w) => s + (w.lostCount || 0), 0);
-      const latestPipeline = curr.pipelineValue || 0;
+    filterPropertyType.style.display = ['pipeline', 'prospects', 'activity'].includes(type) ? 'block' : 'none';
+    filterStatus.style.display = ['pipeline', 'prospects'].includes(type) ? 'block' : 'none';
+    filterMachine.style.display = ['machine', 'service', 'revenue'].includes(type) ? 'block' : 'none';
+    filterColumns.style.display = type === 'prospects' ? 'block' : 'none';
+  }
 
-      const prospChange = pctChange(curr.newProspects || 0, prev.newProspects || 0);
-      const wonChange = pctChange(curr.wonCount || 0, prev.wonCount || 0);
-
-      // Win rate
-      const winLossTotal = totalWon + totalLost;
-      const winRate = winLossTotal > 0 ? (totalWon / winLossTotal * 100).toFixed(0) : '—';
-
-      // Conversion rates
-      const totalProspects = Object.values(conv).reduce((s, c) => s + (c.total || 0), 0);
-      const totalSigned = Object.values(conv).reduce((s, c) => s + (c.signed || 0), 0);
-      const overallConvRate = totalProspects > 0 ? (totalSigned / totalProspects * 100).toFixed(1) : '0';
-
-      let html = '';
-
-      // ── Summary Cards ──
-      html += '<div class="summary-grid">';
-      html += `<div class="summary-card">
-        <div class="card-icon">🆕</div>
-        <div class="card-value val-accent">${fmt(curr.newProspects || 0)}</div>
-        <div class="card-label">New Prospects (This Period)</div>
-        <span class="card-change ${prospChange.cls}">${prospChange.val} vs prior</span>
-      </div>`;
-      html += `<div class="summary-card">
-        <div class="card-icon">🎯</div>
-        <div class="card-value val-success">${overallConvRate}%</div>
-        <div class="card-label">Overall Conversion Rate</div>
-        <span class="card-change change-flat">Lead → Signed</span>
-      </div>`;
-      html += `<div class="summary-card">
-        <div class="card-icon">🏆</div>
-        <div class="card-value val-warn">${winRate}${winRate !== '—' ? '%' : ''}</div>
-        <div class="card-label">Win Rate</div>
-        <span class="card-change change-flat">${fmt(totalWon)}W / ${fmt(totalLost)}L</span>
-      </div>`;
-      html += `<div class="summary-card">
-        <div class="card-icon">💰</div>
-        <div class="card-value val-blue">${fmtMoney(latestPipeline)}</div>
-        <div class="card-label">Pipeline Value</div>
-        <span class="card-change change-flat">Active prospects</span>
-      </div>`;
-      html += `<div class="summary-card">
-        <div class="card-icon">📞</div>
-        <div class="card-value val-teal">${fmt(activity.calls || 0)}</div>
-        <div class="card-label">Calls Made</div>
-      </div>`;
-      html += `<div class="summary-card">
-        <div class="card-icon">📧</div>
-        <div class="card-value val-accent">${fmt(activity.emails || 0)}</div>
-        <div class="card-label">Emails Sent</div>
-      </div>`;
-      html += '</div>';
-
-      // ── Conversion Pipeline ──
-      html += '<div class="section"><div class="section-title">📈 Conversion Pipeline</div>';
-      html += '<div class="panel">';
-      const stages = data.pipelineCounts || { new: 0, contacted: 0, proposal: 0, signed: 0 };
-      const stageArr = [
-        { name: 'Lead / New', count: stages.new || 0, color: '--muted' },
-        { name: 'Contacted', count: stages.contacted || 0, color: '--blue' },
-        { name: 'Proposal', count: stages.proposal || 0, color: '--warn' },
-        { name: 'Signed', count: stages.signed || 0, color: '--success' }
-      ];
-      const maxStage = Math.max(...stageArr.map(s => s.count), 1);
-      html += '<div class="pipeline-flow">';
-      stageArr.forEach((s, i) => {
-        const rate = i > 0 && stageArr[i-1].count > 0 ? (s.count / stageArr[i-1].count * 100).toFixed(0) + '%' : '';
-        html += `<div class="pipeline-stage">
-          <div class="stage-count" style="color:var(${s.color})">${fmt(s.count)}</div>
-          <div class="stage-name">${s.name}</div>
-          ${rate ? `<div class="stage-rate">↑ ${rate}</div>` : ''}
-        </div>`;
-        if (i < stageArr.length - 1) html += '<div class="pipeline-arrow">→</div>';
+  async function loadMachines() {
+    try {
+      const res = await fetch('/api/machines');
+      const machines = await res.json();
+      const select = document.getElementById('machine-filter');
+      machines.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = m.name || `Machine #${m.id}`;
+        select.appendChild(opt);
       });
-      html += '</div></div></div>';
+    } catch (e) { console.error('Failed to load machines:', e); }
+  }
 
-      // ── Two-column: Charts + Highlights ──
-      html += '<div class="two-col">';
+  async function generateReport() {
+    const dateFrom = document.getElementById('date-from').value;
+    const dateTo = document.getElementById('date-to').value;
+    const propertyType = document.getElementById('property-type').value;
+    const status = document.getElementById('status-filter').value;
+    const machineId = document.getElementById('machine-filter').value;
 
-      // Left: Charts
-      html += '<div>';
+    reportPreview.innerHTML = '<div class="empty-state"><div class="icon">⏳</div><h3>Generating Report...</h3></div>';
 
-      // Bar chart: Prospects per week
-      html += '<div class="panel"><div class="panel-title">📊 Prospects Added Per Week</div>';
-      if (ws.length > 0) {
-        const maxBar = Math.max(...ws.map(w => w.newProspects || 0), 1);
-        html += '<div class="bar-chart">';
-        ws.forEach(w => {
-          const h = ((w.newProspects || 0) / maxBar * 100);
-          html += `<div class="bar-col">
-            <div class="bar-fill" style="height:${Math.max(h, 2)}%">
-              <span class="bar-tooltip">${w.newProspects || 0} prospects</span>
-            </div>
-            <div class="bar-label">${w.week || ''}</div>
-          </div>`;
-        });
-        html += '</div>';
-      } else {
-        html += '<p style="color:var(--muted);font-size:0.85rem;text-align:center;padding:20px">No data yet</p>';
+    try {
+      let data;
+      switch (currentReportType) {
+        case 'pipeline':
+          data = await fetchPipelineReport(dateFrom, dateTo, propertyType, status);
+          break;
+        case 'activity':
+          data = await fetchActivityReport(dateFrom, dateTo, propertyType);
+          break;
+        case 'revenue':
+          data = await fetchRevenueReport(dateFrom, dateTo, machineId);
+          break;
+        case 'commission':
+          data = await fetchCommissionReport(dateFrom, dateTo);
+          break;
+        case 'prospects':
+          data = await fetchProspectsReport(propertyType, status);
+          break;
+        case 'machine':
+          data = await fetchMachineReport(dateFrom, dateTo, machineId);
+          break;
+        case 'expense':
+          data = await fetchExpenseReport(dateFrom, dateTo);
+          break;
+        case 'service':
+          data = await fetchServiceReport(dateFrom, dateTo, machineId);
+          break;
       }
-      html += '</div>';
 
-      // Line chart: Pipeline value over time
-      html += '<div class="panel"><div class="panel-title">💰 Pipeline Value Trend</div>';
-      if (ws.length > 0) {
-        const maxPV = Math.max(...ws.map(w => w.pipelineValue || 0), 1);
-        html += `<div class="chart-label-row"><span>${fmtMoney(0)}</span><span>${fmtMoney(maxPV)}</span></div>`;
-        html += '<div class="line-chart">';
-        html += '<div class="line-chart-bg">';
-        for (let i = 0; i < 4; i++) html += '<div class="grid-line"></div>';
-        html += '</div>';
-        html += '<div class="line-chart-points">';
-        ws.forEach(w => {
-          const pct = ((w.pipelineValue || 0) / maxPV * 90);
-          html += `<div class="line-point-col">
-            <div style="flex:1"></div>
-            <div class="line-dot" style="margin-bottom:${pct}%">
-              <span class="dot-tooltip">${fmtMoney(w.pipelineValue)} — ${w.week}</span>
-            </div>
-          </div>`;
-        });
-        html += '</div></div>';
-      } else {
-        html += '<p style="color:var(--muted);font-size:0.85rem;text-align:center;padding:20px">No data yet</p>';
-      }
-      html += '</div>';
+      reportData = data;
+      renderReport(data);
+      enableExports();
+      addToHistory(currentReportType, dateFrom, dateTo);
+      showToast('Report generated successfully', 'success');
 
-      html += '</div>'; // end left
+    } catch (e) {
+      console.error('Report generation failed:', e);
+      reportPreview.innerHTML = '<div class="empty-state"><div class="icon">❌</div><h3>Generation Failed</h3><p>' + e.message + '</p></div>';
+      showToast('Failed to generate report', 'error');
+    }
+  }
 
-      // Right: Highlights + Activity
-      html += '<div>';
+  // Fetch functions for each report type
+  async function fetchPipelineReport(from, to, propertyType, status) {
+    const [prospects, activities] = await Promise.all([
+      fetch('/api/prospects').then(r => r.json()),
+      fetch('/api/activities').then(r => r.json())
+    ]);
 
-      // Highlights
-      html += '<div class="panel"><div class="panel-title">⚡ Weekly Highlights</div>';
-      if (highlights.length > 0) {
-        html += '<ul class="highlights-list">';
-        highlights.forEach(h => {
-          const cls = h.type === 'success' ? 'hl-success' : h.type === 'warning' ? 'hl-warn' : h.type === 'alert' ? 'hl-hot' : '';
-          const icon = h.type === 'success' ? '✅' : h.type === 'warning' ? '⚠️' : h.type === 'alert' ? '🔴' : '💡';
-          html += `<li class="${cls}"><span class="hl-icon">${icon}</span>${h.text}</li>`;
-        });
-        html += '</ul>';
-      } else {
-        html += '<p style="color:var(--muted);font-size:0.85rem;text-align:center;padding:20px">No notable events this period</p>';
-      }
-      html += '</div>';
+    let filtered = prospects;
+    if (propertyType) filtered = filtered.filter(p => p.property_type === propertyType);
+    if (status) filtered = filtered.filter(p => p.status === status);
+    if (from) filtered = filtered.filter(p => p.created_at >= from);
+    if (to) filtered = filtered.filter(p => p.created_at <= to + 'T23:59:59');
 
-      // Activity Summary
-      html += '<div class="panel"><div class="panel-title">📋 Activity Summary</div>';
-      html += '<div class="activity-grid">';
-      html += `<div class="activity-stat"><div class="as-icon">📞</div><div class="as-val">${fmt(activity.calls)}</div><div class="as-label">Calls</div></div>`;
-      html += `<div class="activity-stat"><div class="as-icon">📧</div><div class="as-val">${fmt(activity.emails)}</div><div class="as-label">Emails</div></div>`;
-      html += `<div class="activity-stat"><div class="as-icon">📝</div><div class="as-val">${fmt(activity.proposals)}</div><div class="as-label">Proposals</div></div>`;
-      html += `<div class="activity-stat"><div class="as-icon">🤝</div><div class="as-val">${fmt(activity.meetings)}</div><div class="as-label">Meetings</div></div>`;
-      html += '</div></div>';
+    const byStatus = { new: [], active: [], signed: [], closed: [] };
+    filtered.forEach(p => {
+      if (byStatus[p.status]) byStatus[p.status].push(p);
+    });
 
-      html += '</div>'; // end right
-      html += '</div>'; // end two-col
+    const byPropertyType = {};
+    filtered.forEach(p => {
+      const pt = p.property_type || 'Unknown';
+      if (!byPropertyType[pt]) byPropertyType[pt] = 0;
+      byPropertyType[pt]++;
+    });
 
-      // ── Average Time in Stage ──
-      html += '<div class="section"><div class="section-title">⏱ Average Time in Each Stage</div>';
-      html += '<div class="avg-time-grid">';
-      const stageNames = { new: 'New / Lead', contacted: 'Contacted', proposal: 'Proposal', signed: 'Signed', active: 'Active' };
-      Object.entries(avg).forEach(([stage, days]) => {
-        html += `<div class="avg-time-badge">
-          <div class="atb-days">${days.toFixed(1)}</div>
-          <div class="atb-label">${stageNames[stage] || stage} (days)</div>
-        </div>`;
+    return {
+      type: 'pipeline',
+      title: 'Sales Pipeline Report',
+      dateRange: { from, to },
+      summary: {
+        total: filtered.length,
+        new: byStatus.new.length,
+        active: byStatus.active.length,
+        signed: byStatus.signed.length,
+        closed: byStatus.closed.length,
+        conversionRate: filtered.length > 0 ? ((byStatus.signed.length / filtered.length) * 100).toFixed(1) : 0
+      },
+      byStatus,
+      byPropertyType,
+      prospects: filtered
+    };
+  }
+
+  async function fetchActivityReport(from, to, propertyType) {
+    const [activities, prospects] = await Promise.all([
+      fetch('/api/activities').then(r => r.json()),
+      fetch('/api/prospects').then(r => r.json())
+    ]);
+
+    const prospectMap = {};
+    prospects.forEach(p => prospectMap[p.id] = p);
+
+    let filtered = activities;
+    if (from) filtered = filtered.filter(a => a.created_at >= from);
+    if (to) filtered = filtered.filter(a => a.created_at <= to + 'T23:59:59');
+    if (propertyType) {
+      filtered = filtered.filter(a => {
+        const p = prospectMap[a.prospect_id];
+        return p && p.property_type === propertyType;
       });
-      if (Object.keys(avg).length === 0) {
-        html += '<div style="color:var(--muted);font-size:0.85rem;padding:10px">No stage duration data available</div>';
-      }
-      html += '</div></div>';
-
-      // ── Property Type Leaderboard ──
-      html += '<div class="section"><div class="section-title">🏢 Property Type Leaderboard</div>';
-      html += '<div class="panel">';
-      const types = Object.entries(conv).sort((a, b) => (b[1].rate || 0) - (a[1].rate || 0));
-      if (types.length > 0) {
-        const maxRate = Math.max(...types.map(t => t[1].rate || 0), 1);
-        html += '<table class="lb-table"><thead><tr>';
-        html += '<th>#</th><th>Property Type</th><th>Total</th><th>Contacted</th><th>Proposed</th><th>Signed</th><th>Conv Rate</th><th></th>';
-        html += '</tr></thead><tbody>';
-        types.forEach(([type, stats], i) => {
-          const barW = maxRate > 0 ? (stats.rate / maxRate * 100) : 0;
-          html += `<tr>
-            <td class="lb-rank">${i + 1}</td>
-            <td><strong>${type || 'Unknown'}</strong></td>
-            <td>${fmt(stats.total)}</td>
-            <td>${fmt(stats.contacted)}</td>
-            <td>${fmt(stats.proposed)}</td>
-            <td>${fmt(stats.signed)}</td>
-            <td><strong>${(stats.rate || 0).toFixed(1)}%</strong></td>
-            <td><div class="lb-bar"><div class="lb-bar-fill" style="width:${barW}%"></div></div></td>
-          </tr>`;
-        });
-        html += '</tbody></table>';
-      } else {
-        html += '<p style="color:var(--muted);font-size:0.85rem;text-align:center;padding:20px">No property type data yet</p>';
-      }
-      html += '</div></div>';
-
-      // ── Conversion Rate Per Week (bar chart) ──
-      if (ws.length > 1) {
-        html += '<div class="section"><div class="section-title">📉 Weekly Conversion Snapshot</div>';
-        html += '<div class="panel"><div class="panel-title">Won vs Lost Per Week</div>';
-        const maxWL = Math.max(...ws.map(w => Math.max(w.wonCount || 0, w.lostCount || 0)), 1);
-        html += '<div class="bar-chart">';
-        ws.forEach(w => {
-          const hW = ((w.wonCount || 0) / maxWL * 100);
-          const hL = ((w.lostCount || 0) / maxWL * 100);
-          html += `<div class="bar-col" style="gap:2px">
-            <div class="bar-fill" style="height:${Math.max(hW, 2)}%;background:var(--success)">
-              <span class="bar-tooltip">${w.wonCount || 0} won</span>
-            </div>
-            <div class="bar-label">${w.week || ''}</div>
-          </div>`;
-        });
-        html += '</div>';
-        html += '<div style="display:flex;gap:16px;margin-top:10px;font-size:0.75rem;color:var(--muted)">';
-        html += '<span>🟢 Won</span><span>🔴 Lost</span></div>';
-        html += '</div></div>';
-      }
-
-      document.getElementById('content').innerHTML = html;
     }
 
-    // Initial load
-    loadReport();
-  </script>
+    const byType = {};
+    filtered.forEach(a => {
+      const t = a.type || 'other';
+      if (!byType[t]) byType[t] = 0;
+      byType[t]++;
+    });
+
+    return {
+      type: 'activity',
+      title: 'Activity Report',
+      dateRange: { from, to },
+      summary: {
+        total: filtered.length,
+        byType
+      },
+      activities: filtered.map(a => ({
+        ...a,
+        prospect_name: prospectMap[a.prospect_id]?.name || 'Unknown'
+      })).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    };
+  }
+
+  async function fetchRevenueReport(from, to, machineId) {
+    const [finances, locations, machines] = await Promise.all([
+      fetch('/api/finances?type=revenue').then(r => r.json()),
+      fetch('/api/locations').then(r => r.json()),
+      fetch('/api/machines').then(r => r.json())
+    ]);
+
+    let filtered = finances;
+    if (from) filtered = filtered.filter(f => f.month >= from.slice(0, 7));
+    if (to) filtered = filtered.filter(f => f.month <= to.slice(0, 7));
+    if (machineId) filtered = filtered.filter(f => f.machine_id === parseInt(machineId));
+
+    const byMonth = {};
+    const byLocation = {};
+    let total = 0;
+
+    filtered.forEach(f => {
+      total += f.amount || 0;
+      const month = f.month || 'Unknown';
+      if (!byMonth[month]) byMonth[month] = 0;
+      byMonth[month] += f.amount || 0;
+
+      const loc = locations.find(l => l.id === f.location_id);
+      const locName = loc?.name || 'Unknown';
+      if (!byLocation[locName]) byLocation[locName] = 0;
+      byLocation[locName] += f.amount || 0;
+    });
+
+    return {
+      type: 'revenue',
+      title: 'Revenue Report',
+      dateRange: { from, to },
+      summary: { total, recordCount: filtered.length },
+      byMonth,
+      byLocation,
+      records: filtered
+    };
+  }
+
+  async function fetchCommissionReport(from, to) {
+    const [finances, locations, prospects] = await Promise.all([
+      fetch('/api/finances?type=revenue').then(r => r.json()),
+      fetch('/api/locations').then(r => r.json()),
+      fetch('/api/prospects').then(r => r.json())
+    ]);
+
+    let filtered = finances;
+    if (from) filtered = filtered.filter(f => f.month >= from.slice(0, 7));
+    if (to) filtered = filtered.filter(f => f.month <= to.slice(0, 7));
+
+    // Calculate commissions (default 5% rev share starting month 6)
+    const locationRevenue = {};
+    filtered.forEach(f => {
+      const locId = f.location_id;
+      if (!locationRevenue[locId]) locationRevenue[locId] = { total: 0, months: new Set() };
+      locationRevenue[locId].total += f.amount || 0;
+      if (f.month) locationRevenue[locId].months.add(f.month);
+    });
+
+    const commissions = Object.entries(locationRevenue).map(([locId, data]) => {
+      const loc = locations.find(l => l.id === parseInt(locId));
+      const prospect = prospects.find(p => p.id === loc?.prospect_id);
+      const revShare = prospect?.rev_share || 0.05; // Default 5%
+      const eligible = data.months.size >= 6;
+      const commission = eligible ? data.total * revShare : 0;
+      return {
+        location_id: locId,
+        location_name: loc?.name || prospect?.name || 'Unknown',
+        revenue: data.total,
+        months_active: data.months.size,
+        rev_share_rate: revShare * 100,
+        eligible,
+        commission
+      };
+    }).sort((a, b) => b.commission - a.commission);
+
+    const totalCommission = commissions.reduce((s, c) => s + c.commission, 0);
+    const totalRevenue = commissions.reduce((s, c) => s + c.revenue, 0);
+
+    return {
+      type: 'commission',
+      title: 'Commission Report',
+      dateRange: { from, to },
+      summary: { totalRevenue, totalCommission, locationCount: commissions.length },
+      commissions
+    };
+  }
+
+  async function fetchProspectsReport(propertyType, status) {
+    const prospects = await fetch('/api/prospects').then(r => r.json());
+
+    let filtered = prospects;
+    if (propertyType) filtered = filtered.filter(p => p.property_type === propertyType);
+    if (status) filtered = filtered.filter(p => p.status === status);
+
+    // Get selected columns
+    const columns = [];
+    document.querySelectorAll('#column-checkboxes input:checked').forEach(cb => columns.push(cb.value));
+
+    return {
+      type: 'prospects',
+      title: 'Prospect List Export',
+      summary: { total: filtered.length, columns },
+      columns,
+      prospects: filtered
+    };
+  }
+
+  async function fetchMachineReport(from, to, machineId) {
+    const [machines, sales, restocks] = await Promise.all([
+      fetch('/api/machines').then(r => r.json()),
+      fetch('/api/sales').then(r => r.json()),
+      fetch('/api/restocks').then(r => r.json())
+    ]);
+
+    let targetMachines = machines;
+    if (machineId) targetMachines = machines.filter(m => m.id === parseInt(machineId));
+
+    const machineData = targetMachines.map(m => {
+      let machineSales = sales.filter(s => s.machine_id === m.id);
+      if (from) machineSales = machineSales.filter(s => s.date >= from);
+      if (to) machineSales = machineSales.filter(s => s.date <= to);
+
+      const revenue = machineSales.reduce((s, sale) => s + (sale.total || 0), 0);
+      const units = machineSales.reduce((s, sale) => s + (sale.quantity || 1), 0);
+      const restockCount = restocks.filter(r => r.machine_id === m.id).length;
+
+      return {
+        id: m.id,
+        name: m.name || `Machine #${m.id}`,
+        status: m.status,
+        location: m.location_name || 'Unassigned',
+        revenue,
+        units,
+        restocks: restockCount,
+        avg_per_sale: units > 0 ? (revenue / units).toFixed(2) : 0
+      };
+    }).sort((a, b) => b.revenue - a.revenue);
+
+    const totalRevenue = machineData.reduce((s, m) => s + m.revenue, 0);
+    const totalUnits = machineData.reduce((s, m) => s + m.units, 0);
+
+    return {
+      type: 'machine',
+      title: 'Machine Performance Report',
+      dateRange: { from, to },
+      summary: { totalRevenue, totalUnits, machineCount: machineData.length },
+      machines: machineData
+    };
+  }
+
+  async function fetchExpenseReport(from, to) {
+    const finances = await fetch('/api/finances?type=expense').then(r => r.json());
+
+    let filtered = finances;
+    if (from) filtered = filtered.filter(f => f.month >= from.slice(0, 7));
+    if (to) filtered = filtered.filter(f => f.month <= to.slice(0, 7));
+
+    const byCategory = {};
+    const byMonth = {};
+    let total = 0;
+
+    filtered.forEach(f => {
+      total += f.amount || 0;
+      const cat = f.category || 'Other';
+      if (!byCategory[cat]) byCategory[cat] = 0;
+      byCategory[cat] += f.amount || 0;
+
+      const month = f.month || 'Unknown';
+      if (!byMonth[month]) byMonth[month] = 0;
+      byMonth[month] += f.amount || 0;
+    });
+
+    return {
+      type: 'expense',
+      title: 'Expense Report',
+      dateRange: { from, to },
+      summary: { total, recordCount: filtered.length },
+      byCategory,
+      byMonth,
+      records: filtered.sort((a, b) => (b.amount || 0) - (a.amount || 0))
+    };
+  }
+
+  async function fetchServiceReport(from, to, machineId) {
+    const [restocks, machines] = await Promise.all([
+      fetch('/api/restocks').then(r => r.json()),
+      fetch('/api/machines').then(r => r.json())
+    ]);
+
+    const machineMap = {};
+    machines.forEach(m => machineMap[m.id] = m);
+
+    let filtered = restocks;
+    if (from) filtered = filtered.filter(r => r.created_at >= from);
+    if (to) filtered = filtered.filter(r => r.created_at <= to + 'T23:59:59');
+    if (machineId) filtered = filtered.filter(r => r.machine_id === parseInt(machineId));
+
+    const byMachine = {};
+    filtered.forEach(r => {
+      const mId = r.machine_id;
+      if (!byMachine[mId]) byMachine[mId] = { name: machineMap[mId]?.name || `Machine #${mId}`, count: 0 };
+      byMachine[mId].count++;
+    });
+
+    return {
+      type: 'service',
+      title: 'Service History Report',
+      dateRange: { from, to },
+      summary: { total: filtered.length },
+      byMachine: Object.values(byMachine).sort((a, b) => b.count - a.count),
+      records: filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    };
+  }
+
+  // Render report based on type
+  function renderReport(data) {
+    const dateStr = data.dateRange?.from && data.dateRange?.to 
+      ? `${formatDate(data.dateRange.from)} — ${formatDate(data.dateRange.to)}`
+      : 'All Time';
+
+    let html = `
+      <div class="report-content">
+        <div class="report-logo">
+          <img src="/logo.png" alt="Kande VendTech" onerror="this.style.display='none'">
+        </div>
+        <div class="report-title">${data.title}</div>
+        <div class="report-subtitle">Generated ${new Date().toLocaleDateString()} | ${dateStr}</div>
+    `;
+
+    switch (data.type) {
+      case 'pipeline':
+        html += renderPipelineReport(data);
+        break;
+      case 'activity':
+        html += renderActivityReport(data);
+        break;
+      case 'revenue':
+        html += renderRevenueReport(data);
+        break;
+      case 'commission':
+        html += renderCommissionReport(data);
+        break;
+      case 'prospects':
+        html += renderProspectsReport(data);
+        break;
+      case 'machine':
+        html += renderMachineReport(data);
+        break;
+      case 'expense':
+        html += renderExpenseReport(data);
+        break;
+      case 'service':
+        html += renderServiceReport(data);
+        break;
+    }
+
+    html += '</div>';
+    reportPreview.innerHTML = html;
+    previewTitle.textContent = data.title;
+  }
+
+  function renderPipelineReport(data) {
+    return `
+      <div class="stat-grid">
+        <div class="stat-item"><div class="value">${data.summary.total}</div><div class="label">Total Prospects</div></div>
+        <div class="stat-item"><div class="value">${data.summary.new}</div><div class="label">New</div></div>
+        <div class="stat-item"><div class="value">${data.summary.active}</div><div class="label">Active</div></div>
+        <div class="stat-item"><div class="value">${data.summary.signed}</div><div class="label">Signed</div></div>
+        <div class="stat-item"><div class="value">${data.summary.closed}</div><div class="label">Closed</div></div>
+        <div class="stat-item"><div class="value">${data.summary.conversionRate}%</div><div class="label">Conversion Rate</div></div>
+      </div>
+      <div class="section-title">By Property Type</div>
+      <div class="summary-box">
+        ${Object.entries(data.byPropertyType).map(([type, count]) => `
+          <div class="summary-row">
+            <span class="summary-label">${type.replace(/_/g, ' ')}</span>
+            <span class="summary-value">${count}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="section-title">Pipeline Detail</div>
+      <table>
+        <thead><tr><th>Name</th><th>Type</th><th>Status</th><th>Priority</th><th>Created</th></tr></thead>
+        <tbody>
+          ${data.prospects.slice(0, 50).map(p => `
+            <tr>
+              <td>${esc(p.name)}</td>
+              <td>${p.property_type || '—'}</td>
+              <td>${p.status || '—'}</td>
+              <td>${p.priority || 'normal'}</td>
+              <td>${formatDate(p.created_at)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      ${data.prospects.length > 50 ? `<p style="color:var(--muted);font-size:0.8rem;text-align:center;">Showing first 50 of ${data.prospects.length} records</p>` : ''}
+    `;
+  }
+
+  function renderActivityReport(data) {
+    return `
+      <div class="stat-grid">
+        <div class="stat-item"><div class="value">${data.summary.total}</div><div class="label">Total Activities</div></div>
+        ${Object.entries(data.summary.byType).slice(0, 4).map(([type, count]) => `
+          <div class="stat-item"><div class="value">${count}</div><div class="label">${type.replace(/_/g, ' ')}</div></div>
+        `).join('')}
+      </div>
+      <div class="section-title">Activity Log</div>
+      <table>
+        <thead><tr><th>Date</th><th>Type</th><th>Prospect</th><th>Description</th></tr></thead>
+        <tbody>
+          ${data.activities.slice(0, 100).map(a => `
+            <tr>
+              <td>${formatDate(a.created_at)}</td>
+              <td>${a.type || '—'}</td>
+              <td>${esc(a.prospect_name)}</td>
+              <td>${esc(a.description || '—')}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function renderRevenueReport(data) {
+    return `
+      <div class="stat-grid">
+        <div class="stat-item"><div class="value">${money(data.summary.total)}</div><div class="label">Total Revenue</div></div>
+        <div class="stat-item"><div class="value">${data.summary.recordCount}</div><div class="label">Records</div></div>
+      </div>
+      <div class="section-title">Revenue by Month</div>
+      <div class="summary-box">
+        ${Object.entries(data.byMonth).sort().reverse().map(([month, amt]) => `
+          <div class="summary-row">
+            <span class="summary-label">${month}</span>
+            <span class="summary-value">${money(amt)}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="section-title">Revenue by Location</div>
+      <table>
+        <thead><tr><th>Location</th><th>Revenue</th></tr></thead>
+        <tbody>
+          ${Object.entries(data.byLocation).sort((a,b) => b[1] - a[1]).map(([loc, amt]) => `
+            <tr><td>${esc(loc)}</td><td>${money(amt)}</td></tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function renderCommissionReport(data) {
+    return `
+      <div class="stat-grid">
+        <div class="stat-item"><div class="value">${money(data.summary.totalRevenue)}</div><div class="label">Total Revenue</div></div>
+        <div class="stat-item"><div class="value">${money(data.summary.totalCommission)}</div><div class="label">Total Commissions</div></div>
+        <div class="stat-item"><div class="value">${data.summary.locationCount}</div><div class="label">Locations</div></div>
+      </div>
+      <div class="section-title">Commission Details</div>
+      <table>
+        <thead><tr><th>Location</th><th>Revenue</th><th>Months</th><th>Rate</th><th>Eligible</th><th>Commission</th></tr></thead>
+        <tbody>
+          ${data.commissions.map(c => `
+            <tr>
+              <td>${esc(c.location_name)}</td>
+              <td>${money(c.revenue)}</td>
+              <td>${c.months_active}</td>
+              <td>${c.rev_share_rate}%</td>
+              <td>${c.eligible ? '✅' : '❌ (< 6 mo)'}</td>
+              <td>${money(c.commission)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <div class="summary-box" style="margin-top:20px;">
+        <div class="summary-row"><span class="summary-label">Total Commissions Due</span><span class="summary-value">${money(data.summary.totalCommission)}</span></div>
+      </div>
+    `;
+  }
+
+  function renderProspectsReport(data) {
+    const cols = data.columns;
+    return `
+      <div class="stat-grid">
+        <div class="stat-item"><div class="value">${data.summary.total}</div><div class="label">Total Prospects</div></div>
+      </div>
+      <div class="section-title">Prospect List</div>
+      <table>
+        <thead><tr>${cols.map(c => `<th>${c.replace(/_/g, ' ')}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${data.prospects.map(p => `
+            <tr>${cols.map(c => `<td>${esc(p[c] || '—')}</td>`).join('')}</tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function renderMachineReport(data) {
+    return `
+      <div class="stat-grid">
+        <div class="stat-item"><div class="value">${money(data.summary.totalRevenue)}</div><div class="label">Total Revenue</div></div>
+        <div class="stat-item"><div class="value">${data.summary.totalUnits}</div><div class="label">Units Sold</div></div>
+        <div class="stat-item"><div class="value">${data.summary.machineCount}</div><div class="label">Machines</div></div>
+      </div>
+      <div class="section-title">Machine Performance</div>
+      <table>
+        <thead><tr><th>Machine</th><th>Status</th><th>Location</th><th>Revenue</th><th>Units</th><th>Restocks</th><th>Avg/Sale</th></tr></thead>
+        <tbody>
+          ${data.machines.map(m => `
+            <tr>
+              <td>${esc(m.name)}</td>
+              <td>${m.status}</td>
+              <td>${esc(m.location)}</td>
+              <td>${money(m.revenue)}</td>
+              <td>${m.units}</td>
+              <td>${m.restocks}</td>
+              <td>${money(m.avg_per_sale)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function renderExpenseReport(data) {
+    return `
+      <div class="stat-grid">
+        <div class="stat-item"><div class="value">${money(data.summary.total)}</div><div class="label">Total Expenses</div></div>
+        <div class="stat-item"><div class="value">${data.summary.recordCount}</div><div class="label">Records</div></div>
+      </div>
+      <div class="section-title">Expenses by Category</div>
+      <div class="summary-box">
+        ${Object.entries(data.byCategory).sort((a,b) => b[1] - a[1]).map(([cat, amt]) => `
+          <div class="summary-row">
+            <span class="summary-label">${cat}</span>
+            <span class="summary-value">${money(amt)}</span>
+          </div>
+        `).join('')}
+        <div class="summary-row"><span class="summary-label">Total</span><span class="summary-value">${money(data.summary.total)}</span></div>
+      </div>
+      <div class="section-title">Expense Details</div>
+      <table>
+        <thead><tr><th>Month</th><th>Category</th><th>Description</th><th>Amount</th></tr></thead>
+        <tbody>
+          ${data.records.slice(0, 50).map(r => `
+            <tr>
+              <td>${r.month || '—'}</td>
+              <td>${r.category || '—'}</td>
+              <td>${esc(r.description || '—')}</td>
+              <td>${money(r.amount || 0)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function renderServiceReport(data) {
+    return `
+      <div class="stat-grid">
+        <div class="stat-item"><div class="value">${data.summary.total}</div><div class="label">Total Service Events</div></div>
+      </div>
+      <div class="section-title">Service by Machine</div>
+      <div class="summary-box">
+        ${data.byMachine.map(m => `
+          <div class="summary-row">
+            <span class="summary-label">${esc(m.name)}</span>
+            <span class="summary-value">${m.count} restocks</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="section-title">Service History</div>
+      <table>
+        <thead><tr><th>Date</th><th>Machine</th><th>Status</th><th>Notes</th></tr></thead>
+        <tbody>
+          ${data.records.slice(0, 50).map(r => `
+            <tr>
+              <td>${formatDate(r.created_at)}</td>
+              <td>Machine #${r.machine_id}</td>
+              <td>${r.status || '—'}</td>
+              <td>${esc(r.notes || '—')}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  // Export functions
+  function enableExports() {
+    exportCsv.disabled = false;
+    exportExcel.disabled = false;
+    exportPdf.disabled = false;
+  }
+
+  function exportReport(format) {
+    if (!reportData) return;
+
+    if (format === 'pdf') {
+      window.print();
+      return;
+    }
+
+    // Get data rows based on report type
+    let rows = [];
+    let headers = [];
+
+    switch (reportData.type) {
+      case 'pipeline':
+      case 'prospects':
+        headers = reportData.columns || ['name', 'address', 'phone', 'email', 'status', 'property_type'];
+        rows = reportData.prospects.map(p => headers.map(h => p[h] || ''));
+        break;
+      case 'activity':
+        headers = ['date', 'type', 'prospect', 'description'];
+        rows = reportData.activities.map(a => [formatDate(a.created_at), a.type, a.prospect_name, a.description || '']);
+        break;
+      case 'revenue':
+        headers = ['month', 'amount'];
+        rows = Object.entries(reportData.byMonth).sort().map(([m, a]) => [m, a]);
+        break;
+      case 'commission':
+        headers = ['location', 'revenue', 'months', 'rate', 'eligible', 'commission'];
+        rows = reportData.commissions.map(c => [c.location_name, c.revenue, c.months_active, c.rev_share_rate + '%', c.eligible ? 'Yes' : 'No', c.commission]);
+        break;
+      case 'machine':
+        headers = ['machine', 'status', 'location', 'revenue', 'units', 'restocks'];
+        rows = reportData.machines.map(m => [m.name, m.status, m.location, m.revenue, m.units, m.restocks]);
+        break;
+      case 'expense':
+        headers = ['month', 'category', 'description', 'amount'];
+        rows = reportData.records.map(r => [r.month, r.category || '', r.description || '', r.amount]);
+        break;
+      case 'service':
+        headers = ['date', 'machine_id', 'status', 'notes'];
+        rows = reportData.records.map(r => [formatDate(r.created_at), r.machine_id, r.status || '', r.notes || '']);
+        break;
+    }
+
+    if (format === 'csv') {
+      downloadCSV(headers, rows, reportData.title);
+    } else if (format === 'excel') {
+      downloadExcel(headers, rows, reportData.title);
+    }
+  }
+
+  function downloadCSV(headers, rows, title) {
+    const escape = v => '"' + String(v).replace(/"/g, '""') + '"';
+    const csv = [headers.join(','), ...rows.map(r => r.map(escape).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    downloadBlob(blob, title.replace(/\s+/g, '_') + '.csv');
+  }
+
+  function downloadExcel(headers, rows, title) {
+    // Create simple HTML table that Excel can open
+    let html = '<html><head><meta charset="utf-8"></head><body><table border="1">';
+    html += '<tr>' + headers.map(h => '<th>' + esc(h) + '</th>').join('') + '</tr>';
+    rows.forEach(r => {
+      html += '<tr>' + r.map(c => '<td>' + esc(c) + '</td>').join('') + '</tr>';
+    });
+    html += '</table></body></html>';
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+    downloadBlob(blob, title.replace(/\s+/g, '_') + '.xls');
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Download started: ' + filename, 'success');
+  }
+
+  // History management
+  function addToHistory(type, from, to) {
+    const typeNames = {
+      pipeline: 'Sales Pipeline', activity: 'Activity Report', revenue: 'Revenue Report',
+      commission: 'Commission Report', prospects: 'Prospect List', machine: 'Machine Performance',
+      expense: 'Expense Report', service: 'Service History'
+    };
+    const entry = {
+      type,
+      name: typeNames[type],
+      dateRange: { from, to },
+      generatedAt: new Date().toISOString()
+    };
+    reportHistory.unshift(entry);
+    if (reportHistory.length > 20) reportHistory = reportHistory.slice(0, 20);
+    localStorage.setItem('reportHistory', JSON.stringify(reportHistory));
+    renderHistory();
+  }
+
+  function renderHistory() {
+    if (reportHistory.length === 0) {
+      historyList.innerHTML = '<div class="history-empty">No reports generated yet</div>';
+      return;
+    }
+    historyList.innerHTML = reportHistory.map((h, i) => `
+      <div class="history-item" data-index="${i}">
+        <span class="hi-icon">📄</span>
+        <div class="hi-info">
+          <div class="hi-name">${h.name}</div>
+          <div class="hi-meta">${formatDate(h.generatedAt)} • ${h.dateRange?.from || 'All'} to ${h.dateRange?.to || 'All'}</div>
+        </div>
+        <span class="hi-action">Re-run →</span>
+      </div>
+    `).join('');
+
+    historyList.querySelectorAll('.history-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const idx = parseInt(item.dataset.index);
+        const h = reportHistory[idx];
+        selectReportType(h.type);
+        if (h.dateRange?.from) document.getElementById('date-from').value = h.dateRange.from;
+        if (h.dateRange?.to) document.getElementById('date-to').value = h.dateRange.to;
+        generateReport();
+      });
+    });
+  }
+
+  // Schedule placeholder
+  function saveSchedule() {
+    showToast('Schedule saved (email delivery coming soon)', 'success');
+    scheduleModal.classList.remove('active');
+  }
+
+  // Helpers
+  function formatDate(d) {
+    if (!d) return '—';
+    const date = new Date(d);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function money(n) {
+    return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  }
+
+  function esc(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function showToast(msg, type) {
+    toast.textContent = msg;
+    toast.className = 'toast ' + (type || '') + ' show';
+    setTimeout(() => toast.classList.remove('show'), 3000);
+  }
+
+})();
+</script>
 </body>
 </html>

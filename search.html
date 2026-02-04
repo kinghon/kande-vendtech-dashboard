@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global Search | Kande VendTech</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #f8fafc;
+      min-height: 100vh;
+      color: #1e293b;
+    }
+    
+    /* Navigation */
+    .nav {
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #0f172a;
+      font-weight: 600;
+      font-size: 18px;
+    }
+    .nav-brand img { height: 32px; }
+    .nav-links {
+      display: flex;
+      gap: 8px;
+    }
+    .nav-link {
+      padding: 8px 16px;
+      text-decoration: none;
+      color: #64748b;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .nav-link:hover { background: #f1f5f9; color: #0f172a; }
+    .nav-link.active { background: #e0f2fe; color: #0284c7; }
+    
+    /* Search Container */
+    .search-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    
+    .search-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .search-header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+    .search-header p {
+      color: #64748b;
+      font-size: 16px;
+    }
+    .keyboard-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 12px;
+      padding: 6px 12px;
+      background: #f1f5f9;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #64748b;
+    }
+    .kbd {
+      padding: 2px 6px;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    
+    /* Search Input */
+    .search-box {
+      position: relative;
+      margin-bottom: 24px;
+    }
+    .search-input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      background: #fff;
+      border: 2px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 4px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+    .search-input-wrap:focus-within {
+      border-color: #0ea5e9;
+      box-shadow: 0 0 0 4px rgba(14,165,233,0.1);
+    }
+    .search-icon {
+      padding: 0 16px;
+      color: #94a3b8;
+      font-size: 20px;
+    }
+    .search-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-size: 18px;
+      padding: 16px 0;
+      background: transparent;
+    }
+    .search-input::placeholder { color: #94a3b8; }
+    .clear-btn {
+      padding: 8px 16px;
+      background: none;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 18px;
+      display: none;
+    }
+    .clear-btn.visible { display: block; }
+    .clear-btn:hover { color: #64748b; }
+    
+    /* Recent Searches */
+    .recent-searches {
+      margin-bottom: 24px;
+    }
+    .recent-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+    .recent-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .recent-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      font-size: 13px;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .recent-tag:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+    .recent-tag i { color: #94a3b8; font-size: 12px; }
+    .recent-clear {
+      font-size: 13px;
+      color: #64748b;
+      cursor: pointer;
+      margin-left: 8px;
+    }
+    .recent-clear:hover { color: #ef4444; }
+    
+    /* Filters */
+    .filters {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .filter-label {
+      font-size: 13px;
+      color: #64748b;
+      font-weight: 500;
+    }
+    .filter-select {
+      padding: 8px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: #fff;
+      font-size: 14px;
+      color: #1e293b;
+      cursor: pointer;
+    }
+    .filter-select:focus {
+      outline: none;
+      border-color: #0ea5e9;
+    }
+    .filter-input {
+      padding: 8px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      width: 140px;
+    }
+    .filter-input:focus {
+      outline: none;
+      border-color: #0ea5e9;
+    }
+    
+    /* Results */
+    .results-container {
+      min-height: 300px;
+    }
+    .results-summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #e2e8f0;
+      margin-bottom: 16px;
+    }
+    .results-count {
+      font-size: 14px;
+      color: #64748b;
+    }
+    .results-count strong { color: #0f172a; }
+    .results-time {
+      font-size: 13px;
+      color: #94a3b8;
+    }
+    
+    .result-group {
+      margin-bottom: 32px;
+    }
+    .result-group-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .result-group-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .result-group-icon.prospects { background: #dbeafe; color: #2563eb; }
+    .result-group-icon.activities { background: #dcfce7; color: #16a34a; }
+    .result-group-icon.contracts { background: #fef3c7; color: #d97706; }
+    .result-group-icon.proposals { background: #f3e8ff; color: #9333ea; }
+    .result-group-icon.todos { background: #fee2e2; color: #dc2626; }
+    .result-group-icon.service { background: #cffafe; color: #0891b2; }
+    .result-group-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    .result-group-count {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-left: auto;
+    }
+    
+    .result-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 8px;
+      transition: all 0.2s;
+      cursor: pointer;
+      position: relative;
+    }
+    .result-card:hover {
+      border-color: #cbd5e1;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+    .result-card.selected {
+      border-color: #0ea5e9;
+      background: #f0f9ff;
+    }
+    .result-title {
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .result-title .match { background: #fef08a; padding: 0 2px; border-radius: 2px; }
+    .result-meta {
+      font-size: 13px;
+      color: #64748b;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .result-meta span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .result-meta i { font-size: 12px; color: #94a3b8; }
+    .result-excerpt {
+      font-size: 14px;
+      color: #475569;
+      line-height: 1.5;
+    }
+    .result-excerpt .match { background: #fef08a; padding: 0 2px; border-radius: 2px; }
+    .result-actions {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .result-card:hover .result-actions { opacity: 1; }
+    .action-btn {
+      padding: 6px 10px;
+      background: #f1f5f9;
+      border: none;
+      border-radius: 6px;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .action-btn:hover { background: #e2e8f0; color: #0f172a; }
+    .action-btn.primary { background: #0ea5e9; color: #fff; }
+    .action-btn.primary:hover { background: #0284c7; }
+    
+    .status-badge {
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+    .status-badge.new { background: #dbeafe; color: #2563eb; }
+    .status-badge.active { background: #dcfce7; color: #16a34a; }
+    .status-badge.signed { background: #d1fae5; color: #059669; }
+    .status-badge.closed { background: #fee2e2; color: #dc2626; }
+    .status-badge.pending { background: #fef3c7; color: #d97706; }
+    .status-badge.completed { background: #dcfce7; color: #16a34a; }
+    
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .empty-icon {
+      font-size: 48px;
+      color: #cbd5e1;
+      margin-bottom: 16px;
+    }
+    .empty-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #64748b;
+      margin-bottom: 8px;
+    }
+    .empty-text {
+      font-size: 14px;
+      color: #94a3b8;
+    }
+    
+    /* Loading */
+    .loading {
+      display: flex;
+      justify-content: center;
+      padding: 40px;
+    }
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #e2e8f0;
+      border-top-color: #0ea5e9;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    /* Analytics Section */
+    .analytics-section {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid #e2e8f0;
+    }
+    .analytics-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .analytics-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .analytics-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .analytics-card-title {
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 8px;
+    }
+    .analytics-card-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .top-searches {
+      margin-top: 16px;
+    }
+    .top-search-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 14px;
+    }
+    .top-search-term { color: #1e293b; }
+    .top-search-count { color: #64748b; }
+    
+    /* Responsive */
+    @media (max-width: 640px) {
+      .search-header h1 { font-size: 24px; }
+      .search-input { font-size: 16px; padding: 12px 0; }
+      .filters { flex-direction: column; }
+      .keyboard-hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a href="/" class="nav-brand">
+      <img src="/logo.png" alt="Kande VendTech" onerror="this.style.display='none'">
+      <span>Kande VendTech</span>
+    </a>
+    <div class="nav-links">
+      <a href="/home" class="nav-link"><i class="fas fa-home"></i> Home</a>
+      <a href="/crm" class="nav-link"><i class="fas fa-users"></i> CRM</a>
+      <a href="/pipeline" class="nav-link"><i class="fas fa-funnel-dollar"></i> Pipeline</a>
+      <a href="/search" class="nav-link active"><i class="fas fa-search"></i> Search</a>
+    </div>
+  </nav>
+
+  <div class="search-container">
+    <div class="search-header">
+      <h1><i class="fas fa-search" style="color:#0ea5e9"></i> Global Search</h1>
+      <p>Search across all prospects, activities, contracts, tasks, and more</p>
+      <div class="keyboard-hint">
+        <span>Quick access:</span>
+        <span class="kbd">⌘</span> + <span class="kbd">K</span>
+      </div>
+    </div>
+
+    <div class="search-box">
+      <div class="search-input-wrap">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" class="search-input" id="searchInput" placeholder="Search prospects, activities, contracts..." autofocus>
+        <button class="clear-btn" id="clearBtn"><i class="fas fa-times"></i></button>
+      </div>
+    </div>
+
+    <div class="recent-searches" id="recentSearches" style="display:none">
+      <div class="recent-label">
+        Recent Searches
+        <span class="recent-clear" id="clearRecent">Clear all</span>
+      </div>
+      <div class="recent-tags" id="recentTags"></div>
+    </div>
+
+    <div class="filters">
+      <div class="filter-group">
+        <span class="filter-label">Type:</span>
+        <select class="filter-select" id="filterType">
+          <option value="">All Types</option>
+          <option value="prospects">Prospects</option>
+          <option value="activities">Activities</option>
+          <option value="contracts">Contracts</option>
+          <option value="proposals">Proposals</option>
+          <option value="todos">Tasks/Todos</option>
+          <option value="service">Service Records</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Status:</span>
+        <select class="filter-select" id="filterStatus">
+          <option value="">Any Status</option>
+          <option value="new">New</option>
+          <option value="active">Active</option>
+          <option value="signed">Signed</option>
+          <option value="pending">Pending</option>
+          <option value="completed">Completed</option>
+          <option value="closed">Closed</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">From:</span>
+        <input type="date" class="filter-input" id="filterDateFrom">
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">To:</span>
+        <input type="date" class="filter-input" id="filterDateTo">
+      </div>
+    </div>
+
+    <div class="results-container" id="resultsContainer">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon"><i class="fas fa-search"></i></div>
+        <div class="empty-title">Start typing to search</div>
+        <div class="empty-text">Search across all your data — prospects, activities, contracts, and more</div>
+      </div>
+    </div>
+
+    <div class="analytics-section" id="analyticsSection" style="display:none">
+      <div class="analytics-header">
+        <span class="analytics-title">Search Analytics</span>
+      </div>
+      <div class="analytics-grid">
+        <div class="analytics-card">
+          <div class="analytics-card-title">Total Searches</div>
+          <div class="analytics-card-value" id="totalSearches">0</div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-card-title">No Results Queries</div>
+          <div class="analytics-card-value" id="noResultsCount">0</div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-card-title">Avg Results/Search</div>
+          <div class="analytics-card-value" id="avgResults">0</div>
+        </div>
+      </div>
+      <div class="top-searches">
+        <div class="recent-label">Top Searches</div>
+        <div id="topSearchesList"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let searchTimeout = null;
+    let currentResults = [];
+    let selectedIndex = -1;
+    const STORAGE_KEY = 'vendtech_recent_searches';
+    const ANALYTICS_KEY = 'vendtech_search_analytics';
+
+    // Elements
+    const searchInput = document.getElementById('searchInput');
+    const clearBtn = document.getElementById('clearBtn');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const emptyState = document.getElementById('emptyState');
+    const recentSearchesDiv = document.getElementById('recentSearches');
+    const recentTags = document.getElementById('recentTags');
+    const filterType = document.getElementById('filterType');
+    const filterStatus = document.getElementById('filterStatus');
+    const filterDateFrom = document.getElementById('filterDateFrom');
+    const filterDateTo = document.getElementById('filterDateTo');
+
+    // Initialize
+    loadRecentSearches();
+    loadAnalytics();
+
+    // Event listeners
+    searchInput.addEventListener('input', handleInput);
+    searchInput.addEventListener('keydown', handleKeydown);
+    clearBtn.addEventListener('click', clearSearch);
+    document.getElementById('clearRecent').addEventListener('click', clearRecentSearches);
+    [filterType, filterStatus, filterDateFrom, filterDateTo].forEach(el => {
+      el.addEventListener('change', () => {
+        if (searchInput.value.trim()) performSearch(searchInput.value);
+      });
+    });
+
+    // Global keyboard shortcut
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInput.focus();
+        searchInput.select();
+      }
+    });
+
+    function handleInput(e) {
+      const query = e.target.value;
+      clearBtn.classList.toggle('visible', query.length > 0);
+      
+      if (searchTimeout) clearTimeout(searchTimeout);
+      
+      if (!query.trim()) {
+        showEmptyState();
+        loadRecentSearches();
+        return;
+      }
+
+      recentSearchesDiv.style.display = 'none';
+      searchTimeout = setTimeout(() => performSearch(query), 200);
+    }
+
+    function handleKeydown(e) {
+      if (e.key === 'Escape') {
+        clearSearch();
+        return;
+      }
+      
+      const cards = resultsContainer.querySelectorAll('.result-card');
+      if (!cards.length) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedIndex = Math.min(selectedIndex + 1, cards.length - 1);
+        updateSelection(cards);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedIndex = Math.max(selectedIndex - 1, 0);
+        updateSelection(cards);
+      } else if (e.key === 'Enter' && selectedIndex >= 0) {
+        e.preventDefault();
+        cards[selectedIndex].click();
+      }
+    }
+
+    function updateSelection(cards) {
+      cards.forEach((card, i) => {
+        card.classList.toggle('selected', i === selectedIndex);
+        if (i === selectedIndex) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
+    }
+
+    async function performSearch(query) {
+      showLoading();
+      
+      const params = new URLSearchParams({ q: query });
+      if (filterType.value) params.append('type', filterType.value);
+      if (filterStatus.value) params.append('status', filterStatus.value);
+      if (filterDateFrom.value) params.append('from', filterDateFrom.value);
+      if (filterDateTo.value) params.append('to', filterDateTo.value);
+
+      try {
+        const startTime = performance.now();
+        const res = await fetch(`/api/search?${params}`);
+        const data = await res.json();
+        const duration = Math.round(performance.now() - startTime);
+        
+        currentResults = data.results || [];
+        selectedIndex = -1;
+        
+        // Track analytics
+        trackSearch(query, currentResults.length);
+        
+        // Save to recent
+        if (query.length >= 2) saveRecentSearch(query);
+        
+        renderResults(data, duration);
+      } catch (err) {
+        console.error('Search error:', err);
+        resultsContainer.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon"><i class="fas fa-exclamation-circle"></i></div>
+            <div class="empty-title">Search failed</div>
+            <div class="empty-text">Please try again</div>
+          </div>
+        `;
+      }
+    }
+
+    function renderResults(data, duration) {
+      if (!data.results || data.results.length === 0) {
+        resultsContainer.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon"><i class="fas fa-search"></i></div>
+            <div class="empty-title">No results found</div>
+            <div class="empty-text">Try different keywords or adjust your filters</div>
+          </div>
+        `;
+        return;
+      }
+
+      // Group results by type
+      const grouped = {};
+      data.results.forEach(r => {
+        if (!grouped[r.type]) grouped[r.type] = [];
+        grouped[r.type].push(r);
+      });
+
+      const typeConfig = {
+        prospects: { icon: 'fa-building', label: 'Prospects', color: 'prospects' },
+        activities: { icon: 'fa-history', label: 'Activities', color: 'activities' },
+        contracts: { icon: 'fa-file-contract', label: 'Contracts', color: 'contracts' },
+        proposals: { icon: 'fa-file-alt', label: 'Proposals', color: 'proposals' },
+        todos: { icon: 'fa-tasks', label: 'Tasks/Todos', color: 'todos' },
+        service: { icon: 'fa-wrench', label: 'Service Records', color: 'service' }
+      };
+
+      let html = `
+        <div class="results-summary">
+          <div class="results-count">Found <strong>${data.total}</strong> results</div>
+          <div class="results-time">${duration}ms</div>
+        </div>
+      `;
+
+      for (const [type, items] of Object.entries(grouped)) {
+        const config = typeConfig[type] || { icon: 'fa-file', label: type, color: '' };
+        html += `
+          <div class="result-group">
+            <div class="result-group-header">
+              <div class="result-group-icon ${config.color}"><i class="fas ${config.icon}"></i></div>
+              <span class="result-group-title">${config.label}</span>
+              <span class="result-group-count">${items.length} result${items.length !== 1 ? 's' : ''}</span>
+            </div>
+        `;
+        
+        items.forEach(item => {
+          html += renderResultCard(item, type);
+        });
+        
+        html += '</div>';
+      }
+
+      resultsContainer.innerHTML = html;
+      
+      // Attach click handlers
+      resultsContainer.querySelectorAll('.result-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('.action-btn')) return;
+          const url = card.dataset.url;
+          if (url) window.location.href = url;
+        });
+      });
+    }
+
+    function renderResultCard(item, type) {
+      const title = highlightMatch(item.title || item.name || 'Untitled', searchInput.value);
+      const excerpt = item.excerpt ? highlightMatch(item.excerpt, searchInput.value) : '';
+      const status = item.status || '';
+      const date = item.date ? new Date(item.date).toLocaleDateString() : '';
+      
+      let url = '#';
+      let actions = '';
+      
+      if (type === 'prospects') {
+        url = `/crm#prospect-${item.id}`;
+        actions = `
+          <button class="action-btn" onclick="window.location.href='/pipeline#card-${item.id}'"><i class="fas fa-funnel-dollar"></i></button>
+          <button class="action-btn primary" onclick="window.location.href='${url}'"><i class="fas fa-eye"></i> View</button>
+        `;
+      } else if (type === 'activities') {
+        url = `/crm#prospect-${item.prospect_id}`;
+        actions = `<button class="action-btn primary" onclick="window.location.href='${url}'"><i class="fas fa-eye"></i> View</button>`;
+      } else if (type === 'contracts') {
+        url = `/contracts#contract-${item.id}`;
+        actions = `<button class="action-btn primary" onclick="window.location.href='${url}'"><i class="fas fa-eye"></i> View</button>`;
+      } else if (type === 'todos') {
+        url = `/todos`;
+        actions = `
+          <button class="action-btn" onclick="markTodoComplete(${item.id})"><i class="fas fa-check"></i></button>
+          <button class="action-btn primary" onclick="window.location.href='${url}'"><i class="fas fa-eye"></i> View</button>
+        `;
+      }
+
+      return `
+        <div class="result-card" data-url="${url}" data-id="${item.id}" data-type="${type}">
+          <div class="result-title">
+            ${title}
+            ${status ? `<span class="status-badge ${status}">${status}</span>` : ''}
+          </div>
+          <div class="result-meta">
+            ${item.address ? `<span><i class="fas fa-map-marker-alt"></i> ${item.address}</span>` : ''}
+            ${item.contact ? `<span><i class="fas fa-user"></i> ${item.contact}</span>` : ''}
+            ${item.property_type ? `<span><i class="fas fa-building"></i> ${item.property_type}</span>` : ''}
+            ${date ? `<span><i class="fas fa-calendar"></i> ${date}</span>` : ''}
+          </div>
+          ${excerpt ? `<div class="result-excerpt">${excerpt}</div>` : ''}
+          <div class="result-actions">${actions}</div>
+        </div>
+      `;
+    }
+
+    function highlightMatch(text, query) {
+      if (!query || !text) return text;
+      const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+      return String(text).replace(regex, '<span class="match">$1</span>');
+    }
+
+    function escapeRegex(str) {
+      return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function showLoading() {
+      resultsContainer.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    }
+
+    function showEmptyState() {
+      resultsContainer.innerHTML = `
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon"><i class="fas fa-search"></i></div>
+          <div class="empty-title">Start typing to search</div>
+          <div class="empty-text">Search across all your data — prospects, activities, contracts, and more</div>
+        </div>
+      `;
+    }
+
+    function clearSearch() {
+      searchInput.value = '';
+      clearBtn.classList.remove('visible');
+      showEmptyState();
+      loadRecentSearches();
+      searchInput.focus();
+    }
+
+    // Recent searches
+    function getRecentSearches() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+      } catch { return []; }
+    }
+
+    function saveRecentSearch(query) {
+      const searches = getRecentSearches();
+      const filtered = searches.filter(s => s.toLowerCase() !== query.toLowerCase());
+      filtered.unshift(query);
+      const trimmed = filtered.slice(0, 10);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+    }
+
+    function loadRecentSearches() {
+      const searches = getRecentSearches();
+      if (searches.length === 0) {
+        recentSearchesDiv.style.display = 'none';
+        return;
+      }
+      
+      recentSearchesDiv.style.display = 'block';
+      recentTags.innerHTML = searches.map(s => `
+        <span class="recent-tag" onclick="useRecentSearch('${escapeHtml(s)}')">
+          <i class="fas fa-history"></i>
+          ${escapeHtml(s)}
+        </span>
+      `).join('');
+    }
+
+    function useRecentSearch(query) {
+      searchInput.value = query;
+      clearBtn.classList.add('visible');
+      performSearch(query);
+    }
+
+    function clearRecentSearches() {
+      localStorage.removeItem(STORAGE_KEY);
+      loadRecentSearches();
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // Analytics
+    function getAnalytics() {
+      try {
+        return JSON.parse(localStorage.getItem(ANALYTICS_KEY)) || {
+          totalSearches: 0,
+          noResults: 0,
+          totalResults: 0,
+          queries: {}
+        };
+      } catch { return { totalSearches: 0, noResults: 0, totalResults: 0, queries: {} }; }
+    }
+
+    function trackSearch(query, resultCount) {
+      const analytics = getAnalytics();
+      analytics.totalSearches++;
+      analytics.totalResults += resultCount;
+      if (resultCount === 0) analytics.noResults++;
+      
+      const normalized = query.toLowerCase().trim();
+      analytics.queries[normalized] = (analytics.queries[normalized] || 0) + 1;
+      
+      localStorage.setItem(ANALYTICS_KEY, JSON.stringify(analytics));
+      loadAnalytics();
+    }
+
+    function loadAnalytics() {
+      const analytics = getAnalytics();
+      document.getElementById('totalSearches').textContent = analytics.totalSearches;
+      document.getElementById('noResultsCount').textContent = analytics.noResults;
+      document.getElementById('avgResults').textContent = analytics.totalSearches > 0 
+        ? Math.round(analytics.totalResults / analytics.totalSearches) 
+        : 0;
+      
+      // Top searches
+      const topList = document.getElementById('topSearchesList');
+      const sorted = Object.entries(analytics.queries)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+      
+      if (sorted.length > 0) {
+        document.getElementById('analyticsSection').style.display = 'block';
+        topList.innerHTML = sorted.map(([term, count]) => `
+          <div class="top-search-item">
+            <span class="top-search-term">${escapeHtml(term)}</span>
+            <span class="top-search-count">${count} searches</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Helper for todo completion
+    async function markTodoComplete(id) {
+      try {
+        await fetch(`/api/todos/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ completed: true, completed_at: new Date().toISOString() })
+        });
+        performSearch(searchInput.value);
+      } catch (err) {
+        console.error('Failed to complete todo:', err);
+      }
+    }
+  </script>
+</body>
+</html>

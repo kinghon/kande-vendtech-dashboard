@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Goals & Targets - Kande VendTech</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #10b981;
+      --primary-dark: #059669;
+      --secondary: #6366f1;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --shadow: 0 1px 3px rgba(0,0,0,0.1);
+      --shadow-lg: 0 10px 40px rgba(0,0,0,0.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    
+    /* Navigation */
+    .nav {
+      background: var(--card);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-brand {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .nav-links {
+      display: flex;
+      gap: 1rem;
+    }
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .nav-links a:hover, .nav-links a.active {
+      background: var(--primary);
+      color: white;
+    }
+    
+    /* Main Layout */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    
+    /* Header */
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .page-title {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .page-title h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+    .page-title .subtitle {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    
+    /* Milestone Tracker (Hero Section) */
+    .milestone-hero {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      border-radius: 16px;
+      padding: 2rem;
+      color: white;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .milestone-hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -10%;
+      width: 300px;
+      height: 300px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 50%;
+    }
+    .milestone-hero h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .milestone-phases {
+      display: flex;
+      justify-content: space-between;
+      position: relative;
+      z-index: 1;
+    }
+    .milestone-line {
+      position: absolute;
+      top: 30px;
+      left: 5%;
+      right: 5%;
+      height: 4px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 2px;
+    }
+    .milestone-progress {
+      position: absolute;
+      top: 30px;
+      left: 5%;
+      height: 4px;
+      background: white;
+      border-radius: 2px;
+      transition: width 0.5s ease;
+    }
+    .phase {
+      text-align: center;
+      z-index: 2;
+      flex: 1;
+    }
+    .phase-circle {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      border: 3px solid rgba(255,255,255,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 0.75rem;
+      font-weight: 700;
+      font-size: 1.25rem;
+      transition: all 0.3s;
+    }
+    .phase.completed .phase-circle {
+      background: white;
+      color: var(--primary);
+      border-color: white;
+    }
+    .phase.current .phase-circle {
+      background: var(--warning);
+      border-color: white;
+      box-shadow: 0 0 20px rgba(245,158,11,0.5);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .phase-label {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    .phase-target {
+      font-size: 0.85rem;
+      opacity: 0.9;
+    }
+    .phase-revenue {
+      font-size: 0.8rem;
+      opacity: 0.75;
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 1.25rem;
+      box-shadow: var(--shadow);
+    }
+    .stat-card .label {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+    }
+    .stat-card .value {
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+    .stat-card .change {
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+    }
+    .stat-card .change.up { color: var(--success); }
+    .stat-card .change.down { color: var(--danger); }
+    
+    /* Category Tabs */
+    .category-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .category-tab {
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      border: 2px solid var(--border);
+      background: var(--card);
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .category-tab:hover {
+      border-color: var(--primary);
+    }
+    .category-tab.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+    .category-tab .count {
+      background: rgba(0,0,0,0.1);
+      padding: 0.1rem 0.5rem;
+      border-radius: 10px;
+      font-size: 0.75rem;
+    }
+    .category-tab.active .count {
+      background: rgba(255,255,255,0.2);
+    }
+    
+    /* Goals Grid */
+    .goals-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    /* Goal Card */
+    .goal-card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+      position: relative;
+      transition: all 0.2s;
+    }
+    .goal-card:hover {
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-2px);
+    }
+    .goal-card.achieved {
+      border: 2px solid var(--success);
+    }
+    .goal-card.behind {
+      border-left: 4px solid var(--danger);
+    }
+    .goal-card.ahead {
+      border-left: 4px solid var(--success);
+    }
+    .goal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+    .goal-category {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .goal-category.revenue { background: #dcfce7; color: #166534; }
+    .goal-category.machines { background: #dbeafe; color: #1e40af; }
+    .goal-category.sales { background: #fef3c7; color: #92400e; }
+    .goal-category.pipeline { background: #f3e8ff; color: #7c3aed; }
+    .goal-category.operational { background: #fce7f3; color: #be185d; }
+    .goal-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .goal-actions button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      padding: 0.25rem;
+      transition: color 0.2s;
+    }
+    .goal-actions button:hover {
+      color: var(--primary);
+    }
+    .goal-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .goal-values {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .goal-current {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .goal-target {
+      color: var(--text-muted);
+    }
+    .goal-progress-bar {
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 0.75rem;
+    }
+    .goal-progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+    .goal-progress-fill.green { background: linear-gradient(90deg, var(--success), #4ade80); }
+    .goal-progress-fill.yellow { background: linear-gradient(90deg, var(--warning), #fbbf24); }
+    .goal-progress-fill.red { background: linear-gradient(90deg, var(--danger), #f87171); }
+    .goal-progress-fill.complete { background: linear-gradient(90deg, var(--primary), var(--secondary)); }
+    .goal-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .goal-trend {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-weight: 500;
+    }
+    .goal-trend.ahead { color: var(--success); }
+    .goal-trend.on-track { color: var(--primary); }
+    .goal-trend.behind { color: var(--danger); }
+    .goal-checkpoints {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+    .checkpoint {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+    }
+    .checkpoint-check {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+    }
+    .checkpoint.completed .checkpoint-check {
+      background: var(--success);
+      border-color: var(--success);
+      color: white;
+    }
+    
+    /* Add Goal Button */
+    .add-goal-card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+      border: 2px dashed var(--border);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .add-goal-card:hover {
+      border-color: var(--primary);
+      background: #f0fdf4;
+    }
+    .add-goal-card i {
+      font-size: 2.5rem;
+      color: var(--primary);
+      margin-bottom: 0.75rem;
+    }
+    .add-goal-card span {
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    
+    /* Leaderboard & Achievements Section */
+    .achievements-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    @media (max-width: 900px) {
+      .achievements-section { grid-template-columns: 1fr; }
+    }
+    
+    .section-card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+    }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .section-header h3 {
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    /* Streak Counter */
+    .streak-display {
+      text-align: center;
+      padding: 1.5rem;
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border-radius: 12px;
+      margin-bottom: 1rem;
+    }
+    .streak-number {
+      font-size: 3rem;
+      font-weight: 800;
+      color: #92400e;
+    }
+    .streak-label {
+      color: #a16207;
+      font-weight: 600;
+    }
+    .streak-best {
+      font-size: 0.85rem;
+      color: #a16207;
+      margin-top: 0.5rem;
+    }
+    
+    /* Badges Grid */
+    .badges-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 1rem;
+    }
+    .badge {
+      text-align: center;
+      padding: 0.75rem;
+      border-radius: 12px;
+      background: var(--bg);
+      transition: all 0.2s;
+    }
+    .badge.earned {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    }
+    .badge.locked {
+      opacity: 0.4;
+      filter: grayscale(1);
+    }
+    .badge-icon {
+      font-size: 2rem;
+      margin-bottom: 0.25rem;
+    }
+    .badge-name {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .badge.earned .badge-name {
+      color: #92400e;
+    }
+    
+    /* Personal Bests */
+    .personal-bests {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .personal-best {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem;
+      background: var(--bg);
+      border-radius: 8px;
+    }
+    .pb-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-muted);
+    }
+    .pb-value {
+      font-weight: 700;
+      color: var(--primary);
+    }
+    
+    /* Goal History */
+    .history-section {
+      margin-bottom: 2rem;
+    }
+    .history-filters {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .history-filter {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .history-filter.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--card);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+    }
+    .history-status {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+    }
+    .history-status.achieved {
+      background: #dcfce7;
+      color: var(--success);
+    }
+    .history-status.missed {
+      background: #fee2e2;
+      color: var(--danger);
+    }
+    .history-info {
+      flex: 1;
+    }
+    .history-name {
+      font-weight: 600;
+    }
+    .history-details {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .history-result {
+      text-align: right;
+    }
+    .history-percent {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+    .history-percent.achieved { color: var(--success); }
+    .history-percent.missed { color: var(--danger); }
+    .history-date {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal {
+      background: var(--card);
+      border-radius: 16px;
+      max-width: 500px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-header h3 {
+      font-size: 1.25rem;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+    .modal-body {
+      padding: 1.5rem;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    .form-group label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .checkpoints-editor {
+      margin-top: 1rem;
+    }
+    .checkpoint-input {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .checkpoint-input input {
+      flex: 1;
+    }
+    .checkpoint-input button {
+      padding: 0.5rem 0.75rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .add-checkpoint-btn {
+      background: var(--primary);
+      color: white;
+    }
+    .remove-checkpoint-btn {
+      background: var(--danger);
+      color: white;
+    }
+    .modal-footer {
+      padding: 1.5rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+    }
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+    
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-muted);
+    }
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+    
+    /* Mobile */
+    @media (max-width: 768px) {
+      .container { padding: 1rem; }
+      .nav { padding: 1rem; }
+      .nav-links { display: none; }
+      .milestone-phases { flex-wrap: wrap; gap: 1rem; }
+      .phase { flex: 0 0 45%; }
+      .milestone-line, .milestone-progress { display: none; }
+      .goals-grid { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+    }
+    
+    /* Toast Notifications */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      padding: 1rem 1.5rem;
+      border-radius: 12px;
+      background: var(--text);
+      color: white;
+      box-shadow: var(--shadow-lg);
+      z-index: 2000;
+      animation: slideIn 0.3s ease;
+    }
+    .toast.success { background: var(--success); }
+    .toast.error { background: var(--danger); }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="nav">
+    <a href="/home" class="nav-brand">
+      <i class="fas fa-cube"></i> Kande VendTech
+    </a>
+    <div class="nav-links">
+      <a href="/home">Dashboard</a>
+      <a href="/crm.html">CRM</a>
+      <a href="/operations.html">Operations</a>
+      <a href="/finances.html">Finances</a>
+      <a href="/goals" class="active">Goals</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-title">
+        <h1><i class="fas fa-bullseye" style="color: var(--primary);"></i> Goals & Targets</h1>
+        <span class="subtitle">Track your progress and celebrate wins</span>
+      </div>
+      <button class="btn btn-primary" onclick="openGoalModal()">
+        <i class="fas fa-plus"></i> New Goal
+      </button>
+    </div>
+
+    <!-- Milestone Hero -->
+    <div class="milestone-hero">
+      <h2><i class="fas fa-rocket"></i> Business Milestones</h2>
+      <div class="milestone-phases">
+        <div class="milestone-line"></div>
+        <div class="milestone-progress" id="milestoneProgress"></div>
+        <div class="phase" id="phase1">
+          <div class="phase-circle">1</div>
+          <div class="phase-label">Phase 1</div>
+          <div class="phase-target">5 Machines</div>
+          <div class="phase-revenue">$10K/mo</div>
+        </div>
+        <div class="phase" id="phase2">
+          <div class="phase-circle">2</div>
+          <div class="phase-label">Phase 2</div>
+          <div class="phase-target">10 Machines</div>
+          <div class="phase-revenue">$20K/mo</div>
+        </div>
+        <div class="phase" id="phase3">
+          <div class="phase-circle">3</div>
+          <div class="phase-label">Phase 3</div>
+          <div class="phase-target">20 Machines</div>
+          <div class="phase-revenue">$40K/mo</div>
+        </div>
+        <div class="phase" id="phase4">
+          <div class="phase-circle">4</div>
+          <div class="phase-label">Phase 4</div>
+          <div class="phase-target">30 Machines</div>
+          <div class="phase-revenue">$60K/mo</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="label">Active Goals</div>
+        <div class="value" id="activeGoalsCount">0</div>
+        <div class="change up" id="goalsInProgress">0 in progress</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Goals Achieved</div>
+        <div class="value" id="achievedCount">0</div>
+        <div class="change up" id="achievementRate">0% success rate</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Current Streak</div>
+        <div class="value" id="currentStreak">🔥 0</div>
+        <div class="change" id="streakStatus">days</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">This Month</div>
+        <div class="value" id="monthProgress">0%</div>
+        <div class="change" id="monthStatus">on track</div>
+      </div>
+    </div>
+
+    <!-- Category Tabs -->
+    <div class="category-tabs">
+      <button class="category-tab active" data-category="all">
+        <i class="fas fa-th-large"></i> All <span class="count" id="countAll">0</span>
+      </button>
+      <button class="category-tab" data-category="revenue">
+        <i class="fas fa-dollar-sign"></i> Revenue <span class="count" id="countRevenue">0</span>
+      </button>
+      <button class="category-tab" data-category="machines">
+        <i class="fas fa-server"></i> Machines <span class="count" id="countMachines">0</span>
+      </button>
+      <button class="category-tab" data-category="sales">
+        <i class="fas fa-handshake"></i> Sales Activity <span class="count" id="countSales">0</span>
+      </button>
+      <button class="category-tab" data-category="pipeline">
+        <i class="fas fa-funnel-dollar"></i> Pipeline <span class="count" id="countPipeline">0</span>
+      </button>
+      <button class="category-tab" data-category="operational">
+        <i class="fas fa-cog"></i> Operations <span class="count" id="countOperational">0</span>
+      </button>
+    </div>
+
+    <!-- Goals Grid -->
+    <div class="goals-grid" id="goalsGrid">
+      <!-- Goals will be populated here -->
+    </div>
+
+    <!-- Achievements Section -->
+    <div class="achievements-section">
+      <!-- Streaks & Personal Bests -->
+      <div class="section-card">
+        <div class="section-header">
+          <h3><i class="fas fa-fire"></i> Streaks & Records</h3>
+        </div>
+        <div class="streak-display">
+          <div class="streak-number" id="bigStreak">0</div>
+          <div class="streak-label">Day Activity Streak</div>
+          <div class="streak-best">Best: <span id="bestStreak">0</span> days</div>
+        </div>
+        <div class="personal-bests">
+          <div class="personal-best">
+            <span class="pb-label"><i class="fas fa-calendar-check"></i> Best Month Revenue</span>
+            <span class="pb-value" id="pbRevenue">$0</span>
+          </div>
+          <div class="personal-best">
+            <span class="pb-label"><i class="fas fa-bolt"></i> Most Pop-ins (Week)</span>
+            <span class="pb-value" id="pbPopins">0</span>
+          </div>
+          <div class="personal-best">
+            <span class="pb-label"><i class="fas fa-check-double"></i> Goals in One Month</span>
+            <span class="pb-value" id="pbGoals">0</span>
+          </div>
+          <div class="personal-best">
+            <span class="pb-label"><i class="fas fa-trophy"></i> Longest Goal Streak</span>
+            <span class="pb-value" id="pbStreak">0 days</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Badges -->
+      <div class="section-card">
+        <div class="section-header">
+          <h3><i class="fas fa-medal"></i> Achievement Badges</h3>
+        </div>
+        <div class="badges-grid" id="badgesGrid">
+          <!-- Badges populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Goal History -->
+    <div class="history-section">
+      <div class="section-card">
+        <div class="section-header">
+          <h3><i class="fas fa-history"></i> Goal History</h3>
+          <div class="history-filters">
+            <button class="history-filter active" data-filter="all">All</button>
+            <button class="history-filter" data-filter="achieved">Achieved</button>
+            <button class="history-filter" data-filter="missed">Missed</button>
+          </div>
+        </div>
+        <div class="history-list" id="historyList">
+          <!-- History items populated by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Goal Modal -->
+  <div class="modal-overlay" id="goalModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">Add New Goal</h3>
+        <button class="modal-close" onclick="closeGoalModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="goalId">
+        <div class="form-group">
+          <label>Goal Name</label>
+          <input type="text" id="goalName" placeholder="e.g., Hit $10K monthly revenue">
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="goalCategory">
+            <option value="revenue">💰 Revenue</option>
+            <option value="machines">🖥️ Machine Deployment</option>
+            <option value="sales">🤝 Sales Activity</option>
+            <option value="pipeline">📊 Pipeline</option>
+            <option value="operational">⚙️ Operations</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Target Value</label>
+            <input type="number" id="goalTarget" placeholder="100">
+          </div>
+          <div class="form-group">
+            <label>Current Value</label>
+            <input type="number" id="goalCurrent" placeholder="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Unit (optional)</label>
+          <input type="text" id="goalUnit" placeholder="e.g., $, machines, pop-ins">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Start Date</label>
+            <input type="date" id="goalStart">
+          </div>
+          <div class="form-group">
+            <label>End Date</label>
+            <input type="date" id="goalEnd">
+          </div>
+        </div>
+        <div class="checkpoints-editor">
+          <label>Milestone Checkpoints</label>
+          <div id="checkpointsContainer"></div>
+          <button type="button" class="btn btn-secondary" onclick="addCheckpoint()" style="margin-top: 0.5rem;">
+            <i class="fas fa-plus"></i> Add Checkpoint
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeGoalModal()">Cancel</button>
+        <button class="btn btn-danger" id="deleteGoalBtn" onclick="deleteGoal()" style="display: none;">Delete</button>
+        <button class="btn btn-primary" onclick="saveGoal()">Save Goal</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let goals = [];
+    let achievements = { streaks: {}, badges: [], personal_bests: {} };
+    let currentCategory = 'all';
+    let historyFilter = 'all';
+
+    // Badge definitions
+    const BADGES = [
+      { id: 'first_goal', name: 'First Goal', icon: '🎯', desc: 'Set your first goal', check: (g, a) => g.length > 0 },
+      { id: 'goal_crusher', name: 'Goal Crusher', icon: '💪', desc: 'Achieve 5 goals', check: (g, a) => g.filter(x => x.status === 'achieved').length >= 5 },
+      { id: 'week_warrior', name: 'Week Warrior', icon: '⚔️', desc: '7-day activity streak', check: (g, a) => (a.streaks?.current || 0) >= 7 },
+      { id: 'pop_in_pro', name: 'Pop-In Pro', icon: '🚶', desc: '50 pop-ins logged', check: (g, a) => (a.personal_bests?.total_popins || 0) >= 50 },
+      { id: 'revenue_runner', name: 'Revenue Runner', icon: '💵', desc: 'Hit first $5K month', check: (g, a) => (a.personal_bests?.best_month_revenue || 0) >= 5000 },
+      { id: 'machine_master', name: 'Machine Master', icon: '🖥️', desc: 'Deploy 5 machines', check: (g, a) => (a.personal_bests?.machines_deployed || 0) >= 5 },
+      { id: 'streak_star', name: 'Streak Star', icon: '⭐', desc: '30-day streak', check: (g, a) => (a.streaks?.best || 0) >= 30 },
+      { id: 'perfect_month', name: 'Perfect Month', icon: '🏆', desc: 'Achieve all monthly goals', check: (g, a) => (a.personal_bests?.perfect_months || 0) >= 1 },
+      { id: 'phase_1', name: 'Phase 1', icon: '🚀', desc: 'Complete Phase 1 milestone', check: (g, a) => (a.personal_bests?.machines_deployed || 0) >= 5 },
+      { id: 'phase_2', name: 'Phase 2', icon: '🛸', desc: 'Complete Phase 2 milestone', check: (g, a) => (a.personal_bests?.machines_deployed || 0) >= 10 },
+      { id: 'early_bird', name: 'Early Bird', icon: '🌅', desc: 'Complete goal before deadline', check: (g, a) => g.some(x => x.status === 'achieved' && x.completed_early) },
+      { id: 'comeback', name: 'Comeback Kid', icon: '🔄', desc: 'Catch up from behind', check: (g, a) => g.some(x => x.status === 'achieved' && x.was_behind) }
+    ];
+
+    // Load data
+    async function loadData() {
+      try {
+        const [goalsRes, achievementsRes, statsRes] = await Promise.all([
+          fetch('/api/goals'),
+          fetch('/api/goals/achievements'),
+          fetch('/api/stats')
+        ]);
+        goals = await goalsRes.json();
+        achievements = await achievementsRes.json();
+        const stats = await statsRes.json();
+        
+        // Update milestones based on machine count
+        updateMilestones(stats.machinesDeployed || 0, stats.monthRevenue || 0);
+        
+        renderGoals();
+        renderStats();
+        renderBadges();
+        renderHistory();
+      } catch (err) {
+        console.error('Load error:', err);
+        showToast('Failed to load data', 'error');
+      }
+    }
+
+    // Update milestone visualization
+    function updateMilestones(machines, revenue) {
+      const phases = [
+        { el: 'phase1', machines: 5, revenue: 10000 },
+        { el: 'phase2', machines: 10, revenue: 20000 },
+        { el: 'phase3', machines: 20, revenue: 40000 },
+        { el: 'phase4', machines: 30, revenue: 60000 }
+      ];
+      
+      let currentPhase = 0;
+      phases.forEach((p, i) => {
+        const el = document.getElementById(p.el);
+        if (machines >= p.machines) {
+          el.classList.add('completed');
+          el.classList.remove('current');
+          currentPhase = i + 1;
+        } else if (i === currentPhase) {
+          el.classList.add('current');
+          el.classList.remove('completed');
+        } else {
+          el.classList.remove('completed', 'current');
+        }
+      });
+      
+      // Progress line
+      const progress = (currentPhase / 4) * 100;
+      document.getElementById('milestoneProgress').style.width = `${Math.min(progress, 90)}%`;
+    }
+
+    // Render goals
+    function renderGoals() {
+      const grid = document.getElementById('goalsGrid');
+      const activeGoals = goals.filter(g => g.status !== 'achieved' && g.status !== 'missed');
+      const filtered = currentCategory === 'all' 
+        ? activeGoals 
+        : activeGoals.filter(g => g.category === currentCategory);
+      
+      // Update counts
+      document.getElementById('countAll').textContent = activeGoals.length;
+      ['revenue', 'machines', 'sales', 'pipeline', 'operational'].forEach(cat => {
+        document.getElementById(`count${cat.charAt(0).toUpperCase() + cat.slice(1)}`).textContent = 
+          activeGoals.filter(g => g.category === cat).length;
+      });
+      
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="add-goal-card" onclick="openGoalModal()">
+            <i class="fas fa-plus-circle"></i>
+            <span>Add Your First Goal</span>
+          </div>
+        `;
+        return;
+      }
+      
+      grid.innerHTML = filtered.map(g => renderGoalCard(g)).join('') + `
+        <div class="add-goal-card" onclick="openGoalModal()">
+          <i class="fas fa-plus-circle"></i>
+          <span>Add Goal</span>
+        </div>
+      `;
+    }
+
+    function renderGoalCard(goal) {
+      const percent = goal.target > 0 ? Math.min(100, Math.round((goal.current / goal.target) * 100)) : 0;
+      const daysLeft = goal.end_date ? Math.ceil((new Date(goal.end_date) - new Date()) / (1000 * 60 * 60 * 24)) : null;
+      
+      // Calculate trend
+      let trendClass = 'on-track';
+      let trendText = 'On Track';
+      let trendIcon = '→';
+      if (goal.end_date && goal.start_date) {
+        const totalDays = (new Date(goal.end_date) - new Date(goal.start_date)) / (1000 * 60 * 60 * 24);
+        const daysElapsed = (new Date() - new Date(goal.start_date)) / (1000 * 60 * 60 * 24);
+        const expectedPercent = Math.min(100, (daysElapsed / totalDays) * 100);
+        if (percent > expectedPercent + 10) {
+          trendClass = 'ahead';
+          trendText = 'Ahead';
+          trendIcon = '↑';
+        } else if (percent < expectedPercent - 10) {
+          trendClass = 'behind';
+          trendText = 'Behind';
+          trendIcon = '↓';
+        }
+      }
+      
+      // Progress bar color
+      let progressClass = 'green';
+      if (percent >= 100) progressClass = 'complete';
+      else if (percent < 50 && daysLeft && daysLeft < 7) progressClass = 'red';
+      else if (percent < 75 && daysLeft && daysLeft < 14) progressClass = 'yellow';
+      
+      // Card class
+      let cardClass = '';
+      if (percent >= 100) cardClass = 'achieved';
+      else if (trendClass === 'behind') cardClass = 'behind';
+      else if (trendClass === 'ahead') cardClass = 'ahead';
+      
+      const unit = goal.unit || '';
+      const displayCurrent = unit === '$' ? `$${goal.current.toLocaleString()}` : `${goal.current}${unit ? ' ' + unit : ''}`;
+      const displayTarget = unit === '$' ? `$${goal.target.toLocaleString()}` : `${goal.target}${unit ? ' ' + unit : ''}`;
+      
+      const checkpoints = goal.checkpoints || [];
+      const checkpointsHtml = checkpoints.length > 0 ? `
+        <div class="goal-checkpoints">
+          ${checkpoints.map(cp => `
+            <div class="checkpoint ${goal.current >= cp.value ? 'completed' : ''}">
+              <div class="checkpoint-check">${goal.current >= cp.value ? '<i class="fas fa-check"></i>' : ''}</div>
+              <span>${cp.label || cp.value}</span>
+            </div>
+          `).join('')}
+        </div>
+      ` : '';
+      
+      return `
+        <div class="goal-card ${cardClass}">
+          <div class="goal-header">
+            <span class="goal-category ${goal.category}">${goal.category}</span>
+            <div class="goal-actions">
+              <button onclick="openGoalModal(${goal.id})" title="Edit"><i class="fas fa-edit"></i></button>
+              <button onclick="quickUpdate(${goal.id})" title="Update Progress"><i class="fas fa-plus"></i></button>
+            </div>
+          </div>
+          <div class="goal-name">${escapeHtml(goal.name)}</div>
+          <div class="goal-values">
+            <span class="goal-current">${displayCurrent}</span>
+            <span class="goal-target">/ ${displayTarget}</span>
+          </div>
+          <div class="goal-progress-bar">
+            <div class="goal-progress-fill ${progressClass}" style="width: ${percent}%"></div>
+          </div>
+          <div class="goal-meta">
+            <span class="goal-trend ${trendClass}">${trendIcon} ${trendText}</span>
+            <span>${daysLeft !== null ? (daysLeft > 0 ? `${daysLeft} days left` : 'Due today') : 'No deadline'}</span>
+          </div>
+          ${checkpointsHtml}
+        </div>
+      `;
+    }
+
+    // Render stats
+    function renderStats() {
+      const active = goals.filter(g => g.status !== 'achieved' && g.status !== 'missed');
+      const achieved = goals.filter(g => g.status === 'achieved');
+      const total = goals.length;
+      
+      document.getElementById('activeGoalsCount').textContent = active.length;
+      document.getElementById('goalsInProgress').textContent = `${active.filter(g => g.current > 0).length} in progress`;
+      document.getElementById('achievedCount').textContent = achieved.length;
+      document.getElementById('achievementRate').textContent = total > 0 ? `${Math.round((achieved.length / total) * 100)}% success rate` : '0% success rate';
+      
+      const streak = achievements.streaks?.current || 0;
+      document.getElementById('currentStreak').textContent = `🔥 ${streak}`;
+      document.getElementById('bigStreak').textContent = streak;
+      document.getElementById('bestStreak').textContent = achievements.streaks?.best || 0;
+      
+      // Month progress (average of active monthly goals)
+      const monthlyGoals = active.filter(g => {
+        if (!g.end_date) return false;
+        const end = new Date(g.end_date);
+        const now = new Date();
+        return end.getMonth() === now.getMonth() && end.getFullYear() === now.getFullYear();
+      });
+      
+      if (monthlyGoals.length > 0) {
+        const avgProgress = Math.round(monthlyGoals.reduce((sum, g) => sum + (g.target > 0 ? (g.current / g.target) * 100 : 0), 0) / monthlyGoals.length);
+        document.getElementById('monthProgress').textContent = `${avgProgress}%`;
+        const dayOfMonth = new Date().getDate();
+        const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+        const expectedProgress = (dayOfMonth / daysInMonth) * 100;
+        const statusEl = document.getElementById('monthStatus');
+        if (avgProgress >= expectedProgress) {
+          statusEl.textContent = 'on track';
+          statusEl.className = 'change up';
+        } else {
+          statusEl.textContent = 'behind pace';
+          statusEl.className = 'change down';
+        }
+      }
+      
+      // Personal bests
+      document.getElementById('pbRevenue').textContent = `$${(achievements.personal_bests?.best_month_revenue || 0).toLocaleString()}`;
+      document.getElementById('pbPopins').textContent = achievements.personal_bests?.best_week_popins || 0;
+      document.getElementById('pbGoals').textContent = achievements.personal_bests?.most_goals_month || 0;
+      document.getElementById('pbStreak').textContent = `${achievements.streaks?.best || 0} days`;
+    }
+
+    // Render badges
+    function renderBadges() {
+      const grid = document.getElementById('badgesGrid');
+      const earnedBadges = achievements.badges || [];
+      
+      grid.innerHTML = BADGES.map(badge => {
+        const earned = earnedBadges.includes(badge.id) || badge.check(goals, achievements);
+        return `
+          <div class="badge ${earned ? 'earned' : 'locked'}" title="${badge.desc}">
+            <div class="badge-icon">${badge.icon}</div>
+            <div class="badge-name">${badge.name}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Render history
+    function renderHistory() {
+      const list = document.getElementById('historyList');
+      const completedGoals = goals.filter(g => g.status === 'achieved' || g.status === 'missed');
+      const filtered = historyFilter === 'all' 
+        ? completedGoals 
+        : completedGoals.filter(g => g.status === historyFilter);
+      
+      if (filtered.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-history"></i>
+            <p>No completed goals yet</p>
+          </div>
+        `;
+        return;
+      }
+      
+      list.innerHTML = filtered.sort((a, b) => new Date(b.completed_at || b.end_date) - new Date(a.completed_at || a.end_date))
+        .slice(0, 10)
+        .map(g => {
+          const percent = g.target > 0 ? Math.round((g.current / g.target) * 100) : 0;
+          const isAchieved = g.status === 'achieved';
+          return `
+            <div class="history-item">
+              <div class="history-status ${isAchieved ? 'achieved' : 'missed'}">
+                <i class="fas fa-${isAchieved ? 'check' : 'times'}"></i>
+              </div>
+              <div class="history-info">
+                <div class="history-name">${escapeHtml(g.name)}</div>
+                <div class="history-details">${g.category} · Target: ${g.unit === '$' ? '$' : ''}${g.target}${g.unit && g.unit !== '$' ? ' ' + g.unit : ''}</div>
+              </div>
+              <div class="history-result">
+                <div class="history-percent ${isAchieved ? 'achieved' : 'missed'}">${percent}%</div>
+                <div class="history-date">${formatDate(g.completed_at || g.end_date)}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+    }
+
+    // Modal functions
+    function openGoalModal(id = null) {
+      const modal = document.getElementById('goalModal');
+      const title = document.getElementById('modalTitle');
+      const deleteBtn = document.getElementById('deleteGoalBtn');
+      
+      if (id) {
+        const goal = goals.find(g => g.id === id);
+        if (!goal) return;
+        title.textContent = 'Edit Goal';
+        deleteBtn.style.display = 'block';
+        document.getElementById('goalId').value = goal.id;
+        document.getElementById('goalName').value = goal.name;
+        document.getElementById('goalCategory').value = goal.category;
+        document.getElementById('goalTarget').value = goal.target;
+        document.getElementById('goalCurrent').value = goal.current;
+        document.getElementById('goalUnit').value = goal.unit || '';
+        document.getElementById('goalStart').value = goal.start_date || '';
+        document.getElementById('goalEnd').value = goal.end_date || '';
+        renderCheckpoints(goal.checkpoints || []);
+      } else {
+        title.textContent = 'Add New Goal';
+        deleteBtn.style.display = 'none';
+        document.getElementById('goalId').value = '';
+        document.getElementById('goalName').value = '';
+        document.getElementById('goalCategory').value = 'revenue';
+        document.getElementById('goalTarget').value = '';
+        document.getElementById('goalCurrent').value = '0';
+        document.getElementById('goalUnit').value = '';
+        document.getElementById('goalStart').value = new Date().toISOString().split('T')[0];
+        document.getElementById('goalEnd').value = '';
+        renderCheckpoints([]);
+      }
+      
+      modal.classList.add('active');
+    }
+
+    function closeGoalModal() {
+      document.getElementById('goalModal').classList.remove('active');
+    }
+
+    let checkpoints = [];
+    function renderCheckpoints(cps) {
+      checkpoints = cps;
+      const container = document.getElementById('checkpointsContainer');
+      container.innerHTML = checkpoints.map((cp, i) => `
+        <div class="checkpoint-input">
+          <input type="number" value="${cp.value}" onchange="updateCheckpoint(${i}, 'value', this.value)" placeholder="Value">
+          <input type="text" value="${cp.label || ''}" onchange="updateCheckpoint(${i}, 'label', this.value)" placeholder="Label (optional)">
+          <button type="button" class="remove-checkpoint-btn" onclick="removeCheckpoint(${i})"><i class="fas fa-times"></i></button>
+        </div>
+      `).join('');
+    }
+
+    function addCheckpoint() {
+      checkpoints.push({ value: 0, label: '' });
+      renderCheckpoints(checkpoints);
+    }
+
+    function updateCheckpoint(idx, field, value) {
+      checkpoints[idx][field] = field === 'value' ? parseFloat(value) || 0 : value;
+    }
+
+    function removeCheckpoint(idx) {
+      checkpoints.splice(idx, 1);
+      renderCheckpoints(checkpoints);
+    }
+
+    async function saveGoal() {
+      const id = document.getElementById('goalId').value;
+      const data = {
+        name: document.getElementById('goalName').value,
+        category: document.getElementById('goalCategory').value,
+        target: parseFloat(document.getElementById('goalTarget').value) || 0,
+        current: parseFloat(document.getElementById('goalCurrent').value) || 0,
+        unit: document.getElementById('goalUnit').value,
+        start_date: document.getElementById('goalStart').value || null,
+        end_date: document.getElementById('goalEnd').value || null,
+        checkpoints: checkpoints.filter(cp => cp.value > 0)
+      };
+      
+      if (!data.name) {
+        showToast('Please enter a goal name', 'error');
+        return;
+      }
+      
+      try {
+        const res = await fetch(id ? `/api/goals/${id}` : '/api/goals', {
+          method: id ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        if (!res.ok) throw new Error('Save failed');
+        
+        closeGoalModal();
+        showToast(id ? 'Goal updated!' : 'Goal created! 🎯', 'success');
+        loadData();
+      } catch (err) {
+        showToast('Failed to save goal', 'error');
+      }
+    }
+
+    async function deleteGoal() {
+      const id = document.getElementById('goalId').value;
+      if (!id || !confirm('Delete this goal?')) return;
+      
+      try {
+        await fetch(`/api/goals/${id}`, { method: 'DELETE' });
+        closeGoalModal();
+        showToast('Goal deleted', 'success');
+        loadData();
+      } catch (err) {
+        showToast('Failed to delete', 'error');
+      }
+    }
+
+    async function quickUpdate(id) {
+      const goal = goals.find(g => g.id === id);
+      if (!goal) return;
+      
+      const newValue = prompt(`Update progress for "${goal.name}"\nCurrent: ${goal.current}`, goal.current);
+      if (newValue === null) return;
+      
+      try {
+        const res = await fetch(`/api/goals/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ current: parseFloat(newValue) || 0 })
+        });
+        
+        if (!res.ok) throw new Error('Update failed');
+        
+        const updated = await res.json();
+        if (updated.status === 'achieved') {
+          showToast('🎉 Goal achieved! Congratulations!', 'success');
+        } else {
+          showToast('Progress updated!', 'success');
+        }
+        loadData();
+      } catch (err) {
+        showToast('Failed to update', 'error');
+      }
+    }
+
+    // Category tabs
+    document.querySelectorAll('.category-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentCategory = tab.dataset.category;
+        renderGoals();
+      });
+    });
+
+    // History filters
+    document.querySelectorAll('.history-filter').forEach(filter => {
+      filter.addEventListener('click', () => {
+        document.querySelectorAll('.history-filter').forEach(f => f.classList.remove('active'));
+        filter.classList.add('active');
+        historyFilter = filter.dataset.filter;
+        renderHistory();
+      });
+    });
+
+    // Utilities
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    // Init
+    loadData();
+  </script>
+</body>
+</html>

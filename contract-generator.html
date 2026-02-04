@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Contract Generator — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #0f172a;
+      --muted: #64748b; --accent: #3b82f6; --accent-light: #eff6ff;
+      --green: #22c55e; --green-light: #f0fdf4;
+      --amber: #f59e0b; --amber-light: #fffbeb;
+      --red: #ef4444; --red-light: #fef2f2;
+      --purple: #8b5cf6; --purple-light: #f5f3ff;
+      --radius: 12px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+
+    .page-wrapper { max-width: 1600px; margin: 0 auto; padding: 24px 28px 60px; }
+
+    /* Header */
+    .page-header { margin-bottom: 24px; }
+    .page-header h1 { font-size: 1.5rem; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+    .page-header p { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+
+    /* Contract type selector */
+    .type-selector { margin-bottom: 24px; }
+    .type-selector label { font-size: 0.82rem; font-weight: 700; color: var(--text); display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .type-selector select { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; background: var(--card); color: var(--text); cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2364748b' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; }
+    .type-selector select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+    .type-hint { font-size: 0.78rem; color: var(--accent); margin-top: 6px; padding: 8px 12px; background: var(--accent-light); border-radius: 6px; display: none; line-height: 1.5; }
+    .type-hint.visible { display: block; }
+
+    /* Two-panel layout */
+    .panels { display: grid; grid-template-columns: 420px 1fr; gap: 24px; align-items: start; }
+
+    /* Form panel */
+    .form-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; position: sticky; top: 80px; max-height: calc(100vh - 100px); overflow-y: auto; }
+    .form-panel::-webkit-scrollbar { width: 6px; }
+    .form-panel::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+    .form-section { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #f1f5f9; }
+    .form-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .form-section h3 { font-size: 0.82rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 0.85rem; font-family: inherit; background: #fff; color: var(--text);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+    .form-group textarea { resize: vertical; min-height: 70px; }
+    .form-group .hint { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* Slider */
+    .slider-wrapper { display: flex; align-items: center; gap: 12px; }
+    .slider-wrapper input[type="range"] { flex: 1; height: 6px; border: none; padding: 0; -webkit-appearance: none; background: #e2e8f0; border-radius: 3px; cursor: pointer; }
+    .slider-wrapper input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); cursor: pointer; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+    .slider-value { min-width: 40px; text-align: center; font-weight: 700; font-size: 0.9rem; color: var(--accent); }
+
+    /* Machines table */
+    .machines-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    .machines-table th { text-align: left; padding: 6px 8px; font-weight: 600; color: var(--muted); font-size: 0.72rem; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+    .machines-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; }
+    .machines-table input { padding: 6px 8px; font-size: 0.8rem; }
+    .add-machine-btn { font-size: 0.78rem; color: var(--accent); background: none; border: 1px dashed var(--accent); border-radius: 6px; padding: 6px 12px; cursor: pointer; margin-top: 8px; font-weight: 600; width: 100%; }
+    .add-machine-btn:hover { background: var(--accent-light); }
+    .remove-machine { background: none; border: none; color: var(--red); cursor: pointer; font-size: 0.9rem; padding: 2px 4px; }
+
+    /* Buttons */
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+    .btn { padding: 10px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; border: none; transition: all 0.15s; font-family: inherit; display: flex; align-items: center; gap: 6px; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: #f1f5f9; }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-success:hover { background: #16a34a; }
+    .btn-amber { background: var(--amber); color: #fff; }
+    .btn-amber:hover { background: #d97706; }
+    .btn-sm { padding: 6px 14px; font-size: 0.78rem; }
+
+    /* Preview panel */
+    .preview-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); min-height: 600px; }
+    .preview-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid var(--border); background: #fafbfc; border-radius: var(--radius) var(--radius) 0 0; }
+    .preview-toolbar-left { display: flex; align-items: center; gap: 8px; }
+    .preview-toolbar-left span { font-size: 0.82rem; font-weight: 700; color: var(--muted); }
+    .preview-toolbar-right { display: flex; gap: 8px; }
+
+    .preview-content { padding: 40px 48px; font-size: 0.88rem; line-height: 1.7; }
+    .preview-empty { padding: 80px 40px; text-align: center; color: var(--muted); }
+    .preview-empty .empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.5; }
+    .preview-empty h3 { font-size: 1rem; margin-bottom: 8px; font-weight: 700; }
+    .preview-empty p { font-size: 0.85rem; }
+
+    /* Contract preview styling */
+    .preview-content h1 { font-size: 1.3rem; font-weight: 800; text-align: center; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .preview-content h2 { font-size: 1.05rem; font-weight: 700; margin-top: 28px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid #e2e8f0; color: var(--text); }
+    .preview-content h3 { font-size: 0.92rem; font-weight: 700; margin-top: 16px; margin-bottom: 6px; }
+    .preview-content p { margin-bottom: 10px; }
+    .preview-content ul, .preview-content ol { margin-left: 20px; margin-bottom: 10px; }
+    .preview-content li { margin-bottom: 4px; }
+    .preview-content hr { border: none; border-top: 1px solid #e2e8f0; margin: 24px 0; }
+    .preview-content strong { font-weight: 700; }
+    .preview-content em { font-style: italic; }
+    .preview-content .sig-block { margin-top: 40px; }
+    .preview-content .sig-line { border-bottom: 1px solid #333; width: 280px; margin: 24px 0 4px; }
+    .preview-content .sig-label { font-size: 0.78rem; color: var(--muted); }
+    .preview-content table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.84rem; }
+    .preview-content table th, .preview-content table td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+    .preview-content table th { background: #f8fafc; font-weight: 600; font-size: 0.78rem; text-transform: uppercase; }
+    .preview-content .filled { background: #fefce8; padding: 1px 4px; border-radius: 3px; font-weight: 600; }
+    .preview-content .company-header { text-align: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 3px solid var(--text); }
+    .preview-content .company-header .company-name { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+
+    /* Drafts sidebar */
+    .drafts-list { margin-top: 16px; }
+    .draft-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; transition: background 0.15s; border: 1px solid transparent; margin-bottom: 4px; }
+    .draft-item:hover { background: var(--accent-light); border-color: var(--accent); }
+    .draft-item .draft-name { font-weight: 600; }
+    .draft-item .draft-date { font-size: 0.72rem; color: var(--muted); }
+    .draft-item .draft-delete { background: none; border: none; color: var(--red); cursor: pointer; font-size: 0.8rem; padding: 2px 6px; opacity: 0; transition: opacity 0.15s; }
+    .draft-item:hover .draft-delete { opacity: 1; }
+    .no-drafts { font-size: 0.8rem; color: var(--muted); text-align: center; padding: 12px; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; color: #fff; z-index: 10001; opacity: 0; transform: translateY(10px); transition: all 0.3s; pointer-events: none; }
+    .toast.visible { opacity: 1; transform: translateY(0); }
+    .toast.success { background: var(--green); }
+    .toast.error { background: var(--red); }
+
+    /* Print styles */
+    @media print {
+      #kv-topnav, #kv-mobile-menu, #kv-overlay, .form-panel, .preview-toolbar, .page-header, .type-selector { display: none !important; }
+      .panels { display: block !important; }
+      .preview-panel { border: none !important; box-shadow: none !important; }
+      .preview-content { padding: 0 !important; font-size: 11pt !important; }
+      .preview-content h1 { font-size: 14pt !important; }
+      .preview-content h2 { font-size: 12pt !important; }
+      body, .kv-main-content { padding: 0 !important; margin: 0 !important; }
+      .page-wrapper { padding: 0 !important; max-width: none !important; }
+    }
+
+    /* Responsive */
+    @media (max-width: 1100px) {
+      .panels { grid-template-columns: 1fr; }
+      .form-panel { position: static; max-height: none; }
+    }
+    @media (max-width: 600px) {
+      .page-wrapper { padding: 16px 14px 40px; }
+      .preview-content { padding: 20px 16px; }
+      .form-row { grid-template-columns: 1fr; }
+      .btn-row { flex-direction: column; }
+      .btn { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+<script src="/nav.js"></script>
+
+<div class="page-wrapper">
+  <div class="page-header">
+    <h1>📄 Contract Generator</h1>
+    <p>Fill in the details below and generate a ready-to-use contract. All contracts are Nevada-specific, governed by Clark County venue.</p>
+  </div>
+
+  <!-- Contract type selector -->
+  <div class="type-selector">
+    <label for="contractType">Contract Type</label>
+    <select id="contractType">
+      <option value="">— Select contract type —</option>
+      <option value="01-standard">Standard Placement Agreement — apartments, offices, rec centers</option>
+      <option value="02-corporate">Corporate/Enterprise Agreement — 100+ employees, multi-site</option>
+      <option value="03-pm-master">PM Master Agreement — property management companies (Greystar, etc.)</option>
+      <option value="04-rev-share">Revenue Share Addendum — attach to any agreement for rev share</option>
+      <option value="05-trial">Trial/Pilot Agreement — 90-day trial, auto-converts to standard</option>
+      <option value="06-micro-market">Micro-Market Agreement — open shelving, self-checkout setups</option>
+    </select>
+    <div id="typeHint" class="type-hint"></div>
+  </div>
+
+  <div class="panels">
+    <!-- Form Panel -->
+    <div class="form-panel" id="formPanel">
+      <div id="formContent">
+        <div class="preview-empty" style="padding: 40px 20px;">
+          <div class="empty-icon">👆</div>
+          <h3>Select a contract type</h3>
+          <p>Choose from the dropdown above to load the form fields.</p>
+        </div>
+      </div>
+
+      <!-- Saved Drafts -->
+      <div class="form-section" style="margin-top: 16px;">
+        <h3>💾 Saved Drafts</h3>
+        <div id="draftsList" class="drafts-list">
+          <div class="no-drafts">No saved drafts yet</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview Panel -->
+    <div class="preview-panel">
+      <div class="preview-toolbar">
+        <div class="preview-toolbar-left">
+          <span>📋 Contract Preview</span>
+        </div>
+        <div class="preview-toolbar-right">
+          <button class="btn btn-secondary btn-sm" onclick="printContract()" id="btnPrint" disabled>🖨️ Print</button>
+          <button class="btn btn-secondary btn-sm" onclick="downloadContract()" id="btnDownload" disabled>⬇️ Download</button>
+        </div>
+      </div>
+      <div id="previewArea">
+        <div class="preview-empty">
+          <div class="empty-icon">📝</div>
+          <h3>Contract preview will appear here</h3>
+          <p>Select a template and fill in the details, then click "Generate Contract" to see a live preview.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ── Template data ──
+  var TEMPLATES = {};
+  var templateHints = {
+    '01-standard': '🏢 Your bread-and-butter contract. Use for apartment complexes (200+ units), office buildings (50+ employees), rec centers, hospitals, warehouses.',
+    '02-corporate': '🏭 For large employers with 100+ employees, multi-shift facilities, manufacturing plants, corporate campuses. Includes wellness program language and dedicated account management.',
+    '03-pm-master': '🏗️ The big play — one signature covers ALL properties a PM manages. Use for Greystar, WestCorp, Holland, etc. Includes property activation forms.',
+    '04-rev-share': '💰 Standalone addendum that attaches to any agreement. Rev share is 3-5% of gross, starting Month 6. Keep it separate so you can offer selectively.',
+    '05-trial': '🔄 For hesitant prospects. 90-day no-risk trial, auto-converts to Standard agreement. If under $1,500/month at day 90, pull the equipment.',
+    '06-micro-market': '🛒 Open shelf/cooler setups with self-checkout kiosk. Different liability language for honor-system operations. Includes shrinkage allocation and security requirements.'
+  };
+
+  // ── Load templates from API ──
+  fetch('/api/contract-generator/templates').then(function(r) { return r.json(); }).then(function(data) {
+    data.forEach(function(t) {
+      var key = t.filename.replace('.md', '');
+      TEMPLATES[key] = t.content;
+    });
+  }).catch(function(e) { console.error('Failed to load templates:', e); });
+
+  // ── Form configurations per contract type ──
+  var FORM_CONFIGS = {
+    '01-standard': {
+      title: 'Standard Placement Agreement',
+      otherParty: 'Host',
+      sections: ['party', 'location', 'terms', 'machines', 'revshare', 'notes']
+    },
+    '02-corporate': {
+      title: 'Corporate/Enterprise Agreement',
+      otherParty: 'Client',
+      sections: ['party', 'corporate', 'location', 'terms', 'machines', 'revshare', 'notes'],
+      extraFields: { employee_count: true, shift_count: true }
+    },
+    '03-pm-master': {
+      title: 'PM Master Agreement',
+      otherParty: 'Property Manager',
+      sections: ['party', 'pm', 'terms', 'machines', 'revshare', 'notes'],
+      extraFields: { total_properties: true, properties_at_signing: true }
+    },
+    '04-rev-share': {
+      title: 'Revenue Share Addendum',
+      otherParty: 'Host/Client',
+      sections: ['party', 'revshare_full', 'notes']
+    },
+    '05-trial': {
+      title: 'Trial/Pilot Agreement',
+      otherParty: 'Host',
+      sections: ['party', 'location', 'trial', 'machines', 'notes']
+    },
+    '06-micro-market': {
+      title: 'Micro-Market Agreement',
+      otherParty: 'Host',
+      sections: ['party', 'location', 'micromarket', 'terms', 'machines', 'revshare', 'notes']
+    }
+  };
+
+  var currentType = '';
+
+  // ── Elements ──
+  var contractTypeSelect = document.getElementById('contractType');
+  var typeHint = document.getElementById('typeHint');
+  var formContent = document.getElementById('formContent');
+  var previewArea = document.getElementById('previewArea');
+  var btnPrint = document.getElementById('btnPrint');
+  var btnDownload = document.getElementById('btnDownload');
+
+  // ── Event: type change ──
+  contractTypeSelect.addEventListener('change', function() {
+    currentType = this.value;
+    if (!currentType) {
+      typeHint.classList.remove('visible');
+      formContent.innerHTML = '<div class="preview-empty" style="padding:40px 20px;"><div class="empty-icon">👆</div><h3>Select a contract type</h3><p>Choose from the dropdown above to load the form fields.</p></div>';
+      return;
+    }
+    typeHint.textContent = templateHints[currentType] || '';
+    typeHint.classList.add('visible');
+    buildForm(currentType);
+  });
+
+  // ── Build dynamic form ──
+  function buildForm(type) {
+    var config = FORM_CONFIGS[type];
+    if (!config) return;
+
+    var html = '';
+
+    config.sections.forEach(function(section) {
+      switch (section) {
+        case 'party':
+          html += '<div class="form-section"><h3>👤 ' + config.otherParty + ' Information</h3>';
+          html += fg('company', config.otherParty + ' Name', 'text', '', 'e.g., Sunset Luxury Apartments');
+          html += fg('address', 'Address', 'text', '', 'e.g., 1234 Green Valley Pkwy, Henderson, NV 89012');
+          html += '<div class="form-row">';
+          html += fg('contact_name', 'Contact Person', 'text', '', 'Full name');
+          html += fg('contact_title', 'Title', 'text', '', 'e.g., Property Manager');
+          html += '</div>';
+          html += '<div class="form-row">';
+          html += fg('contact_phone', 'Phone', 'tel', '', '702-555-0123');
+          html += fg('contact_email', 'Email', 'email', '', 'name@example.com');
+          html += '</div>';
+          html += '</div>';
+          break;
+
+        case 'corporate':
+          html += '<div class="form-section"><h3>🏭 Corporate Details</h3>';
+          html += '<div class="form-row">';
+          html += fg('employee_count', 'Approx. Employee Count', 'number', '', '150');
+          html += fg('shift_count', 'Number of Shifts', 'number', '', '2');
+          html += '</div>';
+          html += '</div>';
+          break;
+
+        case 'pm':
+          html += '<div class="form-section"><h3>🏗️ Portfolio Details</h3>';
+          html += '<div class="form-row">';
+          html += fg('total_properties', 'Total Properties Under Mgmt', 'number', '', '25');
+          html += fg('properties_at_signing', 'Properties Included at Signing', 'number', '', '3');
+          html += '</div>';
+          html += '</div>';
+          break;
+
+        case 'location':
+          html += '<div class="form-section"><h3>📍 Location</h3>';
+          html += fg('location', 'Location / Placement Area', 'text', '', 'e.g., Main lobby, mailroom area, pool house');
+          html += '</div>';
+          break;
+
+        case 'micromarket':
+          html += '<div class="form-section"><h3>🛒 Micro-Market Details</h3>';
+          html += fg('market_area', 'Micro-Market Area (specific room/area)', 'text', '', 'e.g., Main breakroom, 2nd floor');
+          html += '<div class="form-row">';
+          html += fg('square_feet', 'Square Footage', 'number', '', '200');
+          html += fg('operating_hours', 'Operating Hours', 'text', '', 'e.g., 24/7 or 6am-10pm daily');
+          html += '</div>';
+          html += '</div>';
+          break;
+
+        case 'trial':
+          html += '<div class="form-section"><h3>🔄 Trial Details</h3>';
+          html += '<div class="form-row">';
+          html += fg('conversion_term', 'Post-Trial Term (years)', 'number', '3', '3-5 years');
+          html += fg('performance_threshold', 'Min Revenue Threshold', 'text', '$1,500/month', '$1,500/month');
+          html += '</div>';
+          html += '</div>';
+          break;
+
+        case 'terms':
+          html += '<div class="form-section"><h3>📋 Contract Terms</h3>';
+          html += '<div class="form-row">';
+          html += fg('term_years', 'Term Length (years)', 'number', '3', '3-5 years recommended');
+          html += fg('start_date', 'Start Date', 'date', new Date().toISOString().split('T')[0]);
+          html += '</div>';
+          html += '</div>';
+          break;
+
+        case 'revshare':
+          html += '<div class="form-section"><h3>💰 Revenue Share (Optional)</h3>';
+          html += '<div class="form-group"><label>Revenue Share Percentage</label>';
+          html += '<div class="slider-wrapper"><input type="range" id="revShareSlider" min="0" max="10" step="0.5" value="3"><span class="slider-value" id="revShareValue">3%</span></div>';
+          html += '<div class="hint">Standard: 3-5% of gross. Set to 0% for no revenue share.</div></div>';
+          html += fg('revshare_start_month', 'Rev Share Start Month', 'number', '6', 'Month 6 minimum — never earlier');
+          html += '</div>';
+          break;
+
+        case 'revshare_full':
+          html += '<div class="form-section"><h3>💰 Revenue Share Terms</h3>';
+          html += fg('parent_agreement', 'Parent Agreement Name', 'text', '', 'e.g., Standard Placement Agreement');
+          html += fg('parent_agreement_date', 'Parent Agreement Date', 'date');
+          html += fg('revshare_location', 'Location(s)', 'text', '', 'Location covered by this addendum');
+          html += '<div class="form-group"><label>Revenue Share Percentage</label>';
+          html += '<div class="slider-wrapper"><input type="range" id="revShareSlider" min="0" max="10" step="0.5" value="3"><span class="slider-value" id="revShareValue">3%</span></div>';
+          html += '<div class="hint">Standard: 3-5% of gross revenue.</div></div>';
+          html += fg('revshare_start_month', 'Rev Share Start Month', 'number', '6', 'Month 6 minimum');
+          html += '<div class="form-group"><label>Payment Method</label>';
+          html += '<select id="field_payment_method"><option value="ACH">ACH Direct Deposit</option><option value="Check">Check</option><option value="Other">Other</option></select></div>';
+          html += fg('report_email', 'Report Delivery Email', 'email', '', 'Where to send monthly reports');
+          html += '</div>';
+
+          html += '<div class="form-section"><h3>🎁 Referral Bonus (Optional)</h3>';
+          html += '<div class="form-group"><label>Referral Incentive</label>';
+          html += '<select id="field_referral_type"><option value="none">Not applicable</option><option value="immediate_revshare">Immediate rev share start (waive 6-month ramp)</option><option value="bonus">One-time referral bonus</option><option value="increase">Rev share increase for X months</option></select></div>';
+          html += fg('referral_bonus_amount', 'Bonus Amount / Details', 'text', '', 'e.g., $250 or 1% increase for 6 months');
+          html += '</div>';
+          break;
+
+        case 'machines':
+          html += '<div class="form-section"><h3>🤖 Equipment</h3>';
+          html += '<table class="machines-table"><thead><tr><th>#</th><th>Description</th><th>Placement</th><th></th></tr></thead>';
+          html += '<tbody id="machineRows">';
+          html += machineRow(1);
+          html += '</tbody></table>';
+          html += '<button type="button" class="add-machine-btn" id="addMachineBtn">+ Add Machine</button>';
+          html += '</div>';
+          break;
+
+        case 'notes':
+          html += '<div class="form-section"><h3>📝 Special Terms / Notes</h3>';
+          html += '<div class="form-group"><textarea id="field_special_notes" rows="4" placeholder="Any special terms, conditions, or notes to include..."></textarea></div>';
+          html += '</div>';
+          break;
+      }
+    });
+
+    // Action buttons
+    html += '<div class="btn-row">';
+    html += '<button type="button" class="btn btn-primary" onclick="generateContract()">📄 Generate Contract</button>';
+    html += '<button type="button" class="btn btn-amber" onclick="saveDraft()">💾 Save Draft</button>';
+    html += '<button type="button" class="btn btn-secondary" onclick="clearForm()">🗑️ Clear</button>';
+    html += '</div>';
+
+    formContent.innerHTML = html;
+
+    // Wire up slider
+    var slider = document.getElementById('revShareSlider');
+    var sliderVal = document.getElementById('revShareValue');
+    if (slider && sliderVal) {
+      slider.addEventListener('input', function() { sliderVal.textContent = this.value + '%'; });
+    }
+
+    // Wire up add machine button
+    var addBtn = document.getElementById('addMachineBtn');
+    if (addBtn) {
+      addBtn.addEventListener('click', function() {
+        var tbody = document.getElementById('machineRows');
+        var count = tbody.querySelectorAll('tr').length + 1;
+        tbody.insertAdjacentHTML('beforeend', machineRow(count));
+      });
+    }
+
+    // Wire up remove machine (delegated)
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('remove-machine')) {
+        var row = e.target.closest('tr');
+        if (row && document.getElementById('machineRows').querySelectorAll('tr').length > 1) {
+          row.remove();
+          // Renumber
+          document.getElementById('machineRows').querySelectorAll('tr').forEach(function(r, i) {
+            r.querySelector('td').textContent = i + 1;
+          });
+        }
+      }
+    });
+  }
+
+  function fg(id, label, type, value, placeholder) {
+    var val = value ? ' value="' + escHtml(value) + '"' : '';
+    var ph = placeholder ? ' placeholder="' + escHtml(placeholder) + '"' : '';
+    return '<div class="form-group"><label for="field_' + id + '">' + label + '</label><input type="' + type + '" id="field_' + id + '"' + val + ph + '></div>';
+  }
+
+  function machineRow(num) {
+    return '<tr><td>' + num + '</td><td><input type="text" class="machine-desc" placeholder="SandStar Smart Cooler"></td><td><input type="text" class="machine-loc" placeholder="Main lobby"></td><td><button type="button" class="remove-machine">✕</button></td></tr>';
+  }
+
+  function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  // ── Gather form data ──
+  function gatherFormData() {
+    var data = { type: currentType };
+    var fields = formContent.querySelectorAll('input, select, textarea');
+    fields.forEach(function(f) {
+      var id = f.id ? f.id.replace('field_', '') : '';
+      if (id) data[id] = f.value;
+    });
+    // Slider
+    var slider = document.getElementById('revShareSlider');
+    if (slider) data.revshare_pct = slider.value;
+
+    // Machines
+    var machines = [];
+    var rows = document.querySelectorAll('#machineRows tr');
+    if (rows) {
+      rows.forEach(function(r) {
+        var desc = r.querySelector('.machine-desc');
+        var loc = r.querySelector('.machine-loc');
+        if (desc && loc) machines.push({ description: desc.value, location: loc.value });
+      });
+    }
+    data.machines = machines;
+    return data;
+  }
+
+  // ── Generate contract ──
+  window.generateContract = function() {
+    if (!currentType) { showToast('Please select a contract type', 'error'); return; }
+    var config = FORM_CONFIGS[currentType];
+    var data = gatherFormData();
+    var templateKey = currentType;
+
+    // Find matching template
+    var rawTemplate = null;
+    Object.keys(TEMPLATES).forEach(function(k) {
+      if (k.startsWith(templateKey)) rawTemplate = TEMPLATES[k];
+    });
+
+    if (!rawTemplate) {
+      showToast('Template not loaded yet — try again in a moment', 'error');
+      return;
+    }
+
+    // Fill template
+    var filled = fillTemplate(rawTemplate, data, config);
+
+    // Render markdown to HTML
+    var html = renderMarkdown(filled);
+    previewArea.innerHTML = '<div class="preview-content">' + html + '</div>';
+    btnPrint.disabled = false;
+    btnDownload.disabled = false;
+
+    showToast('Contract generated!', 'success');
+
+    // Scroll preview into view on mobile
+    if (window.innerWidth < 1100) {
+      previewArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  // ── Fill template with data ──
+  function fillTemplate(template, data, config) {
+    var today = new Date();
+    var dateStr = today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    var startDate = data.start_date ? new Date(data.start_date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : dateStr;
+
+    var t = template;
+
+    // Effective date
+    t = t.replace(/\*\*\_+\*\*\s*\("Effective Date"\)/g, '**' + startDate + '** ("Effective Date")');
+
+    // Other party name (Host / Client / PM)
+    var companyName = data.company || '_______________';
+    var partyLabel = config.otherParty;
+
+    // Replace the Host/Client/PM blank
+    t = t.replace(new RegExp('\\*\\*\\_+\\*\\*\\s*\\("' + partyLabel + '"', 'g'), '**' + companyName + '** ("' + partyLabel + '"');
+    // Also handle variations with "or"
+    t = t.replace(new RegExp('\\*\\*\\_+\\*\\*\\s*\\("' + partyLabel + '" or "PM"\\)', 'g'), '**' + companyName + '** ("' + partyLabel + '" or "PM")');
+    // Host/Client alternate
+    t = t.replace(/\*\*\_+\*\*\s*\("Host"\)/g, '**' + companyName + '** ("Host")');
+    t = t.replace(/\*\*\_+\*\*\s*\("Client"\)/g, '**' + companyName + '** ("Client")');
+    t = t.replace(/\*\*\_+\*\*\s*\("Host\/Client"\)/g, '**' + companyName + '** ("Host/Client")');
+    t = t.replace(/\*\*\_+\*\*\s*\("Property Manager" or "PM"\)/g, '**' + companyName + '** ("Property Manager" or "PM")');
+
+    // Address
+    var addr = data.address || '_______________';
+    t = replaceFirstBlank(t, 'Address:', addr);
+
+    // Contact person
+    var contactName = data.contact_name || '_______________';
+    t = replaceFirstBlank(t, 'Contact Person:', contactName);
+
+    // Title (for corporate/PM)
+    var contactTitle = data.contact_title || '_______________';
+    t = replaceFirstBlank(t, 'Title:', contactTitle, true);
+
+    // Phone & Email
+    var phone = data.contact_phone || '_______________';
+    var email = data.contact_email || '_______________';
+    t = replaceFirstBlank(t, 'Phone:', phone);
+    t = replaceFirstBlank(t, 'Email:', email);
+
+    // Location(s)
+    var loc = data.location || data.revshare_location || '_______________';
+    t = replaceFirstBlank(t, 'Location(s):', loc);
+    t = replaceFirstBlank(t, 'Location:', loc);
+
+    // Term years
+    var termYears = data.term_years || data.conversion_term || '3';
+    t = t.replace(/\*\*\_+\*\*\s*years\s*\(\*\*three \(3\) to five \(5\) years recommended\*\*\)/g, '**' + termYears + '** years (**three (3) to five (5) years recommended**)');
+    t = t.replace(/\*\*\_+\*\*\s*years\s*\(3-5 years\)/g, '**' + termYears + '** years (3-5 years)');
+    // Generic term blank
+    t = t.replace(/for \*\*\_+\*\* years/g, 'for **' + termYears + '** years');
+
+    // Corporate fields
+    if (data.employee_count) {
+      t = t.replace(/\*\*Approximate Employee Count:\*\*\s*\*\*\_+\*\*/g, '**Approximate Employee Count:** **' + data.employee_count + '**');
+    }
+    if (data.shift_count) {
+      t = t.replace(/\*\*Number of Shifts:\*\*\s*\*\*\_+\*\*/g, '**Number of Shifts:** **' + data.shift_count + '**');
+    }
+
+    // PM fields
+    if (data.total_properties) {
+      t = t.replace(/\*\*Total Properties Under Management:\*\*\s*\*\*\_+\*\*/g, '**Total Properties Under Management:** **' + data.total_properties + '**');
+    }
+    if (data.properties_at_signing) {
+      t = t.replace(/\*\*Properties Included at Signing:\*\*\s*\*\*\_+\*\*/g, '**Properties Included at Signing:** **' + data.properties_at_signing + '**');
+    }
+
+    // Micro-market area
+    if (data.market_area) {
+      t = t.replace(/\*\*Micro-Market Area \(specific room\/area\):\*\*\s*\*\*\_+\*\*/g, '**Micro-Market Area (specific room/area):** **' + data.market_area + '**');
+    }
+    if (data.square_feet) {
+      t = t.replace(/approximately\s*\*\*\_+\s*square feet\*\*/g, 'approximately **' + data.square_feet + ' square feet**');
+    }
+    if (data.operating_hours) {
+      t = t.replace(/during:\s*\*\*\_+\*\*/g, 'during: **' + data.operating_hours + '**');
+    }
+
+    // Revenue share addendum specific
+    if (data.parent_agreement) {
+      t = t.replace(/the \*\*\_+\*\*\s*\("Agreement"\)/g, 'the **' + data.parent_agreement + '** ("Agreement")');
+    }
+    if (data.parent_agreement_date) {
+      var padStr = new Date(data.parent_agreement_date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      t = t.replace(/dated\s*\*\*\_+\*\*\s*between/g, 'dated **' + padStr + '** between');
+    }
+
+    // Rev share percentage
+    var revPct = data.revshare_pct || data.revShareSlider || '3';
+    var revPctWords = numberToWords(revPct);
+    t = t.replace(/\*\*\_+%\s*\(\s*\_+\s*percent\)\*\*/g, '**' + revPct + '% (' + revPctWords + ' percent)**');
+
+    // Rev share start month
+    var revMonth = data.revshare_start_month || '6';
+
+    // Payment method
+    if (data.payment_method) {
+      t = t.replace(/☐ Check mailed.*\n.*☐ ACH direct deposit.*\n.*☐ Other:.*\n/g,
+        '**' + data.payment_method + '**\n');
+    }
+
+    // Report email
+    if (data.report_email) {
+      t = t.replace(/Reports will be delivered via email to:\s*\*\*\_+\*\*/g, 'Reports will be delivered via email to: **' + data.report_email + '**');
+    }
+
+    // Referral bonus
+    if (data.referral_type && data.referral_type !== 'none') {
+      var refLabels = {
+        immediate_revshare: 'Immediate start to revenue share (waiving the 6-month ramp-up period)',
+        bonus: 'One-time referral bonus of **$' + (data.referral_bonus_amount || '___') + '**',
+        increase: 'Revenue share increase: ' + (data.referral_bonus_amount || '___')
+      };
+      var refText = refLabels[data.referral_type] || '';
+      // Replace all checkbox options with selected
+      t = t.replace(/- ☐ \*\*Immediate start.*\n.*☐ \*\*One-time referral.*\n.*☐ \*\*Revenue share increase.*\n.*☐ \*\*Not applicable\*\*/g,
+        '**' + refText + '**');
+    }
+
+    // Fill equipment table
+    if (data.machines && data.machines.length > 0) {
+      var hasData = data.machines.some(function(m) { return m.description || m.location; });
+      if (hasData) {
+        // Build replacement table rows
+        var tableRows = data.machines.map(function(m, i) {
+          return '| ' + (i + 1) + ' | ' + (m.description || '') + ' | ' + (m.location || '') + ' |';
+        }).join('\n');
+
+        // Replace empty table rows with filled ones
+        t = t.replace(/\| 1 \| \| \|[\s\S]*?\| \d+ \| \| \|/g, tableRows);
+        // Also handle tables with extra columns (serial, date, etc.)
+        t = t.replace(/\| 1 \| \| \| \|[\s\S]*?\| \d+ \| \| \| \|/g, function() {
+          return data.machines.map(function(m, i) {
+            return '| ' + (i + 1) + ' | ' + (m.description || '') + ' | | ' + (m.location || '') + ' |';
+          }).join('\n');
+        });
+      }
+    }
+
+    // Replace any remaining blanks generically
+    t = t.replace(/\*\*\_\_\_\_+\*\*/g, '**_______________**');
+
+    // Add special notes at end if provided
+    if (data.special_notes && data.special_notes.trim()) {
+      var notesSection = '\n\n---\n\n## SPECIAL TERMS AND CONDITIONS\n\n' + data.special_notes.trim() + '\n';
+      // Insert before signatures
+      var sigIdx = t.lastIndexOf('## SIGNATURES');
+      if (sigIdx > -1) {
+        t = t.substring(0, sigIdx) + notesSection + '\n' + t.substring(sigIdx);
+      } else {
+        t += notesSection;
+      }
+    }
+
+    // Fill in Kande VendTech signature block
+    t = t.replace(/Printed Name: \_+\n\nTitle: \_+\n\nDate: \_+/,
+      'Printed Name: Kurtis Hon\n\nTitle: Owner / Managing Member\n\nDate: ' + dateStr);
+
+    return t;
+  }
+
+  function replaceFirstBlank(text, prefix, value, skipFirst) {
+    var pattern = new RegExp('(\\*\\*' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\*\\*\\s*)\\*\\*\\_+\\*\\*');
+    var count = 0;
+    return text.replace(pattern, function(match, p1) {
+      count++;
+      if (skipFirst && count === 1) return match;
+      return p1 + '**' + value + '**';
+    });
+  }
+
+  function numberToWords(n) {
+    var num = parseFloat(n);
+    var whole = Math.floor(num);
+    var dec = Math.round((num - whole) * 10) / 10;
+    var words = ['zero','one','two','three','four','five','six','seven','eight','nine','ten'];
+    var result = words[whole] || String(whole);
+    if (dec > 0) result += ' point ' + (words[Math.round(dec * 10)] || String(dec * 10));
+    return result;
+  }
+
+  // ── Simple markdown renderer ──
+  function renderMarkdown(md) {
+    var lines = md.split('\n');
+    var html = '';
+    var inList = false;
+    var inTable = false;
+    var tableHeader = false;
+
+    lines.forEach(function(line) {
+      var trimmed = line.trim();
+
+      // Table
+      if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+        var cells = trimmed.split('|').filter(function(c) { return c.trim() !== ''; });
+        if (!inTable) {
+          html += '<table>';
+          inTable = true;
+          tableHeader = true;
+          html += '<tr>' + cells.map(function(c) { return '<th>' + inlineFormat(c.trim()) + '</th>'; }).join('') + '</tr>';
+          return;
+        }
+        // Skip separator row
+        if (cells.every(function(c) { return /^[\s\-:]+$/.test(c); })) {
+          tableHeader = false;
+          return;
+        }
+        html += '<tr>' + cells.map(function(c) { return '<td>' + inlineFormat(c.trim()) + '</td>'; }).join('') + '</tr>';
+        return;
+      } else if (inTable) {
+        html += '</table>';
+        inTable = false;
+        tableHeader = false;
+      }
+
+      // Close list if needed
+      if (inList && !trimmed.startsWith('- ') && !trimmed.startsWith('* ') && trimmed !== '') {
+        html += '</ul>';
+        inList = false;
+      }
+
+      // HR
+      if (/^---+$/.test(trimmed)) { html += '<hr>'; return; }
+
+      // Headers
+      if (trimmed.startsWith('# ')) { html += '<h1>' + inlineFormat(trimmed.substring(2)) + '</h1>'; return; }
+      if (trimmed.startsWith('## ')) { html += '<h2>' + inlineFormat(trimmed.substring(3)) + '</h2>'; return; }
+      if (trimmed.startsWith('### ')) { html += '<h3>' + inlineFormat(trimmed.substring(4)) + '</h3>'; return; }
+
+      // List items
+      if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+        if (!inList) { html += '<ul>'; inList = true; }
+        html += '<li>' + inlineFormat(trimmed.substring(2)) + '</li>';
+        return;
+      }
+
+      // Empty line
+      if (trimmed === '') { html += ''; return; }
+
+      // Paragraph
+      html += '<p>' + inlineFormat(trimmed) + '</p>';
+    });
+
+    if (inList) html += '</ul>';
+    if (inTable) html += '</table>';
+
+    // Signature lines
+    html = html.replace(/Signature:\s*\_+/g, '<div class="sig-line"></div><div class="sig-label">Signature</div>');
+    html = html.replace(/Printed Name:\s*\_+/g, '<div class="sig-line"></div><div class="sig-label">Printed Name</div>');
+    html = html.replace(/Title:\s*\_+/g, '<div class="sig-line"></div><div class="sig-label">Title</div>');
+    html = html.replace(/Date:\s*\_+/g, '<div class="sig-line"></div><div class="sig-label">Date</div>');
+
+    return html;
+  }
+
+  function inlineFormat(text) {
+    // Bold
+    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    // Italic
+    text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    // Checkboxes
+    text = text.replace(/☐/g, '☐');
+    // Highlight filled values
+    text = text.replace(/<strong>([^_<]+?)<\/strong>/g, function(match, content) {
+      if (content.length > 2 && !/^[\s_]+$/.test(content) && !/three|five|one|two|sixty|thirty|fourteen|ninety|minimum|maximum|kande|vendtech|operator|host|client|property|equipment|exclusive|commercial|additional|insured|standard|revenue|smart|fresh|all|per|state|nevada|clark|county/i.test(content)) {
+        return '<strong class="filled">' + content + '</strong>';
+      }
+      return match;
+    });
+    return text;
+  }
+
+  // ── Print ──
+  window.printContract = function() { window.print(); };
+
+  // ── Download as HTML ──
+  window.downloadContract = function() {
+    var content = previewArea.querySelector('.preview-content');
+    if (!content) return;
+
+    var config = FORM_CONFIGS[currentType];
+    var data = gatherFormData();
+    var filename = (currentType + '-' + (data.company || 'contract').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()) + '.html';
+
+    var htmlDoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + (config ? config.title : 'Contract') + '</title>';
+    htmlDoc += '<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;max-width:800px;margin:40px auto;padding:0 40px;color:#0f172a;font-size:11pt;line-height:1.6}';
+    htmlDoc += 'h1{font-size:14pt;text-align:center;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}';
+    htmlDoc += 'h2{font-size:12pt;border-bottom:2px solid #e2e8f0;padding-bottom:4px;margin-top:24px}';
+    htmlDoc += 'h3{font-size:11pt;margin-top:14px}';
+    htmlDoc += 'hr{border:none;border-top:1px solid #ccc;margin:20px 0}';
+    htmlDoc += 'table{width:100%;border-collapse:collapse;margin:10px 0;font-size:10pt}';
+    htmlDoc += 'th,td{border:1px solid #ccc;padding:6px 10px;text-align:left}';
+    htmlDoc += 'th{background:#f8f8f8;font-weight:600}';
+    htmlDoc += '.sig-line{border-bottom:1px solid #333;width:280px;margin:20px 0 4px}';
+    htmlDoc += '.sig-label{font-size:9pt;color:#666}';
+    htmlDoc += '.filled{background:#fefce8;padding:1px 3px}';
+    htmlDoc += '@media print{body{margin:0;padding:20px}}</style></head><body>';
+    htmlDoc += content.innerHTML;
+    htmlDoc += '</body></html>';
+
+    var blob = new Blob([htmlDoc], { type: 'text/html' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Contract downloaded!', 'success');
+  };
+
+  // ── Save Draft ──
+  window.saveDraft = function() {
+    if (!currentType) { showToast('Select a contract type first', 'error'); return; }
+    var data = gatherFormData();
+    var drafts = JSON.parse(localStorage.getItem('vendtech_contract_drafts') || '[]');
+    var name = (data.company || 'Untitled') + ' — ' + (FORM_CONFIGS[currentType] ? FORM_CONFIGS[currentType].title : currentType);
+    var draft = { id: Date.now(), name: name, type: currentType, data: data, savedAt: new Date().toISOString() };
+
+    // Replace existing draft with same name or add new
+    var existingIdx = drafts.findIndex(function(d) { return d.name === name; });
+    if (existingIdx > -1) {
+      drafts[existingIdx] = draft;
+    } else {
+      drafts.unshift(draft);
+    }
+
+    // Keep max 20 drafts
+    if (drafts.length > 20) drafts = drafts.slice(0, 20);
+
+    localStorage.setItem('vendtech_contract_drafts', JSON.stringify(drafts));
+    renderDrafts();
+    showToast('Draft saved!', 'success');
+  };
+
+  // ── Load Draft ──
+  function loadDraft(draft) {
+    currentType = draft.type;
+    contractTypeSelect.value = draft.type;
+    typeHint.textContent = templateHints[draft.type] || '';
+    typeHint.classList.add('visible');
+    buildForm(draft.type);
+
+    // Populate fields
+    var data = draft.data;
+    Object.keys(data).forEach(function(key) {
+      if (key === 'machines' || key === 'type') return;
+      var el = document.getElementById('field_' + key);
+      if (el) el.value = data[key];
+    });
+
+    // Populate slider
+    if (data.revshare_pct) {
+      var slider = document.getElementById('revShareSlider');
+      var sliderVal = document.getElementById('revShareValue');
+      if (slider) { slider.value = data.revshare_pct; if (sliderVal) sliderVal.textContent = data.revshare_pct + '%'; }
+    }
+
+    // Populate machines
+    if (data.machines && data.machines.length > 0) {
+      var tbody = document.getElementById('machineRows');
+      if (tbody) {
+        tbody.innerHTML = '';
+        data.machines.forEach(function(m, i) {
+          tbody.insertAdjacentHTML('beforeend', machineRow(i + 1));
+          var rows = tbody.querySelectorAll('tr');
+          var lastRow = rows[rows.length - 1];
+          lastRow.querySelector('.machine-desc').value = m.description || '';
+          lastRow.querySelector('.machine-loc').value = m.location || '';
+        });
+      }
+    }
+
+    showToast('Draft loaded: ' + draft.name, 'success');
+  }
+
+  // ── Delete Draft ──
+  function deleteDraft(id) {
+    var drafts = JSON.parse(localStorage.getItem('vendtech_contract_drafts') || '[]');
+    drafts = drafts.filter(function(d) { return d.id !== id; });
+    localStorage.setItem('vendtech_contract_drafts', JSON.stringify(drafts));
+    renderDrafts();
+  }
+
+  // ── Render Drafts List ──
+  function renderDrafts() {
+    var container = document.getElementById('draftsList');
+    var drafts = JSON.parse(localStorage.getItem('vendtech_contract_drafts') || '[]');
+    if (drafts.length === 0) {
+      container.innerHTML = '<div class="no-drafts">No saved drafts yet</div>';
+      return;
+    }
+    container.innerHTML = drafts.map(function(d) {
+      var date = new Date(d.savedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+      return '<div class="draft-item" data-id="' + d.id + '">' +
+        '<div><div class="draft-name">' + escHtml(d.name) + '</div><div class="draft-date">' + date + '</div></div>' +
+        '<button class="draft-delete" data-id="' + d.id + '">🗑️</button></div>';
+    }).join('');
+
+    // Click handlers
+    container.querySelectorAll('.draft-item').forEach(function(el) {
+      el.addEventListener('click', function(e) {
+        if (e.target.classList.contains('draft-delete')) {
+          e.stopPropagation();
+          deleteDraft(parseInt(e.target.dataset.id));
+          return;
+        }
+        var draft = drafts.find(function(d) { return d.id === parseInt(el.dataset.id); });
+        if (draft) loadDraft(draft);
+      });
+    });
+  }
+
+  // ── Clear Form ──
+  window.clearForm = function() {
+    if (currentType) buildForm(currentType);
+    previewArea.innerHTML = '<div class="preview-empty"><div class="empty-icon">📝</div><h3>Contract preview will appear here</h3><p>Select a template and fill in the details, then click "Generate Contract" to see a live preview.</p></div>';
+    btnPrint.disabled = true;
+    btnDownload.disabled = true;
+  };
+
+  // ── Toast ──
+  function showToast(msg, type) {
+    var toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.className = 'toast ' + (type || 'success') + ' visible';
+    setTimeout(function() { toast.classList.remove('visible'); }, 2500);
+  }
+
+  // ── Init: render drafts ──
+  renderDrafts();
+
+})();
+</script>
+</body>
+</html>

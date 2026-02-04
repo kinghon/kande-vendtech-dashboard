@@ -2,18 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
-  <title>Machines & Locations — Kande VendTech</title>
+  <title>Machine Management — Kande VendTech</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
       --bg: #f5f7fa; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
       --muted: #718096; --accent: #3182ce; --hot: #e53e3e; --warn: #dd6b20;
-      --success: #38a169; --purple: #7b2cbf;
+      --success: #38a169; --purple: #7b2cbf; --eye-level: #ebf8ff;
+      --gradient: linear-gradient(135deg, #3182ce 0%, #7b2cbf 100%);
     }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-    .app { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
 
     /* Nav */
     .top-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
@@ -23,558 +25,1070 @@
     .nav-spacer { flex: 1; }
 
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
-    .header h1 { font-size: 1.5rem; background: linear-gradient(90deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header h1 { font-size: 1.5rem; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .header-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 
-    .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; }
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
     .btn-primary { background: var(--accent); color: #fff; }
-    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
     .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
     .btn-secondary:hover { background: var(--border); }
     .btn-danger { background: var(--hot); color: #fff; }
     .btn-success { background: var(--success); color: #fff; }
     .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+    .btn-icon { padding: 8px; }
 
-    /* Stats */
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
-    .stat { background: var(--card); border-radius: 12px; padding: 16px; text-align: center; border: 1px solid var(--border); }
-    .stat-value { font-size: 1.8rem; font-weight: 700; }
+    /* Stats Grid */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); position: relative; overflow: hidden; }
+    .stat::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--gradient); }
+    .stat-icon { font-size: 2rem; margin-bottom: 8px; }
+    .stat-value { font-size: 2rem; font-weight: 700; }
     .stat-value.accent { color: var(--accent); }
     .stat-value.success { color: var(--success); }
     .stat-value.warn { color: var(--warn); }
     .stat-value.hot { color: var(--hot); }
-    .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+    .stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-    /* Tabs */
-    .tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 2px solid var(--border); }
-    .tab { padding: 10px 20px; cursor: pointer; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; background: none; border-top: none; border-left: none; border-right: none; font-size: 0.9rem; }
-    .tab:hover { color: var(--accent); }
-    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    /* View Toggle */
+    .view-toggle { display: flex; gap: 4px; background: var(--card); padding: 4px; border-radius: 10px; border: 1px solid var(--border); }
+    .view-toggle button { padding: 8px 16px; border: none; background: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 500; color: var(--muted); transition: all 0.2s; }
+    .view-toggle button.active { background: var(--accent); color: white; }
 
-    /* Table */
-    .table-container { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; }
-    th { background: #f7fafc; padding: 12px 16px; text-align: left; font-size: 0.8rem; text-transform: uppercase; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); white-space: nowrap; }
-    td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: #f7fafc; }
+    /* Machine Grid */
+    .machine-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; }
+    .machine-card { background: var(--card); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; transition: all 0.2s; cursor: pointer; }
+    .machine-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.1); }
+    .machine-card.selected { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(49,130,206,0.2); }
+    .machine-card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .machine-name { font-weight: 600; font-size: 1.1rem; }
+    .machine-status { display: flex; align-items: center; gap: 6px; }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .status-dot.active { background: var(--success); animation: pulse 2s infinite; }
+    .status-dot.offline { background: var(--hot); }
+    .status-dot.maintenance { background: var(--warn); }
+    .status-dot.pending { background: var(--muted); }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .machine-card-body { padding: 16px 20px; }
+    .machine-location { color: var(--muted); font-size: 0.85rem; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+    .machine-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
+    .machine-stat { text-align: center; }
+    .machine-stat-value { font-size: 1.3rem; font-weight: 700; }
+    .machine-stat-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; }
+    .health-bar { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-top: 12px; }
+    .health-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+    .health-fill.good { background: var(--success); }
+    .health-fill.warn { background: var(--warn); }
+    .health-fill.bad { background: var(--hot); }
+    .machine-alerts { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .alert-badge { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+    .alert-badge.critical { background: rgba(229,62,62,0.15); color: var(--hot); }
+    .alert-badge.warning { background: rgba(221,107,32,0.15); color: var(--warn); }
+    .machine-card-footer { padding: 12px 20px; background: #f7fafc; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .machine-revenue { font-weight: 600; color: var(--success); }
+    .machine-actions { display: flex; gap: 8px; }
 
-    .badge { padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
-    .badge-available { background: rgba(56,161,105,0.15); color: var(--success); }
-    .badge-deployed { background: rgba(49,130,206,0.15); color: var(--accent); }
-    .badge-repair { background: rgba(229,62,62,0.15); color: var(--hot); }
-    .badge-storage { background: rgba(113,128,150,0.15); color: var(--muted); }
-    .badge-active { background: rgba(56,161,105,0.15); color: var(--success); }
+    /* Detail Panel */
+    .detail-panel { position: fixed; top: 0; right: -600px; width: 600px; max-width: 100vw; height: 100vh; background: var(--card); border-left: 1px solid var(--border); z-index: 1000; transition: right 0.3s ease; overflow-y: auto; }
+    .detail-panel.open { right: 0; }
+    .detail-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.3); z-index: 999; opacity: 0; visibility: hidden; transition: all 0.3s; }
+    .detail-overlay.open { opacity: 1; visibility: visible; }
+    .detail-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: var(--card); z-index: 10; }
+    .detail-header h2 { font-size: 1.3rem; }
+    .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--muted); padding: 8px; border-radius: 8px; }
+    .close-btn:hover { background: var(--border); }
+    .detail-content { padding: 20px; }
+
+    /* Slot Grid */
+    .slot-grid-container { margin: 20px 0; }
+    .slot-grid-title { font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .slot-grid { display: grid; gap: 6px; background: #f7fafc; padding: 16px; border-radius: 12px; border: 1px solid var(--border); }
+    .slot-row { display: flex; gap: 6px; align-items: center; }
+    .slot-row-label { width: 24px; font-weight: 600; font-size: 0.8rem; color: var(--muted); }
+    .slot { width: 52px; height: 52px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; position: relative; border: 2px solid transparent; }
+    .slot:hover { transform: scale(1.05); z-index: 5; }
+    .slot.empty { background: #edf2f7; color: var(--muted); border-style: dashed; border-color: var(--border); }
+    .slot.ok { background: rgba(56,161,105,0.15); border-color: var(--success); }
+    .slot.low { background: rgba(221,107,32,0.15); border-color: var(--warn); }
+    .slot.out { background: rgba(229,62,62,0.15); border-color: var(--hot); }
+    .slot.expiring { background: rgba(123,44,191,0.15); border-color: var(--purple); }
+    .slot.selected { box-shadow: 0 0 0 3px rgba(49,130,206,0.4); }
+    .slot.eye-level { background: var(--eye-level); }
+    .slot-icon { font-size: 1.1rem; }
+    .slot-qty { font-weight: 600; font-size: 0.7rem; }
+    .slot-col-labels { display: flex; gap: 6px; padding-left: 30px; margin-bottom: 4px; }
+    .slot-col-label { width: 52px; text-align: center; font-size: 0.7rem; color: var(--muted); }
+
+    /* Slot Detail */
+    .slot-detail { background: #f7fafc; border-radius: 12px; padding: 16px; margin-top: 16px; border: 1px solid var(--border); }
+    .slot-detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .slot-position { font-weight: 700; font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
+    .zone-badge { padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; background: rgba(49,130,206,0.15); color: var(--accent); }
+    .slot-product { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
+    .slot-product-img { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; background: #edf2f7; }
+    .slot-product-info h4 { font-size: 1rem; margin-bottom: 4px; }
+    .slot-product-info p { font-size: 0.85rem; color: var(--muted); }
+    .slot-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+    .slot-metric { text-align: center; padding: 12px; background: var(--card); border-radius: 8px; }
+    .slot-metric-value { font-size: 1.3rem; font-weight: 700; }
+    .slot-metric-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; }
+    .slot-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* Inventory Summary */
+    .inventory-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+    .inv-cat { background: var(--card); padding: 12px; border-radius: 8px; border: 1px solid var(--border); }
+    .inv-cat-name { font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; text-transform: capitalize; }
+    .inv-cat-bar { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin-top: 8px; }
+    .inv-cat-fill { height: 100%; background: var(--accent); border-radius: 3px; }
+
+    /* Alerts List */
+    .alerts-section { margin-top: 20px; }
+    .alerts-title { font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .alert-item { display: flex; gap: 12px; padding: 12px; background: #f7fafc; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid var(--warn); }
+    .alert-item.critical { border-left-color: var(--hot); }
+    .alert-icon { font-size: 1.3rem; }
+    .alert-content { flex: 1; }
+    .alert-title { font-weight: 600; font-size: 0.9rem; }
+    .alert-message { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+    .alert-time { font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
+    .alert-actions { display: flex; gap: 8px; }
 
     /* Modal */
-    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1100; align-items: center; justify-content: center; }
     .modal-overlay.open { display: flex; }
-    .modal { background: var(--card); border-radius: 16px; padding: 24px; max-width: 600px; width: 95%; max-height: 90vh; overflow-y: auto; }
+    .modal { background: var(--card); border-radius: 16px; padding: 24px; max-width: 500px; width: 95%; max-height: 90vh; overflow-y: auto; }
     .modal h2 { font-size: 1.3rem; margin-bottom: 20px; }
     .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--muted); margin-bottom: 4px; }
-    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; color: var(--text); background: var(--card); }
-    .form-group textarea { min-height: 80px; resize: vertical; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; color: var(--text); background: var(--card); }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(49,130,206,0.1); }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
+    .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
 
-    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
-    .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+    /* Legend */
+    .legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 12px 0; padding: 12px; background: #f7fafc; border-radius: 8px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--muted); }
+    .legend-color { width: 16px; height: 16px; border-radius: 4px; }
 
-    .clickable { cursor: pointer; }
-    .actions-cell { display: flex; gap: 6px; }
+    /* Empty State */
+    .empty-state { text-align: center; padding: 60px 20px; }
+    .empty-icon { font-size: 4rem; margin-bottom: 16px; }
+    .empty-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 8px; }
+    .empty-text { color: var(--muted); margin-bottom: 20px; }
 
+    /* Loading */
+    .loading { display: flex; align-items: center; justify-content: center; padding: 40px; }
+    .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Responsive */
     @media (max-width: 768px) {
       .form-row { grid-template-columns: 1fr; }
       .stats { grid-template-columns: repeat(2, 1fr); }
+      .machine-grid { grid-template-columns: 1fr; }
+      .detail-panel { width: 100%; right: -100%; }
+      .slot { width: 42px; height: 42px; font-size: 0.65rem; }
       .header { flex-direction: column; align-items: flex-start; }
     }
   </style>
 </head>
 <body>
   <div class="app">
-    <nav class="top-nav">
-      <a href="/"><img src="/logo.png" alt="Kande VendTech" class="logo"></a>
-      <a href="/">Dashboard</a>
-      <a href="/crm">CRM</a>
-      <a href="/machines" class="active">Machines</a>
-      <a href="/inventory">Inventory</a>
-      <a href="/finance">Finance</a>
-      <a href="/restock">Restock</a>
-      <a href="/map">Map</a>
-    </nav>
+    <nav class="top-nav" id="mainNav"></nav>
 
     <div class="header">
-      <h1>🏭 Machines & Locations</h1>
+      <h1>🏭 Machine Management</h1>
       <div class="header-actions">
-        <button class="btn btn-primary" onclick="openMachineModal()">+ Add Machine</button>
-        <button class="btn btn-success" onclick="openLocationModal()">+ Add Location</button>
+        <div class="view-toggle">
+          <button class="active" data-view="grid">Grid</button>
+          <button data-view="list">List</button>
+        </div>
+        <button class="btn btn-primary" onclick="showAddMachineModal()">
+          <span>+</span> Add Machine
+        </button>
       </div>
     </div>
 
-    <div class="stats" id="stats"></div>
-
-    <div class="tabs">
-      <button class="tab active" data-tab="machines" onclick="switchTab('machines')">🏭 Machines</button>
-      <button class="tab" data-tab="locations" onclick="switchTab('locations')">📍 Locations</button>
-    </div>
-
-    <!-- Machines Tab -->
-    <div id="tab-machines" class="tab-content">
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Machine</th>
-              <th>Model</th>
-              <th>Serial #</th>
-              <th>Status</th>
-              <th>Location</th>
-              <th>Cost</th>
-              <th>Purchased</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="machines-tbody"></tbody>
-        </table>
+    <!-- Stats Overview -->
+    <div class="stats" id="fleetStats">
+      <div class="stat">
+        <div class="stat-icon">🏭</div>
+        <div class="stat-value accent" id="statMachines">-</div>
+        <div class="stat-label">Total Machines</div>
       </div>
-      <div id="machines-empty" class="empty-state" style="display:none;">
-        <div class="icon">🏭</div>
-        <h3>No machines yet</h3>
-        <p>Add your first vending machine to start tracking.</p>
-        <button class="btn btn-primary" style="margin-top:16px;" onclick="openMachineModal()">+ Add Machine</button>
+      <div class="stat">
+        <div class="stat-icon">✅</div>
+        <div class="stat-value success" id="statActive">-</div>
+        <div class="stat-label">Active</div>
+      </div>
+      <div class="stat">
+        <div class="stat-icon">⚠️</div>
+        <div class="stat-value warn" id="statAlerts">-</div>
+        <div class="stat-label">Alerts</div>
+      </div>
+      <div class="stat">
+        <div class="stat-icon">📦</div>
+        <div class="stat-value" id="statLowStock">-</div>
+        <div class="stat-label">Low Stock Slots</div>
+      </div>
+      <div class="stat">
+        <div class="stat-icon">💰</div>
+        <div class="stat-value success" id="statRevenue">-</div>
+        <div class="stat-label">Monthly Revenue</div>
       </div>
     </div>
 
-    <!-- Locations Tab -->
-    <div id="tab-locations" class="tab-content" style="display:none;">
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Location</th>
-              <th>Address</th>
-              <th>Type</th>
-              <th>Status</th>
-              <th>Rev Share</th>
-              <th>Machines</th>
-              <th>Start Date</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="locations-tbody"></tbody>
-        </table>
-      </div>
-      <div id="locations-empty" class="empty-state" style="display:none;">
-        <div class="icon">📍</div>
-        <h3>No locations yet</h3>
-        <p>Add a signed location to assign machines.</p>
-        <button class="btn btn-success" style="margin-top:16px;" onclick="openLocationModal()">+ Add Location</button>
-      </div>
+    <!-- Machine Grid -->
+    <div class="machine-grid" id="machineGrid">
+      <div class="loading"><div class="spinner"></div></div>
     </div>
   </div>
 
-  <!-- Machine Modal -->
-  <div class="modal-overlay" id="machine-modal">
-    <div class="modal">
-      <h2 id="machine-modal-title">Add Machine</h2>
-      <input type="hidden" id="machine-id">
-      <div class="form-row">
-        <div class="form-group">
-          <label>Machine Name / Label</label>
-          <input type="text" id="machine-name" placeholder="e.g. Machine #1, Lobby Cooler">
-        </div>
-        <div class="form-group">
-          <label>Model</label>
-          <input type="text" id="machine-model" placeholder="e.g. Seaga INF5C, USI 3519">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Serial Number</label>
-          <input type="text" id="machine-serial" placeholder="Serial #">
-        </div>
-        <div class="form-group">
-          <label>Machine Type</label>
-          <select id="machine-type">
-            <option value="smart_cooler">Smart Cooler</option>
-            <option value="combo">Combo (Snack + Drink)</option>
-            <option value="snack">Snack Only</option>
-            <option value="beverage">Beverage Only</option>
-            <option value="frozen">Frozen / Ice Cream</option>
-            <option value="micro_market">Micro Market</option>
-            <option value="coffee">Coffee</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Purchase Cost ($)</label>
-          <input type="number" id="machine-cost" step="0.01" placeholder="0.00">
-        </div>
-        <div class="form-group">
-          <label>Purchase Date</label>
-          <input type="date" id="machine-purchase-date">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Status</label>
-          <select id="machine-status">
-            <option value="available">Available</option>
-            <option value="deployed">Deployed</option>
-            <option value="needs_repair">Needs Repair</option>
-            <option value="storage">In Storage</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Assign to Location</label>
-          <select id="machine-location">
-            <option value="">— Not Assigned —</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Financing Details</label>
-        <input type="text" id="machine-financing" placeholder="e.g. Chase Ink 0% APR, 18 months, $150/mo">
-      </div>
-      <div class="form-group">
-        <label>Notes</label>
-        <textarea id="machine-notes" placeholder="Any notes about this machine..."></textarea>
-      </div>
-      <div class="form-actions">
-        <button class="btn btn-secondary" onclick="closeMachineModal()">Cancel</button>
-        <button class="btn btn-danger" id="machine-delete-btn" style="display:none;" onclick="deleteMachine()">Delete</button>
-        <button class="btn btn-primary" onclick="saveMachine()">Save Machine</button>
-      </div>
+  <!-- Detail Panel (slides in from right) -->
+  <div class="detail-overlay" id="detailOverlay" onclick="closeDetailPanel()"></div>
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-header">
+      <h2 id="detailTitle">Machine Details</h2>
+      <button class="close-btn" onclick="closeDetailPanel()">×</button>
+    </div>
+    <div class="detail-content" id="detailContent">
+      <!-- Filled dynamically -->
     </div>
   </div>
 
-  <!-- Location Modal -->
-  <div class="modal-overlay" id="location-modal">
+  <!-- Add Machine Modal -->
+  <div class="modal-overlay" id="addMachineModal">
     <div class="modal">
-      <h2 id="location-modal-title">Add Location</h2>
-      <input type="hidden" id="location-id">
-      <div class="form-row">
+      <h2>Add New Machine</h2>
+      <form id="addMachineForm" onsubmit="submitAddMachine(event)">
         <div class="form-group">
-          <label>Location Name</label>
-          <input type="text" id="location-name" placeholder="e.g. Panorama Towers">
+          <label>Machine Name *</label>
+          <input type="text" name="name" required placeholder="e.g., Downtown Rec Center #1">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Serial Number</label>
+            <input type="text" name="serial_number" placeholder="SS2024-XXXX">
+          </div>
+          <div class="form-group">
+            <label>Model</label>
+            <select name="model">
+              <option value="SandStar AI Smart Cooler">SandStar AI Smart Cooler</option>
+              <option value="SandStar AI Freezer">SandStar AI Freezer</option>
+              <option value="Custom">Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Rows</label>
+            <input type="number" name="rows" value="6" min="1" max="10">
+          </div>
+          <div class="form-group">
+            <label>Columns</label>
+            <input type="number" name="cols" value="8" min="1" max="12">
+          </div>
         </div>
         <div class="form-group">
-          <label>Property Type</label>
-          <select id="location-type">
-            <option value="apartment">Apartment Complex</option>
-            <option value="medical">Medical / Outpatient</option>
-            <option value="warehouse">Warehouse / Industrial</option>
-            <option value="office">Office Building</option>
-            <option value="hotel">Hotel / Hospitality</option>
-            <option value="student">Student Housing</option>
-            <option value="senior">Senior Living</option>
-            <option value="gym">Gym / Fitness</option>
-            <option value="other">Other</option>
+          <label>Location</label>
+          <select name="location_id" id="locationSelect">
+            <option value="">-- No Location Assigned --</option>
           </select>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Address</label>
-        <input type="text" id="location-address" placeholder="Full address">
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Contact Name</label>
-          <input type="text" id="location-contact" placeholder="Property manager name">
-        </div>
-        <div class="form-group">
-          <label>Contact Phone</label>
-          <input type="tel" id="location-phone" placeholder="(702) 555-1234">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Revenue Share</label>
-          <select id="location-rev-share-type">
-            <option value="none">$0 / None</option>
-            <option value="flat">Flat Monthly Fee</option>
-            <option value="percentage">Percentage of Revenue</option>
-            <option value="tiered">Tiered / Sliding Scale</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Share Amount</label>
-          <input type="text" id="location-rev-share-amount" placeholder="e.g. $25/mo or 10%">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Contract Start Date</label>
-          <input type="date" id="location-start-date">
         </div>
         <div class="form-group">
           <label>Status</label>
-          <select id="location-status">
+          <select name="status">
+            <option value="pending_install">Pending Install</option>
             <option value="active">Active</option>
-            <option value="setup">Setting Up</option>
-            <option value="pending">Pending Contract</option>
-            <option value="inactive">Inactive</option>
+            <option value="maintenance">Maintenance</option>
           </select>
         </div>
-      </div>
-      <div class="form-group">
-        <label>Placement Spot</label>
-        <input type="text" id="location-placement" placeholder="e.g. Lobby, Mail Room, Break Room, Pool Area">
-      </div>
-      <div class="form-group">
-        <label>Units / Employees / Traffic</label>
-        <input type="text" id="location-units" placeholder="e.g. 350 units, 200 employees">
-      </div>
-      <div class="form-group">
-        <label>Notes</label>
-        <textarea id="location-notes" placeholder="Contract details, special arrangements..."></textarea>
-      </div>
-      <div class="form-actions">
-        <button class="btn btn-secondary" onclick="closeLocationModal()">Cancel</button>
-        <button class="btn btn-danger" id="location-delete-btn" style="display:none;" onclick="deleteLocation()">Delete</button>
-        <button class="btn btn-success" onclick="saveLocation()">Save Location</button>
-      </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeAddMachineModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Machine</button>
+        </div>
+      </form>
     </div>
   </div>
 
+  <!-- Restock Modal -->
+  <div class="modal-overlay" id="restockModal">
+    <div class="modal">
+      <h2>Restock Slot</h2>
+      <form id="restockForm" onsubmit="submitRestock(event)">
+        <input type="hidden" name="machine_id" id="restockMachineId">
+        <input type="hidden" name="slot_id" id="restockSlotId">
+        
+        <div class="form-group">
+          <label>Slot Position</label>
+          <input type="text" id="restockSlotPosition" disabled>
+        </div>
+        <div class="form-group">
+          <label>Product</label>
+          <input type="text" id="restockProductName" disabled>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Current Quantity</label>
+            <input type="text" id="restockCurrentQty" disabled>
+          </div>
+          <div class="form-group">
+            <label>Capacity</label>
+            <input type="text" id="restockCapacity" disabled>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Quantity to Add *</label>
+          <input type="number" name="quantity_added" required min="1" placeholder="How many units to add?">
+        </div>
+        <div class="form-group">
+          <label>Expiry Date (if applicable)</label>
+          <input type="date" name="expiry_date">
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea name="notes" rows="2" placeholder="Any notes about this restock..."></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeRestockModal()">Cancel</button>
+          <button type="submit" class="btn btn-success">Record Restock</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Assign Product Modal -->
+  <div class="modal-overlay" id="assignProductModal">
+    <div class="modal">
+      <h2>Assign Product to Slot</h2>
+      <form id="assignProductForm" onsubmit="submitAssignProduct(event)">
+        <input type="hidden" name="machine_id" id="assignMachineId">
+        <input type="hidden" name="slot_id" id="assignSlotId">
+        
+        <div class="form-group">
+          <label>Slot Position</label>
+          <input type="text" id="assignSlotPosition" disabled>
+        </div>
+        <div class="form-group">
+          <label>Select Product *</label>
+          <select name="product_id" id="productSelect" required>
+            <option value="">-- Select a Product --</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Capacity</label>
+            <input type="number" name="capacity" value="10" min="1" max="30">
+          </div>
+          <div class="form-group">
+            <label>Restock Trigger</label>
+            <input type="number" name="restock_trigger" value="3" min="1">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Custom Price (leave empty for default)</label>
+          <input type="number" name="custom_price" step="0.25" placeholder="e.g., 3.50">
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeAssignProductModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Assign Product</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/nav.js"></script>
   <script>
+    // =====================================================
+    // Machine Management Dashboard
+    // =====================================================
+    
     let machines = [];
     let locations = [];
+    let products = [];
+    let selectedMachine = null;
+    let selectedSlot = null;
 
-    // ===== DATA LOADING =====
-    async function loadData() {
-      const [mRes, lRes] = await Promise.all([
-        fetch('/api/machines').then(r => r.json()),
-        fetch('/api/locations').then(r => r.json())
-      ]);
-      machines = mRes;
-      locations = lRes;
-      renderStats();
-      renderMachines();
-      renderLocations();
-      populateLocationSelect();
+    // Category icons
+    const categoryIcons = {
+      beverages: '🥤', drinks: '🥤',
+      energy: '⚡',
+      water: '💧',
+      snacks: '🍪', chips: '🍪',
+      candy: '🍫',
+      healthy: '🥜',
+      juice: '🧃',
+      incidentals: '📦',
+      fresh: '🥗',
+      default: '📦'
+    };
+
+    function getCategoryIcon(category) {
+      if (!category) return categoryIcons.default;
+      const key = category.toLowerCase();
+      return categoryIcons[key] || categoryIcons.default;
     }
 
-    function renderStats() {
-      const deployed = machines.filter(m => m.status === 'deployed').length;
-      const available = machines.filter(m => m.status === 'available').length;
-      const repair = machines.filter(m => m.status === 'needs_repair').length;
-      const totalCost = machines.reduce((s, m) => s + (parseFloat(m.cost) || 0), 0);
-      const activeLocations = locations.filter(l => l.status === 'active').length;
-
-      document.getElementById('stats').innerHTML = `
-        <div class="stat"><div class="stat-value accent">${machines.length}</div><div class="stat-label">Total Machines</div></div>
-        <div class="stat"><div class="stat-value success">${deployed}</div><div class="stat-label">Deployed</div></div>
-        <div class="stat"><div class="stat-value warn">${available}</div><div class="stat-label">Available</div></div>
-        <div class="stat"><div class="stat-value hot">${repair}</div><div class="stat-label">Needs Repair</div></div>
-        <div class="stat"><div class="stat-value accent">${activeLocations}</div><div class="stat-label">Active Locations</div></div>
-        <div class="stat"><div class="stat-value">${fmt(totalCost)}</div><div class="stat-label">Total Investment</div></div>
-      `;
-    }
-
-    function fmt(n) { return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
-
-    // ===== MACHINES =====
-    function renderMachines() {
-      const tbody = document.getElementById('machines-tbody');
-      const empty = document.getElementById('machines-empty');
-      if (machines.length === 0) {
-        tbody.innerHTML = '';
-        empty.style.display = 'block';
-        return;
+    // =====================================================
+    // Data Loading
+    // =====================================================
+    
+    async function loadMachines() {
+      try {
+        const res = await fetch('/api/machine-system/machines');
+        machines = await res.json();
+        renderMachineGrid();
+        updateFleetStats();
+      } catch (err) {
+        console.error('Error loading machines:', err);
+        document.getElementById('machineGrid').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">⚠️</div>
+            <div class="empty-title">Error Loading Machines</div>
+            <div class="empty-text">${err.message}</div>
+            <button class="btn btn-primary" onclick="loadMachines()">Retry</button>
+          </div>
+        `;
       }
-      empty.style.display = 'none';
-      tbody.innerHTML = machines.map(m => {
-        const statusClass = m.status === 'deployed' ? 'badge-deployed' : m.status === 'available' ? 'badge-available' : m.status === 'needs_repair' ? 'badge-repair' : 'badge-storage';
-        const statusLabel = m.status === 'needs_repair' ? 'Repair' : m.status.charAt(0).toUpperCase() + m.status.slice(1);
-        const locName = m.location ? m.location.name : '—';
-        return `<tr class="clickable" ondblclick="editMachine(${m.id})">
-          <td><strong>${m.name || 'Machine #' + m.id}</strong></td>
-          <td>${m.model || '—'}</td>
-          <td style="font-family:monospace;font-size:0.8rem;">${m.serial || '—'}</td>
-          <td><span class="badge ${statusClass}">${statusLabel}</span></td>
-          <td>${locName}</td>
-          <td>${m.cost ? fmt(parseFloat(m.cost)) : '—'}</td>
-          <td>${m.purchase_date || '—'}</td>
-          <td class="actions-cell">
-            <button class="btn btn-secondary btn-sm" onclick="editMachine(${m.id})">Edit</button>
-          </td>
-        </tr>`;
-      }).join('');
+    }
+
+    async function loadLocations() {
+      try {
+        const res = await fetch('/api/locations');
+        locations = await res.json();
+        populateLocationSelect();
+      } catch (err) {
+        console.error('Error loading locations:', err);
+      }
+    }
+
+    async function loadProducts() {
+      try {
+        const res = await fetch('/api/machine-system/products');
+        products = await res.json();
+        populateProductSelect();
+      } catch (err) {
+        console.error('Error loading products:', err);
+      }
     }
 
     function populateLocationSelect() {
-      const sel = document.getElementById('machine-location');
-      sel.innerHTML = '<option value="">— Not Assigned —</option>' + locations.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+      const select = document.getElementById('locationSelect');
+      select.innerHTML = '<option value="">-- No Location Assigned --</option>';
+      locations.forEach(loc => {
+        select.innerHTML += `<option value="${loc.id}">${loc.name} - ${loc.address || ''}</option>`;
+      });
     }
 
-    function openMachineModal(machine) {
-      document.getElementById('machine-modal-title').textContent = machine ? 'Edit Machine' : 'Add Machine';
-      document.getElementById('machine-id').value = machine ? machine.id : '';
-      document.getElementById('machine-name').value = machine ? machine.name || '' : '';
-      document.getElementById('machine-model').value = machine ? machine.model || '' : '';
-      document.getElementById('machine-serial').value = machine ? machine.serial || '' : '';
-      document.getElementById('machine-type').value = machine ? machine.machine_type || 'smart_cooler' : 'smart_cooler';
-      document.getElementById('machine-cost').value = machine ? machine.cost || '' : '';
-      document.getElementById('machine-purchase-date').value = machine ? machine.purchase_date || '' : '';
-      document.getElementById('machine-status').value = machine ? machine.status || 'available' : 'available';
-      document.getElementById('machine-location').value = machine ? machine.location_id || '' : '';
-      document.getElementById('machine-financing').value = machine ? machine.financing || '' : '';
-      document.getElementById('machine-notes').value = machine ? machine.notes || '' : '';
-      document.getElementById('machine-delete-btn').style.display = machine ? 'inline-block' : 'none';
-      document.getElementById('machine-modal').classList.add('open');
+    function populateProductSelect() {
+      const select = document.getElementById('productSelect');
+      select.innerHTML = '<option value="">-- Select a Product --</option>';
+      
+      // Group by category
+      const byCategory = {};
+      products.forEach(p => {
+        const cat = p.category || 'other';
+        if (!byCategory[cat]) byCategory[cat] = [];
+        byCategory[cat].push(p);
+      });
+      
+      Object.keys(byCategory).sort().forEach(cat => {
+        const group = document.createElement('optgroup');
+        group.label = cat.charAt(0).toUpperCase() + cat.slice(1);
+        byCategory[cat].forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = `${p.name} - $${(p.vending_price || p.sell_price || 0).toFixed(2)}`;
+          group.appendChild(opt);
+        });
+        select.appendChild(group);
+      });
     }
 
-    function closeMachineModal() { document.getElementById('machine-modal').classList.remove('open'); }
+    // =====================================================
+    // Fleet Stats
+    // =====================================================
+    
+    function updateFleetStats() {
+      const total = machines.length;
+      const active = machines.filter(m => m.status === 'active').length;
+      const totalAlerts = machines.reduce((sum, m) => sum + (m.alerts?.total || 0), 0);
+      const lowStock = machines.reduce((sum, m) => sum + (m.slots?.lowStock || 0), 0);
+      const revenue = machines.reduce((sum, m) => sum + (m.performance?.monthlyRevenue || 0), 0);
 
-    function editMachine(id) {
-      const m = machines.find(x => x.id === id);
-      if (m) openMachineModal(m);
+      document.getElementById('statMachines').textContent = total;
+      document.getElementById('statActive').textContent = active;
+      document.getElementById('statAlerts').textContent = totalAlerts;
+      document.getElementById('statLowStock').textContent = lowStock;
+      document.getElementById('statRevenue').textContent = '$' + revenue.toLocaleString();
     }
 
-    async function saveMachine() {
-      const id = document.getElementById('machine-id').value;
-      const data = {
-        name: document.getElementById('machine-name').value,
-        model: document.getElementById('machine-model').value,
-        serial: document.getElementById('machine-serial').value,
-        machine_type: document.getElementById('machine-type').value,
-        cost: document.getElementById('machine-cost').value,
-        purchase_date: document.getElementById('machine-purchase-date').value,
-        status: document.getElementById('machine-status').value,
-        location_id: document.getElementById('machine-location').value ? parseInt(document.getElementById('machine-location').value) : null,
-        financing: document.getElementById('machine-financing').value,
-        notes: document.getElementById('machine-notes').value
-      };
-
-      if (id) {
-        await fetch(`/api/machines/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-      } else {
-        await fetch('/api/machines', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-      }
-      closeMachineModal();
-      loadData();
-    }
-
-    async function deleteMachine() {
-      const id = document.getElementById('machine-id').value;
-      if (!id || !confirm('Delete this machine?')) return;
-      await fetch(`/api/machines/${id}`, { method: 'DELETE' });
-      closeMachineModal();
-      loadData();
-    }
-
-    // ===== LOCATIONS =====
-    function renderLocations() {
-      const tbody = document.getElementById('locations-tbody');
-      const empty = document.getElementById('locations-empty');
-      if (locations.length === 0) {
-        tbody.innerHTML = '';
-        empty.style.display = 'block';
+    // =====================================================
+    // Machine Grid Rendering
+    // =====================================================
+    
+    function renderMachineGrid() {
+      const grid = document.getElementById('machineGrid');
+      
+      if (machines.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <div class="empty-icon">🏭</div>
+            <div class="empty-title">No Machines Yet</div>
+            <div class="empty-text">Add your first machine to start tracking inventory</div>
+            <button class="btn btn-primary" onclick="showAddMachineModal()">+ Add Machine</button>
+          </div>
+        `;
         return;
       }
-      empty.style.display = 'none';
-      tbody.innerHTML = locations.map(l => {
-        const statusClass = l.status === 'active' ? 'badge-active' : l.status === 'setup' ? 'badge-deployed' : l.status === 'pending' ? 'badge-storage' : 'badge-repair';
-        const machineCount = l.machines ? l.machines.length : 0;
-        const revShare = l.rev_share_type === 'none' ? '$0' : l.rev_share_amount || '—';
-        return `<tr class="clickable" ondblclick="editLocation(${l.id})">
-          <td><strong>${l.name}</strong></td>
-          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.address || '—'}</td>
-          <td>${formatLocationType(l.property_type)}</td>
-          <td><span class="badge ${statusClass}">${(l.status || 'active').charAt(0).toUpperCase() + (l.status || 'active').slice(1)}</span></td>
-          <td>${revShare}</td>
-          <td>${machineCount}</td>
-          <td>${l.start_date || '—'}</td>
-          <td class="actions-cell">
-            <button class="btn btn-secondary btn-sm" onclick="editLocation(${l.id})">Edit</button>
-          </td>
-        </tr>`;
+
+      grid.innerHTML = machines.map(m => {
+        const healthScore = m.performance?.healthScore || 0;
+        const healthClass = healthScore >= 70 ? 'good' : healthScore >= 40 ? 'warn' : 'bad';
+        const statusClass = m.status === 'active' ? 'active' : m.status === 'offline' ? 'offline' : m.status === 'maintenance' ? 'maintenance' : 'pending';
+        
+        return `
+          <div class="machine-card ${selectedMachine?.id === m.id ? 'selected' : ''}" onclick="openMachineDetail(${m.id})">
+            <div class="machine-card-header">
+              <div class="machine-name">${m.name}</div>
+              <div class="machine-status">
+                <div class="status-dot ${statusClass}"></div>
+                <span style="font-size: 0.8rem; color: var(--muted); text-transform: capitalize;">${m.status || 'pending'}</span>
+              </div>
+            </div>
+            <div class="machine-card-body">
+              <div class="machine-location">
+                📍 ${m.location?.name || m.location?.address || 'No location assigned'}
+              </div>
+              <div class="machine-stats">
+                <div class="machine-stat">
+                  <div class="machine-stat-value">${m.slots?.active || 0}/${m.slots?.total || 0}</div>
+                  <div class="machine-stat-label">Slots</div>
+                </div>
+                <div class="machine-stat">
+                  <div class="machine-stat-value" style="color: ${m.slots?.lowStock > 0 ? 'var(--warn)' : 'inherit'}">${m.slots?.lowStock || 0}</div>
+                  <div class="machine-stat-label">Low Stock</div>
+                </div>
+                <div class="machine-stat">
+                  <div class="machine-stat-value" style="color: ${m.slots?.outOfStock > 0 ? 'var(--hot)' : 'inherit'}">${m.slots?.outOfStock || 0}</div>
+                  <div class="machine-stat-label">Out</div>
+                </div>
+              </div>
+              <div class="health-bar">
+                <div class="health-fill ${healthClass}" style="width: ${healthScore}%"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-top: 8px;">
+                <span style="font-size: 0.75rem; color: var(--muted);">Health Score</span>
+                <span style="font-size: 0.85rem; font-weight: 600;">${healthScore}%</span>
+              </div>
+              ${m.alerts?.total > 0 ? `
+                <div class="machine-alerts">
+                  ${m.alerts.critical > 0 ? `<span class="alert-badge critical">🔴 ${m.alerts.critical} Critical</span>` : ''}
+                  ${(m.alerts.total - m.alerts.critical) > 0 ? `<span class="alert-badge warning">🟡 ${m.alerts.total - m.alerts.critical} Warning</span>` : ''}
+                </div>
+              ` : ''}
+            </div>
+            <div class="machine-card-footer">
+              <div class="machine-revenue">
+                ${m.performance?.monthlyRevenue ? '$' + m.performance.monthlyRevenue.toLocaleString() + '/mo' : 'No data'}
+              </div>
+              <div class="machine-actions">
+                <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); openMachineDetail(${m.id})">View</button>
+              </div>
+            </div>
+          </div>
+        `;
       }).join('');
     }
 
-    function formatLocationType(t) {
-      const types = { apartment: '🏢 Apartment', medical: '🏥 Medical', warehouse: '🏭 Warehouse', office: '🏢 Office', hotel: '🏨 Hotel', student: '🎓 Student', senior: '👴 Senior', gym: '🏋️ Gym', other: '📍 Other' };
-      return types[t] || t || '—';
+    // =====================================================
+    // Machine Detail Panel
+    // =====================================================
+    
+    async function openMachineDetail(machineId) {
+      try {
+        const res = await fetch(`/api/machine-system/machines/${machineId}`);
+        selectedMachine = await res.json();
+        selectedSlot = null;
+        
+        renderMachineGrid(); // Update selection
+        renderDetailPanel();
+        
+        document.getElementById('detailOverlay').classList.add('open');
+        document.getElementById('detailPanel').classList.add('open');
+      } catch (err) {
+        console.error('Error loading machine detail:', err);
+        alert('Error loading machine details');
+      }
     }
 
-    function openLocationModal(loc) {
-      document.getElementById('location-modal-title').textContent = loc ? 'Edit Location' : 'Add Location';
-      document.getElementById('location-id').value = loc ? loc.id : '';
-      document.getElementById('location-name').value = loc ? loc.name || '' : '';
-      document.getElementById('location-type').value = loc ? loc.property_type || 'apartment' : 'apartment';
-      document.getElementById('location-address').value = loc ? loc.address || '' : '';
-      document.getElementById('location-contact').value = loc ? loc.contact_name || '' : '';
-      document.getElementById('location-phone').value = loc ? loc.contact_phone || '' : '';
-      document.getElementById('location-rev-share-type').value = loc ? loc.rev_share_type || 'none' : 'none';
-      document.getElementById('location-rev-share-amount').value = loc ? loc.rev_share_amount || '' : '';
-      document.getElementById('location-start-date').value = loc ? loc.start_date || '' : '';
-      document.getElementById('location-status').value = loc ? loc.status || 'active' : 'active';
-      document.getElementById('location-placement').value = loc ? loc.placement || '' : '';
-      document.getElementById('location-units').value = loc ? loc.units || '' : '';
-      document.getElementById('location-notes').value = loc ? loc.notes || '' : '';
-      document.getElementById('location-delete-btn').style.display = loc ? 'inline-block' : 'none';
-      document.getElementById('location-modal').classList.add('open');
+    function closeDetailPanel() {
+      document.getElementById('detailOverlay').classList.remove('open');
+      document.getElementById('detailPanel').classList.remove('open');
+      selectedMachine = null;
+      selectedSlot = null;
+      renderMachineGrid();
     }
 
-    function closeLocationModal() { document.getElementById('location-modal').classList.remove('open'); }
+    function renderDetailPanel() {
+      if (!selectedMachine) return;
+      
+      const m = selectedMachine;
+      const slots = m.slots || [];
+      const rows = m.config?.rows || 6;
+      const cols = m.config?.columnsPerRow || 8;
+      
+      document.getElementById('detailTitle').textContent = m.name;
+      
+      // Group slots by row
+      const slotsByRow = {};
+      slots.forEach(s => {
+        if (!slotsByRow[s.row_num]) slotsByRow[s.row_num] = [];
+        slotsByRow[s.row_num].push(s);
+      });
+      
+      // Sort each row by column
+      Object.keys(slotsByRow).forEach(r => {
+        slotsByRow[r].sort((a, b) => a.column_num - b.column_num);
+      });
 
-    function editLocation(id) {
-      const l = locations.find(x => x.id === id);
-      if (l) openLocationModal(l);
+      const content = document.getElementById('detailContent');
+      content.innerHTML = `
+        <!-- Machine Info -->
+        <div style="margin-bottom: 20px;">
+          <p style="color: var(--muted); margin-bottom: 8px;">📍 ${m.location?.name || 'No location'} ${m.location?.address ? '— ' + m.location.address : ''}</p>
+          <p style="color: var(--muted); font-size: 0.85rem;">
+            Model: ${m.model || 'SandStar AI Smart Cooler'} • Serial: ${m.serial_number || 'N/A'}
+          </p>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="inventory-summary">
+          <div class="inv-cat">
+            <div class="inv-cat-name">Active Slots</div>
+            <div style="font-size: 1.3rem; font-weight: 700;">${slots.filter(s => s.product_id).length}/${slots.length}</div>
+          </div>
+          <div class="inv-cat">
+            <div class="inv-cat-name">Low Stock</div>
+            <div style="font-size: 1.3rem; font-weight: 700; color: var(--warn);">${slots.filter(s => s.product_id && s.current_quantity <= s.restock_trigger).length}</div>
+          </div>
+          <div class="inv-cat">
+            <div class="inv-cat-name">Out of Stock</div>
+            <div style="font-size: 1.3rem; font-weight: 700; color: var(--hot);">${slots.filter(s => s.product_id && s.current_quantity === 0).length}</div>
+          </div>
+          <div class="inv-cat">
+            <div class="inv-cat-name">Health Score</div>
+            <div style="font-size: 1.3rem; font-weight: 700; color: ${m.healthScore >= 70 ? 'var(--success)' : m.healthScore >= 40 ? 'var(--warn)' : 'var(--hot)'};">${m.healthScore}%</div>
+          </div>
+        </div>
+
+        <!-- Slot Grid -->
+        <div class="slot-grid-container">
+          <div class="slot-grid-title">
+            📊 Slot Grid <span style="font-size: 0.8rem; color: var(--muted); font-weight: normal;">(click a slot to view details)</span>
+          </div>
+          
+          <div class="legend">
+            <div class="legend-item"><div class="legend-color" style="background: rgba(56,161,105,0.15); border: 2px solid var(--success);"></div> OK</div>
+            <div class="legend-item"><div class="legend-color" style="background: rgba(221,107,32,0.15); border: 2px solid var(--warn);"></div> Low Stock</div>
+            <div class="legend-item"><div class="legend-color" style="background: rgba(229,62,62,0.15); border: 2px solid var(--hot);"></div> Out of Stock</div>
+            <div class="legend-item"><div class="legend-color" style="background: var(--eye-level); border: 2px solid var(--accent);"></div> Eye Level</div>
+            <div class="legend-item"><div class="legend-color" style="background: #edf2f7; border: 2px dashed var(--border);"></div> Empty</div>
+          </div>
+
+          <div class="slot-grid">
+            <div class="slot-col-labels">
+              ${Array.from({length: cols}, (_, i) => `<div class="slot-col-label">${i + 1}</div>`).join('')}
+            </div>
+            ${Array.from({length: rows}, (_, r) => {
+              const rowNum = r + 1;
+              const rowLetter = String.fromCharCode(64 + rowNum);
+              const rowSlots = slotsByRow[rowNum] || [];
+              
+              return `
+                <div class="slot-row">
+                  <div class="slot-row-label">${rowLetter}</div>
+                  ${rowSlots.map(s => {
+                    let statusClass = 'empty';
+                    let icon = '+';
+                    let qty = '';
+                    
+                    if (s.product_id) {
+                      const product = s.product || products.find(p => p.id === s.product_id);
+                      icon = getCategoryIcon(product?.category);
+                      qty = s.current_quantity;
+                      
+                      if (s.current_quantity === 0) {
+                        statusClass = 'out';
+                      } else if (s.current_quantity <= s.restock_trigger) {
+                        statusClass = 'low';
+                      } else {
+                        statusClass = 'ok';
+                      }
+                      
+                      // Mark eye-level slots
+                      if (s.zone === 'eye_level') {
+                        statusClass += ' eye-level';
+                      }
+                    }
+                    
+                    return `
+                      <div class="slot ${statusClass} ${selectedSlot?.id === s.id ? 'selected' : ''}" 
+                           onclick="selectSlot(${s.id})" 
+                           title="${s.position_code}: ${s.product_name || 'Empty'}">
+                        <span class="slot-icon">${icon}</span>
+                        ${qty !== '' ? `<span class="slot-qty">${qty}</span>` : ''}
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <!-- Selected Slot Detail -->
+        <div id="slotDetailSection" style="display: ${selectedSlot ? 'block' : 'none'};">
+          ${renderSlotDetail()}
+        </div>
+
+        <!-- Alerts Section -->
+        ${m.alerts && m.alerts.length > 0 ? `
+          <div class="alerts-section">
+            <div class="alerts-title">⚠️ Active Alerts</div>
+            ${m.alerts.map(a => `
+              <div class="alert-item ${a.severity}">
+                <div class="alert-icon">${a.severity === 'critical' ? '🔴' : '🟡'}</div>
+                <div class="alert-content">
+                  <div class="alert-title">${a.title}</div>
+                  <div class="alert-message">${a.message}</div>
+                  <div class="alert-time">${new Date(a.created_at).toLocaleString()}</div>
+                </div>
+                <div class="alert-actions">
+                  <button class="btn btn-sm btn-secondary" onclick="acknowledgeAlert(${a.id})">Acknowledge</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+
+        <!-- Actions -->
+        <div style="margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap;">
+          <button class="btn btn-secondary" onclick="viewInventory(${m.id})">📦 View Inventory</button>
+          <button class="btn btn-secondary" onclick="editMachine(${m.id})">⚙️ Settings</button>
+        </div>
+      `;
     }
 
-    async function saveLocation() {
-      const id = document.getElementById('location-id').value;
+    function selectSlot(slotId) {
+      const slot = selectedMachine?.slots?.find(s => s.id === slotId);
+      if (!slot) return;
+      
+      selectedSlot = slot;
+      renderDetailPanel();
+    }
+
+    function renderSlotDetail() {
+      if (!selectedSlot) return '';
+      
+      const s = selectedSlot;
+      const product = s.product || products.find(p => p.id === s.product_id);
+      
+      return `
+        <div class="slot-detail">
+          <div class="slot-detail-header">
+            <div class="slot-position">
+              ${s.position_code}
+              <span class="zone-badge">${s.zone?.replace('_', ' ') || 'center'}</span>
+            </div>
+            <button class="btn btn-sm btn-secondary" onclick="selectedSlot = null; renderDetailPanel();">×</button>
+          </div>
+          
+          ${product ? `
+            <div class="slot-product">
+              <img src="${product.image_url || '/placeholder-product.png'}" alt="${product.name}" class="slot-product-img" onerror="this.src='/placeholder-product.png'">
+              <div class="slot-product-info">
+                <h4>${product.name}</h4>
+                <p>${product.brand || ''} • ${product.category || ''}</p>
+              </div>
+            </div>
+          ` : `
+            <div style="text-align: center; padding: 20px; color: var(--muted);">
+              <div style="font-size: 2rem; margin-bottom: 8px;">📦</div>
+              <p>No product assigned</p>
+            </div>
+          `}
+          
+          <div class="slot-metrics">
+            <div class="slot-metric">
+              <div class="slot-metric-value" style="color: ${s.current_quantity <= s.restock_trigger ? (s.current_quantity === 0 ? 'var(--hot)' : 'var(--warn)') : 'inherit'}">${s.current_quantity}</div>
+              <div class="slot-metric-label">Current</div>
+            </div>
+            <div class="slot-metric">
+              <div class="slot-metric-value">${s.capacity}</div>
+              <div class="slot-metric-label">Capacity</div>
+            </div>
+            <div class="slot-metric">
+              <div class="slot-metric-value">${s.restock_trigger}</div>
+              <div class="slot-metric-label">Trigger</div>
+            </div>
+          </div>
+          
+          ${s.earliest_expiry ? `
+            <div style="background: rgba(123,44,191,0.1); padding: 10px; border-radius: 8px; margin-bottom: 12px;">
+              <span style="color: var(--purple);">⏰ Expires: ${new Date(s.earliest_expiry).toLocaleDateString()}</span>
+            </div>
+          ` : ''}
+          
+          <div class="slot-actions">
+            ${product ? `
+              <button class="btn btn-success btn-sm" onclick="openRestockModal(${s.machine_id}, ${s.id})">📦 Restock</button>
+            ` : ''}
+            <button class="btn btn-primary btn-sm" onclick="openAssignProductModal(${s.machine_id}, ${s.id})">${product ? '🔄 Change' : '➕ Assign'} Product</button>
+            ${product ? `
+              <button class="btn btn-secondary btn-sm" onclick="clearSlot(${s.machine_id}, ${s.id})">🗑️ Clear</button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    // =====================================================
+    // Modals
+    // =====================================================
+    
+    function showAddMachineModal() {
+      document.getElementById('addMachineModal').classList.add('open');
+    }
+
+    function closeAddMachineModal() {
+      document.getElementById('addMachineModal').classList.remove('open');
+      document.getElementById('addMachineForm').reset();
+    }
+
+    async function submitAddMachine(e) {
+      e.preventDefault();
+      const form = e.target;
       const data = {
-        name: document.getElementById('location-name').value,
-        property_type: document.getElementById('location-type').value,
-        address: document.getElementById('location-address').value,
-        contact_name: document.getElementById('location-contact').value,
-        contact_phone: document.getElementById('location-phone').value,
-        rev_share_type: document.getElementById('location-rev-share-type').value,
-        rev_share_amount: document.getElementById('location-rev-share-amount').value,
-        start_date: document.getElementById('location-start-date').value,
-        status: document.getElementById('location-status').value,
-        placement: document.getElementById('location-placement').value,
-        units: document.getElementById('location-units').value,
-        notes: document.getElementById('location-notes').value
+        name: form.name.value,
+        serial_number: form.serial_number.value || undefined,
+        model: form.model.value,
+        location_id: form.location_id.value ? parseInt(form.location_id.value) : null,
+        status: form.status.value,
+        config: {
+          rows: parseInt(form.rows.value) || 6,
+          columnsPerRow: parseInt(form.cols.value) || 8,
+          totalSlots: (parseInt(form.rows.value) || 6) * (parseInt(form.cols.value) || 8)
+        }
       };
 
-      if (id) {
-        await fetch(`/api/locations/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-      } else {
-        await fetch('/api/locations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      try {
+        const res = await fetch('/api/machine-system/machines', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        if (!res.ok) throw new Error('Failed to create machine');
+        
+        closeAddMachineModal();
+        loadMachines();
+      } catch (err) {
+        alert('Error creating machine: ' + err.message);
       }
-      closeLocationModal();
-      loadData();
     }
 
-    async function deleteLocation() {
-      const id = document.getElementById('location-id').value;
-      if (!id || !confirm('Delete this location? Machines will be unassigned.')) return;
-      await fetch(`/api/locations/${id}`, { method: 'DELETE' });
-      closeLocationModal();
-      loadData();
+    function openRestockModal(machineId, slotId) {
+      const slot = selectedMachine?.slots?.find(s => s.id === slotId);
+      if (!slot) return;
+      
+      document.getElementById('restockMachineId').value = machineId;
+      document.getElementById('restockSlotId').value = slotId;
+      document.getElementById('restockSlotPosition').value = slot.position_code;
+      document.getElementById('restockProductName').value = slot.product_name || slot.product?.name || 'Unknown';
+      document.getElementById('restockCurrentQty').value = slot.current_quantity;
+      document.getElementById('restockCapacity').value = slot.capacity;
+      
+      // Pre-fill suggested quantity
+      const needed = slot.capacity - slot.current_quantity;
+      document.querySelector('#restockForm input[name="quantity_added"]').value = needed;
+      
+      document.getElementById('restockModal').classList.add('open');
     }
 
-    // ===== TABS =====
-    function switchTab(tab) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
-      document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
-      document.getElementById(`tab-${tab}`).style.display = 'block';
+    function closeRestockModal() {
+      document.getElementById('restockModal').classList.remove('open');
+      document.getElementById('restockForm').reset();
     }
 
-    // Close modals on overlay click
-    document.querySelectorAll('.modal-overlay').forEach(m => {
-      m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+    async function submitRestock(e) {
+      e.preventDefault();
+      const form = e.target;
+      const machineId = parseInt(form.machine_id.value);
+      const slotId = parseInt(form.slot_id.value);
+      
+      const data = {
+        quantity_added: parseInt(form.quantity_added.value),
+        expiry_date: form.expiry_date.value || null,
+        notes: form.notes.value || null,
+        restocked_by: 'user'
+      };
+
+      try {
+        const res = await fetch(`/api/machine-system/machines/${machineId}/slots/${slotId}/restock`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        if (!res.ok) throw new Error('Failed to record restock');
+        
+        closeRestockModal();
+        openMachineDetail(machineId); // Refresh
+        loadMachines(); // Refresh grid
+      } catch (err) {
+        alert('Error recording restock: ' + err.message);
+      }
+    }
+
+    function openAssignProductModal(machineId, slotId) {
+      const slot = selectedMachine?.slots?.find(s => s.id === slotId);
+      if (!slot) return;
+      
+      document.getElementById('assignMachineId').value = machineId;
+      document.getElementById('assignSlotId').value = slotId;
+      document.getElementById('assignSlotPosition').value = slot.position_code;
+      
+      if (slot.product_id) {
+        document.getElementById('productSelect').value = slot.product_id;
+      }
+      
+      document.querySelector('#assignProductForm input[name="capacity"]').value = slot.capacity;
+      document.querySelector('#assignProductForm input[name="restock_trigger"]').value = slot.restock_trigger;
+      
+      document.getElementById('assignProductModal').classList.add('open');
+    }
+
+    function closeAssignProductModal() {
+      document.getElementById('assignProductModal').classList.remove('open');
+      document.getElementById('assignProductForm').reset();
+    }
+
+    async function submitAssignProduct(e) {
+      e.preventDefault();
+      const form = e.target;
+      const machineId = parseInt(form.machine_id.value);
+      const slotId = parseInt(form.slot_id.value);
+      
+      const data = {
+        product_id: parseInt(form.product_id.value) || null,
+        capacity: parseInt(form.capacity.value) || 10,
+        restock_trigger: parseInt(form.restock_trigger.value) || 3,
+        custom_price: form.custom_price.value ? parseFloat(form.custom_price.value) : null,
+        use_default_price: !form.custom_price.value
+      };
+
+      try {
+        const res = await fetch(`/api/machine-system/machines/${machineId}/slots/${slotId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        if (!res.ok) throw new Error('Failed to assign product');
+        
+        closeAssignProductModal();
+        openMachineDetail(machineId);
+        loadMachines();
+      } catch (err) {
+        alert('Error assigning product: ' + err.message);
+      }
+    }
+
+    async function clearSlot(machineId, slotId) {
+      if (!confirm('Clear this slot? Product will be unassigned.')) return;
+      
+      try {
+        const res = await fetch(`/api/machine-system/machines/${machineId}/slots/${slotId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            product_id: null,
+            product_name: null,
+            current_quantity: 0
+          })
+        });
+        
+        if (!res.ok) throw new Error('Failed to clear slot');
+        
+        openMachineDetail(machineId);
+        loadMachines();
+      } catch (err) {
+        alert('Error clearing slot: ' + err.message);
+      }
+    }
+
+    async function acknowledgeAlert(alertId) {
+      try {
+        await fetch(`/api/machine-system/alerts/${alertId}/acknowledge`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ by: 'user' })
+        });
+        
+        if (selectedMachine) {
+          openMachineDetail(selectedMachine.id);
+        }
+        loadMachines();
+      } catch (err) {
+        alert('Error acknowledging alert: ' + err.message);
+      }
+    }
+
+    async function viewInventory(machineId) {
+      try {
+        const res = await fetch(`/api/machine-system/machines/${machineId}/inventory`);
+        const inv = await res.json();
+        
+        // Show inventory summary in a new modal or section
+        alert(`Inventory Summary for ${inv.machine_name}:\n\n` +
+          `Total Slots: ${inv.summary.totalSlots}\n` +
+          `Active: ${inv.summary.activeSlots}\n` +
+          `Fill %: ${inv.summary.fillPercent}%\n` +
+          `Value: $${inv.summary.estimatedValue.toFixed(2)}\n\n` +
+          `Low Stock Items: ${inv.lowStock.length}\n` +
+          `Expiring Soon: ${inv.expiring.length}`);
+      } catch (err) {
+        alert('Error loading inventory: ' + err.message);
+      }
+    }
+
+    function editMachine(machineId) {
+      // TODO: Implement edit modal
+      alert('Edit machine settings - coming soon!');
+    }
+
+    // =====================================================
+    // View Toggle
+    // =====================================================
+    
+    document.querySelectorAll('.view-toggle button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.view-toggle button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        // TODO: Implement list view
+      });
     });
 
-    loadData();
+    // =====================================================
+    // Initialize
+    // =====================================================
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      loadMachines();
+      loadLocations();
+      loadProducts();
+    });
   </script>
-<script src="/nav.js"></script>
 </body>
 </html>

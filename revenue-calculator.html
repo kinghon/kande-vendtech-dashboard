@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Revenue Calculator — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #0f172a;
+      --muted: #64748b; --accent: #3b82f6; --accent-light: #eff6ff;
+      --green: #22c55e; --green-light: #f0fdf4;
+      --amber: #f59e0b; --amber-light: #fffbeb;
+      --red: #ef4444; --red-light: #fef2f2;
+      --purple: #8b5cf6; --purple-light: #f5f3ff;
+      --radius: 12px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+    .page { max-width: 1400px; margin: 0 auto; padding: 24px 28px 60px; }
+
+    /* Header */
+    .page-header { margin-bottom: 24px; }
+    .page-header h1 { font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+    .page-header p { color: var(--muted); font-size: 0.9rem; }
+
+    /* Quick Presets */
+    .presets-bar { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
+    .presets-bar .label { font-size: 0.85rem; font-weight: 600; color: var(--muted); margin-right: 8px; }
+    .preset-btn {
+      padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--card); font-size: 0.82rem; font-weight: 600;
+      color: var(--text); cursor: pointer; transition: all 0.15s;
+    }
+    .preset-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+    .preset-btn.active { border-color: var(--accent); background: var(--accent); color: #fff; }
+
+    /* Main layout */
+    .calc-layout { display: grid; grid-template-columns: 360px 1fr; gap: 24px; }
+    @media (max-width: 1000px) { .calc-layout { grid-template-columns: 1fr; } }
+
+    /* Input Panel */
+    .input-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
+    .input-section { margin-bottom: 20px; }
+    .input-section:last-child { margin-bottom: 0; }
+    .input-section h3 { font-size: 0.85rem; font-weight: 700; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+    .input-group { margin-bottom: 16px; }
+    .input-group:last-child { margin-bottom: 0; }
+    .input-group label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .input-group input, .input-group select {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 0.95rem; font-family: inherit; transition: border-color 0.15s;
+    }
+    .input-group input:focus, .input-group select:focus { outline: none; border-color: var(--accent); }
+    .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* Slider */
+    .slider-group { margin-bottom: 16px; }
+    .slider-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .slider-header label { font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; }
+    .slider-value { font-size: 1rem; font-weight: 700; color: var(--accent); }
+    input[type="range"] {
+      width: 100%; height: 6px; border-radius: 3px; background: #e2e8f0; appearance: none; cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none; width: 20px; height: 20px; border-radius: 50%;
+      background: var(--accent); cursor: pointer; box-shadow: 0 2px 6px rgba(59,130,246,0.3);
+    }
+
+    /* Results Panel */
+    .results-panel { display: flex; flex-direction: column; gap: 20px; }
+
+    /* Big Numbers Card */
+    .big-numbers { background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 50%, #7c3aed 100%); border-radius: var(--radius); padding: 28px 32px; color: #fff; }
+    .big-numbers h2 { font-size: 0.95rem; font-weight: 600; opacity: 0.85; margin-bottom: 20px; }
+    .numbers-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    @media (max-width: 700px) { .numbers-grid { grid-template-columns: repeat(2, 1fr); } }
+    .number-item { text-align: center; }
+    .number-value { font-size: 2rem; font-weight: 800; line-height: 1; }
+    .number-label { font-size: 0.75rem; opacity: 0.75; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .number-item.highlight .number-value { color: #fbbf24; }
+
+    /* Card */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 24px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .card-title { font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+
+    /* Revenue Breakdown */
+    .breakdown-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    @media (max-width: 600px) { .breakdown-grid { grid-template-columns: 1fr; } }
+    .breakdown-item { padding: 16px; background: var(--bg); border-radius: 10px; }
+    .breakdown-item .bi-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; font-weight: 600; }
+    .breakdown-item .bi-value { font-size: 1.4rem; font-weight: 700; margin-top: 4px; }
+    .breakdown-item.green .bi-value { color: var(--green); }
+    .breakdown-item.amber .bi-value { color: var(--amber); }
+    .breakdown-item.purple .bi-value { color: var(--purple); }
+    .breakdown-item.accent .bi-value { color: var(--accent); }
+
+    /* Projection Table */
+    .projection-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .projection-table th, .projection-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+    .projection-table th { font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; background: var(--bg); }
+    .projection-table tr:last-child td { border-bottom: none; }
+    .projection-table td:first-child { font-weight: 600; }
+    .projection-table .total-row { background: var(--accent-light); font-weight: 700; }
+    .projection-table .total-row td { color: var(--accent); }
+
+    /* Comparison Mode */
+    .comparison-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .comparison-toggle { display: flex; align-items: center; gap: 12px; }
+    .comparison-toggle label { font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+    .toggle-switch {
+      position: relative; width: 48px; height: 26px; background: #e2e8f0; border-radius: 13px;
+      cursor: pointer; transition: background 0.2s;
+    }
+    .toggle-switch.active { background: var(--accent); }
+    .toggle-switch::after {
+      content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px;
+      background: #fff; border-radius: 50%; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    .toggle-switch.active::after { transform: translateX(22px); }
+
+    .comparison-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+    .scenario-card { background: var(--card); border: 2px solid var(--border); border-radius: var(--radius); padding: 20px; position: relative; }
+    .scenario-card.active { border-color: var(--accent); }
+    .scenario-card .scenario-badge {
+      position: absolute; top: -10px; left: 16px; padding: 4px 12px; border-radius: 6px;
+      font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .scenario-card:nth-child(1) .scenario-badge { background: var(--accent); color: #fff; }
+    .scenario-card:nth-child(2) .scenario-badge { background: var(--purple); color: #fff; }
+    .scenario-card:nth-child(3) .scenario-badge { background: var(--green); color: #fff; }
+    .scenario-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+    .scenario-stat { text-align: center; padding: 10px; background: var(--bg); border-radius: 8px; }
+    .scenario-stat .ss-value { font-size: 1.2rem; font-weight: 800; }
+    .scenario-stat .ss-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+    .scenario-input { margin-bottom: 12px; }
+    .scenario-input label { display: block; font-size: 0.72rem; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+    .scenario-input input {
+      width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px;
+      font-size: 0.9rem; font-family: inherit;
+    }
+
+    /* Quick Add Machine */
+    .quick-add-btn {
+      display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px;
+      background: var(--accent-light); border: 1px solid var(--accent); border-radius: 8px;
+      font-size: 0.82rem; font-weight: 600; color: var(--accent); cursor: pointer;
+      transition: all 0.15s;
+    }
+    .quick-add-btn:hover { background: var(--accent); color: #fff; }
+
+    /* Export Bar */
+    .export-bar { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+    .export-btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      transition: all 0.15s; text-decoration: none;
+    }
+    .export-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+    .export-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .export-btn.primary:hover { background: #2563eb; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; padding: 14px 20px;
+      background: #0f172a; color: #fff; border-radius: 10px; font-size: 0.9rem;
+      font-weight: 600; opacity: 0; transform: translateY(20px);
+      transition: all 0.3s; pointer-events: none; z-index: 10000;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    /* Mobile */
+    @media (max-width: 600px) {
+      .page { padding: 16px; }
+      .numbers-grid { grid-template-columns: 1fr 1fr; }
+      .number-value { font-size: 1.5rem; }
+      .big-numbers { padding: 20px; }
+      .presets-bar { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+<script src="/nav.js"></script>
+
+<div class="page">
+  <div class="page-header">
+    <h1>💰 Commission & Revenue Calculator</h1>
+    <p>Quickly estimate revenue projections for property manager meetings</p>
+  </div>
+
+  <!-- Quick Presets -->
+  <div class="presets-bar">
+    <span class="label">Quick Presets:</span>
+    <button class="preset-btn" data-preset="200-apt">🏢 200-Unit Apartment</button>
+    <button class="preset-btn" data-preset="500-office">🏛️ 500-Employee Office</button>
+    <button class="preset-btn" data-preset="50-senior">🏥 50-Bed Senior Living</button>
+    <button class="preset-btn" data-preset="150-warehouse">🏭 150-Employee Warehouse</button>
+    <button class="preset-btn" data-preset="custom">✏️ Custom</button>
+  </div>
+
+  <div class="calc-layout">
+    <!-- Input Panel -->
+    <div class="input-panel">
+      <div class="input-section">
+        <h3>📍 Property Details</h3>
+        <div class="input-group">
+          <label>Property Type</label>
+          <select id="propertyType">
+            <option value="apartment">Luxury Apartment</option>
+            <option value="office">Office Building</option>
+            <option value="healthcare">Healthcare / Senior Living</option>
+            <option value="warehouse">Warehouse / Distribution</option>
+            <option value="manufacturing">Manufacturing</option>
+            <option value="recreation">Recreation Center / YMCA</option>
+            <option value="school">K-12 School</option>
+            <option value="hospital">Hospital</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label id="peopleLabel">Units / Residents</label>
+          <input type="number" id="peopleCount" value="200" min="1">
+        </div>
+      </div>
+
+      <div class="input-section">
+        <h3>🤖 Machine Setup</h3>
+        <div class="input-row">
+          <div class="input-group">
+            <label>Number of Machines</label>
+            <input type="number" id="machineCount" value="1" min="1" max="10">
+          </div>
+          <div class="input-group">
+            <label>Products per Machine</label>
+            <input type="number" id="productsPerMachine" value="60" min="20" max="100">
+          </div>
+        </div>
+        <div class="input-group">
+          <label>Avg Product Price ($)</label>
+          <input type="number" id="avgPrice" value="2.50" min="0.50" max="10" step="0.25">
+        </div>
+        <div class="input-group">
+          <label>Operating Days / Month</label>
+          <input type="number" id="operatingDays" value="30" min="15" max="31">
+        </div>
+      </div>
+
+      <div class="input-section">
+        <h3>💸 Revenue Share</h3>
+        <div class="slider-group">
+          <div class="slider-header">
+            <label>Rev Share %</label>
+            <span class="slider-value" id="revShareValue">3%</span>
+          </div>
+          <input type="range" id="revSharePct" min="0" max="10" value="3" step="0.5">
+        </div>
+        <div class="input-group">
+          <label>Rev Share Start Month</label>
+          <input type="number" id="revShareStart" value="6" min="0" max="24">
+        </div>
+      </div>
+
+      <div class="input-section">
+        <h3>💵 Equipment Cost</h3>
+        <div class="input-group">
+          <label>Cost per Machine ($)</label>
+          <input type="number" id="machineCost" value="3600" min="1000" max="10000" step="100">
+        </div>
+        <div class="input-group">
+          <label>Monthly SaaS Fee ($)</label>
+          <input type="number" id="saasFee" value="65" min="0" max="200">
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Panel -->
+    <div class="results-panel">
+      <!-- Big Numbers -->
+      <div class="big-numbers">
+        <h2>📊 Revenue Projections</h2>
+        <div class="numbers-grid">
+          <div class="number-item">
+            <div class="number-value" id="dailyTx">—</div>
+            <div class="number-label">Daily Transactions</div>
+          </div>
+          <div class="number-item highlight">
+            <div class="number-value" id="monthlyGross">—</div>
+            <div class="number-label">Monthly Gross</div>
+          </div>
+          <div class="number-item">
+            <div class="number-value" id="annualGross">—</div>
+            <div class="number-label">Annual Gross</div>
+          </div>
+          <div class="number-item">
+            <div class="number-value" id="ownerMonthly">—</div>
+            <div class="number-label">Owner's Monthly Share</div>
+          </div>
+          <div class="number-item highlight">
+            <div class="number-value" id="kandeMonthly">—</div>
+            <div class="number-label">Kande Monthly Net</div>
+          </div>
+          <div class="number-item">
+            <div class="number-value" id="breakEven">—</div>
+            <div class="number-label">Break-Even (Months)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detailed Breakdown -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📈 Detailed Breakdown</span>
+        </div>
+        <div class="breakdown-grid">
+          <div class="breakdown-item accent">
+            <div class="bi-label">Daily Revenue</div>
+            <div class="bi-value" id="dailyRevenue">—</div>
+          </div>
+          <div class="breakdown-item green">
+            <div class="bi-label">Monthly COGS (33%)</div>
+            <div class="bi-value" id="monthlyCOGS">—</div>
+          </div>
+          <div class="breakdown-item purple">
+            <div class="bi-label">Monthly SaaS Total</div>
+            <div class="bi-value" id="monthlySaaS">—</div>
+          </div>
+          <div class="breakdown-item amber">
+            <div class="bi-label">Owner Annual Share</div>
+            <div class="bi-value" id="ownerAnnual">—</div>
+          </div>
+          <div class="breakdown-item green">
+            <div class="bi-label">Kande Annual Net</div>
+            <div class="bi-value" id="kandeAnnual">—</div>
+          </div>
+          <div class="breakdown-item accent">
+            <div class="bi-label">3-Year Total Profit</div>
+            <div class="bi-value" id="threeYearProfit">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3-Year Projection Table -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📅 3-Year Projection</span>
+          <button class="quick-add-btn" id="addMachineBtn">➕ Add Machine</button>
+        </div>
+        <table class="projection-table">
+          <thead>
+            <tr>
+              <th>Year</th>
+              <th>Gross Revenue</th>
+              <th>COGS</th>
+              <th>Owner Share</th>
+              <th>SaaS Fees</th>
+              <th>Net Profit</th>
+            </tr>
+          </thead>
+          <tbody id="projectionBody">
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Comparison Mode -->
+      <div class="card">
+        <div class="comparison-header">
+          <span class="card-title">⚖️ Scenario Comparison</span>
+          <div class="comparison-toggle">
+            <label>Compare Scenarios</label>
+            <div class="toggle-switch" id="comparisonToggle"></div>
+          </div>
+        </div>
+        <div class="comparison-cards" id="comparisonArea" style="display: none;">
+          <div class="scenario-card active">
+            <span class="scenario-badge">Current</span>
+            <div class="scenario-input">
+              <label>Machines</label>
+              <input type="number" id="s1Machines" value="1" min="1" max="10">
+            </div>
+            <div class="scenario-summary">
+              <div class="scenario-stat">
+                <div class="ss-value" id="s1Monthly">—</div>
+                <div class="ss-label">Monthly Net</div>
+              </div>
+              <div class="scenario-stat">
+                <div class="ss-value" id="s1Annual">—</div>
+                <div class="ss-label">Annual Net</div>
+              </div>
+            </div>
+          </div>
+          <div class="scenario-card">
+            <span class="scenario-badge">Scenario B</span>
+            <div class="scenario-input">
+              <label>Machines</label>
+              <input type="number" id="s2Machines" value="2" min="1" max="10">
+            </div>
+            <div class="scenario-summary">
+              <div class="scenario-stat">
+                <div class="ss-value" id="s2Monthly">—</div>
+                <div class="ss-label">Monthly Net</div>
+              </div>
+              <div class="scenario-stat">
+                <div class="ss-value" id="s2Annual">—</div>
+                <div class="ss-label">Annual Net</div>
+              </div>
+            </div>
+          </div>
+          <div class="scenario-card">
+            <span class="scenario-badge">Scenario C</span>
+            <div class="scenario-input">
+              <label>Machines</label>
+              <input type="number" id="s3Machines" value="3" min="1" max="10">
+            </div>
+            <div class="scenario-summary">
+              <div class="scenario-stat">
+                <div class="ss-value" id="s3Monthly">—</div>
+                <div class="ss-label">Monthly Net</div>
+              </div>
+              <div class="scenario-stat">
+                <div class="ss-value" id="s3Annual">—</div>
+                <div class="ss-label">Annual Net</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Export Bar -->
+      <div class="export-bar">
+        <button class="export-btn" id="copyBtn">📋 Copy Numbers</button>
+        <a class="export-btn primary" id="proposalLink" href="#">📄 Include in Proposal →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Copied to clipboard!</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // Conversion rates by property type (% of people who buy daily)
+  const CONVERSION_RATES = {
+    apartment: 0.08,      // 8% of residents buy something daily
+    office: 0.15,         // 15% of employees buy daily (captive audience)
+    healthcare: 0.12,     // 12% (visitors + staff)
+    warehouse: 0.20,      // 20% (few food options, long shifts)
+    manufacturing: 0.22,  // 22% (multi-shift, hungry workers)
+    recreation: 0.18,     // 18% (tournaments, captive parents)
+    school: 0.25,         // 25% (impulsive kids)
+    hospital: 0.15        // 15% (24/7, stressed visitors)
+  };
+
+  // Labels for people count
+  const PEOPLE_LABELS = {
+    apartment: 'Units / Residents',
+    office: 'Employees',
+    healthcare: 'Beds / Daily Visitors',
+    warehouse: 'Employees',
+    manufacturing: 'Employees',
+    recreation: 'Daily Foot Traffic',
+    school: 'Students',
+    hospital: 'Daily Foot Traffic'
+  };
+
+  // Default operating days
+  const DEFAULT_DAYS = {
+    apartment: 30,
+    office: 22,
+    healthcare: 30,
+    warehouse: 26,
+    manufacturing: 26,
+    recreation: 28,
+    school: 20,
+    hospital: 30
+  };
+
+  // Presets
+  const PRESETS = {
+    '200-apt': { type: 'apartment', people: 200, machines: 1, price: 2.50, days: 30, revShare: 3, startMonth: 6 },
+    '500-office': { type: 'office', people: 500, machines: 2, price: 3.00, days: 22, revShare: 3, startMonth: 6 },
+    '50-senior': { type: 'healthcare', people: 50, machines: 1, price: 2.50, days: 30, revShare: 3, startMonth: 6 },
+    '150-warehouse': { type: 'warehouse', people: 150, machines: 1, price: 2.75, days: 26, revShare: 0, startMonth: 0 },
+    'custom': null
+  };
+
+  // DOM elements
+  const $propertyType = document.getElementById('propertyType');
+  const $peopleCount = document.getElementById('peopleCount');
+  const $peopleLabel = document.getElementById('peopleLabel');
+  const $machineCount = document.getElementById('machineCount');
+  const $productsPerMachine = document.getElementById('productsPerMachine');
+  const $avgPrice = document.getElementById('avgPrice');
+  const $operatingDays = document.getElementById('operatingDays');
+  const $revSharePct = document.getElementById('revSharePct');
+  const $revShareValue = document.getElementById('revShareValue');
+  const $revShareStart = document.getElementById('revShareStart');
+  const $machineCost = document.getElementById('machineCost');
+  const $saasFee = document.getElementById('saasFee');
+
+  // Results
+  const $dailyTx = document.getElementById('dailyTx');
+  const $dailyRevenue = document.getElementById('dailyRevenue');
+  const $monthlyGross = document.getElementById('monthlyGross');
+  const $annualGross = document.getElementById('annualGross');
+  const $monthlyCOGS = document.getElementById('monthlyCOGS');
+  const $monthlySaaS = document.getElementById('monthlySaaS');
+  const $ownerMonthly = document.getElementById('ownerMonthly');
+  const $ownerAnnual = document.getElementById('ownerAnnual');
+  const $kandeMonthly = document.getElementById('kandeMonthly');
+  const $kandeAnnual = document.getElementById('kandeAnnual');
+  const $breakEven = document.getElementById('breakEven');
+  const $threeYearProfit = document.getElementById('threeYearProfit');
+  const $projectionBody = document.getElementById('projectionBody');
+
+  // Comparison
+  const $comparisonToggle = document.getElementById('comparisonToggle');
+  const $comparisonArea = document.getElementById('comparisonArea');
+  const $s1Machines = document.getElementById('s1Machines');
+  const $s2Machines = document.getElementById('s2Machines');
+  const $s3Machines = document.getElementById('s3Machines');
+
+  // Format currency
+  function fmt(n, decimals = 0) {
+    if (n >= 1000) {
+      return '$' + (n / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+    }
+    return '$' + n.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  function fmtFull(n) {
+    return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  // Calculate projections
+  function calculate() {
+    const propertyType = $propertyType.value;
+    const peopleCount = parseFloat($peopleCount.value) || 0;
+    const machineCount = parseInt($machineCount.value) || 1;
+    const productsPerMachine = parseInt($productsPerMachine.value) || 60;
+    const avgPrice = parseFloat($avgPrice.value) || 2.50;
+    const operatingDays = parseInt($operatingDays.value) || 30;
+    const revSharePct = parseFloat($revSharePct.value) / 100;
+    const revShareStartMonth = parseInt($revShareStart.value) || 6;
+    const machineCost = parseFloat($machineCost.value) || 3600;
+    const saasFee = parseFloat($saasFee.value) || 65;
+
+    const conversionRate = CONVERSION_RATES[propertyType] || 0.10;
+    const cogsRate = 0.33; // 33% COGS
+
+    // Daily transactions = people * conversion rate * items per transaction (avg 1.2)
+    const dailyTx = Math.round(peopleCount * conversionRate * 1.2 * machineCount);
+    const dailyRevenue = dailyTx * avgPrice;
+    const monthlyGross = dailyRevenue * operatingDays;
+    const annualGross = monthlyGross * 12;
+
+    const monthlyCOGS = monthlyGross * cogsRate;
+    const monthlySaaS = saasFee * machineCount;
+
+    // Rev share only applies after start month
+    const ownerMonthly = monthlyGross * revSharePct;
+    const ownerAnnual = ownerMonthly * Math.max(0, 12 - revShareStartMonth);
+
+    const monthlyNet = monthlyGross - monthlyCOGS - monthlySaaS - ownerMonthly;
+    const annualNet = (monthlyGross - monthlyCOGS - monthlySaaS) * revShareStartMonth +
+                      (monthlyGross - monthlyCOGS - monthlySaaS - ownerMonthly) * (12 - revShareStartMonth);
+
+    // Break-even
+    const totalEquipmentCost = machineCost * machineCount;
+    const avgMonthlyNet = annualNet / 12;
+    const breakEvenMonths = avgMonthlyNet > 0 ? Math.ceil(totalEquipmentCost / avgMonthlyNet) : 999;
+
+    // Update display
+    $dailyTx.textContent = dailyTx;
+    $dailyRevenue.textContent = fmt(dailyRevenue);
+    $monthlyGross.textContent = fmt(monthlyGross);
+    $annualGross.textContent = fmt(annualGross);
+    $monthlyCOGS.textContent = fmt(monthlyCOGS);
+    $monthlySaaS.textContent = fmt(monthlySaaS * 12) + '/yr';
+    $ownerMonthly.textContent = fmt(ownerMonthly);
+    $ownerAnnual.textContent = fmt(ownerAnnual);
+    $kandeMonthly.textContent = fmt(monthlyNet);
+    $kandeAnnual.textContent = fmt(annualNet);
+    $breakEven.textContent = breakEvenMonths < 100 ? breakEvenMonths + ' mo' : '—';
+
+    // 3-year projection
+    let html = '';
+    let totalProfit = 0;
+    for (let year = 1; year <= 3; year++) {
+      const yearGross = annualGross;
+      const yearCOGS = yearGross * cogsRate;
+      const yearSaaS = monthlySaaS * 12;
+      let yearOwnerShare = 0;
+      if (year === 1 && revShareStartMonth < 12) {
+        yearOwnerShare = ownerMonthly * (12 - revShareStartMonth);
+      } else if (year > 1) {
+        yearOwnerShare = ownerMonthly * 12;
+      }
+      const yearNet = yearGross - yearCOGS - yearSaaS - yearOwnerShare - (year === 1 ? totalEquipmentCost : 0);
+      totalProfit += yearNet;
+
+      html += `<tr${year === 3 ? ' class="total-row"' : ''}>
+        <td>Year ${year}</td>
+        <td>${fmtFull(yearGross)}</td>
+        <td>${fmtFull(yearCOGS)}</td>
+        <td>${fmtFull(yearOwnerShare)}</td>
+        <td>${fmtFull(yearSaaS)}</td>
+        <td>${fmtFull(yearNet)}</td>
+      </tr>`;
+    }
+    $projectionBody.innerHTML = html;
+    $threeYearProfit.textContent = fmt(totalProfit);
+
+    // Update comparison scenarios
+    updateComparison();
+
+    // Update proposal link
+    updateProposalLink();
+
+    return { dailyTx, monthlyGross, annualGross, ownerMonthly, monthlyNet, annualNet };
+  }
+
+  // Scenario calculation for comparison
+  function calcScenario(machines) {
+    const propertyType = $propertyType.value;
+    const peopleCount = parseFloat($peopleCount.value) || 0;
+    const avgPrice = parseFloat($avgPrice.value) || 2.50;
+    const operatingDays = parseInt($operatingDays.value) || 30;
+    const revSharePct = parseFloat($revSharePct.value) / 100;
+    const revShareStartMonth = parseInt($revShareStart.value) || 6;
+    const saasFee = parseFloat($saasFee.value) || 65;
+
+    const conversionRate = CONVERSION_RATES[propertyType] || 0.10;
+    const cogsRate = 0.33;
+
+    const dailyTx = Math.round(peopleCount * conversionRate * 1.2 * machines);
+    const dailyRevenue = dailyTx * avgPrice;
+    const monthlyGross = dailyRevenue * operatingDays;
+    const monthlyCOGS = monthlyGross * cogsRate;
+    const monthlySaaS = saasFee * machines;
+    const ownerMonthly = monthlyGross * revSharePct;
+    const monthlyNet = monthlyGross - monthlyCOGS - monthlySaaS - ownerMonthly;
+    const annualNet = monthlyNet * 12;
+
+    return { monthlyNet, annualNet };
+  }
+
+  function updateComparison() {
+    const s1 = calcScenario(parseInt($s1Machines.value) || 1);
+    const s2 = calcScenario(parseInt($s2Machines.value) || 2);
+    const s3 = calcScenario(parseInt($s3Machines.value) || 3);
+
+    document.getElementById('s1Monthly').textContent = fmt(s1.monthlyNet);
+    document.getElementById('s1Annual').textContent = fmt(s1.annualNet);
+    document.getElementById('s2Monthly').textContent = fmt(s2.monthlyNet);
+    document.getElementById('s2Annual').textContent = fmt(s2.annualNet);
+    document.getElementById('s3Monthly').textContent = fmt(s3.monthlyNet);
+    document.getElementById('s3Annual').textContent = fmt(s3.annualNet);
+  }
+
+  function updateProposalLink() {
+    const propertyType = $propertyType.value;
+    const units = $peopleCount.value;
+    const machines = $machineCount.value;
+    const revShare = $revSharePct.value;
+    const monthlyGross = parseFloat($monthlyGross.textContent.replace(/[$,K]/g, '')) * (($monthlyGross.textContent.includes('K') ? 1000 : 1));
+    
+    const params = new URLSearchParams({
+      property_type: propertyType,
+      units: units,
+      machines: machines,
+      monthly_revenue: Math.round(monthlyGross),
+      rev_share: revShare
+    });
+    
+    document.getElementById('proposalLink').href = '/proposal-generator?' + params.toString();
+  }
+
+  // Handle property type change
+  $propertyType.addEventListener('change', function() {
+    const type = this.value;
+    $peopleLabel.textContent = PEOPLE_LABELS[type] || 'Units';
+    $operatingDays.value = DEFAULT_DAYS[type] || 30;
+    calculate();
+  });
+
+  // Handle rev share slider
+  $revSharePct.addEventListener('input', function() {
+    $revShareValue.textContent = this.value + '%';
+    calculate();
+  });
+
+  // Handle all inputs
+  document.querySelectorAll('input, select').forEach(el => {
+    el.addEventListener('input', calculate);
+    el.addEventListener('change', calculate);
+  });
+
+  // Presets
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+
+      const preset = PRESETS[this.dataset.preset];
+      if (!preset) return; // custom
+
+      $propertyType.value = preset.type;
+      $peopleCount.value = preset.people;
+      $machineCount.value = preset.machines;
+      $avgPrice.value = preset.price;
+      $operatingDays.value = preset.days;
+      $revSharePct.value = preset.revShare;
+      $revShareValue.textContent = preset.revShare + '%';
+      $revShareStart.value = preset.startMonth;
+      $peopleLabel.textContent = PEOPLE_LABELS[preset.type] || 'Units';
+
+      calculate();
+    });
+  });
+
+  // Comparison toggle
+  $comparisonToggle.addEventListener('click', function() {
+    this.classList.toggle('active');
+    $comparisonArea.style.display = this.classList.contains('active') ? 'grid' : 'none';
+    if (this.classList.contains('active')) {
+      $s1Machines.value = $machineCount.value;
+      updateComparison();
+    }
+  });
+
+  // Scenario inputs
+  [$s1Machines, $s2Machines, $s3Machines].forEach(el => {
+    el.addEventListener('input', updateComparison);
+  });
+
+  // Add machine quick button
+  document.getElementById('addMachineBtn').addEventListener('click', function() {
+    const current = parseInt($machineCount.value) || 1;
+    $machineCount.value = current + 1;
+    calculate();
+  });
+
+  // Copy to clipboard
+  document.getElementById('copyBtn').addEventListener('click', function() {
+    const propertyType = $propertyType.options[$propertyType.selectedIndex].text;
+    const peopleCount = $peopleCount.value;
+    const machines = $machineCount.value;
+    const revShare = $revSharePct.value;
+    const revStart = $revShareStart.value;
+
+    const text = `📊 Revenue Projection — ${propertyType}
+━━━━━━━━━━━━━━━━━━━━━━━
+${PEOPLE_LABELS[$propertyType.value]}: ${peopleCount}
+Machines: ${machines}
+Avg Price: $${$avgPrice.value}
+
+💰 Revenue Estimates:
+• Daily Transactions: ~${$dailyTx.textContent}
+• Monthly Gross: ${$monthlyGross.textContent}
+• Annual Gross: ${$annualGross.textContent}
+
+💸 Your Commission (${revShare}%, starting month ${revStart}):
+• Monthly: ${$ownerMonthly.textContent}
+• Annual: ${$ownerAnnual.textContent}
+
+✅ Break-even: ${$breakEven.textContent}
+📈 3-Year Profit: ${$threeYearProfit.textContent}
+
+Calculated by Kande VendTech`;
+
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('Copied to clipboard!');
+    });
+  });
+
+  function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+  }
+
+  // Initial calculation
+  calculate();
+})();
+</script>
+</body>
+</html>

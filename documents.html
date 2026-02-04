@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documents & Files | Kande VendTech</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    header h1 { font-size: 1.5rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+    header h1 span { font-size: 1.3rem; }
+    .header-actions { display: flex; gap: 0.75rem; align-items: center; }
+    .header-actions a {
+      color: rgba(255,255,255,0.9);
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      transition: background 0.2s;
+    }
+    .header-actions a:hover { background: rgba(255,255,255,0.15); }
+
+    /* Main Container */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+
+    /* Stats Cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.25rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border: 1px solid #e2e8f0;
+    }
+    .stat-card h3 { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+    .stat-card .value { font-size: 1.75rem; font-weight: 700; color: #1e40af; }
+    .stat-card .sub { font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem; }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .toolbar-left { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
+    .toolbar-right { display: flex; gap: 0.75rem; align-items: center; }
+
+    .search-box {
+      position: relative;
+    }
+    .search-box input {
+      padding: 0.625rem 1rem 0.625rem 2.5rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      width: 280px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .search-box input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+    .search-box::before {
+      content: '🔍';
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.875rem;
+    }
+
+    select {
+      padding: 0.625rem 2rem 0.625rem 0.75rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M2 4l4 4 4-4'/%3E%3C/svg%3E") no-repeat right 0.75rem center;
+      cursor: pointer;
+      appearance: none;
+    }
+    select:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+
+    .view-toggle {
+      display: flex;
+      background: #e2e8f0;
+      border-radius: 8px;
+      padding: 3px;
+    }
+    .view-toggle button {
+      padding: 0.5rem 0.75rem;
+      border: none;
+      background: none;
+      cursor: pointer;
+      border-radius: 6px;
+      font-size: 1rem;
+      transition: background 0.2s;
+    }
+    .view-toggle button.active {
+      background: white;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    .btn {
+      padding: 0.625rem 1.25rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+      color: white;
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+    }
+    .btn-secondary {
+      background: white;
+      border: 1px solid #cbd5e1;
+      color: #475569;
+    }
+    .btn-secondary:hover { background: #f8fafc; }
+    .btn-danger {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+    .btn-danger:hover { background: #fecaca; }
+
+    /* Drop Zone */
+    .drop-zone {
+      border: 2px dashed #cbd5e1;
+      border-radius: 12px;
+      padding: 2rem;
+      text-align: center;
+      background: #f8fafc;
+      margin-bottom: 1.5rem;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: #3b82f6;
+      background: #eff6ff;
+    }
+    .drop-zone.dragover {
+      transform: scale(1.01);
+    }
+    .drop-zone-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+    .drop-zone-text { color: #64748b; font-size: 0.9375rem; }
+    .drop-zone-text strong { color: #3b82f6; }
+    .drop-zone input { display: none; }
+
+    /* Files Grid */
+    .files-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .file-card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border: 1px solid #e2e8f0;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .file-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .file-card .preview {
+      height: 140px;
+      background: #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .file-card .preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .file-card .preview .file-icon {
+      font-size: 3rem;
+    }
+    .file-card .info {
+      padding: 1rem;
+    }
+    .file-card .name {
+      font-weight: 600;
+      font-size: 0.875rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 0.25rem;
+    }
+    .file-card .meta {
+      font-size: 0.75rem;
+      color: #64748b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .file-card .category-badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.6875rem;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+    .category-contracts { background: #dbeafe; color: #1e40af; }
+    .category-proposals { background: #dcfce7; color: #166534; }
+    .category-photos { background: #fef3c7; color: #92400e; }
+    .category-receipts { background: #fce7f3; color: #9d174d; }
+    .category-templates { background: #e0e7ff; color: #4338ca; }
+    .category-other { background: #f1f5f9; color: #475569; }
+
+    /* Files List */
+    .files-list { display: none; }
+    .files-list.active { display: block; }
+    .files-grid.active { display: grid; }
+
+    .files-table {
+      width: 100%;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border: 1px solid #e2e8f0;
+    }
+    .files-table th, .files-table td {
+      padding: 0.875rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .files-table th {
+      background: #f8fafc;
+      font-weight: 600;
+      font-size: 0.75rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .files-table tr:hover { background: #f8fafc; }
+    .files-table .file-name {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .files-table .file-name .icon { font-size: 1.5rem; }
+    .files-table .file-name span { font-weight: 500; }
+    .files-table .actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .files-table .actions button {
+      padding: 0.375rem 0.5rem;
+      border: none;
+      background: none;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      transition: background 0.2s;
+    }
+    .files-table .actions button:hover { background: #f1f5f9; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .modal {
+      background: white;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      transform: translateY(20px);
+      transition: transform 0.2s;
+    }
+    .modal-overlay.active .modal {
+      transform: translateY(0);
+    }
+    .modal-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-header h2 { font-size: 1.125rem; font-weight: 600; }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #64748b;
+      padding: 0.25rem;
+      line-height: 1;
+    }
+    .modal-close:hover { color: #1e293b; }
+    .modal-body { padding: 1.5rem; }
+    .modal-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+
+    .form-group { margin-bottom: 1.25rem; }
+    .form-group label {
+      display: block;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: #475569;
+      margin-bottom: 0.375rem;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 0.625rem 0.875rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+
+    /* Preview Modal */
+    .preview-modal .modal {
+      max-width: 900px;
+    }
+    .preview-modal .preview-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 400px;
+      background: #f1f5f9;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .preview-modal .preview-container img {
+      max-width: 100%;
+      max-height: 70vh;
+    }
+    .preview-modal .preview-container iframe {
+      width: 100%;
+      height: 70vh;
+      border: none;
+    }
+    .preview-modal .file-details {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #f8fafc;
+      border-radius: 8px;
+    }
+    .preview-modal .file-details dl {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.5rem 1rem;
+      font-size: 0.875rem;
+    }
+    .preview-modal .file-details dt { color: #64748b; }
+    .preview-modal .file-details dd { font-weight: 500; }
+
+    /* Upload Progress */
+    .upload-progress {
+      margin-top: 1rem;
+      display: none;
+    }
+    .upload-progress.active { display: block; }
+    .progress-bar {
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-bar .progress {
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #1e40af);
+      width: 0%;
+      transition: width 0.3s;
+    }
+    .progress-text {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-top: 0.5rem;
+      text-align: center;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: #64748b;
+    }
+    .empty-state .icon { font-size: 4rem; margin-bottom: 1rem; opacity: 0.5; }
+    .empty-state h3 { font-size: 1.125rem; color: #475569; margin-bottom: 0.5rem; }
+    .empty-state p { font-size: 0.875rem; }
+
+    /* Recent Uploads Sidebar */
+    .recent-uploads {
+      background: white;
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border: 1px solid #e2e8f0;
+      margin-top: 1.5rem;
+    }
+    .recent-uploads h3 {
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .recent-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.625rem;
+      border-radius: 8px;
+      transition: background 0.2s;
+      cursor: pointer;
+    }
+    .recent-item:hover { background: #f8fafc; }
+    .recent-item .icon { font-size: 1.25rem; }
+    .recent-item .details { flex: 1; overflow: hidden; }
+    .recent-item .name {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .recent-item .date { font-size: 0.6875rem; color: #94a3b8; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      header { padding: 1rem; }
+      header h1 { font-size: 1.25rem; }
+      .container { padding: 1rem; }
+      .toolbar { flex-direction: column; align-items: stretch; }
+      .toolbar-left, .toolbar-right { width: 100%; }
+      .search-box input { width: 100%; }
+      .files-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .files-table { font-size: 0.8125rem; }
+      .files-table th, .files-table td { padding: 0.625rem 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><span>📁</span> Documents & Files</h1>
+    <div class="header-actions">
+      <a href="/home">🏠 Home</a>
+      <a href="/crm">👥 CRM</a>
+      <a href="/pipeline">📊 Pipeline</a>
+      <a href="/finances">💰 Finances</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Stats -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card">
+        <h3>Total Files</h3>
+        <div class="value" id="statTotal">0</div>
+        <div class="sub" id="statSize">0 KB total</div>
+      </div>
+      <div class="stat-card">
+        <h3>Contracts</h3>
+        <div class="value" id="statContracts">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>Proposals</h3>
+        <div class="value" id="statProposals">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>Photos</h3>
+        <div class="value" id="statPhotos">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>Receipts</h3>
+        <div class="value" id="statReceipts">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>Templates</h3>
+        <div class="value" id="statTemplates">0</div>
+      </div>
+    </div>
+
+    <!-- Drop Zone -->
+    <div class="drop-zone" id="dropZone">
+      <div class="drop-zone-icon">📤</div>
+      <div class="drop-zone-text">
+        <strong>Click to upload</strong> or drag and drop files here<br>
+        <small>Supports images, PDFs, documents up to 10MB</small>
+      </div>
+      <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv">
+      <div class="upload-progress" id="uploadProgress">
+        <div class="progress-bar"><div class="progress" id="progressBar"></div></div>
+        <div class="progress-text" id="progressText">Uploading...</div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="Search files...">
+        </div>
+        <select id="categoryFilter">
+          <option value="">All Categories</option>
+          <option value="contracts">📝 Contracts</option>
+          <option value="proposals">📋 Proposals</option>
+          <option value="photos">📷 Photos</option>
+          <option value="receipts">🧾 Receipts</option>
+          <option value="templates">📄 Templates</option>
+          <option value="other">📁 Other</option>
+        </select>
+        <select id="prospectFilter">
+          <option value="">All Prospects</option>
+        </select>
+        <select id="sortBy">
+          <option value="date_desc">Newest First</option>
+          <option value="date_asc">Oldest First</option>
+          <option value="name_asc">Name A-Z</option>
+          <option value="name_desc">Name Z-A</option>
+          <option value="size_desc">Largest First</option>
+          <option value="size_asc">Smallest First</option>
+        </select>
+      </div>
+      <div class="toolbar-right">
+        <div class="view-toggle">
+          <button id="viewGrid" class="active" title="Grid View">🔲</button>
+          <button id="viewList" title="List View">📋</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Files Grid View -->
+    <div class="files-grid active" id="filesGrid"></div>
+
+    <!-- Files List View -->
+    <div class="files-list" id="filesList">
+      <table class="files-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Prospect</th>
+            <th>Size</th>
+            <th>Uploaded</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="filesTableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <div class="icon">📂</div>
+      <h3>No files yet</h3>
+      <p>Upload your first file by dragging it here or clicking the drop zone above.</p>
+    </div>
+
+    <!-- Recent Uploads -->
+    <div class="recent-uploads" id="recentUploads">
+      <h3>⏱️ Recent Uploads</h3>
+      <div id="recentList"></div>
+    </div>
+  </div>
+
+  <!-- Upload Modal -->
+  <div class="modal-overlay" id="uploadModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Upload File</h2>
+        <button class="modal-close" onclick="closeUploadModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>File Name</label>
+          <input type="text" id="uploadName" placeholder="Enter file name">
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="uploadCategory">
+            <option value="contracts">📝 Contracts</option>
+            <option value="proposals">📋 Proposals</option>
+            <option value="photos">📷 Photos</option>
+            <option value="receipts">🧾 Receipts</option>
+            <option value="templates">📄 Templates</option>
+            <option value="other">📁 Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Link to Prospect (Optional)</label>
+          <select id="uploadProspect">
+            <option value="">-- None --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Notes (Optional)</label>
+          <textarea id="uploadNotes" placeholder="Add any notes about this file..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeUploadModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmUpload()">📤 Upload</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview Modal -->
+  <div class="modal-overlay preview-modal" id="previewModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="previewTitle">File Preview</h2>
+        <button class="modal-close" onclick="closePreviewModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="preview-container" id="previewContainer"></div>
+        <div class="file-details" id="fileDetails"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger" onclick="deleteCurrentFile()">🗑️ Delete</button>
+        <button class="btn btn-secondary" onclick="editCurrentFile()">✏️ Edit</button>
+        <button class="btn btn-primary" onclick="downloadCurrentFile()">⬇️ Download</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Edit File</h2>
+        <button class="modal-close" onclick="closeEditModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>File Name</label>
+          <input type="text" id="editName">
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="editCategory">
+            <option value="contracts">📝 Contracts</option>
+            <option value="proposals">📋 Proposals</option>
+            <option value="photos">📷 Photos</option>
+            <option value="receipts">🧾 Receipts</option>
+            <option value="templates">📄 Templates</option>
+            <option value="other">📁 Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Link to Prospect</label>
+          <select id="editProspect">
+            <option value="">-- None --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea id="editNotes"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveEdit()">💾 Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let files = [];
+    let prospects = [];
+    let currentFile = null;
+    let pendingFile = null;
+    let viewMode = 'grid';
+
+    // File type icons
+    const FILE_ICONS = {
+      image: '🖼️',
+      pdf: '📕',
+      doc: '📘',
+      excel: '📗',
+      text: '📄',
+      default: '📁'
+    };
+
+    function getFileIcon(mimeType, name) {
+      if (mimeType?.startsWith('image/')) return FILE_ICONS.image;
+      if (mimeType === 'application/pdf' || name?.endsWith('.pdf')) return FILE_ICONS.pdf;
+      if (mimeType?.includes('word') || name?.match(/\.docx?$/)) return FILE_ICONS.doc;
+      if (mimeType?.includes('excel') || mimeType?.includes('spreadsheet') || name?.match(/\.xlsx?$/)) return FILE_ICONS.excel;
+      if (mimeType?.startsWith('text/') || name?.match(/\.(txt|csv)$/)) return FILE_ICONS.text;
+      return FILE_ICONS.default;
+    }
+
+    function formatFileSize(bytes) {
+      if (!bytes) return '0 KB';
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return 'Unknown';
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function formatRelativeDate(dateStr) {
+      if (!dateStr) return 'Unknown';
+      const d = new Date(dateStr);
+      const now = new Date();
+      const diff = now - d;
+      const mins = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+      
+      if (mins < 1) return 'Just now';
+      if (mins < 60) return mins + 'm ago';
+      if (hours < 24) return hours + 'h ago';
+      if (days < 7) return days + 'd ago';
+      return formatDate(dateStr);
+    }
+
+    // Load data
+    async function loadFiles() {
+      try {
+        const res = await fetch('/api/documents');
+        files = await res.json();
+        renderFiles();
+        updateStats();
+        renderRecent();
+      } catch (e) {
+        console.error('Failed to load files:', e);
+      }
+    }
+
+    async function loadProspects() {
+      try {
+        const res = await fetch('/api/prospects');
+        prospects = await res.json();
+        populateProspectDropdowns();
+      } catch (e) {
+        console.error('Failed to load prospects:', e);
+      }
+    }
+
+    function populateProspectDropdowns() {
+      const options = prospects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+      document.getElementById('prospectFilter').innerHTML = '<option value="">All Prospects</option>' + options;
+      document.getElementById('uploadProspect').innerHTML = '<option value="">-- None --</option>' + options;
+      document.getElementById('editProspect').innerHTML = '<option value="">-- None --</option>' + options;
+    }
+
+    // Stats
+    function updateStats() {
+      const totalSize = files.reduce((sum, f) => sum + (f.size || 0), 0);
+      document.getElementById('statTotal').textContent = files.length;
+      document.getElementById('statSize').textContent = formatFileSize(totalSize) + ' total';
+      document.getElementById('statContracts').textContent = files.filter(f => f.category === 'contracts').length;
+      document.getElementById('statProposals').textContent = files.filter(f => f.category === 'proposals').length;
+      document.getElementById('statPhotos').textContent = files.filter(f => f.category === 'photos').length;
+      document.getElementById('statReceipts').textContent = files.filter(f => f.category === 'receipts').length;
+      document.getElementById('statTemplates').textContent = files.filter(f => f.category === 'templates').length;
+    }
+
+    // Render files
+    function renderFiles() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const category = document.getElementById('categoryFilter').value;
+      const prospectId = document.getElementById('prospectFilter').value;
+      const sortBy = document.getElementById('sortBy').value;
+
+      let filtered = files.filter(f => {
+        if (search && !f.name.toLowerCase().includes(search)) return false;
+        if (category && f.category !== category) return false;
+        if (prospectId && f.prospect_id != prospectId) return false;
+        return true;
+      });
+
+      // Sort
+      filtered.sort((a, b) => {
+        switch (sortBy) {
+          case 'date_desc': return new Date(b.created_at) - new Date(a.created_at);
+          case 'date_asc': return new Date(a.created_at) - new Date(b.created_at);
+          case 'name_asc': return a.name.localeCompare(b.name);
+          case 'name_desc': return b.name.localeCompare(a.name);
+          case 'size_desc': return (b.size || 0) - (a.size || 0);
+          case 'size_asc': return (a.size || 0) - (b.size || 0);
+          default: return 0;
+        }
+      });
+
+      // Grid view
+      const grid = document.getElementById('filesGrid');
+      if (filtered.length === 0) {
+        grid.innerHTML = '';
+        document.getElementById('emptyState').style.display = 'block';
+      } else {
+        document.getElementById('emptyState').style.display = 'none';
+        grid.innerHTML = filtered.map(f => {
+          const isImage = f.mime_type?.startsWith('image/');
+          const preview = isImage && f.data 
+            ? `<img src="${f.data}" alt="${f.name}">`
+            : `<div class="file-icon">${getFileIcon(f.mime_type, f.name)}</div>`;
+          const prospect = prospects.find(p => p.id == f.prospect_id);
+          return `
+            <div class="file-card" onclick="openPreview(${f.id})">
+              <div class="preview">${preview}</div>
+              <div class="info">
+                <div class="name" title="${f.name}">${f.name}</div>
+                <div class="meta">
+                  <span class="category-badge category-${f.category}">${f.category}</span>
+                  <span>${formatFileSize(f.size)}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // List view
+      const tbody = document.getElementById('filesTableBody');
+      tbody.innerHTML = filtered.map(f => {
+        const prospect = prospects.find(p => p.id == f.prospect_id);
+        return `
+          <tr>
+            <td>
+              <div class="file-name">
+                <span class="icon">${getFileIcon(f.mime_type, f.name)}</span>
+                <span>${f.name}</span>
+              </div>
+            </td>
+            <td><span class="category-badge category-${f.category}">${f.category}</span></td>
+            <td>${prospect?.name || '-'}</td>
+            <td>${formatFileSize(f.size)}</td>
+            <td>${formatDate(f.created_at)}</td>
+            <td class="actions">
+              <button onclick="event.stopPropagation(); openPreview(${f.id})" title="Preview">👁️</button>
+              <button onclick="event.stopPropagation(); downloadFile(${f.id})" title="Download">⬇️</button>
+              <button onclick="event.stopPropagation(); openEditModal(${f.id})" title="Edit">✏️</button>
+              <button onclick="event.stopPropagation(); deleteFile(${f.id})" title="Delete">🗑️</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Recent uploads
+    function renderRecent() {
+      const recent = [...files]
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 5);
+      
+      document.getElementById('recentList').innerHTML = recent.map(f => `
+        <div class="recent-item" onclick="openPreview(${f.id})">
+          <span class="icon">${getFileIcon(f.mime_type, f.name)}</span>
+          <div class="details">
+            <div class="name">${f.name}</div>
+            <div class="date">${formatRelativeDate(f.created_at)}</div>
+          </div>
+        </div>
+      `).join('') || '<div style="color:#94a3b8;font-size:0.8125rem;padding:0.5rem;">No uploads yet</div>';
+    }
+
+    // View toggle
+    document.getElementById('viewGrid').onclick = () => {
+      viewMode = 'grid';
+      document.getElementById('viewGrid').classList.add('active');
+      document.getElementById('viewList').classList.remove('active');
+      document.getElementById('filesGrid').classList.add('active');
+      document.getElementById('filesList').classList.remove('active');
+    };
+    document.getElementById('viewList').onclick = () => {
+      viewMode = 'list';
+      document.getElementById('viewList').classList.add('active');
+      document.getElementById('viewGrid').classList.remove('active');
+      document.getElementById('filesList').classList.add('active');
+      document.getElementById('filesGrid').classList.remove('active');
+    };
+
+    // Filters
+    document.getElementById('searchInput').oninput = renderFiles;
+    document.getElementById('categoryFilter').onchange = renderFiles;
+    document.getElementById('prospectFilter').onchange = renderFiles;
+    document.getElementById('sortBy').onchange = renderFiles;
+
+    // Drop zone
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+
+    dropZone.onclick = () => fileInput.click();
+    
+    dropZone.ondragover = (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    };
+    dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+    dropZone.ondrop = (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      handleFiles(e.dataTransfer.files);
+    };
+
+    fileInput.onchange = () => handleFiles(fileInput.files);
+
+    function handleFiles(fileList) {
+      if (fileList.length === 0) return;
+      
+      // For multiple files, upload one by one with modal
+      pendingFile = fileList[0];
+      document.getElementById('uploadName').value = pendingFile.name;
+      document.getElementById('uploadModal').classList.add('active');
+    }
+
+    function closeUploadModal() {
+      document.getElementById('uploadModal').classList.remove('active');
+      pendingFile = null;
+    }
+
+    async function confirmUpload() {
+      if (!pendingFile) return;
+
+      const progressDiv = document.getElementById('uploadProgress');
+      const progressBar = document.getElementById('progressBar');
+      const progressText = document.getElementById('progressText');
+      
+      progressDiv.classList.add('active');
+      progressBar.style.width = '0%';
+      progressText.textContent = 'Reading file...';
+
+      try {
+        const reader = new FileReader();
+        reader.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const pct = Math.round((e.loaded / e.total) * 50);
+            progressBar.style.width = pct + '%';
+          }
+        };
+        reader.onload = async (e) => {
+          progressBar.style.width = '50%';
+          progressText.textContent = 'Uploading...';
+
+          const payload = {
+            name: document.getElementById('uploadName').value || pendingFile.name,
+            category: document.getElementById('uploadCategory').value,
+            prospect_id: document.getElementById('uploadProspect').value || null,
+            notes: document.getElementById('uploadNotes').value,
+            mime_type: pendingFile.type,
+            size: pendingFile.size,
+            data: e.target.result // base64
+          };
+
+          const res = await fetch('/api/documents', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (!res.ok) throw new Error('Upload failed');
+
+          progressBar.style.width = '100%';
+          progressText.textContent = 'Done!';
+          
+          setTimeout(() => {
+            progressDiv.classList.remove('active');
+            closeUploadModal();
+            loadFiles();
+          }, 500);
+        };
+        reader.readAsDataURL(pendingFile);
+      } catch (err) {
+        progressText.textContent = 'Error: ' + err.message;
+        setTimeout(() => progressDiv.classList.remove('active'), 2000);
+      }
+    }
+
+    // Preview modal
+    function openPreview(id) {
+      currentFile = files.find(f => f.id === id);
+      if (!currentFile) return;
+
+      document.getElementById('previewTitle').textContent = currentFile.name;
+      
+      const container = document.getElementById('previewContainer');
+      const isImage = currentFile.mime_type?.startsWith('image/');
+      const isPDF = currentFile.mime_type === 'application/pdf' || currentFile.name?.endsWith('.pdf');
+      
+      if (isImage && currentFile.data) {
+        container.innerHTML = `<img src="${currentFile.data}" alt="${currentFile.name}">`;
+      } else if (isPDF && currentFile.data) {
+        container.innerHTML = `<iframe src="${currentFile.data}"></iframe>`;
+      } else {
+        container.innerHTML = `<div style="text-align:center;padding:2rem;">
+          <div style="font-size:4rem;">${getFileIcon(currentFile.mime_type, currentFile.name)}</div>
+          <p style="color:#64748b;margin-top:1rem;">Preview not available</p>
+        </div>`;
+      }
+
+      const prospect = prospects.find(p => p.id == currentFile.prospect_id);
+      document.getElementById('fileDetails').innerHTML = `
+        <dl>
+          <dt>Category</dt><dd>${currentFile.category}</dd>
+          <dt>Size</dt><dd>${formatFileSize(currentFile.size)}</dd>
+          <dt>Type</dt><dd>${currentFile.mime_type || 'Unknown'}</dd>
+          <dt>Uploaded</dt><dd>${formatDate(currentFile.created_at)}</dd>
+          ${prospect ? `<dt>Prospect</dt><dd>${prospect.name}</dd>` : ''}
+          ${currentFile.notes ? `<dt>Notes</dt><dd>${currentFile.notes}</dd>` : ''}
+        </dl>
+      `;
+
+      document.getElementById('previewModal').classList.add('active');
+    }
+
+    function closePreviewModal() {
+      document.getElementById('previewModal').classList.remove('active');
+      currentFile = null;
+    }
+
+    function downloadCurrentFile() {
+      if (!currentFile) return;
+      downloadFile(currentFile.id);
+    }
+
+    function downloadFile(id) {
+      const file = files.find(f => f.id === id);
+      if (!file || !file.data) return;
+
+      const link = document.createElement('a');
+      link.href = file.data;
+      link.download = file.name;
+      link.click();
+    }
+
+    async function deleteCurrentFile() {
+      if (!currentFile) return;
+      if (!confirm('Delete "' + currentFile.name + '"? This cannot be undone.')) return;
+      
+      try {
+        await fetch('/api/documents/' + currentFile.id, { method: 'DELETE' });
+        closePreviewModal();
+        loadFiles();
+      } catch (e) {
+        alert('Failed to delete file');
+      }
+    }
+
+    async function deleteFile(id) {
+      const file = files.find(f => f.id === id);
+      if (!file) return;
+      if (!confirm('Delete "' + file.name + '"? This cannot be undone.')) return;
+      
+      try {
+        await fetch('/api/documents/' + id, { method: 'DELETE' });
+        loadFiles();
+      } catch (e) {
+        alert('Failed to delete file');
+      }
+    }
+
+    function editCurrentFile() {
+      if (!currentFile) return;
+      closePreviewModal();
+      openEditModal(currentFile.id);
+    }
+
+    // Edit modal
+    function openEditModal(id) {
+      currentFile = files.find(f => f.id === id);
+      if (!currentFile) return;
+
+      document.getElementById('editName').value = currentFile.name;
+      document.getElementById('editCategory').value = currentFile.category;
+      document.getElementById('editProspect').value = currentFile.prospect_id || '';
+      document.getElementById('editNotes').value = currentFile.notes || '';
+      
+      document.getElementById('editModal').classList.add('active');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.remove('active');
+    }
+
+    async function saveEdit() {
+      if (!currentFile) return;
+
+      const payload = {
+        name: document.getElementById('editName').value,
+        category: document.getElementById('editCategory').value,
+        prospect_id: document.getElementById('editProspect').value || null,
+        notes: document.getElementById('editNotes').value
+      };
+
+      try {
+        await fetch('/api/documents/' + currentFile.id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        closeEditModal();
+        loadFiles();
+      } catch (e) {
+        alert('Failed to save changes');
+      }
+    }
+
+    // Close modals on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.onclick = (e) => {
+        if (e.target === overlay) {
+          overlay.classList.remove('active');
+        }
+      };
+    });
+
+    // Keyboard shortcuts
+    document.onkeydown = (e) => {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+      }
+    };
+
+    // Init
+    loadFiles();
+    loadProspects();
+  </script>
+</body>
+</html>

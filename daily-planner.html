@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Today's Planner — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #0f172a;
+      --muted: #64748b; --accent: #3b82f6; --accent-light: #eff6ff;
+      --green: #22c55e; --green-light: #f0fdf4;
+      --amber: #f59e0b; --amber-light: #fffbeb;
+      --red: #ef4444; --red-light: #fef2f2;
+      --purple: #8b5cf6; --purple-light: #f5f3ff;
+      --cyan: #06b6d4; --cyan-light: #ecfeff;
+      --radius: 12px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+    .planner { max-width: 1400px; margin: 0 auto; padding: 24px 28px 60px; }
+
+    /* Header */
+    .planner-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;
+      flex-wrap: wrap; gap: 16px;
+    }
+    .planner-header h1 { font-size: 1.6rem; font-weight: 700; display: flex; align-items: center; gap: 12px; }
+    .planner-header h1 span { font-size: 1.8rem; }
+    .header-date { font-size: 0.9rem; color: var(--muted); font-weight: 500; margin-top: 4px; }
+    .header-actions { display: flex; gap: 10px; }
+    .header-btn {
+      display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+      font-size: 0.82rem; font-weight: 600; cursor: pointer; color: var(--text);
+      transition: all 0.15s;
+    }
+    .header-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .header-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .header-btn.primary:hover { background: #2563eb; }
+
+    /* Main layout */
+    .planner-grid {
+      display: grid; grid-template-columns: 1fr 340px; gap: 24px;
+    }
+
+    /* Card styles */
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 20px 22px; transition: box-shadow 0.2s;
+    }
+    .card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+    }
+    .card-title { font-size: 0.92rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .card-link { font-size: 0.76rem; color: var(--accent); text-decoration: none; font-weight: 600; }
+    .card-link:hover { text-decoration: underline; }
+
+    /* Quick Stats Row */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .stat-box {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 16px; text-align: center; transition: box-shadow 0.2s;
+    }
+    .stat-box:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .stat-box .stat-icon { font-size: 1.3rem; margin-bottom: 6px; }
+    .stat-box .stat-value { font-size: 1.6rem; font-weight: 800; line-height: 1; }
+    .stat-box .stat-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-top: 4px; }
+    .stat-box.streak { border-color: var(--amber); background: var(--amber-light); }
+    .stat-box.streak .stat-value { color: var(--amber); }
+
+    /* Schedule Calendar */
+    .schedule-container { margin-bottom: 20px; }
+    .schedule-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+    }
+    .schedule-nav { display: flex; gap: 6px; }
+    .schedule-nav button {
+      width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 6px;
+      background: var(--card); cursor: pointer; font-size: 0.9rem;
+      transition: all 0.15s;
+    }
+    .schedule-nav button:hover { border-color: var(--accent); color: var(--accent); }
+    .time-blocks {
+      display: flex; flex-direction: column; gap: 2px;
+      max-height: 520px; overflow-y: auto;
+    }
+    .time-slot {
+      display: grid; grid-template-columns: 70px 1fr; gap: 10px; min-height: 44px;
+      border-radius: 6px; background: var(--bg); padding: 6px 10px;
+      align-items: center;
+    }
+    .time-slot:hover { background: #f1f5f9; }
+    .time-label { font-size: 0.75rem; color: var(--muted); font-weight: 600; white-space: nowrap; }
+    .slot-content {
+      min-height: 32px; border-radius: 6px; padding: 6px 10px;
+      cursor: pointer; font-size: 0.82rem; display: flex; align-items: center; gap: 8px;
+      transition: all 0.15s;
+    }
+    .slot-content.empty { border: 1px dashed #cbd5e1; color: #94a3b8; }
+    .slot-content.empty:hover { border-color: var(--accent); color: var(--accent); }
+    .slot-content.has-event { font-weight: 600; color: #fff; cursor: grab; }
+    .slot-content.has-event:active { cursor: grabbing; }
+    .slot-content.dragging { opacity: 0.5; }
+    .slot-content.drag-over { border: 2px dashed var(--accent) !important; }
+    
+    /* Event colors */
+    .event-popin { background: var(--green); }
+    .event-call { background: var(--accent); }
+    .event-meeting { background: var(--purple); }
+    .event-email { background: var(--cyan); }
+    .event-other { background: var(--muted); }
+    
+    /* Event badge */
+    .event-badge {
+      font-size: 0.68rem; padding: 2px 6px; border-radius: 4px;
+      background: rgba(255,255,255,0.25); text-transform: uppercase;
+      letter-spacing: 0.3px; margin-left: auto; white-space: nowrap;
+    }
+
+    /* Legend */
+    .schedule-legend {
+      display: flex; gap: 16px; margin-top: 12px; padding-top: 12px;
+      border-top: 1px solid var(--border); flex-wrap: wrap;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+    /* Tasks Checklist */
+    .task-list { list-style: none; }
+    .task-item {
+      display: flex; align-items: flex-start; gap: 10px; padding: 10px 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .task-item:last-child { border-bottom: none; }
+    .task-checkbox {
+      width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 4px;
+      cursor: pointer; flex-shrink: 0; margin-top: 2px; transition: all 0.15s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .task-checkbox:hover { border-color: var(--accent); }
+    .task-checkbox.checked { background: var(--green); border-color: var(--green); }
+    .task-checkbox.checked::after { content: '✓'; color: #fff; font-size: 0.7rem; font-weight: 700; }
+    .task-content { flex: 1; }
+    .task-text { font-size: 0.85rem; line-height: 1.4; }
+    .task-text.completed { text-decoration: line-through; color: var(--muted); }
+    .task-meta { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+    .task-priority {
+      font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 600;
+      text-transform: uppercase;
+    }
+    .task-priority.high { background: var(--red-light); color: var(--red); }
+    .task-priority.medium { background: var(--amber-light); color: var(--amber); }
+    .task-priority.low { background: #f1f5f9; color: var(--muted); }
+    .task-add {
+      display: flex; gap: 8px; margin-top: 12px; padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .task-input {
+      flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 0.85rem; outline: none;
+    }
+    .task-input:focus { border-color: var(--accent); }
+    .task-add-btn {
+      padding: 10px 16px; background: var(--accent); color: #fff; border: none;
+      border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+    }
+    .task-add-btn:hover { background: #2563eb; }
+
+    /* Weather Widget */
+    .weather-widget {
+      display: flex; align-items: center; gap: 16px; padding: 16px;
+      background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);
+      border-radius: 12px; color: #fff; margin-bottom: 16px;
+    }
+    .weather-icon { font-size: 3rem; }
+    .weather-info { flex: 1; }
+    .weather-temp { font-size: 2rem; font-weight: 800; line-height: 1; }
+    .weather-desc { font-size: 0.85rem; opacity: 0.9; margin-top: 2px; }
+    .weather-location { font-size: 0.75rem; opacity: 0.7; margin-top: 4px; }
+    .weather-details { display: flex; gap: 16px; font-size: 0.75rem; margin-top: 8px; }
+    .weather-detail { display: flex; align-items: center; gap: 4px; opacity: 0.85; }
+
+    /* Drive Times */
+    .drive-times { margin-bottom: 16px; }
+    .drive-route {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+      background: var(--bg); border-radius: 8px; margin-bottom: 8px;
+    }
+    .drive-route:last-child { margin-bottom: 0; }
+    .drive-icon { font-size: 1.1rem; }
+    .drive-info { flex: 1; }
+    .drive-label { font-size: 0.82rem; font-weight: 600; }
+    .drive-meta { font-size: 0.72rem; color: var(--muted); }
+    .drive-time { font-size: 0.85rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
+    .drive-total {
+      display: flex; justify-content: space-between; padding: 10px 12px;
+      background: var(--accent-light); border-radius: 8px; margin-top: 12px;
+    }
+    .drive-total-label { font-size: 0.82rem; font-weight: 600; color: var(--accent); }
+    .drive-total-value { font-size: 0.9rem; font-weight: 800; color: var(--accent); }
+    .no-stops { font-size: 0.85rem; color: var(--muted); text-align: center; padding: 16px 0; }
+
+    /* Tomorrow Preview */
+    .tomorrow-list { list-style: none; }
+    .tomorrow-item {
+      display: flex; align-items: center; gap: 10px; padding: 8px 0;
+      border-bottom: 1px solid #f1f5f9; font-size: 0.85rem;
+    }
+    .tomorrow-item:last-child { border-bottom: none; }
+    .tomorrow-time { font-size: 0.75rem; color: var(--muted); font-weight: 600; width: 55px; flex-shrink: 0; }
+    .tomorrow-text { flex: 1; }
+    .tomorrow-empty { font-size: 0.85rem; color: var(--muted); text-align: center; padding: 16px 0; }
+
+    /* Notes */
+    .notes-textarea {
+      width: 100%; min-height: 120px; padding: 12px; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 0.85rem; font-family: inherit; resize: vertical;
+      outline: none; line-height: 1.5;
+    }
+    .notes-textarea:focus { border-color: var(--accent); }
+    .notes-status { font-size: 0.72rem; color: var(--muted); margin-top: 8px; display: flex; align-items: center; gap: 6px; }
+    .notes-saved { color: var(--green); }
+
+    /* Add Event Modal */
+    .modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-content {
+      background: var(--card); border-radius: 16px; padding: 28px;
+      width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
+    }
+    .modal-header h3 { font-size: 1.1rem; font-weight: 700; }
+    .modal-close {
+      width: 32px; height: 32px; border: none; background: var(--bg);
+      border-radius: 8px; cursor: pointer; font-size: 1rem;
+    }
+    .modal-close:hover { background: #e2e8f0; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 6px; }
+    .form-input, .form-select {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 0.85rem; outline: none;
+    }
+    .form-input:focus, .form-select:focus { border-color: var(--accent); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+    .modal-btn {
+      padding: 10px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border); background: var(--card);
+    }
+    .modal-btn:hover { background: var(--bg); }
+    .modal-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .modal-btn.primary:hover { background: #2563eb; }
+    .modal-btn.danger { background: var(--red); color: #fff; border-color: var(--red); }
+
+    /* Responsive */
+    @media (max-width: 1100px) {
+      .planner-grid { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .planner { padding: 16px; }
+      .planner-header { flex-direction: column; align-items: flex-start; }
+      .header-actions { width: 100%; }
+      .header-btn { flex: 1; justify-content: center; }
+      .stats-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .stat-box { padding: 12px; }
+      .stat-box .stat-value { font-size: 1.3rem; }
+    }
+
+    /* Loading */
+    .skeleton { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  </style>
+</head>
+<body>
+<script src="/nav.js"></script>
+
+<div class="planner">
+  <!-- Header -->
+  <div class="planner-header">
+    <div>
+      <h1><span>📅</span> Today's Planner</h1>
+      <div class="header-date" id="header-date"></div>
+    </div>
+    <div class="header-actions">
+      <button class="header-btn" onclick="showAddEventModal()">➕ Add Event</button>
+      <button class="header-btn primary" onclick="window.location.href='/crm'">📍 Log Pop-In</button>
+    </div>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-icon">📞</div>
+      <div class="stat-value" id="stat-calls">0</div>
+      <div class="stat-label">Calls Today</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-icon">📍</div>
+      <div class="stat-value" id="stat-popins">0</div>
+      <div class="stat-label">Pop-Ins Today</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-icon">📧</div>
+      <div class="stat-value" id="stat-emails">0</div>
+      <div class="stat-label">Emails Today</div>
+    </div>
+    <div class="stat-box streak">
+      <div class="stat-icon">🔥</div>
+      <div class="stat-value" id="stat-streak">0</div>
+      <div class="stat-label">Day Streak</div>
+    </div>
+  </div>
+
+  <!-- Main Grid -->
+  <div class="planner-grid">
+    <!-- Left Column: Schedule + Tasks -->
+    <div class="left-column">
+      <!-- Schedule -->
+      <div class="card schedule-container">
+        <div class="card-header">
+          <span class="card-title">🗓️ Today's Schedule</span>
+          <div class="schedule-nav">
+            <button onclick="goToPrevDay()" title="Previous day">←</button>
+            <button onclick="goToToday()" title="Today">•</button>
+            <button onclick="goToNextDay()" title="Next day">→</button>
+          </div>
+        </div>
+        <div class="time-blocks" id="time-blocks">
+          <!-- Generated by JS -->
+        </div>
+        <div class="schedule-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> Pop-In</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div> Call</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div> Meeting</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--cyan)"></div> Email</div>
+        </div>
+      </div>
+
+      <!-- Tasks -->
+      <div class="card" style="margin-top: 20px;">
+        <div class="card-header">
+          <span class="card-title">✅ Today's Tasks</span>
+          <a class="card-link" href="/tasks">View All →</a>
+        </div>
+        <ul class="task-list" id="task-list">
+          <li class="task-item"><span class="skeleton" style="width:100%;height:20px"></span></li>
+        </ul>
+        <div class="task-add">
+          <input type="text" class="task-input" id="new-task-input" placeholder="Add a quick task..." onkeypress="if(event.key==='Enter')addQuickTask()">
+          <button class="task-add-btn" onclick="addQuickTask()">Add</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Weather, Drive Times, Tomorrow, Notes -->
+    <div class="right-column">
+      <!-- Weather -->
+      <div class="weather-widget" id="weather-widget">
+        <div class="weather-icon">☀️</div>
+        <div class="weather-info">
+          <div class="weather-temp" id="weather-temp">--°</div>
+          <div class="weather-desc" id="weather-desc">Loading...</div>
+          <div class="weather-location">📍 Las Vegas, NV</div>
+          <div class="weather-details">
+            <div class="weather-detail"><span>💧</span> <span id="weather-humidity">--%</span></div>
+            <div class="weather-detail"><span>💨</span> <span id="weather-wind">-- mph</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Drive Times -->
+      <div class="card drive-times">
+        <div class="card-header">
+          <span class="card-title">🚗 Drive Times</span>
+        </div>
+        <div id="drive-routes">
+          <div class="no-stops">No scheduled stops today</div>
+        </div>
+      </div>
+
+      <!-- Tomorrow Preview -->
+      <div class="card" style="margin-top: 16px;">
+        <div class="card-header">
+          <span class="card-title">📆 Tomorrow Preview</span>
+        </div>
+        <ul class="tomorrow-list" id="tomorrow-list">
+          <li class="tomorrow-empty">Nothing scheduled yet</li>
+        </ul>
+      </div>
+
+      <!-- Notes -->
+      <div class="card" style="margin-top: 16px;">
+        <div class="card-header">
+          <span class="card-title">📝 Notes for Today</span>
+        </div>
+        <textarea class="notes-textarea" id="day-notes" placeholder="Jot down notes for today..."></textarea>
+        <div class="notes-status" id="notes-status">
+          <span>Auto-saves as you type</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Event Modal -->
+<div class="modal-overlay" id="event-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modal-title">Add Event</h3>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <form id="event-form" onsubmit="saveEvent(event)">
+      <input type="hidden" id="event-id">
+      <div class="form-group">
+        <label class="form-label">Event Title *</label>
+        <input type="text" class="form-input" id="event-title" required placeholder="e.g., Pop-in at Acme Corp">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select class="form-select" id="event-type">
+          <option value="popin">📍 Pop-In</option>
+          <option value="call">📞 Call</option>
+          <option value="meeting">🤝 Meeting</option>
+          <option value="email">📧 Email</option>
+          <option value="other">📌 Other</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input type="date" class="form-input" id="event-date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Time</label>
+          <input type="time" class="form-input" id="event-time">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Prospect (optional)</label>
+        <select class="form-select" id="event-prospect">
+          <option value="">— Select prospect —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <input type="text" class="form-input" id="event-notes" placeholder="Any additional details...">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="modal-btn danger" id="delete-event-btn" onclick="deleteEvent()" style="display:none;">Delete</button>
+        <button type="button" class="modal-btn" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="modal-btn primary">Save Event</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ===== State =====
+  var currentDate = new Date();
+  var scheduleEvents = [];
+  var tasks = [];
+  var prospects = [];
+  var draggedEvent = null;
+
+  // ===== Init =====
+  function init() {
+    setHeaderDate();
+    renderTimeBlocks();
+    loadScheduleEvents();
+    loadTasks();
+    loadProspects();
+    loadWeather();
+    loadNotes();
+    loadTodayStats();
+
+    // Auto-save notes
+    var notesEl = document.getElementById('day-notes');
+    var saveTimeout;
+    notesEl.addEventListener('input', function() {
+      clearTimeout(saveTimeout);
+      document.getElementById('notes-status').innerHTML = '<span>Saving...</span>';
+      saveTimeout = setTimeout(function() { saveNotes(); }, 1000);
+    });
+  }
+
+  // ===== Header Date =====
+  function setHeaderDate() {
+    var opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('header-date').textContent = currentDate.toLocaleDateString('en-US', opts);
+  }
+  window.setHeaderDate = setHeaderDate;
+
+  // ===== Navigation =====
+  window.goToPrevDay = function() {
+    currentDate.setDate(currentDate.getDate() - 1);
+    setHeaderDate();
+    loadScheduleEvents();
+    loadNotes();
+  };
+  window.goToNextDay = function() {
+    currentDate.setDate(currentDate.getDate() + 1);
+    setHeaderDate();
+    loadScheduleEvents();
+    loadNotes();
+  };
+  window.goToToday = function() {
+    currentDate = new Date();
+    setHeaderDate();
+    loadScheduleEvents();
+    loadNotes();
+  };
+
+  // ===== Time Blocks =====
+  function renderTimeBlocks() {
+    var container = document.getElementById('time-blocks');
+    container.innerHTML = '';
+    for (var hour = 7; hour <= 19; hour++) {
+      var slot = document.createElement('div');
+      slot.className = 'time-slot';
+      slot.dataset.hour = hour;
+      
+      var timeLabel = document.createElement('div');
+      timeLabel.className = 'time-label';
+      var h = hour > 12 ? hour - 12 : hour;
+      var ampm = hour >= 12 ? 'PM' : 'AM';
+      timeLabel.textContent = h + ':00 ' + ampm;
+      
+      var content = document.createElement('div');
+      content.className = 'slot-content empty';
+      content.dataset.hour = hour;
+      content.innerHTML = '+ Add event';
+      content.onclick = function(e) {
+        if (this.classList.contains('empty')) {
+          showAddEventModal(this.dataset.hour);
+        }
+      };
+      
+      // Drag and drop
+      content.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.classList.add('drag-over');
+      });
+      content.addEventListener('dragleave', function() {
+        this.classList.remove('drag-over');
+      });
+      content.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('drag-over');
+        if (draggedEvent) {
+          rescheduleEvent(draggedEvent, parseInt(this.dataset.hour));
+        }
+      });
+      
+      slot.appendChild(timeLabel);
+      slot.appendChild(content);
+      container.appendChild(slot);
+    }
+  }
+
+  function renderScheduleEvents() {
+    // Clear all slots first
+    document.querySelectorAll('.slot-content').forEach(function(el) {
+      el.className = 'slot-content empty';
+      el.innerHTML = '+ Add event';
+      el.draggable = false;
+      el.onclick = function() {
+        if (this.classList.contains('empty')) {
+          showAddEventModal(this.dataset.hour);
+        }
+      };
+    });
+
+    // Render events
+    var todayStr = formatDateKey(currentDate);
+    var todayEvents = scheduleEvents.filter(function(e) { return e.date === todayStr; });
+    
+    todayEvents.forEach(function(event) {
+      var hour = parseInt(event.time.split(':')[0]);
+      var slot = document.querySelector('.slot-content[data-hour="' + hour + '"]');
+      if (slot) {
+        slot.className = 'slot-content has-event event-' + event.type;
+        slot.innerHTML = '<span>' + escapeHtml(event.title) + '</span><span class="event-badge">' + event.type + '</span>';
+        slot.draggable = true;
+        slot.dataset.eventId = event.id;
+        
+        slot.onclick = function() {
+          showEditEventModal(event.id);
+        };
+        
+        slot.addEventListener('dragstart', function() {
+          draggedEvent = event.id;
+          this.classList.add('dragging');
+        });
+        slot.addEventListener('dragend', function() {
+          draggedEvent = null;
+          this.classList.remove('dragging');
+        });
+      }
+    });
+
+    // Update drive times
+    renderDriveTimes(todayEvents.filter(function(e) { return e.type === 'popin'; }));
+    
+    // Update tomorrow preview
+    var tomorrow = new Date(currentDate);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    var tomorrowStr = formatDateKey(tomorrow);
+    var tomorrowEvents = scheduleEvents.filter(function(e) { return e.date === tomorrowStr; });
+    renderTomorrowPreview(tomorrowEvents);
+  }
+
+  // ===== Load Schedule Events =====
+  function loadScheduleEvents() {
+    // Load from localStorage + API activities
+    var stored = localStorage.getItem('vendtech_schedule_events');
+    scheduleEvents = stored ? JSON.parse(stored) : [];
+    
+    // Also load activities from API as events
+    fetch('/api/activities').then(function(r) { return r.json(); }).then(function(activities) {
+      var today = formatDateKey(currentDate);
+      activities.forEach(function(a) {
+        if (a.scheduled_date === today || a.next_action_date === today) {
+          var existing = scheduleEvents.find(function(e) { return e.activity_id === a.id; });
+          if (!existing) {
+            scheduleEvents.push({
+              id: 'act-' + a.id,
+              activity_id: a.id,
+              title: a.description || a.next_action || 'Activity',
+              type: mapActivityType(a.type),
+              date: a.scheduled_date || a.next_action_date,
+              time: a.scheduled_time || '09:00',
+              prospect_id: a.prospect_id,
+              notes: ''
+            });
+          }
+        }
+      });
+      renderScheduleEvents();
+    }).catch(function() {
+      renderScheduleEvents();
+    });
+  }
+
+  function mapActivityType(type) {
+    var map = { call: 'call', email: 'email', pop_in: 'popin', 'pop-in': 'popin', meeting: 'meeting', note: 'other' };
+    return map[type] || 'other';
+  }
+
+  function saveScheduleEvents() {
+    localStorage.setItem('vendtech_schedule_events', JSON.stringify(scheduleEvents));
+  }
+
+  function rescheduleEvent(eventId, newHour) {
+    var event = scheduleEvents.find(function(e) { return e.id === eventId; });
+    if (event) {
+      event.time = String(newHour).padStart(2, '0') + ':00';
+      saveScheduleEvents();
+      renderScheduleEvents();
+    }
+  }
+
+  // ===== Event Modal =====
+  window.showAddEventModal = function(hour) {
+    document.getElementById('modal-title').textContent = 'Add Event';
+    document.getElementById('event-form').reset();
+    document.getElementById('event-id').value = '';
+    document.getElementById('event-date').value = formatDateKey(currentDate);
+    if (hour) {
+      document.getElementById('event-time').value = String(hour).padStart(2, '0') + ':00';
+    }
+    document.getElementById('delete-event-btn').style.display = 'none';
+    document.getElementById('event-modal').classList.add('open');
+  };
+
+  window.showEditEventModal = function(eventId) {
+    var event = scheduleEvents.find(function(e) { return e.id === eventId; });
+    if (!event) return;
+    
+    document.getElementById('modal-title').textContent = 'Edit Event';
+    document.getElementById('event-id').value = event.id;
+    document.getElementById('event-title').value = event.title;
+    document.getElementById('event-type').value = event.type;
+    document.getElementById('event-date').value = event.date;
+    document.getElementById('event-time').value = event.time;
+    document.getElementById('event-prospect').value = event.prospect_id || '';
+    document.getElementById('event-notes').value = event.notes || '';
+    document.getElementById('delete-event-btn').style.display = 'block';
+    document.getElementById('event-modal').classList.add('open');
+  };
+
+  window.closeModal = function() {
+    document.getElementById('event-modal').classList.remove('open');
+  };
+
+  window.saveEvent = function(e) {
+    e.preventDefault();
+    var id = document.getElementById('event-id').value;
+    var eventData = {
+      id: id || 'evt-' + Date.now(),
+      title: document.getElementById('event-title').value,
+      type: document.getElementById('event-type').value,
+      date: document.getElementById('event-date').value,
+      time: document.getElementById('event-time').value,
+      prospect_id: document.getElementById('event-prospect').value || null,
+      notes: document.getElementById('event-notes').value
+    };
+
+    if (id) {
+      var idx = scheduleEvents.findIndex(function(e) { return e.id === id; });
+      if (idx >= 0) scheduleEvents[idx] = eventData;
+    } else {
+      scheduleEvents.push(eventData);
+    }
+
+    saveScheduleEvents();
+    renderScheduleEvents();
+    closeModal();
+    loadTodayStats();
+  };
+
+  window.deleteEvent = function() {
+    var id = document.getElementById('event-id').value;
+    if (id && confirm('Delete this event?')) {
+      scheduleEvents = scheduleEvents.filter(function(e) { return e.id !== id; });
+      saveScheduleEvents();
+      renderScheduleEvents();
+      closeModal();
+      loadTodayStats();
+    }
+  };
+
+  // ===== Tasks =====
+  function loadTasks() {
+    fetch('/api/todos').then(function(r) { return r.json(); }).then(function(data) {
+      var today = formatDateKey(new Date());
+      tasks = data.filter(function(t) {
+        return t.due_date === today || (!t.completed && t.due_date && t.due_date < today);
+      }).sort(function(a, b) {
+        var prioOrder = { high: 1, medium: 2, low: 3 };
+        return (prioOrder[a.priority] || 3) - (prioOrder[b.priority] || 3);
+      });
+      renderTasks();
+    }).catch(function() {
+      tasks = [];
+      renderTasks();
+    });
+  }
+
+  function renderTasks() {
+    var container = document.getElementById('task-list');
+    if (tasks.length === 0) {
+      container.innerHTML = '<li class="task-item" style="justify-content:center;color:var(--muted);">No tasks due today 🎉</li>';
+      return;
+    }
+    container.innerHTML = tasks.map(function(t) {
+      var overdue = t.due_date && t.due_date < formatDateKey(new Date());
+      return '<li class="task-item">' +
+        '<div class="task-checkbox ' + (t.completed ? 'checked' : '') + '" onclick="toggleTask(' + t.id + ')"></div>' +
+        '<div class="task-content">' +
+          '<div class="task-text ' + (t.completed ? 'completed' : '') + '">' + escapeHtml(t.title) + '</div>' +
+          '<div class="task-meta">' +
+            (t.category ? '<span>' + escapeHtml(t.category) + '</span> · ' : '') +
+            (overdue ? '<span style="color:var(--red)">Overdue</span>' : '') +
+          '</div>' +
+        '</div>' +
+        '<span class="task-priority ' + (t.priority || 'low') + '">' + (t.priority || 'low') + '</span>' +
+      '</li>';
+    }).join('');
+  }
+
+  window.toggleTask = function(id) {
+    var task = tasks.find(function(t) { return t.id === id; });
+    if (!task) return;
+    
+    fetch('/api/todos/' + id, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        completed: !task.completed,
+        completed_at: !task.completed ? new Date().toISOString() : null
+      })
+    }).then(function() {
+      task.completed = !task.completed;
+      renderTasks();
+    });
+  };
+
+  window.addQuickTask = function() {
+    var input = document.getElementById('new-task-input');
+    var title = input.value.trim();
+    if (!title) return;
+    
+    fetch('/api/todos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: title,
+        due_date: formatDateKey(new Date()),
+        priority: 'medium',
+        category: 'Sales'
+      })
+    }).then(function(r) { return r.json(); }).then(function(task) {
+      tasks.unshift(task);
+      renderTasks();
+      input.value = '';
+    });
+  };
+
+  // ===== Prospects =====
+  function loadProspects() {
+    fetch('/api/prospects').then(function(r) { return r.json(); }).then(function(data) {
+      prospects = data;
+      var select = document.getElementById('event-prospect');
+      prospects.forEach(function(p) {
+        var opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name;
+        select.appendChild(opt);
+      });
+    });
+  }
+
+  // ===== Weather =====
+  function loadWeather() {
+    // Las Vegas coordinates
+    var lat = 36.1699;
+    var lon = -115.1398;
+    
+    fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America%2FLos_Angeles')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.current) {
+          var temp = Math.round(data.current.temperature_2m);
+          var humidity = data.current.relative_humidity_2m;
+          var wind = Math.round(data.current.wind_speed_10m);
+          var code = data.current.weather_code;
+          
+          document.getElementById('weather-temp').textContent = temp + '°F';
+          document.getElementById('weather-desc').textContent = getWeatherDesc(code);
+          document.getElementById('weather-humidity').textContent = humidity + '%';
+          document.getElementById('weather-wind').textContent = wind + ' mph';
+          
+          var widget = document.getElementById('weather-widget');
+          var icon = document.querySelector('.weather-icon');
+          
+          if (code === 0) {
+            icon.textContent = '☀️';
+            widget.style.background = 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)';
+          } else if (code <= 3) {
+            icon.textContent = '⛅';
+            widget.style.background = 'linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%)';
+          } else if (code >= 51 && code <= 67) {
+            icon.textContent = '🌧️';
+            widget.style.background = 'linear-gradient(135deg, #475569 0%, #64748b 100%)';
+          } else if (code >= 71 && code <= 77) {
+            icon.textContent = '❄️';
+            widget.style.background = 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)';
+          } else if (code >= 95) {
+            icon.textContent = '⛈️';
+            widget.style.background = 'linear-gradient(135deg, #374151 0%, #1f2937 100%)';
+          }
+        }
+      })
+      .catch(function() {
+        document.getElementById('weather-desc').textContent = 'Unable to load';
+      });
+  }
+
+  function getWeatherDesc(code) {
+    var map = {
+      0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
+      45: 'Foggy', 48: 'Depositing rime fog',
+      51: 'Light drizzle', 53: 'Drizzle', 55: 'Dense drizzle',
+      61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain',
+      71: 'Slight snow', 73: 'Moderate snow', 75: 'Heavy snow',
+      95: 'Thunderstorm', 96: 'Thunderstorm with hail'
+    };
+    return map[code] || 'Weather data';
+  }
+
+  // ===== Drive Times =====
+  function renderDriveTimes(popins) {
+    var container = document.getElementById('drive-routes');
+    if (popins.length < 1) {
+      container.innerHTML = '<div class="no-stops">No scheduled stops today</div>';
+      return;
+    }
+
+    // Sort by time
+    popins.sort(function(a, b) { return a.time.localeCompare(b.time); });
+    
+    var html = '';
+    var totalMins = 0;
+    
+    popins.forEach(function(p, i) {
+      var prospect = prospects.find(function(pr) { return pr.id == p.prospect_id; });
+      var address = prospect ? prospect.address : 'Unknown location';
+      var estimatedMins = 15 + Math.floor(Math.random() * 15); // Simulated drive time
+      if (i > 0) totalMins += estimatedMins;
+      
+      html += '<div class="drive-route">' +
+        '<div class="drive-icon">📍</div>' +
+        '<div class="drive-info">' +
+          '<div class="drive-label">' + escapeHtml(p.title) + '</div>' +
+          '<div class="drive-meta">' + escapeHtml(address || 'No address') + '</div>' +
+        '</div>' +
+        (i > 0 ? '<div class="drive-time">' + estimatedMins + ' min</div>' : '<div class="drive-time" style="color:var(--green)">Start</div>') +
+      '</div>';
+    });
+
+    if (popins.length > 1) {
+      html += '<div class="drive-total">' +
+        '<span class="drive-total-label">Total Driving</span>' +
+        '<span class="drive-total-value">' + totalMins + ' min</span>' +
+      '</div>';
+    }
+
+    container.innerHTML = html;
+  }
+
+  // ===== Tomorrow Preview =====
+  function renderTomorrowPreview(events) {
+    var container = document.getElementById('tomorrow-list');
+    if (events.length === 0) {
+      container.innerHTML = '<li class="tomorrow-empty">Nothing scheduled yet</li>';
+      return;
+    }
+
+    events.sort(function(a, b) { return a.time.localeCompare(b.time); });
+    
+    container.innerHTML = events.slice(0, 5).map(function(e) {
+      var hour = parseInt(e.time.split(':')[0]);
+      var h = hour > 12 ? hour - 12 : hour;
+      var ampm = hour >= 12 ? 'PM' : 'AM';
+      return '<li class="tomorrow-item">' +
+        '<span class="tomorrow-time">' + h + ':00 ' + ampm + '</span>' +
+        '<span class="tomorrow-text">' + escapeHtml(e.title) + '</span>' +
+      '</li>';
+    }).join('');
+  }
+
+  // ===== Notes =====
+  function loadNotes() {
+    var key = 'vendtech_notes_' + formatDateKey(currentDate);
+    var notes = localStorage.getItem(key) || '';
+    document.getElementById('day-notes').value = notes;
+    document.getElementById('notes-status').innerHTML = '<span>Auto-saves as you type</span>';
+  }
+
+  function saveNotes() {
+    var key = 'vendtech_notes_' + formatDateKey(currentDate);
+    var notes = document.getElementById('day-notes').value;
+    localStorage.setItem(key, notes);
+    document.getElementById('notes-status').innerHTML = '<span class="notes-saved">✓ Saved</span>';
+  }
+  window.saveNotes = saveNotes;
+
+  // ===== Today Stats =====
+  function loadTodayStats() {
+    var todayStr = formatDateKey(new Date());
+    
+    fetch('/api/activities').then(function(r) { return r.json(); }).then(function(activities) {
+      var todayActs = activities.filter(function(a) {
+        return a.created_at && a.created_at.startsWith(todayStr);
+      });
+      
+      var calls = todayActs.filter(function(a) { return a.type === 'call'; }).length;
+      var popins = todayActs.filter(function(a) { return a.type === 'pop_in' || a.type === 'pop-in'; }).length;
+      var emails = todayActs.filter(function(a) { return a.type === 'email'; }).length;
+      
+      document.getElementById('stat-calls').textContent = calls;
+      document.getElementById('stat-popins').textContent = popins;
+      document.getElementById('stat-emails').textContent = emails;
+      
+      // Calculate streak
+      calculateStreak(activities);
+    });
+  }
+
+  function calculateStreak(activities) {
+    var streak = 0;
+    var checkDate = new Date();
+    
+    for (var i = 0; i < 365; i++) {
+      var dateStr = formatDateKey(checkDate);
+      var hasActivity = activities.some(function(a) {
+        return a.created_at && a.created_at.startsWith(dateStr);
+      });
+      
+      if (hasActivity) {
+        streak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else if (i === 0) {
+        // Today has no activity yet, check yesterday
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+    
+    document.getElementById('stat-streak').textContent = streak;
+  }
+
+  // ===== Helpers =====
+  function formatDateKey(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // Init on load
+  init();
+})();
+</script>
+</body>
+</html>

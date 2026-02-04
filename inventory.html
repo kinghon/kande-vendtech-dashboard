@@ -2,569 +2,1271 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
-  <title>Inventory & Products — Kande VendTech</title>
+  <title>Kande VendTech — Product Inventory</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --bg: #f5f7fa; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
+      --bg: #f5f5f7; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
       --muted: #718096; --accent: #3182ce; --hot: #e53e3e; --warn: #dd6b20;
-      --success: #38a169; --purple: #7b2cbf;
+      --success: #38a169; --purple: #7b2cbf; --radius: 12px;
     }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-    .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    .app { max-width: 1500px; margin: 0 auto; padding: 20px; }
 
-    .top-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
-    .top-nav .logo { height: 36px; }
-    .top-nav a { color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500; padding: 6px 12px; border-radius: 6px; transition: all 0.2s; }
-    .top-nav a:hover, .top-nav a.active { color: var(--accent); background: rgba(49,130,206,0.08); }
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .page-header h1 { font-size: 1.6rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
-    .header h1 { font-size: 1.5rem; background: linear-gradient(90deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .header-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s; text-decoration: none; }
+    .btn:hover { background: #f0f4f8; }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover { background: #2b6cb0; }
+    .btn-success { background: var(--success); color: #fff; border-color: var(--success); }
+    .btn-success:hover { background: #2f855a; }
+    .btn-danger { background: var(--hot); color: #fff; border-color: var(--hot); }
+    .btn-warn { background: var(--warn); color: #fff; border-color: var(--warn); }
+    .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
+    .btn-icon { padding: 6px 10px; font-size: 0.9rem; }
 
-    .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; }
-    .btn-primary { background: var(--accent); color: #fff; }
-    .btn-primary:hover { opacity: 0.9; }
-    .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
-    .btn-secondary:hover { background: var(--border); }
-    .btn-danger { background: var(--hot); color: #fff; }
-    .btn-success { background: var(--success); color: #fff; }
-    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
-    .btn-warn { background: var(--warn); color: #fff; }
+    .tab-bar { display: flex; gap: 4px; margin-bottom: 20px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 4px; overflow-x: auto; }
+    .tab-btn { padding: 8px 18px; border: none; background: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: var(--muted); transition: all 0.15s; white-space: nowrap; }
+    .tab-btn.active { background: var(--accent); color: #fff; }
+    .tab-btn:hover:not(.active) { background: #f0f4f8; color: var(--text); }
 
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
-    .stat { background: var(--card); border-radius: 12px; padding: 16px; text-align: center; border: 1px solid var(--border); }
-    .stat-value { font-size: 1.8rem; font-weight: 700; }
-    .stat-value.accent { color: var(--accent); }
-    .stat-value.success { color: var(--success); }
-    .stat-value.warn { color: var(--warn); }
-    .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+    /* Stats */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; }
+    .stat-card .value { font-size: 1.7rem; font-weight: 800; }
+    .stat-card .label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
+    .value.accent { color: var(--accent); }
+    .value.success { color: var(--success); }
+    .value.warn { color: var(--warn); }
+    .value.danger { color: var(--hot); }
 
-    .filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
-    .filter-btn { padding: 8px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; color: var(--muted); cursor: pointer; font-size: 0.85rem; }
-    .filter-btn:hover, .filter-btn.active { background: rgba(49,130,206,0.1); border-color: var(--accent); color: var(--accent); }
-    .search-input { flex: 1; min-width: 200px; padding: 10px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.9rem; }
+    /* Alert Banner */
+    .alert-banner { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: var(--radius); margin-bottom: 16px; font-size: 0.85rem; }
+    .alert-danger { background: rgba(229,62,62,0.08); border: 1px solid rgba(229,62,62,0.2); color: #c53030; }
+    .alert-warn { background: rgba(221,107,32,0.08); border: 1px solid rgba(221,107,32,0.2); color: #c05621; }
+    .alert-info { background: rgba(49,130,206,0.08); border: 1px solid rgba(49,130,206,0.2); color: #2b6cb0; }
+    .alert-success { background: rgba(56,161,105,0.08); border: 1px solid rgba(56,161,105,0.2); color: #276749; }
 
-    .tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 2px solid var(--border); }
-    .tab { padding: 10px 20px; cursor: pointer; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; background: none; border-top: none; border-left: none; border-right: none; font-size: 0.9rem; }
-    .tab:hover { color: var(--accent); }
-    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    /* Data Table */
+    .table-container { overflow-x: auto; margin-bottom: 24px; }
+    .data-table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; min-width: 900px; }
+    .data-table th { background: #edf2f7; padding: 10px 12px; font-size: 0.72rem; text-transform: uppercase; color: var(--muted); font-weight: 700; text-align: left; position: sticky; top: 0; white-space: nowrap; }
+    .data-table td { padding: 10px 12px; border-top: 1px solid var(--border); font-size: 0.85rem; vertical-align: middle; }
+    .data-table tr:hover td { background: #fafbfc; }
+    .data-table tr.low-stock td { background: rgba(221,107,32,0.06); }
+    .data-table tr.out-of-stock td { background: rgba(229,62,62,0.06); }
+    .data-table tr.expiring-soon td { background: rgba(123,44,191,0.06); }
 
-    .table-container { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; }
-    th { background: #f7fafc; padding: 12px 16px; text-align: left; font-size: 0.8rem; text-transform: uppercase; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); white-space: nowrap; }
-    td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: #f7fafc; }
+    /* Status Badges */
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; }
+    .badge-success { background: rgba(56,161,105,0.12); color: var(--success); }
+    .badge-warn { background: rgba(221,107,32,0.12); color: var(--warn); }
+    .badge-danger { background: rgba(229,62,62,0.12); color: var(--hot); }
+    .badge-purple { background: rgba(123,44,191,0.12); color: var(--purple); }
+    .badge-muted { background: #edf2f7; color: var(--muted); }
 
-    .badge { padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
-    .badge-beverages { background: rgba(49,130,206,0.15); color: var(--accent); }
-    .badge-snacks { background: rgba(221,107,32,0.15); color: var(--warn); }
-    .badge-protein { background: rgba(56,161,105,0.15); color: var(--success); }
-    .badge-essentials { background: rgba(113,128,150,0.15); color: var(--muted); }
-    .badge-frozen { background: rgba(123,44,191,0.15); color: var(--purple); }
-    .badge-candy { background: rgba(229,62,62,0.15); color: var(--hot); }
+    /* Category Badges */
+    .cat-badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; }
+    .cat-beverages { background: #bee3f8; color: #2b6cb0; }
+    .cat-snacks { background: #feebc8; color: #c05621; }
+    .cat-candy { background: #fed7e2; color: #b83280; }
+    .cat-healthy { background: #c6f6d5; color: #276749; }
+    .cat-energy { background: #e9d8fd; color: #6b46c1; }
+    .cat-incidentals { background: #e2e8f0; color: #4a5568; }
 
-    .margin-bar { display: inline-block; height: 8px; border-radius: 4px; min-width: 20px; }
-    .margin-good { background: var(--success); }
-    .margin-ok { background: var(--warn); }
-    .margin-low { background: var(--hot); }
+    /* Stock Adjust Buttons */
+    .stock-adjust { display: flex; align-items: center; gap: 4px; }
+    .stock-adjust input { width: 60px; text-align: center; padding: 4px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .stock-adjust button { width: 26px; height: 26px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; }
+    .stock-adjust button:hover { background: #f0f4f8; }
 
-    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    /* Search & Filters */
+    .filters-bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .filters-bar input { flex: 1; min-width: 200px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; }
+    .filters-bar select { padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; min-width: 140px; }
+
+    /* Shopping List */
+    .shopping-list { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .shopping-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--border); background: #fafbfc; }
+    .shopping-header h3 { font-size: 0.95rem; font-weight: 700; }
+    .shopping-body { max-height: 400px; overflow-y: auto; }
+    .shopping-item { display: flex; align-items: center; gap: 12px; padding: 10px 18px; border-bottom: 1px solid var(--border); }
+    .shopping-item:last-child { border-bottom: none; }
+    .shopping-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--success); }
+    .shopping-item.ordered { opacity: 0.5; }
+    .shopping-item.ordered .item-name { text-decoration: line-through; }
+    .shopping-item .item-name { flex: 1; font-weight: 500; font-size: 0.85rem; }
+    .shopping-item .item-qty { font-weight: 700; color: var(--accent); min-width: 50px; text-align: right; font-size: 0.85rem; }
+    .shopping-item .item-cost { font-size: 0.78rem; color: var(--muted); min-width: 60px; text-align: right; }
+    .shopping-footer { padding: 14px 18px; border-top: 1px solid var(--border); background: #fafbfc; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .shopping-total { font-weight: 700; font-size: 0.95rem; }
+    .shopping-actions { display: flex; gap: 8px; }
+    .shopping-empty { text-align: center; padding: 30px; color: var(--muted); font-size: 0.9rem; }
+
+    /* History Log */
+    .history-log { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .history-item { display: flex; gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--border); align-items: flex-start; }
+    .history-item:last-child { border-bottom: none; }
+    .history-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
+    .history-icon.received { background: rgba(56,161,105,0.12); }
+    .history-icon.sold { background: rgba(49,130,206,0.12); }
+    .history-icon.damaged { background: rgba(229,62,62,0.12); }
+    .history-icon.expired { background: rgba(123,44,191,0.12); }
+    .history-icon.adjusted { background: rgba(221,107,32,0.12); }
+    .history-content { flex: 1; }
+    .history-content strong { font-weight: 600; }
+    .history-meta { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .history-qty { font-weight: 700; min-width: 60px; text-align: right; }
+    .history-qty.positive { color: var(--success); }
+    .history-qty.negative { color: var(--hot); }
+
+    /* Category Summary */
+    .category-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .category-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; cursor: pointer; transition: all 0.15s; }
+    .category-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .category-card.active { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(49,130,206,0.15); }
+    .category-card .cat-icon { font-size: 1.5rem; margin-bottom: 8px; }
+    .category-card .cat-name { font-weight: 700; font-size: 0.9rem; margin-bottom: 4px; }
+    .category-card .cat-stats { font-size: 0.78rem; color: var(--muted); }
+
+    /* Expiration Alert List */
+    .expiring-list { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .expiring-item { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--border); }
+    .expiring-item:last-child { border-bottom: none; }
+    .expiring-item .exp-product { flex: 1; font-weight: 500; }
+    .expiring-item .exp-date { font-size: 0.78rem; color: var(--muted); }
+    .expiring-item .exp-days { font-weight: 700; min-width: 80px; text-align: right; }
+    .expiring-item .exp-days.critical { color: var(--hot); }
+    .expiring-item .exp-days.warning { color: var(--warn); }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
     .modal-overlay.open { display: flex; }
-    .modal { background: var(--card); border-radius: 16px; padding: 24px; max-width: 600px; width: 95%; max-height: 90vh; overflow-y: auto; }
-    .modal h2 { font-size: 1.3rem; margin-bottom: 20px; }
-    .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--muted); margin-bottom: 4px; }
-    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; color: var(--text); background: var(--card); }
+    .modal { background: var(--card); border-radius: 16px; padding: 24px; width: 100%; max-width: 520px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); max-height: 90vh; overflow-y: auto; }
+    .modal h3 { font-size: 1.1rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: var(--muted); }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-    .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
 
-    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
-    .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty-state { text-align: center; padding: 40px; color: var(--muted); }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 8px; }
 
-    .supplier-card { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); }
-    .supplier-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-    .supplier-card h3 { font-size: 1.1rem; margin-bottom: 8px; }
-    .supplier-card p { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
-    .supplier-tag { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; background: rgba(49,130,206,0.1); color: var(--accent); margin-right: 4px; margin-top: 8px; }
-
+    /* Responsive */
     @media (max-width: 768px) {
-      .form-row, .form-row-3 { grid-template-columns: 1fr; }
-      .stats { grid-template-columns: repeat(2, 1fr); }
-      .header { flex-direction: column; align-items: flex-start; }
+      .filters-bar { flex-direction: column; }
+      .filters-bar input, .filters-bar select { width: 100%; }
+      .header-actions { width: 100%; }
+      .header-actions .btn { flex: 1; justify-content: center; }
     }
   </style>
 </head>
 <body>
+  <script src="/nav.js"></script>
   <div class="app">
-    <nav class="top-nav">
-      <a href="/"><img src="/logo.png" alt="Kande VendTech" class="logo"></a>
-      <a href="/">Dashboard</a>
-      <a href="/crm">CRM</a>
-      <a href="/machines">Machines</a>
-      <a href="/inventory" class="active">Inventory</a>
-      <a href="/finance">Finance</a>
-      <a href="/restock">Restock</a>
-      <a href="/map">Map</a>
-    </nav>
-
-    <div class="header">
-      <h1>📦 Product Catalog & Inventory</h1>
+    <div class="page-header">
+      <h1>📦 Product Inventory</h1>
       <div class="header-actions">
-        <button class="btn btn-primary" onclick="openProductModal()">+ Add Product</button>
-        <button class="btn btn-warn" onclick="seedProducts()">⚡ Load Starter Products</button>
-        <button class="btn btn-secondary" onclick="openSupplierModal()">+ Add Supplier</button>
+        <button class="btn btn-primary" onclick="openAddProduct()">+ Add Product</button>
+        <button class="btn btn-success" onclick="openReceiveStock()">📥 Receive Stock</button>
+        <button class="btn btn-warn" onclick="switchTab('shopping', document.querySelector('[data-tab=shopping]'))">🛒 Shopping List</button>
       </div>
     </div>
 
-    <div class="stats" id="stats"></div>
-
-    <div class="tabs">
-      <button class="tab active" data-tab="products" onclick="switchTab('products')">📦 Products</button>
-      <button class="tab" data-tab="suppliers" onclick="switchTab('suppliers')">🏪 Suppliers</button>
+    <div class="stats-row">
+      <div class="stat-card"><div class="value accent" id="statTotalSKUs">0</div><div class="label">Total SKUs</div></div>
+      <div class="stat-card"><div class="value success" id="statInStock">0</div><div class="label">In Stock</div></div>
+      <div class="stat-card"><div class="value warn" id="statLowStock">0</div><div class="label">Low Stock</div></div>
+      <div class="stat-card"><div class="value danger" id="statOutOfStock">0</div><div class="label">Out of Stock</div></div>
+      <div class="stat-card"><div class="value accent" id="statInventoryValue">$0</div><div class="label">Inventory Value</div></div>
+      <div class="stat-card"><div class="value purple" id="statExpiringSoon">0</div><div class="label">Expiring Soon</div></div>
     </div>
 
-    <!-- Products Tab -->
-    <div id="tab-products" class="tab-content">
-      <div class="filters">
-        <input type="text" class="search-input" placeholder="Search products..." id="search" oninput="renderProducts()">
-        <button class="filter-btn active" data-cat="all" onclick="filterCat('all')">All</button>
-        <button class="filter-btn" data-cat="Beverages" onclick="filterCat('Beverages')">🥤 Beverages</button>
-        <button class="filter-btn" data-cat="Snacks" onclick="filterCat('Snacks')">🍿 Snacks</button>
-        <button class="filter-btn" data-cat="Protein/Health" onclick="filterCat('Protein/Health')">💪 Protein</button>
-        <button class="filter-btn" data-cat="Essentials" onclick="filterCat('Essentials')">🧴 Essentials</button>
-        <button class="filter-btn" data-cat="Frozen" onclick="filterCat('Frozen')">🧊 Frozen</button>
-        <button class="filter-btn" data-cat="Candy" onclick="filterCat('Candy')">🍬 Candy</button>
+    <!-- Alerts -->
+    <div id="alertsContainer"></div>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="inventory" onclick="switchTab('inventory', this)">📦 Inventory</button>
+      <button class="tab-btn" data-tab="shopping" onclick="switchTab('shopping', this)">🛒 Shopping List</button>
+      <button class="tab-btn" data-tab="expiration" onclick="switchTab('expiration', this)">📅 Expiration</button>
+      <button class="tab-btn" data-tab="history" onclick="switchTab('history', this)">📜 History</button>
+      <button class="tab-btn" data-tab="categories" onclick="switchTab('categories', this)">🏷️ Categories</button>
+    </div>
+
+    <!-- Inventory Tab -->
+    <div id="tab-inventory" class="tab-content">
+      <div class="filters-bar">
+        <input type="text" placeholder="Search products..." id="searchInput" oninput="renderInventory()">
+        <select id="categoryFilter" onchange="renderInventory()">
+          <option value="all">All Categories</option>
+          <option value="beverages">🥤 Beverages</option>
+          <option value="snacks">🍪 Snacks</option>
+          <option value="candy">🍬 Candy</option>
+          <option value="healthy">🥗 Healthy</option>
+          <option value="energy">⚡ Energy</option>
+          <option value="incidentals">🧴 Incidentals</option>
+        </select>
+        <select id="stockFilter" onchange="renderInventory()">
+          <option value="all">All Stock Levels</option>
+          <option value="in-stock">In Stock</option>
+          <option value="low-stock">Low Stock</option>
+          <option value="out-of-stock">Out of Stock</option>
+        </select>
       </div>
+
       <div class="table-container">
-        <table>
+        <table class="data-table" id="inventoryTable">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Category</th>
+              <th>SKU</th>
+              <th>Stock</th>
+              <th>Reorder Pt</th>
+              <th>Cost</th>
+              <th>Sell</th>
+              <th>Margin</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="inventoryBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Shopping List Tab -->
+    <div id="tab-shopping" class="tab-content" style="display:none;">
+      <div class="shopping-list">
+        <div class="shopping-header">
+          <h3>🛒 Restock Shopping List</h3>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-sm" onclick="autoGenerateShoppingList()">🔄 Auto-Generate</button>
+            <button class="btn btn-sm btn-primary" onclick="copyShoppingList()">📋 Copy for Costco</button>
+          </div>
+        </div>
+        <div class="shopping-body" id="shoppingBody">
+          <div class="shopping-empty">No items in shopping list. Click "Auto-Generate" to add products below reorder point.</div>
+        </div>
+        <div class="shopping-footer">
+          <div class="shopping-total">Estimated Cost: <span id="shoppingTotal">$0.00</span></div>
+          <div class="shopping-actions">
+            <button class="btn btn-sm" onclick="clearShoppingList()">Clear All</button>
+            <button class="btn btn-sm btn-success" onclick="markAllOrdered()">✅ Mark All Ordered</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expiration Tab -->
+    <div id="tab-expiration" class="tab-content" style="display:none;">
+      <div class="alert-banner alert-info" style="margin-bottom:16px;">
+        📅 Products expiring within 30 days are shown here. Click on a product to update its expiration date.
+      </div>
+      <div class="expiring-list" id="expiringList">
+        <div class="shopping-empty">No products with upcoming expiration dates.</div>
+      </div>
+    </div>
+
+    <!-- History Tab -->
+    <div id="tab-history" class="tab-content" style="display:none;">
+      <div class="filters-bar" style="margin-bottom:16px;">
+        <select id="historyTypeFilter" onchange="renderHistory()">
+          <option value="all">All Changes</option>
+          <option value="received">📥 Received</option>
+          <option value="sold">💰 Sold</option>
+          <option value="damaged">💔 Damaged</option>
+          <option value="expired">⏰ Expired</option>
+          <option value="adjusted">📝 Adjusted</option>
+        </select>
+        <input type="date" id="historyDateFrom" onchange="renderHistory()">
+        <input type="date" id="historyDateTo" onchange="renderHistory()">
+      </div>
+      <div class="history-log" id="historyLog">
+        <div class="shopping-empty">No inventory changes recorded yet.</div>
+      </div>
+    </div>
+
+    <!-- Categories Tab -->
+    <div id="tab-categories" class="tab-content" style="display:none;">
+      <div class="category-cards" id="categoryCards"></div>
+      <h3 style="margin:20px 0 12px;font-size:1rem;">Category Products</h3>
+      <div class="table-container">
+        <table class="data-table" id="categoryTable">
           <thead>
             <tr>
               <th>Product</th>
               <th>SKU</th>
-              <th>Category</th>
-              <th>Cost</th>
+              <th>Stock</th>
+              <th>Status</th>
               <th>Sell Price</th>
               <th>Margin</th>
-              <th>Profit/Unit</th>
-              <th>Supplier</th>
-              <th>Actions</th>
             </tr>
           </thead>
-          <tbody id="products-tbody"></tbody>
+          <tbody id="categoryTableBody"></tbody>
         </table>
-      </div>
-      <div id="products-empty" class="empty-state" style="display:none;">
-        <div class="icon">📦</div>
-        <h3>No products yet</h3>
-        <p>Add products or load the starter catalog to get going.</p>
-        <button class="btn btn-warn" style="margin-top:16px;" onclick="seedProducts()">⚡ Load Starter Products</button>
-      </div>
-    </div>
-
-    <!-- Suppliers Tab -->
-    <div id="tab-suppliers" class="tab-content" style="display:none;">
-      <div class="supplier-grid" id="suppliers-grid"></div>
-      <div id="suppliers-empty" class="empty-state" style="display:none;">
-        <div class="icon">🏪</div>
-        <h3>No suppliers yet</h3>
-        <p>Add your suppliers to track where products come from.</p>
-        <button class="btn btn-secondary" style="margin-top:16px;" onclick="openSupplierModal()">+ Add Supplier</button>
       </div>
     </div>
   </div>
 
-  <!-- Product Modal -->
-  <div class="modal-overlay" id="product-modal">
+  <!-- Add Product Modal -->
+  <div class="modal-overlay" id="addProductModal">
     <div class="modal">
-      <h2 id="product-modal-title">Add Product</h2>
-      <input type="hidden" id="product-id">
+      <h3>➕ Add New Product</h3>
+      <div class="form-group">
+        <label>Product Name *</label>
+        <input type="text" id="productName" placeholder="e.g., Coca-Cola 20oz">
+      </div>
       <div class="form-row">
         <div class="form-group">
-          <label>Product Name</label>
-          <input type="text" id="product-name" placeholder="e.g. Core Water 30oz">
+          <label>Category *</label>
+          <select id="productCategory">
+            <option value="beverages">🥤 Beverages</option>
+            <option value="snacks">🍪 Snacks</option>
+            <option value="candy">🍬 Candy</option>
+            <option value="healthy">🥗 Healthy</option>
+            <option value="energy">⚡ Energy</option>
+            <option value="incidentals">🧴 Incidentals</option>
+          </select>
         </div>
         <div class="form-group">
           <label>SKU</label>
-          <input type="text" id="product-sku" placeholder="e.g. BEV-CORE-30">
+          <input type="text" id="productSKU" placeholder="Auto-generated if blank">
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label>Category</label>
-          <select id="product-category">
-            <option value="Beverages">🥤 Beverages</option>
-            <option value="Snacks">🍿 Snacks</option>
-            <option value="Protein/Health">💪 Protein/Health</option>
-            <option value="Essentials">🧴 Essentials</option>
-            <option value="Frozen">🧊 Frozen</option>
-            <option value="Candy">🍬 Candy</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Supplier</label>
-          <select id="product-supplier">
-            <option value="">— Select —</option>
-            <option value="Sam's Club">Sam's Club</option>
-            <option value="Costco Business Center">Costco Business Center</option>
-            <option value="Vistar">Vistar</option>
-            <option value="Amazon">Amazon</option>
-            <option value="Direct">Direct from Brand</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-row-3">
-        <div class="form-group">
           <label>Cost Price ($)</label>
-          <input type="number" id="product-cost" step="0.01" placeholder="0.00">
+          <input type="number" step="0.01" id="productCost" placeholder="0.00">
         </div>
         <div class="form-group">
           <label>Sell Price ($)</label>
-          <input type="number" id="product-sell" step="0.01" placeholder="0.00">
+          <input type="number" step="0.01" id="productSell" placeholder="0.00">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Initial Stock</label>
+          <input type="number" id="productStock" placeholder="0" value="0">
         </div>
         <div class="form-group">
-          <label>Margin %</label>
-          <input type="text" id="product-margin" readonly style="background:#f7fafc;">
+          <label>Reorder Point</label>
+          <input type="number" id="productReorder" placeholder="10" value="10">
         </div>
       </div>
       <div class="form-group">
-        <label>Notes</label>
-        <textarea id="product-notes" placeholder="Sourcing notes, pack size, etc."></textarea>
+        <label>Expiration Date (optional)</label>
+        <input type="date" id="productExpiration">
       </div>
-      <div class="form-actions">
-        <button class="btn btn-secondary" onclick="closeProductModal()">Cancel</button>
-        <button class="btn btn-danger" id="product-delete-btn" style="display:none;" onclick="deleteProduct()">Delete</button>
-        <button class="btn btn-primary" onclick="saveProduct()">Save Product</button>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('addProductModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveProduct()">Add Product</button>
       </div>
     </div>
   </div>
 
-  <!-- Supplier Modal -->
-  <div class="modal-overlay" id="supplier-modal">
+  <!-- Receive Stock Modal -->
+  <div class="modal-overlay" id="receiveStockModal">
     <div class="modal">
-      <h2 id="supplier-modal-title">Add Supplier</h2>
-      <input type="hidden" id="supplier-id">
-      <div class="form-row">
-        <div class="form-group">
-          <label>Supplier Name</label>
-          <input type="text" id="supplier-name" placeholder="e.g. Sam's Club">
-        </div>
-        <div class="form-group">
-          <label>Type</label>
-          <select id="supplier-type">
-            <option value="wholesale">Wholesale Club</option>
-            <option value="distributor">Distributor</option>
-            <option value="direct">Direct Brand</option>
-            <option value="online">Online</option>
-          </select>
-        </div>
-      </div>
+      <h3>📥 Receive Stock</h3>
       <div class="form-group">
-        <label>Address / Location</label>
-        <input type="text" id="supplier-address" placeholder="Address">
+        <label>Select Product *</label>
+        <select id="receiveProduct"></select>
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label>Contact</label>
-          <input type="text" id="supplier-contact" placeholder="Name / phone">
+          <label>Quantity Received *</label>
+          <input type="number" id="receiveQty" placeholder="0" min="1">
         </div>
         <div class="form-group">
-          <label>Account #</label>
-          <input type="text" id="supplier-account" placeholder="Account or member #">
+          <label>Expiration Date</label>
+          <input type="date" id="receiveExpiration">
         </div>
       </div>
       <div class="form-group">
         <label>Notes</label>
-        <textarea id="supplier-notes" placeholder="Rebates, delivery schedule, minimums..."></textarea>
+        <textarea id="receiveNotes" rows="2" placeholder="e.g., Costco run, PO#12345"></textarea>
       </div>
-      <div class="form-actions">
-        <button class="btn btn-secondary" onclick="closeSupplierModal()">Cancel</button>
-        <button class="btn btn-danger" id="supplier-delete-btn" style="display:none;" onclick="deleteSupplier()">Delete</button>
-        <button class="btn btn-primary" onclick="saveSupplier()">Save Supplier</button>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('receiveStockModal')">Cancel</button>
+        <button class="btn btn-success" onclick="receiveStock()">Receive Stock</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Product Modal -->
+  <div class="modal-overlay" id="editProductModal">
+    <div class="modal">
+      <h3>✏️ Edit Product</h3>
+      <input type="hidden" id="editProductId">
+      <div class="form-group">
+        <label>Product Name *</label>
+        <input type="text" id="editProductName">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Category *</label>
+          <select id="editProductCategory">
+            <option value="beverages">🥤 Beverages</option>
+            <option value="snacks">🍪 Snacks</option>
+            <option value="candy">🍬 Candy</option>
+            <option value="healthy">🥗 Healthy</option>
+            <option value="energy">⚡ Energy</option>
+            <option value="incidentals">🧴 Incidentals</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>SKU</label>
+          <input type="text" id="editProductSKU">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Cost Price ($)</label>
+          <input type="number" step="0.01" id="editProductCost">
+        </div>
+        <div class="form-group">
+          <label>Sell Price ($)</label>
+          <input type="number" step="0.01" id="editProductSell">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Current Stock</label>
+          <input type="number" id="editProductStock">
+        </div>
+        <div class="form-group">
+          <label>Reorder Point</label>
+          <input type="number" id="editProductReorder">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Expiration Date</label>
+        <input type="date" id="editProductExpiration">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-danger" onclick="deleteProduct()">Delete</button>
+        <button class="btn" onclick="closeModal('editProductModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="updateProduct()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log Adjustment Modal -->
+  <div class="modal-overlay" id="adjustModal">
+    <div class="modal">
+      <h3>📝 Log Stock Adjustment</h3>
+      <input type="hidden" id="adjustProductId">
+      <p id="adjustProductName" style="font-weight:600;margin-bottom:16px;"></p>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Adjustment Type *</label>
+          <select id="adjustType">
+            <option value="sold">💰 Sold</option>
+            <option value="damaged">💔 Damaged</option>
+            <option value="expired">⏰ Expired</option>
+            <option value="adjusted">📝 Manual Adjustment</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Quantity *</label>
+          <input type="number" id="adjustQty" placeholder="0" min="1">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Reason / Notes</label>
+        <textarea id="adjustNotes" rows="2" placeholder="Reason for adjustment..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('adjustModal')">Cancel</button>
+        <button class="btn btn-warn" onclick="saveAdjustment()">Log Adjustment</button>
       </div>
     </div>
   </div>
 
   <script>
+    // ===== STATE =====
     let products = [];
-    let suppliers = [];
-    let currentCat = 'all';
+    let inventory = {}; // productId -> { stock, reorder_point, expiration_date }
+    let history = [];
+    let shoppingList = [];
+    let selectedCategory = 'all';
 
-    // Auto-calc margin
-    document.getElementById('product-cost').addEventListener('input', calcMargin);
-    document.getElementById('product-sell').addEventListener('input', calcMargin);
-    function calcMargin() {
-      const cost = parseFloat(document.getElementById('product-cost').value) || 0;
-      const sell = parseFloat(document.getElementById('product-sell').value) || 0;
-      if (sell > 0) {
-        const margin = Math.round(((sell - cost) / sell) * 100);
-        document.getElementById('product-margin').value = margin + '%';
-      } else {
-        document.getElementById('product-margin').value = '';
+    // ===== INIT =====
+    async function init() {
+      await loadProducts();
+      await loadInventory();
+      await loadHistory();
+      loadShoppingListFromStorage();
+      renderAll();
+    }
+
+    // ===== API CALLS =====
+    async function loadProducts() {
+      try {
+        const res = await fetch('/api/products');
+        products = await res.json();
+        // Merge inventory data
+        products.forEach(p => {
+          if (!inventory[p.id]) {
+            inventory[p.id] = {
+              stock: p.stock || 0,
+              reorder_point: p.reorder_point || 10,
+              expiration_date: p.expiration_date || null
+            };
+          }
+        });
+      } catch (e) {
+        console.error('Failed to load products:', e);
+        products = [];
       }
     }
 
-    async function loadData() {
-      const [pRes, sRes] = await Promise.all([
-        fetch('/api/products').then(r => r.json()),
-        fetch('/api/suppliers').then(r => r.json())
-      ]);
-      products = pRes;
-      suppliers = sRes;
+    async function loadInventory() {
+      try {
+        const res = await fetch('/api/inventory');
+        if (res.ok) {
+          const data = await res.json();
+          data.forEach(inv => {
+            inventory[inv.product_id] = {
+              stock: inv.stock,
+              reorder_point: inv.reorder_point,
+              expiration_date: inv.expiration_date
+            };
+          });
+        }
+      } catch (e) {
+        console.log('No inventory API, using product data');
+      }
+    }
+
+    async function loadHistory() {
+      try {
+        const res = await fetch('/api/inventory/history');
+        if (res.ok) {
+          history = await res.json();
+        }
+      } catch (e) {
+        history = JSON.parse(localStorage.getItem('inventoryHistory') || '[]');
+      }
+    }
+
+    // ===== RENDER FUNCTIONS =====
+    function renderAll() {
       renderStats();
-      renderProducts();
-      renderSuppliers();
+      renderAlerts();
+      renderInventory();
+      renderShoppingList();
+      renderExpiring();
+      renderHistory();
+      renderCategories();
     }
 
     function renderStats() {
-      const avgMargin = products.length ? Math.round(products.reduce((s, p) => s + (p.margin || 0), 0) / products.length) : 0;
-      const categories = [...new Set(products.map(p => p.category))].length;
-      const avgProfit = products.length ? (products.reduce((s, p) => s + ((p.sell_price || 0) - (p.cost_price || 0)), 0) / products.length).toFixed(2) : '0.00';
-      document.getElementById('stats').innerHTML = `
-        <div class="stat"><div class="stat-value accent">${products.length}</div><div class="stat-label">Total Products</div></div>
-        <div class="stat"><div class="stat-value ${avgMargin >= 55 ? 'success' : avgMargin >= 40 ? 'warn' : ''}">${avgMargin}%</div><div class="stat-label">Avg Margin</div></div>
-        <div class="stat"><div class="stat-value success">$${avgProfit}</div><div class="stat-label">Avg Profit/Unit</div></div>
-        <div class="stat"><div class="stat-value accent">${categories}</div><div class="stat-label">Categories</div></div>
-        <div class="stat"><div class="stat-value">${suppliers.length}</div><div class="stat-label">Suppliers</div></div>
-      `;
+      const inStock = products.filter(p => getStock(p.id) > getReorderPoint(p.id)).length;
+      const lowStock = products.filter(p => {
+        const s = getStock(p.id);
+        const r = getReorderPoint(p.id);
+        return s > 0 && s <= r;
+      }).length;
+      const outOfStock = products.filter(p => getStock(p.id) <= 0).length;
+      const totalValue = products.reduce((sum, p) => sum + (getStock(p.id) * (p.cost_price || 0)), 0);
+      const expiringSoon = products.filter(p => isExpiringSoon(p.id)).length;
+
+      document.getElementById('statTotalSKUs').textContent = products.length;
+      document.getElementById('statInStock').textContent = inStock;
+      document.getElementById('statLowStock').textContent = lowStock;
+      document.getElementById('statOutOfStock').textContent = outOfStock;
+      document.getElementById('statInventoryValue').textContent = '$' + totalValue.toFixed(2);
+      document.getElementById('statExpiringSoon').textContent = expiringSoon;
     }
 
-    function filterCat(cat) {
-      currentCat = cat;
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
-      renderProducts();
+    function renderAlerts() {
+      const container = document.getElementById('alertsContainer');
+      const alerts = [];
+
+      const outOfStock = products.filter(p => getStock(p.id) <= 0);
+      const lowStock = products.filter(p => {
+        const s = getStock(p.id);
+        const r = getReorderPoint(p.id);
+        return s > 0 && s <= r;
+      });
+      const expiring = products.filter(p => isExpiringSoon(p.id));
+
+      if (outOfStock.length > 0) {
+        alerts.push(`<div class="alert-banner alert-danger">🚨 <strong>${outOfStock.length} products</strong> are out of stock! <a href="#" onclick="document.getElementById('stockFilter').value='out-of-stock';renderInventory();return false;">View</a></div>`);
+      }
+      if (lowStock.length > 0) {
+        alerts.push(`<div class="alert-banner alert-warn">⚠️ <strong>${lowStock.length} products</strong> are running low. <a href="#" onclick="switchTab('shopping',document.querySelector('[data-tab=shopping]'));return false;">Generate shopping list</a></div>`);
+      }
+      if (expiring.length > 0) {
+        alerts.push(`<div class="alert-banner alert-info">📅 <strong>${expiring.length} products</strong> expiring within 30 days. <a href="#" onclick="switchTab('expiration',document.querySelector('[data-tab=expiration]'));return false;">View</a></div>`);
+      }
+
+      container.innerHTML = alerts.join('');
     }
 
-    function renderProducts() {
-      const search = document.getElementById('search').value.toLowerCase();
-      let filtered = products;
-      if (currentCat !== 'all') filtered = filtered.filter(p => p.category === currentCat);
-      if (search) filtered = filtered.filter(p => (p.name || '').toLowerCase().includes(search) || (p.sku || '').toLowerCase().includes(search));
+    function renderInventory() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const category = document.getElementById('categoryFilter').value;
+      const stockFilter = document.getElementById('stockFilter').value;
 
-      const tbody = document.getElementById('products-tbody');
-      const empty = document.getElementById('products-empty');
-      if (filtered.length === 0 && products.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
-      empty.style.display = 'none';
+      let filtered = products.filter(p => {
+        if (search && !p.name.toLowerCase().includes(search) && !(p.sku || '').toLowerCase().includes(search)) return false;
+        if (category !== 'all' && p.category !== category) return false;
+        const stock = getStock(p.id);
+        const reorder = getReorderPoint(p.id);
+        if (stockFilter === 'in-stock' && stock <= reorder) return false;
+        if (stockFilter === 'low-stock' && (stock <= 0 || stock > reorder)) return false;
+        if (stockFilter === 'out-of-stock' && stock > 0) return false;
+        return true;
+      });
+
+      const tbody = document.getElementById('inventoryBody');
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted);">No products found. <a href="#" onclick="openAddProduct();return false;">Add your first product</a></td></tr>`;
+        return;
+      }
 
       tbody.innerHTML = filtered.map(p => {
-        const margin = p.margin || 0;
-        const profit = ((p.sell_price || 0) - (p.cost_price || 0)).toFixed(2);
-        const marginClass = margin >= 55 ? 'margin-good' : margin >= 40 ? 'margin-ok' : 'margin-low';
-        const catClass = 'badge-' + (p.category || '').toLowerCase().replace(/[^a-z]/g, '');
-        return `<tr class="clickable" ondblclick="editProduct(${p.id})">
-          <td><strong>${p.name || '—'}</strong></td>
-          <td style="font-family:monospace;font-size:0.8rem;">${p.sku || '—'}</td>
-          <td><span class="badge ${catClass}">${p.category || '—'}</span></td>
-          <td>$${(p.cost_price || 0).toFixed(2)}</td>
-          <td><strong>$${(p.sell_price || 0).toFixed(2)}</strong></td>
-          <td><span class="margin-bar ${marginClass}" style="width:${Math.min(margin, 80)}px;"></span> ${margin}%</td>
-          <td style="color:${parseFloat(profit) >= 2 ? 'var(--success)' : parseFloat(profit) >= 1 ? 'var(--warn)' : 'var(--hot)'};">$${profit}</td>
-          <td>${p.supplier || '—'}</td>
-          <td><button class="btn btn-secondary btn-sm" onclick="editProduct(${p.id})">Edit</button></td>
-        </tr>`;
+        const stock = getStock(p.id);
+        const reorder = getReorderPoint(p.id);
+        const margin = p.sell_price > 0 ? Math.round(((p.sell_price - (p.cost_price || 0)) / p.sell_price) * 100) : 0;
+        const status = getStockStatus(stock, reorder);
+        const rowClass = status === 'out' ? 'out-of-stock' : status === 'low' ? 'low-stock' : '';
+        const catClass = 'cat-' + (p.category || 'other');
+
+        return `
+          <tr class="${rowClass}">
+            <td><strong>${p.name}</strong></td>
+            <td><span class="cat-badge ${catClass}">${getCategoryLabel(p.category)}</span></td>
+            <td style="font-family:monospace;font-size:0.8rem;color:var(--muted);">${p.sku || '—'}</td>
+            <td>
+              <div class="stock-adjust">
+                <button onclick="quickAdjust(${p.id}, -1)">−</button>
+                <input type="number" value="${stock}" onchange="setStock(${p.id}, this.value)" min="0">
+                <button onclick="quickAdjust(${p.id}, 1)">+</button>
+              </div>
+            </td>
+            <td>${reorder}</td>
+            <td>$${(p.cost_price || 0).toFixed(2)}</td>
+            <td>$${(p.sell_price || 0).toFixed(2)}</td>
+            <td><strong>${margin}%</strong></td>
+            <td>${getStatusBadge(status)}</td>
+            <td>
+              <button class="btn btn-sm btn-icon" onclick="openEditProduct(${p.id})" title="Edit">✏️</button>
+              <button class="btn btn-sm btn-icon" onclick="addToShoppingList(${p.id})" title="Add to Shopping List">🛒</button>
+              <button class="btn btn-sm btn-icon" onclick="openAdjustModal(${p.id})" title="Log Adjustment">📝</button>
+            </td>
+          </tr>
+        `;
       }).join('');
     }
 
-    function renderSuppliers() {
-      const grid = document.getElementById('suppliers-grid');
-      const empty = document.getElementById('suppliers-empty');
-      if (suppliers.length === 0) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
-      empty.style.display = 'none';
-      grid.innerHTML = suppliers.map(s => {
-        const productCount = products.filter(p => p.supplier === s.name).length;
-        return `<div class="supplier-card clickable" ondblclick="editSupplier(${s.id})">
-          <h3>${s.name}</h3>
-          <p>${s.address || ''}</p>
-          <p>${s.contact || ''}</p>
-          <p style="margin-top:8px;">${s.notes || ''}</p>
-          <div style="margin-top:12px;">
-            <span class="supplier-tag">${s.supplier_type || 'wholesale'}</span>
-            <span class="supplier-tag">${productCount} products</span>
-            ${s.account_number ? `<span class="supplier-tag">Acct: ${s.account_number}</span>` : ''}
+    function renderShoppingList() {
+      const container = document.getElementById('shoppingBody');
+      if (shoppingList.length === 0) {
+        container.innerHTML = '<div class="shopping-empty">No items in shopping list. Click "Auto-Generate" to add products below reorder point.</div>';
+        document.getElementById('shoppingTotal').textContent = '$0.00';
+        return;
+      }
+
+      let total = 0;
+      container.innerHTML = shoppingList.map((item, idx) => {
+        const p = products.find(pr => pr.id === item.productId);
+        if (!p) return '';
+        const cost = (p.cost_price || 0) * item.qty;
+        total += cost;
+        return `
+          <div class="shopping-item ${item.ordered ? 'ordered' : ''}">
+            <input type="checkbox" ${item.ordered ? 'checked' : ''} onchange="toggleOrdered(${idx})">
+            <span class="item-name">${p.name}</span>
+            <input type="number" value="${item.qty}" min="1" style="width:60px;padding:4px;text-align:center;border:1px solid var(--border);border-radius:6px;" onchange="updateShoppingQty(${idx}, this.value)">
+            <span class="item-cost">$${cost.toFixed(2)}</span>
+            <button class="btn btn-sm btn-icon" onclick="removeFromShoppingList(${idx})">✕</button>
           </div>
-          <button class="btn btn-secondary btn-sm" style="margin-top:12px;" onclick="editSupplier(${s.id})">Edit</button>
-        </div>`;
+        `;
+      }).join('');
+
+      document.getElementById('shoppingTotal').textContent = '$' + total.toFixed(2);
+    }
+
+    function renderExpiring() {
+      const now = new Date();
+      const thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+      const expiring = products.filter(p => {
+        const exp = getExpiration(p.id);
+        if (!exp) return false;
+        const expDate = new Date(exp);
+        return expDate <= thirtyDays;
+      }).sort((a, b) => {
+        const expA = new Date(getExpiration(a.id));
+        const expB = new Date(getExpiration(b.id));
+        return expA - expB;
+      });
+
+      const container = document.getElementById('expiringList');
+      if (expiring.length === 0) {
+        container.innerHTML = '<div class="shopping-empty">🎉 No products expiring within 30 days!</div>';
+        return;
+      }
+
+      container.innerHTML = expiring.map(p => {
+        const exp = new Date(getExpiration(p.id));
+        const days = Math.ceil((exp - now) / (24 * 60 * 60 * 1000));
+        const daysClass = days <= 7 ? 'critical' : 'warning';
+        return `
+          <div class="expiring-item" onclick="openEditProduct(${p.id})" style="cursor:pointer;">
+            <span class="exp-product">${p.name}</span>
+            <span class="exp-date">${exp.toLocaleDateString()}</span>
+            <span class="exp-days ${daysClass}">${days <= 0 ? 'EXPIRED' : days + ' days'}</span>
+          </div>
+        `;
       }).join('');
     }
 
-    // Product Modal
-    function openProductModal(product) {
-      document.getElementById('product-modal-title').textContent = product ? 'Edit Product' : 'Add Product';
-      document.getElementById('product-id').value = product ? product.id : '';
-      document.getElementById('product-name').value = product ? product.name || '' : '';
-      document.getElementById('product-sku').value = product ? product.sku || '' : '';
-      document.getElementById('product-category').value = product ? product.category || 'Beverages' : 'Beverages';
-      document.getElementById('product-supplier').value = product ? product.supplier || '' : '';
-      document.getElementById('product-cost').value = product ? product.cost_price || '' : '';
-      document.getElementById('product-sell').value = product ? product.sell_price || '' : '';
-      document.getElementById('product-notes').value = product ? product.notes || '' : '';
-      document.getElementById('product-delete-btn').style.display = product ? 'inline-block' : 'none';
-      calcMargin();
-      document.getElementById('product-modal').classList.add('open');
+    function renderHistory() {
+      const typeFilter = document.getElementById('historyTypeFilter').value;
+      const dateFrom = document.getElementById('historyDateFrom').value;
+      const dateTo = document.getElementById('historyDateTo').value;
+
+      let filtered = history.filter(h => {
+        if (typeFilter !== 'all' && h.type !== typeFilter) return false;
+        if (dateFrom && h.date < dateFrom) return false;
+        if (dateTo && h.date > dateTo) return false;
+        return true;
+      }).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      const container = document.getElementById('historyLog');
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="shopping-empty">No inventory changes found for selected filters.</div>';
+        return;
+      }
+
+      container.innerHTML = filtered.slice(0, 50).map(h => {
+        const p = products.find(pr => pr.id === h.product_id);
+        const isPositive = h.type === 'received';
+        const icons = { received: '📥', sold: '💰', damaged: '💔', expired: '⏰', adjusted: '📝' };
+        return `
+          <div class="history-item">
+            <div class="history-icon ${h.type}">${icons[h.type] || '📝'}</div>
+            <div class="history-content">
+              <strong>${p ? p.name : 'Unknown Product'}</strong> — ${h.type.charAt(0).toUpperCase() + h.type.slice(1)}
+              ${h.notes ? `<br><span style="font-size:0.8rem;color:var(--muted);">${h.notes}</span>` : ''}
+              <div class="history-meta">${new Date(h.date).toLocaleString()}</div>
+            </div>
+            <div class="history-qty ${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : '-'}${h.qty}</div>
+          </div>
+        `;
+      }).join('');
     }
-    function closeProductModal() { document.getElementById('product-modal').classList.remove('open'); }
-    function editProduct(id) { const p = products.find(x => x.id === id); if (p) openProductModal(p); }
+
+    function renderCategories() {
+      const categories = ['beverages', 'snacks', 'candy', 'healthy', 'energy', 'incidentals'];
+      const icons = { beverages: '🥤', snacks: '🍪', candy: '🍬', healthy: '🥗', energy: '⚡', incidentals: '🧴' };
+
+      const container = document.getElementById('categoryCards');
+      container.innerHTML = categories.map(cat => {
+        const catProducts = products.filter(p => p.category === cat);
+        const totalStock = catProducts.reduce((sum, p) => sum + getStock(p.id), 0);
+        const lowCount = catProducts.filter(p => getStock(p.id) <= getReorderPoint(p.id) && getStock(p.id) > 0).length;
+        return `
+          <div class="category-card ${selectedCategory === cat ? 'active' : ''}" onclick="selectCategory('${cat}')">
+            <div class="cat-icon">${icons[cat]}</div>
+            <div class="cat-name">${getCategoryLabel(cat)}</div>
+            <div class="cat-stats">${catProducts.length} SKUs · ${totalStock} units${lowCount > 0 ? ` · <span style="color:var(--warn)">${lowCount} low</span>` : ''}</div>
+          </div>
+        `;
+      }).join('');
+
+      renderCategoryTable();
+    }
+
+    function renderCategoryTable() {
+      const filtered = selectedCategory === 'all' ? products : products.filter(p => p.category === selectedCategory);
+      const tbody = document.getElementById('categoryTableBody');
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--muted);">No products in this category</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(p => {
+        const stock = getStock(p.id);
+        const reorder = getReorderPoint(p.id);
+        const margin = p.sell_price > 0 ? Math.round(((p.sell_price - (p.cost_price || 0)) / p.sell_price) * 100) : 0;
+        const status = getStockStatus(stock, reorder);
+        return `
+          <tr>
+            <td><strong>${p.name}</strong></td>
+            <td style="font-family:monospace;font-size:0.8rem;">${p.sku || '—'}</td>
+            <td>${stock}</td>
+            <td>${getStatusBadge(status)}</td>
+            <td>$${(p.sell_price || 0).toFixed(2)}</td>
+            <td><strong>${margin}%</strong></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ===== HELPER FUNCTIONS =====
+    function getStock(productId) {
+      return inventory[productId]?.stock ?? 0;
+    }
+
+    function getReorderPoint(productId) {
+      return inventory[productId]?.reorder_point ?? 10;
+    }
+
+    function getExpiration(productId) {
+      return inventory[productId]?.expiration_date;
+    }
+
+    function getStockStatus(stock, reorder) {
+      if (stock <= 0) return 'out';
+      if (stock <= reorder) return 'low';
+      return 'good';
+    }
+
+    function getStatusBadge(status) {
+      if (status === 'out') return '<span class="badge badge-danger">Out of Stock</span>';
+      if (status === 'low') return '<span class="badge badge-warn">Low Stock</span>';
+      return '<span class="badge badge-success">In Stock</span>';
+    }
+
+    function getCategoryLabel(cat) {
+      const labels = { beverages: 'Beverages', snacks: 'Snacks', candy: 'Candy', healthy: 'Healthy', energy: 'Energy', incidentals: 'Incidentals' };
+      return labels[cat] || cat;
+    }
+
+    function isExpiringSoon(productId) {
+      const exp = getExpiration(productId);
+      if (!exp) return false;
+      const expDate = new Date(exp);
+      const thirtyDays = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      return expDate <= thirtyDays;
+    }
+
+    function generateSKU(name, category) {
+      const catPrefix = { beverages: 'BEV', snacks: 'SNK', candy: 'CND', healthy: 'HLT', energy: 'NRG', incidentals: 'INC' };
+      const prefix = catPrefix[category] || 'PRD';
+      const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+      return `${prefix}-${suffix}`;
+    }
+
+    // ===== TAB SWITCHING =====
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + tabId).style.display = 'block';
+      if (btn) btn.classList.add('active');
+    }
+
+    // ===== STOCK ADJUSTMENTS =====
+    async function quickAdjust(productId, delta) {
+      const current = getStock(productId);
+      const newStock = Math.max(0, current + delta);
+      await setStock(productId, newStock);
+    }
+
+    async function setStock(productId, newStock) {
+      newStock = parseInt(newStock) || 0;
+      const oldStock = getStock(productId);
+      inventory[productId] = inventory[productId] || {};
+      inventory[productId].stock = newStock;
+
+      // Log to history
+      const delta = newStock - oldStock;
+      if (delta !== 0) {
+        addHistoryEntry(productId, delta > 0 ? 'received' : 'adjusted', Math.abs(delta), 'Quick adjustment');
+      }
+
+      // Save to API
+      try {
+        await fetch(`/api/products/${productId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stock: newStock })
+        });
+      } catch (e) {
+        console.error('Failed to save stock:', e);
+      }
+
+      renderAll();
+    }
+
+    function addHistoryEntry(productId, type, qty, notes) {
+      const entry = {
+        id: Date.now(),
+        product_id: productId,
+        type,
+        qty,
+        notes,
+        date: new Date().toISOString()
+      };
+      history.unshift(entry);
+      localStorage.setItem('inventoryHistory', JSON.stringify(history.slice(0, 500)));
+
+      // Try to save to API
+      fetch('/api/inventory/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry)
+      }).catch(() => {});
+    }
+
+    // ===== SHOPPING LIST =====
+    function loadShoppingListFromStorage() {
+      shoppingList = JSON.parse(localStorage.getItem('shoppingList') || '[]');
+    }
+
+    function saveShoppingList() {
+      localStorage.setItem('shoppingList', JSON.stringify(shoppingList));
+    }
+
+    function addToShoppingList(productId) {
+      const p = products.find(pr => pr.id === productId);
+      if (!p) return;
+
+      const existing = shoppingList.find(i => i.productId === productId);
+      if (existing) {
+        existing.qty += 1;
+      } else {
+        const stock = getStock(productId);
+        const reorder = getReorderPoint(productId);
+        const parLevel = reorder * 2; // Restock to 2x reorder point
+        const qtyNeeded = Math.max(1, parLevel - stock);
+        shoppingList.push({ productId, qty: qtyNeeded, ordered: false });
+      }
+
+      saveShoppingList();
+      renderShoppingList();
+      showToast(`Added ${p.name} to shopping list`);
+    }
+
+    function removeFromShoppingList(idx) {
+      shoppingList.splice(idx, 1);
+      saveShoppingList();
+      renderShoppingList();
+    }
+
+    function updateShoppingQty(idx, qty) {
+      shoppingList[idx].qty = parseInt(qty) || 1;
+      saveShoppingList();
+      renderShoppingList();
+    }
+
+    function toggleOrdered(idx) {
+      shoppingList[idx].ordered = !shoppingList[idx].ordered;
+      saveShoppingList();
+      renderShoppingList();
+    }
+
+    function autoGenerateShoppingList() {
+      const needsRestock = products.filter(p => {
+        const stock = getStock(p.id);
+        const reorder = getReorderPoint(p.id);
+        return stock <= reorder;
+      });
+
+      needsRestock.forEach(p => {
+        if (!shoppingList.find(i => i.productId === p.id)) {
+          const stock = getStock(p.id);
+          const parLevel = getReorderPoint(p.id) * 2;
+          const qtyNeeded = Math.max(1, parLevel - stock);
+          shoppingList.push({ productId: p.id, qty: qtyNeeded, ordered: false });
+        }
+      });
+
+      saveShoppingList();
+      renderShoppingList();
+      showToast(`Added ${needsRestock.length} products to shopping list`);
+    }
+
+    function clearShoppingList() {
+      if (!confirm('Clear entire shopping list?')) return;
+      shoppingList = [];
+      saveShoppingList();
+      renderShoppingList();
+    }
+
+    function markAllOrdered() {
+      shoppingList.forEach(item => item.ordered = true);
+      saveShoppingList();
+      renderShoppingList();
+      showToast('All items marked as ordered');
+    }
+
+    function copyShoppingList() {
+      const lines = ['🛒 COSTCO SHOPPING LIST', '─'.repeat(30), ''];
+      let total = 0;
+
+      shoppingList.filter(i => !i.ordered).forEach(item => {
+        const p = products.find(pr => pr.id === item.productId);
+        if (!p) return;
+        const cost = (p.cost_price || 0) * item.qty;
+        total += cost;
+        lines.push(`☐ ${p.name} × ${item.qty} ($${cost.toFixed(2)})`);
+      });
+
+      lines.push('', '─'.repeat(30));
+      lines.push(`TOTAL: $${total.toFixed(2)}`);
+      lines.push('', `Generated: ${new Date().toLocaleDateString()}`);
+
+      navigator.clipboard.writeText(lines.join('\n'));
+      showToast('Shopping list copied to clipboard!');
+    }
+
+    // ===== MODALS =====
+    function openModal(id) {
+      document.getElementById(id).classList.add('open');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('open');
+    }
+
+    function openAddProduct() {
+      document.getElementById('productName').value = '';
+      document.getElementById('productCategory').value = 'beverages';
+      document.getElementById('productSKU').value = '';
+      document.getElementById('productCost').value = '';
+      document.getElementById('productSell').value = '';
+      document.getElementById('productStock').value = '0';
+      document.getElementById('productReorder').value = '10';
+      document.getElementById('productExpiration').value = '';
+      openModal('addProductModal');
+    }
 
     async function saveProduct() {
-      const id = document.getElementById('product-id').value;
-      const data = {
-        name: document.getElementById('product-name').value,
-        sku: document.getElementById('product-sku').value,
-        category: document.getElementById('product-category').value,
-        supplier: document.getElementById('product-supplier').value,
-        cost_price: parseFloat(document.getElementById('product-cost').value) || 0,
-        sell_price: parseFloat(document.getElementById('product-sell').value) || 0,
-        notes: document.getElementById('product-notes').value
-      };
-      if (id) {
-        await fetch(`/api/products/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-      } else {
-        await fetch('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      const name = document.getElementById('productName').value.trim();
+      const category = document.getElementById('productCategory').value;
+      const sku = document.getElementById('productSKU').value.trim() || generateSKU(name, category);
+      const cost_price = parseFloat(document.getElementById('productCost').value) || 0;
+      const sell_price = parseFloat(document.getElementById('productSell').value) || 0;
+      const stock = parseInt(document.getElementById('productStock').value) || 0;
+      const reorder_point = parseInt(document.getElementById('productReorder').value) || 10;
+      const expiration_date = document.getElementById('productExpiration').value || null;
+
+      if (!name) {
+        alert('Product name is required');
+        return;
       }
-      closeProductModal();
-      loadData();
+
+      try {
+        const res = await fetch('/api/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, category, sku, cost_price, sell_price, stock, reorder_point, expiration_date })
+        });
+
+        if (res.ok) {
+          closeModal('addProductModal');
+          await loadProducts();
+          if (stock > 0) {
+            addHistoryEntry(products[products.length - 1].id, 'received', stock, 'Initial stock');
+          }
+          renderAll();
+          showToast(`Added ${name}`);
+        } else {
+          alert('Failed to add product');
+        }
+      } catch (e) {
+        console.error('Error:', e);
+        alert('Error adding product');
+      }
+    }
+
+    function openEditProduct(productId) {
+      const p = products.find(pr => pr.id === productId);
+      if (!p) return;
+
+      document.getElementById('editProductId').value = productId;
+      document.getElementById('editProductName').value = p.name;
+      document.getElementById('editProductCategory').value = p.category || 'beverages';
+      document.getElementById('editProductSKU').value = p.sku || '';
+      document.getElementById('editProductCost').value = p.cost_price || '';
+      document.getElementById('editProductSell').value = p.sell_price || '';
+      document.getElementById('editProductStock').value = getStock(productId);
+      document.getElementById('editProductReorder').value = getReorderPoint(productId);
+      document.getElementById('editProductExpiration').value = getExpiration(productId) || '';
+      openModal('editProductModal');
+    }
+
+    async function updateProduct() {
+      const productId = parseInt(document.getElementById('editProductId').value);
+      const name = document.getElementById('editProductName').value.trim();
+      const category = document.getElementById('editProductCategory').value;
+      const sku = document.getElementById('editProductSKU').value.trim();
+      const cost_price = parseFloat(document.getElementById('editProductCost').value) || 0;
+      const sell_price = parseFloat(document.getElementById('editProductSell').value) || 0;
+      const stock = parseInt(document.getElementById('editProductStock').value) || 0;
+      const reorder_point = parseInt(document.getElementById('editProductReorder').value) || 10;
+      const expiration_date = document.getElementById('editProductExpiration').value || null;
+
+      if (!name) {
+        alert('Product name is required');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/products/${productId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, category, sku, cost_price, sell_price, stock, reorder_point, expiration_date })
+        });
+
+        if (res.ok) {
+          closeModal('editProductModal');
+          await loadProducts();
+          inventory[productId] = { stock, reorder_point, expiration_date };
+          renderAll();
+          showToast(`Updated ${name}`);
+        } else {
+          alert('Failed to update product');
+        }
+      } catch (e) {
+        console.error('Error:', e);
+        alert('Error updating product');
+      }
     }
 
     async function deleteProduct() {
-      const id = document.getElementById('product-id').value;
-      if (!id || !confirm('Delete this product?')) return;
-      await fetch(`/api/products/${id}`, { method: 'DELETE' });
-      closeProductModal();
-      loadData();
-    }
+      const productId = parseInt(document.getElementById('editProductId').value);
+      const p = products.find(pr => pr.id === productId);
+      if (!confirm(`Delete "${p?.name}"? This cannot be undone.`)) return;
 
-    // Supplier Modal
-    function openSupplierModal(supplier) {
-      document.getElementById('supplier-modal-title').textContent = supplier ? 'Edit Supplier' : 'Add Supplier';
-      document.getElementById('supplier-id').value = supplier ? supplier.id : '';
-      document.getElementById('supplier-name').value = supplier ? supplier.name || '' : '';
-      document.getElementById('supplier-type').value = supplier ? supplier.supplier_type || 'wholesale' : 'wholesale';
-      document.getElementById('supplier-address').value = supplier ? supplier.address || '' : '';
-      document.getElementById('supplier-contact').value = supplier ? supplier.contact || '' : '';
-      document.getElementById('supplier-account').value = supplier ? supplier.account_number || '' : '';
-      document.getElementById('supplier-notes').value = supplier ? supplier.notes || '' : '';
-      document.getElementById('supplier-delete-btn').style.display = supplier ? 'inline-block' : 'none';
-      document.getElementById('supplier-modal').classList.add('open');
-    }
-    function closeSupplierModal() { document.getElementById('supplier-modal').classList.remove('open'); }
-    function editSupplier(id) { const s = suppliers.find(x => x.id === id); if (s) openSupplierModal(s); }
-
-    async function saveSupplier() {
-      const id = document.getElementById('supplier-id').value;
-      const data = {
-        name: document.getElementById('supplier-name').value,
-        supplier_type: document.getElementById('supplier-type').value,
-        address: document.getElementById('supplier-address').value,
-        contact: document.getElementById('supplier-contact').value,
-        account_number: document.getElementById('supplier-account').value,
-        notes: document.getElementById('supplier-notes').value
-      };
-      if (id) {
-        await fetch(`/api/suppliers/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-      } else {
-        await fetch('/api/suppliers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-      }
-      closeSupplierModal();
-      loadData();
-    }
-
-    async function deleteSupplier() {
-      const id = document.getElementById('supplier-id').value;
-      if (!id || !confirm('Delete this supplier?')) return;
-      await fetch(`/api/suppliers/${id}`, { method: 'DELETE' });
-      closeSupplierModal();
-      loadData();
-    }
-
-    // Seed starter products from pricing reference
-    async function seedProducts() {
-      if (!confirm('Load starter product catalog? (Existing products won\'t be duplicated)')) return;
-      const starters = [
-        // Beverages
-        { name: 'Core Water 30oz', sku: 'BEV-CORE-30', category: 'Beverages', cost_price: 1.29, sell_price: 2.99, supplier: "Sam's Club" },
-        { name: 'Monster Energy 16oz', sku: 'BEV-MNSTR-16', category: 'Beverages', cost_price: 1.65, sell_price: 3.99, supplier: "Sam's Club" },
-        { name: 'Red Bull 12oz', sku: 'BEV-RDBULL-12', category: 'Beverages', cost_price: 1.85, sell_price: 4.49, supplier: "Sam's Club" },
-        { name: 'Coca-Cola 20oz', sku: 'BEV-COKE-20', category: 'Beverages', cost_price: 0.75, sell_price: 2.49, supplier: "Sam's Club" },
-        { name: 'Pepsi 20oz', sku: 'BEV-PEPSI-20', category: 'Beverages', cost_price: 0.75, sell_price: 2.49, supplier: "Sam's Club" },
-        { name: 'Gatorade 28oz', sku: 'BEV-GATOR-28', category: 'Beverages', cost_price: 1.15, sell_price: 2.99, supplier: "Sam's Club" },
-        { name: 'Body Armor 16oz', sku: 'BEV-BARM-16', category: 'Beverages', cost_price: 1.25, sell_price: 3.49, supplier: "Sam's Club" },
-        { name: 'Celsius 12oz', sku: 'BEV-CELS-12', category: 'Beverages', cost_price: 1.40, sell_price: 3.49, supplier: "Costco Business Center" },
-        { name: 'Liquid Death 19.2oz', sku: 'BEV-LQDTH-19', category: 'Beverages', cost_price: 1.15, sell_price: 2.99, supplier: "Sam's Club" },
-        { name: 'Dr Pepper 20oz', sku: 'BEV-DRPEP-20', category: 'Beverages', cost_price: 0.75, sell_price: 2.49, supplier: "Sam's Club" },
-        // Protein/Health
-        { name: 'Fair Life Core Power 42g', sku: 'PRO-FAIR-42', category: 'Protein/Health', cost_price: 3.49, sell_price: 7.99, supplier: "Costco Business Center" },
-        { name: 'Fair Life Core Power 26g', sku: 'PRO-FAIR-26', category: 'Protein/Health', cost_price: 2.49, sell_price: 5.49, supplier: "Costco Business Center" },
-        { name: 'Premier Protein Shake', sku: 'PRO-PREM-11', category: 'Protein/Health', cost_price: 1.89, sell_price: 4.49, supplier: "Sam's Club" },
-        { name: 'Clif Bar', sku: 'PRO-CLIF-01', category: 'Protein/Health', cost_price: 0.85, sell_price: 2.49, supplier: "Costco Business Center" },
-        { name: 'Kind Bar', sku: 'PRO-KIND-01', category: 'Protein/Health', cost_price: 0.95, sell_price: 2.49, supplier: "Costco Business Center" },
-        { name: 'Built Bar', sku: 'PRO-BUILT-01', category: 'Protein/Health', cost_price: 1.15, sell_price: 2.99, supplier: "Direct" },
-        // Snacks
-        { name: 'Cheetos Flamin Hot', sku: 'SNK-CHTFH-01', category: 'Snacks', cost_price: 0.55, sell_price: 2.25, supplier: "Vistar" },
-        { name: 'Doritos Nacho', sku: 'SNK-DORNC-01', category: 'Snacks', cost_price: 0.55, sell_price: 2.25, supplier: "Vistar" },
-        { name: 'Lays Classic', sku: 'SNK-LAYS-01', category: 'Snacks', cost_price: 0.55, sell_price: 2.25, supplier: "Vistar" },
-        { name: 'Takis Fuego', sku: 'SNK-TAKIS-01', category: 'Snacks', cost_price: 0.65, sell_price: 2.25, supplier: "Sam's Club" },
-        { name: 'PopCorners', sku: 'SNK-POPC-01', category: 'Snacks', cost_price: 0.65, sell_price: 2.25, supplier: "Costco Business Center" },
-        { name: 'Maruchan Ramen', sku: 'SNK-RAMN-01', category: 'Snacks', cost_price: 0.25, sell_price: 1.50, supplier: "Sam's Club", notes: '70%+ margin — top performer' },
-        { name: 'Trail Mix Pack', sku: 'SNK-TRAIL-01', category: 'Snacks', cost_price: 0.65, sell_price: 2.25, supplier: "Sam's Club" },
-        // Candy
-        { name: 'Snickers', sku: 'CDY-SNKRS-01', category: 'Candy', cost_price: 0.65, sell_price: 2.00, supplier: "Sam's Club" },
-        { name: "Reese's PB Cups", sku: 'CDY-REESE-01', category: 'Candy', cost_price: 0.65, sell_price: 2.00, supplier: "Sam's Club" },
-        { name: 'M&Ms Peanut', sku: 'CDY-MMS-01', category: 'Candy', cost_price: 0.65, sell_price: 2.00, supplier: "Sam's Club" },
-        { name: 'Kit Kat', sku: 'CDY-KITKT-01', category: 'Candy', cost_price: 0.60, sell_price: 2.00, supplier: "Sam's Club" },
-        // Essentials
-        { name: 'Advil 2-pack', sku: 'ESS-ADVIL-2', category: 'Essentials', cost_price: 0.25, sell_price: 2.00, supplier: "Sam's Club", notes: 'Great margin — residential must-have' },
-        { name: 'Tide Pod 1-pack', sku: 'ESS-TIDE-1', category: 'Essentials', cost_price: 0.45, sell_price: 2.50, supplier: "Sam's Club" },
-        { name: 'Travel Toothbrush Kit', sku: 'ESS-TOOTH-01', category: 'Essentials', cost_price: 0.50, sell_price: 3.00, supplier: "Amazon" },
-        { name: 'Phone Charger Cable', sku: 'ESS-CHRG-01', category: 'Essentials', cost_price: 1.50, sell_price: 5.99, supplier: "Amazon" },
-        // Frozen
-        { name: 'Häagen-Dazs Pint', sku: 'FRZ-HAAG-01', category: 'Frozen', cost_price: 3.25, sell_price: 6.99, supplier: "Costco Business Center" },
-        { name: 'Ice Cream Sandwich', sku: 'FRZ-ICSAND-01', category: 'Frozen', cost_price: 0.75, sell_price: 2.50, supplier: "Sam's Club" },
-        { name: 'Hot Pocket', sku: 'FRZ-HOTPK-01', category: 'Frozen', cost_price: 1.15, sell_price: 3.49, supplier: "Sam's Club" },
-        { name: 'Jimmy Dean Sandwich', sku: 'FRZ-JDEAN-01', category: 'Frozen', cost_price: 1.25, sell_price: 3.99, supplier: "Costco Business Center" },
-      ];
-
-      // Don't add dupes
-      const existingSkus = new Set(products.map(p => p.sku));
-      const toAdd = starters.filter(s => !existingSkus.has(s.sku));
-
-      for (const p of toAdd) {
-        await fetch('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) });
-      }
-
-      // Seed default suppliers too
-      const existingSuppliers = new Set(suppliers.map(s => s.name));
-      const defaultSuppliers = [
-        { name: "Sam's Club", supplier_type: 'wholesale', address: 'Multiple Las Vegas locations', notes: 'Best for beverages, candy, bulk snacks. Business member pricing.' },
-        { name: "Costco Business Center", supplier_type: 'wholesale', address: '3250 S Highland Dr, Las Vegas, NV 89109', notes: 'Single-SKU cases, protein products, frozen. Better per-unit pricing on protein.' },
-        { name: "Vistar", supplier_type: 'distributor', address: 'Las Vegas distribution center', notes: 'Bulk distributor. 3-12% rebates. Single-SKU ordering. Best for snack chips at scale.' },
-      ];
-      for (const s of defaultSuppliers) {
-        if (!existingSuppliers.has(s.name)) {
-          await fetch('/api/suppliers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(s) });
+      try {
+        const res = await fetch(`/api/products/${productId}`, { method: 'DELETE' });
+        if (res.ok) {
+          closeModal('editProductModal');
+          await loadProducts();
+          delete inventory[productId];
+          renderAll();
+          showToast('Product deleted');
         }
+      } catch (e) {
+        console.error('Error:', e);
+        alert('Error deleting product');
+      }
+    }
+
+    function openReceiveStock() {
+      const select = document.getElementById('receiveProduct');
+      select.innerHTML = products.map(p => `<option value="${p.id}">${p.name} (current: ${getStock(p.id)})</option>`).join('');
+      document.getElementById('receiveQty').value = '';
+      document.getElementById('receiveExpiration').value = '';
+      document.getElementById('receiveNotes').value = '';
+      openModal('receiveStockModal');
+    }
+
+    async function receiveStock() {
+      const productId = parseInt(document.getElementById('receiveProduct').value);
+      const qty = parseInt(document.getElementById('receiveQty').value) || 0;
+      const expiration = document.getElementById('receiveExpiration').value || null;
+      const notes = document.getElementById('receiveNotes').value.trim();
+
+      if (!qty || qty <= 0) {
+        alert('Please enter quantity received');
+        return;
       }
 
-      loadData();
+      const newStock = getStock(productId) + qty;
+      inventory[productId] = inventory[productId] || {};
+      inventory[productId].stock = newStock;
+      if (expiration) inventory[productId].expiration_date = expiration;
+
+      addHistoryEntry(productId, 'received', qty, notes || 'Stock received');
+
+      try {
+        await fetch(`/api/products/${productId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stock: newStock, expiration_date: expiration })
+        });
+      } catch (e) {
+        console.error('Error saving:', e);
+      }
+
+      closeModal('receiveStockModal');
+      renderAll();
+      showToast(`Received ${qty} units`);
     }
 
-    function switchTab(tab) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
-      document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
-      document.getElementById(`tab-${tab}`).style.display = 'block';
+    function openAdjustModal(productId) {
+      const p = products.find(pr => pr.id === productId);
+      if (!p) return;
+
+      document.getElementById('adjustProductId').value = productId;
+      document.getElementById('adjustProductName').textContent = p.name + ' (current stock: ' + getStock(productId) + ')';
+      document.getElementById('adjustType').value = 'sold';
+      document.getElementById('adjustQty').value = '';
+      document.getElementById('adjustNotes').value = '';
+      openModal('adjustModal');
     }
 
-    document.querySelectorAll('.modal-overlay').forEach(m => {
-      m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+    async function saveAdjustment() {
+      const productId = parseInt(document.getElementById('adjustProductId').value);
+      const type = document.getElementById('adjustType').value;
+      const qty = parseInt(document.getElementById('adjustQty').value) || 0;
+      const notes = document.getElementById('adjustNotes').value.trim();
+
+      if (!qty || qty <= 0) {
+        alert('Please enter adjustment quantity');
+        return;
+      }
+
+      const current = getStock(productId);
+      const newStock = Math.max(0, current - qty);
+      inventory[productId].stock = newStock;
+
+      addHistoryEntry(productId, type, qty, notes);
+
+      try {
+        await fetch(`/api/products/${productId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stock: newStock })
+        });
+      } catch (e) {
+        console.error('Error saving:', e);
+      }
+
+      closeModal('adjustModal');
+      renderAll();
+      showToast(`Logged ${type}: ${qty} units`);
+    }
+
+    function selectCategory(cat) {
+      selectedCategory = cat;
+      renderCategories();
+    }
+
+    // ===== TOAST =====
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#1a202c;color:#fff;padding:12px 20px;border-radius:8px;font-size:0.9rem;z-index:9999;animation:fadeIn 0.3s;';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    // Close modals on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', e => {
+        if (e.target === overlay) overlay.classList.remove('open');
+      });
     });
 
-    loadData();
+    // Initialize
+    init();
   </script>
-<script src="/nav.js"></script>
 </body>
 </html>

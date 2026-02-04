@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <title>Machine Locator Tool — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #0f172a;
+      --muted: #64748b; --accent: #3b82f6; --accent-light: #eff6ff;
+      --green: #22c55e; --green-light: #f0fdf4;
+      --amber: #f59e0b; --amber-light: #fffbeb;
+      --red: #ef4444; --red-light: #fef2f2;
+      --purple: #8b5cf6; --purple-light: #f5f3ff;
+      --radius: 12px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+    
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 50%, #7c3aed 100%);
+      color: #fff; padding: 24px 32px;
+    }
+    .header-content { max-width: 1200px; margin: 0 auto; }
+    .header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 12px; }
+    .header p { font-size: 0.85rem; opacity: 0.85; }
+    .back-link { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 12px; }
+    .back-link:hover { color: #fff; }
+    
+    /* Main */
+    .main { max-width: 1200px; margin: 0 auto; padding: 28px; }
+    
+    /* Wizard Steps */
+    .wizard-steps {
+      display: flex; gap: 8px; margin-bottom: 32px; flex-wrap: wrap;
+    }
+    .wizard-step {
+      flex: 1; min-width: 140px; padding: 16px 20px; background: var(--card);
+      border: 2px solid var(--border); border-radius: var(--radius);
+      cursor: pointer; transition: all 0.2s; text-align: center;
+    }
+    .wizard-step:hover { border-color: var(--accent); }
+    .wizard-step.active { border-color: var(--accent); background: var(--accent-light); }
+    .wizard-step.completed { border-color: var(--green); background: var(--green-light); }
+    .wizard-step .step-num {
+      width: 28px; height: 28px; border-radius: 50%; background: var(--border);
+      color: var(--muted); font-weight: 700; font-size: 0.85rem;
+      display: inline-flex; align-items: center; justify-content: center; margin-bottom: 8px;
+    }
+    .wizard-step.active .step-num { background: var(--accent); color: #fff; }
+    .wizard-step.completed .step-num { background: var(--green); color: #fff; }
+    .wizard-step .step-label { font-size: 0.8rem; font-weight: 600; color: var(--text); }
+    
+    /* Panels */
+    .panel { display: none; }
+    .panel.active { display: block; }
+    
+    /* Card */
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 24px 28px; margin-bottom: 20px;
+    }
+    .card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+    
+    /* Form */
+    .form-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 0.9rem; color: var(--text); background: #fff; transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none; border-color: var(--accent);
+    }
+    .form-hint { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+    
+    /* Checkbox Grid */
+    .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+    .checkbox-item {
+      display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .checkbox-item:hover { border-color: var(--accent); }
+    .checkbox-item.selected { border-color: var(--accent); background: var(--accent-light); }
+    .checkbox-item input { display: none; }
+    .checkbox-item .icon { font-size: 1.2rem; }
+    .checkbox-item .label { font-size: 0.85rem; font-weight: 500; }
+    
+    /* Traffic Pattern */
+    .traffic-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .traffic-item {
+      padding: 14px; text-align: center; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; cursor: pointer; transition: all 0.2s;
+    }
+    .traffic-item:hover { border-color: var(--accent); }
+    .traffic-item.selected { border-color: var(--accent); background: var(--accent-light); }
+    .traffic-item .icon { font-size: 1.4rem; margin-bottom: 6px; }
+    .traffic-item .label { font-size: 0.78rem; font-weight: 600; }
+    
+    /* Button */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px;
+      background: var(--accent); color: #fff; border: none; border-radius: 8px;
+      font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .btn:hover { background: #2563eb; }
+    .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--card); border-color: var(--accent); }
+    .btn-success { background: var(--green); }
+    .btn-success:hover { background: #16a34a; }
+    .btn-row { display: flex; gap: 12px; margin-top: 24px; }
+    
+    /* Results */
+    .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+    .result-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 20px; position: relative; overflow: hidden;
+    }
+    .result-card.recommended { border-color: var(--green); }
+    .result-card.recommended::before {
+      content: '⭐ RECOMMENDED'; position: absolute; top: 12px; right: -30px;
+      background: var(--green); color: #fff; font-size: 0.65rem; font-weight: 700;
+      padding: 4px 36px; transform: rotate(45deg);
+    }
+    .result-card .rank { 
+      font-size: 1.5rem; font-weight: 800; color: var(--accent); margin-bottom: 8px;
+    }
+    .result-card .location-name { font-size: 1rem; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+    .result-card .location-icon { font-size: 1.3rem; }
+    .result-card .score { 
+      display: inline-block; padding: 4px 10px; background: var(--accent-light); color: var(--accent);
+      border-radius: 20px; font-size: 0.75rem; font-weight: 700; margin-bottom: 12px;
+    }
+    .result-card .score.high { background: var(--green-light); color: var(--green); }
+    .result-card .score.medium { background: var(--amber-light); color: var(--amber); }
+    .result-card .reasoning { font-size: 0.85rem; color: var(--muted); line-height: 1.5; margin-bottom: 12px; }
+    .result-card .pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .result-card .pros, .result-card .cons { font-size: 0.78rem; }
+    .result-card .pros-title, .result-card .cons-title { font-weight: 700; margin-bottom: 4px; }
+    .result-card .pros-title { color: var(--green); }
+    .result-card .cons-title { color: var(--red); }
+    .result-card .pros li, .result-card .cons li { margin-left: 14px; margin-bottom: 2px; color: var(--text); }
+    
+    /* Calculator */
+    .calc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px; }
+    .calc-card {
+      background: var(--bg); border-radius: var(--radius); padding: 20px; text-align: center;
+    }
+    .calc-card .calc-icon { font-size: 2rem; margin-bottom: 8px; }
+    .calc-card .calc-value { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
+    .calc-card .calc-label { font-size: 0.78rem; color: var(--muted); font-weight: 600; text-transform: uppercase; }
+    .calc-card.highlight { background: var(--green-light); }
+    .calc-card.highlight .calc-value { color: var(--green); }
+    
+    /* Checklist */
+    .checklist { list-style: none; }
+    .checklist-item {
+      display: flex; align-items: flex-start; gap: 12px; padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .checklist-item:last-child { border-bottom: none; }
+    .checklist-checkbox {
+      width: 22px; height: 22px; border: 2px solid var(--border); border-radius: 4px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; color: transparent; transition: all 0.2s; flex-shrink: 0; margin-top: 2px;
+    }
+    .checklist-checkbox.checked { background: var(--green); border-color: var(--green); color: #fff; }
+    .checklist-content { flex: 1; }
+    .checklist-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 2px; }
+    .checklist-desc { font-size: 0.8rem; color: var(--muted); }
+    .checklist-category {
+      font-size: 0.7rem; font-weight: 700; color: var(--accent); text-transform: uppercase;
+      letter-spacing: 0.5px; margin-top: 24px; margin-bottom: 8px; padding-bottom: 8px;
+      border-bottom: 2px solid var(--accent-light);
+    }
+    
+    /* Survey Form */
+    .survey-section { margin-bottom: 28px; }
+    .survey-section-title {
+      font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 16px;
+      padding-bottom: 8px; border-bottom: 2px solid var(--accent-light);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .survey-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px; }
+    .survey-field {
+      background: var(--bg); padding: 12px 14px; border-radius: 8px;
+    }
+    .survey-field label { font-size: 0.78rem; color: var(--muted); display: block; margin-bottom: 4px; }
+    .survey-field input, .survey-field select, .survey-field textarea {
+      width: 100%; border: none; background: transparent; font-size: 0.9rem;
+      color: var(--text); outline: none;
+    }
+    .survey-field textarea { resize: vertical; min-height: 60px; }
+    
+    /* Print */
+    .print-only { display: none; }
+    @media print {
+      .no-print { display: none !important; }
+      .print-only { display: block; }
+      .header { background: #1e3a5f !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .card { break-inside: avoid; }
+      body { background: #fff; }
+    }
+    
+    /* Warning Banner */
+    .warning-banner {
+      background: var(--red-light); border: 1px solid var(--red); border-radius: 8px;
+      padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: flex-start; gap: 12px;
+    }
+    .warning-banner .icon { font-size: 1.3rem; }
+    .warning-banner .content { flex: 1; }
+    .warning-banner .title { font-weight: 700; color: var(--red); margin-bottom: 4px; }
+    .warning-banner .desc { font-size: 0.85rem; color: var(--text); }
+    
+    /* Location Types */
+    .location-types { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .location-type-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 20px; transition: all 0.2s;
+    }
+    .location-type-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .location-type-card .type-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .location-type-card .type-icon { font-size: 2rem; }
+    .location-type-card .type-name { font-size: 1rem; font-weight: 700; }
+    .location-type-card .type-score { font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+    .type-score.excellent { background: var(--green-light); color: var(--green); }
+    .type-score.good { background: var(--accent-light); color: var(--accent); }
+    .type-score.moderate { background: var(--amber-light); color: var(--amber); }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .form-row, .survey-row { grid-template-columns: 1fr; }
+      .calc-grid { grid-template-columns: 1fr; }
+      .traffic-grid { grid-template-columns: repeat(2, 1fr); }
+      .wizard-steps { flex-direction: column; }
+      .wizard-step { min-width: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header no-print">
+    <div class="header-content">
+      <a href="/home" class="back-link">← Back to Dashboard</a>
+      <h1>📍 Machine Locator Tool</h1>
+      <p>Find the optimal placement for vending machines within a property</p>
+    </div>
+  </div>
+  
+  <div class="print-only" style="padding: 20px; text-align: center; border-bottom: 2px solid #1e3a5f;">
+    <h1 style="margin: 0;">Kande VendTech — Site Survey</h1>
+    <p style="margin: 4px 0 0; color: #666;">Machine Location Assessment</p>
+  </div>
+  
+  <div class="main">
+    <!-- Wizard Steps -->
+    <div class="wizard-steps no-print">
+      <div class="wizard-step active" data-step="1">
+        <div class="step-num">1</div>
+        <div class="step-label">Property Info</div>
+      </div>
+      <div class="wizard-step" data-step="2">
+        <div class="step-num">2</div>
+        <div class="step-label">Recommendations</div>
+      </div>
+      <div class="wizard-step" data-step="3">
+        <div class="step-num">3</div>
+        <div class="step-label">Location Guide</div>
+      </div>
+      <div class="wizard-step" data-step="4">
+        <div class="step-num">4</div>
+        <div class="step-label">Calculator</div>
+      </div>
+      <div class="wizard-step" data-step="5">
+        <div class="step-num">5</div>
+        <div class="step-label">Photo Checklist</div>
+      </div>
+      <div class="wizard-step" data-step="6">
+        <div class="step-num">6</div>
+        <div class="step-label">Site Survey</div>
+      </div>
+    </div>
+    
+    <!-- Panel 1: Property Assessment Form -->
+    <div class="panel active" id="panel-1">
+      <div class="card">
+        <div class="card-title">🏢 Property Assessment</div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Property Name</label>
+            <input type="text" id="property-name" placeholder="e.g., Parkway Towers Apartments">
+          </div>
+          <div class="form-group">
+            <label>Property Type</label>
+            <select id="property-type">
+              <option value="">Select type...</option>
+              <option value="apartments">🏠 Apartment Complex</option>
+              <option value="luxury_apartments">🏙️ Luxury Apartments (200+ units)</option>
+              <option value="senior_living">👴 Senior Living / 55+</option>
+              <option value="office">🏢 Office Building</option>
+              <option value="manufacturing">🏭 Manufacturing Facility</option>
+              <option value="warehouse">📦 Warehouse / Distribution Center</option>
+              <option value="healthcare">🏥 Healthcare Facility</option>
+              <option value="recreation">⛹️ Recreation Center / YMCA</option>
+              <option value="hotel">🏨 Hotel</option>
+              <option value="school">🏫 School (K-12)</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Total Units / Employees</label>
+            <input type="number" id="total-units" placeholder="e.g., 250">
+            <div class="form-hint">Apartments: # of units | Office/Industrial: # of employees</div>
+          </div>
+          <div class="form-group">
+            <label>Number of Buildings</label>
+            <input type="number" id="num-buildings" placeholder="e.g., 3" value="1">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>Property Address</label>
+          <input type="text" id="property-address" placeholder="e.g., 123 Main St, Henderson, NV 89012">
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-title">🏋️ Available Amenities</div>
+        <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 16px;">Select all that apply — these determine potential placement locations</p>
+        
+        <div class="checkbox-grid" id="amenities">
+          <label class="checkbox-item" data-value="lobby">
+            <input type="checkbox" name="amenity">
+            <span class="icon">🚪</span>
+            <span class="label">Lobby</span>
+          </label>
+          <label class="checkbox-item" data-value="breakroom">
+            <input type="checkbox" name="amenity">
+            <span class="icon">☕</span>
+            <span class="label">Break Room</span>
+          </label>
+          <label class="checkbox-item" data-value="gym">
+            <input type="checkbox" name="amenity">
+            <span class="icon">🏋️</span>
+            <span class="label">Gym / Fitness</span>
+          </label>
+          <label class="checkbox-item" data-value="pool">
+            <input type="checkbox" name="amenity">
+            <span class="icon">🏊</span>
+            <span class="label">Pool Area</span>
+          </label>
+          <label class="checkbox-item" data-value="clubhouse">
+            <input type="checkbox" name="amenity">
+            <span class="icon">🎉</span>
+            <span class="label">Clubhouse</span>
+          </label>
+          <label class="checkbox-item" data-value="mailroom">
+            <input type="checkbox" name="amenity">
+            <span class="icon">📬</span>
+            <span class="label">Mail Room</span>
+          </label>
+          <label class="checkbox-item" data-value="laundry">
+            <input type="checkbox" name="amenity">
+            <span class="icon">🧺</span>
+            <span class="label">Laundry Room</span>
+          </label>
+          <label class="checkbox-item" data-value="elevator">
+            <input type="checkbox" name="amenity">
+            <span class="icon">🛗</span>
+            <span class="label">Elevator Area</span>
+          </label>
+          <label class="checkbox-item" data-value="parking">
+            <input type="checkbox" name="amenity">
+            <span class="icon">🅿️</span>
+            <span class="label">Parking Garage</span>
+          </label>
+          <label class="checkbox-item" data-value="conference">
+            <input type="checkbox" name="amenity">
+            <span class="icon">📊</span>
+            <span class="label">Conference Area</span>
+          </label>
+          <label class="checkbox-item" data-value="cafeteria">
+            <input type="checkbox" name="amenity">
+            <span class="icon">🍽️</span>
+            <span class="label">Cafeteria</span>
+          </label>
+          <label class="checkbox-item" data-value="waiting">
+            <input type="checkbox" name="amenity">
+            <span class="icon">🪑</span>
+            <span class="label">Waiting Area</span>
+          </label>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-title">🚶 Foot Traffic Patterns</div>
+        <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 16px;">When is the property busiest?</p>
+        
+        <div class="traffic-grid" id="traffic">
+          <div class="traffic-item" data-value="morning">
+            <div class="icon">🌅</div>
+            <div class="label">Morning Rush<br><small style="color:var(--muted)">6-9 AM</small></div>
+          </div>
+          <div class="traffic-item" data-value="lunch">
+            <div class="icon">🌞</div>
+            <div class="label">Lunch Time<br><small style="color:var(--muted)">11 AM-2 PM</small></div>
+          </div>
+          <div class="traffic-item" data-value="evening">
+            <div class="icon">🌆</div>
+            <div class="label">Evening<br><small style="color:var(--muted)">5-8 PM</small></div>
+          </div>
+          <div class="traffic-item" data-value="24/7">
+            <div class="icon">🌙</div>
+            <div class="label">24/7<br><small style="color:var(--muted)">All hours</small></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-title">🍔 Existing Food Options</div>
+        <select id="food-options" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem;">
+          <option value="nothing">❌ Nothing nearby — no food options</option>
+          <option value="limited">🚶 Limited — restaurants 10+ min walk</option>
+          <option value="nearby">🍕 Nearby restaurants — within 5 min</option>
+          <option value="cafeteria">🍽️ On-site cafeteria</option>
+          <option value="full">🏪 Full options — cafeteria + nearby restaurants</option>
+        </select>
+        <div class="form-hint" style="margin-top: 8px;">Less food options = higher vending demand</div>
+      </div>
+      
+      <div class="btn-row">
+        <button class="btn" onclick="generateRecommendations()">Generate Recommendations →</button>
+      </div>
+    </div>
+    
+    <!-- Panel 2: Placement Recommendations -->
+    <div class="panel" id="panel-2">
+      <div id="warning-container"></div>
+      
+      <div class="card">
+        <div class="card-title">📍 Recommended Placements</div>
+        <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 20px;">
+          Based on your property assessment, here are the optimal machine locations ranked by potential:
+        </p>
+        <div class="results-grid" id="recommendations"></div>
+      </div>
+      
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="goToStep(1)">← Back</button>
+        <button class="btn" onclick="goToStep(3)">View Location Guide →</button>
+      </div>
+    </div>
+    
+    <!-- Panel 3: Location Types Guide -->
+    <div class="panel" id="panel-3">
+      <div class="card">
+        <div class="card-title">📚 Location Types Guide</div>
+        <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 20px;">
+          Reference guide for all placement locations with pros and cons
+        </p>
+        
+        <div class="location-types">
+          <div class="location-type-card">
+            <div class="type-header">
+              <span class="type-icon">🚪</span>
+              <span class="type-name">Lobby</span>
+              <span class="type-score excellent">Excellent</span>
+            </div>
+            <div class="pros">
+              <div class="pros-title">✅ Pros</div>
+              <ul>
+                <li>High visibility — everyone sees it</li>
+                <li>Impulse purchases from visitors</li>
+                <li>Often 24/7 access</li>
+                <li>Easy to restock</li>
+              </ul>
+            </div>
+            <div class="cons" style="margin-top: 12px;">
+              <div class="cons-title">⚠️ Cons</div>
+              <ul>
+                <li>Can look cluttered if not designed well</li>
+                <li>Property managers may resist initially</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="location-type-card">
+            <div class="type-header">
+              <span class="type-icon">☕</span>
+              <span class="type-name">Break Room</span>
+              <span class="type-score excellent">Excellent</span>
+            </div>
+            <div class="pros">
+              <div class="pros-title">✅ Pros</div>
+              <ul>
+                <li>Captive audience — people on breaks</li>
+                <li>Repeat daily visits</li>
+                <li>High purchase intent</li>
+                <li>Less competition from outside food</li>
+              </ul>
+            </div>
+            <div class="cons" style="margin-top: 12px;">
+              <div class="cons-title">⚠️ Cons</div>
+              <ul>
+                <li>Limited to employee hours</li>
+                <li>May need badge access for restocking</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="location-type-card">
+            <div class="type-header">
+              <span class="type-icon">🛗</span>
+              <span class="type-name">Elevator / Stairs Area</span>
+              <span class="type-score good">Good</span>
+            </div>
+            <div class="pros">
+              <div class="pros-title">✅ Pros</div>
+              <ul>
+                <li>Guaranteed foot traffic</li>
+                <li>Multiple daily passes</li>
+                <li>Convenient grab-and-go</li>
+              </ul>
+            </div>
+            <div class="cons" style="margin-top: 12px;">
+              <div class="cons-title">⚠️ Cons</div>
+              <ul>
+                <li>People often in a hurry</li>
+                <li>Space constraints common</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="location-type-card">
+            <div class="type-header">
+              <span class="type-icon">🏋️</span>
+              <span class="type-name">Gym / Fitness Area</span>
+              <span class="type-score moderate">Moderate</span>
+            </div>
+            <div class="pros">
+              <div class="pros-title">✅ Pros</div>
+              <ul>
+                <li>Post-workout drinks sell well</li>
+                <li>Health-focused products command premium</li>
+                <li>Predictable traffic patterns</li>
+              </ul>
+            </div>
+            <div class="cons" style="margin-top: 12px;">
+              <div class="cons-title">⚠️ Cons</div>
+              <ul>
+                <li>⚠️ Bodybuilding gyms = BAD (count macros)</li>
+                <li>Need health-focused product mix</li>
+                <li>Lower snack sales</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="location-type-card">
+            <div class="type-header">
+              <span class="type-icon">📬</span>
+              <span class="type-name">Mail Room</span>
+              <span class="type-score good">Good</span>
+            </div>
+            <div class="pros">
+              <div class="pros-title">✅ Pros</div>
+              <ul>
+                <li>Daily visits from residents</li>
+                <li>Package pickup = extended dwell time</li>
+                <li>Routine creates habit</li>
+              </ul>
+            </div>
+            <div class="cons" style="margin-top: 12px;">
+              <div class="cons-title">⚠️ Cons</div>
+              <ul>
+                <li>Short visits for mail-only</li>
+                <li>May be cramped space</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="location-type-card">
+            <div class="type-header">
+              <span class="type-icon">🧺</span>
+              <span class="type-name">Laundry Room</span>
+              <span class="type-score excellent">Excellent</span>
+            </div>
+            <div class="pros">
+              <div class="pros-title">✅ Pros</div>
+              <ul>
+                <li>Captive audience — 30-60 min wait</li>
+                <li>Perfect for snacks while waiting</li>
+                <li>Incidentals sell well (detergent, etc.)</li>
+              </ul>
+            </div>
+            <div class="cons" style="margin-top: 12px;">
+              <div class="cons-title">⚠️ Cons</div>
+              <ul>
+                <li>Humidity can be a concern</li>
+                <li>Lower traffic than common areas</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="location-type-card">
+            <div class="type-header">
+              <span class="type-icon">🎉</span>
+              <span class="type-name">Clubhouse</span>
+              <span class="type-score good">Good</span>
+            </div>
+            <div class="pros">
+              <div class="pros-title">✅ Pros</div>
+              <ul>
+                <li>Social setting = group purchases</li>
+                <li>Events drive extra traffic</li>
+                <li>Visible during property tours</li>
+              </ul>
+            </div>
+            <div class="cons" style="margin-top: 12px;">
+              <div class="cons-title">⚠️ Cons</div>
+              <ul>
+                <li>May have irregular hours</li>
+                <li>Competition from event catering</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="location-type-card">
+            <div class="type-header">
+              <span class="type-icon">🏊</span>
+              <span class="type-name">Pool Area</span>
+              <span class="type-score moderate">Moderate</span>
+            </div>
+            <div class="pros">
+              <div class="pros-title">✅ Pros</div>
+              <ul>
+                <li>Hot weather = high drink sales</li>
+                <li>Extended hangout time</li>
+                <li>Families = snack purchases</li>
+              </ul>
+            </div>
+            <div class="cons" style="margin-top: 12px;">
+              <div class="cons-title">⚠️ Cons</div>
+              <ul>
+                <li>Seasonal in some climates</li>
+                <li>Heat + sun exposure concerns</li>
+                <li>Water damage risk</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="goToStep(2)">← Back</button>
+        <button class="btn" onclick="goToStep(4)">Machine Calculator →</button>
+      </div>
+    </div>
+    
+    <!-- Panel 4: Machine Count Calculator -->
+    <div class="panel" id="panel-4">
+      <div class="card">
+        <div class="card-title">🧮 Machine Count Calculator</div>
+        <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 20px;">
+          Based on your property size and type, here's our recommendation:
+        </p>
+        
+        <div class="calc-grid" id="calc-results">
+          <div class="calc-card">
+            <div class="calc-icon">🤖</div>
+            <div class="calc-value" id="machine-count">-</div>
+            <div class="calc-label">Recommended Machines</div>
+          </div>
+          <div class="calc-card">
+            <div class="calc-icon">💵</div>
+            <div class="calc-value" id="revenue-per-machine">-</div>
+            <div class="calc-label">Est. Revenue / Machine / Month</div>
+          </div>
+          <div class="calc-card highlight">
+            <div class="calc-icon">📈</div>
+            <div class="calc-value" id="total-revenue">-</div>
+            <div class="calc-label">Total Monthly Revenue</div>
+          </div>
+        </div>
+        
+        <div style="margin-top: 24px; padding: 16px; background: var(--bg); border-radius: 8px;">
+          <div style="font-weight: 600; margin-bottom: 8px;">📊 Revenue Assumptions:</div>
+          <ul style="font-size: 0.85rem; color: var(--muted); margin-left: 20px;">
+            <li><strong>Luxury Apartments:</strong> $2,500-$3,500/machine/month</li>
+            <li><strong>Standard Apartments:</strong> $1,500-$2,500/machine/month</li>
+            <li><strong>Manufacturing (150+ emp):</strong> $2,500-$4,000/machine/month</li>
+            <li><strong>Office (100+ emp):</strong> $1,800-$2,800/machine/month</li>
+            <li><strong>Minimum viable:</strong> $2,000/month — pull machine if below $1,500 after 90 days</li>
+          </ul>
+        </div>
+        
+        <div style="margin-top: 20px; padding: 16px; background: var(--amber-light); border-radius: 8px;">
+          <div style="font-weight: 600; margin-bottom: 8px; color: var(--amber);">⚠️ Important Thresholds:</div>
+          <ul style="font-size: 0.85rem; color: var(--text); margin-left: 20px;">
+            <li>If revenue &lt; $800/month → <strong>PULL the machine</strong></li>
+            <li>Break-even typically 2-5 months depending on location</li>
+            <li>Rev share (3-5%) starts month 6, not immediately</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="goToStep(3)">← Back</button>
+        <button class="btn" onclick="goToStep(5)">Photo Checklist →</button>
+      </div>
+    </div>
+    
+    <!-- Panel 5: Photo Checklist -->
+    <div class="panel" id="panel-5">
+      <div class="card">
+        <div class="card-title">📸 Site Visit Photo Checklist</div>
+        <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 20px;">
+          Essential photos and measurements to capture during your site visit
+        </p>
+        
+        <ul class="checklist" id="photo-checklist">
+          <li class="checklist-category">📍 Location Photos</li>
+          
+          <li class="checklist-item">
+            <div class="checklist-checkbox" onclick="toggleCheck(this)">✓</div>
+            <div class="checklist-content">
+              <div class="checklist-title">Wide shot of proposed location</div>
+              <div class="checklist-desc">Show the full area where machine would be placed</div>
+            </div>
+          </li>
+          <li class="checklist-item">
+            <div class="checklist-checkbox" onclick="toggleCheck(this)">✓</div>
+            <div class="checklist-content">
+              <div class="checklist-title">Close-up of exact spot</div>
+              <div class="checklist-desc">Where the machine would physically sit</div>
+            </div>
+          </li>
+          <li class="checklist-item">
+            <div class="checklist-checkbox" onclick="toggleCheck(this)">✓</div>
+            <div class="checklist-content">
+              <div class="checklist-title">View from entrance/hallway</div>
+              <div class="checklist-desc">How visible will the machine be to people walking by?</div>
+            </div>
+          </li>
+          <li class="checklist-item">
+            <div class="checklist-checkbox" onclick="toggleCheck(this)">✓</div>
+            <div class="checklist-content">
+              <div class="checklist-title">Building exterior</div>
+              <div class="checklist-desc">For your records and proposal</div>
+            </div>
+          </li>
+          
+          <li class="checklist-category">🔌 Power & Connectivity</li>
+          
+          <li class="checklist-item">
+            <div class="checklist-checkbox" onclick="toggleCheck(this)">✓</div>
+            <div class="checklist-content">
+              <div class="checklist-title">Nearest power outlet</div>
+              <div class="checklist-desc">Photo showing outlet and distance to proposed spot</div>
+            </div>
+          </li>
+          <li class="checklist-item">
+            <div class="checklist-checkbox" onclick="toggleCheck(this)">✓</div>
+            <div class="checklist-content">
+              <div class="checklist-title">Test WiFi signal</div>
+              <div class="checklist-desc">Screenshot your phone's WiFi strength at the spot</div>
+            </div>
+          </li>
+          <li class="checklist-item">
+            <div class="checklist-checkbox" onclick="toggleCheck(this)">✓</div>
+            <div class="checklist-content">
+              <div class="checklist-title">Cellular signal strength</div>
+              <div class="checklist-desc">Screenshot bars/signal for backup connectivity</div>
+            </div>
+          </li>
+          
+          <li class="checklist-category">📏 Measurements Needed</li>
+          
+          <li class="checklist-item">
+            <div class="checklist-checkbox" onclick="toggleCheck(this)">✓</div>
+            <div class="checklist-content">
+              <div class="checklist-title">Floor space dimensions</div>
+              <div class="checklist-desc">Width × Depth available (machines need ~30" × 36" minimum)</div>
+            </div>
+          </li>
+          <li class="checklist-item">
+            <div class="checklist-checkbox" onclick="toggleCheck(this)">✓</div>
+            <div class="checklist-content">
+              <div class="checklist-title">Ceiling height</div>
+              <div class="checklist-desc">Ensure adequate clearance (machines are ~72" tall)</div>
+            </div>
+          </li>
+          <li class="checklist-item">
+            <div class="checklist-checkbox" onclick="toggleCheck(this)">✓</div>
+            <div class="checklist-content">
+              <div class="checklist-title">Distance to power outlet</div>
+              <div class="checklist-desc">Should be within 6ft, or note if extension needed</div>
+            </div>
+          </li>
+          <li class="checklist-item">
+            <div class="checklist-checkbox" onclick="toggleCheck(this)">✓</div>
+            <div class="checklist-content">
+              <div class="checklist-title">Door widths on delivery path</div>
+              <div class="checklist-desc">All doors from loading area to placement spot</div>
+            </div>
+          </li>
+          
+          <li class="checklist-category">✅ Things to Check</li>
+          
+          <li class="checklist-item">
+            <div class="checklist-checkbox" onclick="toggleCheck(this)">✓</div>
+            <div class="checklist-content">
+              <div class="checklist-title">Lighting conditions</div>
+              <div class="checklist-desc">Well-lit? Machine has display that needs visibility</div>
+            </div>
+          </li>
+          <li class="checklist-item">
+            <div class="checklist-checkbox" onclick="toggleCheck(this)">✓</div>
+            <div class="checklist-content">
+              <div class="checklist-title">Temperature/climate</div>
+              <div class="checklist-desc">Air conditioned? Direct sunlight? Near heating vent?</div>
+            </div>
+          </li>
+          <li class="checklist-item">
+            <div class="checklist-checkbox" onclick="toggleCheck(this)">✓</div>
+            <div class="checklist-content">
+              <div class="checklist-title">Floor surface</div>
+              <div class="checklist-desc">Level and stable? Carpet, tile, or concrete?</div>
+            </div>
+          </li>
+          <li class="checklist-item">
+            <div class="checklist-checkbox" onclick="toggleCheck(this)">✓</div>
+            <div class="checklist-content">
+              <div class="checklist-title">Security/cameras</div>
+              <div class="checklist-desc">Is the area monitored? Good for theft prevention</div>
+            </div>
+          </li>
+          <li class="checklist-item">
+            <div class="checklist-checkbox" onclick="toggleCheck(this)">✓</div>
+            <div class="checklist-content">
+              <div class="checklist-title">Access hours</div>
+              <div class="checklist-desc">24/7 or restricted? When can you restock?</div>
+            </div>
+          </li>
+          <li class="checklist-item">
+            <div class="checklist-checkbox" onclick="toggleCheck(this)">✓</div>
+            <div class="checklist-content">
+              <div class="checklist-title">Delivery access</div>
+              <div class="checklist-desc">Loading dock? Elevator needed? Stairs only?</div>
+            </div>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="goToStep(4)">← Back</button>
+        <button class="btn" onclick="goToStep(6)">Site Survey Form →</button>
+      </div>
+    </div>
+    
+    <!-- Panel 6: Site Survey Form -->
+    <div class="panel" id="panel-6">
+      <div class="card">
+        <div class="card-title">📋 Site Survey Form</div>
+        <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 20px;">
+          Complete this form during your site visit. Export as PDF when done.
+        </p>
+        
+        <div class="survey-section">
+          <div class="survey-section-title">🏢 Property Information</div>
+          <div class="survey-row">
+            <div class="survey-field">
+              <label>Property Name</label>
+              <input type="text" id="survey-property-name">
+            </div>
+            <div class="survey-field">
+              <label>Survey Date</label>
+              <input type="date" id="survey-date">
+            </div>
+          </div>
+          <div class="survey-row">
+            <div class="survey-field">
+              <label>Address</label>
+              <input type="text" id="survey-address">
+            </div>
+            <div class="survey-field">
+              <label>Property Manager Name</label>
+              <input type="text" id="survey-pm-name">
+            </div>
+          </div>
+          <div class="survey-row">
+            <div class="survey-field">
+              <label>PM Phone</label>
+              <input type="tel" id="survey-pm-phone">
+            </div>
+            <div class="survey-field">
+              <label>PM Email</label>
+              <input type="email" id="survey-pm-email">
+            </div>
+          </div>
+        </div>
+        
+        <div class="survey-section">
+          <div class="survey-section-title">📍 Location #1</div>
+          <div class="survey-row">
+            <div class="survey-field">
+              <label>Location Type</label>
+              <select id="survey-loc1-type">
+                <option value="">Select...</option>
+                <option value="lobby">Lobby</option>
+                <option value="breakroom">Break Room</option>
+                <option value="mailroom">Mail Room</option>
+                <option value="laundry">Laundry Room</option>
+                <option value="gym">Gym/Fitness</option>
+                <option value="clubhouse">Clubhouse</option>
+                <option value="pool">Pool Area</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="survey-field">
+              <label>Building/Floor</label>
+              <input type="text" id="survey-loc1-building" placeholder="e.g., Building A, 1st Floor">
+            </div>
+          </div>
+          <div class="survey-row">
+            <div class="survey-field">
+              <label>Space Dimensions (W × D)</label>
+              <input type="text" id="survey-loc1-dimensions" placeholder="e.g., 36\" × 40\"">
+            </div>
+            <div class="survey-field">
+              <label>Distance to Power Outlet</label>
+              <input type="text" id="survey-loc1-power" placeholder="e.g., 4 feet">
+            </div>
+          </div>
+          <div class="survey-row">
+            <div class="survey-field">
+              <label>WiFi Signal</label>
+              <select id="survey-loc1-wifi">
+                <option value="">Select...</option>
+                <option value="excellent">Excellent (4-5 bars)</option>
+                <option value="good">Good (3 bars)</option>
+                <option value="weak">Weak (1-2 bars)</option>
+                <option value="none">No WiFi</option>
+              </select>
+            </div>
+            <div class="survey-field">
+              <label>Cellular Signal</label>
+              <select id="survey-loc1-cellular">
+                <option value="">Select...</option>
+                <option value="excellent">Excellent (4-5 bars)</option>
+                <option value="good">Good (3 bars)</option>
+                <option value="weak">Weak (1-2 bars)</option>
+                <option value="none">No Signal</option>
+              </select>
+            </div>
+          </div>
+          <div class="survey-field" style="margin-top: 12px;">
+            <label>Notes for Location #1</label>
+            <textarea id="survey-loc1-notes" placeholder="Lighting, temperature, access hours, delivery path, etc."></textarea>
+          </div>
+        </div>
+        
+        <div class="survey-section">
+          <div class="survey-section-title">📍 Location #2 (if applicable)</div>
+          <div class="survey-row">
+            <div class="survey-field">
+              <label>Location Type</label>
+              <select id="survey-loc2-type">
+                <option value="">Select...</option>
+                <option value="lobby">Lobby</option>
+                <option value="breakroom">Break Room</option>
+                <option value="mailroom">Mail Room</option>
+                <option value="laundry">Laundry Room</option>
+                <option value="gym">Gym/Fitness</option>
+                <option value="clubhouse">Clubhouse</option>
+                <option value="pool">Pool Area</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="survey-field">
+              <label>Building/Floor</label>
+              <input type="text" id="survey-loc2-building">
+            </div>
+          </div>
+          <div class="survey-row">
+            <div class="survey-field">
+              <label>Space Dimensions</label>
+              <input type="text" id="survey-loc2-dimensions">
+            </div>
+            <div class="survey-field">
+              <label>Distance to Power</label>
+              <input type="text" id="survey-loc2-power">
+            </div>
+          </div>
+          <div class="survey-field" style="margin-top: 12px;">
+            <label>Notes for Location #2</label>
+            <textarea id="survey-loc2-notes"></textarea>
+          </div>
+        </div>
+        
+        <div class="survey-section">
+          <div class="survey-section-title">📝 Overall Assessment</div>
+          <div class="survey-row">
+            <div class="survey-field">
+              <label>Estimated Daily Foot Traffic</label>
+              <select id="survey-traffic">
+                <option value="">Select...</option>
+                <option value="low">Low (under 50 people/day)</option>
+                <option value="medium">Medium (50-150 people/day)</option>
+                <option value="high">High (150-300 people/day)</option>
+                <option value="very-high">Very High (300+ people/day)</option>
+              </select>
+            </div>
+            <div class="survey-field">
+              <label>Competition Nearby</label>
+              <select id="survey-competition">
+                <option value="">Select...</option>
+                <option value="none">No competition</option>
+                <option value="some">Some (restaurants 10+ min)</option>
+                <option value="heavy">Heavy (on-site cafeteria, nearby food)</option>
+              </select>
+            </div>
+          </div>
+          <div class="survey-row">
+            <div class="survey-field">
+              <label>Recommended # of Machines</label>
+              <input type="number" id="survey-machine-count" min="1" max="10">
+            </div>
+            <div class="survey-field">
+              <label>Site Rating (1-10)</label>
+              <input type="number" id="survey-rating" min="1" max="10">
+            </div>
+          </div>
+          <div class="survey-field" style="margin-top: 12px;">
+            <label>Additional Notes / Follow-up Actions</label>
+            <textarea id="survey-notes" rows="4" placeholder="Any concerns, next steps, follow-up needed..."></textarea>
+          </div>
+        </div>
+      </div>
+      
+      <div class="btn-row no-print">
+        <button class="btn btn-secondary" onclick="goToStep(5)">← Back</button>
+        <button class="btn btn-secondary" onclick="clearSurvey()">🗑️ Clear Form</button>
+        <button class="btn btn-success" onclick="exportPDF()">📄 Export as PDF</button>
+        <button class="btn" onclick="saveSurvey()">💾 Save Survey</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // State
+    let currentStep = 1;
+    let propertyData = {};
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      // Set today's date for survey
+      document.getElementById('survey-date').valueAsDate = new Date();
+      
+      // Checkbox toggle
+      document.querySelectorAll('.checkbox-item').forEach(item => {
+        item.addEventListener('click', () => item.classList.toggle('selected'));
+      });
+      
+      // Traffic toggle (single select)
+      document.querySelectorAll('.traffic-item').forEach(item => {
+        item.addEventListener('click', () => {
+          document.querySelectorAll('.traffic-item').forEach(i => i.classList.remove('selected'));
+          item.classList.add('selected');
+        });
+      });
+      
+      // Wizard step clicks
+      document.querySelectorAll('.wizard-step').forEach(step => {
+        step.addEventListener('click', () => {
+          const stepNum = parseInt(step.dataset.step);
+          if (stepNum <= currentStep || step.classList.contains('completed')) {
+            goToStep(stepNum);
+          }
+        });
+      });
+    });
+    
+    function goToStep(step) {
+      currentStep = step;
+      
+      // Update wizard
+      document.querySelectorAll('.wizard-step').forEach((s, i) => {
+        s.classList.remove('active');
+        if (i + 1 < step) s.classList.add('completed');
+        if (i + 1 === step) s.classList.add('active');
+      });
+      
+      // Show panel
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(`panel-${step}`).classList.add('active');
+      
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    
+    function generateRecommendations() {
+      // Gather data
+      propertyData = {
+        name: document.getElementById('property-name').value,
+        type: document.getElementById('property-type').value,
+        units: parseInt(document.getElementById('total-units').value) || 0,
+        buildings: parseInt(document.getElementById('num-buildings').value) || 1,
+        address: document.getElementById('property-address').value,
+        amenities: [...document.querySelectorAll('.checkbox-item.selected')].map(i => i.dataset.value),
+        traffic: document.querySelector('.traffic-item.selected')?.dataset.value || 'evening',
+        foodOptions: document.getElementById('food-options').value
+      };
+      
+      // Validate
+      if (!propertyData.type) {
+        alert('Please select a property type');
+        return;
+      }
+      if (!propertyData.units) {
+        alert('Please enter total units/employees');
+        return;
+      }
+      
+      // Check for bad location types
+      const warnings = [];
+      if (propertyData.type === 'gym' || (propertyData.amenities.includes('gym') && propertyData.type === 'recreation')) {
+        warnings.push({
+          title: '⚠️ Gym/Fitness Warning',
+          desc: 'Bodybuilding/weightlifting gyms are typically BAD locations. Gym-goers count macros and avoid impulse snacks. Only health-focused drinks (protein, energy) may perform. Verify this is NOT a dedicated bodybuilding gym.'
+        });
+      }
+      if (propertyData.units < 50 && ['office', 'manufacturing'].includes(propertyData.type)) {
+        warnings.push({
+          title: '⚠️ Low Volume Warning',
+          desc: `${propertyData.units} employees may not generate enough traffic. Minimum recommended: 50 employees for office, 150 for manufacturing. Consider if this location will hit $2,000/month threshold.`
+        });
+      }
+      
+      // Show warnings
+      const warningContainer = document.getElementById('warning-container');
+      warningContainer.innerHTML = warnings.map(w => `
+        <div class="warning-banner">
+          <div class="icon">⚠️</div>
+          <div class="content">
+            <div class="title">${w.title}</div>
+            <div class="desc">${w.desc}</div>
+          </div>
+        </div>
+      `).join('');
+      
+      // Generate recommendations
+      const recommendations = generateLocationRecommendations(propertyData);
+      
+      // Render
+      const container = document.getElementById('recommendations');
+      container.innerHTML = recommendations.map((rec, i) => `
+        <div class="result-card ${i === 0 ? 'recommended' : ''}">
+          <div class="rank">#${i + 1}</div>
+          <div class="location-name">
+            <span class="location-icon">${rec.icon}</span>
+            ${rec.name}
+          </div>
+          <div class="score ${rec.scoreClass}">${rec.score}/100 Traffic Score</div>
+          <div class="reasoning">${rec.reasoning}</div>
+          <div class="pros-cons">
+            <div class="pros">
+              <div class="pros-title">✅ Pros</div>
+              <ul>${rec.pros.map(p => `<li>${p}</li>`).join('')}</ul>
+            </div>
+            <div class="cons">
+              <div class="cons-title">⚠️ Cons</div>
+              <ul>${rec.cons.map(c => `<li>${c}</li>`).join('')}</ul>
+            </div>
+          </div>
+        </div>
+      `).join('');
+      
+      // Update calculator
+      updateCalculator(propertyData);
+      
+      // Pre-fill survey
+      document.getElementById('survey-property-name').value = propertyData.name;
+      document.getElementById('survey-address').value = propertyData.address;
+      
+      // Go to step 2
+      goToStep(2);
+    }
+    
+    function generateLocationRecommendations(data) {
+      const locations = {
+        lobby: { icon: '🚪', name: 'Lobby', base: 85, pros: ['High visibility', 'Impulse purchases', '24/7 access', 'Easy to restock'], cons: ['May look cluttered', 'PM may resist initially'] },
+        breakroom: { icon: '☕', name: 'Break Room', base: 90, pros: ['Captive audience', 'Repeat daily visits', 'High purchase intent'], cons: ['Limited to work hours', 'Badge access needed'] },
+        mailroom: { icon: '📬', name: 'Mail Room', base: 75, pros: ['Daily visits', 'Package pickup = dwell time', 'Creates habit'], cons: ['Short visits for mail-only', 'May be cramped'] },
+        laundry: { icon: '🧺', name: 'Laundry Room', base: 88, pros: ['30-60 min captive wait', 'Perfect for snacks', 'Incidentals sell well'], cons: ['Humidity concerns', 'Lower traffic'] },
+        gym: { icon: '🏋️', name: 'Gym/Fitness Area', base: 60, pros: ['Post-workout drinks', 'Health products premium'], cons: ['Bodybuilding = BAD', 'Lower snack sales'] },
+        pool: { icon: '🏊', name: 'Pool Area', base: 65, pros: ['Hot weather = drinks', 'Extended hangout time'], cons: ['Seasonal', 'Heat/sun exposure'] },
+        clubhouse: { icon: '🎉', name: 'Clubhouse', base: 72, pros: ['Social = group buys', 'Events drive traffic'], cons: ['Irregular hours', 'Event catering competition'] },
+        elevator: { icon: '🛗', name: 'Elevator/Stairs Area', base: 78, pros: ['Guaranteed foot traffic', 'Convenient grab-and-go'], cons: ['People in a hurry', 'Space constraints'] },
+        parking: { icon: '🅿️', name: 'Parking Garage', base: 55, pros: ['Morning/evening rush', 'Convenient on way'], cons: ['Security concerns', 'Limited dwell time'] },
+        conference: { icon: '📊', name: 'Conference Area', base: 70, pros: ['Meeting attendees', 'Professional setting'], cons: ['Sporadic usage', 'May compete with catering'] },
+        cafeteria: { icon: '🍽️', name: 'Near Cafeteria', base: 50, pros: ['High traffic area'], cons: ['Direct food competition', 'Lower impulse buys'] },
+        waiting: { icon: '🪑', name: 'Waiting Area', base: 82, pros: ['Captive audience', 'Bored = snacking'], cons: ['Healthcare: people may not feel like eating'] }
+      };
+      
+      // Score adjustments based on property type
+      const typeBoosts = {
+        apartments: { lobby: 10, mailroom: 15, laundry: 20, clubhouse: 10 },
+        luxury_apartments: { lobby: 15, mailroom: 15, laundry: 15, clubhouse: 15, gym: 5, pool: 10 },
+        senior_living: { lobby: 10, mailroom: 20, waiting: 15, clubhouse: 10 },
+        office: { breakroom: 20, elevator: 10, conference: 15, lobby: 5 },
+        manufacturing: { breakroom: 25, elevator: 10 },
+        warehouse: { breakroom: 25, elevator: 5 },
+        healthcare: { waiting: 25, lobby: 10, cafeteria: -10 },
+        recreation: { lobby: 15, pool: 15, gym: 10 },
+        hotel: { lobby: 20, gym: 10, pool: 10 },
+        school: { cafeteria: 10, gym: 5 }
+      };
+      
+      // Food options boost
+      const foodBoosts = {
+        nothing: 20,
+        limited: 10,
+        nearby: 0,
+        cafeteria: -15,
+        full: -20
+      };
+      
+      // Traffic pattern boost
+      const trafficBoosts = {
+        '24/7': { laundry: 10, lobby: 10 },
+        morning: { lobby: 5, elevator: 10, parking: 10 },
+        lunch: { breakroom: 15, cafeteria: 5 },
+        evening: { lobby: 5, pool: 10, gym: 5 }
+      };
+      
+      // Calculate scores for available amenities
+      const results = [];
+      const available = data.amenities.length > 0 ? data.amenities : ['lobby', 'breakroom', 'mailroom'];
+      
+      available.forEach(amenity => {
+        if (!locations[amenity]) return;
+        
+        let score = locations[amenity].base;
+        
+        // Apply boosts
+        if (typeBoosts[data.type]?.[amenity]) score += typeBoosts[data.type][amenity];
+        score += foodBoosts[data.foodOptions] || 0;
+        if (trafficBoosts[data.traffic]?.[amenity]) score += trafficBoosts[data.traffic][amenity];
+        
+        // Units boost
+        if (data.units > 200) score += 5;
+        if (data.units > 300) score += 5;
+        
+        score = Math.min(100, Math.max(0, score));
+        
+        results.push({
+          ...locations[amenity],
+          amenity,
+          score,
+          scoreClass: score >= 80 ? 'high' : score >= 60 ? 'medium' : 'low',
+          reasoning: generateReasoning(amenity, data)
+        });
+      });
+      
+      // Sort by score
+      results.sort((a, b) => b.score - a.score);
+      
+      return results;
+    }
+    
+    function generateReasoning(amenity, data) {
+      const reasons = {
+        lobby: `The lobby offers maximum visibility for all ${data.units} ${data.type.includes('apartment') ? 'residents' : 'employees'}. With ${data.traffic === '24/7' ? '24/7 access' : data.traffic + ' traffic peaks'}, impulse purchases are likely.`,
+        breakroom: `Break rooms create captive audiences. With ${data.units} employees taking breaks throughout the day, expect repeat purchases and higher average ticket.`,
+        mailroom: `Daily mail/package pickup creates habitual traffic. In a ${data.units}-unit property, expect consistent daily visits.`,
+        laundry: `Laundry creates 30-60 min captive waits — perfect for snacking. Incidentals (detergent, dryer sheets) are bonus revenue.`,
+        gym: `Post-workout drinks and protein snacks can perform well. However, verify this isn't a dedicated bodybuilding gym — those users count macros and rarely impulse buy.`,
+        pool: `Pool areas see extended hangout time, especially in ${data.traffic === '24/7' ? 'hot climates' : 'peak seasons'}. Cold drinks are the primary seller here.`,
+        clubhouse: `Social settings encourage group purchases. Events and gatherings drive surge traffic beyond daily residents.`,
+        elevator: `Guaranteed foot traffic as everyone passes through. Quick grab-and-go items perform best here.`,
+        parking: `Catch people on their way in/out. Morning coffee/energy drinks and evening snacks for the commute.`,
+        conference: `Meeting attendees often grab drinks/snacks. Works best if meetings are frequent.`,
+        cafeteria: `Proximity to the cafeteria means food competition, but off-hours (early morning, late evening) can capture demand.`,
+        waiting: `Waiting areas create captive, often bored audiences. ${data.type === 'healthcare' ? 'Consider that some may not feel like eating.' : 'Snacking while waiting is common behavior.'}`
+      };
+      
+      return reasons[amenity] || 'Good potential location based on property characteristics.';
+    }
+    
+    function updateCalculator(data) {
+      // Machine count based on units and type
+      let machineCount = 1;
+      let revenuePerMachine = 2000;
+      
+      if (data.type === 'luxury_apartments') {
+        machineCount = Math.ceil(data.units / 150);
+        revenuePerMachine = 3000;
+      } else if (data.type === 'apartments') {
+        machineCount = Math.ceil(data.units / 200);
+        revenuePerMachine = 2000;
+      } else if (data.type === 'manufacturing' || data.type === 'warehouse') {
+        machineCount = Math.ceil(data.units / 100);
+        revenuePerMachine = data.units > 200 ? 3500 : 2500;
+      } else if (data.type === 'office') {
+        machineCount = Math.ceil(data.units / 150);
+        revenuePerMachine = 2200;
+      } else if (data.type === 'healthcare') {
+        machineCount = Math.max(1, Math.ceil(data.units / 100));
+        revenuePerMachine = 2800;
+      } else if (data.type === 'recreation') {
+        machineCount = Math.ceil(data.units / 100);
+        revenuePerMachine = 3200;
+      } else {
+        machineCount = Math.ceil(data.units / 150);
+        revenuePerMachine = 2200;
+      }
+      
+      // Adjust for food options
+      if (data.foodOptions === 'nothing') revenuePerMachine *= 1.2;
+      else if (data.foodOptions === 'cafeteria' || data.foodOptions === 'full') revenuePerMachine *= 0.8;
+      
+      // Adjust for buildings
+      if (data.buildings > 2) machineCount = Math.max(machineCount, data.buildings);
+      
+      // Minimum 1 machine
+      machineCount = Math.max(1, machineCount);
+      
+      // Update display
+      document.getElementById('machine-count').textContent = machineCount;
+      document.getElementById('revenue-per-machine').textContent = '$' + revenuePerMachine.toLocaleString();
+      document.getElementById('total-revenue').textContent = '$' + (machineCount * revenuePerMachine).toLocaleString();
+      
+      // Update survey
+      document.getElementById('survey-machine-count').value = machineCount;
+    }
+    
+    function toggleCheck(el) {
+      el.classList.toggle('checked');
+    }
+    
+    function clearSurvey() {
+      if (confirm('Clear all survey fields?')) {
+        document.querySelectorAll('#panel-6 input, #panel-6 textarea, #panel-6 select').forEach(el => {
+          if (el.type === 'date') {
+            el.valueAsDate = new Date();
+          } else {
+            el.value = '';
+          }
+        });
+      }
+    }
+    
+    function exportPDF() {
+      window.print();
+    }
+    
+    async function saveSurvey() {
+      const surveyData = {
+        property_name: document.getElementById('survey-property-name').value,
+        survey_date: document.getElementById('survey-date').value,
+        address: document.getElementById('survey-address').value,
+        pm_name: document.getElementById('survey-pm-name').value,
+        pm_phone: document.getElementById('survey-pm-phone').value,
+        pm_email: document.getElementById('survey-pm-email').value,
+        locations: [
+          {
+            type: document.getElementById('survey-loc1-type').value,
+            building: document.getElementById('survey-loc1-building').value,
+            dimensions: document.getElementById('survey-loc1-dimensions').value,
+            power_distance: document.getElementById('survey-loc1-power').value,
+            wifi: document.getElementById('survey-loc1-wifi').value,
+            cellular: document.getElementById('survey-loc1-cellular').value,
+            notes: document.getElementById('survey-loc1-notes').value
+          },
+          {
+            type: document.getElementById('survey-loc2-type').value,
+            building: document.getElementById('survey-loc2-building').value,
+            dimensions: document.getElementById('survey-loc2-dimensions').value,
+            power_distance: document.getElementById('survey-loc2-power').value,
+            notes: document.getElementById('survey-loc2-notes').value
+          }
+        ],
+        traffic: document.getElementById('survey-traffic').value,
+        competition: document.getElementById('survey-competition').value,
+        recommended_machines: document.getElementById('survey-machine-count').value,
+        rating: document.getElementById('survey-rating').value,
+        notes: document.getElementById('survey-notes').value
+      };
+      
+      try {
+        const res = await fetch('/api/site-surveys', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(surveyData)
+        });
+        
+        if (res.ok) {
+          alert('✅ Survey saved successfully!');
+        } else {
+          throw new Error('Failed to save');
+        }
+      } catch (err) {
+        console.error('Save error:', err);
+        alert('Survey saved locally. (API not available)');
+        // Save to localStorage as backup
+        const surveys = JSON.parse(localStorage.getItem('site_surveys') || '[]');
+        surveys.push({ ...surveyData, saved_at: new Date().toISOString() });
+        localStorage.setItem('site_surveys', JSON.stringify(surveys));
+      }
+    }
+  </script>
+</body>
+</html>

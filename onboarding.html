@@ -1,0 +1,1965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Kande VendTech | Onboarding</title>
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-light: #3b82f6;
+      --primary-dark: #1d4ed8;
+      --success: #10b981;
+      --success-light: #d1fae5;
+      --warning: #f59e0b;
+      --warning-light: #fef3c7;
+      --danger: #ef4444;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      --radius: 8px;
+      --radius-lg: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: linear-gradient(135deg, #f0f7ff 0%, #e8f4f8 50%, #f0fdf4 100%);
+      min-height: 100vh;
+      color: var(--gray-800);
+      line-height: 1.6;
+    }
+
+    /* Header */
+    .header {
+      background: white;
+      padding: 1rem 2rem;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: var(--gray-900);
+      text-decoration: none;
+    }
+
+    .logo img {
+      height: 32px;
+      width: auto;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .skip-all-btn {
+      color: var(--gray-500);
+      text-decoration: none;
+      font-size: 0.875rem;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius);
+      transition: all 0.2s;
+    }
+
+    .skip-all-btn:hover {
+      background: var(--gray-100);
+      color: var(--gray-700);
+    }
+
+    /* Progress Bar */
+    .progress-container {
+      max-width: 900px;
+      margin: 2rem auto 0;
+      padding: 0 1.5rem;
+    }
+
+    .progress-steps {
+      display: flex;
+      justify-content: space-between;
+      position: relative;
+      margin-bottom: 2rem;
+    }
+
+    .progress-steps::before {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: 40px;
+      right: 40px;
+      height: 3px;
+      background: var(--gray-200);
+      z-index: 0;
+    }
+
+    .progress-fill {
+      position: absolute;
+      top: 20px;
+      left: 40px;
+      height: 3px;
+      background: var(--primary);
+      z-index: 1;
+      transition: width 0.4s ease;
+    }
+
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      z-index: 2;
+      cursor: pointer;
+      flex: 1;
+    }
+
+    .step-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: white;
+      border: 3px solid var(--gray-200);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: var(--gray-400);
+      transition: all 0.3s;
+    }
+
+    .step.active .step-circle {
+      border-color: var(--primary);
+      color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+    }
+
+    .step.completed .step-circle {
+      background: var(--success);
+      border-color: var(--success);
+      color: white;
+    }
+
+    .step.skipped .step-circle {
+      background: var(--gray-300);
+      border-color: var(--gray-300);
+      color: white;
+    }
+
+    .step-label {
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--gray-500);
+      text-align: center;
+      max-width: 80px;
+      transition: color 0.3s;
+    }
+
+    .step.active .step-label {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .step.completed .step-label {
+      color: var(--success);
+    }
+
+    /* Main Content */
+    .main-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 1.5rem 3rem;
+    }
+
+    .wizard-card {
+      background: white;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 2rem 2.5rem;
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .card-header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .card-header p {
+      color: var(--gray-500);
+      font-size: 0.95rem;
+    }
+
+    .card-body {
+      padding: 2rem 2.5rem;
+    }
+
+    .card-footer {
+      padding: 1.5rem 2.5rem;
+      background: var(--gray-50);
+      border-top: 1px solid var(--gray-100);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    /* Form Styles */
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: var(--gray-700);
+      margin-bottom: 0.5rem;
+    }
+
+    .form-group label .optional {
+      font-weight: 400;
+      color: var(--gray-400);
+      font-size: 0.8rem;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      transition: all 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .form-group textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .form-hint {
+      font-size: 0.8rem;
+      color: var(--gray-500);
+      margin-top: 0.25rem;
+    }
+
+    /* Logo Upload */
+    .logo-upload {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .logo-preview {
+      width: 80px;
+      height: 80px;
+      border: 2px dashed var(--gray-300);
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--gray-50);
+      overflow: hidden;
+    }
+
+    .logo-preview img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .logo-preview-placeholder {
+      font-size: 2rem;
+      color: var(--gray-300);
+    }
+
+    .upload-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--gray-100);
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 0.875rem;
+      color: var(--gray-700);
+      transition: all 0.2s;
+    }
+
+    .upload-btn:hover {
+      background: var(--gray-200);
+    }
+
+    .upload-btn input {
+      display: none;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--gray-700);
+      border: 1px solid var(--gray-300);
+    }
+
+    .btn-secondary:hover {
+      background: var(--gray-50);
+      border-color: var(--gray-400);
+    }
+
+    .btn-skip {
+      background: transparent;
+      color: var(--gray-500);
+      padding: 0.75rem 1rem;
+    }
+
+    .btn-skip:hover {
+      color: var(--gray-700);
+      background: var(--gray-100);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #059669;
+    }
+
+    .footer-left {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    /* CSV Import */
+    .import-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .import-option {
+      padding: 1.5rem;
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .import-option:hover,
+    .import-option.active {
+      border-color: var(--primary);
+      background: #f0f7ff;
+    }
+
+    .import-option .icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .import-option h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+
+    .import-option p {
+      font-size: 0.8rem;
+      color: var(--gray-500);
+      margin-top: 0.25rem;
+    }
+
+    .csv-dropzone {
+      border: 2px dashed var(--gray-300);
+      border-radius: var(--radius);
+      padding: 2rem;
+      text-align: center;
+      background: var(--gray-50);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .csv-dropzone:hover,
+    .csv-dropzone.dragover {
+      border-color: var(--primary);
+      background: #f0f7ff;
+    }
+
+    .csv-dropzone input {
+      display: none;
+    }
+
+    .csv-preview {
+      margin-top: 1rem;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+    }
+
+    .csv-preview table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+
+    .csv-preview th,
+    .csv-preview td {
+      padding: 0.5rem;
+      text-align: left;
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .csv-preview th {
+      background: var(--gray-50);
+      font-weight: 600;
+    }
+
+    /* Manual Entry */
+    .manual-entry-row {
+      display: grid;
+      grid-template-columns: 2fr 2fr 1fr auto;
+      gap: 0.75rem;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .manual-entry-row input {
+      padding: 0.6rem 0.75rem;
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+    }
+
+    .remove-row-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: var(--gray-100);
+      color: var(--gray-500);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .remove-row-btn:hover {
+      background: var(--danger);
+      color: white;
+    }
+
+    .add-row-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--gray-100);
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 0.875rem;
+      color: var(--gray-600);
+      margin-top: 0.5rem;
+    }
+
+    .add-row-btn:hover {
+      background: var(--gray-200);
+    }
+
+    /* Pipeline Stages */
+    .pipeline-stages {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .pipeline-stage {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 1rem;
+      background: var(--gray-50);
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+    }
+
+    .stage-handle {
+      cursor: grab;
+      color: var(--gray-400);
+      font-size: 1.25rem;
+    }
+
+    .stage-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+    }
+
+    .stage-name {
+      flex: 1;
+      font-weight: 500;
+    }
+
+    .stage-name input {
+      border: none;
+      background: transparent;
+      font-weight: 500;
+      font-size: 0.95rem;
+      width: 100%;
+    }
+
+    .stage-name input:focus {
+      outline: none;
+      background: white;
+      border-radius: 4px;
+      padding: 0.25rem 0.5rem;
+      margin: -0.25rem -0.5rem;
+    }
+
+    .default-badge {
+      font-size: 0.7rem;
+      background: var(--primary-light);
+      color: white;
+      padding: 0.15rem 0.5rem;
+      border-radius: 10px;
+    }
+
+    /* Goals */
+    .goals-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .goal-card {
+      padding: 1.25rem;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      background: white;
+    }
+
+    .goal-card h4 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--gray-600);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .goal-input {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .goal-input input {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .goal-input span {
+      color: var(--gray-500);
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+
+    /* Machine Form */
+    .machine-form {
+      background: var(--gray-50);
+      padding: 1.5rem;
+      border-radius: var(--radius);
+    }
+
+    /* Tour Feature Cards */
+    .feature-tour {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    .feature-card {
+      padding: 1.25rem;
+      background: var(--gray-50);
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .feature-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+
+    .feature-card .icon {
+      font-size: 2rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .feature-card h4 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--gray-800);
+      margin-bottom: 0.25rem;
+    }
+
+    .feature-card p {
+      font-size: 0.8rem;
+      color: var(--gray-500);
+    }
+
+    /* Checklist Mode */
+    .checklist-container {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .checklist-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .checklist-header h1 {
+      font-size: 1.75rem;
+      color: var(--gray-900);
+      margin-bottom: 0.5rem;
+    }
+
+    .checklist-header p {
+      color: var(--gray-500);
+    }
+
+    .completion-ring {
+      width: 120px;
+      height: 120px;
+      margin: 1.5rem auto;
+      position: relative;
+    }
+
+    .completion-ring svg {
+      transform: rotate(-90deg);
+    }
+
+    .completion-ring circle {
+      fill: none;
+      stroke-width: 8;
+    }
+
+    .completion-ring .bg {
+      stroke: var(--gray-200);
+    }
+
+    .completion-ring .progress {
+      stroke: var(--success);
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.5s ease;
+    }
+
+    .completion-percentage {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--gray-800);
+    }
+
+    .checklist-section {
+      background: white;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+
+    .checklist-section-header {
+      padding: 1rem 1.5rem;
+      background: var(--gray-50);
+      border-bottom: 1px solid var(--gray-100);
+      font-weight: 600;
+      color: var(--gray-700);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .checklist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--gray-100);
+      transition: background 0.2s;
+    }
+
+    .checklist-item:last-child {
+      border-bottom: none;
+    }
+
+    .checklist-item:hover {
+      background: var(--gray-50);
+    }
+
+    .checklist-item.completed {
+      opacity: 0.6;
+    }
+
+    .checklist-checkbox {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--gray-300);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+      transition: all 0.2s;
+    }
+
+    .checklist-checkbox:hover {
+      border-color: var(--primary);
+    }
+
+    .checklist-item.completed .checklist-checkbox {
+      background: var(--success);
+      border-color: var(--success);
+      color: white;
+    }
+
+    .checklist-content {
+      flex: 1;
+    }
+
+    .checklist-content h4 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--gray-800);
+      margin-bottom: 0.25rem;
+    }
+
+    .checklist-item.completed .checklist-content h4 {
+      text-decoration: line-through;
+    }
+
+    .checklist-content p {
+      font-size: 0.85rem;
+      color: var(--gray-500);
+    }
+
+    .checklist-link {
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .checklist-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Celebrations */
+    .celebration {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .celebration-card {
+      background: white;
+      padding: 3rem;
+      border-radius: var(--radius-lg);
+      text-align: center;
+      max-width: 400px;
+      animation: scaleIn 0.3s ease;
+    }
+
+    .celebration-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+
+    .celebration-card h2 {
+      font-size: 1.5rem;
+      color: var(--gray-900);
+      margin-bottom: 0.5rem;
+    }
+
+    .celebration-card p {
+      color: var(--gray-500);
+      margin-bottom: 1.5rem;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes scaleIn {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    /* Tooltips */
+    .tooltip-trigger {
+      position: relative;
+      cursor: help;
+      color: var(--gray-400);
+      font-size: 0.9rem;
+    }
+
+    .tooltip-trigger:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--gray-800);
+      color: white;
+      padding: 0.5rem 0.75rem;
+      border-radius: var(--radius);
+      font-size: 0.8rem;
+      white-space: nowrap;
+      z-index: 100;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Don't show again */
+    .dont-show-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: var(--gray-500);
+    }
+
+    .dont-show-container input {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Help Link */
+    .help-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 0.85rem;
+    }
+
+    .help-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header {
+        padding: 1rem;
+      }
+
+      .progress-container {
+        padding: 0 1rem;
+      }
+
+      .progress-steps::before,
+      .progress-fill {
+        left: 20px;
+        right: 20px;
+      }
+
+      .step-circle {
+        width: 32px;
+        height: 32px;
+        font-size: 0.75rem;
+      }
+
+      .step-label {
+        font-size: 0.65rem;
+        max-width: 60px;
+      }
+
+      .main-container {
+        padding: 0 1rem 2rem;
+      }
+
+      .card-header,
+      .card-body,
+      .card-footer {
+        padding: 1.25rem;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+
+      .import-options {
+        grid-template-columns: 1fr;
+      }
+
+      .goals-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .feature-tour {
+        grid-template-columns: 1fr;
+      }
+
+      .manual-entry-row {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .card-footer {
+        flex-direction: column;
+      }
+
+      .footer-left {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
+
+    /* Step visibility */
+    .wizard-step {
+      display: none;
+    }
+
+    .wizard-step.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <a href="/home" class="logo">
+      <img src="/logo.png" alt="Kande VendTech" onerror="this.style.display='none'">
+      <span>Kande VendTech</span>
+    </a>
+    <div class="header-actions">
+      <a href="/home" class="skip-all-btn">Skip Setup →</a>
+    </div>
+  </header>
+
+  <!-- Progress Steps -->
+  <div class="progress-container" id="progressContainer">
+    <div class="progress-steps">
+      <div class="progress-fill" id="progressFill"></div>
+      <div class="step active" data-step="1">
+        <div class="step-circle">1</div>
+        <span class="step-label">Business Profile</span>
+      </div>
+      <div class="step" data-step="2">
+        <div class="step-circle">2</div>
+        <span class="step-label">Import Prospects</span>
+      </div>
+      <div class="step" data-step="3">
+        <div class="step-circle">3</div>
+        <span class="step-label">Pipeline Setup</span>
+      </div>
+      <div class="step" data-step="4">
+        <div class="step-circle">4</div>
+        <span class="step-label">Goals</span>
+      </div>
+      <div class="step" data-step="5">
+        <div class="step-circle">5</div>
+        <span class="step-label">First Machine</span>
+      </div>
+      <div class="step" data-step="6">
+        <div class="step-circle">6</div>
+        <span class="step-label">Quick Tour</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="main-container">
+    <div class="wizard-card" id="wizardCard">
+      <!-- Step 1: Business Profile -->
+      <div class="wizard-step active" data-step="1">
+        <div class="card-header">
+          <h1>👋 Welcome! Let's set up your business</h1>
+          <p>Start by telling us a bit about your vending business. This helps personalize your dashboard.</p>
+        </div>
+        <div class="card-body">
+          <div class="form-group">
+            <label>Company Name</label>
+            <input type="text" id="companyName" placeholder="e.g., Kande VendTech LLC" value="Kande VendTech">
+            <p class="form-hint">This will appear on proposals and client communications.</p>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>Owner/Manager Name</label>
+              <input type="text" id="ownerName" placeholder="Your name">
+            </div>
+            <div class="form-group">
+              <label>Phone Number</label>
+              <input type="tel" id="phoneNumber" placeholder="(702) 555-0123">
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>Email Address</label>
+              <input type="email" id="emailAddress" placeholder="you@company.com">
+            </div>
+            <div class="form-group">
+              <label>Service Area <span class="optional">(optional)</span></label>
+              <input type="text" id="serviceArea" placeholder="e.g., Las Vegas Metro">
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Company Logo <span class="optional">(optional)</span></label>
+            <div class="logo-upload">
+              <div class="logo-preview" id="logoPreview">
+                <span class="logo-preview-placeholder">📷</span>
+              </div>
+              <label class="upload-btn">
+                <input type="file" id="logoUpload" accept="image/*">
+                📁 Choose Image
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="footer-left">
+            <button class="btn btn-skip" onclick="skipStep(1)">Skip for now</button>
+          </div>
+          <button class="btn btn-primary" onclick="saveAndContinue(1)">
+            Save & Continue →
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Import Prospects -->
+      <div class="wizard-step" data-step="2">
+        <div class="card-header">
+          <h1>📋 Import Your Prospects</h1>
+          <p>Bring in your leads so you can start tracking them right away.</p>
+        </div>
+        <div class="card-body">
+          <div class="import-options">
+            <div class="import-option active" onclick="selectImportMethod('csv')">
+              <div class="icon">📊</div>
+              <h3>CSV Import</h3>
+              <p>Upload a spreadsheet</p>
+            </div>
+            <div class="import-option" onclick="selectImportMethod('manual')">
+              <div class="icon">✏️</div>
+              <h3>Manual Entry</h3>
+              <p>Add prospects one by one</p>
+            </div>
+          </div>
+          
+          <!-- CSV Import Section -->
+          <div id="csvImportSection">
+            <div class="csv-dropzone" id="csvDropzone">
+              <input type="file" id="csvFile" accept=".csv">
+              <div class="icon">📁</div>
+              <p><strong>Drag & drop your CSV here</strong></p>
+              <p style="color: var(--gray-400); font-size: 0.85rem;">or click to browse</p>
+              <p style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--gray-500);">
+                Expected columns: Name, Address, Phone, Email, Type, Notes
+              </p>
+            </div>
+            <div class="csv-preview" id="csvPreview" style="display: none;"></div>
+          </div>
+          
+          <!-- Manual Entry Section -->
+          <div id="manualEntrySection" style="display: none;">
+            <div id="manualRows">
+              <div class="manual-entry-row">
+                <input type="text" placeholder="Business name" class="prospect-name">
+                <input type="text" placeholder="Address" class="prospect-address">
+                <input type="text" placeholder="Phone" class="prospect-phone">
+                <button class="remove-row-btn" onclick="removeManualRow(this)">×</button>
+              </div>
+            </div>
+            <button class="add-row-btn" onclick="addManualRow()">+ Add another prospect</button>
+          </div>
+          
+          <div style="margin-top: 1.5rem;">
+            <a href="#" class="help-link">📖 Download sample CSV template</a>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="footer-left">
+            <button class="btn btn-secondary" onclick="goToStep(1)">← Back</button>
+            <button class="btn btn-skip" onclick="skipStep(2)">Skip for now</button>
+          </div>
+          <button class="btn btn-primary" onclick="saveAndContinue(2)">
+            Save & Continue →
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 3: Pipeline Stages -->
+      <div class="wizard-step" data-step="3">
+        <div class="card-header">
+          <h1>🎯 Set Up Your Sales Pipeline</h1>
+          <p>Customize the stages prospects move through in your sales process.</p>
+        </div>
+        <div class="card-body">
+          <p style="margin-bottom: 1rem; color: var(--gray-600); font-size: 0.9rem;">
+            These are the default stages based on vending industry best practices. You can rename or reorder them.
+          </p>
+          
+          <div class="pipeline-stages" id="pipelineStages">
+            <div class="pipeline-stage" data-stage="new_lead">
+              <span class="stage-handle">⋮⋮</span>
+              <div class="stage-color" style="background: #3b82f6"></div>
+              <div class="stage-name"><input type="text" value="New Lead"></div>
+              <span class="default-badge">Default</span>
+            </div>
+            <div class="pipeline-stage" data-stage="contacted">
+              <span class="stage-handle">⋮⋮</span>
+              <div class="stage-color" style="background: #8b5cf6"></div>
+              <div class="stage-name"><input type="text" value="Contacted"></div>
+            </div>
+            <div class="pipeline-stage" data-stage="pop_in_done">
+              <span class="stage-handle">⋮⋮</span>
+              <div class="stage-color" style="background: #ec4899"></div>
+              <div class="stage-name"><input type="text" value="Pop-In Done"></div>
+            </div>
+            <div class="pipeline-stage" data-stage="interested">
+              <span class="stage-handle">⋮⋮</span>
+              <div class="stage-color" style="background: #f59e0b"></div>
+              <div class="stage-name"><input type="text" value="Interested"></div>
+            </div>
+            <div class="pipeline-stage" data-stage="site_survey">
+              <span class="stage-handle">⋮⋮</span>
+              <div class="stage-color" style="background: #10b981"></div>
+              <div class="stage-name"><input type="text" value="Site Survey"></div>
+            </div>
+            <div class="pipeline-stage" data-stage="proposal_sent">
+              <span class="stage-handle">⋮⋮</span>
+              <div class="stage-color" style="background: #06b6d4"></div>
+              <div class="stage-name"><input type="text" value="Proposal Sent"></div>
+            </div>
+            <div class="pipeline-stage" data-stage="negotiating">
+              <span class="stage-handle">⋮⋮</span>
+              <div class="stage-color" style="background: #f97316"></div>
+              <div class="stage-name"><input type="text" value="Negotiating"></div>
+            </div>
+            <div class="pipeline-stage" data-stage="signed">
+              <span class="stage-handle">⋮⋮</span>
+              <div class="stage-color" style="background: #22c55e"></div>
+              <div class="stage-name"><input type="text" value="Signed! 🎉"></div>
+            </div>
+          </div>
+          
+          <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--gray-500);">
+            💡 Tip: Most deals close after 8-10 touches. The pipeline helps you track every interaction.
+          </p>
+        </div>
+        <div class="card-footer">
+          <div class="footer-left">
+            <button class="btn btn-secondary" onclick="goToStep(2)">← Back</button>
+            <button class="btn btn-skip" onclick="skipStep(3)">Keep defaults</button>
+          </div>
+          <button class="btn btn-primary" onclick="saveAndContinue(3)">
+            Save & Continue →
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 4: Goals -->
+      <div class="wizard-step" data-step="4">
+        <div class="card-header">
+          <h1>🎯 Set Your Goals</h1>
+          <p>Define targets to track your progress. You can always adjust these later.</p>
+        </div>
+        <div class="card-body">
+          <div class="goals-grid">
+            <div class="goal-card">
+              <h4>📍 Pop-Ins per Week</h4>
+              <div class="goal-input">
+                <input type="number" id="goalPopIns" value="25" min="0">
+                <span>visits</span>
+              </div>
+              <p class="form-hint" style="margin-top: 0.5rem;">Community recommends 5+ per day</p>
+            </div>
+            
+            <div class="goal-card">
+              <h4>🤝 Deals per Month</h4>
+              <div class="goal-input">
+                <input type="number" id="goalDeals" value="2" min="0">
+                <span>signed</span>
+              </div>
+              <p class="form-hint" style="margin-top: 0.5rem;">Placements to close monthly</p>
+            </div>
+            
+            <div class="goal-card">
+              <h4>🏭 Machines by Year End</h4>
+              <div class="goal-input">
+                <input type="number" id="goalMachines" value="10" min="0">
+                <span>deployed</span>
+              </div>
+              <p class="form-hint" style="margin-top: 0.5rem;">Total machine target</p>
+            </div>
+            
+            <div class="goal-card">
+              <h4>💰 Monthly Revenue Target</h4>
+              <div class="goal-input">
+                <span>$</span>
+                <input type="number" id="goalRevenue" value="5000" min="0">
+                <span>/mo</span>
+              </div>
+              <p class="form-hint" style="margin-top: 0.5rem;">$2K/machine is typical</p>
+            </div>
+          </div>
+          
+          <div style="margin-top: 1.5rem; padding: 1rem; background: var(--warning-light); border-radius: var(--radius);">
+            <p style="font-size: 0.9rem; color: var(--gray-700);">
+              <strong>💡 Pro tip:</strong> Focus on location quality over machine count. A great location does $3-4K/month; a bad one struggles at $500. Quality > quantity!
+            </p>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="footer-left">
+            <button class="btn btn-secondary" onclick="goToStep(3)">← Back</button>
+            <button class="btn btn-skip" onclick="skipStep(4)">Skip for now</button>
+          </div>
+          <button class="btn btn-primary" onclick="saveAndContinue(4)">
+            Save & Continue →
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 5: First Machine -->
+      <div class="wizard-step" data-step="5">
+        <div class="card-header">
+          <h1>🎰 Add Your First Machine</h1>
+          <p>If you already have a machine, add it now to start tracking. Otherwise, skip this step.</p>
+        </div>
+        <div class="card-body">
+          <div class="machine-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Machine Name/ID</label>
+                <input type="text" id="machineName" placeholder="e.g., SandStar #001">
+              </div>
+              <div class="form-group">
+                <label>Machine Type</label>
+                <select id="machineType">
+                  <option value="">Select type...</option>
+                  <option value="smart_cooler">Smart Cooler</option>
+                  <option value="combo">Combo (Snack + Drink)</option>
+                  <option value="snack">Snack Only</option>
+                  <option value="drink">Drink Only</option>
+                  <option value="freezer">Freezer</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label>Serial Number <span class="optional">(optional)</span></label>
+                <input type="text" id="machineSerial" placeholder="Serial number">
+              </div>
+              <div class="form-group">
+                <label>Purchase Price <span class="optional">(optional)</span></label>
+                <input type="number" id="machinePrice" placeholder="3600">
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label>Status</label>
+              <select id="machineStatus">
+                <option value="available">Available (Not Deployed)</option>
+                <option value="deployed">Deployed</option>
+                <option value="maintenance">In Maintenance</option>
+              </select>
+            </div>
+          </div>
+          
+          <p style="margin-top: 1.5rem; font-size: 0.9rem; color: var(--gray-600);">
+            Don't have a machine yet? No problem! You can add machines anytime from the Machines page.
+          </p>
+        </div>
+        <div class="card-footer">
+          <div class="footer-left">
+            <button class="btn btn-secondary" onclick="goToStep(4)">← Back</button>
+            <button class="btn btn-skip" onclick="skipStep(5)">Skip — No machine yet</button>
+          </div>
+          <button class="btn btn-primary" onclick="saveAndContinue(5)">
+            Add Machine & Continue →
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 6: Quick Tour -->
+      <div class="wizard-step" data-step="6">
+        <div class="card-header">
+          <h1>🚀 You're All Set!</h1>
+          <p>Here's a quick tour of the key features in your dashboard.</p>
+        </div>
+        <div class="card-body">
+          <div class="feature-tour">
+            <a href="/crm" class="feature-card">
+              <div class="icon">📊</div>
+              <h4>CRM & Prospects</h4>
+              <p>Track leads, log activities, manage your sales pipeline</p>
+            </a>
+            <a href="/pipeline" class="feature-card">
+              <div class="icon">🎯</div>
+              <h4>Pipeline View</h4>
+              <p>Visual Kanban board for your deals</p>
+            </a>
+            <a href="/pop-in" class="feature-card">
+              <div class="icon">🚗</div>
+              <h4>Pop-In Tracker</h4>
+              <p>Log your daily location visits</p>
+            </a>
+            <a href="/machines" class="feature-card">
+              <div class="icon">🎰</div>
+              <h4>Machines</h4>
+              <p>Manage inventory, track deployments</p>
+            </a>
+            <a href="/route-planner" class="feature-card">
+              <div class="icon">🗺️</div>
+              <h4>Route Planner</h4>
+              <p>Optimize your daily routes</p>
+            </a>
+            <a href="/finances" class="feature-card">
+              <div class="icon">💰</div>
+              <h4>Finances</h4>
+              <p>Track revenue, expenses, P&L</p>
+            </a>
+          </div>
+          
+          <div style="margin-top: 2rem; text-align: center;">
+            <div class="dont-show-container" style="justify-content: center;">
+              <input type="checkbox" id="dontShowAgain">
+              <label for="dontShowAgain">Don't show this wizard on future logins</label>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="footer-left">
+            <button class="btn btn-secondary" onclick="goToStep(5)">← Back</button>
+          </div>
+          <button class="btn btn-success" onclick="completeOnboarding()">
+            🎉 Go to Dashboard
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Checklist Mode (shown after wizard completion) -->
+    <div class="checklist-container" id="checklistMode" style="display: none;">
+      <div class="checklist-header">
+        <h1>🎯 Your First Week Checklist</h1>
+        <p>Complete these tasks to get the most out of your dashboard</p>
+        
+        <div class="completion-ring">
+          <svg width="120" height="120">
+            <circle class="bg" cx="60" cy="60" r="52"></circle>
+            <circle class="progress" cx="60" cy="60" r="52" stroke-dasharray="327" stroke-dashoffset="327" id="progressCircle"></circle>
+          </svg>
+          <span class="completion-percentage" id="completionPercent">0%</span>
+        </div>
+      </div>
+      
+      <div class="checklist-section">
+        <div class="checklist-section-header">📋 Setup Tasks</div>
+        <div class="checklist-item" data-task="profile">
+          <div class="checklist-checkbox" onclick="toggleChecklistItem(this)">✓</div>
+          <div class="checklist-content">
+            <h4>Complete your business profile</h4>
+            <p>Add company details, logo, and contact info</p>
+            <a href="/settings" class="checklist-link">Go to Settings →</a>
+          </div>
+        </div>
+        <div class="checklist-item" data-task="prospects">
+          <div class="checklist-checkbox" onclick="toggleChecklistItem(this)">✓</div>
+          <div class="checklist-content">
+            <h4>Add your first 10 prospects</h4>
+            <p>Import from CSV or add manually</p>
+            <a href="/crm" class="checklist-link">Go to CRM →</a>
+          </div>
+        </div>
+        <div class="checklist-item" data-task="machine">
+          <div class="checklist-checkbox" onclick="toggleChecklistItem(this)">✓</div>
+          <div class="checklist-content">
+            <h4>Add a machine</h4>
+            <p>Track your equipment inventory</p>
+            <a href="/machines" class="checklist-link">Go to Machines →</a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="checklist-section">
+        <div class="checklist-section-header">🚗 Sales Activities</div>
+        <div class="checklist-item" data-task="popin">
+          <div class="checklist-checkbox" onclick="toggleChecklistItem(this)">✓</div>
+          <div class="checklist-content">
+            <h4>Log your first pop-in visit</h4>
+            <p>Track your in-person location visits</p>
+            <a href="/pop-in" class="checklist-link">Go to Pop-In Tracker →</a>
+          </div>
+        </div>
+        <div class="checklist-item" data-task="activity">
+          <div class="checklist-checkbox" onclick="toggleChecklistItem(this)">✓</div>
+          <div class="checklist-content">
+            <h4>Log a sales activity</h4>
+            <p>Record calls, emails, or meetings</p>
+            <a href="/crm" class="checklist-link">Go to CRM →</a>
+          </div>
+        </div>
+        <div class="checklist-item" data-task="pipeline">
+          <div class="checklist-checkbox" onclick="toggleChecklistItem(this)">✓</div>
+          <div class="checklist-content">
+            <h4>Move a prospect through the pipeline</h4>
+            <p>Drag and drop on the Pipeline board</p>
+            <a href="/pipeline" class="checklist-link">Go to Pipeline →</a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="checklist-section">
+        <div class="checklist-section-header">💡 Learn the Ropes</div>
+        <div class="checklist-item" data-task="playbook">
+          <div class="checklist-checkbox" onclick="toggleChecklistItem(this)">✓</div>
+          <div class="checklist-content">
+            <h4>Read the Playbook</h4>
+            <p>Best practices from the vending community</p>
+            <a href="/playbook" class="checklist-link">Go to Playbook →</a>
+          </div>
+        </div>
+        <div class="checklist-item" data-task="route">
+          <div class="checklist-checkbox" onclick="toggleChecklistItem(this)">✓</div>
+          <div class="checklist-content">
+            <h4>Plan your first route</h4>
+            <p>Optimize your pop-in schedule</p>
+            <a href="/route-planner" class="checklist-link">Go to Route Planner →</a>
+          </div>
+        </div>
+      </div>
+      
+      <div style="text-align: center; margin-top: 2rem;">
+        <a href="/home" class="btn btn-primary" style="text-decoration: none;">Go to Dashboard</a>
+        <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--gray-500);">
+          <a href="#" onclick="restartOnboarding(); return false;" style="color: var(--gray-500);">Restart onboarding wizard</a>
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // State
+    let currentStep = 1;
+    const totalSteps = 6;
+    const stepStatus = {}; // 'completed', 'skipped', or undefined
+
+    // Check if first time user
+    function checkFirstTimeUser() {
+      const hasCompletedOnboarding = localStorage.getItem('vendtech_onboarding_complete');
+      const showChecklist = localStorage.getItem('vendtech_show_checklist');
+      
+      if (hasCompletedOnboarding && showChecklist === 'true') {
+        showChecklistMode();
+      } else if (hasCompletedOnboarding) {
+        // Already completed and don't want checklist - redirect to home
+        window.location.href = '/home';
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      checkFirstTimeUser();
+      updateProgress();
+      setupCSVDropzone();
+      setupLogoUpload();
+    });
+
+    // Progress bar
+    function updateProgress() {
+      const progressFill = document.getElementById('progressFill');
+      const steps = document.querySelectorAll('.step');
+      
+      // Calculate progress width
+      const completedSteps = Object.keys(stepStatus).filter(s => stepStatus[s]).length;
+      const progressPercent = ((currentStep - 1) / (totalSteps - 1)) * 100;
+      
+      // Calculate actual pixel width based on step positions
+      const containerWidth = document.querySelector('.progress-steps').offsetWidth;
+      const stepWidth = containerWidth - 80; // Account for left/right padding
+      progressFill.style.width = `${(progressPercent / 100) * stepWidth}px`;
+      
+      // Update step states
+      steps.forEach((step, index) => {
+        const stepNum = index + 1;
+        step.classList.remove('active', 'completed', 'skipped');
+        
+        if (stepNum === currentStep) {
+          step.classList.add('active');
+        } else if (stepStatus[stepNum] === 'completed') {
+          step.classList.add('completed');
+        } else if (stepStatus[stepNum] === 'skipped') {
+          step.classList.add('skipped');
+        }
+      });
+    }
+
+    // Navigation
+    function goToStep(step) {
+      if (step < 1 || step > totalSteps) return;
+      
+      currentStep = step;
+      
+      // Show/hide steps
+      document.querySelectorAll('.wizard-step').forEach(el => {
+        el.classList.remove('active');
+      });
+      document.querySelector(`.wizard-step[data-step="${step}"]`).classList.add('active');
+      
+      updateProgress();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function skipStep(step) {
+      stepStatus[step] = 'skipped';
+      goToStep(step + 1);
+    }
+
+    async function saveAndContinue(step) {
+      // Save data for the step
+      try {
+        switch (step) {
+          case 1:
+            await saveBusinessProfile();
+            break;
+          case 2:
+            await saveProspects();
+            break;
+          case 3:
+            await savePipelineStages();
+            break;
+          case 4:
+            await saveGoals();
+            break;
+          case 5:
+            await saveMachine();
+            break;
+        }
+        
+        stepStatus[step] = 'completed';
+        goToStep(step + 1);
+      } catch (err) {
+        console.error('Save error:', err);
+        // Still continue even if save fails
+        stepStatus[step] = 'completed';
+        goToStep(step + 1);
+      }
+    }
+
+    // Step 1: Business Profile
+    async function saveBusinessProfile() {
+      const profile = {
+        company_name: document.getElementById('companyName').value,
+        owner_name: document.getElementById('ownerName').value,
+        phone: document.getElementById('phoneNumber').value,
+        email: document.getElementById('emailAddress').value,
+        service_area: document.getElementById('serviceArea').value
+      };
+      
+      // Save to localStorage for now (can be saved to API later)
+      localStorage.setItem('vendtech_profile', JSON.stringify(profile));
+    }
+
+    // Step 2: Prospects
+    let csvData = [];
+    let importMethod = 'csv';
+
+    function selectImportMethod(method) {
+      importMethod = method;
+      document.querySelectorAll('.import-option').forEach(el => el.classList.remove('active'));
+      event.target.closest('.import-option').classList.add('active');
+      
+      if (method === 'csv') {
+        document.getElementById('csvImportSection').style.display = 'block';
+        document.getElementById('manualEntrySection').style.display = 'none';
+      } else {
+        document.getElementById('csvImportSection').style.display = 'none';
+        document.getElementById('manualEntrySection').style.display = 'block';
+      }
+    }
+
+    function setupCSVDropzone() {
+      const dropzone = document.getElementById('csvDropzone');
+      const fileInput = document.getElementById('csvFile');
+      
+      dropzone.addEventListener('click', () => fileInput.click());
+      
+      dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+      });
+      
+      dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('dragover');
+      });
+      
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) {
+          handleCSVFile(e.dataTransfer.files[0]);
+        }
+      });
+      
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) {
+          handleCSVFile(e.target.files[0]);
+        }
+      });
+    }
+
+    function handleCSVFile(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target.result;
+        parseCSV(text);
+      };
+      reader.readAsText(file);
+    }
+
+    function parseCSV(text) {
+      const lines = text.split('\n').filter(l => l.trim());
+      if (lines.length < 2) return;
+      
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      csvData = [];
+      
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',');
+        const row = {};
+        headers.forEach((h, idx) => {
+          row[h] = values[idx]?.trim() || '';
+        });
+        csvData.push(row);
+      }
+      
+      // Show preview
+      showCSVPreview();
+    }
+
+    function showCSVPreview() {
+      const preview = document.getElementById('csvPreview');
+      if (csvData.length === 0) {
+        preview.style.display = 'none';
+        return;
+      }
+      
+      const headers = Object.keys(csvData[0]);
+      let html = '<table><thead><tr>';
+      headers.forEach(h => html += `<th>${h}</th>`);
+      html += '</tr></thead><tbody>';
+      
+      csvData.slice(0, 5).forEach(row => {
+        html += '<tr>';
+        headers.forEach(h => html += `<td>${row[h] || ''}</td>`);
+        html += '</tr>';
+      });
+      
+      html += '</tbody></table>';
+      if (csvData.length > 5) {
+        html += `<p style="padding: 0.5rem; text-align: center; color: var(--gray-500); font-size: 0.8rem;">...and ${csvData.length - 5} more rows</p>`;
+      }
+      
+      preview.innerHTML = html;
+      preview.style.display = 'block';
+    }
+
+    function addManualRow() {
+      const container = document.getElementById('manualRows');
+      const row = document.createElement('div');
+      row.className = 'manual-entry-row';
+      row.innerHTML = `
+        <input type="text" placeholder="Business name" class="prospect-name">
+        <input type="text" placeholder="Address" class="prospect-address">
+        <input type="text" placeholder="Phone" class="prospect-phone">
+        <button class="remove-row-btn" onclick="removeManualRow(this)">×</button>
+      `;
+      container.appendChild(row);
+    }
+
+    function removeManualRow(btn) {
+      const rows = document.querySelectorAll('.manual-entry-row');
+      if (rows.length > 1) {
+        btn.closest('.manual-entry-row').remove();
+      }
+    }
+
+    async function saveProspects() {
+      let leads = [];
+      
+      if (importMethod === 'csv' && csvData.length > 0) {
+        leads = csvData.map(row => ({
+          name: row.name || row.company || row.business || '',
+          address: row.address || row.location || '',
+          phone: row.phone || row.telephone || '',
+          email: row.email || '',
+          property_type: row.type || row.property_type || '',
+          notes: row.notes || ''
+        })).filter(l => l.name);
+      } else if (importMethod === 'manual') {
+        document.querySelectorAll('.manual-entry-row').forEach(row => {
+          const name = row.querySelector('.prospect-name').value.trim();
+          if (name) {
+            leads.push({
+              name,
+              address: row.querySelector('.prospect-address').value.trim(),
+              phone: row.querySelector('.prospect-phone').value.trim()
+            });
+          }
+        });
+      }
+      
+      if (leads.length > 0) {
+        await fetch('/api/prospects/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leads, geocode: true })
+        });
+      }
+    }
+
+    // Step 3: Pipeline Stages
+    async function savePipelineStages() {
+      const stages = [];
+      document.querySelectorAll('.pipeline-stage').forEach(el => {
+        stages.push({
+          id: el.dataset.stage,
+          name: el.querySelector('input').value
+        });
+      });
+      
+      localStorage.setItem('vendtech_pipeline_stages', JSON.stringify(stages));
+    }
+
+    // Step 4: Goals
+    async function saveGoals() {
+      const goals = {
+        weekly_popins: parseInt(document.getElementById('goalPopIns').value) || 0,
+        monthly_deals: parseInt(document.getElementById('goalDeals').value) || 0,
+        yearly_machines: parseInt(document.getElementById('goalMachines').value) || 0,
+        monthly_revenue: parseInt(document.getElementById('goalRevenue').value) || 0
+      };
+      
+      localStorage.setItem('vendtech_goals', JSON.stringify(goals));
+    }
+
+    // Step 5: Machine
+    async function saveMachine() {
+      const name = document.getElementById('machineName').value.trim();
+      if (!name) return;
+      
+      await fetch('/api/machines', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          type: document.getElementById('machineType').value,
+          serial_number: document.getElementById('machineSerial').value,
+          purchase_price: parseFloat(document.getElementById('machinePrice').value) || 0,
+          status: document.getElementById('machineStatus').value
+        })
+      });
+    }
+
+    // Logo upload
+    function setupLogoUpload() {
+      const input = document.getElementById('logoUpload');
+      const preview = document.getElementById('logoPreview');
+      
+      input.addEventListener('change', (e) => {
+        if (e.target.files.length) {
+          const file = e.target.files[0];
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            preview.innerHTML = `<img src="${ev.target.result}" alt="Logo">`;
+            localStorage.setItem('vendtech_logo', ev.target.result);
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+
+    // Complete onboarding
+    function completeOnboarding() {
+      const dontShow = document.getElementById('dontShowAgain').checked;
+      
+      localStorage.setItem('vendtech_onboarding_complete', 'true');
+      localStorage.setItem('vendtech_show_checklist', dontShow ? 'false' : 'true');
+      
+      if (dontShow) {
+        window.location.href = '/home';
+      } else {
+        showChecklistMode();
+      }
+    }
+
+    // Checklist Mode
+    function showChecklistMode() {
+      document.getElementById('progressContainer').style.display = 'none';
+      document.getElementById('wizardCard').style.display = 'none';
+      document.getElementById('checklistMode').style.display = 'block';
+      
+      // Load saved checklist state
+      const saved = JSON.parse(localStorage.getItem('vendtech_checklist') || '{}');
+      Object.keys(saved).forEach(task => {
+        if (saved[task]) {
+          const item = document.querySelector(`.checklist-item[data-task="${task}"]`);
+          if (item) item.classList.add('completed');
+        }
+      });
+      
+      updateChecklistProgress();
+    }
+
+    function toggleChecklistItem(checkbox) {
+      const item = checkbox.closest('.checklist-item');
+      item.classList.toggle('completed');
+      
+      // Save state
+      const saved = JSON.parse(localStorage.getItem('vendtech_checklist') || '{}');
+      saved[item.dataset.task] = item.classList.contains('completed');
+      localStorage.setItem('vendtech_checklist', JSON.stringify(saved));
+      
+      updateChecklistProgress();
+    }
+
+    function updateChecklistProgress() {
+      const total = document.querySelectorAll('.checklist-item').length;
+      const completed = document.querySelectorAll('.checklist-item.completed').length;
+      const percent = Math.round((completed / total) * 100);
+      
+      document.getElementById('completionPercent').textContent = `${percent}%`;
+      
+      const circle = document.getElementById('progressCircle');
+      const circumference = 327; // 2 * PI * 52
+      const offset = circumference - (percent / 100) * circumference;
+      circle.style.strokeDashoffset = offset;
+    }
+
+    function restartOnboarding() {
+      localStorage.removeItem('vendtech_onboarding_complete');
+      localStorage.removeItem('vendtech_show_checklist');
+      window.location.reload();
+    }
+
+    // Click handlers for progress steps
+    document.querySelectorAll('.step').forEach(step => {
+      step.addEventListener('click', () => {
+        const stepNum = parseInt(step.dataset.step);
+        // Only allow clicking on completed/skipped steps or current+1
+        if (stepStatus[stepNum] || stepNum <= currentStep) {
+          goToStep(stepNum);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
