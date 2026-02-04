@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Vendors & Suppliers — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #0f172a;
+      --muted: #64748b; --accent: #3b82f6; --accent-light: #eff6ff;
+      --green: #22c55e; --green-light: #f0fdf4;
+      --amber: #f59e0b; --amber-light: #fffbeb;
+      --red: #ef4444; --red-light: #fef2f2;
+      --purple: #8b5cf6; --purple-light: #f5f3ff;
+      --teal: #14b8a6; --teal-light: #f0fdfa;
+      --radius: 12px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+    .page { max-width: 1400px; margin: 0 auto; padding: 24px 28px 60px; }
+    
+    /* Header */
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+    .page-title { font-size: 1.5rem; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+    .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    
+    /* Buttons */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--text); transition: all 0.15s; text-decoration: none; }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover { background: #2563eb; border-color: #2563eb; color: #fff; }
+    .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
+    .btn-danger { background: var(--red); color: #fff; border-color: var(--red); }
+    .btn-danger:hover { background: #dc2626; }
+    
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 4px; margin-bottom: 24px; width: fit-content; }
+    .tab { padding: 10px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: var(--muted); background: none; border: none; transition: all 0.15s; }
+    .tab:hover { color: var(--text); }
+    .tab.active { background: var(--accent); color: #fff; }
+    
+    /* Stats Row */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; }
+    .stat-card .stat-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .stat-card .stat-value { font-size: 1.6rem; font-weight: 800; line-height: 1; }
+    .stat-card .stat-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-top: 4px; }
+    
+    /* Filter bar */
+    .filter-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+    .filter-select { padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; background: var(--card); }
+    .search-input { padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; width: 250px; }
+    
+    /* Vendor Cards Grid */
+    .vendors-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+    
+    .vendor-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; transition: all 0.2s; cursor: pointer; position: relative; }
+    .vendor-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); transform: translateY(-2px); border-color: var(--accent); }
+    .vendor-card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+    
+    .vendor-header { display: flex; gap: 14px; margin-bottom: 14px; }
+    .vendor-logo { width: 56px; height: 56px; border-radius: 10px; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; flex-shrink: 0; border: 1px solid var(--border); }
+    .vendor-info { flex: 1; min-width: 0; }
+    .vendor-name { font-size: 1rem; font-weight: 700; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .vendor-category { display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+    .category-wholesale { background: #dbeafe; color: #1e40af; }
+    .category-equipment { background: #e0e7ff; color: #3730a3; }
+    .category-supplies { background: #fef3c7; color: #92400e; }
+    .category-services { background: #dcfce7; color: #166534; }
+    .category-distributor { background: #fce7f3; color: #9d174d; }
+    .category-payment { background: #f3e8ff; color: #6b21a8; }
+    
+    .vendor-contact { font-size: 0.82rem; color: var(--muted); margin-bottom: 12px; }
+    .vendor-contact div { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+    
+    .vendor-meta { display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--border); }
+    .vendor-account { font-size: 0.78rem; color: var(--muted); }
+    .vendor-rating { display: flex; align-items: center; gap: 4px; font-size: 0.85rem; }
+    .star { color: var(--amber); }
+    
+    .vendor-actions { position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; opacity: 0; transition: opacity 0.15s; }
+    .vendor-card:hover .vendor-actions { opacity: 1; }
+    .action-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; }
+    .action-btn:hover { background: var(--accent-light); border-color: var(--accent); }
+    
+    /* Cards */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 24px; margin-bottom: 20px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .card-title { font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    
+    /* Section visibility */
+    .section { display: none; }
+    .section.active { display: block; }
+    
+    /* Detail Panel */
+    .detail-panel { display: none; position: fixed; top: 0; right: 0; width: 480px; height: 100vh; background: var(--card); border-left: 1px solid var(--border); box-shadow: -4px 0 24px rgba(0,0,0,0.1); z-index: 1000; overflow-y: auto; padding-top: 56px; }
+    .detail-panel.open { display: block; }
+    .detail-header { position: sticky; top: 0; background: var(--card); padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+    .detail-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--muted); }
+    .detail-close:hover { color: var(--text); }
+    .detail-content { padding: 24px; }
+    
+    .detail-vendor-header { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 24px; }
+    .detail-logo { width: 72px; height: 72px; border-radius: 12px; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 2.2rem; border: 1px solid var(--border); }
+    .detail-vendor-info h2 { font-size: 1.25rem; margin-bottom: 6px; }
+    
+    .detail-section { margin-bottom: 24px; }
+    .detail-section-title { font-size: 0.78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .info-item { background: var(--bg); padding: 12px 14px; border-radius: 8px; }
+    .info-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+    .info-value { font-size: 0.9rem; font-weight: 600; }
+    .info-item.full { grid-column: 1 / -1; }
+    
+    /* Price comparison table */
+    .price-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .price-table th { text-align: left; padding: 10px 12px; font-weight: 600; color: var(--muted); font-size: 0.72rem; text-transform: uppercase; border-bottom: 2px solid var(--border); }
+    .price-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    .price-table tr:hover { background: var(--accent-light); }
+    .best-price { background: var(--green-light); color: var(--green); font-weight: 700; border-radius: 4px; padding: 2px 6px; }
+    
+    /* Order tracking */
+    .order-item { display: flex; align-items: center; gap: 14px; padding: 14px; background: var(--bg); border-radius: 8px; margin-bottom: 10px; }
+    .order-status { width: 10px; height: 10px; border-radius: 50%; }
+    .order-status.pending { background: var(--amber); }
+    .order-status.shipped { background: var(--accent); }
+    .order-status.delivered { background: var(--green); }
+    .order-info { flex: 1; }
+    .order-id { font-weight: 600; font-size: 0.9rem; }
+    .order-meta { font-size: 0.78rem; color: var(--muted); }
+    .order-amount { font-weight: 700; font-size: 0.95rem; }
+    
+    /* Notes textarea */
+    .notes-textarea { width: 100%; min-height: 100px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; resize: vertical; font-family: inherit; }
+    .notes-textarea:focus { outline: none; border-color: var(--accent); }
+    
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--card); border-radius: var(--radius); padding: 28px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .modal-title { font-size: 1.1rem; font-weight: 700; }
+    .modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--muted); }
+    .modal-close:hover { color: var(--text); }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    
+    /* Form */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-label { font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; }
+    .form-input, .form-select, .form-textarea { padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; background: var(--card); }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--accent); }
+    .form-textarea { resize: vertical; min-height: 80px; }
+    
+    /* Spending by vendor */
+    .spending-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .spending-vendor { width: 140px; font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .spending-progress { flex: 1; height: 24px; background: var(--bg); border-radius: 6px; overflow: hidden; position: relative; }
+    .spending-fill { height: 100%; background: var(--accent); border-radius: 6px; transition: width 0.3s; }
+    .spending-amount { width: 90px; text-align: right; font-weight: 700; font-size: 0.9rem; }
+    
+    /* Empty state */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty-text { font-size: 1rem; margin-bottom: 16px; }
+    
+    /* Responsive */
+    @media (max-width: 1000px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .detail-panel { width: 100%; }
+    }
+    @media (max-width: 600px) {
+      .page { padding: 16px; }
+      .stats-row { grid-template-columns: 1fr; }
+      .vendors-grid { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .info-grid { grid-template-columns: 1fr; }
+      .filter-bar { flex-direction: column; align-items: stretch; }
+      .search-input { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<script src="/nav.js"></script>
+
+<div class="page">
+  <!-- Header -->
+  <div class="page-header">
+    <h1 class="page-title">🏭 Vendors & Suppliers</h1>
+    <div class="header-actions">
+      <a href="/expenses" class="btn">💰 Expenses</a>
+      <button class="btn btn-primary" onclick="openModal()">➕ Add Vendor</button>
+    </div>
+  </div>
+  
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-tab="vendors">Vendors</button>
+    <button class="tab" data-tab="prices">Price Comparison</button>
+    <button class="tab" data-tab="orders">Orders</button>
+    <button class="tab" data-tab="spending">Spending</button>
+  </div>
+  
+  <!-- Stats Row -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon">🏢</div>
+      <div class="stat-value" id="stat-total">0</div>
+      <div class="stat-label">Total Vendors</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">📦</div>
+      <div class="stat-value" id="stat-orders">0</div>
+      <div class="stat-label">Pending Orders</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">💵</div>
+      <div class="stat-value" id="stat-spending">$0</div>
+      <div class="stat-label">MTD Spending</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">⭐</div>
+      <div class="stat-value" id="stat-rating">-</div>
+      <div class="stat-label">Avg Rating</div>
+    </div>
+  </div>
+  
+  <!-- VENDORS TAB -->
+  <div class="section active" id="section-vendors">
+    <div class="filter-bar">
+      <select class="filter-select" id="filter-category">
+        <option value="">All Categories</option>
+        <option value="wholesale">Wholesale</option>
+        <option value="distributor">Distributor</option>
+        <option value="equipment">Equipment</option>
+        <option value="supplies">Supplies</option>
+        <option value="services">Services</option>
+        <option value="payment">Payment Systems</option>
+      </select>
+      <input type="text" class="search-input" id="search-vendor" placeholder="Search vendors...">
+    </div>
+    
+    <div class="vendors-grid" id="vendors-grid">
+      <div class="empty-state">
+        <div class="empty-icon">📦</div>
+        <div class="empty-text">No vendors added yet</div>
+        <button class="btn btn-primary" onclick="openModal()">Add Your First Vendor</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- PRICE COMPARISON TAB -->
+  <div class="section" id="section-prices">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📊 Price Comparison</span>
+        <button class="btn btn-sm" onclick="openPriceModal()">➕ Add Price</button>
+      </div>
+      <div class="filter-bar">
+        <input type="text" class="search-input" id="search-product" placeholder="Search products...">
+      </div>
+      <div class="table-container">
+        <table class="price-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Costco</th>
+              <th>Sam's Club</th>
+              <th>Vistar</th>
+              <th>Best Price</th>
+              <th>Updated</th>
+            </tr>
+          </thead>
+          <tbody id="price-tbody">
+            <tr><td colspan="6" class="empty-state"><div class="empty-icon">📋</div>No price data yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <!-- ORDERS TAB -->
+  <div class="section" id="section-orders">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📦 Pending Orders</span>
+        <button class="btn btn-sm btn-primary" onclick="openOrderModal()">➕ Add Order</button>
+      </div>
+      <div id="pending-orders">
+        <div class="empty-state">
+          <div class="empty-icon">✅</div>
+          <div class="empty-text">No pending orders</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📜 Order History</span>
+      </div>
+      <div id="order-history">
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <div class="empty-text">No order history</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- SPENDING TAB -->
+  <div class="section" id="section-spending">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">💰 Spending by Vendor (This Month)</span>
+        <a href="/expenses" class="btn btn-sm">View All Expenses →</a>
+      </div>
+      <div id="spending-chart">
+        <div class="empty-state">
+          <div class="empty-icon">📊</div>
+          <div class="empty-text">No spending data available</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Panel -->
+<div class="detail-panel" id="detail-panel">
+  <div class="detail-header">
+    <h3>Vendor Details</h3>
+    <button class="detail-close" onclick="closeDetail()">×</button>
+  </div>
+  <div class="detail-content" id="detail-content">
+    <!-- Populated by JS -->
+  </div>
+</div>
+
+<!-- Add/Edit Vendor Modal -->
+<div class="modal-overlay" id="vendor-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modal-title">Add Vendor</h3>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <form id="vendor-form" onsubmit="saveVendor(event)">
+      <input type="hidden" id="vendor-id">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Vendor Name *</label>
+          <input type="text" class="form-input" id="vendor-name" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category *</label>
+          <select class="form-select" id="vendor-category" required>
+            <option value="wholesale">Wholesale</option>
+            <option value="distributor">Distributor</option>
+            <option value="equipment">Equipment</option>
+            <option value="supplies">Supplies</option>
+            <option value="services">Services</option>
+            <option value="payment">Payment Systems</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Account Number</label>
+          <input type="text" class="form-input" id="vendor-account">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contact Name</label>
+          <input type="text" class="form-input" id="vendor-contact-name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input type="tel" class="form-input" id="vendor-phone">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-input" id="vendor-email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Website</label>
+          <input type="url" class="form-input" id="vendor-website" placeholder="https://">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Address</label>
+          <input type="text" class="form-input" id="vendor-address">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Account Rep</label>
+          <input type="text" class="form-input" id="vendor-rep">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Terms</label>
+          <select class="form-select" id="vendor-terms">
+            <option value="">Select...</option>
+            <option value="cod">COD</option>
+            <option value="net15">Net 15</option>
+            <option value="net30">Net 30</option>
+            <option value="net60">Net 60</option>
+            <option value="prepay">Prepay</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Rating</label>
+          <select class="form-select" id="vendor-rating">
+            <option value="">Not rated</option>
+            <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
+            <option value="4">⭐⭐⭐⭐ Good</option>
+            <option value="3">⭐⭐⭐ Average</option>
+            <option value="2">⭐⭐ Below Average</option>
+            <option value="1">⭐ Poor</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Delivery Schedule</label>
+          <input type="text" class="form-input" id="vendor-delivery" placeholder="e.g., Mon/Wed/Fri">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Notes</label>
+          <textarea class="form-textarea" id="vendor-notes" placeholder="Pricing notes, special terms, etc."></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Vendor</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Price Modal -->
+<div class="modal-overlay" id="price-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Add Price Entry</h3>
+      <button class="modal-close" onclick="closePriceModal()">×</button>
+    </div>
+    <form id="price-form" onsubmit="savePrice(event)">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Product Name *</label>
+          <input type="text" class="form-input" id="price-product" required placeholder="e.g., Coca-Cola 20oz">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Vendor *</label>
+          <select class="form-select" id="price-vendor" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Price *</label>
+          <input type="number" class="form-input" id="price-amount" step="0.01" required placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unit</label>
+          <input type="text" class="form-input" id="price-unit" placeholder="e.g., case of 24">
+        </div>
+        <div class="form-group">
+          <label class="form-label">SKU</label>
+          <input type="text" class="form-input" id="price-sku">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closePriceModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Price</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Order Modal -->
+<div class="modal-overlay" id="order-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Add Order</h3>
+      <button class="modal-close" onclick="closeOrderModal()">×</button>
+    </div>
+    <form id="order-form" onsubmit="saveOrder(event)">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Vendor *</label>
+          <select class="form-select" id="order-vendor" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Order Number</label>
+          <input type="text" class="form-input" id="order-number">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Amount *</label>
+          <input type="number" class="form-input" id="order-amount" step="0.01" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-select" id="order-status">
+            <option value="pending">Pending</option>
+            <option value="shipped">Shipped</option>
+            <option value="delivered">Delivered</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Order Date</label>
+          <input type="date" class="form-input" id="order-date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Expected Delivery</label>
+          <input type="date" class="form-input" id="order-delivery">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Notes</label>
+          <textarea class="form-textarea" id="order-notes" placeholder="Items ordered, tracking number, etc."></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closeOrderModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Order</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// State
+let vendors = [];
+let prices = [];
+let orders = [];
+let selectedVendor = null;
+
+// Category icons
+const categoryIcons = {
+  wholesale: '🏪',
+  distributor: '🚚',
+  equipment: '🤖',
+  supplies: '📦',
+  services: '🔧',
+  payment: '💳'
+};
+
+// Pre-populated key vendors
+const defaultVendors = [
+  {
+    name: 'Costco Business Center',
+    category: 'wholesale',
+    phone: '1-800-774-2678',
+    website: 'https://www.costcobusinessdelivery.com',
+    notes: 'Best prices on bulk sodas, water, snacks. Membership required. Great for weekly restocks.',
+    rating: 5
+  },
+  {
+    name: "Sam's Club",
+    category: 'wholesale',
+    phone: '1-888-746-7726',
+    website: 'https://www.samsclub.com',
+    notes: 'Good alternative to Costco. Check Plus membership for early shopping hours.',
+    rating: 4
+  },
+  {
+    name: 'Vistar',
+    category: 'distributor',
+    phone: '1-800-999-5989',
+    website: 'https://www.vistar.com',
+    notes: 'National vending distributor. USG rebate program member. Schedule weekly will-call pickups to build relationship.',
+    rating: 4
+  },
+  {
+    name: 'WeVend / SandStar',
+    category: 'equipment',
+    phone: '1-888-693-8363',
+    website: 'https://www.wevend.com',
+    notes: 'Primary machine supplier. SandStar AI Smart Cooler @ $3,600. 5-year warranty. Also handles payment processing (saves $1,656/yr vs Stripe).',
+    rating: 5
+  },
+  {
+    name: 'Nayax',
+    category: 'payment',
+    phone: '1-844-629-2969',
+    website: 'https://www.nayax.com',
+    notes: 'Cashless payment systems. Mandatory for modern vending (missing 50%+ sales without it). Telemetry included.',
+    rating: 4
+  },
+  {
+    name: 'Cantaloupe',
+    category: 'payment',
+    phone: '1-888-561-4748',
+    website: 'https://www.cantaloupe.com',
+    notes: 'Alternative payment processor. Good telemetry and reporting. Compare rates with Nayax.',
+    rating: 4
+  },
+  {
+    name: 'VenMarket',
+    category: 'distributor',
+    phone: '',
+    website: 'https://www.venmarket.com',
+    notes: 'USG rebate program trigger - ONE order enrolls you. 7-13% rebates on everything. Q1 cutoff is March 10.',
+    rating: 5
+  }
+];
+
+// Initialize
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadVendors();
+  await loadOrders();
+  await loadPrices();
+  setupTabs();
+  setupFilters();
+  renderVendors();
+  updateStats();
+});
+
+// API Functions
+async function loadVendors() {
+  try {
+    const res = await fetch('/api/suppliers');
+    vendors = await res.json();
+    
+    // If no vendors, seed with defaults
+    if (vendors.length === 0) {
+      for (const v of defaultVendors) {
+        await fetch('/api/suppliers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(v)
+        });
+      }
+      const res2 = await fetch('/api/suppliers');
+      vendors = await res2.json();
+    }
+  } catch (e) {
+    console.error('Failed to load vendors:', e);
+    vendors = [];
+  }
+}
+
+async function loadOrders() {
+  // Using a simple in-memory approach for orders (could be expanded to API)
+  orders = JSON.parse(localStorage.getItem('vendtech_orders') || '[]');
+}
+
+async function loadPrices() {
+  prices = JSON.parse(localStorage.getItem('vendtech_prices') || '[]');
+  renderPrices();
+}
+
+function saveOrdersLocal() {
+  localStorage.setItem('vendtech_orders', JSON.stringify(orders));
+}
+
+function savePricesLocal() {
+  localStorage.setItem('vendtech_prices', JSON.stringify(prices));
+}
+
+// Render Functions
+function renderVendors() {
+  const grid = document.getElementById('vendors-grid');
+  const category = document.getElementById('filter-category').value;
+  const search = document.getElementById('search-vendor').value.toLowerCase();
+  
+  let filtered = vendors;
+  if (category) filtered = filtered.filter(v => v.category === category);
+  if (search) filtered = filtered.filter(v => 
+    v.name.toLowerCase().includes(search) || 
+    (v.notes || '').toLowerCase().includes(search)
+  );
+  
+  if (filtered.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-text">No vendors found</div>
+        <button class="btn btn-primary" onclick="openModal()">Add Vendor</button>
+      </div>
+    `;
+    return;
+  }
+  
+  grid.innerHTML = filtered.map(v => `
+    <div class="vendor-card" onclick="openDetail(${v.id})" data-id="${v.id}">
+      <div class="vendor-actions">
+        <button class="action-btn" onclick="event.stopPropagation(); editVendor(${v.id})" title="Edit">✏️</button>
+        <button class="action-btn" onclick="event.stopPropagation(); deleteVendor(${v.id})" title="Delete">🗑️</button>
+      </div>
+      <div class="vendor-header">
+        <div class="vendor-logo">${categoryIcons[v.category] || '🏢'}</div>
+        <div class="vendor-info">
+          <div class="vendor-name">${escapeHtml(v.name)}</div>
+          <span class="vendor-category category-${v.category}">${v.category}</span>
+        </div>
+      </div>
+      <div class="vendor-contact">
+        ${v.phone ? `<div>📞 ${escapeHtml(v.phone)}</div>` : ''}
+        ${v.email ? `<div>📧 ${escapeHtml(v.email)}</div>` : ''}
+        ${v.website ? `<div>🌐 <a href="${escapeHtml(v.website)}" target="_blank" onclick="event.stopPropagation()">${new URL(v.website).hostname}</a></div>` : ''}
+      </div>
+      <div class="vendor-meta">
+        <span class="vendor-account">${v.account_number ? 'Acct: ' + escapeHtml(v.account_number) : 'No account'}</span>
+        <span class="vendor-rating">${renderStars(v.rating)}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderStars(rating) {
+  if (!rating) return '<span style="color: var(--muted)">Not rated</span>';
+  return '<span class="star">' + '⭐'.repeat(rating) + '</span>';
+}
+
+function renderPrices() {
+  const tbody = document.getElementById('price-tbody');
+  const search = document.getElementById('search-product')?.value.toLowerCase() || '';
+  
+  // Group prices by product
+  const productPrices = {};
+  prices.forEach(p => {
+    const key = p.product.toLowerCase();
+    if (!productPrices[key]) productPrices[key] = { product: p.product, vendors: {} };
+    productPrices[key].vendors[p.vendor_id] = { price: p.price, unit: p.unit, updated: p.updated };
+  });
+  
+  const products = Object.values(productPrices).filter(p => 
+    !search || p.product.toLowerCase().includes(search)
+  );
+  
+  if (products.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><div class="empty-icon">📋</div>No price data yet</td></tr>';
+    return;
+  }
+  
+  // Get vendor names map
+  const vendorNames = {};
+  vendors.forEach(v => vendorNames[v.id] = v.name);
+  
+  // Find primary vendors (Costco, Sam's, Vistar)
+  const costco = vendors.find(v => v.name.includes('Costco'));
+  const sams = vendors.find(v => v.name.includes("Sam's"));
+  const vistar = vendors.find(v => v.name.includes('Vistar'));
+  
+  tbody.innerHTML = products.map(p => {
+    const allPrices = Object.entries(p.vendors).map(([vid, data]) => ({ vid, ...data }));
+    const bestPrice = allPrices.length > 0 ? Math.min(...allPrices.map(x => x.price)) : null;
+    
+    const getCell = (vendor) => {
+      if (!vendor) return '<td>-</td>';
+      const data = p.vendors[vendor.id];
+      if (!data) return '<td>-</td>';
+      const isBest = data.price === bestPrice;
+      return `<td>${isBest ? '<span class="best-price">' : ''}$${data.price.toFixed(2)}${data.unit ? '/' + data.unit : ''}${isBest ? '</span>' : ''}</td>`;
+    };
+    
+    const bestVendor = bestPrice ? allPrices.find(x => x.price === bestPrice) : null;
+    const bestVendorName = bestVendor ? vendorNames[bestVendor.vid] || 'Unknown' : '-';
+    const lastUpdated = allPrices.length > 0 ? new Date(Math.max(...allPrices.map(x => new Date(x.updated)))).toLocaleDateString() : '-';
+    
+    return `
+      <tr>
+        <td><strong>${escapeHtml(p.product)}</strong></td>
+        ${getCell(costco)}
+        ${getCell(sams)}
+        ${getCell(vistar)}
+        <td>${bestVendorName}</td>
+        <td>${lastUpdated}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderOrders() {
+  const pending = document.getElementById('pending-orders');
+  const history = document.getElementById('order-history');
+  
+  const pendingOrders = orders.filter(o => o.status === 'pending' || o.status === 'shipped');
+  const completedOrders = orders.filter(o => o.status === 'delivered');
+  
+  const renderOrderList = (list, container, emptyText) => {
+    if (list.length === 0) {
+      container.innerHTML = `<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">${emptyText}</div></div>`;
+      return;
+    }
+    
+    container.innerHTML = list.map(o => {
+      const vendor = vendors.find(v => v.id == o.vendor_id);
+      return `
+        <div class="order-item">
+          <div class="order-status ${o.status}"></div>
+          <div class="order-info">
+            <div class="order-id">${o.order_number || 'Order'} - ${vendor?.name || 'Unknown Vendor'}</div>
+            <div class="order-meta">${o.order_date || 'No date'} • ${o.status.charAt(0).toUpperCase() + o.status.slice(1)}${o.expected_delivery ? ' • ETA: ' + o.expected_delivery : ''}</div>
+            ${o.notes ? `<div class="order-meta">${escapeHtml(o.notes)}</div>` : ''}
+          </div>
+          <div class="order-amount">$${(o.amount || 0).toFixed(2)}</div>
+          <button class="action-btn" onclick="updateOrderStatus(${o.id})" title="Update Status">✓</button>
+        </div>
+      `;
+    }).join('');
+  };
+  
+  renderOrderList(pendingOrders, pending, 'No pending orders');
+  renderOrderList(completedOrders, history, 'No order history');
+}
+
+function renderSpending() {
+  const container = document.getElementById('spending-chart');
+  
+  // Calculate spending by vendor from orders this month
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  
+  const spending = {};
+  orders.filter(o => (o.order_date || '').startsWith(thisMonth) || o.status === 'delivered').forEach(o => {
+    if (!spending[o.vendor_id]) spending[o.vendor_id] = 0;
+    spending[o.vendor_id] += o.amount || 0;
+  });
+  
+  const entries = Object.entries(spending).map(([vid, amount]) => {
+    const vendor = vendors.find(v => v.id == vid);
+    return { name: vendor?.name || 'Unknown', amount };
+  }).sort((a, b) => b.amount - a.amount);
+  
+  if (entries.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-text">No spending data available</div></div>';
+    return;
+  }
+  
+  const maxAmount = Math.max(...entries.map(e => e.amount));
+  
+  container.innerHTML = entries.map(e => `
+    <div class="spending-bar">
+      <div class="spending-vendor" title="${escapeHtml(e.name)}">${escapeHtml(e.name)}</div>
+      <div class="spending-progress">
+        <div class="spending-fill" style="width: ${(e.amount / maxAmount * 100).toFixed(1)}%"></div>
+      </div>
+      <div class="spending-amount">$${e.amount.toFixed(2)}</div>
+    </div>
+  `).join('');
+}
+
+function updateStats() {
+  document.getElementById('stat-total').textContent = vendors.length;
+  
+  const pendingCount = orders.filter(o => o.status === 'pending' || o.status === 'shipped').length;
+  document.getElementById('stat-orders').textContent = pendingCount;
+  
+  // MTD spending
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const mtdSpending = orders.filter(o => (o.order_date || '').startsWith(thisMonth))
+    .reduce((sum, o) => sum + (o.amount || 0), 0);
+  document.getElementById('stat-spending').textContent = '$' + mtdSpending.toFixed(0);
+  
+  // Average rating
+  const rated = vendors.filter(v => v.rating);
+  const avgRating = rated.length > 0 ? (rated.reduce((s, v) => s + v.rating, 0) / rated.length).toFixed(1) : '-';
+  document.getElementById('stat-rating').textContent = avgRating !== '-' ? avgRating + ' ⭐' : avgRating;
+}
+
+// Tab handling
+function setupTabs() {
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('section-' + tab.dataset.tab).classList.add('active');
+      
+      // Render data for specific tabs
+      if (tab.dataset.tab === 'orders') renderOrders();
+      if (tab.dataset.tab === 'spending') renderSpending();
+      if (tab.dataset.tab === 'prices') renderPrices();
+    });
+  });
+}
+
+// Filters
+function setupFilters() {
+  document.getElementById('filter-category').addEventListener('change', renderVendors);
+  document.getElementById('search-vendor').addEventListener('input', debounce(renderVendors, 200));
+  document.getElementById('search-product')?.addEventListener('input', debounce(renderPrices, 200));
+}
+
+// Detail Panel
+function openDetail(id) {
+  selectedVendor = vendors.find(v => v.id === id);
+  if (!selectedVendor) return;
+  
+  const content = document.getElementById('detail-content');
+  const panel = document.getElementById('detail-panel');
+  
+  // Mark card as selected
+  document.querySelectorAll('.vendor-card').forEach(c => c.classList.remove('selected'));
+  document.querySelector(`.vendor-card[data-id="${id}"]`)?.classList.add('selected');
+  
+  const termsLabel = {
+    cod: 'Cash on Delivery',
+    net15: 'Net 15',
+    net30: 'Net 30',
+    net60: 'Net 60',
+    prepay: 'Prepay'
+  };
+  
+  content.innerHTML = `
+    <div class="detail-vendor-header">
+      <div class="detail-logo">${categoryIcons[selectedVendor.category] || '🏢'}</div>
+      <div class="detail-vendor-info">
+        <h2>${escapeHtml(selectedVendor.name)}</h2>
+        <span class="vendor-category category-${selectedVendor.category}">${selectedVendor.category}</span>
+        <div style="margin-top: 8px">${renderStars(selectedVendor.rating)}</div>
+      </div>
+    </div>
+    
+    <div class="detail-section">
+      <div class="detail-section-title">📞 Contact Information</div>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">Phone</div>
+          <div class="info-value">${selectedVendor.phone ? `<a href="tel:${selectedVendor.phone}">${escapeHtml(selectedVendor.phone)}</a>` : '-'}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Email</div>
+          <div class="info-value">${selectedVendor.email ? `<a href="mailto:${selectedVendor.email}">${escapeHtml(selectedVendor.email)}</a>` : '-'}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Contact Name</div>
+          <div class="info-value">${escapeHtml(selectedVendor.contact_name) || '-'}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Website</div>
+          <div class="info-value">${selectedVendor.website ? `<a href="${escapeHtml(selectedVendor.website)}" target="_blank">Visit →</a>` : '-'}</div>
+        </div>
+        <div class="info-item full">
+          <div class="info-label">Address</div>
+          <div class="info-value">${escapeHtml(selectedVendor.address) || '-'}</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="detail-section">
+      <div class="detail-section-title">📋 Account Details</div>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">Account Number</div>
+          <div class="info-value">${escapeHtml(selectedVendor.account_number) || '-'}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Account Rep</div>
+          <div class="info-value">${escapeHtml(selectedVendor.rep) || '-'}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Payment Terms</div>
+          <div class="info-value">${termsLabel[selectedVendor.terms] || '-'}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Delivery Schedule</div>
+          <div class="info-value">${escapeHtml(selectedVendor.delivery_schedule) || '-'}</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="detail-section">
+      <div class="detail-section-title">📝 Notes & Pricing</div>
+      <textarea class="notes-textarea" id="detail-notes" placeholder="Add notes about this vendor...">${escapeHtml(selectedVendor.notes || '')}</textarea>
+      <button class="btn btn-sm" style="margin-top: 10px" onclick="saveNotes()">Save Notes</button>
+    </div>
+    
+    <div class="detail-section">
+      <div class="detail-section-title">📦 Recent Orders</div>
+      <div id="vendor-orders"></div>
+    </div>
+    
+    <div style="margin-top: 24px; display: flex; gap: 10px;">
+      <button class="btn btn-primary" onclick="editVendor(${selectedVendor.id}); closeDetail();">✏️ Edit Vendor</button>
+      <button class="btn btn-danger" onclick="deleteVendor(${selectedVendor.id}); closeDetail();">🗑️ Delete</button>
+    </div>
+  `;
+  
+  // Render vendor orders
+  const vendorOrders = orders.filter(o => o.vendor_id == id).slice(0, 5);
+  const ordersContainer = document.getElementById('vendor-orders');
+  if (vendorOrders.length === 0) {
+    ordersContainer.innerHTML = '<div style="color: var(--muted); font-size: 0.85rem;">No orders yet</div>';
+  } else {
+    ordersContainer.innerHTML = vendorOrders.map(o => `
+      <div class="order-item" style="margin-bottom: 8px;">
+        <div class="order-status ${o.status}"></div>
+        <div class="order-info">
+          <div class="order-id">${o.order_number || 'Order'}</div>
+          <div class="order-meta">${o.order_date || ''} • ${o.status}</div>
+        </div>
+        <div class="order-amount">$${(o.amount || 0).toFixed(2)}</div>
+      </div>
+    `).join('');
+  }
+  
+  panel.classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('open');
+  document.querySelectorAll('.vendor-card').forEach(c => c.classList.remove('selected'));
+  selectedVendor = null;
+}
+
+async function saveNotes() {
+  if (!selectedVendor) return;
+  const notes = document.getElementById('detail-notes').value;
+  
+  try {
+    await fetch(`/api/suppliers/${selectedVendor.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notes })
+    });
+    selectedVendor.notes = notes;
+    renderVendors();
+    alert('Notes saved!');
+  } catch (e) {
+    alert('Failed to save notes');
+  }
+}
+
+// Modal functions
+function openModal(vendor = null) {
+  document.getElementById('vendor-modal').classList.add('open');
+  document.getElementById('modal-title').textContent = vendor ? 'Edit Vendor' : 'Add Vendor';
+  
+  if (vendor) {
+    document.getElementById('vendor-id').value = vendor.id;
+    document.getElementById('vendor-name').value = vendor.name || '';
+    document.getElementById('vendor-category').value = vendor.category || 'wholesale';
+    document.getElementById('vendor-account').value = vendor.account_number || '';
+    document.getElementById('vendor-contact-name').value = vendor.contact_name || '';
+    document.getElementById('vendor-phone').value = vendor.phone || '';
+    document.getElementById('vendor-email').value = vendor.email || '';
+    document.getElementById('vendor-website').value = vendor.website || '';
+    document.getElementById('vendor-address').value = vendor.address || '';
+    document.getElementById('vendor-rep').value = vendor.rep || '';
+    document.getElementById('vendor-terms').value = vendor.terms || '';
+    document.getElementById('vendor-rating').value = vendor.rating || '';
+    document.getElementById('vendor-delivery').value = vendor.delivery_schedule || '';
+    document.getElementById('vendor-notes').value = vendor.notes || '';
+  } else {
+    document.getElementById('vendor-form').reset();
+    document.getElementById('vendor-id').value = '';
+  }
+}
+
+function closeModal() {
+  document.getElementById('vendor-modal').classList.remove('open');
+}
+
+async function saveVendor(e) {
+  e.preventDefault();
+  
+  const id = document.getElementById('vendor-id').value;
+  const data = {
+    name: document.getElementById('vendor-name').value,
+    category: document.getElementById('vendor-category').value,
+    account_number: document.getElementById('vendor-account').value,
+    contact_name: document.getElementById('vendor-contact-name').value,
+    phone: document.getElementById('vendor-phone').value,
+    email: document.getElementById('vendor-email').value,
+    website: document.getElementById('vendor-website').value,
+    address: document.getElementById('vendor-address').value,
+    rep: document.getElementById('vendor-rep').value,
+    terms: document.getElementById('vendor-terms').value,
+    rating: parseInt(document.getElementById('vendor-rating').value) || null,
+    delivery_schedule: document.getElementById('vendor-delivery').value,
+    notes: document.getElementById('vendor-notes').value
+  };
+  
+  try {
+    if (id) {
+      await fetch(`/api/suppliers/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+    } else {
+      await fetch('/api/suppliers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+    }
+    
+    await loadVendors();
+    renderVendors();
+    updateStats();
+    closeModal();
+  } catch (e) {
+    alert('Failed to save vendor');
+  }
+}
+
+function editVendor(id) {
+  const vendor = vendors.find(v => v.id === id);
+  if (vendor) openModal(vendor);
+}
+
+async function deleteVendor(id) {
+  if (!confirm('Delete this vendor?')) return;
+  
+  try {
+    await fetch(`/api/suppliers/${id}`, { method: 'DELETE' });
+    await loadVendors();
+    renderVendors();
+    updateStats();
+  } catch (e) {
+    alert('Failed to delete vendor');
+  }
+}
+
+// Price Modal
+function openPriceModal() {
+  document.getElementById('price-modal').classList.add('open');
+  const select = document.getElementById('price-vendor');
+  select.innerHTML = vendors.map(v => `<option value="${v.id}">${escapeHtml(v.name)}</option>`).join('');
+  document.getElementById('price-form').reset();
+}
+
+function closePriceModal() {
+  document.getElementById('price-modal').classList.remove('open');
+}
+
+function savePrice(e) {
+  e.preventDefault();
+  
+  prices.push({
+    id: Date.now(),
+    product: document.getElementById('price-product').value,
+    vendor_id: document.getElementById('price-vendor').value,
+    price: parseFloat(document.getElementById('price-amount').value),
+    unit: document.getElementById('price-unit').value,
+    sku: document.getElementById('price-sku').value,
+    updated: new Date().toISOString()
+  });
+  
+  savePricesLocal();
+  renderPrices();
+  closePriceModal();
+}
+
+// Order Modal
+function openOrderModal() {
+  document.getElementById('order-modal').classList.add('open');
+  const select = document.getElementById('order-vendor');
+  select.innerHTML = vendors.map(v => `<option value="${v.id}">${escapeHtml(v.name)}</option>`).join('');
+  document.getElementById('order-form').reset();
+  document.getElementById('order-date').value = new Date().toISOString().split('T')[0];
+}
+
+function closeOrderModal() {
+  document.getElementById('order-modal').classList.remove('open');
+}
+
+function saveOrder(e) {
+  e.preventDefault();
+  
+  orders.push({
+    id: Date.now(),
+    vendor_id: document.getElementById('order-vendor').value,
+    order_number: document.getElementById('order-number').value,
+    amount: parseFloat(document.getElementById('order-amount').value),
+    status: document.getElementById('order-status').value,
+    order_date: document.getElementById('order-date').value,
+    expected_delivery: document.getElementById('order-delivery').value,
+    notes: document.getElementById('order-notes').value
+  });
+  
+  saveOrdersLocal();
+  renderOrders();
+  updateStats();
+  closeOrderModal();
+}
+
+function updateOrderStatus(id) {
+  const order = orders.find(o => o.id === id);
+  if (!order) return;
+  
+  const statusFlow = { pending: 'shipped', shipped: 'delivered', delivered: 'delivered' };
+  order.status = statusFlow[order.status];
+  
+  saveOrdersLocal();
+  renderOrders();
+  updateStats();
+}
+
+// Utilities
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function debounce(fn, ms) {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => fn(...args), ms);
+  };
+}
+</script>
+</body>
+</html>

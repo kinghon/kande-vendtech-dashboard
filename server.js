@@ -3192,6 +3192,7 @@ app.get('/api/smart-machines-stats', (req, res) => {
 // ===== PAGE ROUTES =====
 app.get('/crm/map', (req, res) => res.sendFile(path.join(__dirname, 'map.html')));
 app.get('/crm', (req, res) => res.sendFile(path.join(__dirname, 'crm.html')));
+app.get('/prospect/:id', (req, res) => res.sendFile(path.join(__dirname, 'prospect-detail.html')));
 app.get('/activities', (req, res) => res.sendFile(path.join(__dirname, 'activities.html')));
 app.get('/map', (req, res) => res.sendFile(path.join(__dirname, 'map.html')));
 app.get('/machines', (req, res) => res.sendFile(path.join(__dirname, 'machines.html')));
@@ -3219,6 +3220,10 @@ app.get('/restock-predictions', (req, res) => res.sendFile(path.join(__dirname, 
 app.get('/smart-machines', (req, res) => res.sendFile(path.join(__dirname, 'smart-machines.html')));
 app.get('/apollo', (req, res) => res.sendFile(path.join(__dirname, 'apollo.html')));
 app.get('/playbook', (req, res) => res.sendFile(path.join(__dirname, 'playbook.html')));
+app.get('/revenue-calculator', (req, res) => res.sendFile(path.join(__dirname, 'revenue-calculator.html')));
+app.get('/mobile', (req, res) => res.sendFile(path.join(__dirname, 'mobile.html')));
+app.get('/quick', (req, res) => res.sendFile(path.join(__dirname, 'mobile.html')));
+app.get('/vendors', (req, res) => res.sendFile(path.join(__dirname, 'vendors.html')));
 
 // ===== PROPOSED LEADS (Lead Vetting / Approval) =====
 if (!db.proposedLeads) db.proposedLeads = [];
@@ -4486,9 +4491,10 @@ app.get('/api/fleet/:id', (req, res) => {
 
 // Add fleet machine
 app.post('/api/fleet', (req, res) => {
-  const { serial, model, location, install_date, status, notes } = req.body;
+  const { serial, model, location, install_date, status, notes, placement, prospect_id, site_contact, capacity, commission_rate, commission_start, cat_beverages, cat_snacks, cat_candy, cat_healthy, cat_incidentals, cat_frozen } = req.body;
   if (!serial || !serial.trim()) return res.status(400).json({ error: 'serial is required' });
-  if (!location || !location.trim()) return res.status(400).json({ error: 'location is required' });
+  // Location is optional for "available" machines
+  if (status !== 'available' && (!location || !location.trim())) return res.status(400).json({ error: 'location is required for deployed machines' });
   // Check duplicate serial
   if ((db.fleetMachines || []).some(m => m.serial.toLowerCase() === serial.trim().toLowerCase())) {
     return res.status(400).json({ error: 'A machine with this serial number already exists' });
@@ -4496,11 +4502,23 @@ app.post('/api/fleet', (req, res) => {
   const machine = {
     id: nextId(),
     serial: serial.trim(),
-    model: (model || 'SandStar AI').trim(),
-    location: location.trim(),
+    model: (model || 'SandStar AI Smart Cooler').trim(),
+    location: location ? location.trim() : '',
+    placement: placement || '',
+    prospect_id: prospect_id ? parseInt(prospect_id) : null,
+    site_contact: site_contact || '',
+    capacity: capacity ? parseInt(capacity) : 60,
     install_date: install_date || null,
     status: status || 'available',
     notes: notes || '',
+    commission_rate: commission_rate ? parseFloat(commission_rate) : 0,
+    commission_start: commission_start || '6months',
+    cat_beverages: !!cat_beverages,
+    cat_snacks: !!cat_snacks,
+    cat_candy: !!cat_candy,
+    cat_healthy: !!cat_healthy,
+    cat_incidentals: !!cat_incidentals,
+    cat_frozen: !!cat_frozen,
     last_restock: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
@@ -4580,6 +4598,7 @@ app.post('/api/fleet/:id/revenue', (req, res) => {
     id: nextId(),
     machine_id,
     amount: parseFloat(req.body.amount) || 0,
+    transactions: req.body.transactions ? parseInt(req.body.transactions) : null,
     date: req.body.date || new Date().toISOString().split('T')[0],
     notes: req.body.notes || '',
     created_at: new Date().toISOString()
@@ -4857,6 +4876,202 @@ app.get('/api/client-portal/statements', (req, res) => {
     }
   }
   res.json(statements);
+});
+
+// ===== CLIENT PORTAL URL TOKEN LOGIN =====
+// Allows passwordless login via URL: /client-portal?token=xxx
+if (!db.clientPortalUrlTokens) db.clientPortalUrlTokens = [];
+
+// URL token login (GET for simplicity — token in query string)
+app.get('/api/client-portal/token-login', (req, res) => {
+  const { token } = req.query;
+  if (!token) return res.status(400).json({ error: 'Token required' });
+  
+  const urlToken = (db.clientPortalUrlTokens || []).find(t => t.token === token && t.active !== false);
+  if (!urlToken) return res.status(401).json({ error: 'Invalid or expired link', success: false });
+  
+  // Check expiry (default 90 days)
+  if (urlToken.expires_at && new Date(urlToken.expires_at) < new Date()) {
+    return res.status(401).json({ error: 'This link has expired', success: false });
+  }
+  
+  // Create session
+  const sessionToken = crypto.randomBytes(32).toString('hex');
+  activeClientSessions.set(sessionToken, { 
+    clientId: urlToken.client_id, 
+    expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 
+  });
+  
+  // Log access
+  urlToken.last_accessed = new Date().toISOString();
+  urlToken.access_count = (urlToken.access_count || 0) + 1;
+  saveDB(db);
+  
+  res.json({ 
+    success: true, 
+    sessionToken, 
+    clientName: urlToken.client_name || 'Client',
+    propertyAddress: urlToken.property_address || null
+  });
+});
+
+// Generate URL token for a prospect/client (admin endpoint)
+app.post('/api/client-portal/url-tokens', (req, res) => {
+  const token = crypto.randomBytes(16).toString('hex');
+  const expiryDays = parseInt(req.body.expiry_days) || 90;
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + expiryDays);
+  
+  const urlToken = {
+    id: nextId(),
+    token,
+    client_id: req.body.client_id || req.body.prospect_id || `client_${Date.now()}`,
+    prospect_id: req.body.prospect_id || null,
+    client_name: req.body.client_name || req.body.property_name || 'Client',
+    property_address: req.body.property_address || '',
+    machine_ids: req.body.machine_ids || [],
+    commission_rate: parseFloat(req.body.commission_rate) || 5,
+    active: true,
+    expires_at: expiresAt.toISOString(),
+    access_count: 0,
+    created_at: new Date().toISOString()
+  };
+  
+  if (!db.clientPortalUrlTokens) db.clientPortalUrlTokens = [];
+  db.clientPortalUrlTokens.push(urlToken);
+  
+  // Also create a matching code-based token for backward compatibility
+  const codeToken = (db.clientPortalTokens || []).find(t => t.client_id === urlToken.client_id);
+  if (!codeToken) {
+    const code = crypto.randomBytes(4).toString('hex').toUpperCase();
+    db.clientPortalTokens.push({
+      id: nextId(),
+      client_id: urlToken.client_id,
+      client_name: urlToken.client_name,
+      code,
+      machine_ids: urlToken.machine_ids,
+      commission_rate: urlToken.commission_rate,
+      active: true,
+      created_at: new Date().toISOString()
+    });
+  }
+  
+  saveDB(db);
+  
+  // Return full URL
+  const baseUrl = req.headers.host?.includes('localhost') 
+    ? `http://${req.headers.host}` 
+    : `https://${req.headers.host || 'dashboard.kandevendtech.com'}`;
+  
+  res.json({
+    ...urlToken,
+    portal_url: `${baseUrl}/client-portal?token=${token}`,
+    demo_url: `${baseUrl}/client-portal?demo=1`
+  });
+});
+
+// List all URL tokens (admin)
+app.get('/api/client-portal/url-tokens', (req, res) => {
+  const tokens = (db.clientPortalUrlTokens || []).map(t => {
+    const baseUrl = req.headers.host?.includes('localhost') 
+      ? `http://${req.headers.host}` 
+      : `https://${req.headers.host || 'dashboard.kandevendtech.com'}`;
+    return {
+      ...t,
+      portal_url: `${baseUrl}/client-portal?token=${t.token}`,
+      is_expired: t.expires_at && new Date(t.expires_at) < new Date()
+    };
+  });
+  res.json(tokens.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
+});
+
+// Revoke/delete URL token
+app.delete('/api/client-portal/url-tokens/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  db.clientPortalUrlTokens = (db.clientPortalUrlTokens || []).filter(t => t.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// Regenerate URL token (new token, same client)
+app.post('/api/client-portal/url-tokens/:id/regenerate', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.clientPortalUrlTokens || []).findIndex(t => t.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Token not found' });
+  
+  const newToken = crypto.randomBytes(16).toString('hex');
+  const expiryDays = parseInt(req.body.expiry_days) || 90;
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + expiryDays);
+  
+  db.clientPortalUrlTokens[idx].token = newToken;
+  db.clientPortalUrlTokens[idx].expires_at = expiresAt.toISOString();
+  db.clientPortalUrlTokens[idx].access_count = 0;
+  db.clientPortalUrlTokens[idx].updated_at = new Date().toISOString();
+  saveDB(db);
+  
+  const baseUrl = req.headers.host?.includes('localhost') 
+    ? `http://${req.headers.host}` 
+    : `https://${req.headers.host || 'dashboard.kandevendtech.com'}`;
+  
+  res.json({
+    ...db.clientPortalUrlTokens[idx],
+    portal_url: `${baseUrl}/client-portal?token=${newToken}`
+  });
+});
+
+// Generate client portal link for a prospect (quick helper)
+app.post('/api/prospects/:id/client-portal-link', (req, res) => {
+  const prospectId = parseInt(req.params.id);
+  const prospect = db.prospects.find(p => p.id === prospectId);
+  if (!prospect) return res.status(404).json({ error: 'Prospect not found' });
+  
+  // Check if link already exists
+  const existing = (db.clientPortalUrlTokens || []).find(t => t.prospect_id === prospectId && t.active);
+  if (existing) {
+    const baseUrl = req.headers.host?.includes('localhost') 
+      ? `http://${req.headers.host}` 
+      : `https://${req.headers.host || 'dashboard.kandevendtech.com'}`;
+    return res.json({
+      ...existing,
+      portal_url: `${baseUrl}/client-portal?token=${existing.token}`,
+      already_existed: true
+    });
+  }
+  
+  // Create new token
+  const token = crypto.randomBytes(16).toString('hex');
+  const expiryDays = 90;
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + expiryDays);
+  
+  const urlToken = {
+    id: nextId(),
+    token,
+    client_id: `prospect_${prospectId}`,
+    prospect_id: prospectId,
+    client_name: prospect.name || 'Client',
+    property_address: prospect.address || '',
+    machine_ids: [],
+    commission_rate: parseFloat(req.body.commission_rate) || 5,
+    active: true,
+    expires_at: expiresAt.toISOString(),
+    access_count: 0,
+    created_at: new Date().toISOString()
+  };
+  
+  if (!db.clientPortalUrlTokens) db.clientPortalUrlTokens = [];
+  db.clientPortalUrlTokens.push(urlToken);
+  saveDB(db);
+  
+  const baseUrl = req.headers.host?.includes('localhost') 
+    ? `http://${req.headers.host}` 
+    : `https://${req.headers.host || 'dashboard.kandevendtech.com'}`;
+  
+  res.json({
+    ...urlToken,
+    portal_url: `${baseUrl}/client-portal?token=${token}`
+  });
 });
 
 // ===== PROPOSALS API =====
@@ -7245,7 +7460,7 @@ const _origProspectDetail = app._router.stack.find(r => r.route && r.route.path 
 
 // ===== CRM PIPELINE PAGE ROUTES =====
 app.get('/pipeline-board', (req, res) => res.sendFile(path.join(__dirname, 'pipeline-board.html')));
-app.get('/tasks', (req, res) => res.sendFile(path.join(__dirname, 'task-manager.html')));
+app.get('/task-manager', (req, res) => res.sendFile(path.join(__dirname, 'task-manager.html')));  // Old simple task manager
 app.get('/crm/:id', (req, res) => res.sendFile(path.join(__dirname, 'prospect-detail.html')));
 
 // ===== OPERATIONS PAGES — Page Routes =====
@@ -11287,6 +11502,3113 @@ app.delete('/api/gift-baskets/:id', (req, res) => {
 });
 
 // ===== END GIFT BASKETS API =====
+
+// ===== FOLLOW-UPS PAGE =====
+app.get('/follow-ups', (req, res) => res.sendFile(path.join(__dirname, 'follow-ups.html')));
+
+// ===== CALL SCRIPTS PAGE =====
+app.get('/call-scripts', (req, res) => res.sendFile(path.join(__dirname, 'call-scripts.html')));
+
+// ===== FOLLOW-UP AUTOMATION API =====
+// Get follow-up stats and overdue prospects
+app.get('/api/follow-ups/stats', (req, res) => {
+  const now = new Date();
+  const noActivityDays = parseInt(req.query.days) || 7;
+  
+  // Get all active prospects (not signed or closed)
+  const activeProspects = db.prospects.filter(p => 
+    p.status !== 'signed' && p.status !== 'closed'
+  );
+  
+  // Calculate stats for each prospect
+  const prospectStats = activeProspects.map(p => {
+    const prospectActivities = (db.activities || [])
+      .filter(a => a.prospect_id === p.id)
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    
+    const lastActivity = prospectActivities[0];
+    const touchCount = prospectActivities.length;
+    const lastActivityDate = lastActivity ? new Date(lastActivity.created_at) : new Date(p.created_at);
+    const daysSinceActivity = Math.floor((now - lastActivityDate) / (1000 * 60 * 60 * 24));
+    
+    return {
+      ...p,
+      touch_count: touchCount,
+      last_activity: lastActivity || null,
+      last_activity_date: lastActivityDate.toISOString(),
+      days_since_activity: daysSinceActivity,
+      is_overdue: daysSinceActivity >= noActivityDays
+    };
+  });
+  
+  // Sort by days since activity (most overdue first)
+  prospectStats.sort((a, b) => b.days_since_activity - a.days_since_activity);
+  
+  // Calculate overall stats
+  const overdue = prospectStats.filter(p => p.is_overdue);
+  const dueToday = prospectStats.filter(p => 
+    p.days_since_activity >= noActivityDays - 1 && p.days_since_activity < noActivityDays
+  );
+  
+  // Calculate average touches to close for signed prospects
+  const signedProspects = db.prospects.filter(p => p.status === 'signed');
+  let avgTouchesToClose = 0;
+  let avgDaysToClose = 0;
+  
+  if (signedProspects.length > 0) {
+    let totalTouches = 0;
+    let totalDays = 0;
+    
+    signedProspects.forEach(p => {
+      const touches = (db.activities || []).filter(a => a.prospect_id === p.id).length;
+      totalTouches += touches;
+      
+      const created = new Date(p.created_at);
+      const signed = p.signed_at ? new Date(p.signed_at) : new Date(p.updated_at);
+      totalDays += Math.floor((signed - created) / (1000 * 60 * 60 * 24));
+    });
+    
+    avgTouchesToClose = Math.round(totalTouches / signedProspects.length * 10) / 10;
+    avgDaysToClose = Math.round(totalDays / signedProspects.length);
+  }
+  
+  // Conversion rates by touch count
+  const touchBuckets = {
+    '1-3': { total: 0, signed: 0 },
+    '4-6': { total: 0, signed: 0 },
+    '7-9': { total: 0, signed: 0 },
+    '10+': { total: 0, signed: 0 }
+  };
+  
+  db.prospects.forEach(p => {
+    const touches = (db.activities || []).filter(a => a.prospect_id === p.id).length;
+    const bucket = touches <= 3 ? '1-3' : touches <= 6 ? '4-6' : touches <= 9 ? '7-9' : '10+';
+    touchBuckets[bucket].total++;
+    if (p.status === 'signed') touchBuckets[bucket].signed++;
+  });
+  
+  res.json({
+    overdue_count: overdue.length,
+    due_today_count: dueToday.length,
+    avg_touches_to_close: avgTouchesToClose,
+    avg_days_to_close: avgDaysToClose,
+    total_active: activeProspects.length,
+    overdue_prospects: overdue,
+    due_today_prospects: dueToday,
+    all_prospects: prospectStats,
+    conversion_by_touch: touchBuckets
+  });
+});
+
+// Get recommended actions for today
+app.get('/api/follow-ups/today', (req, res) => {
+  const rules = {
+    popinToGift: parseInt(req.query.popin_to_gift) || 3,
+    giftToCall: parseInt(req.query.gift_to_call) || 5,
+    callToEmail: parseInt(req.query.call_to_email) || 7,
+    emailToPopin: parseInt(req.query.email_to_popin) || 14,
+    noActivityAlert: parseInt(req.query.no_activity) || 7
+  };
+  
+  const now = new Date();
+  const activeProspects = db.prospects.filter(p => 
+    p.status !== 'signed' && p.status !== 'closed'
+  );
+  
+  const todayActions = [];
+  
+  activeProspects.forEach(p => {
+    const prospectActivities = (db.activities || [])
+      .filter(a => a.prospect_id === p.id)
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    
+    const lastActivity = prospectActivities[0];
+    const touchCount = prospectActivities.length;
+    const lastActivityDate = lastActivity ? new Date(lastActivity.created_at) : new Date(p.created_at);
+    const daysSinceActivity = Math.floor((now - lastActivityDate) / (1000 * 60 * 60 * 24));
+    
+    let action = null;
+    let actionType = null;
+    let reason = null;
+    
+    if (!lastActivity) {
+      action = 'Pop-In';
+      actionType = 'pop_in';
+      reason = 'No activity yet — start with a pop-in visit';
+    } else {
+      const lastType = (lastActivity.type || '').toLowerCase().replace('-', '_');
+      
+      if ((lastType === 'pop_in' || lastType === 'popin' || lastType === 'visit') && daysSinceActivity >= rules.popinToGift) {
+        action = 'Send Gift Basket';
+        actionType = 'gift_basket';
+        reason = `${daysSinceActivity} days since pop-in`;
+      } else if ((lastType === 'gift_basket' || lastType === 'gift') && daysSinceActivity >= rules.giftToCall) {
+        action = 'Follow-Up Call';
+        actionType = 'call';
+        reason = `${daysSinceActivity} days since gift basket`;
+      } else if ((lastType === 'call' || lastType === 'phone') && daysSinceActivity >= rules.callToEmail) {
+        action = 'Send Email';
+        actionType = 'email';
+        reason = `${daysSinceActivity} days since call`;
+      } else if (lastType === 'email' && daysSinceActivity >= rules.emailToPopin) {
+        action = 'Schedule Pop-In';
+        actionType = 'pop_in';
+        reason = `${daysSinceActivity} days since email`;
+      } else if (daysSinceActivity >= rules.noActivityAlert) {
+        action = 'Any Touchpoint';
+        actionType = 'pop_in';
+        reason = `${daysSinceActivity} days overdue!`;
+      }
+      
+      // High touch count overrides
+      if (touchCount >= 10 && !action) {
+        action = 'Ask for Decision';
+        actionType = 'call';
+        reason = `${touchCount} touches — time to close!`;
+      } else if (touchCount >= 7 && !action) {
+        action = 'Send Proposal';
+        actionType = 'proposal';
+        reason = `${touchCount} touches — push for close`;
+      }
+    }
+    
+    if (action) {
+      todayActions.push({
+        prospect_id: p.id,
+        prospect_name: p.name,
+        action,
+        action_type: actionType,
+        reason,
+        touch_count: touchCount,
+        days_since_activity: daysSinceActivity,
+        priority: p.priority || 'normal'
+      });
+    }
+  });
+  
+  // Sort by priority and days overdue
+  todayActions.sort((a, b) => {
+    const priorityOrder = { hot: 1, warm: 2, normal: 3 };
+    const priorityDiff = (priorityOrder[a.priority] || 3) - (priorityOrder[b.priority] || 3);
+    if (priorityDiff !== 0) return priorityDiff;
+    return b.days_since_activity - a.days_since_activity;
+  });
+  
+  res.json({
+    count: todayActions.length,
+    actions: todayActions
+  });
+});
+
+// ===== PERFORMANCE DASHBOARD PAGE =====
+app.get('/performance', (req, res) => {
+  res.sendFile(path.join(__dirname, 'performance.html'));
+});
+
+// ===== EMAIL TEMPLATES PAGE =====
+app.get('/email-templates', (req, res) => {
+  res.sendFile(path.join(__dirname, 'email-templates.html'));
+});
+
+// ===== INVENTORY PAGE =====
+app.get('/inventory', (req, res) => {
+  res.sendFile(path.join(__dirname, 'inventory.html'));
+});
+
+// ===== INVENTORY HISTORY API =====
+if (!db.inventoryHistory) db.inventoryHistory = [];
+
+app.get('/api/inventory/history', (req, res) => {
+  const { product_id, type, from, to } = req.query;
+  let records = db.inventoryHistory || [];
+  if (product_id) records = records.filter(r => r.product_id === parseInt(product_id));
+  if (type) records = records.filter(r => r.type === type);
+  if (from) records = records.filter(r => r.date >= from);
+  if (to) records = records.filter(r => r.date <= to);
+  res.json(records.sort((a, b) => new Date(b.date) - new Date(a.date)));
+});
+
+app.post('/api/inventory/history', (req, res) => {
+  const entry = {
+    id: nextId(),
+    product_id: req.body.product_id,
+    type: req.body.type || 'adjusted',
+    qty: req.body.qty || 0,
+    notes: req.body.notes || '',
+    date: req.body.date || new Date().toISOString(),
+    created_at: new Date().toISOString()
+  };
+  if (!db.inventoryHistory) db.inventoryHistory = [];
+  db.inventoryHistory.push(entry);
+  saveDB(db);
+  res.json(entry);
+});
+
+// ===== SEED DEMO PRODUCTS (if empty) =====
+if (db.products.length === 0) {
+  const demoProducts = [
+    // Beverages
+    { name: 'Coca-Cola 20oz', category: 'beverages', sku: 'BEV-COKE20', cost_price: 0.89, sell_price: 2.75, stock: 48, reorder_point: 24 },
+    { name: 'Diet Coke 20oz', category: 'beverages', sku: 'BEV-DCOKE20', cost_price: 0.89, sell_price: 2.75, stock: 36, reorder_point: 24 },
+    { name: 'Smartwater 20oz', category: 'beverages', sku: 'BEV-SMART20', cost_price: 0.95, sell_price: 2.50, stock: 60, reorder_point: 30 },
+    { name: 'Gatorade Cool Blue 20oz', category: 'beverages', sku: 'BEV-GATOR20', cost_price: 0.99, sell_price: 3.00, stock: 24, reorder_point: 18 },
+    { name: 'Fairlife Chocolate Milk', category: 'beverages', sku: 'BEV-FAIR-CHOC', cost_price: 2.29, sell_price: 4.50, stock: 12, reorder_point: 12, expiration_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+    { name: 'BOSS Coffee Black', category: 'beverages', sku: 'BEV-BOSS-BLK', cost_price: 1.49, sell_price: 3.50, stock: 18, reorder_point: 12 },
+    // Energy
+    { name: 'Joy Burst Energy 12oz', category: 'energy', sku: 'NRG-JOYBURST', cost_price: 1.25, sell_price: 3.50, stock: 36, reorder_point: 24 },
+    { name: 'Celsius Original', category: 'energy', sku: 'NRG-CELS-ORIG', cost_price: 1.49, sell_price: 3.50, stock: 24, reorder_point: 18 },
+    { name: 'Red Bull 8.4oz', category: 'energy', sku: 'NRG-REDBULL', cost_price: 1.79, sell_price: 4.00, stock: 30, reorder_point: 20 },
+    { name: 'Monster Original 16oz', category: 'energy', sku: 'NRG-MONSTER', cost_price: 1.49, sell_price: 3.50, stock: 24, reorder_point: 18 },
+    // Snacks
+    { name: 'Lays Classic 1.75oz', category: 'snacks', sku: 'SNK-LAYS175', cost_price: 0.65, sell_price: 2.25, stock: 48, reorder_point: 24 },
+    { name: 'Doritos Nacho 1.75oz', category: 'snacks', sku: 'SNK-DORI175', cost_price: 0.65, sell_price: 2.25, stock: 36, reorder_point: 24 },
+    { name: 'Cheetos Crunchy 2oz', category: 'snacks', sku: 'SNK-CHEET2', cost_price: 0.69, sell_price: 2.25, stock: 30, reorder_point: 18 },
+    { name: 'Hot Cheetos 2oz', category: 'snacks', sku: 'SNK-HOTCH2', cost_price: 0.69, sell_price: 2.25, stock: 36, reorder_point: 24 },
+    { name: 'Takis Fuego 2oz', category: 'snacks', sku: 'SNK-TAKIS2', cost_price: 0.75, sell_price: 2.50, stock: 24, reorder_point: 18 },
+    // Candy
+    { name: 'Snickers King Size', category: 'candy', sku: 'CND-SNICK-K', cost_price: 0.85, sell_price: 2.50, stock: 24, reorder_point: 12 },
+    { name: 'Reeses King Size', category: 'candy', sku: 'CND-REESE-K', cost_price: 0.85, sell_price: 2.50, stock: 24, reorder_point: 12 },
+    { name: 'M&Ms Peanut King', category: 'candy', sku: 'CND-MMS-K', cost_price: 0.89, sell_price: 2.50, stock: 18, reorder_point: 12 },
+    { name: 'Skittles Original', category: 'candy', sku: 'CND-SKIT', cost_price: 0.75, sell_price: 2.25, stock: 18, reorder_point: 12 },
+    // Healthy
+    { name: 'KIND Bar Dark Choc', category: 'healthy', sku: 'HLT-KIND-DC', cost_price: 1.25, sell_price: 3.00, stock: 18, reorder_point: 12 },
+    { name: 'RXBar Chocolate', category: 'healthy', sku: 'HLT-RXBAR', cost_price: 1.49, sell_price: 3.50, stock: 12, reorder_point: 10 },
+    { name: 'Baked Lays 1.5oz', category: 'healthy', sku: 'HLT-BLAYS', cost_price: 0.72, sell_price: 2.25, stock: 24, reorder_point: 12 },
+    { name: 'Trail Mix 2oz', category: 'healthy', sku: 'HLT-TRAIL', cost_price: 0.99, sell_price: 2.75, stock: 18, reorder_point: 12 },
+    { name: 'Nature Valley Oats', category: 'healthy', sku: 'HLT-NATV', cost_price: 0.65, sell_price: 2.00, stock: 24, reorder_point: 12 },
+    // Incidentals
+    { name: 'Advil 2-Pack', category: 'incidentals', sku: 'INC-ADVIL', cost_price: 0.45, sell_price: 2.00, stock: 12, reorder_point: 6 },
+    { name: 'Phone Charger Lightning', category: 'incidentals', sku: 'INC-CHRG-L', cost_price: 3.50, sell_price: 8.00, stock: 6, reorder_point: 4 },
+    { name: 'Tide Pods 3-Pack', category: 'incidentals', sku: 'INC-TIDE3', cost_price: 1.99, sell_price: 5.00, stock: 8, reorder_point: 6 },
+    { name: 'Charmin To-Go', category: 'incidentals', sku: 'INC-CHARM', cost_price: 0.89, sell_price: 3.00, stock: 10, reorder_point: 6 },
+    // Low stock items for demo
+    { name: 'Fiji Water 500ml', category: 'beverages', sku: 'BEV-FIJI500', cost_price: 1.25, sell_price: 3.00, stock: 6, reorder_point: 12 },
+    { name: 'VOSS Water 500ml', category: 'beverages', sku: 'BEV-VOSS500', cost_price: 1.35, sell_price: 3.50, stock: 4, reorder_point: 10 },
+    // Out of stock items for demo
+    { name: 'Prime Energy Blue', category: 'energy', sku: 'NRG-PRIME-BLU', cost_price: 1.99, sell_price: 4.00, stock: 0, reorder_point: 12 },
+    { name: 'Alani Nu Energy', category: 'energy', sku: 'NRG-ALANI', cost_price: 1.79, sell_price: 4.00, stock: 0, reorder_point: 10 },
+    // Expiring soon items
+    { name: 'Greek Yogurt Parfait', category: 'healthy', sku: 'HLT-YOGURT', cost_price: 2.49, sell_price: 5.00, stock: 8, reorder_point: 6, expiration_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+    { name: 'Fresh Fruit Cup', category: 'healthy', sku: 'HLT-FRUIT', cost_price: 1.99, sell_price: 4.50, stock: 6, reorder_point: 6, expiration_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] }
+  ];
+
+  demoProducts.forEach(p => {
+    const product = {
+      id: nextId(),
+      ...p,
+      margin: p.sell_price > 0 ? Math.round(((p.sell_price - p.cost_price) / p.sell_price) * 100) : 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    db.products.push(product);
+  });
+  saveDB(db);
+  console.log(`📦 Seeded ${demoProducts.length} demo products for inventory`);
+}
+
+// ===== MACHINE LOCATOR TOOL =====
+app.get('/machine-locator', (req, res) => {
+  res.sendFile(path.join(__dirname, 'machine-locator.html'));
+});
+
+// ===== SITE SURVEYS API =====
+if (!db.siteSurveys) db.siteSurveys = [];
+
+app.get('/api/site-surveys', (req, res) => {
+  res.json(db.siteSurveys.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
+});
+
+app.get('/api/site-surveys/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const survey = db.siteSurveys.find(s => s.id === id);
+  if (!survey) return res.status(404).json({ error: 'Not found' });
+  res.json(survey);
+});
+
+app.post('/api/site-surveys', (req, res) => {
+  const survey = {
+    id: nextId(),
+    property_name: req.body.property_name || '',
+    survey_date: req.body.survey_date || new Date().toISOString().split('T')[0],
+    address: req.body.address || '',
+    pm_name: req.body.pm_name || '',
+    pm_phone: req.body.pm_phone || '',
+    pm_email: req.body.pm_email || '',
+    locations: req.body.locations || [],
+    traffic: req.body.traffic || '',
+    competition: req.body.competition || '',
+    recommended_machines: parseInt(req.body.recommended_machines) || 1,
+    rating: parseInt(req.body.rating) || 0,
+    notes: req.body.notes || '',
+    photos: req.body.photos || [],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  db.siteSurveys.push(survey);
+  saveDB(db);
+  res.json(survey);
+});
+
+app.put('/api/site-surveys/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = db.siteSurveys.findIndex(s => s.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  db.siteSurveys[idx] = { ...db.siteSurveys[idx], ...req.body, updated_at: new Date().toISOString() };
+  saveDB(db);
+  res.json(db.siteSurveys[idx]);
+});
+
+app.delete('/api/site-surveys/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  db.siteSurveys = db.siteSurveys.filter(s => s.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// ===== DAILY PLANNER =====
+app.get('/daily-planner', (req, res) => {
+  res.sendFile(path.join(__dirname, 'daily-planner.html'));
+});
+
+// ===== WIN/LOSS ANALYSIS API =====
+if (!db.winLossDeals) db.winLossDeals = [];
+
+app.get('/win-loss', (req, res) => {
+  res.sendFile(path.join(__dirname, 'win-loss.html'));
+});
+
+app.get('/api/win-loss', (req, res) => {
+  res.json(db.winLossDeals.sort((a, b) => new Date(b.closed_date) - new Date(a.closed_date)));
+});
+
+app.get('/api/win-loss/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const deal = db.winLossDeals.find(d => d.id === id);
+  if (!deal) return res.status(404).json({ error: 'Not found' });
+  res.json(deal);
+});
+
+app.post('/api/win-loss', (req, res) => {
+  const deal = {
+    id: nextId(),
+    property_name: req.body.property_name || '',
+    property_type: req.body.property_type || '',
+    outcome: req.body.outcome || 'lost', // 'won' or 'lost'
+    closed_date: req.body.closed_date || new Date().toISOString().split('T')[0],
+    days_to_close: req.body.days_to_close || null,
+    touch_count: req.body.touch_count || null,
+    deal_value: req.body.deal_value || null,
+    reason: req.body.reason || '',
+    // Won-specific
+    what_worked: req.body.what_worked || '',
+    // Lost-specific
+    competitor: req.body.competitor || '',
+    what_happened: req.body.what_happened || '',
+    what_different: req.body.what_different || '',
+    follow_up: req.body.follow_up || '',
+    // General
+    notes: req.body.notes || '',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  db.winLossDeals.push(deal);
+  saveDB(db);
+  res.json(deal);
+});
+
+app.put('/api/win-loss/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = db.winLossDeals.findIndex(d => d.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  db.winLossDeals[idx] = { 
+    ...db.winLossDeals[idx], 
+    ...req.body, 
+    updated_at: new Date().toISOString() 
+  };
+  saveDB(db);
+  res.json(db.winLossDeals[idx]);
+});
+
+app.delete('/api/win-loss/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  db.winLossDeals = db.winLossDeals.filter(d => d.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// Win/Loss Analytics API
+app.get('/api/win-loss/analytics/summary', (req, res) => {
+  const deals = db.winLossDeals || [];
+  const won = deals.filter(d => d.outcome === 'won');
+  const lost = deals.filter(d => d.outcome === 'lost');
+  
+  // Win rate by property type
+  const typeStats = {};
+  deals.forEach(d => {
+    if (!d.property_type) return;
+    if (!typeStats[d.property_type]) typeStats[d.property_type] = { won: 0, lost: 0 };
+    if (d.outcome === 'won') typeStats[d.property_type].won++;
+    else typeStats[d.property_type].lost++;
+  });
+  
+  // Win rate by touch count buckets
+  const touchBuckets = { '1-3': { won: 0, lost: 0 }, '4-7': { won: 0, lost: 0 }, '8-12': { won: 0, lost: 0 }, '13+': { won: 0, lost: 0 } };
+  deals.forEach(d => {
+    if (!d.touch_count) return;
+    let bucket;
+    if (d.touch_count <= 3) bucket = '1-3';
+    else if (d.touch_count <= 7) bucket = '4-7';
+    else if (d.touch_count <= 12) bucket = '8-12';
+    else bucket = '13+';
+    if (d.outcome === 'won') touchBuckets[bucket].won++;
+    else touchBuckets[bucket].lost++;
+  });
+  
+  // Reason counts
+  const winReasons = {};
+  const lossReasons = {};
+  won.forEach(d => { if (d.reason) winReasons[d.reason] = (winReasons[d.reason] || 0) + 1; });
+  lost.forEach(d => { if (d.reason) lossReasons[d.reason] = (lossReasons[d.reason] || 0) + 1; });
+  
+  // Competitor losses
+  const competitors = {};
+  lost.filter(d => d.competitor).forEach(d => {
+    competitors[d.competitor] = (competitors[d.competitor] || 0) + 1;
+  });
+  
+  res.json({
+    totalWon: won.length,
+    totalLost: lost.length,
+    winRate: (won.length + lost.length) > 0 ? Math.round((won.length / (won.length + lost.length)) * 100) : 0,
+    avgDaysToWin: won.length > 0 ? Math.round(won.reduce((s, d) => s + (d.days_to_close || 0), 0) / won.length) : 0,
+    avgDaysToLose: lost.length > 0 ? Math.round(lost.reduce((s, d) => s + (d.days_to_close || 0), 0) / lost.length) : 0,
+    avgTouchesWon: won.length > 0 ? Math.round(won.reduce((s, d) => s + (d.touch_count || 0), 0) / won.length) : 0,
+    totalValueWon: won.reduce((s, d) => s + (d.deal_value || 0), 0),
+    totalValueLost: lost.reduce((s, d) => s + (d.deal_value || 0), 0),
+    typeStats,
+    touchBuckets,
+    winReasons,
+    lossReasons,
+    competitors
+  });
+});
+
+// ===== RESOURCES PAGE =====
+app.get('/resources', (req, res) => res.sendFile(path.join(__dirname, 'resources.html')));
+
+// ===== TESTIMONIALS & SOCIAL PROOF =====
+// Initialize collections
+if (!db.testimonials) db.testimonials = [];
+if (!db.reviewRequests) db.reviewRequests = [];
+if (!db.npsResponses) db.npsResponses = [];
+if (!db.caseStudies) db.caseStudies = [];
+
+// Testimonials page
+app.get('/testimonials', (req, res) => res.sendFile(path.join(__dirname, 'testimonials.html')));
+
+// Testimonials API
+app.get('/api/testimonials', (req, res) => {
+  res.json(db.testimonials || []);
+});
+
+app.get('/api/testimonials/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const testimonial = (db.testimonials || []).find(t => t.id === id);
+  if (!testimonial) return res.status(404).json({ error: 'Not found' });
+  res.json(testimonial);
+});
+
+app.post('/api/testimonials', (req, res) => {
+  const testimonial = {
+    id: nextId(),
+    property_name: req.body.property_name || '',
+    property_type: req.body.property_type || '',
+    contact_name: req.body.contact_name || '',
+    contact_role: req.body.contact_role || '',
+    rating: parseInt(req.body.rating) || 5,
+    testimonial: req.body.testimonial || '',
+    public_permission: req.body.public_permission !== false,
+    featured: req.body.featured || false,
+    photo_url: req.body.photo_url || '',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  if (!db.testimonials) db.testimonials = [];
+  db.testimonials.push(testimonial);
+  saveDB(db);
+  res.json(testimonial);
+});
+
+app.put('/api/testimonials/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.testimonials || []).findIndex(t => t.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  db.testimonials[idx] = { 
+    ...db.testimonials[idx], 
+    ...req.body, 
+    updated_at: new Date().toISOString() 
+  };
+  saveDB(db);
+  res.json(db.testimonials[idx]);
+});
+
+app.delete('/api/testimonials/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  db.testimonials = (db.testimonials || []).filter(t => t.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// Review Requests API
+app.get('/api/review-requests', (req, res) => {
+  res.json(db.reviewRequests || []);
+});
+
+app.post('/api/review-requests', (req, res) => {
+  const request = {
+    id: nextId(),
+    client_id: req.body.client_id || null,
+    client_name: req.body.client_name || '',
+    email: req.body.email || '',
+    status: req.body.status || 'sent',
+    sent_date: new Date().toISOString(),
+    created_at: new Date().toISOString()
+  };
+  if (!db.reviewRequests) db.reviewRequests = [];
+  db.reviewRequests.push(request);
+  saveDB(db);
+  res.json(request);
+});
+
+app.put('/api/review-requests/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.reviewRequests || []).findIndex(r => r.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  db.reviewRequests[idx] = { 
+    ...db.reviewRequests[idx], 
+    ...req.body, 
+    updated_at: new Date().toISOString() 
+  };
+  saveDB(db);
+  res.json(db.reviewRequests[idx]);
+});
+
+app.delete('/api/review-requests/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  db.reviewRequests = (db.reviewRequests || []).filter(r => r.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// NPS API
+app.get('/api/nps', (req, res) => {
+  res.json(db.npsResponses || []);
+});
+
+app.get('/api/nps/summary', (req, res) => {
+  const responses = db.npsResponses || [];
+  if (responses.length === 0) {
+    return res.json({ nps: null, promoters: 0, passives: 0, detractors: 0, total: 0 });
+  }
+  const promoters = responses.filter(r => r.score >= 9).length;
+  const passives = responses.filter(r => r.score >= 7 && r.score <= 8).length;
+  const detractors = responses.filter(r => r.score <= 6).length;
+  const nps = Math.round(((promoters - detractors) / responses.length) * 100);
+  res.json({ nps, promoters, passives, detractors, total: responses.length });
+});
+
+app.post('/api/nps', (req, res) => {
+  const response = {
+    id: nextId(),
+    client_id: req.body.client_id || null,
+    client_name: req.body.client_name || '',
+    score: parseInt(req.body.score) || 0,
+    feedback: req.body.feedback || '',
+    created_at: new Date().toISOString()
+  };
+  if (!db.npsResponses) db.npsResponses = [];
+  db.npsResponses.push(response);
+  saveDB(db);
+  res.json(response);
+});
+
+app.delete('/api/nps/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  db.npsResponses = (db.npsResponses || []).filter(r => r.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// Case Studies API
+app.get('/api/case-studies', (req, res) => {
+  res.json(db.caseStudies || []);
+});
+
+app.get('/api/case-studies/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const study = (db.caseStudies || []).find(s => s.id === id);
+  if (!study) return res.status(404).json({ error: 'Not found' });
+  res.json(study);
+});
+
+app.post('/api/case-studies', (req, res) => {
+  const study = {
+    id: nextId(),
+    client_name: req.body.client_name || '',
+    property_type: req.body.property_type || '',
+    challenge: req.body.challenge || '',
+    solution: req.body.solution || '',
+    results: req.body.results || '',
+    metric1_label: req.body.metric1_label || '',
+    metric1_value: req.body.metric1_value || '',
+    metric2_label: req.body.metric2_label || '',
+    metric2_value: req.body.metric2_value || '',
+    metric3_label: req.body.metric3_label || '',
+    metric3_value: req.body.metric3_value || '',
+    quote: req.body.quote || '',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  if (!db.caseStudies) db.caseStudies = [];
+  db.caseStudies.push(study);
+  saveDB(db);
+  res.json(study);
+});
+
+app.put('/api/case-studies/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.caseStudies || []).findIndex(s => s.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  db.caseStudies[idx] = { 
+    ...db.caseStudies[idx], 
+    ...req.body, 
+    updated_at: new Date().toISOString() 
+  };
+  saveDB(db);
+  res.json(db.caseStudies[idx]);
+});
+
+app.delete('/api/case-studies/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  db.caseStudies = (db.caseStudies || []).filter(s => s.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// ===== REVENUE TRACKING PAGE =====
+app.get('/revenue', (req, res) => res.sendFile(path.join(__dirname, 'revenue.html')));
+
+// ===== REVENUE API =====
+// Revenue records collection
+if (!db.revenueRecords) db.revenueRecords = [];
+if (!db.commissionPayments) db.commissionPayments = [];
+
+// Get revenue summary
+app.get('/api/revenue/summary', (req, res) => {
+  const { period } = req.query;
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  
+  // Get quarter months
+  const quarter = Math.floor(now.getMonth() / 3);
+  const quarterMonths = [];
+  for (let i = 0; i < 3; i++) {
+    const m = quarter * 3 + i + 1;
+    quarterMonths.push(`${now.getFullYear()}-${String(m).padStart(2, '0')}`);
+  }
+  
+  // Get YTD months
+  const ytdMonths = [];
+  for (let i = 1; i <= now.getMonth() + 1; i++) {
+    ytdMonths.push(`${now.getFullYear()}-${String(i).padStart(2, '0')}`);
+  }
+  
+  // Aggregate from finances collection
+  const allRevenue = db.finances.filter(f => f.type === 'revenue');
+  const allExpenses = db.finances.filter(f => f.type === 'expense');
+  
+  const monthRevenue = allRevenue.filter(f => f.month === currentMonth).reduce((s, f) => s + (f.amount || 0), 0);
+  const quarterRevenue = allRevenue.filter(f => quarterMonths.includes(f.month)).reduce((s, f) => s + (f.amount || 0), 0);
+  const ytdRevenue = allRevenue.filter(f => ytdMonths.includes(f.month)).reduce((s, f) => s + (f.amount || 0), 0);
+  
+  const monthExpenses = allExpenses.filter(f => f.month === currentMonth).reduce((s, f) => s + (f.amount || 0), 0);
+  
+  // Calculate COGS (33% of revenue per VENDTECH-RULES.md)
+  const cogs = monthRevenue * 0.33;
+  const grossProfit = monthRevenue - cogs;
+  
+  // Get machine count
+  const deployedMachines = db.machines.filter(m => m.status === 'deployed').length;
+  const revenuePerMachine = deployedMachines > 0 ? monthRevenue / deployedMachines : 0;
+  
+  // Transaction count estimate (avg $3 per transaction per VENDTECH-RULES.md)
+  const transactions = Math.round(monthRevenue / 3);
+  const avgTransaction = transactions > 0 ? monthRevenue / transactions : 0;
+  
+  // Commission calculations from locations with rev share
+  let commissionsOwed = 0;
+  let commissionsPaid = 0;
+  db.locations.forEach(loc => {
+    if (loc.commission_rate && loc.commission_rate > 0) {
+      const locRevenue = allRevenue
+        .filter(f => f.location_id === loc.id && f.month === currentMonth)
+        .reduce((s, f) => s + (f.amount || 0), 0);
+      commissionsOwed += locRevenue * loc.commission_rate;
+    }
+  });
+  
+  commissionsPaid = (db.commissionPayments || [])
+    .filter(p => p.status === 'paid')
+    .reduce((s, p) => s + (p.amount || 0), 0);
+  
+  const netProfit = grossProfit - commissionsOwed - monthExpenses;
+  
+  res.json({
+    currentMonth,
+    monthRevenue,
+    quarterRevenue,
+    ytdRevenue,
+    grossProfit,
+    netProfit,
+    cogs,
+    monthExpenses,
+    commissionsOwed,
+    commissionsPaid,
+    revenuePerMachine,
+    deployedMachines,
+    transactions,
+    avgTransaction,
+    grossMargin: monthRevenue > 0 ? (grossProfit / monthRevenue) : 0,
+    netMargin: monthRevenue > 0 ? (netProfit / monthRevenue) : 0
+  });
+});
+
+// Get revenue by machine
+app.get('/api/revenue/by-machine', (req, res) => {
+  const { period } = req.query;
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  
+  let filterMonths = [currentMonth];
+  if (period === 'quarter') {
+    const quarter = Math.floor(now.getMonth() / 3);
+    filterMonths = [];
+    for (let i = 0; i < 3; i++) {
+      const m = quarter * 3 + i + 1;
+      filterMonths.push(`${now.getFullYear()}-${String(m).padStart(2, '0')}`);
+    }
+  } else if (period === 'year') {
+    filterMonths = [];
+    for (let i = 1; i <= now.getMonth() + 1; i++) {
+      filterMonths.push(`${now.getFullYear()}-${String(i).padStart(2, '0')}`);
+    }
+  } else if (period === 'all') {
+    filterMonths = null;
+  }
+  
+  const machineData = db.machines.map(m => {
+    const location = db.locations.find(l => l.id === m.location_id);
+    const revenueRecords = db.finances.filter(f => 
+      f.type === 'revenue' && 
+      f.machine_id === m.id && 
+      (!filterMonths || filterMonths.includes(f.month))
+    );
+    
+    const revenue = revenueRecords.reduce((s, f) => s + (f.amount || 0), 0);
+    const transactions = Math.round(revenue / 3);
+    const commissionRate = location?.commission_rate || 0;
+    const commissionOwed = revenue * commissionRate;
+    
+    // Performance rating based on VENDTECH-RULES.md thresholds
+    const monthCount = filterMonths ? filterMonths.length : 12;
+    const monthlyAvg = revenue / monthCount;
+    let performance;
+    if (monthlyAvg >= 3000) performance = 'excellent';
+    else if (monthlyAvg >= 2000) performance = 'good';
+    else if (monthlyAvg >= 800) performance = 'average';
+    else performance = 'poor';
+    
+    return {
+      id: m.id,
+      name: m.name,
+      location: location?.name || 'Unassigned',
+      property: location?.property_name || '',
+      property_type: location?.property_type || '',
+      status: m.status,
+      revenue,
+      transactions,
+      commissionRate,
+      commissionOwed,
+      performance,
+      monthlyAvg
+    };
+  });
+  
+  res.json(machineData.sort((a, b) => b.revenue - a.revenue));
+});
+
+// Get commission data
+app.get('/api/revenue/commissions', (req, res) => {
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  
+  const commissions = db.locations
+    .filter(loc => loc.commission_rate && loc.commission_rate > 0)
+    .map(loc => {
+      const monthRevenue = db.finances
+        .filter(f => f.type === 'revenue' && f.location_id === loc.id && f.month === currentMonth)
+        .reduce((s, f) => s + (f.amount || 0), 0);
+      
+      const amountOwed = monthRevenue * loc.commission_rate;
+      
+      const payment = (db.commissionPayments || []).find(p => 
+        p.location_id === loc.id && p.month === currentMonth
+      );
+      
+      return {
+        location_id: loc.id,
+        property: loc.property_name || loc.name,
+        location: loc.name,
+        monthlyRevenue: monthRevenue,
+        rate: loc.commission_rate,
+        amountOwed,
+        status: payment?.status || 'pending',
+        paidDate: payment?.paid_date || null
+      };
+    });
+  
+  const totalPaid = commissions.filter(c => c.status === 'paid').reduce((s, c) => s + c.amountOwed, 0);
+  const totalPending = commissions.filter(c => c.status === 'pending').reduce((s, c) => s + c.amountOwed, 0);
+  const totalOverdue = commissions.filter(c => c.status === 'overdue').reduce((s, c) => s + c.amountOwed, 0);
+  const avgRate = commissions.length > 0 ? commissions.reduce((s, c) => s + c.rate, 0) / commissions.length : 0;
+  
+  res.json({
+    commissions,
+    summary: { totalPaid, totalPending, totalOverdue, avgRate }
+  });
+});
+
+// Record commission payment
+app.post('/api/revenue/commissions/pay', (req, res) => {
+  const { location_id, month, amount } = req.body;
+  if (!db.commissionPayments) db.commissionPayments = [];
+  
+  const existing = db.commissionPayments.find(p => p.location_id === location_id && p.month === month);
+  if (existing) {
+    existing.status = 'paid';
+    existing.amount = amount;
+    existing.paid_date = new Date().toISOString();
+  } else {
+    db.commissionPayments.push({
+      id: nextId(),
+      location_id,
+      month,
+      amount,
+      status: 'paid',
+      paid_date: new Date().toISOString(),
+      created_at: new Date().toISOString()
+    });
+  }
+  
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// Get profitability data
+app.get('/api/revenue/profitability', (req, res) => {
+  const now = new Date();
+  const months = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }
+  
+  const monthlyData = months.map(month => {
+    const revenue = db.finances
+      .filter(f => f.type === 'revenue' && f.month === month)
+      .reduce((s, f) => s + (f.amount || 0), 0);
+    const cogs = revenue * 0.33;
+    const expenses = db.finances
+      .filter(f => f.type === 'expense' && f.month === month)
+      .reduce((s, f) => s + (f.amount || 0), 0);
+    
+    return { month, revenue, cogs, expenses, grossProfit: revenue - cogs, netProfit: revenue - cogs - expenses };
+  });
+  
+  const categoryPerf = {};
+  (db.sales || []).forEach(sale => {
+    const product = db.products.find(p => p.id === sale.product_id);
+    if (!product) return;
+    const cat = product.category || 'Other';
+    if (!categoryPerf[cat]) categoryPerf[cat] = { revenue: 0, cost: 0, units: 0 };
+    categoryPerf[cat].revenue += sale.total || 0;
+    categoryPerf[cat].cost += (product.cost_price || 0) * (sale.quantity || 1);
+    categoryPerf[cat].units += sale.quantity || 1;
+  });
+  
+  Object.keys(categoryPerf).forEach(cat => {
+    const p = categoryPerf[cat];
+    p.margin = p.revenue > 0 ? ((p.revenue - p.cost) / p.revenue) * 100 : 0;
+  });
+  
+  res.json({ monthlyData, categoryPerformance: categoryPerf });
+});
+
+// Get projections
+app.get('/api/revenue/projections', (req, res) => {
+  const deployedMachines = db.machines.filter(m => m.status === 'deployed').length;
+  
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const totalRevenue = db.finances
+    .filter(f => f.type === 'revenue' && f.month === currentMonth)
+    .reduce((s, f) => s + (f.amount || 0), 0);
+  
+  // Use actual data or default from VENDTECH-RULES.md
+  const avgRevenuePerMachine = deployedMachines > 0 ? totalRevenue / deployedMachines : 2000;
+  const cogsRate = 0.33;
+  const avgCommissionRate = 0.04;
+  const monthlyFixedCosts = 500;
+  const profitMargin = 1 - cogsRate - avgCommissionRate;
+  const profitPerMachine = avgRevenuePerMachine * profitMargin;
+  
+  const breakEvenMachines = Math.ceil(monthlyFixedCosts / profitPerMachine);
+  
+  const projections = [5, 10, 20, 30].map(count => ({
+    machines: count,
+    monthlyRevenue: avgRevenuePerMachine * count,
+    monthlyProfit: (profitPerMachine * count) - monthlyFixedCosts,
+    annualRevenue: avgRevenuePerMachine * count * 12,
+    annualProfit: ((profitPerMachine * count) - monthlyFixedCosts) * 12
+  }));
+  
+  const pipelineStages = [
+    { stage: 'interested', probability: 0.3 },
+    { stage: 'site_survey', probability: 0.5 },
+    { stage: 'proposal_sent', probability: 0.7 },
+    { stage: 'negotiating', probability: 0.85 },
+    { stage: 'contract_sent', probability: 0.95 }
+  ];
+  
+  const pipelineValue = pipelineStages.map(s => {
+    const cards = (db.pipelineCards || []).filter(c => c.stage === s.stage);
+    return {
+      stage: s.stage,
+      count: cards.length,
+      probability: s.probability,
+      potentialRevenue: avgRevenuePerMachine * cards.length,
+      weightedValue: avgRevenuePerMachine * cards.length * s.probability
+    };
+  });
+  
+  res.json({
+    currentMetrics: {
+      deployedMachines,
+      avgRevenuePerMachine,
+      profitMargin,
+      monthlyFixedCosts
+    },
+    breakEven: {
+      machines: breakEvenMachines,
+      currentProgress: breakEvenMachines > 0 ? deployedMachines / breakEvenMachines : 0
+    },
+    projections,
+    pipelineValue
+  });
+});
+
+// ===== EXPENSE TRACKER API =====
+// Ensure expenses and expense budgets collections exist
+if (!db.expenses) db.expenses = [];
+if (!db.expenseBudgets) db.expenseBudgets = {};
+
+// Serve expenses page
+app.get('/expenses', (req, res) => {
+  res.sendFile(path.join(__dirname, 'expenses.html'));
+});
+
+// Get all expenses (with optional filters)
+app.get('/api/expenses', (req, res) => {
+  const { category, from, to } = req.query;
+  let records = db.expenses || [];
+  
+  if (category) records = records.filter(e => e.category === category);
+  if (from) records = records.filter(e => e.date >= from);
+  if (to) records = records.filter(e => e.date <= to);
+  
+  res.json(records.sort((a, b) => new Date(b.date) - new Date(a.date)));
+});
+
+// Get single expense
+app.get('/api/expenses/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const expense = (db.expenses || []).find(e => e.id === id);
+  if (!expense) return res.status(404).json({ error: 'Expense not found' });
+  res.json(expense);
+});
+
+// Create expense
+app.post('/api/expenses', (req, res) => {
+  const expense = {
+    id: nextId(),
+    date: req.body.date || new Date().toISOString().split('T')[0],
+    amount: parseFloat(req.body.amount) || 0,
+    category: req.body.category || 'other',
+    vendor: req.body.vendor || '',
+    description: req.body.description || '',
+    recurring: !!req.body.recurring,
+    has_receipt: !!req.body.has_receipt,
+    receipt_url: req.body.receipt_url || null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  
+  if (!db.expenses) db.expenses = [];
+  db.expenses.push(expense);
+  saveDB(db);
+  res.json(expense);
+});
+
+// Update expense
+app.put('/api/expenses/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.expenses || []).findIndex(e => e.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Expense not found' });
+  
+  db.expenses[idx] = {
+    ...db.expenses[idx],
+    ...req.body,
+    id, // Preserve ID
+    updated_at: new Date().toISOString()
+  };
+  
+  saveDB(db);
+  res.json(db.expenses[idx]);
+});
+
+// Delete expense
+app.delete('/api/expenses/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  db.expenses = (db.expenses || []).filter(e => e.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// Get expense summary
+app.get('/api/expenses/summary/monthly', (req, res) => {
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  
+  const months = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }
+  
+  const monthlyData = months.map(month => {
+    const monthExpenses = (db.expenses || []).filter(e => e.date?.startsWith(month));
+    const total = monthExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+    const byCategory = {};
+    monthExpenses.forEach(e => {
+      if (!byCategory[e.category]) byCategory[e.category] = 0;
+      byCategory[e.category] += e.amount || 0;
+    });
+    return { month, total, byCategory, count: monthExpenses.length };
+  });
+  
+  // Current month stats
+  const currentMonthExpenses = (db.expenses || []).filter(e => e.date?.startsWith(currentMonth));
+  const totalThisMonth = currentMonthExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+  const recurringTotal = currentMonthExpenses.filter(e => e.recurring).reduce((s, e) => s + (e.amount || 0), 0);
+  const withReceipt = currentMonthExpenses.filter(e => e.has_receipt).length;
+  const receiptPct = currentMonthExpenses.length > 0 ? Math.round((withReceipt / currentMonthExpenses.length) * 100) : 0;
+  
+  res.json({
+    currentMonth,
+    totalThisMonth,
+    recurringTotal,
+    receiptPct,
+    expenseCount: currentMonthExpenses.length,
+    monthlyData,
+    budgets: db.expenseBudgets || {}
+  });
+});
+
+// Get expense budgets
+app.get('/api/expense-budgets', (req, res) => {
+  res.json(db.expenseBudgets || {});
+});
+
+// Set expense budgets
+app.put('/api/expense-budgets', (req, res) => {
+  db.expenseBudgets = req.body || {};
+  saveDB(db);
+  res.json(db.expenseBudgets);
+});
+
+// Get tax report for a year
+app.get('/api/expenses/tax/:year', (req, res) => {
+  const year = req.params.year;
+  const yearExpenses = (db.expenses || []).filter(e => e.date?.startsWith(year));
+  
+  // Category totals
+  const categoryTotals = {};
+  yearExpenses.forEach(e => {
+    if (!categoryTotals[e.category]) categoryTotals[e.category] = 0;
+    categoryTotals[e.category] += e.amount || 0;
+  });
+  
+  // Mileage calculation (look for "miles: X" in gas expenses)
+  let totalMiles = 0;
+  yearExpenses.filter(e => e.category === 'gas').forEach(e => {
+    const desc = (e.description || '').toLowerCase();
+    const match = desc.match(/miles?:\s*(\d+(?:\.\d+)?)/i);
+    if (match) totalMiles += parseFloat(match[1]);
+  });
+  
+  const irsRate = 0.67; // 2024 rate
+  const mileageDeduction = totalMiles * irsRate;
+  
+  // Receipt tracking
+  const receiptStatus = {};
+  yearExpenses.forEach(e => {
+    if (!receiptStatus[e.category]) receiptStatus[e.category] = { with: 0, without: 0 };
+    if (e.has_receipt) receiptStatus[e.category].with++;
+    else receiptStatus[e.category].without++;
+  });
+  
+  const totalDeductible = Object.values(categoryTotals).reduce((s, v) => s + v, 0);
+  
+  res.json({
+    year,
+    categoryTotals,
+    totalDeductible,
+    mileage: {
+      totalMiles,
+      irsRate,
+      deduction: mileageDeduction
+    },
+    receiptStatus,
+    expenseCount: yearExpenses.length
+  });
+});
+
+// ===== SERVICE & MAINTENANCE LOG API =====
+// Initialize service collections
+if (!db.serviceVisits) db.serviceVisits = [];
+if (!db.serviceIssues) db.serviceIssues = [];
+if (!db.maintenanceSchedule) db.maintenanceSchedule = [];
+if (!db.partsInventory) db.partsInventory = [];
+
+// Serve service log page
+app.get('/service-log', (req, res) => {
+  res.sendFile(path.join(__dirname, 'service-log.html'));
+});
+
+// ===== SERVICE VISITS API =====
+app.get('/api/service/visits', (req, res) => {
+  const { machine_id, type, from, to } = req.query;
+  let records = db.serviceVisits || [];
+  if (machine_id) records = records.filter(v => v.machine_id == machine_id);
+  if (type) records = records.filter(v => v.type === type);
+  if (from) records = records.filter(v => v.date >= from);
+  if (to) records = records.filter(v => v.date <= to);
+  res.json(records.sort((a, b) => new Date(b.date) - new Date(a.date)));
+});
+
+app.get('/api/service/visits/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const visit = (db.serviceVisits || []).find(v => v.id === id);
+  if (!visit) return res.status(404).json({ error: 'Visit not found' });
+  res.json(visit);
+});
+
+app.post('/api/service/visits', (req, res) => {
+  const visit = {
+    id: nextId(),
+    machine_id: parseInt(req.body.machine_id),
+    date: req.body.date || new Date().toISOString().split('T')[0],
+    type: req.body.type || 'restock',
+    duration: req.body.duration ? parseInt(req.body.duration) : null,
+    issues_found: req.body.issues_found || null,
+    parts_used: req.body.parts_used || null,
+    cost: req.body.cost ? parseFloat(req.body.cost) : null,
+    notes: req.body.notes || null,
+    technician: req.body.technician || null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  if (!db.serviceVisits) db.serviceVisits = [];
+  db.serviceVisits.push(visit);
+  saveDB(db);
+  res.json(visit);
+});
+
+app.put('/api/service/visits/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.serviceVisits || []).findIndex(v => v.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Visit not found' });
+  db.serviceVisits[idx] = { ...db.serviceVisits[idx], ...req.body, id, updated_at: new Date().toISOString() };
+  saveDB(db);
+  res.json(db.serviceVisits[idx]);
+});
+
+app.delete('/api/service/visits/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  db.serviceVisits = (db.serviceVisits || []).filter(v => v.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// ===== SERVICE ISSUES API =====
+app.get('/api/service/issues', (req, res) => {
+  const { machine_id, status, priority } = req.query;
+  let records = db.serviceIssues || [];
+  if (machine_id) records = records.filter(i => i.machine_id == machine_id);
+  if (status) records = records.filter(i => i.status === status);
+  if (priority) records = records.filter(i => i.priority === priority);
+  res.json(records.sort((a, b) => {
+    const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+    if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+      return priorityOrder[a.priority] - priorityOrder[b.priority];
+    }
+    return new Date(b.created_at) - new Date(a.created_at);
+  }));
+});
+
+app.get('/api/service/issues/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const issue = (db.serviceIssues || []).find(i => i.id === id);
+  if (!issue) return res.status(404).json({ error: 'Issue not found' });
+  res.json(issue);
+});
+
+app.post('/api/service/issues', (req, res) => {
+  const issue = {
+    id: nextId(),
+    machine_id: parseInt(req.body.machine_id),
+    description: req.body.description || '',
+    priority: req.body.priority || 'medium',
+    status: req.body.status || 'open',
+    assigned_to: req.body.assigned_to || null,
+    resolution_notes: req.body.resolution_notes || null,
+    resolved_at: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  if (!db.serviceIssues) db.serviceIssues = [];
+  db.serviceIssues.push(issue);
+  saveDB(db);
+  res.json(issue);
+});
+
+app.put('/api/service/issues/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.serviceIssues || []).findIndex(i => i.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Issue not found' });
+  const updated = { ...db.serviceIssues[idx], ...req.body, id, updated_at: new Date().toISOString() };
+  if (req.body.status === 'resolved' && !db.serviceIssues[idx].resolved_at) {
+    updated.resolved_at = new Date().toISOString();
+  }
+  db.serviceIssues[idx] = updated;
+  saveDB(db);
+  res.json(db.serviceIssues[idx]);
+});
+
+app.delete('/api/service/issues/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  db.serviceIssues = (db.serviceIssues || []).filter(i => i.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// ===== MAINTENANCE SCHEDULE API =====
+app.get('/api/service/schedule', (req, res) => {
+  const { machine_id, status } = req.query;
+  let records = db.maintenanceSchedule || [];
+  if (machine_id) records = records.filter(t => t.machine_id == machine_id);
+  if (status) records = records.filter(t => t.status === status);
+  res.json(records.sort((a, b) => new Date(a.next_due) - new Date(b.next_due)));
+});
+
+app.get('/api/service/schedule/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const task = (db.maintenanceSchedule || []).find(t => t.id === id);
+  if (!task) return res.status(404).json({ error: 'Task not found' });
+  res.json(task);
+});
+
+app.post('/api/service/schedule', (req, res) => {
+  const task = {
+    id: nextId(),
+    machine_id: parseInt(req.body.machine_id),
+    type: req.body.type || 'maintenance',
+    description: req.body.description || null,
+    frequency: req.body.frequency || 'monthly',
+    next_due: req.body.next_due || new Date().toISOString().split('T')[0],
+    last_completed: null,
+    status: 'pending',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  if (!db.maintenanceSchedule) db.maintenanceSchedule = [];
+  db.maintenanceSchedule.push(task);
+  saveDB(db);
+  res.json(task);
+});
+
+app.put('/api/service/schedule/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.maintenanceSchedule || []).findIndex(t => t.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Task not found' });
+  db.maintenanceSchedule[idx] = { ...db.maintenanceSchedule[idx], ...req.body, id, updated_at: new Date().toISOString() };
+  saveDB(db);
+  res.json(db.maintenanceSchedule[idx]);
+});
+
+app.delete('/api/service/schedule/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  db.maintenanceSchedule = (db.maintenanceSchedule || []).filter(t => t.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// ===== PARTS INVENTORY API =====
+app.get('/api/service/parts', (req, res) => {
+  const { category, low_stock } = req.query;
+  let records = db.partsInventory || [];
+  if (category) records = records.filter(p => p.category === category);
+  if (low_stock === 'true') records = records.filter(p => p.current_stock <= (p.min_stock || 0));
+  res.json(records.sort((a, b) => (a.name || '').localeCompare(b.name || '')));
+});
+
+app.get('/api/service/parts/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const part = (db.partsInventory || []).find(p => p.id === id);
+  if (!part) return res.status(404).json({ error: 'Part not found' });
+  res.json(part);
+});
+
+app.post('/api/service/parts', (req, res) => {
+  const part = {
+    id: nextId(),
+    name: req.body.name || 'Unknown Part',
+    sku: req.body.sku || null,
+    category: req.body.category || 'other',
+    unit_cost: req.body.unit_cost ? parseFloat(req.body.unit_cost) : null,
+    current_stock: parseInt(req.body.current_stock) || 0,
+    min_stock: req.body.min_stock ? parseInt(req.body.min_stock) : null,
+    notes: req.body.notes || null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  if (!db.partsInventory) db.partsInventory = [];
+  db.partsInventory.push(part);
+  saveDB(db);
+  res.json(part);
+});
+
+app.put('/api/service/parts/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.partsInventory || []).findIndex(p => p.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Part not found' });
+  db.partsInventory[idx] = { ...db.partsInventory[idx], ...req.body, id, updated_at: new Date().toISOString() };
+  saveDB(db);
+  res.json(db.partsInventory[idx]);
+});
+
+app.delete('/api/service/parts/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  db.partsInventory = (db.partsInventory || []).filter(p => p.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// ===== SERVICE METRICS API =====
+app.get('/api/service/metrics', (req, res) => {
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+  
+  const visits = db.serviceVisits || [];
+  const issues = db.serviceIssues || [];
+  const schedule = db.maintenanceSchedule || [];
+  const machines = db.machines || [];
+  
+  // Recent visits
+  const recentVisits = visits.filter(v => v.date >= thirtyDaysAgoStr);
+  
+  // Open issues
+  const openIssues = issues.filter(i => i.status !== 'resolved');
+  const criticalIssues = openIssues.filter(i => i.priority === 'critical');
+  
+  // Overdue tasks
+  const today = new Date().toISOString().split('T')[0];
+  const overdueTasks = schedule.filter(t => t.next_due < today && t.status !== 'completed');
+  
+  // Visit interval calculation
+  let avgVisitInterval = null;
+  if (visits.length >= 2) {
+    const sorted = [...visits].sort((a, b) => new Date(a.date) - new Date(b.date));
+    let totalDays = 0;
+    for (let i = 1; i < sorted.length; i++) {
+      totalDays += (new Date(sorted[i].date) - new Date(sorted[i-1].date)) / (1000 * 60 * 60 * 24);
+    }
+    avgVisitInterval = Math.round(totalDays / (sorted.length - 1));
+  }
+  
+  // Common issues
+  const issueDescriptions = issues.map(i => i.description.toLowerCase());
+  const issueCounts = {};
+  issueDescriptions.forEach(desc => {
+    // Extract keywords
+    const words = desc.split(/\s+/).filter(w => w.length > 4);
+    words.forEach(w => {
+      if (!issueCounts[w]) issueCounts[w] = 0;
+      issueCounts[w]++;
+    });
+  });
+  const commonIssues = Object.entries(issueCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([word, count]) => ({ keyword: word, count }));
+  
+  // Machines requiring most attention
+  const machineVisitCounts = {};
+  const machineIssueCounts = {};
+  visits.forEach(v => {
+    if (!machineVisitCounts[v.machine_id]) machineVisitCounts[v.machine_id] = 0;
+    machineVisitCounts[v.machine_id]++;
+  });
+  issues.forEach(i => {
+    if (!machineIssueCounts[i.machine_id]) machineIssueCounts[i.machine_id] = 0;
+    machineIssueCounts[i.machine_id]++;
+  });
+  
+  const machineAttention = machines.map(m => ({
+    machine_id: m.id,
+    name: m.name || m.serial_number,
+    visits: machineVisitCounts[m.id] || 0,
+    issues: machineIssueCounts[m.id] || 0,
+    score: (machineIssueCounts[m.id] || 0) * 2 + (machineVisitCounts[m.id] || 0)
+  })).sort((a, b) => b.score - a.score).slice(0, 5);
+  
+  // Uptime calculation
+  const repairMinutes = recentVisits.filter(v => v.type === 'repair').reduce((sum, v) => sum + (v.duration || 0), 0);
+  const totalMinutes = machines.length * 24 * 60 * 30;
+  const uptime = totalMinutes > 0 ? Math.round((1 - repairMinutes / totalMinutes) * 100) : 100;
+  
+  res.json({
+    totalVisits30d: recentVisits.length,
+    repairVisits30d: recentVisits.filter(v => v.type === 'repair').length,
+    openIssues: openIssues.length,
+    criticalIssues: criticalIssues.length,
+    overdueTasks: overdueTasks.length,
+    avgVisitInterval,
+    uptime,
+    commonIssues,
+    machinesNeedingAttention: machineAttention,
+    visitsByType: {
+      restock: recentVisits.filter(v => v.type === 'restock').length,
+      repair: recentVisits.filter(v => v.type === 'repair').length,
+      maintenance: recentVisits.filter(v => v.type === 'maintenance').length,
+      cleaning: recentVisits.filter(v => v.type === 'cleaning').length
+    }
+  });
+});
+
+// Get service history for a specific machine
+app.get('/api/service/machine/:id/history', (req, res) => {
+  const machineId = parseInt(req.params.id);
+  const machine = db.machines.find(m => m.id === machineId);
+  if (!machine) return res.status(404).json({ error: 'Machine not found' });
+  
+  const visits = (db.serviceVisits || []).filter(v => v.machine_id === machineId);
+  const issues = (db.serviceIssues || []).filter(i => i.machine_id === machineId);
+  const schedule = (db.maintenanceSchedule || []).filter(t => t.machine_id === machineId);
+  
+  const repairs = visits.filter(v => v.type === 'repair');
+  const totalCost = visits.reduce((sum, v) => sum + (v.cost || 0), 0);
+  
+  // Uptime (last 30 days)
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const recentRepairs = repairs.filter(v => new Date(v.date) >= thirtyDaysAgo);
+  const repairMinutes = recentRepairs.reduce((sum, v) => sum + (v.duration || 0), 0);
+  const totalMinutes = 24 * 60 * 30;
+  const uptime = Math.round((1 - repairMinutes / totalMinutes) * 100);
+  
+  // Reliability score (100 - repairs * 10, min 0)
+  const reliability = Math.max(0, 100 - repairs.length * 10);
+  
+  res.json({
+    machine,
+    visits: visits.sort((a, b) => new Date(b.date) - new Date(a.date)),
+    issues: issues.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)),
+    schedule: schedule.sort((a, b) => new Date(a.next_due) - new Date(b.next_due)),
+    stats: {
+      totalVisits: visits.length,
+      totalRepairs: repairs.length,
+      totalCost,
+      uptime,
+      reliability
+    }
+  });
+});
+
+// ===== NOTIFICATIONS API =====
+// Initialize notification collections
+if (!db.notifications) db.notifications = [];
+if (!db.dismissedNotifications) db.dismissedNotifications = [];
+if (!db.snoozedNotifications) db.snoozedNotifications = [];
+
+// Get all notifications (generated from data)
+app.get('/api/notifications', (req, res) => {
+  const thresholdOverdue = parseInt(req.query.threshold_overdue) || 7;
+  const thresholdExpiring = parseInt(req.query.threshold_expiring) || 30;
+  const now = new Date();
+  const notifications = [];
+  let idCounter = 1;
+
+  // Get dismissed and snoozed IDs
+  const dismissed = new Set((db.dismissedNotifications || []).map(d => d.key));
+  const snoozed = (db.snoozedNotifications || []).filter(s => new Date(s.until) > now);
+  const snoozedKeys = new Set(snoozed.map(s => s.key));
+
+  function isHidden(key) {
+    return dismissed.has(key) || snoozedKeys.has(key);
+  }
+
+  // 1. Recent activities across all prospects (last 7 days)
+  const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+  (db.activities || []).filter(a => new Date(a.created_at) > weekAgo).forEach(a => {
+    const prospect = db.prospects.find(p => p.id === a.prospect_id);
+    const key = `activity-${a.id}`;
+    if (isHidden(key)) return;
+    
+    const typeLabel = {
+      call: 'Call logged',
+      email: 'Email sent',
+      'pop-in': 'Pop-in visit',
+      'pop_in': 'Pop-in visit',
+      note: 'Note added',
+      meeting: 'Meeting',
+      proposal_sent: 'Proposal sent',
+      'status-change': 'Status changed'
+    }[a.type] || 'Activity';
+    
+    notifications.push({
+      id: idCounter++,
+      key,
+      type: 'activity',
+      title: `${typeLabel}: ${prospect?.name || 'Unknown'}`,
+      description: a.description || '',
+      prospect_id: a.prospect_id,
+      created_at: a.created_at,
+      priority: 'low',
+      read: new Date(a.created_at) < new Date(now - 24 * 60 * 60 * 1000)
+    });
+  });
+
+  // 2. Overdue follow-ups (no activity in X days)
+  (db.prospects || []).filter(p => p.status !== 'closed' && p.status !== 'signed').forEach(p => {
+    const activities = (db.activities || []).filter(a => a.prospect_id === p.id);
+    const lastActivity = activities.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+    const lastDate = lastActivity ? new Date(lastActivity.created_at) : new Date(p.created_at);
+    const daysSince = Math.floor((now - lastDate) / (1000 * 60 * 60 * 24));
+    
+    if (daysSince >= thresholdOverdue) {
+      const key = `overdue-${p.id}`;
+      if (isHidden(key)) return;
+      
+      notifications.push({
+        id: idCounter++,
+        key,
+        type: 'overdue',
+        title: `Follow-up overdue: ${p.name}`,
+        description: `No activity in ${daysSince} days. Last contact: ${lastActivity?.type || 'none'}`,
+        prospect_id: p.id,
+        created_at: lastDate.toISOString(),
+        priority: daysSince >= thresholdOverdue * 2 ? 'high' : 'medium',
+        read: false
+      });
+    }
+  });
+
+  // 3. Expiring contracts
+  (db.contracts || []).forEach(c => {
+    const endDate = c.end_date ? new Date(c.end_date + 'T00:00:00') : null;
+    const renewalDate = c.renewal_date ? new Date(c.renewal_date + 'T00:00:00') : null;
+    const checkDate = renewalDate || endDate;
+    
+    if (checkDate) {
+      const daysUntil = Math.ceil((checkDate - now) / (1000 * 60 * 60 * 24));
+      if (daysUntil >= 0 && daysUntil <= thresholdExpiring) {
+        const key = `expiring-${c.id}`;
+        if (isHidden(key)) return;
+        
+        const location = db.locations?.find(l => l.id === c.location_id);
+        notifications.push({
+          id: idCounter++,
+          key,
+          type: 'expiring',
+          title: `Contract ${renewalDate ? 'renewal due' : 'expiring'}: ${location?.name || c.location_name || 'Unknown'}`,
+          description: `${daysUntil === 0 ? 'Due today' : `Due in ${daysUntil} days`} (${checkDate.toLocaleDateString()})`,
+          link: '/contracts',
+          created_at: now.toISOString(),
+          priority: daysUntil <= 7 ? 'high' : 'medium',
+          read: false
+        });
+      }
+    }
+  });
+
+  // 4. Low inventory alerts (from products with low stock)
+  (db.products || []).filter(p => p.stock_qty !== undefined && p.min_stock_qty !== undefined).forEach(p => {
+    if (p.stock_qty <= p.min_stock_qty) {
+      const key = `inventory-${p.id}`;
+      if (isHidden(key)) return;
+      
+      const pctRemaining = p.min_stock_qty > 0 ? Math.round((p.stock_qty / p.min_stock_qty) * 100) : 0;
+      notifications.push({
+        id: idCounter++,
+        key,
+        type: 'inventory',
+        title: `Low stock: ${p.name}`,
+        description: `Only ${p.stock_qty} units remaining (min: ${p.min_stock_qty})`,
+        link: '/inventory',
+        created_at: now.toISOString(),
+        priority: p.stock_qty === 0 ? 'high' : 'medium',
+        read: false
+      });
+    }
+  });
+
+  // 5. Maintenance due (from maintenance schedule)
+  (db.maintenanceSchedule || []).forEach(m => {
+    const dueDate = m.next_due ? new Date(m.next_due) : null;
+    if (dueDate) {
+      const daysUntil = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
+      if (daysUntil <= 7) {
+        const key = `maintenance-${m.id}`;
+        if (isHidden(key)) return;
+        
+        const machine = db.machines?.find(ma => ma.id === m.machine_id);
+        notifications.push({
+          id: idCounter++,
+          key,
+          type: 'maintenance',
+          title: `Maintenance due: ${machine?.name || 'Machine #' + m.machine_id}`,
+          description: `${m.task_name || 'Scheduled maintenance'} ${daysUntil <= 0 ? 'is overdue' : `due in ${daysUntil} days`}`,
+          link: '/service-tracking',
+          created_at: now.toISOString(),
+          priority: daysUntil <= 0 ? 'high' : 'medium',
+          read: false
+        });
+      }
+    }
+  });
+
+  // 6. Goals alerts (approaching or exceeded targets)
+  const monthRevenue = (db.finances || [])
+    .filter(f => f.type === 'revenue' && f.month === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
+    .reduce((s, f) => s + (f.amount || 0), 0);
+  
+  const monthlyGoal = 2000; // $2K/month minimum per VENDTECH-RULES
+  const deployedMachines = (db.machines || []).filter(m => m.status === 'deployed').length;
+  const expectedRevenue = deployedMachines * monthlyGoal;
+  
+  if (deployedMachines > 0 && monthRevenue > 0) {
+    const goalPct = Math.round((monthRevenue / expectedRevenue) * 100);
+    if (goalPct >= 90 && goalPct < 100) {
+      const key = `goal-approaching-${now.getMonth()}`;
+      if (!isHidden(key)) {
+        notifications.push({
+          id: idCounter++,
+          key,
+          type: 'goal',
+          title: 'Revenue goal approaching!',
+          description: `You're at ${goalPct}% of your monthly target ($${monthRevenue.toLocaleString()} / $${expectedRevenue.toLocaleString()})`,
+          link: '/financials',
+          created_at: now.toISOString(),
+          priority: 'medium',
+          read: false
+        });
+      }
+    } else if (goalPct >= 100) {
+      const key = `goal-achieved-${now.getMonth()}`;
+      if (!isHidden(key)) {
+        notifications.push({
+          id: idCounter++,
+          key,
+          type: 'goal',
+          title: '🎉 Monthly goal exceeded!',
+          description: `Congratulations! You've hit ${goalPct}% of your target ($${monthRevenue.toLocaleString()})`,
+          link: '/financials',
+          created_at: now.toISOString(),
+          priority: 'low',
+          read: false
+        });
+      }
+    }
+  }
+
+  // 7. New leads added (last 24 hours)
+  const dayAgo = new Date(now - 24 * 60 * 60 * 1000);
+  (db.prospects || []).filter(p => new Date(p.created_at) > dayAgo).forEach(p => {
+    const key = `new-lead-${p.id}`;
+    if (isHidden(key)) return;
+    
+    notifications.push({
+      id: idCounter++,
+      key,
+      type: 'new-lead',
+      title: `New lead: ${p.name}`,
+      description: `${p.property_type || 'Unknown type'} ${p.address ? '— ' + p.address : ''}`,
+      prospect_id: p.id,
+      created_at: p.created_at,
+      priority: p.priority === 'hot' ? 'high' : 'low',
+      read: false
+    });
+  });
+
+  // Sort by created_at (newest first)
+  notifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  // Calculate stats
+  const stats = {
+    unread: notifications.filter(n => !n.read).length,
+    overdue: notifications.filter(n => n.type === 'overdue').length,
+    attention: notifications.filter(n => n.priority === 'high' || n.priority === 'medium').length,
+    today: (db.activities || []).filter(a => new Date(a.created_at) > dayAgo).length,
+    by_type: {
+      overdue: notifications.filter(n => n.type === 'overdue').length,
+      expiring: notifications.filter(n => n.type === 'expiring').length,
+      inventory: notifications.filter(n => n.type === 'inventory').length,
+      maintenance: notifications.filter(n => n.type === 'maintenance').length,
+      goal: notifications.filter(n => n.type === 'goal').length,
+      'new-lead': notifications.filter(n => n.type === 'new-lead').length
+    }
+  };
+
+  res.json({ notifications, stats });
+});
+
+// Get notification count for nav badge
+app.get('/api/notifications/count', (req, res) => {
+  const now = new Date();
+  const thresholdOverdue = 7;
+  
+  // Quick count of important notifications
+  let count = 0;
+  
+  // Overdue prospects
+  (db.prospects || []).filter(p => p.status !== 'closed' && p.status !== 'signed').forEach(p => {
+    const activities = (db.activities || []).filter(a => a.prospect_id === p.id);
+    const lastActivity = activities.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+    const lastDate = lastActivity ? new Date(lastActivity.created_at) : new Date(p.created_at);
+    const daysSince = Math.floor((now - lastDate) / (1000 * 60 * 60 * 24));
+    if (daysSince >= thresholdOverdue) count++;
+  });
+  
+  // Expiring contracts (30 days)
+  (db.contracts || []).forEach(c => {
+    const endDate = c.end_date ? new Date(c.end_date + 'T00:00:00') : null;
+    if (endDate) {
+      const daysUntil = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+      if (daysUntil >= 0 && daysUntil <= 30) count++;
+    }
+  });
+  
+  // New leads (24h)
+  const dayAgo = new Date(now - 24 * 60 * 60 * 1000);
+  count += (db.prospects || []).filter(p => new Date(p.created_at) > dayAgo).length;
+  
+  res.json({ count });
+});
+
+// Mark all notifications as read
+app.post('/api/notifications/mark-all-read', (req, res) => {
+  // For generated notifications, we track read state in localStorage on client
+  // This endpoint is a placeholder for future server-side read tracking
+  res.json({ success: true });
+});
+
+// Dismiss a notification
+app.post('/api/notifications/:id/dismiss', (req, res) => {
+  const key = req.body.key || `notification-${req.params.id}`;
+  if (!db.dismissedNotifications) db.dismissedNotifications = [];
+  
+  // Check if already dismissed
+  if (!db.dismissedNotifications.find(d => d.key === key)) {
+    db.dismissedNotifications.push({
+      key,
+      dismissed_at: new Date().toISOString()
+    });
+    saveDB(db);
+  }
+  
+  res.json({ success: true });
+});
+
+// Snooze a notification
+app.post('/api/notifications/:id/snooze', (req, res) => {
+  const hours = parseInt(req.body.hours) || 24;
+  const key = req.body.key || `notification-${req.params.id}`;
+  const until = new Date(Date.now() + hours * 60 * 60 * 1000);
+  
+  if (!db.snoozedNotifications) db.snoozedNotifications = [];
+  
+  // Remove existing snooze for this key
+  db.snoozedNotifications = db.snoozedNotifications.filter(s => s.key !== key);
+  
+  // Add new snooze
+  db.snoozedNotifications.push({
+    key,
+    until: until.toISOString(),
+    snoozed_at: new Date().toISOString()
+  });
+  saveDB(db);
+  
+  res.json({ success: true, until: until.toISOString() });
+});
+
+// Serve notifications page
+app.get('/notifications', (req, res) => {
+  res.sendFile(path.join(__dirname, 'notifications.html'));
+});
+
+// ===== SETTINGS API =====
+const SETTINGS_FILE = process.env.SETTINGS_PATH || (process.env.RAILWAY_ENVIRONMENT ? '/data/settings.json' : path.join(__dirname, 'data', 'settings.json'));
+
+function loadSettings() {
+  try {
+    if (fs.existsSync(SETTINGS_FILE)) {
+      return JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
+    }
+  } catch (e) {
+    console.error('Error loading settings:', e);
+  }
+  return getDefaultSettings();
+}
+
+function saveSettings(settings) {
+  const dir = path.dirname(SETTINGS_FILE);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+}
+
+function getDefaultSettings() {
+  return {
+    // Business profile
+    company_name: 'Kande VendTech LLC',
+    address: '',
+    city: 'Henderson',
+    state: 'NV',
+    zip: '',
+    phone: '',
+    email: '',
+    website: '',
+    hours_weekday: '8:00 AM - 5:00 PM',
+    hours_saturday: 'Closed',
+    hours_sunday: 'Closed',
+    emergency_phone: '',
+    
+    // Financial defaults
+    default_commission: 5,
+    default_contract_months: 36,
+    default_revenue_estimate: 2000,
+    min_revenue_threshold: 800,
+    
+    // Follow-up defaults
+    default_followup_days: 7,
+    hot_followup_days: 2,
+    stale_days: 30,
+    touches_to_close: 10,
+    
+    // Inventory defaults
+    target_cogs: 33,
+    spoilage_budget: 2,
+    low_stock_alert: 10,
+    restock_frequency: 7,
+    
+    // Notifications
+    notify_followups: true,
+    notify_inventory: true,
+    notify_revenue: false,
+    notify_contracts: true,
+    notify_offline: true,
+    notify_leads: true,
+    threshold_followup: 3,
+    threshold_contract: 30,
+    threshold_offline: 60,
+    digest_time: '08:00',
+    
+    // Pipeline stages
+    stages: [
+      { id: 'new_lead', name: 'New Lead', color: '#6b7280', isDefault: true },
+      { id: 'contacted', name: 'Contacted', color: '#3b82f6', isDefault: false },
+      { id: 'pop_in_done', name: 'Pop-in Done', color: '#8b5cf6', isDefault: false },
+      { id: 'interested', name: 'Interested', color: '#f59e0b', isDefault: false },
+      { id: 'site_survey', name: 'Site Survey', color: '#10b981', isDefault: false },
+      { id: 'proposal_sent', name: 'Proposal Sent', color: '#ec4899', isDefault: false },
+      { id: 'negotiating', name: 'Negotiating', color: '#f97316', isDefault: false },
+      { id: 'contract_sent', name: 'Contract Sent', color: '#14b8a6', isDefault: false },
+      { id: 'signed', name: 'Signed', color: '#22c55e', isDefault: false },
+      { id: 'onboarding', name: 'Onboarding', color: '#06b6d4', isDefault: false },
+      { id: 'active_client', name: 'Active Client', color: '#84cc16', isDefault: false }
+    ],
+    default_stage: 'new_lead',
+    auto_advance_days: 0,
+    
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+}
+
+// Get settings
+app.get('/api/settings', (req, res) => {
+  res.json(loadSettings());
+});
+
+// Update settings
+app.put('/api/settings', (req, res) => {
+  const current = loadSettings();
+  const updated = { ...current, ...req.body, updated_at: new Date().toISOString() };
+  saveSettings(updated);
+  res.json(updated);
+});
+
+// Reset settings to defaults
+app.post('/api/settings/reset', (req, res) => {
+  const defaults = getDefaultSettings();
+  saveSettings(defaults);
+  res.json(defaults);
+});
+
+// Serve settings page
+app.get('/settings', (req, res) => {
+  res.sendFile(path.join(__dirname, 'settings.html'));
+});
+
+// ===== EXPORT API =====
+app.get('/api/export/:type', (req, res) => {
+  const type = req.params.type;
+  
+  if (type === 'json') {
+    // Full database export
+    const exportData = {
+      exported_at: new Date().toISOString(),
+      version: '1.0.0',
+      settings: loadSettings(),
+      prospects: db.prospects || [],
+      contacts: db.contacts || [],
+      activities: db.activities || [],
+      machines: db.machines || [],
+      locations: db.locations || [],
+      products: db.products || [],
+      suppliers: db.suppliers || [],
+      finances: db.finances || [],
+      contracts: db.contracts || [],
+      pipelineCards: db.pipelineCards || [],
+      todos: db.todos || []
+    };
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename=vendtech-backup-${new Date().toISOString().split('T')[0]}.json`);
+    return res.send(JSON.stringify(exportData, null, 2));
+  }
+  
+  // CSV exports
+  let data = [];
+  let headers = [];
+  
+  switch (type) {
+    case 'prospects':
+      headers = ['id', 'name', 'address', 'city', 'phone', 'email', 'property_type', 'status', 'priority', 'notes', 'created_at'];
+      data = (db.prospects || []).map(p => headers.map(h => p[h] || ''));
+      break;
+    case 'finances':
+      headers = ['id', 'type', 'amount', 'category', 'description', 'month', 'machine_id', 'created_at'];
+      data = (db.finances || []).map(f => headers.map(h => f[h] || ''));
+      break;
+    case 'activities':
+      headers = ['id', 'prospect_id', 'type', 'description', 'outcome', 'next_action', 'next_action_date', 'created_at'];
+      data = (db.activities || []).map(a => headers.map(h => a[h] || ''));
+      break;
+    case 'products':
+      headers = ['id', 'name', 'category', 'cost_price', 'sell_price', 'margin', 'sku', 'supplier'];
+      data = (db.products || []).map(p => headers.map(h => p[h] || ''));
+      break;
+    default:
+      return res.status(400).json({ error: 'Unknown export type' });
+  }
+  
+  // Convert to CSV
+  const csv = [headers.join(','), ...data.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
+  
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename=vendtech-${type}-${new Date().toISOString().split('T')[0]}.csv`);
+  res.send(csv);
+});
+
+// ===== IMPORT API =====
+const multer = require('multer') || { single: () => (req, res, next) => next() }; // Graceful fallback
+const upload = multer ? multer({ storage: multer.memoryStorage() }) : { single: () => (req, res, next) => next() };
+
+app.post('/api/import', upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    
+    const type = req.body.type || 'prospects';
+    const content = req.file.buffer.toString('utf8');
+    let count = 0;
+    
+    if (type === 'full') {
+      // Full JSON restore
+      const importData = JSON.parse(content);
+      if (importData.settings) saveSettings(importData.settings);
+      if (importData.prospects) { db.prospects = importData.prospects; count += importData.prospects.length; }
+      if (importData.contacts) db.contacts = importData.contacts;
+      if (importData.activities) db.activities = importData.activities;
+      if (importData.machines) db.machines = importData.machines;
+      if (importData.locations) db.locations = importData.locations;
+      if (importData.products) db.products = importData.products;
+      if (importData.finances) db.finances = importData.finances;
+      if (importData.contracts) db.contracts = importData.contracts;
+      if (importData.pipelineCards) db.pipelineCards = importData.pipelineCards;
+      if (importData.todos) db.todos = importData.todos;
+      saveDB(db);
+      return res.json({ success: true, count, message: 'Full restore completed' });
+    }
+    
+    // CSV import
+    const lines = content.split('\n').filter(l => l.trim());
+    if (lines.length < 2) {
+      return res.status(400).json({ error: 'CSV file must have headers and at least one data row' });
+    }
+    
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+    
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].match(/("([^"]|"")*"|[^,]*)/g).map(v => v.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
+      const record = {};
+      headers.forEach((h, idx) => { record[h] = values[idx] || ''; });
+      
+      if (type === 'prospects') {
+        record.id = nextId();
+        record.created_at = record.created_at || new Date().toISOString();
+        record.updated_at = new Date().toISOString();
+        record.status = record.status || 'new';
+        record.priority = record.priority || 'normal';
+        db.prospects.push(record);
+        count++;
+      } else if (type === 'products') {
+        record.id = nextId();
+        record.created_at = new Date().toISOString();
+        record.cost_price = parseFloat(record.cost_price) || 0;
+        record.sell_price = parseFloat(record.sell_price) || 0;
+        db.products.push(record);
+        count++;
+      }
+    }
+    
+    saveDB(db);
+    res.json({ success: true, count });
+  } catch (e) {
+    console.error('Import error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ===== DATA MANAGEMENT API =====
+// Clear demo data
+app.post('/api/data/clear-demo', (req, res) => {
+  // Remove records that look like demo/test data
+  const demoPatterns = [/test/i, /demo/i, /sample/i, /example/i, /placeholder/i];
+  const isDemo = (name) => demoPatterns.some(p => p.test(name || ''));
+  
+  let cleared = 0;
+  const beforeCounts = {
+    prospects: (db.prospects || []).length,
+    products: (db.products || []).length,
+    activities: (db.activities || []).length
+  };
+  
+  db.prospects = (db.prospects || []).filter(p => !isDemo(p.name) && !isDemo(p.notes));
+  db.products = (db.products || []).filter(p => !isDemo(p.name));
+  db.activities = (db.activities || []).filter(a => !isDemo(a.description));
+  
+  cleared = (beforeCounts.prospects - db.prospects.length) + 
+            (beforeCounts.products - db.products.length) + 
+            (beforeCounts.activities - db.activities.length);
+  
+  saveDB(db);
+  res.json({ success: true, cleared });
+});
+
+// Delete all data
+app.post('/api/data/delete-all', (req, res) => {
+  db.prospects = [];
+  db.contacts = [];
+  db.activities = [];
+  db.machines = [];
+  db.locations = [];
+  db.products = [];
+  db.suppliers = [];
+  db.finances = [];
+  db.creditCards = [];
+  db.restocks = [];
+  db.clients = [];
+  db.touchpoints = [];
+  db.issues = [];
+  db.contracts = [];
+  db.pipelineCards = [];
+  db.pipelineTasks = [];
+  db.todos = [];
+  db.popInVisits = [];
+  db.nextId = 1;
+  
+  saveDB(db);
+  
+  // Reset settings to defaults
+  saveSettings(getDefaultSettings());
+  
+  res.json({ success: true, message: 'All data deleted' });
+});
+
+// ===== GLOBAL SEARCH API =====
+app.get('/search', (req, res) => res.sendFile(path.join(__dirname, 'search.html')));
+
+app.get('/api/search', (req, res) => {
+  const { q, type, status, from, to } = req.query;
+  const query = (q || '').toLowerCase().trim();
+  
+  if (!query || query.length < 2) {
+    return res.json({ results: [], total: 0 });
+  }
+  
+  const results = [];
+  const fromDate = from ? new Date(from) : null;
+  const toDate = to ? new Date(to) : null;
+  
+  // Helper: check date range
+  const inDateRange = (dateStr) => {
+    if (!dateStr) return true;
+    const d = new Date(dateStr);
+    if (fromDate && d < fromDate) return false;
+    if (toDate && d > toDate) return false;
+    return true;
+  };
+  
+  // Helper: text match
+  const matches = (text) => text && String(text).toLowerCase().includes(query);
+  
+  // Helper: get excerpt around match
+  const getExcerpt = (text, maxLen = 150) => {
+    if (!text) return '';
+    const str = String(text);
+    const idx = str.toLowerCase().indexOf(query);
+    if (idx === -1) return str.slice(0, maxLen);
+    const start = Math.max(0, idx - 40);
+    const end = Math.min(str.length, idx + query.length + 100);
+    let excerpt = str.slice(start, end);
+    if (start > 0) excerpt = '...' + excerpt;
+    if (end < str.length) excerpt = excerpt + '...';
+    return excerpt;
+  };
+  
+  // Search Prospects
+  if (!type || type === 'prospects') {
+    (db.prospects || []).forEach(p => {
+      if (status && p.status !== status) return;
+      if (!inDateRange(p.created_at)) return;
+      
+      const searchableFields = [p.name, p.address, p.phone, p.email, p.notes, p.contact_name, p.contact_email, p.contact_phone, p.property_type];
+      if (searchableFields.some(matches)) {
+        const matchedField = searchableFields.find(matches);
+        results.push({
+          id: p.id,
+          type: 'prospects',
+          title: p.name,
+          address: p.address,
+          contact: p.contact_name,
+          property_type: p.property_type,
+          status: p.status,
+          date: p.created_at,
+          excerpt: getExcerpt(matchedField === p.name ? p.notes : matchedField)
+        });
+      }
+    });
+  }
+  
+  // Search Activities
+  if (!type || type === 'activities') {
+    (db.activities || []).forEach(a => {
+      if (!inDateRange(a.created_at)) return;
+      
+      const searchableFields = [a.description, a.notes, a.type, a.outcome, a.next_action];
+      if (searchableFields.some(matches)) {
+        const prospect = db.prospects.find(p => p.id === a.prospect_id);
+        const matchedField = searchableFields.find(matches);
+        results.push({
+          id: a.id,
+          type: 'activities',
+          title: `${a.type || 'Activity'} - ${prospect?.name || 'Unknown'}`,
+          prospect_id: a.prospect_id,
+          date: a.created_at,
+          excerpt: getExcerpt(matchedField)
+        });
+      }
+    });
+  }
+  
+  // Search Contracts
+  if (!type || type === 'contracts') {
+    (db.contracts || []).forEach(c => {
+      if (status && c.status !== status) return;
+      if (!inDateRange(c.created_at)) return;
+      
+      const prospect = db.prospects.find(p => p.id === c.prospect_id);
+      const searchableFields = [c.title, c.notes, prospect?.name, c.terms];
+      if (searchableFields.some(matches)) {
+        const matchedField = searchableFields.find(matches);
+        results.push({
+          id: c.id,
+          type: 'contracts',
+          title: c.title || `Contract - ${prospect?.name || 'Unknown'}`,
+          status: c.status,
+          date: c.created_at,
+          excerpt: getExcerpt(matchedField)
+        });
+      }
+    });
+  }
+  
+  // Search Proposals (from pipeline cards with proposals)
+  if (!type || type === 'proposals') {
+    (db.pipelineCards || []).filter(c => c.proposal_sent || c.stage === 'proposal_sent').forEach(c => {
+      if (!inDateRange(c.updated_at)) return;
+      
+      const prospect = db.prospects.find(p => p.id === c.prospect_id);
+      const searchableFields = [c.company, c.notes, prospect?.name, prospect?.address];
+      if (searchableFields.some(matches)) {
+        const matchedField = searchableFields.find(matches);
+        results.push({
+          id: c.id,
+          type: 'proposals',
+          title: `Proposal - ${c.company || prospect?.name || 'Unknown'}`,
+          status: c.stage,
+          date: c.entered_stage_at || c.updated_at,
+          excerpt: getExcerpt(matchedField)
+        });
+      }
+    });
+  }
+  
+  // Search Todos
+  if (!type || type === 'todos') {
+    (db.todos || []).forEach(t => {
+      if (status === 'completed' && !t.completed) return;
+      if (status === 'pending' && t.completed) return;
+      if (!inDateRange(t.created_at)) return;
+      
+      const searchableFields = [t.title, t.description, t.notes, t.category];
+      if (searchableFields.some(matches)) {
+        const matchedField = searchableFields.find(matches);
+        results.push({
+          id: t.id,
+          type: 'todos',
+          title: t.title,
+          status: t.completed ? 'completed' : 'pending',
+          date: t.due_date || t.created_at,
+          excerpt: getExcerpt(matchedField === t.title ? t.description : matchedField)
+        });
+      }
+    });
+  }
+  
+  // Search Service Records (restocks, issues, touchpoints)
+  if (!type || type === 'service') {
+    // Restocks
+    (db.restocks || []).forEach(r => {
+      if (!inDateRange(r.created_at)) return;
+      
+      const machine = db.machines.find(m => m.id === r.machine_id);
+      const searchableFields = [r.notes, machine?.name, machine?.serial_number];
+      if (searchableFields.some(matches)) {
+        const matchedField = searchableFields.find(matches);
+        results.push({
+          id: r.id,
+          type: 'service',
+          title: `Restock - ${machine?.name || 'Unknown Machine'}`,
+          date: r.created_at,
+          excerpt: getExcerpt(matchedField)
+        });
+      }
+    });
+    
+    // Issues
+    (db.issues || []).forEach(i => {
+      if (status && i.status !== status) return;
+      if (!inDateRange(i.created_at)) return;
+      
+      const searchableFields = [i.title, i.description, i.resolution];
+      if (searchableFields.some(matches)) {
+        const matchedField = searchableFields.find(matches);
+        results.push({
+          id: i.id,
+          type: 'service',
+          title: `Issue - ${i.title || 'Unknown'}`,
+          status: i.status,
+          date: i.created_at,
+          excerpt: getExcerpt(matchedField)
+        });
+      }
+    });
+    
+    // Touchpoints
+    (db.touchpoints || []).forEach(t => {
+      if (!inDateRange(t.created_at)) return;
+      
+      const client = db.clients.find(c => c.id === t.client_id);
+      const searchableFields = [t.notes, t.type, client?.name];
+      if (searchableFields.some(matches)) {
+        const matchedField = searchableFields.find(matches);
+        results.push({
+          id: t.id,
+          type: 'service',
+          title: `Touchpoint - ${client?.name || 'Unknown'}`,
+          date: t.created_at,
+          excerpt: getExcerpt(matchedField)
+        });
+      }
+    });
+  }
+  
+  // Sort by relevance (exact matches first) then by date
+  results.sort((a, b) => {
+    const aExact = a.title?.toLowerCase().includes(query) ? 1 : 0;
+    const bExact = b.title?.toLowerCase().includes(query) ? 1 : 0;
+    if (aExact !== bExact) return bExact - aExact;
+    return new Date(b.date || 0) - new Date(a.date || 0);
+  });
+  
+  res.json({ results: results.slice(0, 100), total: results.length });
+});
+
+// ===== TASKS API (Enhanced version using todos collection) =====
+app.get('/tasks', (req, res) => res.sendFile(path.join(__dirname, 'tasks.html')));
+
+// Tasks API - uses the same todos collection but with enhanced features
+app.get('/api/tasks', (req, res) => {
+  const { status, priority, category, prospect_id, overdue, today, week } = req.query;
+  let tasks = db.todos || [];
+  
+  // Apply filters
+  if (status) tasks = tasks.filter(t => t.status === status || (status === 'completed' && t.completed));
+  if (priority) tasks = tasks.filter(t => t.priority === priority);
+  if (category) tasks = tasks.filter(t => t.category === category);
+  if (prospect_id) tasks = tasks.filter(t => t.prospect_id == prospect_id);
+  
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const todayStr = now.toISOString().split('T')[0];
+  
+  if (overdue === 'true') {
+    tasks = tasks.filter(t => t.due_date && t.due_date < todayStr && !t.completed && t.status !== 'completed');
+  }
+  if (today === 'true') {
+    tasks = tasks.filter(t => t.due_date === todayStr);
+  }
+  if (week === 'true') {
+    const weekEnd = new Date(now);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    const weekEndStr = weekEnd.toISOString().split('T')[0];
+    tasks = tasks.filter(t => t.due_date && t.due_date >= todayStr && t.due_date <= weekEndStr);
+  }
+  
+  res.json(tasks);
+});
+
+app.get('/api/tasks/stats', (req, res) => {
+  const tasks = db.todos || [];
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const todayStr = now.toISOString().split('T')[0];
+  const weekEnd = new Date(now);
+  weekEnd.setDate(weekEnd.getDate() + 7);
+  const weekEndStr = weekEnd.toISOString().split('T')[0];
+  
+  // Today stats
+  const completedToday = tasks.filter(t => {
+    if (!t.completed_at) return false;
+    return t.completed_at.split('T')[0] === todayStr;
+  }).length;
+  
+  // This week stats
+  const weekStart = new Date(now);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  const weekStartStr = weekStart.toISOString().split('T')[0];
+  const completedThisWeek = tasks.filter(t => {
+    if (!t.completed_at) return false;
+    const date = t.completed_at.split('T')[0];
+    return date >= weekStartStr && date <= todayStr;
+  }).length;
+  
+  const total = tasks.length;
+  const completed = tasks.filter(t => t.completed || t.status === 'completed').length;
+  const pending = tasks.filter(t => t.status === 'pending' && !t.completed).length;
+  const inProgress = tasks.filter(t => t.status === 'in_progress' && !t.completed).length;
+  const overdue = tasks.filter(t => t.due_date && t.due_date < todayStr && !t.completed && t.status !== 'completed').length;
+  const dueToday = tasks.filter(t => t.due_date === todayStr && !t.completed && t.status !== 'completed').length;
+  const dueThisWeek = tasks.filter(t => t.due_date && t.due_date >= todayStr && t.due_date <= weekEndStr && !t.completed && t.status !== 'completed').length;
+  
+  // Completion rate
+  const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+  
+  // Category breakdown
+  const byCategory = {};
+  tasks.forEach(t => {
+    const cat = t.category || 'other';
+    if (!byCategory[cat]) byCategory[cat] = { total: 0, completed: 0 };
+    byCategory[cat].total++;
+    if (t.completed || t.status === 'completed') byCategory[cat].completed++;
+  });
+  
+  // Priority breakdown
+  const byPriority = { high: 0, medium: 0, low: 0 };
+  tasks.filter(t => !t.completed && t.status !== 'completed').forEach(t => {
+    const p = t.priority || 'medium';
+    if (byPriority[p] !== undefined) byPriority[p]++;
+  });
+  
+  res.json({
+    total,
+    completed,
+    pending,
+    inProgress,
+    overdue,
+    dueToday,
+    dueThisWeek,
+    completedToday,
+    completedThisWeek,
+    completionRate,
+    byCategory,
+    byPriority
+  });
+});
+
+app.post('/api/tasks', (req, res) => {
+  if (!req.body.title || !req.body.title.trim()) {
+    return res.status(400).json({ error: 'title is required' });
+  }
+  const task = {
+    id: nextId(),
+    title: req.body.title.trim(),
+    description: req.body.description || '',
+    category: req.body.category || 'other',
+    priority: req.body.priority || 'medium',
+    due_date: req.body.due_date || null,
+    status: req.body.status || 'pending',
+    prospect_id: req.body.prospect_id || null,
+    completed: req.body.completed || false,
+    completed_at: req.body.completed_at || null,
+    notes: req.body.notes || '',
+    recurring: req.body.recurring || false,
+    recurring_interval: req.body.recurring_interval || null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  if (!db.todos) db.todos = [];
+  db.todos.push(task);
+  saveDB(db);
+  res.json(task);
+});
+
+app.put('/api/tasks/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.todos || []).findIndex(t => t.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Task not found' });
+  db.todos[idx] = { ...db.todos[idx], ...req.body, updated_at: new Date().toISOString() };
+  saveDB(db);
+  res.json(db.todos[idx]);
+});
+
+app.delete('/api/tasks/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  db.todos = (db.todos || []).filter(t => t.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// Bulk operations
+app.post('/api/tasks/bulk/complete', (req, res) => {
+  const { ids } = req.body;
+  if (!ids || !Array.isArray(ids)) return res.status(400).json({ error: 'ids array required' });
+  
+  const now = new Date().toISOString();
+  let updated = 0;
+  ids.forEach(id => {
+    const idx = (db.todos || []).findIndex(t => t.id === id);
+    if (idx >= 0) {
+      db.todos[idx].completed = true;
+      db.todos[idx].status = 'completed';
+      db.todos[idx].completed_at = now;
+      db.todos[idx].updated_at = now;
+      updated++;
+    }
+  });
+  
+  saveDB(db);
+  res.json({ success: true, updated });
+});
+
+app.post('/api/tasks/bulk/priority', (req, res) => {
+  const { ids, priority } = req.body;
+  if (!ids || !Array.isArray(ids)) return res.status(400).json({ error: 'ids array required' });
+  if (!priority) return res.status(400).json({ error: 'priority required' });
+  
+  const now = new Date().toISOString();
+  let updated = 0;
+  ids.forEach(id => {
+    const idx = (db.todos || []).findIndex(t => t.id === id);
+    if (idx >= 0) {
+      db.todos[idx].priority = priority;
+      db.todos[idx].updated_at = now;
+      updated++;
+    }
+  });
+  
+  saveDB(db);
+  res.json({ success: true, updated });
+});
+
+app.post('/api/tasks/bulk/delete', (req, res) => {
+  const { ids } = req.body;
+  if (!ids || !Array.isArray(ids)) return res.status(400).json({ error: 'ids array required' });
+  
+  const before = (db.todos || []).length;
+  db.todos = (db.todos || []).filter(t => !ids.includes(t.id));
+  const deleted = before - db.todos.length;
+  
+  saveDB(db);
+  res.json({ success: true, deleted });
+});
+
+// ===== CONTACTS DIRECTORY API =====
+// Centralized contact management across all prospects
+app.get('/contacts', (req, res) => res.sendFile(path.join(__dirname, 'contacts.html')));
+
+// Get all contacts with enriched data
+app.get('/api/directory/contacts', (req, res) => {
+  const enrichedContacts = (db.contacts || []).map(c => {
+    const prospect = db.prospects.find(p => p.id === c.prospect_id);
+    const reportsTo = (db.contacts || []).find(x => x.id === c.reports_to);
+    const contactActivities = (db.activities || []).filter(a => 
+      a.contact_id === c.id || 
+      (a.prospect_id === c.prospect_id && a.description?.toLowerCase().includes((c.name || '').toLowerCase()))
+    );
+    const lastActivity = contactActivities.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+    
+    return {
+      ...c,
+      prospect_name: prospect?.name || null,
+      property_type: prospect?.property_type || null,
+      reports_to_name: reportsTo?.name || reportsTo?.first_name ? `${reportsTo.first_name} ${reportsTo.last_name}` : null,
+      last_contact_date: lastActivity?.created_at || c.last_contact_date || null,
+      activity_count: contactActivities.length,
+      status: prospect?.status === 'signed' ? 'active' : prospect?.status === 'closed' ? 'inactive' : 'prospect'
+    };
+  }).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  
+  res.json(enrichedContacts);
+});
+
+// Get single contact with full details
+app.get('/api/directory/contacts/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const contact = (db.contacts || []).find(c => c.id === id);
+  if (!contact) return res.status(404).json({ error: 'Contact not found' });
+  
+  const prospect = db.prospects.find(p => p.id === contact.prospect_id);
+  const reportsTo = (db.contacts || []).find(c => c.id === contact.reports_to);
+  const subordinates = (db.contacts || []).filter(c => c.reports_to === id);
+  const contactActivities = (db.activities || []).filter(a => 
+    a.contact_id === id || 
+    (a.prospect_id === contact.prospect_id && a.description?.toLowerCase().includes((contact.name || '').toLowerCase()))
+  ).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  
+  res.json({
+    ...contact,
+    prospect_name: prospect?.name,
+    property_type: prospect?.property_type,
+    reports_to_contact: reportsTo || null,
+    subordinates,
+    activities: contactActivities
+  });
+});
+
+// Create new contact (directory-level)
+app.post('/api/directory/contacts', (req, res) => {
+  const name = req.body.name || `${req.body.first_name || ''} ${req.body.last_name || ''}`.trim();
+  if (!name) return res.status(400).json({ error: 'name is required' });
+  
+  const contact = {
+    id: nextId(),
+    name,
+    first_name: req.body.first_name || '',
+    last_name: req.body.last_name || '',
+    title: req.body.title || '',
+    prospect_id: req.body.prospect_id || null,
+    phone: req.body.phone || (req.body.phones || [])[0]?.number || '',
+    email: req.body.email || (req.body.emails || [])[0]?.address || '',
+    phones: req.body.phones || [],
+    emails: req.body.emails || [],
+    tags: req.body.tags || [],
+    preferred_contact_method: req.body.preferred_contact_method || '',
+    influence: req.body.influence || '',
+    birthday: req.body.birthday || null,
+    reports_to: req.body.reports_to || null,
+    notes: req.body.notes || '',
+    photo_url: req.body.photo_url || null,
+    is_primary: req.body.is_primary || false,
+    last_contact_date: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  
+  if (!db.contacts) db.contacts = [];
+  
+  // If is_primary, unset other primary contacts for same prospect
+  if (contact.is_primary && contact.prospect_id) {
+    db.contacts.forEach(c => {
+      if (c.prospect_id === contact.prospect_id) c.is_primary = false;
+    });
+  }
+  
+  db.contacts.push(contact);
+  saveDB(db);
+  res.json(contact);
+});
+
+// Update contact
+app.put('/api/directory/contacts/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.contacts || []).findIndex(c => c.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Contact not found' });
+  
+  // If setting as primary, unset others
+  if (req.body.is_primary && req.body.prospect_id) {
+    db.contacts.forEach(c => {
+      if (c.prospect_id === req.body.prospect_id) c.is_primary = false;
+    });
+  }
+  
+  // Update name if first/last changed
+  if (req.body.first_name !== undefined || req.body.last_name !== undefined) {
+    const first = req.body.first_name !== undefined ? req.body.first_name : db.contacts[idx].first_name || '';
+    const last = req.body.last_name !== undefined ? req.body.last_name : db.contacts[idx].last_name || '';
+    req.body.name = `${first} ${last}`.trim();
+  }
+  
+  db.contacts[idx] = { 
+    ...db.contacts[idx], 
+    ...req.body, 
+    updated_at: new Date().toISOString() 
+  };
+  saveDB(db);
+  res.json(db.contacts[idx]);
+});
+
+// Delete contact
+app.delete('/api/directory/contacts/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const before = (db.contacts || []).length;
+  db.contacts = (db.contacts || []).filter(c => c.id !== id);
+  
+  // Clear reports_to references
+  db.contacts.forEach(c => {
+    if (c.reports_to === id) c.reports_to = null;
+  });
+  
+  saveDB(db);
+  res.json({ success: true, deleted: before - db.contacts.length });
+});
+
+// Bulk import contacts
+app.post('/api/directory/contacts/import', (req, res) => {
+  const { contacts: importContacts } = req.body;
+  if (!importContacts || !Array.isArray(importContacts)) {
+    return res.status(400).json({ error: 'contacts array required' });
+  }
+  
+  let imported = 0;
+  let duplicates = 0;
+  
+  importContacts.forEach(ic => {
+    const name = ic.name || `${ic.first_name || ''} ${ic.last_name || ''}`.trim();
+    if (!name) return;
+    
+    // Check for duplicates by name + email
+    const isDup = db.contacts.some(c => {
+      const existingName = (c.name || `${c.first_name || ''} ${c.last_name || ''}`).toLowerCase().trim();
+      if (existingName === name.toLowerCase().trim()) return true;
+      if (ic.email && c.email && ic.email.toLowerCase() === c.email.toLowerCase()) return true;
+      return false;
+    });
+    
+    if (isDup) {
+      duplicates++;
+      return;
+    }
+    
+    // Try to match to a prospect by company name
+    let prospectId = null;
+    if (ic.company) {
+      const prospect = db.prospects.find(p => 
+        p.name.toLowerCase().includes(ic.company.toLowerCase()) ||
+        ic.company.toLowerCase().includes(p.name.toLowerCase())
+      );
+      if (prospect) prospectId = prospect.id;
+    }
+    
+    const contact = {
+      id: nextId(),
+      name,
+      first_name: ic.first_name || '',
+      last_name: ic.last_name || '',
+      title: ic.title || '',
+      prospect_id: prospectId,
+      phone: ic.phone || '',
+      email: ic.email || '',
+      phones: ic.phone ? [{ number: ic.phone, type: 'work' }] : [],
+      emails: ic.email ? [{ address: ic.email, type: 'work' }] : [],
+      tags: [],
+      notes: '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    db.contacts.push(contact);
+    imported++;
+  });
+  
+  saveDB(db);
+  res.json({ imported, duplicates, total: importContacts.length });
+});
+
+// Export contacts as vCard
+app.get('/api/directory/contacts/export/vcard', (req, res) => {
+  const vcards = (db.contacts || []).map(c => {
+    const name = c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim();
+    const prospect = db.prospects.find(p => p.id === c.prospect_id);
+    
+    return `BEGIN:VCARD
+VERSION:3.0
+FN:${name}
+N:${c.last_name || ''};${c.first_name || ''};;;
+${c.title ? `TITLE:${c.title}` : ''}
+${prospect ? `ORG:${prospect.name}` : ''}
+${c.phone ? `TEL;TYPE=WORK:${c.phone}` : ''}
+${c.email ? `EMAIL;TYPE=WORK:${c.email}` : ''}
+${c.notes ? `NOTE:${c.notes.replace(/\n/g, '\\n')}` : ''}
+END:VCARD`;
+  }).join('\n\n');
+  
+  res.setHeader('Content-Type', 'text/vcard');
+  res.setHeader('Content-Disposition', 'attachment; filename="contacts.vcf"');
+  res.send(vcards);
+});
+
+// Contact search endpoint
+app.get('/api/directory/contacts/search', (req, res) => {
+  const { q, prospect_id, tag, property_type } = req.query;
+  let results = db.contacts || [];
+  
+  if (prospect_id) {
+    results = results.filter(c => c.prospect_id === parseInt(prospect_id));
+  }
+  
+  if (tag) {
+    results = results.filter(c => (c.tags || []).includes(tag));
+  }
+  
+  if (property_type) {
+    const prospectIds = db.prospects.filter(p => p.property_type === property_type).map(p => p.id);
+    results = results.filter(c => prospectIds.includes(c.prospect_id));
+  }
+  
+  if (q) {
+    const query = q.toLowerCase();
+    results = results.filter(c => {
+      const searchStr = `${c.name || ''} ${c.first_name || ''} ${c.last_name || ''} ${c.title || ''} ${c.email || ''} ${c.phone || ''}`.toLowerCase();
+      return searchStr.includes(query);
+    });
+  }
+  
+  // Enrich with prospect names
+  results = results.map(c => {
+    const prospect = db.prospects.find(p => p.id === c.prospect_id);
+    return { ...c, prospect_name: prospect?.name || null };
+  });
+  
+  res.json(results);
+});
+
+// ===== GOALS & TARGETS API =====
+// Initialize goals collection
+if (!db.goals) db.goals = [];
+if (!db.goalsAchievements) db.goalsAchievements = { streaks: { current: 0, best: 0, last_activity: null }, badges: [], personal_bests: {} };
+
+// Serve goals page
+app.get('/goals', (req, res) => {
+  res.sendFile(path.join(__dirname, 'goals.html'));
+});
+
+// Get all goals
+app.get('/api/goals', (req, res) => {
+  const { category, status } = req.query;
+  let goals = db.goals || [];
+  if (category) goals = goals.filter(g => g.category === category);
+  if (status) goals = goals.filter(g => g.status === status);
+  res.json(goals.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
+});
+
+// Get single goal
+app.get('/api/goals/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const goal = (db.goals || []).find(g => g.id === id);
+  if (!goal) return res.status(404).json({ error: 'Goal not found' });
+  res.json(goal);
+});
+
+// Create goal
+app.post('/api/goals', (req, res) => {
+  if (!req.body.name || !req.body.name.trim()) {
+    return res.status(400).json({ error: 'name is required' });
+  }
+  
+  const goal = {
+    id: nextId(),
+    name: req.body.name,
+    category: req.body.category || 'revenue',
+    target: parseFloat(req.body.target) || 0,
+    current: parseFloat(req.body.current) || 0,
+    unit: req.body.unit || '',
+    start_date: req.body.start_date || null,
+    end_date: req.body.end_date || null,
+    checkpoints: req.body.checkpoints || [],
+    status: 'active',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  
+  if (!db.goals) db.goals = [];
+  db.goals.push(goal);
+  
+  // Update streak on activity
+  updateGoalsStreak();
+  
+  saveDB(db);
+  res.json(goal);
+});
+
+// Update goal
+app.put('/api/goals/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.goals || []).findIndex(g => g.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Goal not found' });
+  
+  const goal = db.goals[idx];
+  const oldCurrent = goal.current;
+  
+  // Update fields
+  if (req.body.name !== undefined) goal.name = req.body.name;
+  if (req.body.category !== undefined) goal.category = req.body.category;
+  if (req.body.target !== undefined) goal.target = parseFloat(req.body.target) || 0;
+  if (req.body.current !== undefined) goal.current = parseFloat(req.body.current) || 0;
+  if (req.body.unit !== undefined) goal.unit = req.body.unit;
+  if (req.body.start_date !== undefined) goal.start_date = req.body.start_date;
+  if (req.body.end_date !== undefined) goal.end_date = req.body.end_date;
+  if (req.body.checkpoints !== undefined) goal.checkpoints = req.body.checkpoints;
+  if (req.body.status !== undefined) goal.status = req.body.status;
+  
+  goal.updated_at = new Date().toISOString();
+  
+  // Check if goal is now achieved
+  if (goal.current >= goal.target && goal.status === 'active') {
+    goal.status = 'achieved';
+    goal.completed_at = new Date().toISOString();
+    
+    // Check if completed early
+    if (goal.end_date && new Date() < new Date(goal.end_date)) {
+      goal.completed_early = true;
+    }
+    
+    // Check if was behind but caught up
+    if (goal.start_date && goal.end_date) {
+      const totalDays = (new Date(goal.end_date) - new Date(goal.start_date)) / (1000 * 60 * 60 * 24);
+      const daysElapsed = (new Date() - new Date(goal.start_date)) / (1000 * 60 * 60 * 24);
+      const expectedPercent = (daysElapsed / totalDays) * 100;
+      if (oldCurrent < goal.target * (expectedPercent / 100) * 0.9) {
+        goal.was_behind = true;
+      }
+    }
+    
+    // Update personal bests
+    updatePersonalBests();
+  }
+  
+  // Check if missed (past end date and not achieved)
+  if (goal.end_date && new Date() > new Date(goal.end_date) && goal.current < goal.target && goal.status === 'active') {
+    goal.status = 'missed';
+    goal.completed_at = new Date().toISOString();
+  }
+  
+  // Update streak on progress
+  if (req.body.current !== undefined && req.body.current !== oldCurrent) {
+    updateGoalsStreak();
+  }
+  
+  db.goals[idx] = goal;
+  saveDB(db);
+  res.json(goal);
+});
+
+// Delete goal
+app.delete('/api/goals/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  db.goals = (db.goals || []).filter(g => g.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// Get achievements
+app.get('/api/goals/achievements', (req, res) => {
+  res.json(db.goalsAchievements || { streaks: { current: 0, best: 0 }, badges: [], personal_bests: {} });
+});
+
+// Update achievements
+app.put('/api/goals/achievements', (req, res) => {
+  if (!db.goalsAchievements) db.goalsAchievements = { streaks: { current: 0, best: 0 }, badges: [], personal_bests: {} };
+  
+  if (req.body.streaks) db.goalsAchievements.streaks = { ...db.goalsAchievements.streaks, ...req.body.streaks };
+  if (req.body.badges) db.goalsAchievements.badges = req.body.badges;
+  if (req.body.personal_bests) db.goalsAchievements.personal_bests = { ...db.goalsAchievements.personal_bests, ...req.body.personal_bests };
+  
+  saveDB(db);
+  res.json(db.goalsAchievements);
+});
+
+// Helper: Update streak
+function updateGoalsStreak() {
+  if (!db.goalsAchievements) db.goalsAchievements = { streaks: { current: 0, best: 0, last_activity: null }, badges: [], personal_bests: {} };
+  
+  const today = new Date().toISOString().split('T')[0];
+  const lastActivity = db.goalsAchievements.streaks.last_activity;
+  
+  if (!lastActivity) {
+    db.goalsAchievements.streaks.current = 1;
+    db.goalsAchievements.streaks.last_activity = today;
+  } else {
+    const lastDate = new Date(lastActivity);
+    const todayDate = new Date(today);
+    const diffDays = Math.floor((todayDate - lastDate) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+      // Same day, no change
+    } else if (diffDays === 1) {
+      // Consecutive day
+      db.goalsAchievements.streaks.current++;
+      db.goalsAchievements.streaks.last_activity = today;
+    } else {
+      // Streak broken
+      db.goalsAchievements.streaks.current = 1;
+      db.goalsAchievements.streaks.last_activity = today;
+    }
+  }
+  
+  // Update best streak
+  if (db.goalsAchievements.streaks.current > (db.goalsAchievements.streaks.best || 0)) {
+    db.goalsAchievements.streaks.best = db.goalsAchievements.streaks.current;
+  }
+}
+
+// Helper: Update personal bests
+function updatePersonalBests() {
+  if (!db.goalsAchievements) db.goalsAchievements = { streaks: { current: 0, best: 0 }, badges: [], personal_bests: {} };
+  
+  const achieved = (db.goals || []).filter(g => g.status === 'achieved');
+  
+  // Most goals in a month
+  const goalsByMonth = {};
+  achieved.forEach(g => {
+    const month = (g.completed_at || g.created_at).substring(0, 7);
+    goalsByMonth[month] = (goalsByMonth[month] || 0) + 1;
+  });
+  const mostGoalsMonth = Math.max(0, ...Object.values(goalsByMonth));
+  if (mostGoalsMonth > (db.goalsAchievements.personal_bests.most_goals_month || 0)) {
+    db.goalsAchievements.personal_bests.most_goals_month = mostGoalsMonth;
+  }
+  
+  // Update machines deployed from db.machines
+  const machinesDeployed = (db.machines || []).filter(m => m.status === 'deployed').length;
+  db.goalsAchievements.personal_bests.machines_deployed = machinesDeployed;
+  
+  // Best month revenue from finances
+  const revenueByMonth = {};
+  (db.finances || []).filter(f => f.type === 'revenue').forEach(f => {
+    if (f.month) {
+      revenueByMonth[f.month] = (revenueByMonth[f.month] || 0) + (f.amount || 0);
+    }
+  });
+  const bestMonthRevenue = Math.max(0, ...Object.values(revenueByMonth));
+  if (bestMonthRevenue > (db.goalsAchievements.personal_bests.best_month_revenue || 0)) {
+    db.goalsAchievements.personal_bests.best_month_revenue = bestMonthRevenue;
+  }
+  
+  // Pop-ins from activities
+  const popInActivities = (db.activities || []).filter(a => a.type === 'pop-in' || a.type === 'visit');
+  const popInsByWeek = {};
+  popInActivities.forEach(a => {
+    const date = new Date(a.created_at);
+    const weekStart = new Date(date);
+    weekStart.setDate(date.getDate() - date.getDay());
+    const weekKey = weekStart.toISOString().split('T')[0];
+    popInsByWeek[weekKey] = (popInsByWeek[weekKey] || 0) + 1;
+  });
+  const bestWeekPopins = Math.max(0, ...Object.values(popInsByWeek));
+  if (bestWeekPopins > (db.goalsAchievements.personal_bests.best_week_popins || 0)) {
+    db.goalsAchievements.personal_bests.best_week_popins = bestWeekPopins;
+  }
+  db.goalsAchievements.personal_bests.total_popins = popInActivities.length;
+}
+
+// Goal summary stats
+app.get('/api/goals/summary', (req, res) => {
+  const goals = db.goals || [];
+  const active = goals.filter(g => g.status === 'active');
+  const achieved = goals.filter(g => g.status === 'achieved');
+  const missed = goals.filter(g => g.status === 'missed');
+  
+  // Calculate overall progress
+  const totalProgress = active.reduce((sum, g) => {
+    return sum + (g.target > 0 ? Math.min(100, (g.current / g.target) * 100) : 0);
+  }, 0);
+  const avgProgress = active.length > 0 ? Math.round(totalProgress / active.length) : 0;
+  
+  res.json({
+    total: goals.length,
+    active: active.length,
+    achieved: achieved.length,
+    missed: missed.length,
+    avgProgress,
+    successRate: goals.length > 0 ? Math.round((achieved.length / (achieved.length + missed.length || 1)) * 100) : 0,
+    streaks: db.goalsAchievements?.streaks || { current: 0, best: 0 }
+  });
+});
 
 app.listen(PORT, () => {
   console.log(`🤖 Kande VendTech Dashboard running at http://localhost:${PORT}`);
