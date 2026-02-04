@@ -9,23 +9,34 @@
   /* ── Navigation structure ─────────────────────────── */
   var NAV_ITEMS = [
     { label: 'Dashboard', href: '/' },
+    { label: 'Today', href: '/daily-planner' },
+    { label: 'Performance', href: '/performance' },
     {
       label: 'Sales', items: [
         { label: 'CRM',       href: '/crm' },
         { label: 'Pipeline',  href: '/pipeline-board' },
+        { label: 'Follow-Ups', href: '/follow-ups' },
+        { label: 'Lead Import', href: '/lead-import' },
         { label: 'Outreach',  href: '/outreach' },
         { label: 'Proposals', href: '/proposal-generator' },
-        { label: 'Contracts', href: '/contracts' }
+        { label: 'Revenue Calculator', href: '/revenue-calculator' },
+        { label: 'Contracts', href: '/contracts' },
+        { label: 'Contract Gen', href: '/contract-generator' },
+        { label: 'Gift Baskets', href: '/gift-baskets' }
       ]
     },
     {
       label: 'Operations', items: [
         { label: 'Overview',       href: '/operations' },
         { label: 'Schedule',       href: '/schedule' },
+        { label: 'Weekly Routes',  href: '/weekly-routes' },
         { label: 'Routes',         href: '/routes' },
+        { label: 'Inventory',      href: '/inventory' },
         { label: 'Warehouse',      href: '/warehouse' },
         { label: 'Fleet',          href: '/fleet' },
         { label: 'Restock',        href: '/restock' },
+        { label: 'Vendors',        href: '/vendors' },
+        { label: 'Machine Locator', href: '/machine-locator' },
         { label: 'Driver Mobile',  href: '/driver' }
       ]
     },
@@ -34,12 +45,27 @@
         { label: 'Product Mix',   href: '/product-mix' },
         { label: 'Apollo Contacts', href: '/apollo' },
         { label: 'Site Surveys',  href: '/property-analysis' },
+        { label: 'Win/Loss Analysis', href: '/win-loss' },
         { label: 'Tasks',         href: '/tasks' },
         { label: 'Analytics',     href: '/analytics' }
       ]
     },
-    { label: 'Financial', href: '/financials' },
-    { label: 'Clients',   href: '/client-portal' }
+    {
+      label: 'Financial', items: [
+        { label: 'Overview',  href: '/financials' },
+        { label: 'Revenue Tracking', href: '/revenue' },
+        { label: 'Expenses', href: '/expenses' }
+      ]
+    },
+    { label: 'Clients',   href: '/client-portal' },
+    {
+      label: 'Help', items: [
+        { label: 'Resources & Training', href: '/resources' },
+        { label: 'Playbook',             href: '/playbook' },
+        { label: 'Call Scripts',         href: '/call-scripts' },
+        { label: 'Email Templates',      href: '/email-templates' }
+      ]
+    }
   ];
 
   var path = location.pathname;
@@ -214,6 +240,29 @@
     '#kv-mobile-menu .kv-mob-subitems a:hover { color: #0f172a; background: #f1f5f9; }',
     '#kv-mobile-menu .kv-mob-subitems a.active { color: #3b82f6; font-weight: 600; }',
     '',
+    '/* ── Notification Bell ── */',
+    '#kv-topnav .kv-notification-bell {',
+    '  position: relative; display: flex; align-items: center;',
+    '  margin-right: 8px; font-size: 1.15rem; text-decoration: none;',
+    '  padding: 6px 8px; border-radius: 6px; transition: background 0.15s;',
+    '}',
+    '#kv-topnav .kv-notification-bell:hover { background: #f1f5f9; }',
+    '/* ── Settings Gear ── */',
+    '#kv-topnav .kv-settings-gear {',
+    '  display: flex; align-items: center;',
+    '  margin-right: 12px; font-size: 1.1rem; text-decoration: none;',
+    '  padding: 6px 8px; border-radius: 6px; transition: all 0.15s;',
+    '}',
+    '#kv-topnav .kv-settings-gear:hover { background: #f1f5f9; transform: rotate(45deg); }',
+    '#kv-topnav .kv-badge {',
+    '  position: absolute; top: 0; right: 0;',
+    '  background: #ef4444; color: #fff;',
+    '  font-size: 0.6rem; font-weight: 700;',
+    '  padding: 2px 5px; border-radius: 10px;',
+    '  min-width: 16px; text-align: center; line-height: 1.2;',
+    '  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;',
+    '}',
+    '',
     '/* ── Responsive ── */',
     '@media (max-width: 900px) {',
     '  #kv-topnav .kv-nav-items { display: none; }',
@@ -259,6 +308,10 @@
 
   // Right side
   navHTML += '<div class="kv-nav-right">';
+  navHTML += '<a href="/notifications" class="kv-notification-bell" id="kv-notification-bell" title="Notifications">';
+  navHTML += '🔔<span class="kv-badge" id="kv-notification-badge" style="display:none;">0</span>';
+  navHTML += '</a>';
+  navHTML += '<a href="/settings" class="kv-settings-gear" title="Settings">⚙️</a>';
   navHTML += '<span class="kv-status-dot"></span>';
   navHTML += '<span class="kv-user">Kurtis</span>';
   navHTML += '</div>';
@@ -279,6 +332,8 @@
       mobileHTML += '</div>';
     }
   });
+  // Add Settings at bottom of mobile menu
+  mobileHTML += '<a class="kv-mob-link' + (isActive('/settings') ? ' active' : '') + '" href="/settings" style="border-top: 2px solid #e2e8f0; margin-top: 8px;">⚙️ Settings</a>';
 
   /* ── Inject elements ──────────────────────────────── */
   var topnav = document.createElement('nav');
@@ -359,5 +414,28 @@
       });
     }
   });
+
+  /* ── Notification badge updater ── */
+  function updateNotificationBadge() {
+    var badge = document.getElementById('kv-notification-badge');
+    if (!badge) return;
+    
+    fetch('/api/notifications/count')
+      .then(function(r) { return r.ok ? r.json() : { count: 0 }; })
+      .then(function(data) {
+        var count = data.count || 0;
+        if (count > 0) {
+          badge.textContent = count > 99 ? '99+' : String(count);
+          badge.style.display = 'block';
+        } else {
+          badge.style.display = 'none';
+        }
+      })
+      .catch(function() { badge.style.display = 'none'; });
+  }
+  
+  // Update badge on load and every 60 seconds
+  updateNotificationBadge();
+  setInterval(updateNotificationBadge, 60000);
 
 })();
