@@ -2,228 +2,1581 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
-  <title>Playbook — Kande VendTech</title>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <title>Sales Playbook — Kande VendTech</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-
     :root {
-      --bg: #f8f9fc;
-      --card: #ffffff;
-      --border: #e2e8f0;
-      --text: #1a202c;
-      --muted: #718096;
-      --accent: #3182ce;
-      --hot: #e53e3e;
-      --warm: #dd6b20;
-      --success: #38a169;
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #0f172a;
+      --muted: #64748b; --accent: #3b82f6; --accent-light: #eff6ff;
+      --green: #22c55e; --green-light: #f0fdf4;
+      --amber: #f59e0b; --amber-light: #fffbeb;
+      --red: #ef4444; --red-light: #fef2f2;
+      --purple: #8b5cf6; --purple-light: #f5f3ff;
+      --radius: 12px; --radius-sm: 8px;
     }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); -webkit-tap-highlight-color: transparent; }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg); color: var(--text);
-    }
+    /* ===== TOP BAR ===== */
+    .topbar { background: #fff; border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; }
+    .topbar .back-btn { color: var(--accent); text-decoration: none; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+    .topbar h1 { font-size: 1.1rem; font-weight: 700; flex: 1; }
 
-    /* Top bar */
-    .topbar {
-      background: var(--card); border-bottom: 1px solid var(--border);
-      padding: 12px 24px; display: flex; align-items: center; gap: 16px;
-      position: sticky; top: 0; z-index: 100;
-    }
-    .topbar h1 {
-      font-size: 1.2rem;
-      background: linear-gradient(90deg, var(--hot), var(--warm));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .topbar a {
-      color: var(--accent); text-decoration: none; font-size: 0.9rem;
-    }
-    .topbar .updated {
-      margin-left: auto; font-size: 0.8rem; color: var(--muted);
-    }
+    /* ===== SEARCH ===== */
+    .search-wrap { padding: 12px 16px; position: sticky; top: 49px; z-index: 99; background: var(--bg); }
+    .search-box { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; }
+    .search-box input { border: none; outline: none; flex: 1; font-size: 0.9rem; background: transparent; min-width: 0; }
+    .search-box .search-icon { color: var(--muted); font-size: 1rem; }
+    .search-clear { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; display: none; padding: 2px 4px; }
+    .search-clear.visible { display: block; }
+    .search-count { font-size: 0.72rem; color: var(--muted); padding: 0 16px; margin-top: 4px; display: none; }
+    .search-count.visible { display: block; }
 
-    /* Layout */
-    .layout { display: flex; max-width: 1400px; margin: 0 auto; }
+    /* ===== TABS ===== */
+    .tabs-wrap { padding: 0 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; position: sticky; top: 100px; z-index: 98; background: var(--bg); padding-bottom: 8px; }
+    .tabs-wrap::-webkit-scrollbar { display: none; }
+    .tabs { display: flex; gap: 6px; min-width: max-content; padding: 4px 0; }
+    .tab { padding: 8px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; cursor: pointer; white-space: nowrap; border: 1px solid var(--border); background: #fff; color: var(--muted); transition: all 0.2s; user-select: none; }
+    .tab:hover { border-color: var(--accent); color: var(--accent); }
+    .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-    /* Sidebar TOC */
-    .sidebar {
-      width: 260px; min-width: 260px; padding: 24px 16px;
-      position: sticky; top: 56px; height: calc(100vh - 56px);
-      overflow-y: auto; border-right: 1px solid var(--border);
-      background: var(--card);
-    }
-    .sidebar h3 {
-      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;
-      color: var(--muted); margin-bottom: 12px;
-    }
-    .toc-link {
-      display: block; padding: 6px 10px; margin-bottom: 2px;
-      font-size: 0.85rem; color: var(--muted); text-decoration: none;
-      border-radius: 6px; transition: all 0.2s;
-    }
-    .toc-link:hover { background: var(--bg); color: var(--text); }
-    .toc-link.active { background: rgba(49,130,206,0.1); color: var(--accent); font-weight: 500; }
-    .toc-link.sub { padding-left: 24px; font-size: 0.8rem; }
+    /* ===== CONTENT ===== */
+    .content { padding: 8px 16px 80px; max-width: 800px; margin: 0 auto; }
+    .section { display: none; }
+    .section.active { display: block; }
+    .section-title { font-size: 1.15rem; font-weight: 700; margin: 16px 0 8px; display: flex; align-items: center; gap: 8px; }
+    .section-subtitle { font-size: 0.82rem; color: var(--muted); margin-bottom: 16px; }
 
-    /* Content */
-    .content {
-      flex: 1; padding: 32px 48px; max-width: 900px;
-    }
+    /* ===== CARDS ===== */
+    .card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
+    .card-head { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; -webkit-user-select: none; }
+    .card-head:active { background: #f1f5f9; }
+    .card-head-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+    .card-head-icon { font-size: 1.2rem; flex-shrink: 0; }
+    .card-head-title { font-size: 0.88rem; font-weight: 700; }
+    .card-head-badge { font-size: 0.68rem; font-weight: 600; padding: 2px 8px; border-radius: 10px; flex-shrink: 0; }
+    .badge-green { background: var(--green-light); color: var(--green); }
+    .badge-red { background: var(--red-light); color: var(--red); }
+    .badge-amber { background: var(--amber-light); color: var(--amber); }
+    .badge-blue { background: var(--accent-light); color: var(--accent); }
+    .badge-purple { background: var(--purple-light); color: var(--purple); }
+    .chevron { font-size: 0.75rem; color: var(--muted); transition: transform 0.2s; flex-shrink: 0; }
+    .card.open .chevron { transform: rotate(90deg); }
+    .card-body { display: none; padding: 0 16px 14px; font-size: 0.84rem; line-height: 1.55; color: #334155; }
+    .card.open .card-body { display: block; }
 
-    /* Markdown styles */
-    .content h1 {
-      font-size: 2rem; font-weight: 700; margin-bottom: 8px;
-      padding-bottom: 12px; border-bottom: 2px solid var(--border);
-    }
-    .content h2 {
-      font-size: 1.5rem; font-weight: 700; margin-top: 48px; margin-bottom: 16px;
-      padding-bottom: 8px; border-bottom: 1px solid var(--border);
-      color: var(--text);
-    }
-    .content h3 {
-      font-size: 1.15rem; font-weight: 600; margin-top: 32px; margin-bottom: 12px;
-      color: var(--accent);
-    }
-    .content h4 {
-      font-size: 1rem; font-weight: 600; margin-top: 24px; margin-bottom: 8px;
-    }
-    .content p { margin-bottom: 12px; line-height: 1.7; color: #2d3748; }
-    .content ul, .content ol {
-      margin-bottom: 16px; padding-left: 24px;
-    }
-    .content li {
-      margin-bottom: 6px; line-height: 1.6; color: #2d3748;
-    }
-    .content strong { color: var(--text); }
-    .content blockquote {
-      margin: 16px 0; padding: 12px 20px;
-      background: rgba(49,130,206,0.06); border-left: 4px solid var(--accent);
-      border-radius: 0 8px 8px 0; font-style: italic; color: var(--muted);
-    }
-    .content hr {
-      border: none; border-top: 1px solid var(--border);
-      margin: 32px 0;
-    }
-    .content code {
-      background: #edf2f7; padding: 2px 6px; border-radius: 4px;
-      font-size: 0.85em; color: var(--hot);
-    }
-    .content pre {
-      background: #1a202c; color: #e2e8f0; padding: 16px;
-      border-radius: 8px; overflow-x: auto; margin: 16px 0;
-    }
-    .content pre code {
-      background: none; padding: 0; color: inherit;
-    }
+    /* Card body elements */
+    .card-body ul { margin: 6px 0; padding-left: 20px; }
+    .card-body li { margin: 4px 0; }
+    .card-body strong { color: var(--text); }
+    .card-body .highlight { background: #fef08a; padding: 1px 4px; border-radius: 3px; font-weight: 600; }
+    .card-body .do-line { color: var(--green); font-weight: 600; }
+    .card-body .dont-line { color: var(--red); font-weight: 600; }
+    .card-body .tip { background: var(--accent-light); border-left: 3px solid var(--accent); padding: 8px 12px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin: 8px 0; font-size: 0.82rem; }
+    .card-body .warning { background: var(--red-light); border-left: 3px solid var(--red); padding: 8px 12px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin: 8px 0; font-size: 0.82rem; }
+    .card-body .script { background: #f1f5f9; border-radius: var(--radius-sm); padding: 10px 12px; margin: 8px 0; font-style: italic; font-size: 0.82rem; border-left: 3px solid var(--purple); }
+    .card-body table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 0.8rem; }
+    .card-body th { text-align: left; font-weight: 700; padding: 6px 8px; border-bottom: 2px solid var(--border); font-size: 0.72rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.3px; }
+    .card-body td { padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .card-body h4 { font-size: 0.84rem; font-weight: 700; margin: 10px 0 4px; color: var(--text); }
 
-    /* Tables */
-    .content table {
-      width: 100%; border-collapse: collapse; margin: 16px 0;
-      font-size: 0.9rem;
-    }
-    .content th {
-      background: #edf2f7; padding: 10px 14px; text-align: left;
-      font-weight: 600; border: 1px solid var(--border);
-    }
-    .content td {
-      padding: 10px 14px; border: 1px solid var(--border);
-    }
-    .content tr:nth-child(even) { background: #f7fafc; }
+    /* ===== QUICK REF STAT CARDS ===== */
+    .quick-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+    .q-stat { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; text-align: center; }
+    .q-stat .q-val { font-size: 1.4rem; font-weight: 800; line-height: 1; }
+    .q-stat .q-label { font-size: 0.68rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 4px; }
 
-    /* Highlight boxes */
-    .content em { color: var(--muted); }
+    /* Competitor cards */
+    .comp-card { border-left: 4px solid var(--accent); }
+    .comp-card.weak { border-left-color: var(--red); }
+    .comp-card.strong { border-left-color: var(--amber); }
+    .comp-card.danger { border-left-color: var(--red); }
 
-    /* Search */
-    .search-box {
-      padding: 8px 12px; width: 100%; border: 1px solid var(--border);
-      border-radius: 6px; font-size: 0.85rem; margin-bottom: 16px;
-      background: var(--bg);
-    }
+    /* Bad location warning */
+    .bad-card { border-left: 4px solid var(--red); }
 
-    @media (max-width: 900px) {
-      .sidebar { display: none; }
-      .content { padding: 20px; }
+    /* Search highlight */
+    .search-match { background: #fef08a; border-radius: 2px; }
+
+    /* Hidden when searching */
+    .hidden-by-search { display: none !important; }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .topbar h1 { font-size: 0.95rem; }
+      .quick-stats { grid-template-columns: 1fr 1fr; }
+      .card-body table { font-size: 0.75rem; }
+      .card-body td, .card-body th { padding: 4px 6px; }
     }
   </style>
 </head>
 <body>
+  <!-- Top Bar -->
   <div class="topbar">
-    <h1>📘 Kande VendTech Playbook</h1>
-    <a href="/">← Dashboard</a>
-    <a href="/crm">Sales CRM</a>
-    <div class="updated" id="lastUpdated"></div>
+    <a href="/home" class="back-btn">← Dashboard</a>
+    <h1>📖 Sales Playbook</h1>
   </div>
 
-  <div class="layout">
-    <nav class="sidebar">
-      <h3>Contents</h3>
-      <input type="text" class="search-box" id="tocSearch" placeholder="Search playbook...">
-      <div id="toc"></div>
-    </nav>
-    <main class="content" id="content">
-      <p style="color:var(--muted);">Loading playbook...</p>
-    </main>
+  <!-- Search -->
+  <div class="search-wrap">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search playbook…" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button class="search-clear" id="searchClear" onclick="clearSearch()">✕</button>
+    </div>
+    <div class="search-count" id="searchCount"></div>
   </div>
+
+  <!-- Tabs -->
+  <div class="tabs-wrap">
+    <div class="tabs" id="tabs">
+      <div class="tab active" data-tab="pitch">🎯 The Pitch</div>
+      <div class="tab" data-tab="popin">🚪 Pop-In</div>
+      <div class="tab" data-tab="properties">🏢 Properties</div>
+      <div class="tab" data-tab="competitors">⚔️ Competitors</div>
+      <div class="tab" data-tab="pricing">💲 Pricing</div>
+      <div class="tab" data-tab="objections">🛡️ Objections</div>
+      <div class="tab" data-tab="bad">🚫 Bad Locations</div>
+      <div class="tab" data-tab="gifts">🎁 Gift Baskets</div>
+      <div class="tab" data-tab="referrals">🤝 Referrals</div>
+      <div class="tab" data-tab="closing">✅ Closing</div>
+    </div>
+  </div>
+
+  <!-- ===================== CONTENT ===================== -->
+  <div class="content">
+
+    <!-- ========== THE PITCH ========== -->
+    <div class="section active" id="sec-pitch" data-section="pitch">
+      <div class="section-title">🎯 The Pitch</div>
+      <div class="section-subtitle">What to say, what NEVER to say, and elevator pitches by property type</div>
+
+      <!-- Quick Reference -->
+      <div class="quick-stats">
+        <div class="q-stat"><div class="q-val" style="color:var(--red)">NEVER</div><div class="q-label">Say "Vending Machine"</div></div>
+        <div class="q-stat"><div class="q-val" style="color:var(--green)">SAY</div><div class="q-label">"Smart Market" or "Amenity"</div></div>
+        <div class="q-stat"><div class="q-val">8-10</div><div class="q-label">Touches to Close</div></div>
+        <div class="q-stat"><div class="q-val">90%</div><div class="q-label">Placements from Pop-Ins</div></div>
+      </div>
+
+      <div class="card open">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">⚡</span>
+            <span class="card-head-title">Golden Rules of the Pitch</span>
+          </div>
+          <span class="card-head-badge badge-red">CRITICAL</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <div class="warning">
+            <strong>🚫 NEVER say "vending machine"</strong> — it triggers the image of a broken, neglected, old machine. The word "vending" kills deals.
+          </div>
+          <h4>✅ Always Say:</h4>
+          <ul>
+            <li><strong>"Smart market"</strong> — premium, modern, tech-forward</li>
+            <li><strong>"Refreshment amenity"</strong> — positions it as a property perk</li>
+            <li><strong>"AI-powered smart cooler"</strong> — sounds cutting-edge</li>
+          </ul>
+          <h4>🔑 Your #1 Advantage:</h4>
+          <div class="script">"I'm local. You can call me. When something needs attention, I'm 15 minutes away — not a corporate call center in another state."</div>
+          <h4>Key Rules:</h4>
+          <ul>
+            <li><span class="dont-line">✗ Don't pitch on the first visit</span> — build relationship, drop off gift basket</li>
+            <li><span class="do-line">✓ Pop-ins > cold calls</span> — 90% of placements come from in-person visits</li>
+            <li><span class="do-line">✓ Gift baskets > brochures</span> — include products + business card</li>
+            <li><span class="do-line">✓ Ask for referrals:</span> "Introduce me to 3 other buildings, I'll start your rev share immediately"</li>
+            <li><span class="do-line">✓ Lock 3-5 year exclusive agreements</span> — protects your investment</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🏠</span>
+            <span class="card-head-title">Elevator Pitch — Apartments</span>
+          </div>
+          <span class="card-head-badge badge-blue">30 SEC</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <div class="script">"Hi, I'm Kurtis with Kande VendTech. We install AI-powered smart markets in apartment communities — think premium drinks, snacks, and essentials available 24/7 right in your lobby or clubhouse. It's a free amenity for your residents — we handle everything. You just provide a plug. Residents love it, and it makes your property stand out."</div>
+          <div class="tip">💡 <strong>Key decision-maker:</strong> Property Manager or Community Manager<br><strong>Frame it as:</strong> A free amenity that boosts resident satisfaction and retention</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🏥</span>
+            <span class="card-head-title">Elevator Pitch — Healthcare</span>
+          </div>
+          <span class="card-head-badge badge-blue">30 SEC</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <div class="script">"Hi, I'm Kurtis with Kande VendTech. We provide smart refreshment markets for healthcare facilities — cold drinks, healthy snacks, and convenience items for your staff and patients. Completely touchless, cashless, and always stocked. Zero cost to you — we install, stock, and maintain everything. Your staff deserve a better break room."</div>
+          <div class="tip">💡 <strong>Key decision-maker:</strong> Practice Administrator or Facility Manager<br><strong>Frame it as:</strong> Employee satisfaction + patient/visitor convenience</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🏭</span>
+            <span class="card-head-title">Elevator Pitch — Warehouse / Manufacturing</span>
+          </div>
+          <span class="card-head-badge badge-blue">30 SEC</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <div class="script">"Hi, I'm Kurtis with Kande VendTech. We install smart refreshment stations in warehouses and distribution centers. Your crew works hard — energy drinks, cold water, snacks, all available on-site 24/7 with tap-to-pay. No more leaving the facility for a drink run. It's free to you — we handle everything."</div>
+          <div class="tip">💡 <strong>Key decision-maker:</strong> Facility Manager or Operations Director<br><strong>Frame it as:</strong> Employee retention + reduce break time away from facility<br><strong>Hot button:</strong> Workers leaving the premises for food = lost productivity</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🏢</span>
+            <span class="card-head-title">Elevator Pitch — Office Building</span>
+          </div>
+          <span class="card-head-badge badge-blue">30 SEC</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <div class="script">"Hi, I'm Kurtis with Kande VendTech. We bring smart refreshment markets to corporate offices — think premium beverages, healthy snacks, and everyday essentials right in your break room. Apple Pay, card tap — your team can grab something in seconds instead of leaving the building. Free to install, free to maintain. All I need is a power outlet."</div>
+          <div class="tip">💡 <strong>Key decision-maker:</strong> Office Manager, Facility Manager, or HR Director<br><strong>Frame it as:</strong> Employee perk that helps retention — especially in return-to-office push<br><strong>Minimum:</strong> 50+ employees on-site daily</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">👴</span>
+            <span class="card-head-title">Elevator Pitch — Senior Living</span>
+          </div>
+          <span class="card-head-badge badge-blue">30 SEC</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <div class="script">"Hi, I'm Kurtis with Kande VendTech. We set up convenient refreshment stations in senior living communities — cold beverages, snacks, and essentials like aspirin and reading glasses. It's a touchscreen with big, clear options — easy for everyone. Zero cost to your facility. Your residents get convenient access without needing to go anywhere."</div>
+          <div class="tip">💡 <strong>Key decision-maker:</strong> Executive Director or Activities Director<br><strong>Frame it as:</strong> Convenience for residents + family visitors + staff<br><strong>Bonus:</strong> Underserved market — very few competitors target senior living</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🏆</span>
+            <span class="card-head-title">The "We're New" Pitch (Phase 1)</span>
+          </div>
+          <span class="card-head-badge badge-purple">OBJECTION</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <div class="script">"We launched recently, and I'll be honest — we're building our portfolio. That's actually an advantage for you. We're actively selecting our founding locations. That means every machine we place gets VIP attention. I'm not managing 500 machines across three states — I'm managing a small, focused portfolio in Henderson. Your machine will never sit empty. I'll never take 10 days to return your call."</div>
+          <p style="margin-top:8px">Then pivot to competitor weakness:</p>
+          <div class="script">"The largest operator in Vegas — First Class Vending, owned by Compass Group — has a 3.3-star Google rating. Empty machines for weeks. Phantom credit card charges. Voicemails unreturned for days. We exist because operators like that created an opportunity."</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== POP-IN PLAYBOOK ========== -->
+    <div class="section" id="sec-popin" data-section="popin">
+      <div class="section-title">🚪 Pop-In Playbook</div>
+      <div class="section-subtitle">The in-person visit is your #1 weapon. 90% of placements come from pop-ins.</div>
+
+      <div class="quick-stats">
+        <div class="q-stat"><div class="q-val">8-10</div><div class="q-label">Touches to Close</div></div>
+        <div class="q-stat"><div class="q-val">Tues-Thu</div><div class="q-label">Best Days</div></div>
+        <div class="q-stat"><div class="q-val">10-11am</div><div class="q-label">Best Time</div></div>
+        <div class="q-stat"><div class="q-val">90%</div><div class="q-label">Close Rate vs Cold Call</div></div>
+      </div>
+
+      <div class="card open">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">👔</span>
+            <span class="card-head-title">What to Wear</span>
+          </div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <ul>
+            <li><strong>Branded polo or button-down</strong> — clean, professional, approachable</li>
+            <li><strong>Khakis or clean dark jeans</strong> — not suits (too salesy), not sweats</li>
+            <li><strong>Clean shoes</strong> — people notice</li>
+            <li><strong>No sunglasses on head</strong> during conversations</li>
+            <li><strong>Name badge</strong> if you have one — adds legitimacy</li>
+          </ul>
+          <div class="tip">💡 You're going for "local business owner" not "corporate salesperson" or "delivery guy"</div>
+        </div>
+      </div>
+
+      <div class="card open">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🎒</span>
+            <span class="card-head-title">What to Bring</span>
+          </div>
+          <span class="card-head-badge badge-green">ESSENTIALS</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <ul>
+            <li>🎁 <strong>Gift basket</strong> — THE most important item (see Gift Basket tab)</li>
+            <li>📇 <strong>Business cards</strong> — leave 2-3 at every stop</li>
+            <li>📄 <strong>One-pager / leave-behind</strong> — case study or overview</li>
+            <li>📋 <strong>Referral cards</strong> — "Know a building? Earn $50-$250"</li>
+            <li>📱 <strong>Phone loaded with</strong> — photos of installed machines, case study data</li>
+            <li>🖊️ <strong>Pen</strong> — for jotting down contact info on the spot</li>
+          </ul>
+          <div class="warning">⚠️ Do NOT bring a brochure as your only leave-behind. Gift baskets with real products beat paper every time.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🎯</span>
+            <span class="card-head-title">Who to Ask For</span>
+          </div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <table>
+            <tr><th>Property Type</th><th>Ask For</th></tr>
+            <tr><td>Apartments</td><td>Property Manager or Community Manager</td></tr>
+            <tr><td>Office Building</td><td>Office Manager or Facility Manager</td></tr>
+            <tr><td>Warehouse</td><td>Facility Manager or Operations Manager</td></tr>
+            <tr><td>Healthcare</td><td>Practice Administrator or Office Manager</td></tr>
+            <tr><td>Senior Living</td><td>Executive Director or Activities Director</td></tr>
+            <tr><td>Rec Center / YMCA</td><td>Facility Director or General Manager</td></tr>
+            <tr><td>Hotel</td><td>General Manager or Operations Manager</td></tr>
+          </table>
+          <div class="tip">💡 If the DM isn't available: <strong>get their name, direct line, and best time to call back.</strong> Leave a gift basket with your card. "I'll stop by again — just wanted to drop this off for the team."</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">⏰</span>
+            <span class="card-head-title">Best Time of Day</span>
+          </div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <table>
+            <tr><th>Time</th><th>Rating</th><th>Why</th></tr>
+            <tr><td><strong>10:00-11:00 AM</strong></td><td>⭐⭐⭐⭐⭐</td><td>Morning tasks done, before lunch rush. DMs are settled in.</td></tr>
+            <tr><td>9:00-10:00 AM</td><td>⭐⭐⭐⭐</td><td>Good but some are still in meetings.</td></tr>
+            <tr><td>1:30-3:00 PM</td><td>⭐⭐⭐</td><td>After lunch, but afternoon fatigue sets in.</td></tr>
+            <tr><td>8:00-9:00 AM</td><td>⭐⭐</td><td>Too early — they're putting out fires.</td></tr>
+            <tr><td>4:00-5:00 PM</td><td>⭐</td><td>They're wrapping up and want to leave.</td></tr>
+          </table>
+          <div class="tip">💡 <strong>Best days:</strong> Tuesday, Wednesday, Thursday. Mondays are chaotic. Fridays people check out early.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🔄</span>
+            <span class="card-head-title">Follow-Up Cadence (8-10 Touches)</span>
+          </div>
+          <span class="card-head-badge badge-amber">KEY</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <div class="warning">⚠️ Most operators give up after 1-2 contacts. <strong>It takes 8-10 touches to close a deal.</strong> Don't quit early.</div>
+          <table>
+            <tr><th>Touch</th><th>When</th><th>What</th></tr>
+            <tr><td><strong>1</strong></td><td>Day 1</td><td>🚪 Pop-in visit + gift basket. Don't pitch hard. Introduce yourself.</td></tr>
+            <tr><td><strong>2</strong></td><td>Day 3</td><td>📧 Follow-up email: "Great meeting you. Here's our overview."</td></tr>
+            <tr><td><strong>3</strong></td><td>Week 1</td><td>📞 Quick call: "Just checking if you had any questions."</td></tr>
+            <tr><td><strong>4</strong></td><td>Week 2</td><td>🚪 Second pop-in. Bring a different product to sample.</td></tr>
+            <tr><td><strong>5</strong></td><td>Week 3</td><td>📧 Send case study: "Here's what happened at a similar property."</td></tr>
+            <tr><td><strong>6</strong></td><td>Week 4</td><td>📞 Call: "Wanted to share some data. Are you open to a quick walkthrough?"</td></tr>
+            <tr><td><strong>7</strong></td><td>Week 6</td><td>🚪 Third pop-in. Drop off something seasonal or new products.</td></tr>
+            <tr><td><strong>8</strong></td><td>Week 8</td><td>📧 Email with testimonial from a similar property type.</td></tr>
+            <tr><td><strong>9</strong></td><td>Week 10</td><td>📞 "I have a spot opening in our route next month. Want me to pencil you in?"</td></tr>
+            <tr><td><strong>10</strong></td><td>Week 12</td><td>🚪 Final pop-in: "Just wanted to check in. The offer's always open."</td></tr>
+          </table>
+          <div class="tip">💡 <strong>Pro tip:</strong> Vary your touch methods. Don't just call 10 times. Mix pop-ins, emails, calls, and product drops.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">📜</span>
+            <span class="card-head-title">The First Visit Script</span>
+          </div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <h4>Step 1: Walk in confident, gift basket in hand</h4>
+          <div class="script">"Hi! I'm Kurtis with Kande VendTech — we're a local smart market company here in Henderson. I was in the area and wanted to introduce myself and drop this off for the team."</div>
+          <p><em>[Hand over gift basket. Let them react.]</em></p>
+
+          <h4>Step 2: Light discovery (NOT a pitch)</h4>
+          <div class="script">"Do you currently have any refreshment options for your [residents/employees/visitors]? … Oh interesting. How's that working for you?"</div>
+
+          <h4>Step 3: Soft plant the seed</h4>
+          <div class="script">"We install AI-powered smart markets — completely free for the property. Premium drinks, snacks, everything cashless. I just wanted to introduce myself today, not take up your time. My card is in the basket. Would it be okay if I popped back by next week?"</div>
+
+          <h4>Step 4: Leave</h4>
+          <p>Yes, <strong>leave</strong>. Don't overstay. The gift basket does the selling while you're gone. The team will enjoy the products and talk about it. That builds goodwill for your next visit.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== PROPERTY TYPE GUIDES ========== -->
+    <div class="section" id="sec-properties" data-section="properties">
+      <div class="section-title">🏢 Property Type Guides</div>
+      <div class="section-subtitle">Tailored strategies for each property type</div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🏠</span>
+            <span class="card-head-title">Apartment Communities</span>
+          </div>
+          <span class="card-head-badge badge-green">TIER 1</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <div class="quick-stats">
+            <div class="q-stat"><div class="q-val">200+</div><div class="q-label">Min Units</div></div>
+            <div class="q-stat"><div class="q-val">PM</div><div class="q-label">Decision Maker</div></div>
+          </div>
+          <h4>Talking Points:</h4>
+          <ul>
+            <li>Free amenity that differentiates your property</li>
+            <li>"Smart market in the lobby" is a listing feature</li>
+            <li>Residents don't have to leave the building for basics</li>
+            <li>24/7 access — late night snacks and drinks</li>
+            <li>Zero cost, zero hassle — just a power outlet</li>
+          </ul>
+          <h4>Deal Structure:</h4>
+          <ul>
+            <li>No commission / rev share typical for apartments</li>
+            <li>If they want rev share: 3-5% starting month 6</li>
+            <li>3-5 year exclusive agreement</li>
+            <li>Placement: Lobby, clubhouse, pool area, gym</li>
+          </ul>
+          <h4>Expansion Path:</h4>
+          <p>1 machine in lobby → 2nd in fitness/pool → Referral to same mgmt company → Portfolio-wide deal</p>
+          <div class="tip">💡 <strong>Greystar properties require NetVendor certification.</strong> Apply at netvendor.com before approaching Greystar-managed buildings.</div>
+          <div class="tip">💡 Property managers get 10+ calls/month for smart markets — <strong>demand is HIGH.</strong> Be proposal-ready.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🏢</span>
+            <span class="card-head-title">Office Buildings</span>
+          </div>
+          <span class="card-head-badge badge-green">TIER 2</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <div class="quick-stats">
+            <div class="q-stat"><div class="q-val">50+</div><div class="q-label">Min Employees</div></div>
+            <div class="q-stat"><div class="q-val">FM/OM</div><div class="q-label">Decision Maker</div></div>
+          </div>
+          <h4>Talking Points:</h4>
+          <ul>
+            <li>Employee perk — keeps people in the building</li>
+            <li>Return-to-office incentive — "make the office worth coming to"</li>
+            <li>Reduces 15-20 minute convenience store runs</li>
+            <li>Modern, cashless — fits corporate environment</li>
+            <li>"85%+ of purchases are contactless — Apple Pay, card tap"</li>
+          </ul>
+          <h4>Deal Structure:</h4>
+          <ul>
+            <li>Commission: 5-10% of gross for high-traffic buildings</li>
+            <li>Alternatively: free amenity with no commission</li>
+            <li>Pilot program: 90 days, 2 machines, zero risk</li>
+          </ul>
+          <h4>What They Care About:</h4>
+          <p>Employee adoption rate, peak lunch-hour volume, product variety, machine aesthetics</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🏥</span>
+            <span class="card-head-title">Healthcare Facilities</span>
+          </div>
+          <span class="card-head-badge badge-green">TIER 1</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <div class="quick-stats">
+            <div class="q-stat"><div class="q-val">24/7</div><div class="q-label">Operations</div></div>
+            <div class="q-stat"><div class="q-val">Admin</div><div class="q-label">Decision Maker</div></div>
+          </div>
+          <h4>Talking Points:</h4>
+          <ul>
+            <li>Staff working long shifts NEED convenient food access</li>
+            <li>Waiting patients/families are hungry and have time</li>
+            <li>Hospital ERs = 24/7 traffic, zero competition</li>
+            <li>Healthy options for health-conscious environment</li>
+            <li>Touchless/cashless = hygiene-friendly</li>
+          </ul>
+          <h4>Deal Structure:</h4>
+          <ul>
+            <li>Free placement — position as staff satisfaction benefit</li>
+            <li>Low or no commission typical</li>
+            <li>Product mix: heavier on healthy, water, energy drinks</li>
+          </ul>
+          <div class="warning">⚠️ Do NOT target small medical offices with low traffic. Focus on hospitals, large clinics, and multi-doctor practices.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🏭</span>
+            <span class="card-head-title">Warehouses & Distribution Centers</span>
+          </div>
+          <span class="card-head-badge badge-green">TIER 1</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <div class="quick-stats">
+            <div class="q-stat"><div class="q-val">150+</div><div class="q-label">Min Employees</div></div>
+            <div class="q-stat"><div class="q-val">24/7</div><div class="q-label">Multi-Shift</div></div>
+          </div>
+          <h4>Talking Points:</h4>
+          <ul>
+            <li>Workers are <strong>isolated</strong> — no food options nearby</li>
+            <li>Multi-shift = revenue 24/7 (not just 9-5)</li>
+            <li>Blue-collar crews buy VOLUME — energy drinks, water, big snacks</li>
+            <li>Reduce employees leaving the facility for food runs</li>
+            <li>Recession-resistant — warehouses operate in all markets</li>
+          </ul>
+          <h4>Deal Structure:</h4>
+          <ul>
+            <li>Free placement — usually zero commission</li>
+            <li>Position near break area AND loading dock</li>
+            <li>Product mix: heavy on energy drinks, water, protein, big chips</li>
+          </ul>
+          <h4>The Prologis Play:</h4>
+          <p>Prologis owns 4,700+ buildings globally. Land one warehouse → build case study → approach regional facilities management → portfolio deal. One relationship opens hundreds of doors.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">👴</span>
+            <span class="card-head-title">Senior Living</span>
+          </div>
+          <span class="card-head-badge badge-purple">NICHE</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <h4>Talking Points:</h4>
+          <ul>
+            <li>Extremely underserved market — few competitors target this</li>
+            <li>Residents have limited mobility — convenience matters more</li>
+            <li>Family visitors also use the machine</li>
+            <li>Staff are a secondary audience</li>
+            <li>Touchscreen with large, clear product images</li>
+          </ul>
+          <h4>Product Mix:</h4>
+          <ul>
+            <li>Water, juices, light snacks</li>
+            <li>Incidentals: aspirin, reading glasses, tissues</li>
+            <li>Diabetic-friendly options</li>
+            <li>Familiar brands (comfort picks)</li>
+          </ul>
+          <h4>Decision Maker:</h4>
+          <p>Executive Director or Activities Director. Frame as a resident quality-of-life improvement.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🏟️</span>
+            <span class="card-head-title">Rec Centers & YMCAs</span>
+          </div>
+          <span class="card-head-badge badge-green">TIER 1</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <h4>Why Tier 1:</h4>
+          <ul>
+            <li>Tournaments = captive parents/kids for 2-4+ hours</li>
+            <li>HIGH impulse buying — "never seen an unprofitable school or rec center"</li>
+            <li>Weekend traffic is massive</li>
+            <li>Youth sports parents will buy anything for their kids</li>
+          </ul>
+          <h4>Product Mix:</h4>
+          <ul>
+            <li>Sports drinks (Gatorade, Bodyarmor)</li>
+            <li>Water (premium brands)</li>
+            <li>Energy bars, protein snacks</li>
+            <li>Candy and chips for kids</li>
+            <li>Average transaction: $3.50+ (sports drink + snack)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== COMPETITOR INTEL ========== -->
+    <div class="section" id="sec-competitors" data-section="competitors">
+      <div class="section-title">⚔️ Competitor Intel</div>
+      <div class="section-subtitle">Quick reference cards — their weaknesses and how we win</div>
+
+      <div class="card comp-card weak">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">💀</span>
+            <span class="card-head-title">SkyTop / Canteen (Compass Group)</span>
+          </div>
+          <span class="card-head-badge badge-red">3.3★ — WEAK</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <div class="tip">This is your PRIMARY replacement target. Skool community confirms Canteen replacement is a proven nationwide strategy.</div>
+          <table>
+            <tr><th>Their Weakness</th><th>Our Advantage</th></tr>
+            <tr><td>Voicemails unreturned 10+ days</td><td>"When you call us, the owner answers."</td></tr>
+            <tr><td>Phantom credit card charges ($3.50 for $1.50 Coke)</td><td>Touchscreen shows exact price before purchase</td></tr>
+            <tr><td>Machines empty for weeks</td><td>Real-time monitoring — we know before you do</td></tr>
+            <tr><td>Won't customize products</td><td>"Tell us what you want. We'll stock it."</td></tr>
+            <tr><td>Corporate call center</td><td>One phone number. Local owner. Henderson, NV.</td></tr>
+            <tr><td>Legacy equipment, card readers taped on</td><td>AI smart cooler, touchscreen, NFC, Apple Pay</td></tr>
+            <tr><td>Facebook: 6 likes</td><td>Growing local social presence</td></tr>
+          </table>
+          <div class="script">Killer line: "Google 'First Class Vending reviews' right now. That's who you'd be choosing instead of us."</div>
+        </div>
+      </div>
+
+      <div class="card comp-card weak">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">📉</span>
+            <span class="card-head-title">First Class Nevada</span>
+          </div>
+          <span class="card-head-badge badge-red">3.3★ — EASY TARGET</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <p><strong>Same entity as SkyTop/Canteen.</strong> Operates under 3 different names (First Class Vending, Las Vegas Vending Service, SkyTop Vending).</p>
+          <h4>Kill Shot:</h4>
+          <ul>
+            <li>3.3★ Google rating with only 40 reviews</li>
+            <li>Generic website — no local personality</li>
+            <li>No community involvement</li>
+            <li>No social media presence</li>
+          </ul>
+          <div class="script">"Their customers are actively looking for alternatives. If a prospect mentions First Class — lean in. They're pre-sold on switching."</div>
+        </div>
+      </div>
+
+      <div class="card comp-card weak">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🦕</span>
+            <span class="card-head-title">R&R Vending (Henderson)</span>
+          </div>
+          <span class="card-head-badge badge-red">~3.0★ — REPLACE</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <p><strong>Direct Henderson competitor that's begging to be replaced.</strong></p>
+          <table>
+            <tr><th>Their Weakness</th><th>Our Advantage</th></tr>
+            <tr><td>Only 8 Google reviews</td><td>Growing review count</td></tr>
+            <tr><td>"Worst customer service I have EVER received"</td><td>Local, responsive, same-day service</td></tr>
+            <tr><td>"Too busy to be bothered"</td><td>We prioritize every client</td></tr>
+            <tr><td>No cashless payment</td><td>Apple Pay, card tap, NFC standard</td></tr>
+            <tr><td>No AI, no smart anything</td><td>SandStar AI Smart Cooler</td></tr>
+            <tr><td>Typo on their website ("Give As A Call")</td><td>Professional digital presence</td></tr>
+          </table>
+          <div class="script">"We're also Henderson-based, but with modern equipment and 24/7 support."</div>
+        </div>
+      </div>
+
+      <div class="card comp-card strong">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">⚠️</span>
+            <span class="card-head-title">Royal ReFresh</span>
+          </div>
+          <span class="card-head-badge badge-amber">4.9★ — STRONG</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <p><strong>254 reviews, 4.9★</strong> — highest review count in Vegas. Micro-market specialist.</p>
+          <h4>Their Strengths:</h4>
+          <ul>
+            <li>Massive social proof (254 reviews)</li>
+            <li>Fresh food/sandwiches (not just snacks)</li>
+            <li>Coolbreakrooms network membership</li>
+            <li>Henderson Chamber member</li>
+          </ul>
+          <h4>How We Beat Them:</h4>
+          <ul>
+            <li>They're from Portland, OR — expanded to LV. <strong>We're Henderson-born.</strong></li>
+            <li>Portland phone number (503) still prominent</li>
+            <li>No AI smart cooler — traditional micro-market model</li>
+            <li>Focused on corporate break rooms — we target apartments + everything</li>
+            <li>Instagram bio says "Portland break room specialist"</li>
+          </ul>
+          <div class="script">"Born and raised in Henderson beats expanded from Portland."</div>
+        </div>
+      </div>
+
+      <div class="card comp-card danger">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🔴</span>
+            <span class="card-head-title">Skala Industries (Henderson)</span>
+          </div>
+          <span class="card-head-badge badge-red">5.0★ — DANGER</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <p><strong>5.0 perfect score, 126 reviews.</strong> Henderson-based. Direct competitor.</p>
+          <h4>Their Strengths:</h4>
+          <ul>
+            <li>Perfect 5.0 rating</li>
+            <li>"Top Luxury Small Business Leaders of 2025"</li>
+            <li>"Elite workplaces & residential communities"</li>
+            <li>Henderson address (170 S Green Valley Pkwy)</li>
+          </ul>
+          <h4>How We Differentiate:</h4>
+          <ul>
+            <li>They focus on luxury/elite — <strong>we serve the other 85%</strong></li>
+            <li>AI smart cooler technology (they use standard micro-markets)</li>
+            <li>More personal service — owner-operated</li>
+            <li>126 reviews with perfect 5.0 may suggest review management</li>
+            <li>Their website is minimal — light on content</li>
+          </ul>
+          <div class="tip">💡 Don't compete head-to-head for luxury. Let Skala have luxury apartments. We take warehouses, offices, healthcare, rec centers — everything else.</div>
+        </div>
+      </div>
+
+      <div class="card comp-card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🌐</span>
+            <span class="card-head-title">Vending Exchange</span>
+          </div>
+          <span class="card-head-badge badge-blue">LEAD BROKER</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <p><strong>Not a real operator — they're a lead marketplace.</strong> HQ in Naples, FL.</p>
+          <h4>Key Intel:</h4>
+          <ul>
+            <li>Incredible SEO — dominates Google for "Las Vegas vending"</li>
+            <li>4.9★ (171 reviews) — but reviews are from businesses, not operators</li>
+            <li>Multiple aliases: Robert Patterson Inc → Kickstart Locations → Vending Exchange</li>
+            <li>Reddit "BUYER BEWARE" post — sells leads up to $10,000</li>
+            <li>NOT BBB accredited</li>
+          </ul>
+          <div class="script">"We don't use a middleman. We install, stock, and service your machines ourselves. You get one phone number — mine."</div>
+        </div>
+      </div>
+
+      <div class="card comp-card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">📊</span>
+            <span class="card-head-title">Avendco Vending</span>
+          </div>
+          <span class="card-head-badge badge-amber">3.7★ — STAGNANT</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <p><strong>30+ years in Las Vegas</strong> but only 15 reviews at 3.7★. Stagnant.</p>
+          <ul>
+            <li>Basic single-page website</li>
+            <li>No modern equipment</li>
+            <li>No social media</li>
+            <li>Easy to outpace with modern approach</li>
+          </ul>
+          <div class="tip">💡 30 years and only 15 reviews = complacent. Their customers are ripe for upgrade.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== PRICING & TERMS ========== -->
+    <div class="section" id="sec-pricing" data-section="pricing">
+      <div class="section-title">💲 Pricing & Terms</div>
+      <div class="section-subtitle">Revenue share ranges, product pricing, and negotiation tactics</div>
+
+      <div class="quick-stats">
+        <div class="q-stat"><div class="q-val">3-5%</div><div class="q-label">Standard Rev Share</div></div>
+        <div class="q-stat"><div class="q-val">$3.00</div><div class="q-label">Avg Item Price</div></div>
+        <div class="q-stat"><div class="q-val">33%</div><div class="q-label">Target COGS</div></div>
+        <div class="q-stat"><div class="q-val">$2K+</div><div class="q-label">Min Monthly Revenue</div></div>
+      </div>
+
+      <div class="card open">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">💰</span>
+            <span class="card-head-title">Revenue Share Strategy</span>
+          </div>
+          <span class="card-head-badge badge-green">CORE</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <table>
+            <tr><th>Scenario</th><th>Rev Share</th><th>Notes</th></tr>
+            <tr><td>Standard locations</td><td><strong>3-5% of gross</strong></td><td>Start month 6, not immediately</td></tr>
+            <tr><td>Apartments (most)</td><td><strong>0%</strong></td><td>Position as free amenity — no commission needed</td></tr>
+            <tr><td>Premium / high-traffic</td><td><strong>5-10%</strong></td><td>Negotiate individually</td></tr>
+            <tr><td>Multi-location deal (4-10)</td><td><strong>10-12%</strong></td><td>In exchange for 2-year term + exclusivity</td></tr>
+            <tr><td>Enterprise deal (10-20)</td><td><strong>12-15%</strong></td><td>3-year term + right of first refusal</td></tr>
+            <tr><td>Referral locations</td><td><strong>Immediate start</strong></td><td>"Introduce me to 3 buildings, rev share starts Day 1"</td></tr>
+          </table>
+          <div class="tip">💡 <strong>Delay rev share start by 6 months</strong> to cover equipment costs. Frame it as: "We invest heavily in the first 6 months to get everything perfect for you."</div>
+          <div class="tip">💡 <strong>Alternative to rev share:</strong> Free employee/resident snacks instead of cash commission. Some properties prefer this.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🏷️</span>
+            <span class="card-head-title">Product Pricing Guide</span>
+          </div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <table>
+            <tr><th>Product</th><th>Price</th><th>Markup</th></tr>
+            <tr><td>Sodas (20oz)</td><td>$2.50-$3.00</td><td>3-4x</td></tr>
+            <tr><td>Energy drinks</td><td>$3.00-$4.00</td><td>2-3x</td></tr>
+            <tr><td>Water</td><td>$1.75-$2.00</td><td>4-6x</td></tr>
+            <tr><td>Candy bars</td><td>$2.00-$2.50</td><td>3x</td></tr>
+            <tr><td>Chips</td><td>$2.00-$2.50</td><td>3x</td></tr>
+            <tr><td>Healthy snacks</td><td>$3.00-$3.50</td><td>2-3x</td></tr>
+            <tr><td>Incidentals (Tylenol, chargers)</td><td>$3.00-$10.00</td><td>4-6x</td></tr>
+          </table>
+          <h4>Pricing Rules:</h4>
+          <ul>
+            <li><strong>3x markup minimum</strong> — never go below this</li>
+            <li><strong>Target COGS: 33%</strong> of revenue</li>
+            <li><strong>Las Vegas premium</strong> — $0.25-$0.50 above national average is expected</li>
+            <li><strong>60% beverages, 30% snacks, 10% incidentals</strong> — optimal product mix</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🤝</span>
+            <span class="card-head-title">Negotiation Tactics</span>
+          </div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <h4>When They Ask for Higher Commission:</h4>
+          <div class="script">"I understand you'd like a higher share. Here's how we typically structure it: we start at [X]% and bump it up after the first 6 months based on performance. That way you get a better rate as we prove the value. Plus, if you refer other properties, your rate goes up even faster."</div>
+
+          <h4>When They Want Zero-Cost AND High Commission:</h4>
+          <div class="script">"We provide the machine, all products, maintenance, and insurance at zero cost. That's a $4,000+ investment from us. We're happy to share revenue — and 3-5% is the standard for our industry. Think of it this way: we're paying to be in your building."</div>
+
+          <h4>Key Tactics:</h4>
+          <ul>
+            <li><strong>Never compete on commission</strong> — lead with service and quality</li>
+            <li><strong>Anchor low</strong> — start at 3%, negotiate up if needed</li>
+            <li><strong>Trade commission for exclusivity</strong> — "5% if we're your only vendor with a 3-year term"</li>
+            <li><strong>Use referral leverage:</strong> "Refer 3 buildings → your rev share bumps immediately"</li>
+            <li><strong>Pilot as a closer:</strong> "Let's do 90 days, no commitment. If you love it, we formalize."</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">📊</span>
+            <span class="card-head-title">Financial Benchmarks</span>
+          </div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <table>
+            <tr><th>Metric</th><th>Target</th></tr>
+            <tr><td>Revenue per machine/month</td><td>$1,200-$2,000+</td></tr>
+            <tr><td>Good location minimum</td><td>$2,000/month</td></tr>
+            <tr><td>Pull threshold</td><td>&lt;$800/month → move it</td></tr>
+            <tr><td>Break-even per machine</td><td>2-5 months</td></tr>
+            <tr><td>Machine cost (SandStar)</td><td>$3,600</td></tr>
+            <tr><td>Route exit value</td><td>2-4x yearly gross</td></tr>
+            <tr><td>Spoilage budget</td><td>2% of COGS</td></tr>
+          </table>
+          <div class="warning">⚠️ <strong>If a location does &lt;$1,500/month after 90 days → PULL the machine.</strong> Don't let pride keep a bad machine placed. Redeploy it somewhere better.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== OBJECTION HANDLING ========== -->
+    <div class="section" id="sec-objections" data-section="objections">
+      <div class="section-title">🛡️ Objection Handling</div>
+      <div class="section-subtitle">Proven responses from the Skool community and field experience</div>
+
+      <div class="card open">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🆕</span>
+            <span class="card-head-title">"You're too new"</span>
+          </div>
+          <span class="card-head-badge badge-red">#1 OBJECTION</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <div class="script">"We launched recently, and I'll be honest — we're building our portfolio. That's actually an advantage for you. We're actively selecting our founding locations. Every machine gets VIP attention. I'm not managing 500 machines across three states. Your machine will never sit empty. I'll never take 10 days to return your call. Can the big companies say that?"</div>
+          <p style="margin-top:8px">Then pivot:</p>
+          <div class="script">"The largest operator in Vegas has a 3.3-star Google rating. Machines empty for weeks. Phantom charges. Unreturned calls. We exist because they created an opportunity. And yes, we're new — but our technology is new too. This isn't a 20-year-old machine with a card reader taped on."</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🔄</span>
+            <span class="card-head-title">"We already have a vendor"</span>
+          </div>
+          <span class="card-head-badge badge-green">LUCRATIVE</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <div class="tip">💡 This is your MOST LUCRATIVE objection. Properties with bad vendors are your best prospects.</div>
+          <div class="script">"That's great — who are you working with?"</div>
+          <p><em>[Let them answer, then ask:]</em></p>
+          <div class="script">"How's the service been? Are your machines consistently stocked? Is the product selection what you'd want?"</div>
+          <p><em>[If they express ANY frustration:]</em></p>
+          <div class="script">"That's exactly why we started Kande VendTech. When you call, you get me — not a call center. Our machines are AI-powered with touchscreens and real-time monitoring. I know when a machine needs restocking before you do. Would you be open to a side-by-side comparison? I'll place a machine next to your existing one for 60 days."</div>
+          <div class="tip">💡 <strong>The side-by-side play is devastating.</strong> Your SandStar AI cooler next to their 15-year-old machine is a visual argument that closes itself.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🚫</span>
+            <span class="card-head-title">"We don't need vending"</span>
+          </div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <div class="script">"I totally understand — it's not something most people actively think about. But let me ask: where do your employees/residents go when they want a drink or snack during the day?"</div>
+          <p><em>[They'll say gas station, bring food, etc.]</em></p>
+          <div class="script">"So they're leaving the building and spending 15-20 minutes on a run that could take 30 seconds with a machine in the break room. This is a free amenity — zero cost to you. All you provide is a power outlet. Would it be worth a 5-minute walkthrough to see if there's a good spot?"</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🤔</span>
+            <span class="card-head-title">"Let me think about it"</span>
+          </div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <div class="script">"Absolutely — I'll email you our overview and a couple of case studies today. To make sure I send the right info, can I ask: what's your biggest concern about having a machine here? I want to address that directly."</div>
+          <div class="tip">💡 <strong>Follow up in 3 business days.</strong> Not 1 day (too eager). Not 1 week (too forgotten). Three days.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">❓</span>
+            <span class="card-head-title">"What's the catch?"</span>
+          </div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <div class="script">"Fair question. Here's the model in plain English: We buy the machine. We stock it. We maintain it. We insure it. Your people buy products, we earn our money on the margin. That's it. You pay nothing. If you want a revenue share — we can do that too. But most properties keep it as a free amenity and skip the accounting."</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">👎</span>
+            <span class="card-head-title">"We've had bad experiences with vending"</span>
+          </div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <div class="script">"Honestly, I hear that more than I'd like. The industry has earned a bad reputation. Here's how we're different: our machines are AI-powered with real-time monitoring. I get an alert on my phone when a product is getting low — before it sells out. I service every machine on a consistent schedule. And if something goes wrong, you call one number — mine — and I'm here within hours. Don't take my word for it — here are three property managers you can call right now."</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">👥</span>
+            <span class="card-head-title">"We don't have enough people"</span>
+          </div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <div class="script">"Our machines are designed for as few as 30-50 daily visitors. The AI optimizes inventory based on actual purchase patterns — so even lower-volume locations stay stocked with exactly what sells. Would you be open to a 60-day trial? If it doesn't generate enough activity, we'll pull it at no cost."</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== BAD LOCATIONS ========== -->
+    <div class="section" id="sec-bad" data-section="bad">
+      <div class="section-title">🚫 Bad Locations — DO NOT PROSPECT</div>
+      <div class="section-subtitle">These locations consistently underperform. Don't waste your time.</div>
+
+      <div class="card bad-card open">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🏋️</span>
+            <span class="card-head-title">Gyms (esp. Bodybuilding)</span>
+          </div>
+          <span class="card-head-badge badge-red">NEVER</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <strong>Why:</strong> Wrong buyers. Count macros. Avoid impulse snacks. They bring their own pre-planned meals and protein shakes. Won't buy a $3 candy bar.
+        </div>
+      </div>
+
+      <div class="card bad-card open">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🚗</span>
+            <span class="card-head-title">Car Dealerships</span>
+          </div>
+          <span class="card-head-badge badge-red">NEVER</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <strong>Why:</strong> Staff eats out or brings food. Most already have free coffee in the lounge. Customer dwell time is unpredictable. Not enough consistent daily traffic for vending.
+        </div>
+      </div>
+
+      <div class="card bad-card open">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🏥</span>
+            <span class="card-head-title">Small Medical Offices</span>
+          </div>
+          <span class="card-head-badge badge-red">NEVER</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <strong>Why:</strong> People come and go fast. Low traffic. In-and-out appointments mean no dwell time. Staff is small (5-15 people). Not enough volume to justify a machine.
+          <div class="tip">💡 Large hospitals and multi-doctor clinics ARE good. Small offices are not.</div>
+        </div>
+      </div>
+
+      <div class="card bad-card open">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🏢</span>
+            <span class="card-head-title">Offices Under 50 Employees</span>
+          </div>
+          <span class="card-head-badge badge-red">NEVER</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <strong>Why:</strong> Not enough volume. Even if every employee buys something daily, that's $100-150/day MAX. Factor in that only 20-30% will buy on any given day, and you're looking at $30-50/day — well below our $2K/month minimum.
+        </div>
+      </div>
+
+      <div class="card bad-card open">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🎰</span>
+            <span class="card-head-title">The Las Vegas Strip</span>
+          </div>
+          <span class="card-head-badge badge-red">NEVER</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <strong>Why:</strong> One company (Canteen/SkyTop) has 98% monopoly on the Strip. Contracts are locked in for years. Even if you get in, the commission rates for Strip properties make it unprofitable. <strong>This is a mature market that's been dominated for 70+ years.</strong>
+          <div class="tip">💡 Focus on Henderson suburbs instead — less competition, growing population.</div>
+        </div>
+      </div>
+
+      <div class="card bad-card open">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🏬</span>
+            <span class="card-head-title">Strip Malls</span>
+          </div>
+          <span class="card-head-badge badge-red">AVOID</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <strong>Why:</strong> No common area. Each business is independent. No centralized foot traffic. Except for very specific high-traffic anchors (e.g., a busy laundromat), strip malls are a waste of time.
+        </div>
+      </div>
+
+      <div class="card bad-card open">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🛒</span>
+            <span class="card-head-title">Big Retail Chain Breakrooms</span>
+          </div>
+          <span class="card-head-badge badge-red">NEVER</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <strong>Why:</strong> Staff bring meals. Skeleton crews. Breakrooms are usually empty. Retail workers get discounts on food at the store itself. Shifts are short. Not enough captive time.
+        </div>
+      </div>
+
+      <div class="card bad-card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🏠</span>
+            <span class="card-head-title">High Remote-Work Locations</span>
+          </div>
+          <span class="card-head-badge badge-amber">VERIFY</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <strong>Why:</strong> Check vacancy rates first. An office with 200 desks but 50 people in the building is a 50-person office. Ask: "How many people are typically in the building on a given day?"
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== GIFT BASKETS ========== -->
+    <div class="section" id="sec-gifts" data-section="gifts">
+      <div class="section-title">🎁 Gift Basket Guide</div>
+      <div class="section-subtitle">Your #1 sales tool. Gift baskets beat brochures every time.</div>
+
+      <div class="quick-stats">
+        <div class="q-stat"><div class="q-val">$15-25</div><div class="q-label">Cost per Basket</div></div>
+        <div class="q-stat"><div class="q-val">1st Visit</div><div class="q-label">When to Deploy</div></div>
+      </div>
+
+      <div class="card open">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🛒</span>
+            <span class="card-head-title">Costco Shopping List</span>
+          </div>
+          <span class="card-head-badge badge-green">CORE</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <h4>The Standard Gift Basket (~$15-20 each):</h4>
+          <ul>
+            <li>🧃 <strong>Variety pack drinks</strong> — Smart Water, Gatorade, Celsius</li>
+            <li>🍫 <strong>Snack variety</strong> — KIND bars, Clif bars, trail mix packs</li>
+            <li>🍬 <strong>Candy</strong> — individually wrapped chocolates, M&Ms</li>
+            <li>🥜 <strong>Salty snacks</strong> — mixed nuts, chips variety</li>
+            <li>🧺 <strong>Nice basket or bag</strong> — clear cellophane bag or small wicker basket</li>
+            <li>🎀 <strong>Ribbon</strong> — looks polished, takes 10 seconds</li>
+          </ul>
+          <h4>Also include in EVERY basket:</h4>
+          <ul>
+            <li>📇 <strong>2-3 business cards</strong></li>
+            <li>📋 <strong>Referral card</strong> — "Know a building? Earn $50-$250"</li>
+            <li>📄 <strong>One-page overview</strong> or case study</li>
+          </ul>
+          <div class="tip">💡 These should be products you would actually stock in your machine. The basket is a sample of what their building would get.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🎯</span>
+            <span class="card-head-title">When to Deploy Gift Baskets</span>
+          </div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <table>
+            <tr><th>Occasion</th><th>Basket Type</th></tr>
+            <tr><td><strong>First pop-in visit</strong></td><td>Standard basket (always!)</td></tr>
+            <tr><td>Follow-up visit (they weren't in)</td><td>Smaller "thinking of you" basket</td></tr>
+            <tr><td>After contract signed</td><td>Premium thank-you basket</td></tr>
+            <tr><td>Holidays (Thanksgiving, Christmas)</td><td>Seasonal themed basket</td></tr>
+            <tr><td>After referral</td><td>Thank-you basket for the referrer</td></tr>
+            <tr><td>Re-engagement (cold lead)</td><td>"We're still here" basket</td></tr>
+          </table>
+          <div class="warning">⚠️ <strong>Never show up to a first visit without a gift basket.</strong> It's the difference between "another salesperson" and "that thoughtful vendor who brought us snacks."</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">💡</span>
+            <span class="card-head-title">Assembly Tips</span>
+          </div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <ul>
+            <li><strong>Batch prep on Sunday</strong> — make 5-10 baskets at once</li>
+            <li><strong>Keep extras in your car</strong> — for spontaneous drive-by pop-ins</li>
+            <li><strong>Use clear bags</strong> — people can see what's inside (enticing)</li>
+            <li><strong>Branded sticker or tag</strong> — "Compliments of Kande VendTech" if available</li>
+            <li><strong>Include a mix</strong> — sweet, salty, healthy, drinks. Something for everyone.</li>
+            <li><strong>Cost per basket: $15-25</strong>. This is your cheapest, most effective marketing.</li>
+          </ul>
+          <div class="tip">💡 The basket stays in the break room or front desk for DAYS. Your card and brochure sit there too. It's passive advertising that people actually appreciate.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== REFERRAL PROGRAM ========== -->
+    <div class="section" id="sec-referrals" data-section="referrals">
+      <div class="section-title">🤝 Referral Program</div>
+      <div class="section-subtitle">"Smart Market Ambassador Program" — turn every contact into a lead gen engine</div>
+
+      <div class="quick-stats">
+        <div class="q-stat"><div class="q-val">$50-250</div><div class="q-label">Per Referral</div></div>
+        <div class="q-stat"><div class="q-val">4 Tiers</div><div class="q-label">Referrer Types</div></div>
+      </div>
+
+      <div class="card open">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🏆</span>
+            <span class="card-head-title">Tier 1: Property Managers</span>
+          </div>
+          <span class="card-head-badge badge-green">$250/placement</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <ul>
+            <li><strong>$250 cash</strong> per successful placement (paid after 30 days live)</li>
+            <li><strong>Rev share bump:</strong> 5% → 6% after 2 referrals</li>
+            <li><strong>VIP status at 3+ referrals:</strong> 7% rev share + priority service</li>
+          </ul>
+          <div class="script">The ask: "Introduce me to 3 other buildings, I'll start your rev share immediately."</div>
+          <div class="tip">💡 One good PM can unlock 5-10 buildings. The rev share bump (1-2%) costs little but locks out competitors.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🏢</span>
+            <span class="card-head-title">Tier 2: Business Owners/Operators</span>
+          </div>
+          <span class="card-head-badge badge-blue">$200-250/placement</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <ul>
+            <li><strong>$200 cash OR $250 gift card</strong> (their choice)</li>
+            <li><strong>$50 bonus</strong> if referred location hits $2K+/month in 90 days</li>
+            <li><strong>$100 annual loyalty bonus</strong> if location still active after 12 months</li>
+          </ul>
+          <div class="tip">💡 Gift card option for those who can't accept cash from vendors (corporate policy).</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">👤</span>
+            <span class="card-head-title">Tier 3: Residents/Employees</span>
+          </div>
+          <span class="card-head-badge badge-blue">$50/placement</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <ul>
+            <li><strong>$50 cash</strong> if their suggestion becomes a placement</li>
+            <li><strong>$25 free product credit</strong> just for submitting a qualified lead</li>
+            <li><strong>QR code on every machine:</strong> "Know a building? Scan → Earn $50"</li>
+          </ul>
+          <div class="tip">💡 Residents and employees are your ground truth. They know which buildings have nothing. The $25 credit encourages lead volume.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🔧</span>
+            <span class="card-head-title">Tier 4: Vendor Partners</span>
+          </div>
+          <span class="card-head-badge badge-purple">$200 + reciprocal</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <p><strong>Who:</strong> Janitorial, maintenance, landscaping, security, office supply companies — people already inside our target buildings.</p>
+          <ul>
+            <li><strong>$200 cash</strong> per successful placement</li>
+            <li><strong>Reciprocal referrals</strong> — we refer them to our locations</li>
+            <li><strong>Annual partner dinner</strong> for top 3 referrers</li>
+            <li><strong>Co-branded gift baskets</strong> — their cards in our baskets</li>
+          </ul>
+          <div class="tip">💡 A janitorial company servicing 40 office buildings is gold. They see empty breakrooms and hear complaints daily.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">📝</span>
+            <span class="card-head-title">How to Ask for Referrals</span>
+          </div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <h4>After 30 days of smooth operation:</h4>
+          <div class="script">"Hey [Name], I wanted to check in. How's everything going with the machine? … That's great to hear. I have a favor to ask. We're expanding in the Henderson area, and your recommendation would mean a lot. Do you know any other property managers or facility managers who might be interested?"</div>
+          <h4>Key Tips:</h4>
+          <ul>
+            <li><strong>Ask for specific introductions</strong>, not "do you know anyone"</li>
+            <li>Try: "Do you know the manager at [specific nearby property]?"</li>
+            <li>Ask during in-person restocking visits, not via email</li>
+            <li><strong>Never ask before Day 30</strong> — earn it first</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== CLOSING CHECKLIST ========== -->
+    <div class="section" id="sec-closing" data-section="closing">
+      <div class="section-title">✅ Closing Checklist</div>
+      <div class="section-subtitle">From verbal yes to signed contract — don't miss a step</div>
+
+      <div class="card open">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">📋</span>
+            <span class="card-head-title">Step-by-Step Closing Process</span>
+          </div>
+          <span class="card-head-badge badge-green">FULL PROCESS</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <table>
+            <tr><th>#</th><th>Step</th><th>Details</th></tr>
+            <tr><td><strong>1</strong></td><td>Verbal Agreement</td><td>Confirm interest, proposed placement spot, and general terms verbally</td></tr>
+            <tr><td><strong>2</strong></td><td>Site Survey</td><td>Walk the space together. Identify exact placement spot. Check for power outlet. Measure space. Take photos.</td></tr>
+            <tr><td><strong>3</strong></td><td>Send Contract</td><td>Within 24 hours of verbal yes. 3-5 year exclusive agreement. Include: placement location, rev share terms, service commitments.</td></tr>
+            <tr><td><strong>4</strong></td><td>Follow Up on Contract</td><td>If not signed within 48 hours, call: "Is there anything you'd like me to clarify before you sign?"</td></tr>
+            <tr><td><strong>5</strong></td><td>Get Insurance Certificate</td><td>Send certificate of insurance with their property listed. $1M GL, $2M aggregate minimum.</td></tr>
+            <tr><td><strong>6</strong></td><td>Schedule Install Date</td><td>Lock a specific date and time. Confirm building access, elevator access, loading dock.</td></tr>
+            <tr><td><strong>7</strong></td><td>Prep Machine</td><td>Stock machine with curated product mix for that location type. Test all systems. Clean and photograph.</td></tr>
+            <tr><td><strong>8</strong></td><td>Installation Day</td><td>Arrive early. Wear branded shirt. Full photo documentation (before/during/after). Property manager handshake photo.</td></tr>
+            <tr><td><strong>9</strong></td><td>Day 1 Check-In</td><td>Text or call PM: "Machine is live! First transactions rolling in. Let me know if you need anything."</td></tr>
+            <tr><td><strong>10</strong></td><td>Week 1 Check-In</td><td>Pop by in person. Share early data. "X transactions in the first week!"</td></tr>
+            <tr><td><strong>11</strong></td><td>Day 30 Review</td><td>Share 30-day report. Ask for Google review. Begin referral conversation.</td></tr>
+            <tr><td><strong>12</strong></td><td>Ask for Referral</td><td>"Know other buildings that could use this? I'll pay $250 per placement."</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">📸</span>
+            <span class="card-head-title">Installation Day Photo Checklist</span>
+          </div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <ul>
+            <li>📷 <strong>Before:</strong> Empty space from 3 angles (straight, left, right)</li>
+            <li>📷 <strong>During:</strong> You + machine being wheeled in (wear branded shirt)</li>
+            <li>📷 <strong>After:</strong> Machine fully stocked, screen on, LED lighting active (landscape AND portrait)</li>
+            <li>📷 <strong>Handshake:</strong> Property manager handshake photo (ask permission)</li>
+            <li>📷 <strong>Context:</strong> Step back — show the lobby/break room WITH the machine. It should look like it belongs.</li>
+          </ul>
+          <div class="tip">💡 This is NOT optional. These photos will close deals for the next 12 months. Every corporate prospect will look at your photos before your numbers.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">⚡</span>
+            <span class="card-head-title">Speed Kills — Timing Rules</span>
+          </div>
+          <span class="card-head-badge badge-red">CRITICAL</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <ul>
+            <li><strong>Send contract within 24 hours</strong> of verbal yes — delays kill deals</li>
+            <li><strong>Follow up on unsigned contracts at 48 hours</strong></li>
+            <li><strong>Schedule install within 10 days</strong> of signature</li>
+            <li><strong>First check-in on Day 1</strong> — not Day 3</li>
+            <li><strong>Share data at Day 7, Day 30, Day 90</strong></li>
+          </ul>
+          <div class="warning">⚠️ Every day between "verbal yes" and "signed contract" is a day they can change their mind, get cold feet, or hear from a competitor. <strong>Move fast.</strong></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" onclick="toggleCard(this)">
+          <div class="card-head-left">
+            <span class="card-head-icon">🔒</span>
+            <span class="card-head-title">Contract Must-Haves</span>
+          </div>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body">
+          <ul>
+            <li>✅ <strong>3-5 year term</strong> — protects your investment</li>
+            <li>✅ <strong>Exclusive agreement</strong> — no other operators allowed</li>
+            <li>✅ <strong>Specific placement location</strong> described in contract</li>
+            <li>✅ <strong>Revenue share terms</strong> (rate, start date, payment schedule)</li>
+            <li>✅ <strong>Service level commitments</strong> (response time, restock frequency)</li>
+            <li>✅ <strong>Insurance requirements</strong> (yours, listed)</li>
+            <li>✅ <strong>Termination clause</strong> (90-day notice, both parties)</li>
+            <li>✅ <strong>Right of first refusal</strong> for additional machines/locations</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end .content -->
 
   <script>
-    async function loadPlaybook() {
-      const res = await fetch('/api/playbook');
-      const data = await res.json();
+    // ===== TAB NAVIGATION =====
+    const tabs = document.querySelectorAll('.tab');
+    const sections = document.querySelectorAll('.section');
 
-      // Render markdown
-      const html = marked.parse(data.content);
-      document.getElementById('content').innerHTML = html;
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.tab;
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        sections.forEach(s => {
+          s.classList.remove('active');
+          if (s.dataset.section === target) s.classList.add('active');
+        });
+        // Clear search when switching tabs
+        clearSearch();
+        // Scroll to top of content
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
 
-      // Update timestamp
-      if (data.updated) {
-        document.getElementById('lastUpdated').textContent = 'Last updated: ' + new Date(data.updated).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    // ===== CARD TOGGLE =====
+    function toggleCard(head) {
+      head.closest('.card').classList.toggle('open');
+    }
+
+    // ===== SEARCH =====
+    const searchInput = document.getElementById('searchInput');
+    const searchClear = document.getElementById('searchClear');
+    const searchCount = document.getElementById('searchCount');
+    let searchTimeout;
+
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(performSearch, 200);
+    });
+
+    function clearSearch() {
+      searchInput.value = '';
+      searchClear.classList.remove('visible');
+      searchCount.classList.remove('visible');
+      // Remove all highlights and show all cards
+      document.querySelectorAll('.search-match').forEach(el => {
+        el.outerHTML = el.textContent;
+      });
+      document.querySelectorAll('.hidden-by-search').forEach(el => {
+        el.classList.remove('hidden-by-search');
+      });
+    }
+
+    function performSearch() {
+      const query = searchInput.value.trim().toLowerCase();
+
+      // Clear previous highlights
+      document.querySelectorAll('.search-match').forEach(el => {
+        el.outerHTML = el.textContent;
+      });
+      document.querySelectorAll('.hidden-by-search').forEach(el => {
+        el.classList.remove('hidden-by-search');
+      });
+
+      if (!query || query.length < 2) {
+        searchClear.classList.remove('visible');
+        searchCount.classList.remove('visible');
+        return;
       }
 
-      // Build TOC from h2 and h3 elements
-      buildTOC();
+      searchClear.classList.add('visible');
 
-      // Handle search
-      document.getElementById('tocSearch').addEventListener('input', (e) => {
-        const q = e.target.value.toLowerCase();
-        document.querySelectorAll('.toc-link').forEach(link => {
-          link.style.display = link.textContent.toLowerCase().includes(q) || !q ? 'block' : 'none';
-        });
-      });
-    }
+      // Show ALL sections during search
+      sections.forEach(s => s.classList.add('active'));
+      tabs.forEach(t => t.classList.remove('active'));
 
-    function buildTOC() {
-      const headings = document.querySelectorAll('.content h2, .content h3');
-      const toc = document.getElementById('toc');
-      let html = '';
+      let matchCount = 0;
+      const cards = document.querySelectorAll('.card');
 
-      headings.forEach((h, i) => {
-        const id = 'section-' + i;
-        h.id = id;
-        const isSub = h.tagName === 'H3';
-        html += `<a href="#${id}" class="toc-link ${isSub ? 'sub' : ''}">${h.textContent}</a>`;
-      });
-
-      toc.innerHTML = html;
-
-      // Highlight active section on scroll
-      const links = document.querySelectorAll('.toc-link');
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            links.forEach(l => l.classList.remove('active'));
-            const link = document.querySelector(`.toc-link[href="#${entry.target.id}"]`);
-            if (link) link.classList.add('active');
+      cards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        if (text.includes(query)) {
+          matchCount++;
+          card.classList.add('open');
+          // Highlight matches in card body
+          const body = card.querySelector('.card-body');
+          if (body) {
+            highlightText(body, query);
           }
-        });
-      }, { rootMargin: '-80px 0px -60% 0px' });
+        } else {
+          card.classList.add('hidden-by-search');
+        }
+      });
 
-      headings.forEach(h => observer.observe(h));
+      searchCount.textContent = `${matchCount} result${matchCount !== 1 ? 's' : ''} for "${searchInput.value.trim()}"`;
+      searchCount.classList.add('visible');
     }
 
-    loadPlaybook();
+    function highlightText(element, query) {
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+      const textNodes = [];
+      while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+      textNodes.forEach(node => {
+        const idx = node.textContent.toLowerCase().indexOf(query);
+        if (idx === -1) return;
+        const span = document.createElement('span');
+        span.className = 'search-match';
+        const matchText = node.textContent.substring(idx, idx + query.length);
+        span.textContent = matchText;
+        const after = node.splitText(idx);
+        after.textContent = after.textContent.substring(query.length);
+        node.parentNode.insertBefore(span, after);
+      });
+    }
+
+    // ===== KEYBOARD SHORTCUT =====
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement !== searchInput) {
+        e.preventDefault();
+        searchInput.focus();
+      }
+      if (e.key === 'Escape') {
+        clearSearch();
+        searchInput.blur();
+      }
+    });
   </script>
-<script src="/nav.js"></script>
 </body>
 </html>

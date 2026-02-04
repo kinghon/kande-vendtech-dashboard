@@ -3218,6 +3218,7 @@ app.get('/outreach', (req, res) => res.sendFile(path.join(__dirname, 'outreach.h
 app.get('/restock-predictions', (req, res) => res.sendFile(path.join(__dirname, 'restock-predictions.html')));
 app.get('/smart-machines', (req, res) => res.sendFile(path.join(__dirname, 'smart-machines.html')));
 app.get('/apollo', (req, res) => res.sendFile(path.join(__dirname, 'apollo.html')));
+app.get('/playbook', (req, res) => res.sendFile(path.join(__dirname, 'playbook.html')));
 
 // ===== PROPOSED LEADS (Lead Vetting / Approval) =====
 if (!db.proposedLeads) db.proposedLeads = [];
@@ -10757,6 +10758,535 @@ app.get('/api/v2/health', async (req, res) => {
 
 // END POSTGRESQL API
 // ============================================================
+
+// ===== CONTRACT TEMPLATES API =====
+app.get('/api/contract-generator/templates', (req, res) => {
+  const contractsDir = path.join(__dirname, '..', 'contracts');
+  try {
+    const files = fs.readdirSync(contractsDir).filter(f => f.endsWith('.md') && f !== 'README.md');
+    const templates = files.map(f => {
+      const content = fs.readFileSync(path.join(contractsDir, f), 'utf8');
+      return { filename: f, content };
+    });
+    res.json(templates);
+  } catch (e) {
+    res.status(500).json({ error: 'Could not read contract templates', detail: e.message });
+  }
+});
+app.get('/contract-generator', (req, res) => {
+  res.sendFile(path.join(__dirname, 'contract-generator.html'));
+});
+
+// ===== LEAD FILES API (Bulk Import) =====
+const PROSPECTS_DIR = path.join(__dirname, 'sales', 'prospects');
+
+// Normalize leads from various JSON file formats into a common shape
+function normalizeLeadFile(data, filename) {
+  const leads = [];
+  const rawLeads = data.leads || data.prospects || [];
+  const segment = data.segment || data._metadata?.category || data.metadata?.category || filename.replace(/^leads-/, '').replace(/-new\.json$|\.json$/, '').replace(/-/g, ' ');
+
+  for (const raw of rawLeads) {
+    const lead = {
+      name: raw.company || raw.facilityName || raw.name || raw.facility || '',
+      contact_name: raw.contact_name || raw.name || (raw.firstName && raw.lastName ? `${raw.firstName} ${raw.lastName}` : '') || (raw.contact && raw.contact.name) || '',
+      contact_title: raw.contact_title || raw.title || (raw.contact && raw.contact.title) || '',
+      company: raw.company || raw.facilityName || raw.parent_system || '',
+      address: raw.address || raw.facilityAddress || raw.location || '',
+      phone: raw.phone || raw.facilityPhone || (raw.contact && raw.contact.phone) || raw.contact_phone || raw.mobile || '',
+      email: raw.email || (raw.contact && raw.contact.email) || raw.contact_email || '',
+      property_type: raw.property_type || raw.facility_type || raw.facilityType || raw.company_type || raw.category || segment,
+      units: raw.units || raw.units_managed || raw.bed_count || raw.employee_count || (raw.people_score && raw.people_score.people) || '',
+      priority: (raw.priority || '').toString().toLowerCase(),
+      score: raw.enrich_score || raw.vendingScore || raw.vending_score || (raw.people_score && raw.people_score.total) || 0,
+      notes: raw.notes || raw.vendingNotes || '',
+      source: raw.source || raw.source_url || '',
+      priority_reasons: raw.priority_reasons || [],
+      _raw_id: raw.id || null
+    };
+    // Normalize priority
+    if (['high', 'p1-critical', 'p1', 'hot'].includes(lead.priority)) lead.priority = 'high';
+    else if (['medium', 'p2', 'warm'].includes(lead.priority)) lead.priority = 'medium';
+    else lead.priority = 'normal';
+    // Clean up units
+    if (typeof lead.units === 'string') {
+      var numMatch = lead.units.toString().replace(/,/g, '').match(/\d+/);
+      lead.units = numMatch ? parseInt(numMatch[0]) : '';
+    }
+    leads.push(lead);
+  }
+  return { segment, total: leads.length, leads };
+}
+
+// GET /api/lead-files — list available lead JSON files
+app.get('/api/lead-files', (req, res) => {
+  try {
+    if (!fs.existsSync(PROSPECTS_DIR)) return res.json([]);
+    var files = fs.readdirSync(PROSPECTS_DIR)
+      .filter(f => f.startsWith('leads-') && f.endsWith('.json'))
+      .map(f => {
+        var stats = fs.statSync(path.join(PROSPECTS_DIR, f));
+        var count = 0;
+        try {
+          var d = JSON.parse(fs.readFileSync(path.join(PROSPECTS_DIR, f), 'utf8'));
+          count = (d.leads || d.prospects || []).length;
+        } catch (e) { /* ignore */ }
+        return { filename: f, size: stats.size, modified: stats.mtime.toISOString(), lead_count: count };
+      });
+    res.json(files);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/lead-files/:filename — read and return normalized leads from a file
+app.get('/api/lead-files/:filename', (req, res) => {
+  try {
+    var filename = req.params.filename;
+    if (!filename.startsWith('leads-') || !filename.endsWith('.json') || filename.includes('..')) {
+      return res.status(400).json({ error: 'Invalid filename' });
+    }
+    var filePath = path.join(PROSPECTS_DIR, filename);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File not found' });
+    var d = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    var normalized = normalizeLeadFile(d, filename);
+    res.json(normalized);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/leads/import — bulk import with dedup, richer fields
+app.post('/api/leads/import', (req, res) => {
+  var leads = req.body.leads;
+  if (!leads || !Array.isArray(leads) || leads.length === 0) {
+    return res.status(400).json({ error: 'No leads provided' });
+  }
+  var imported = 0, duplicates = 0, errors = 0;
+  var results = [];
+
+  for (var i = 0; i < leads.length; i++) {
+    var lead = leads[i];
+    try {
+      // Dedup: match on normalized address OR name
+      var isDup = db.prospects.some(function(p) {
+        if (lead.address && p.address) {
+          var normA = lead.address.toLowerCase().replace(/[.,#\-]/g, '').replace(/\s+/g, ' ').trim();
+          var normB = p.address.toLowerCase().replace(/[.,#\-]/g, '').replace(/\s+/g, ' ').trim();
+          if (normA === normB) return true;
+        }
+        if (lead.name && p.name) {
+          if (lead.name.toLowerCase().trim() === p.name.toLowerCase().trim()) return true;
+        }
+        return false;
+      });
+
+      if (isDup) {
+        duplicates++;
+        results.push({ name: lead.name || lead.contact_name, status: 'duplicate' });
+        continue;
+      }
+
+      var prospect = {
+        id: nextId(),
+        name: lead.name || lead.contact_name || 'Unknown',
+        address: lead.address || '',
+        phone: lead.phone || '',
+        email: lead.email || '',
+        contact_name: lead.contact_name || '',
+        contact_title: lead.contact_title || '',
+        company: lead.company || '',
+        property_type: lead.property_type || '',
+        units: lead.units || '',
+        priority: lead.priority === 'high' ? 'hot' : 'normal',
+        notes: lead.notes || '',
+        score: lead.score || 0,
+        source: lead.source || 'bulk-import',
+        status: 'new',
+        lat: null, lng: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      db.prospects.push(prospect);
+      imported++;
+      results.push({ name: prospect.name, status: 'imported', id: prospect.id });
+
+      // Auto-create pipeline card
+      if (typeof ensurePipelineCard === 'function') ensurePipelineCard(prospect.id);
+    } catch (e) {
+      errors++;
+      results.push({ name: lead.name || '?', status: 'error', message: e.message });
+    }
+  }
+
+  if (imported > 0) saveDB(db);
+  res.json({ imported, duplicates, errors, total: leads.length, results });
+});
+
+// ===== END LEAD FILES API =====
+
+// ===== WEEKLY POP-IN ROUTES API =====
+
+// Serve weekly routes page
+app.get('/weekly-routes', (req, res) => res.sendFile(path.join(__dirname, 'weekly-routes.html')));
+
+// GET /api/weekly-routes — returns prospects scored and ready for client-side routing
+app.get('/api/weekly-routes', (req, res) => {
+  const HOME_BASE = { lat: 36.0304, lng: -114.9817 };
+  const MAX_RADIUS_KM = 48; // ~30 miles / 45 min
+
+  function haversineKm(lat1, lng1, lat2, lng2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  // Get all non-closed prospects with geocoded addresses
+  const prospects = db.prospects
+    .filter(p => p.lat && p.lng && p.status !== 'closed' && p.status !== 'signed')
+    .filter(p => haversineKm(HOME_BASE.lat, HOME_BASE.lng, p.lat, p.lng) <= MAX_RADIUS_KM)
+    .map(p => {
+      const activities = db.activities.filter(a => a.prospect_id === p.id);
+      const lastActivity = activities.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+      const contacts = db.contacts.filter(c => c.prospect_id === p.id);
+      const primaryContact = contacts.find(c => c.is_primary) || contacts[0];
+      const popIns = (db.popInVisits || []).filter(v => v.prospect_id === p.id);
+      const lastPopIn = popIns.sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date))[0];
+
+      // Scoring
+      let score = 0;
+      if (p.priority === 'hot') score += 30;
+      else if (p.priority === 'warm') score += 20;
+      else score += 5;
+
+      const daysSinceActivity = lastActivity
+        ? Math.floor((Date.now() - new Date(lastActivity.created_at).getTime()) / (1000*60*60*24))
+        : 999;
+      if (daysSinceActivity > 30) score += 25;
+      else if (daysSinceActivity > 14) score += 15;
+      else if (daysSinceActivity > 7) score += 8;
+
+      if (p.next_action_date) {
+        const overdueDays = Math.floor((Date.now() - new Date(p.next_action_date).getTime()) / (1000*60*60*24));
+        if (overdueDays > 0) score += 35;
+        else if (overdueDays > -3) score += 20;
+      }
+
+      return {
+        id: p.id, name: p.name, address: p.address,
+        property_type: p.property_type, priority: p.priority,
+        status: p.status, lat: p.lat, lng: p.lng,
+        phone: p.phone || primaryContact?.phone || '',
+        primary_contact: primaryContact?.name || p.contact_name || '',
+        last_activity_date: lastActivity?.created_at || null,
+        last_pop_in: lastPopIn?.visit_date || null,
+        next_action: p.next_action || null,
+        next_action_date: p.next_action_date || null,
+        activity_count: activities.length,
+        pop_in_count: popIns.length,
+        score,
+        distance_km: haversineKm(HOME_BASE.lat, HOME_BASE.lng, p.lat, p.lng)
+      };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  res.json({
+    prospects,
+    total: prospects.length,
+    home_base: HOME_BASE,
+    generated_at: new Date().toISOString()
+  });
+});
+
+// POST /api/weekly-routes/log-visit — quick log from route planner
+app.post('/api/weekly-routes/log-visit', (req, res) => {
+  const { prospect_id, notes, outcome, gift_basket_given, visitor } = req.body;
+  if (!prospect_id) return res.status(400).json({ error: 'prospect_id required' });
+
+  const prospect = db.prospects.find(p => p.id === parseInt(prospect_id));
+  if (!prospect) return res.status(404).json({ error: 'Prospect not found' });
+
+  // Create pop-in visit
+  const visit = {
+    id: nextId(),
+    prospect_id: parseInt(prospect_id),
+    visit_date: new Date().toISOString().split('T')[0],
+    visitor: visitor || 'Kurtis',
+    notes: notes || '',
+    outcome: outcome || 'neutral',
+    gift_basket_given: gift_basket_given || false,
+    gift_basket_contents: '',
+    spoke_with: '',
+    spoke_with_title: '',
+    existing_vending: '',
+    competitor_machines: '',
+    photos: [],
+    follow_up_notes: '',
+    source: 'weekly-routes',
+    created_at: new Date().toISOString()
+  };
+  if (!db.popInVisits) db.popInVisits = [];
+  db.popInVisits.push(visit);
+
+  // Log activity
+  db.activities.push({
+    id: nextId(),
+    prospect_id: parseInt(prospect_id),
+    type: 'pop_in',
+    description: `Pop-in via route planner: ${outcome}${gift_basket_given ? ' 🎁' : ''} — ${(notes || '').substring(0, 80)}`,
+    outcome: outcome,
+    created_at: new Date().toISOString()
+  });
+
+  // Move pipeline stage if early
+  const card = (db.pipelineCards || []).find(c => c.prospect_id === parseInt(prospect_id));
+  if (card && ['new_lead', 'contacted'].includes(card.stage)) {
+    card.stage = 'pop_in_done';
+    card.entered_stage_at = new Date().toISOString();
+    card.updated_at = new Date().toISOString();
+    if (typeof runWorkflowRules === 'function') {
+      runWorkflowRules('stage_change', { prospect_id: parseInt(prospect_id), old_stage: card.stage, new_stage: 'pop_in_done' });
+    }
+  }
+
+  // Auto-upgrade priority on interest
+  if (outcome === 'interested') {
+    const pIdx = db.prospects.findIndex(p => p.id === parseInt(prospect_id));
+    if (pIdx !== -1) {
+      db.prospects[pIdx].priority = 'hot';
+      db.prospects[pIdx].updated_at = new Date().toISOString();
+    }
+  }
+
+  // Update prospect last activity timestamp
+  prospect.updated_at = new Date().toISOString();
+
+  saveDB(db);
+  res.json({ success: true, visit });
+});
+
+// ===== END WEEKLY ROUTES API =====
+
+// ===== GIFT BASKETS API =====
+// Per Skool community: Gift baskets are the #1 sales tool in vending.
+// 8-10 touches to close — baskets keep you top-of-mind with property managers.
+
+if (!db.giftBaskets) db.giftBaskets = [];
+
+// Basket templates for reference
+const BASKET_TEMPLATES = {
+  first_touch: { name: 'First Touch', cost: 25, items: ['Variety snack mix', 'Bottled water (2-pack)', 'Business card', 'One-pager brochure', 'Cellophane bag + ribbon'] },
+  decision_maker: { name: 'Decision Maker', cost: 50, items: ['Premium nuts & dried fruit', 'Godiva chocolate', 'Celsius energy drinks (2)', 'Full proposal packet', 'Branded tote bag', 'Handwritten thank-you note'] },
+  thank_you: { name: 'Thank You', cost: 30, items: ['Gourmet cookies/brownies', 'Sparkling water', 'Thank-you card (handwritten)', 'Branded pen/magnet', 'Candy assortment'] },
+  holiday: { name: 'Holiday', cost: 40, items: ['Holiday cookie tin', 'Hot cocoa packets', 'Seasonal candy', 'Holiday card (personalized)', 'Small seasonal item'] },
+  custom: { name: 'Custom', cost: 0, items: [] }
+};
+
+// GET all gift baskets
+app.get('/api/gift-baskets', (req, res) => {
+  const { status, type, prospect_id } = req.query;
+  let records = db.giftBaskets || [];
+  if (status) records = records.filter(b => b.status === status);
+  if (type) records = records.filter(b => b.basket_type === type);
+  if (prospect_id) records = records.filter(b => b.prospect_id === parseInt(prospect_id));
+  res.json(records.sort((a, b) => new Date(b.delivery_date || b.created_at) - new Date(a.delivery_date || a.created_at)));
+});
+
+// GET single gift basket
+app.get('/api/gift-baskets/stats', (req, res) => {
+  const baskets = db.giftBaskets || [];
+  const prospects = db.prospects || [];
+  const activities = db.activities || [];
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  const total = baskets.length;
+  const delivered = baskets.filter(b => b.status === 'delivered' || b.status === 'followup_done').length;
+  const pending = baskets.filter(b => b.status === 'planned' || b.status === 'assembled').length;
+
+  // Cost this month
+  const costThisMonth = baskets
+    .filter(b => {
+      const d = b.delivery_date || (b.created_at ? b.created_at.split('T')[0] : '');
+      return d.startsWith(currentMonth);
+    })
+    .reduce((sum, b) => sum + (b.cost || 0), 0);
+
+  // Conversion rate: prospects who received baskets AND signed
+  const prospectIdsWithBaskets = [...new Set(baskets.filter(b => b.status === 'delivered' || b.status === 'followup_done').map(b => b.prospect_id))];
+  const signedWithBaskets = prospectIdsWithBaskets.filter(pid => {
+    const p = prospects.find(pr => pr.id === pid);
+    return p && p.status === 'signed';
+  }).length;
+  const conversionRate = prospectIdsWithBaskets.length > 0 ? (signedWithBaskets / prospectIdsWithBaskets.length) * 100 : 0;
+
+  // Average touches to close (activities count for signed prospects who got baskets)
+  let avgTouches = null;
+  const signedIds = prospects.filter(p => p.status === 'signed').map(p => p.id);
+  if (signedIds.length > 0) {
+    const touchCounts = signedIds.map(pid => activities.filter(a => a.prospect_id === pid).length);
+    avgTouches = touchCounts.reduce((s, n) => s + n, 0) / touchCounts.length;
+  }
+
+  res.json({
+    total,
+    delivered,
+    pending,
+    cost_this_month: costThisMonth,
+    month_label: monthNames[now.getMonth()] + ' ' + now.getFullYear(),
+    conversion_rate: conversionRate,
+    avg_touches: avgTouches,
+    prospects_with_baskets: prospectIdsWithBaskets.length,
+    signed_with_baskets: signedWithBaskets
+  });
+});
+
+// GET shopping list — aggregates Costco items for planned baskets
+app.get('/api/gift-baskets/shopping-list', (req, res) => {
+  const planned = (db.giftBaskets || []).filter(b => b.status === 'planned' || b.status === 'assembled');
+
+  // Count baskets by type
+  const typeCounts = {};
+  planned.forEach(b => {
+    const t = b.basket_type || 'custom';
+    typeCounts[t] = (typeCounts[t] || 0) + 1;
+  });
+
+  // Costco item mappings per template type
+  const costcoItems = {
+    first_touch: [
+      { item: 'Frito-Lay Variety Pack (28ct)', qty_per: 4, unit_cost: 15.99, category: 'Snacks' },
+      { item: 'Kirkland Bottled Water (40ct)', qty_per: 20, unit_cost: 4.49, category: 'Beverages' },
+      { item: 'Cellophane Gift Bags (50ct)', qty_per: 25, unit_cost: 8.99, category: 'Supplies' },
+      { item: 'Curling Ribbon Roll', qty_per: 50, unit_cost: 3.99, category: 'Supplies' }
+    ],
+    decision_maker: [
+      { item: 'Kirkland Mixed Nuts (2.5lb)', qty_per: 5, unit_cost: 12.99, category: 'Snacks' },
+      { item: 'Godiva Chocolate Assortment', qty_per: 3, unit_cost: 16.99, category: 'Snacks' },
+      { item: 'Celsius Energy Variety (18ct)', qty_per: 6, unit_cost: 24.99, category: 'Beverages' },
+      { item: 'Reusable Tote Bags (6ct)', qty_per: 6, unit_cost: 11.99, category: 'Supplies' },
+      { item: 'Thank You Cards (50ct)', qty_per: 50, unit_cost: 9.99, category: 'Supplies' }
+    ],
+    thank_you: [
+      { item: 'Kirkland Gourmet Cookies (24ct)', qty_per: 6, unit_cost: 11.99, category: 'Snacks' },
+      { item: 'S.Pellegrino Sparkling Water (12ct)', qty_per: 6, unit_cost: 13.49, category: 'Beverages' },
+      { item: 'Ghirardelli Chocolate Squares', qty_per: 4, unit_cost: 10.99, category: 'Snacks' },
+      { item: 'Thank You Cards (50ct)', qty_per: 50, unit_cost: 9.99, category: 'Supplies' }
+    ],
+    holiday: [
+      { item: 'Kirkland Holiday Cookie Tin', qty_per: 1, unit_cost: 14.99, category: 'Snacks' },
+      { item: 'Swiss Miss Hot Cocoa (50ct)', qty_per: 10, unit_cost: 8.99, category: 'Beverages' },
+      { item: 'Seasonal Candy Assortment', qty_per: 4, unit_cost: 12.99, category: 'Snacks' },
+      { item: 'Holiday Cards Box (40ct)', qty_per: 40, unit_cost: 11.99, category: 'Supplies' }
+    ]
+  };
+
+  // Aggregate needed quantities
+  const needed = {};
+  for (const [type, count] of Object.entries(typeCounts)) {
+    const items = costcoItems[type];
+    if (!items) continue;
+    items.forEach(ci => {
+      const key = ci.item;
+      if (!needed[key]) needed[key] = { ...ci, qty: 0 };
+      // Calculate packs needed: ceil(baskets / qty_per_pack)
+      needed[key].qty += Math.ceil(count / ci.qty_per);
+    });
+  }
+
+  const items = Object.values(needed).sort((a, b) => a.category.localeCompare(b.category) || a.item.localeCompare(b.item));
+  const estimatedTotal = items.reduce((sum, i) => sum + (i.qty * i.unit_cost), 0);
+
+  res.json({
+    planned_baskets: planned.length,
+    basket_types: typeCounts,
+    items,
+    estimated_total: estimatedTotal
+  });
+});
+
+// GET single gift basket by ID
+app.get('/api/gift-baskets/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const basket = (db.giftBaskets || []).find(b => b.id === id);
+  if (!basket) return res.status(404).json({ error: 'Gift basket not found' });
+  const prospect = db.prospects.find(p => p.id === basket.prospect_id);
+  res.json({ ...basket, prospect_name: prospect?.name || 'Unknown' });
+});
+
+// POST new gift basket
+app.post('/api/gift-baskets', (req, res) => {
+  if (!req.body.prospect_id) {
+    return res.status(400).json({ error: 'prospect_id is required' });
+  }
+  const basket = {
+    id: nextId(),
+    prospect_id: parseInt(req.body.prospect_id),
+    basket_type: req.body.basket_type || 'first_touch',
+    delivery_date: req.body.delivery_date || new Date().toISOString().split('T')[0],
+    cost: parseFloat(req.body.cost) || BASKET_TEMPLATES[req.body.basket_type]?.cost || 0,
+    delivery_method: req.body.delivery_method || 'drop-off',
+    status: req.body.status || 'planned',
+    contents: req.body.contents || '',
+    notes: req.body.notes || '',
+    photo: req.body.photo || '',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+
+  if (!db.giftBaskets) db.giftBaskets = [];
+  db.giftBaskets.push(basket);
+
+  // Auto-log activity on the prospect
+  db.activities.push({
+    id: nextId(),
+    prospect_id: basket.prospect_id,
+    type: 'gift_basket',
+    description: `🎁 Gift basket (${BASKET_TEMPLATES[basket.basket_type]?.name || basket.basket_type}) — $${basket.cost.toFixed(2)} — ${basket.status}`,
+    created_at: new Date().toISOString()
+  });
+
+  saveDB(db);
+  res.json(basket);
+});
+
+// PUT update gift basket
+app.put('/api/gift-baskets/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.giftBaskets || []).findIndex(b => b.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Gift basket not found' });
+
+  const old = db.giftBaskets[idx];
+  const updated = { ...old, ...req.body, updated_at: new Date().toISOString() };
+  if (req.body.cost !== undefined) updated.cost = parseFloat(req.body.cost);
+  if (req.body.prospect_id !== undefined) updated.prospect_id = parseInt(req.body.prospect_id);
+  db.giftBaskets[idx] = updated;
+
+  // Log status changes as activities
+  if (req.body.status && req.body.status !== old.status) {
+    const statusLabels = { planned: '📋 Planned', assembled: '🔧 Assembled', delivered: '✅ Delivered', followup_done: '🎯 Follow-up Done' };
+    db.activities.push({
+      id: nextId(),
+      prospect_id: updated.prospect_id,
+      type: 'gift_basket',
+      description: `🎁 Basket status: ${statusLabels[old.status] || old.status} → ${statusLabels[req.body.status] || req.body.status}`,
+      created_at: new Date().toISOString()
+    });
+  }
+
+  saveDB(db);
+  res.json(db.giftBaskets[idx]);
+});
+
+// DELETE gift basket
+app.delete('/api/gift-baskets/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  db.giftBaskets = (db.giftBaskets || []).filter(b => b.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// ===== END GIFT BASKETS API =====
 
 app.listen(PORT, () => {
   console.log(`🤖 Kande VendTech Dashboard running at http://localhost:${PORT}`);
