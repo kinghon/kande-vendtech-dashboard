@@ -4,359 +4,274 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
-  <title>Pricing Comparison — Kande VendTech</title>
+  <title>Product Pricing — Kande VendTech</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --bg: #f5f5f7;
-      --card: #ffffff;
-      --card-hover: #222633;
-      --border: #2d3248;
-      --text: #e2e8f0;
-      --muted: #8892b0;
-      --accent: #667eea;
-      --accent-light: #7c8ff8;
-      --green: #48bb78;
-      --yellow: #ecc94b;
-      --red: #fc8181;
-      --orange: #f6ad55;
-      --purple: #b794f4;
+      --bg: #f5f5f7; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
+      --muted: #718096; --accent: #3182ce; --hot: #e53e3e; --warn: #dd6b20;
+      --success: #38a169; --purple: #7b2cbf; --radius: 12px;
     }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      line-height: 1.5;
-    }
-    a { color: var(--accent-light); text-decoration: none; }
-    a:hover { color: #fff; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app { max-width: 1600px; margin: 0 auto; padding: 20px; }
 
-    /* Layout */
-    .app { max-width: 1600px; margin: 0 auto; padding: 16px 20px; }
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .page-header h1 { font-size: 1.6rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .page-header p { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-    /* Top Nav */
-    .top-nav {
-      display: flex; align-items: center; gap: 10px;
-      margin-bottom: 24px; padding-bottom: 14px;
-      border-bottom: 1px solid var(--border); flex-wrap: wrap;
-    }
-    .nav-brand { font-weight: 700; font-size: 0.95rem; color: var(--accent-light); margin-right: 8px; }
-    .top-nav a {
-      color: var(--muted); font-size: 0.8rem; font-weight: 500;
-      padding: 5px 10px; border-radius: 6px; transition: all 0.2s;
-    }
-    .top-nav a:hover, .top-nav a.active {
-      color: var(--accent-light); background: rgba(102,126,234,0.12);
-    }
-    .nav-spacer { flex: 1; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s; text-decoration: none; }
+    .btn:hover { background: #f0f4f8; }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover { background: #2b6cb0; }
+    .btn-success { background: var(--success); color: #fff; border-color: var(--success); }
+    .btn-success:hover { background: #2f855a; }
+    .btn-danger { background: var(--hot); color: #fff; border-color: var(--hot); }
+    .btn-warn { background: var(--warn); color: #fff; border-color: var(--warn); }
+    .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
+    .btn-icon { padding: 6px 10px; font-size: 0.9rem; }
 
-    /* Page Header */
-    .page-header { margin-bottom: 24px; }
-    .page-header h1 {
-      font-size: 1.6rem; font-weight: 700;
-      background: linear-gradient(135deg, #667eea, #b794f4);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .page-header p { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+    /* Stats */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; }
+    .stat-card .value { font-size: 1.7rem; font-weight: 800; }
+    .stat-card .label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
+    .stat-card .sub { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+    .value.accent { color: var(--accent); }
+    .value.success { color: var(--success); }
+    .value.warn { color: var(--warn); }
+    .value.danger { color: var(--hot); }
+    .value.purple { color: var(--purple); }
 
-    /* Stats Grid */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 14px; margin-bottom: 24px;
-    }
-    .stat-card {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 12px; padding: 18px; text-align: center;
-      transition: transform 0.2s, border-color 0.2s;
-    }
-    .stat-card:hover { transform: translateY(-2px); border-color: var(--accent); }
-    .stat-value { font-size: 1.8rem; font-weight: 700; }
-    .stat-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; font-weight: 600; margin-top: 4px; letter-spacing: 0.5px; }
-    .stat-sub { font-size: 0.75rem; color: var(--muted); margin-top: 6px; }
-    .v-accent { color: var(--accent-light); }
-    .v-green { color: var(--green); }
-    .v-yellow { color: var(--yellow); }
-    .v-red { color: var(--red); }
-    .v-orange { color: var(--orange); }
-    .v-purple { color: var(--purple); }
+    /* Tab Bar */
+    .tab-bar { display: flex; gap: 4px; margin-bottom: 20px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 4px; overflow-x: auto; }
+    .tab-btn { padding: 8px 18px; border: none; background: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: var(--muted); transition: all 0.15s; white-space: nowrap; }
+    .tab-btn.active { background: var(--accent); color: #fff; }
+    .tab-btn:hover:not(.active) { background: #f0f4f8; color: var(--text); }
 
-    /* Filters Bar */
-    .filters-bar {
-      display: flex; gap: 10px; margin-bottom: 20px;
-      flex-wrap: wrap; align-items: center;
-    }
-    .filters-bar input, .filters-bar select {
-      background: var(--card); color: var(--text);
-      border: 1px solid var(--border); border-radius: 8px;
-      padding: 9px 14px; font-size: 0.85rem;
-      outline: none; transition: border-color 0.2s;
-    }
-    .filters-bar input:focus, .filters-bar select:focus {
-      border-color: var(--accent);
-    }
-    .filters-bar input[type="text"] { min-width: 260px; }
-    .filters-bar select { min-width: 160px; cursor: pointer; }
-    select option { background: var(--card); color: var(--text); }
+    /* Price Tier Cards */
+    .tier-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .tier-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; cursor: pointer; transition: all 0.15s; }
+    .tier-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .tier-card.active { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(49,130,206,0.15); }
+    .tier-card .tier-icon { font-size: 1.5rem; margin-bottom: 8px; }
+    .tier-card .tier-label { font-weight: 700; font-size: 0.9rem; margin-bottom: 4px; }
+    .tier-card .tier-range { font-size: 0.75rem; color: var(--accent); font-weight: 600; margin-bottom: 6px; }
+    .tier-card .tier-count { font-size: 1.4rem; font-weight: 800; color: var(--accent); }
+    .tier-card .tier-stats { font-size: 0.72rem; color: var(--muted); }
 
-    .btn {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 9px 16px; border-radius: 8px; font-size: 0.85rem;
-      font-weight: 600; cursor: pointer; border: none;
-      transition: all 0.2s; white-space: nowrap;
-    }
-    .btn-primary {
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: #fff;
-    }
-    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-    .btn-success {
-      background: linear-gradient(135deg, #38a169, #2f855a);
-      color: #fff;
-    }
-    .btn-success:hover { opacity: 0.9; }
-    .btn-outline {
-      background: transparent; border: 1px solid var(--border);
-      color: var(--muted);
-    }
-    .btn-outline:hover { border-color: var(--accent); color: var(--text); }
+    /* Category Cards */
+    .cat-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
+    .cat-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; cursor: pointer; transition: all 0.15s; text-align: center; }
+    .cat-card:hover { border-color: var(--accent); }
+    .cat-card.active { border-color: var(--accent); background: rgba(49,130,206,0.05); }
+    .cat-card .cat-name { font-size: 0.78rem; font-weight: 600; text-transform: capitalize; }
+    .cat-card .cat-count { font-size: 1.1rem; font-weight: 700; color: var(--accent); margin-top: 4px; }
+    .cat-card .cat-markup { font-size: 0.68rem; color: var(--muted); }
 
-    .filter-count { color: var(--muted); font-size: 0.8rem; margin-left: auto; }
+    /* Filters */
+    .filters-bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .filters-bar input { flex: 1; min-width: 200px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; background: var(--card); }
+    .filters-bar select { padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; min-width: 140px; background: var(--card); }
+    .filter-count { color: var(--muted); font-size: 0.82rem; margin-left: auto; }
 
-    /* Table */
-    .table-wrap {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 12px; overflow: hidden;
-    }
-    .table-scroll { overflow-x: auto; max-height: 70vh; overflow-y: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-    thead {
-      background: #151822; position: sticky; top: 0; z-index: 10;
-    }
-    th {
-      padding: 12px 10px; text-align: left; font-weight: 600;
-      color: var(--muted); font-size: 0.72rem; text-transform: uppercase;
-      letter-spacing: 0.5px; border-bottom: 1px solid var(--border);
-      cursor: pointer; user-select: none; white-space: nowrap;
-    }
-    th:hover { color: var(--accent-light); }
-    th .sort-icon { margin-left: 4px; font-size: 0.65rem; }
-    td {
-      padding: 10px; border-bottom: 1px solid rgba(45,50,72,0.5);
-      vertical-align: middle;
-    }
-    tr:hover td { background: rgba(102,126,234,0.04); }
+    /* Bulk Actions Bar */
+    .bulk-bar { display: none; align-items: center; gap: 12px; padding: 14px 18px; background: rgba(49,130,206,0.08); border: 1px solid rgba(49,130,206,0.2); border-radius: var(--radius); margin-bottom: 16px; flex-wrap: wrap; }
+    .bulk-bar.show { display: flex; }
+    .bulk-bar .selected-count { font-weight: 700; color: var(--accent); }
+    .bulk-bar input[type="number"] { width: 80px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; }
+    .bulk-bar select { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; }
 
-    .thumb {
-      width: 40px; height: 40px; border-radius: 6px;
-      object-fit: cover; background: var(--border);
-    }
-    .thumb-placeholder {
-      width: 40px; height: 40px; border-radius: 6px;
-      background: var(--border); display: flex;
-      align-items: center; justify-content: center;
-      font-size: 0.7rem; color: var(--muted);
-    }
+    /* Data Table */
+    .table-container { overflow-x: auto; margin-bottom: 24px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
+    .data-table { width: 100%; border-collapse: collapse; min-width: 1100px; }
+    .data-table th { background: #edf2f7; padding: 10px 12px; font-size: 0.72rem; text-transform: uppercase; color: var(--muted); font-weight: 700; text-align: left; position: sticky; top: 0; white-space: nowrap; cursor: pointer; user-select: none; }
+    .data-table th:hover { color: var(--accent); }
+    .data-table th .sort-icon { margin-left: 4px; font-size: 0.65rem; }
+    .data-table td { padding: 10px 12px; border-top: 1px solid var(--border); font-size: 0.85rem; vertical-align: middle; }
+    .data-table tr:hover td { background: #fafbfc; }
+    .data-table tr.selected td { background: rgba(49,130,206,0.08); }
+    .data-table .row-check { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent); }
+    .data-table .scroll-body { max-height: 65vh; overflow-y: auto; }
 
-    .cat-badge {
-      display: inline-block; padding: 2px 8px; border-radius: 10px;
-      font-size: 0.7rem; font-weight: 600; text-transform: capitalize;
-      white-space: nowrap;
-    }
-    .cat-candy { background: rgba(237,100,166,0.15); color: #ed64a6; }
-    .cat-snacks { background: rgba(246,173,85,0.15); color: #f6ad55; }
-    .cat-cold_beverage { background: rgba(66,153,225,0.15); color: #4299e1; }
-    .cat-frozen_foods { background: rgba(129,230,217,0.15); color: #81e6d9; }
-    .cat-health_beauty { background: rgba(183,148,244,0.15); color: #b794f4; }
-    .cat-hot_drink { background: rgba(252,129,129,0.15); color: #fc8181; }
-    .cat-refrigerated { background: rgba(72,187,120,0.15); color: #48bb78; }
-    .cat-specialty_better4you { background: rgba(102,126,234,0.15); color: #667eea; }
-    .cat-hot_foods { background: rgba(236,201,75,0.15); color: #ecc94b; }
+    .thumb { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; background: #edf2f7; }
+    .thumb-placeholder { width: 40px; height: 40px; border-radius: 6px; background: #edf2f7; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: var(--muted); }
 
-    .price-not-set { color: var(--red); font-weight: 600; font-size: 0.75rem; }
-    .price-val { font-weight: 600; font-variant-numeric: tabular-nums; }
-    .suggested { color: var(--accent-light); }
-    .margin-val { font-weight: 600; font-variant-numeric: tabular-nums; }
+    /* Category badges */
+    .cat-badge { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 0.7rem; font-weight: 600; text-transform: capitalize; white-space: nowrap; }
+    .cat-candy { background: rgba(237,100,166,0.12); color: #d53f8c; }
+    .cat-snacks { background: rgba(246,173,85,0.12); color: #c05621; }
+    .cat-cold_beverage { background: rgba(66,153,225,0.12); color: #2b6cb0; }
+    .cat-frozen_foods { background: rgba(129,230,217,0.12); color: #285e61; }
+    .cat-health_beauty { background: rgba(183,148,244,0.12); color: #6b46c1; }
+    .cat-hot_drink { background: rgba(252,129,129,0.12); color: #c53030; }
+    .cat-refrigerated { background: rgba(72,187,120,0.12); color: #276749; }
+    .cat-specialty_better4you { background: rgba(102,126,234,0.12); color: #4c51bf; }
+    .cat-hot_foods { background: rgba(236,201,75,0.12); color: #975a16; }
 
-    .status-badge {
-      display: inline-flex; align-items: center; gap: 3px;
-      font-size: 0.72rem; font-weight: 600; white-space: nowrap;
-    }
+    /* Price cells */
+    .price-cell { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .price-not-set { color: var(--hot); font-size: 0.75rem; font-weight: 600; }
+    .price-suggested { color: var(--accent); }
+    .price-current { color: var(--success); }
+    .price-input { width: 70px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.85rem; text-align: right; }
+    .price-input:focus { border-color: var(--accent); outline: none; }
+
+    /* Margin indicators */
+    .margin-badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; }
+    .margin-good { background: rgba(56,161,105,0.12); color: var(--success); }
+    .margin-ok { background: rgba(221,107,32,0.12); color: var(--warn); }
+    .margin-low { background: rgba(229,62,62,0.12); color: var(--hot); }
+
+    /* Status badges */
+    .status-badge { font-size: 0.72rem; font-weight: 600; }
+    .status-priced { color: var(--success); }
+    .status-unpriced { color: var(--muted); }
+
+    /* Margin Calculator Panel */
+    .calc-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 24px; }
+    .calc-panel h3 { font-size: 1rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .calc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .calc-group { }
+    .calc-group label { display: block; font-size: 0.78rem; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
+    .calc-group input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; }
+    .calc-group input:focus { border-color: var(--accent); outline: none; }
+    .calc-results { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+    .calc-results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+    .calc-result-item { text-align: center; padding: 12px; background: #f7fafc; border-radius: 8px; }
+    .calc-result-item .result-value { font-size: 1.4rem; font-weight: 800; }
+    .calc-result-item .result-label { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
 
     /* Pagination */
-    .pagination {
-      display: flex; align-items: center; justify-content: center;
-      gap: 6px; padding: 16px; flex-wrap: wrap;
-    }
-    .pagination button {
-      background: var(--card); border: 1px solid var(--border);
-      color: var(--muted); padding: 6px 12px; border-radius: 6px;
-      font-size: 0.8rem; cursor: pointer; transition: all 0.2s;
-    }
+    .pagination { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 16px; flex-wrap: wrap; }
+    .pagination button { background: var(--card); border: 1px solid var(--border); color: var(--muted); padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
     .pagination button:hover { border-color: var(--accent); color: var(--text); }
     .pagination button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
     .pagination button:disabled { opacity: 0.4; cursor: default; }
     .page-info { color: var(--muted); font-size: 0.8rem; }
 
     /* Modal */
-    .modal-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.7); z-index: 100;
-      align-items: center; justify-content: center;
-    }
-    .modal-overlay.show { display: flex; }
-    .modal {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 14px; padding: 28px; max-width: 600px;
-      width: 90%; max-height: 80vh; overflow-y: auto;
-    }
-    .modal h2 {
-      font-size: 1.2rem; margin-bottom: 16px;
-      background: linear-gradient(135deg, #667eea, #b794f4);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .modal p { color: var(--muted); font-size: 0.9rem; margin-bottom: 14px; }
-    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
-
-    /* Category summary cards */
-    .cat-summary-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-      gap: 10px; margin-bottom: 24px;
-    }
-    .cat-summary-card {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 10px; padding: 12px; cursor: pointer;
-      transition: all 0.2s;
-    }
-    .cat-summary-card:hover, .cat-summary-card.active {
-      border-color: var(--accent); transform: translateY(-1px);
-    }
-    .cat-summary-card .cat-name {
-      font-size: 0.75rem; font-weight: 600;
-      text-transform: capitalize; margin-bottom: 6px;
-    }
-    .cat-summary-card .cat-count { font-size: 1.1rem; font-weight: 700; color: var(--accent-light); }
-    .cat-summary-card .cat-margin { font-size: 0.72rem; color: var(--muted); }
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--card); border-radius: 16px; padding: 24px; width: 100%; max-width: 600px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); max-height: 90vh; overflow-y: auto; }
+    .modal h3 { font-size: 1.1rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .modal p { color: var(--muted); font-size: 0.85rem; margin-bottom: 16px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: var(--muted); }
+    .form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+    .bulk-preview { max-height: 300px; overflow-y: auto; margin: 16px 0; border: 1px solid var(--border); border-radius: 8px; }
+    .bulk-preview table { width: 100%; font-size: 0.8rem; border-collapse: collapse; }
+    .bulk-preview th, .bulk-preview td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+    .bulk-preview th { background: #f7fafc; font-weight: 600; color: var(--muted); font-size: 0.72rem; text-transform: uppercase; }
 
     /* Toast */
-    .toast {
-      position: fixed; bottom: 24px; right: 24px;
-      background: var(--green); color: #fff;
-      padding: 12px 20px; border-radius: 10px;
-      font-size: 0.85rem; font-weight: 600;
-      transform: translateY(80px); opacity: 0;
-      transition: all 0.3s; z-index: 200;
-    }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--success); color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; transform: translateY(80px); opacity: 0; transition: all 0.3s; z-index: 200; }
     .toast.show { transform: translateY(0); opacity: 1; }
 
     /* Responsive */
     @media (max-width: 768px) {
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
-      .filters-bar input[type="text"] { min-width: 100%; }
-      .cat-summary-grid { grid-template-columns: repeat(3, 1fr); }
+      .filters-bar { flex-direction: column; }
+      .filters-bar input, .filters-bar select { width: 100%; }
+      .bulk-bar { flex-direction: column; align-items: stretch; }
+      .tier-cards { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
 </head>
 <body>
+<script src="/nav.js"></script>
 <div class="app">
-
-  <!-- Nav -->
-  <nav class="top-nav">
-    <span class="nav-brand">🏪 Kande VendTech</span>
-    <a href="/">Dashboard</a>
-    <a href="/crm.html">CRM</a>
-    <a href="/finance.html">Finance</a>
-    <a href="/pricing" class="active">💰 Pricing</a>
-    <a href="/tax-strategy">Tax</a>
-    <a href="/competitors.html">Competitors</a>
-    <span class="nav-spacer"></span>
-    <a href="/ai-office.html">🤖 AI Office</a>
-  </nav>
-
   <!-- Header -->
   <div class="page-header">
-    <h1>💰 Pricing Comparison Dashboard</h1>
-    <p>3,315 VendHub products — cost analysis, margin optimization, and bulk pricing tools</p>
+    <div>
+      <h1>💰 Product Pricing</h1>
+      <p>Smart pricing engine with 33% COGS target (3× markup) — 3,315 products from VendHub catalog</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-success" onclick="openBulkModal()">⚡ Bulk Price Tool</button>
+      <button class="btn" onclick="exportCSV()">📥 Export CSV</button>
+    </div>
   </div>
 
   <!-- Stats -->
-  <div class="stats-grid" id="statsGrid">
-    <div class="stat-card">
-      <div class="stat-value v-accent" id="statTotal">—</div>
-      <div class="stat-label">Total Products</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value v-green" id="statPriced">—</div>
-      <div class="stat-label">Prices Set</div>
-      <div class="stat-sub" id="statPricedPct"></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value v-red" id="statUnpriced">—</div>
-      <div class="stat-label">Unpriced</div>
-      <div class="stat-sub" id="statUnpricedPct"></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value v-yellow" id="statAvgMargin">—</div>
-      <div class="stat-label">Avg Margin (Priced)</div>
-      <div class="stat-sub" id="statMarginNote"></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value v-orange" id="statLowMargin">—</div>
-      <div class="stat-label">Low Margin (&lt;40%)</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value v-purple" id="statOpportunity">—</div>
-      <div class="stat-label">Revenue Opportunity</div>
-      <div class="stat-sub" id="statOppNote"></div>
-    </div>
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card"><div class="value accent" id="statTotal">—</div><div class="label">Total Products</div></div>
+    <div class="stat-card"><div class="value success" id="statPriced">—</div><div class="label">Priced</div><div class="sub" id="statPricedPct"></div></div>
+    <div class="stat-card"><div class="value danger" id="statUnpriced">—</div><div class="label">Unpriced</div></div>
+    <div class="stat-card"><div class="value warn" id="statAvgMargin">—</div><div class="label">Avg Margin</div><div class="sub" id="statMarginNote"></div></div>
+    <div class="stat-card"><div class="value purple" id="statTarget3x">—</div><div class="label">At 3× Target</div></div>
+    <div class="stat-card"><div class="value accent" id="statPotentialRev">—</div><div class="label">Daily Rev (100 units)</div></div>
   </div>
 
-  <!-- Category Summary -->
-  <div class="cat-summary-grid" id="catSummary"></div>
-
-  <!-- Filters -->
-  <div class="filters-bar">
-    <input type="text" id="searchInput" placeholder="🔍 Search by name or brand...">
-    <select id="categoryFilter">
-      <option value="">All Categories</option>
-    </select>
-    <select id="statusFilter">
-      <option value="">All Status</option>
-      <option value="priced">✅ Priced</option>
-      <option value="unpriced">⚪ Unpriced</option>
-      <option value="good">🟢 Good Margin (60%+)</option>
-      <option value="review">🟡 Review (40-59%)</option>
-      <option value="low">🔴 Low Margin (&lt;40%)</option>
-    </select>
-    <select id="perPage">
-      <option value="50">50 per page</option>
-      <option value="100" selected>100 per page</option>
-      <option value="250">250 per page</option>
-      <option value="500">500 per page</option>
-    </select>
-    <button class="btn btn-primary" onclick="openBulkModal()">⚡ Bulk Price Tool</button>
-    <button class="btn btn-outline" onclick="exportCSV()">📥 Export CSV</button>
-    <span class="filter-count" id="filterCount"></span>
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="products" onclick="switchTab('products', this)">📦 All Products</button>
+    <button class="tab-btn" data-tab="tiers" onclick="switchTab('tiers', this)">📊 Price Tiers</button>
+    <button class="tab-btn" data-tab="calculator" onclick="switchTab('calculator', this)">🧮 Margin Calculator</button>
   </div>
 
-  <!-- Table -->
-  <div class="table-wrap">
-    <div class="table-scroll">
-      <table>
+  <!-- ===== PRODUCTS TAB ===== -->
+  <div id="tab-products">
+    <!-- Category Quick Filter -->
+    <div class="cat-cards" id="catCards"></div>
+
+    <!-- Filters -->
+    <div class="filters-bar">
+      <input type="text" id="searchInput" placeholder="🔍 Search by name or brand...">
+      <select id="categoryFilter">
+        <option value="">All Categories</option>
+      </select>
+      <select id="statusFilter">
+        <option value="">All Status</option>
+        <option value="priced">✅ Priced</option>
+        <option value="unpriced">⚠️ Unpriced</option>
+        <option value="good">🟢 Good Margin (60%+)</option>
+        <option value="review">🟡 Review (40-59%)</option>
+        <option value="low">🔴 Low Margin (<40%)</option>
+        <option value="above3x">✓ At/Above 3× Markup</option>
+        <option value="below3x">✗ Below 3× Markup</option>
+      </select>
+      <select id="perPage">
+        <option value="50">50 per page</option>
+        <option value="100" selected>100 per page</option>
+        <option value="250">250 per page</option>
+        <option value="500">500 per page</option>
+      </select>
+      <span class="filter-count" id="filterCount"></span>
+    </div>
+
+    <!-- Bulk Actions Bar -->
+    <div class="bulk-bar" id="bulkBar">
+      <span class="selected-count"><span id="selectedCount">0</span> products selected</span>
+      <select id="bulkAction">
+        <option value="markup_pct">Apply % Markup</option>
+        <option value="flat_add">Add Flat Amount</option>
+        <option value="set_3x">Set to 3× COGS</option>
+        <option value="round_quarter">Round to $.25</option>
+      </select>
+      <input type="number" id="bulkValue" step="0.01" placeholder="Value">
+      <button class="btn btn-primary btn-sm" onclick="applyBulkAction()">Apply</button>
+      <button class="btn btn-sm" onclick="clearSelection()">Clear Selection</button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-container">
+      <table class="data-table">
         <thead>
           <tr>
+            <th style="width:40px"><input type="checkbox" id="selectAll" onclick="toggleSelectAll()" class="row-check"></th>
             <th style="width:50px">IMG</th>
             <th onclick="sortBy('name')">Name <span class="sort-icon" id="sort-name"></span></th>
             <th onclick="sortBy('brand')">Brand <span class="sort-icon" id="sort-brand"></span></th>
             <th onclick="sortBy('size')">Size <span class="sort-icon" id="sort-size"></span></th>
             <th onclick="sortBy('category')">Category <span class="sort-icon" id="sort-category"></span></th>
-            <th onclick="sortBy('unitPrice')">Cost <span class="sort-icon" id="sort-unitPrice"></span></th>
-            <th onclick="sortBy('currentPrice')">Current Price <span class="sort-icon" id="sort-currentPrice"></span></th>
-            <th onclick="sortBy('suggestedPrice')">Suggested <span class="sort-icon" id="sort-suggestedPrice"></span></th>
-            <th onclick="sortBy('margin')">Margin % <span class="sort-icon" id="sort-margin"></span></th>
-            <th onclick="sortBy('status')">Status <span class="sort-icon" id="sort-status"></span></th>
+            <th onclick="sortBy('unitPrice')">COGS <span class="sort-icon" id="sort-unitPrice"></span></th>
+            <th onclick="sortBy('currentPrice')">Current <span class="sort-icon" id="sort-currentPrice"></span></th>
+            <th onclick="sortBy('suggestedPrice')">Suggested (3×) <span class="sort-icon" id="sort-suggestedPrice"></span></th>
+            <th onclick="sortBy('margin')">Margin <span class="sort-icon" id="sort-margin"></span></th>
+            <th onclick="sortBy('markup')">Markup <span class="sort-icon" id="sort-markup"></span></th>
+            <th style="width:100px">Set Price</th>
           </tr>
         </thead>
         <tbody id="tableBody"></tbody>
@@ -364,18 +279,171 @@
     </div>
     <div class="pagination" id="pagination"></div>
   </div>
+
+  <!-- ===== TIERS TAB ===== -->
+  <div id="tab-tiers" style="display:none">
+    <div class="tier-cards" id="tierCards"></div>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Tier</th>
+            <th>Price Range</th>
+            <th>Products</th>
+            <th>Avg COGS</th>
+            <th>Avg Margin</th>
+            <th>Daily Rev (10 ea)</th>
+            <th>Weekly Rev</th>
+            <th>Top Categories</th>
+          </tr>
+        </thead>
+        <tbody id="tierTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== CALCULATOR TAB ===== -->
+  <div id="tab-calculator" style="display:none">
+    <div class="calc-panel">
+      <h3>🧮 Margin & Revenue Calculator</h3>
+      <p>Enter product cost and desired margin to calculate optimal pricing and revenue projections.</p>
+      <div class="calc-grid">
+        <div class="calc-group">
+          <label>Product Cost (COGS)</label>
+          <input type="number" id="calcCost" step="0.01" placeholder="1.25" oninput="updateCalc()">
+        </div>
+        <div class="calc-group">
+          <label>Target Markup Multiplier</label>
+          <input type="number" id="calcMarkup" step="0.1" value="3" placeholder="3" oninput="updateCalc()">
+        </div>
+        <div class="calc-group">
+          <label>Estimated Daily Sales (units)</label>
+          <input type="number" id="calcDaily" value="10" placeholder="10" oninput="updateCalc()">
+        </div>
+        <div class="calc-group">
+          <label>Category (for suggested pricing)</label>
+          <select id="calcCategory" onchange="updateCalc()">
+            <option value="cold_beverage">Cold Beverage</option>
+            <option value="snacks">Snacks</option>
+            <option value="candy">Candy</option>
+            <option value="hot_drink">Hot Drink</option>
+            <option value="refrigerated">Refrigerated</option>
+            <option value="frozen_foods">Frozen Foods</option>
+            <option value="health_beauty">Health & Beauty</option>
+            <option value="specialty_better4you">Specialty/Better4You</option>
+            <option value="hot_foods">Hot Foods</option>
+          </select>
+        </div>
+      </div>
+      <div class="calc-results">
+        <div class="calc-results-grid">
+          <div class="calc-result-item">
+            <div class="result-value" id="calcSellPrice" style="color:var(--accent)">$0.00</div>
+            <div class="result-label">Sell Price</div>
+          </div>
+          <div class="calc-result-item">
+            <div class="result-value" id="calcProfit" style="color:var(--success)">$0.00</div>
+            <div class="result-label">Profit Per Unit</div>
+          </div>
+          <div class="calc-result-item">
+            <div class="result-value" id="calcMargin" style="color:var(--warn)">0%</div>
+            <div class="result-label">Margin %</div>
+          </div>
+          <div class="calc-result-item">
+            <div class="result-value" id="calcCOGS" style="color:var(--purple)">0%</div>
+            <div class="result-label">COGS %</div>
+          </div>
+          <div class="calc-result-item">
+            <div class="result-value" id="calcDailyRev" style="color:var(--accent)">$0</div>
+            <div class="result-label">Daily Revenue</div>
+          </div>
+          <div class="calc-result-item">
+            <div class="result-value" id="calcDailyProfit" style="color:var(--success)">$0</div>
+            <div class="result-label">Daily Profit</div>
+          </div>
+          <div class="calc-result-item">
+            <div class="result-value" id="calcWeeklyRev" style="color:var(--accent)">$0</div>
+            <div class="result-label">Weekly Revenue</div>
+          </div>
+          <div class="calc-result-item">
+            <div class="result-value" id="calcWeeklyProfit" style="color:var(--success)">$0</div>
+            <div class="result-label">Weekly Profit</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category Pricing Guidelines -->
+    <div class="calc-panel">
+      <h3>📋 Category Pricing Guidelines (VENDTECH-RULES: 33% COGS = 3× Markup)</h3>
+      <div class="table-container" style="margin-top:12px">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Target Markup</th>
+              <th>Min Price</th>
+              <th>Typical Range</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="cat-badge cat-cold_beverage">Cold Beverage</span></td><td>2.5-3×</td><td>$1.75</td><td>$2.00-$4.00</td><td>Energy drinks $3-4, water $1.50-2, soda $1.75-2.50</td></tr>
+            <tr><td><span class="cat-badge cat-snacks">Snacks</span></td><td>3×</td><td>$2.00</td><td>$2.00-$2.50</td><td>Chips, crackers — impulse pricing</td></tr>
+            <tr><td><span class="cat-badge cat-candy">Candy</span></td><td>3×</td><td>$2.00</td><td>$2.00-$2.50</td><td>Chocolate bars, gum, mints</td></tr>
+            <tr><td><span class="cat-badge cat-hot_drink">Hot Drink</span></td><td>2.5×</td><td>$1.50</td><td>$1.50-$3.00</td><td>Coffee, hot chocolate</td></tr>
+            <tr><td><span class="cat-badge cat-refrigerated">Refrigerated</span></td><td>2.5×</td><td>$3.50</td><td>$3.50-$5.00</td><td>Sandwiches, salads — premium pricing</td></tr>
+            <tr><td><span class="cat-badge cat-frozen_foods">Frozen Foods</span></td><td>2.5×</td><td>$4.00</td><td>$4.00-$6.00</td><td>Ice cream, frozen meals</td></tr>
+            <tr><td><span class="cat-badge cat-health_beauty">Health & Beauty</span></td><td>3×</td><td>$3.50</td><td>$3.50-$6.00</td><td>OTC meds, toiletries — convenience premium</td></tr>
+            <tr><td><span class="cat-badge cat-specialty_better4you">Specialty/Better4You</span></td><td>3×</td><td>$2.50</td><td>$2.50-$4.00</td><td>Protein bars, healthy snacks</td></tr>
+            <tr><td><span class="cat-badge cat-hot_foods">Hot Foods</span></td><td>2-2.5×</td><td>$4.00</td><td>$4.00-$7.00</td><td>Hot sandwiches, pizza — perishable</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Bulk Price Modal -->
 <div class="modal-overlay" id="bulkModal">
   <div class="modal">
-    <h2>⚡ Bulk Pricing Tool</h2>
-    <p id="bulkInfo">Generate suggested prices for all unpriced items based on category-specific markup rules and Las Vegas market data.</p>
-    <div id="bulkPreview" style="max-height:300px;overflow-y:auto;margin-bottom:14px;"></div>
+    <h3>⚡ Bulk Pricing Tool</h3>
+    <p>Generate suggested prices for all unpriced items based on 3× COGS markup (33% target) and category rules.</p>
+    
+    <div class="form-row">
+      <div class="form-group">
+        <label>Apply To</label>
+        <select id="bulkApplyTo">
+          <option value="unpriced">Unpriced Only (default)</option>
+          <option value="all">All Products</option>
+          <option value="below3x">Below 3× Markup</option>
+          <option value="selected">Selected Products</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Action</label>
+        <select id="bulkModalAction" onchange="updateBulkPreview()">
+          <option value="set_3x">Set to 3× COGS (33% Target)</option>
+          <option value="category_rules">Use Category Rules</option>
+          <option value="markup_pct">Custom % Markup from COGS</option>
+          <option value="flat_add">Add Flat Amount to Current</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" id="bulkCustomValueGroup" style="display:none">
+      <label>Value</label>
+      <input type="number" id="bulkModalValue" step="0.01" placeholder="Enter value...">
+    </div>
+    
+    <div id="bulkPreviewContainer">
+      <div style="font-size:0.85rem;color:var(--muted);margin-bottom:8px"><strong id="bulkPreviewCount">0</strong> products will be updated</div>
+      <div class="bulk-preview" id="bulkPreviewTable"></div>
+    </div>
+    
     <div class="modal-actions">
-      <button class="btn btn-success" onclick="generateBulkJSON()">📥 Download Pricing JSON</button>
-      <button class="btn btn-primary" onclick="generateBulkCSV()">📊 Download CSV</button>
-      <button class="btn btn-outline" onclick="closeBulkModal()">Close</button>
+      <button class="btn" onclick="closeBulkModal()">Cancel</button>
+      <button class="btn btn-success" onclick="downloadBulkJSON()">📥 Download JSON</button>
+      <button class="btn btn-primary" onclick="applyBulkPrices()">✓ Apply Prices</button>
     </div>
   </div>
 </div>
@@ -388,102 +456,74 @@
 
 <script>
 // ============================================================
-// PRICING ENGINE — Category-specific rules from Skool research
+// PRICING ENGINE — Based on VENDTECH-RULES.md (33% COGS = 3× Markup)
 // ============================================================
 
 const PRICING_RULES = {
-  candy:                { markup: 3.0, min: 2.50, label: 'Candy' },
-  snacks:               { markup: 3.0, min: 2.50, label: 'Snacks' },
-  cold_beverage:        { markup: 2.5, min: 1.75, label: 'Cold Beverage' },
-  frozen_foods:         { markup: 2.5, min: 4.99, label: 'Frozen Foods' },
-  health_beauty:        { markup: 3.0, min: 3.99, label: 'Health & Beauty' },
-  hot_drink:            { markup: 2.5, min: 1.50, label: 'Hot Drink' },
-  refrigerated:         { markup: 2.5, min: 3.99, label: 'Refrigerated' },
-  specialty_better4you: { markup: 3.0, min: 2.99, label: 'Specialty/Better4You' },
-  hot_foods:            { markup: 2.0, min: 4.99, label: 'Hot Foods' }
+  candy:                { markup: 3.0, min: 2.00, max: 3.00, label: 'Candy' },
+  snacks:               { markup: 3.0, min: 2.00, max: 2.50, label: 'Snacks' },
+  cold_beverage:        { markup: 2.5, min: 1.75, max: 4.00, label: 'Cold Beverage' },
+  frozen_foods:         { markup: 2.5, min: 4.00, max: 6.00, label: 'Frozen Foods' },
+  health_beauty:        { markup: 3.0, min: 3.50, max: 6.00, label: 'Health & Beauty' },
+  hot_drink:            { markup: 2.5, min: 1.50, max: 3.00, label: 'Hot Drink' },
+  refrigerated:         { markup: 2.5, min: 3.50, max: 5.00, label: 'Refrigerated' },
+  specialty_better4you: { markup: 3.0, min: 2.50, max: 4.00, label: 'Specialty/Better4You' },
+  hot_foods:            { markup: 2.0, min: 4.00, max: 7.00, label: 'Hot Foods' }
 };
 
 // Beverage sub-type detection for smarter pricing
 const BEVERAGE_PATTERNS = {
-  energy: {
-    keywords: ['energy', 'monster', 'celsius', 'red bull', 'bang', 'ghost', 'c4', 'reign', 'rockstar', '5 hour', '5hour', 'joy burst', 'alani', 'xyience', 'nos ', 'g fuel', 'zoa'],
-    priceRange: [3.00, 4.00]
-  },
-  water: {
-    keywords: ['water', 'fiji', 'voss', 'dasani', 'aquafina', 'smartwater', 'evian', 'liquid death', 'essentia', 'core hydration', 'lifewtr'],
-    priceRange: [2.00, 4.00]
-  },
-  soda: {
-    keywords: ['soda', 'cola', 'coke', 'pepsi', 'sprite', 'fanta', 'dr pepper', 'dr.pepper', 'mtn dew', 'mountain dew', '7 up', '7up', 'root beer', 'a w ', 'a&w', 'sierra mist', 'sunkist', 'crush', 'jarritos', 'ginger ale', 'canada dry', 'squirt', 'big red'],
-    priceRange: [1.75, 2.75]
-  },
-  juice: {
-    keywords: ['juice', 'lemonade', 'tropicana', 'minute maid', 'naked', 'ocean spray', 'v8', 'simply', 'snapple', 'capri sun', 'kool aid', 'hi-c'],
-    priceRange: [2.00, 3.50]
-  },
-  tea: {
-    keywords: ['tea', 'brisk', 'arizona', 'pure leaf', 'gold peak', 'honest tea'],
-    priceRange: [2.00, 3.00]
-  },
-  sports: {
-    keywords: ['gatorade', 'powerade', 'bodyarmor', 'electrolit', 'prime', 'biosteel'],
-    priceRange: [2.50, 3.50]
-  },
-  milk_protein: {
-    keywords: ['milk', 'fairlife', 'protein shake', 'muscle milk', 'premier protein', 'core power', 'yoo-hoo', 'nesquik'],
-    priceRange: [3.00, 4.50]
-  },
-  coffee: {
-    keywords: ['coffee', 'starbucks', 'dunkin', 'java', 'cold brew', 'frappuccino', 'latte'],
-    priceRange: [3.00, 4.50]
-  }
+  energy: { keywords: ['energy', 'monster', 'celsius', 'red bull', 'bang', 'ghost', 'c4', 'reign', 'rockstar', '5 hour', 'alani', 'zoa', 'nos '], range: [3.00, 4.00] },
+  water: { keywords: ['water', 'fiji', 'voss', 'dasani', 'aquafina', 'smartwater', 'evian', 'liquid death', 'essentia', 'core hydration'], range: [1.50, 3.00] },
+  soda: { keywords: ['soda', 'cola', 'coke', 'pepsi', 'sprite', 'fanta', 'dr pepper', 'mtn dew', 'mountain dew', '7up', 'root beer', 'ginger ale', 'jarritos'], range: [1.75, 2.50] },
+  juice: { keywords: ['juice', 'lemonade', 'tropicana', 'minute maid', 'naked', 'ocean spray', 'v8', 'simply', 'snapple'], range: [2.00, 3.50] },
+  tea: { keywords: ['tea', 'brisk', 'arizona', 'pure leaf', 'gold peak', 'honest tea'], range: [2.00, 3.00] },
+  sports: { keywords: ['gatorade', 'powerade', 'bodyarmor', 'electrolit', 'prime', 'biosteel'], range: [2.50, 3.50] },
+  milk_protein: { keywords: ['milk', 'fairlife', 'protein shake', 'muscle milk', 'premier protein', 'core power'], range: [3.00, 4.50] },
+  coffee: { keywords: ['coffee', 'starbucks', 'dunkin', 'cold brew', 'frappuccino', 'latte'], range: [3.00, 4.50] }
 };
 
 function detectBeverageType(product) {
   const name = (product.name || '').toLowerCase();
   const brand = (product.brand || '').toLowerCase();
   const combined = name + ' ' + brand;
-
   for (const [type, config] of Object.entries(BEVERAGE_PATTERNS)) {
-    if (config.keywords.some(kw => combined.includes(kw))) {
-      return { type, ...config };
-    }
+    if (config.keywords.some(kw => combined.includes(kw))) return { type, ...config };
   }
   return null;
 }
 
-function calculateSuggestedPrice(product) {
+function calculateSuggestedPrice(product, useCategory = true) {
   const cost = product.unitPrice || 0;
   if (cost <= 0) return 0;
 
-  const cat = product.category || '';
-  const rule = PRICING_RULES[cat] || { markup: 3.0, min: 2.50 };
+  // Default: 3× COGS (33% target from VENDTECH-RULES)
+  let price = cost * 3;
 
-  let price;
+  if (useCategory) {
+    const cat = product.category || '';
+    const rule = PRICING_RULES[cat] || { markup: 3.0, min: 2.00 };
 
-  // Special handling for cold beverages
-  if (cat === 'cold_beverage') {
-    const bevType = detectBeverageType(product);
-    if (bevType) {
-      // Use cost-based markup but clamp to market range
-      const markupPrice = cost * 2.5;
-      const [minPrice, maxPrice] = bevType.priceRange;
-      // Smart pricing: use markup unless it falls below market range
-      price = Math.max(markupPrice, minPrice);
-      price = Math.min(price, maxPrice + 1.00); // Allow some headroom above range max
-      // Round to nearest .25
-      price = Math.round(price * 4) / 4;
+    // Special handling for cold beverages
+    if (cat === 'cold_beverage') {
+      const bevType = detectBeverageType(product);
+      if (bevType) {
+        const markupPrice = cost * 2.5;
+        const [minPrice, maxPrice] = bevType.range;
+        price = Math.max(markupPrice, minPrice);
+        price = Math.min(price, maxPrice + 0.50);
+      } else {
+        price = Math.max(cost * rule.markup, rule.min);
+      }
     } else {
       price = Math.max(cost * rule.markup, rule.min);
-      price = Math.round(price * 4) / 4;
     }
-  } else {
-    price = Math.max(cost * rule.markup, rule.min);
-    // Round to nearest .25 for clean pricing
-    price = Math.round(price * 4) / 4;
   }
 
-  // Final sanity: never suggest below cost
+  // Round to nearest .25
+  price = Math.round(price * 4) / 4;
+  
+  // Never suggest below cost
   if (price <= cost) price = Math.ceil(cost * 2 * 4) / 4;
 
   return price;
@@ -494,40 +534,58 @@ function calculateMargin(cost, sellPrice) {
   return ((sellPrice - cost) / sellPrice) * 100;
 }
 
-function getStatus(product, margin) {
-  if (!product.vendingPriceOverride) return { emoji: '⚪', label: 'Unpriced', cls: 'v-muted' };
-  if (margin >= 60) return { emoji: '🟢', label: 'Good', cls: 'v-green' };
-  if (margin >= 40) return { emoji: '🟡', label: 'Review', cls: 'v-yellow' };
-  return { emoji: '🔴', label: 'Low', cls: 'v-red' };
+function calculateMarkup(cost, sellPrice) {
+  if (!cost || cost <= 0) return 0;
+  return sellPrice / cost;
 }
 
+// ============================================================
+// STATE
+// ============================================================
+
+let processedData = [];
+let filteredData = [];
+let selectedIds = new Set();
+let sortField = 'category';
+let sortDir = 1;
+let currentPage = 1;
+let activeTab = 'products';
+let activeTier = null;
+let activeCat = null;
 
 // ============================================================
 // DATA PROCESSING
 // ============================================================
 
-let processedData = [];
-let filteredData = [];
-let sortField = 'category';
-let sortDir = 1; // 1 = asc, -1 = desc
-let currentPage = 1;
-
 function processProducts() {
   processedData = PRODUCTS.map(p => {
-    const suggested = calculateSuggestedPrice(p);
+    const suggested = calculateSuggestedPrice(p, true);
+    const suggested3x = Math.round(p.unitPrice * 3 * 4) / 4; // Pure 3× for comparison
     const activePrice = p.vendingPriceOverride || null;
-    const margin = activePrice ? calculateMargin(p.unitPrice, activePrice) : calculateMargin(p.unitPrice, suggested);
-    const status = getStatus(p, activePrice ? calculateMargin(p.unitPrice, activePrice) : -1);
+    const margin = activePrice ? calculateMargin(p.unitPrice, activePrice) : null;
+    const suggestedMargin = calculateMargin(p.unitPrice, suggested);
+    const markup = activePrice ? calculateMarkup(p.unitPrice, activePrice) : null;
+    const suggestedMarkup = calculateMarkup(p.unitPrice, suggested);
     const bevType = p.category === 'cold_beverage' ? detectBeverageType(p) : null;
+
+    // Determine tier
+    const price = activePrice || suggested;
+    let tier = '$4+';
+    if (price < 2) tier = '$1-2';
+    else if (price < 3) tier = '$2-3';
+    else if (price < 4) tier = '$3-4';
 
     return {
       ...p,
       suggestedPrice: suggested,
+      suggested3x,
       currentPrice: activePrice,
-      margin: activePrice ? calculateMargin(p.unitPrice, activePrice) : null,
-      suggestedMargin: calculateMargin(p.unitPrice, suggested),
-      status,
-      bevType: bevType ? bevType.type : null
+      margin,
+      suggestedMargin,
+      markup,
+      suggestedMarkup,
+      bevType: bevType ? bevType.type : null,
+      tier
     };
   });
 }
@@ -537,74 +595,49 @@ function computeStats() {
   const priced = processedData.filter(p => p.currentPrice);
   const unpriced = processedData.filter(p => !p.currentPrice);
   const pricedCount = priced.length;
-  const unpricedCount = unpriced.length;
 
-  const avgMargin = pricedCount > 0
-    ? priced.reduce((s, p) => s + p.margin, 0) / pricedCount
-    : 0;
+  const avgMargin = pricedCount > 0 ? priced.reduce((s, p) => s + p.margin, 0) / pricedCount : 0;
+  
+  // Products at or above 3× markup
+  const at3x = priced.filter(p => p.markup >= 3).length;
 
-  const lowMarginCount = priced.filter(p => p.margin < 40).length;
-
-  // Revenue opportunity: if every unpriced item gets suggested price,
-  // plus low-margin items get corrected — show potential per-unit margin gain
-  let oppGain = 0;
-  unpriced.forEach(p => {
-    oppGain += (p.suggestedPrice - p.unitPrice);
-  });
-  priced.filter(p => p.margin < 60).forEach(p => {
-    const targetPrice = p.suggestedPrice;
-    const currentGain = p.currentPrice - p.unitPrice;
-    const suggestedGain = targetPrice - p.unitPrice;
-    if (suggestedGain > currentGain) oppGain += (suggestedGain - currentGain);
-  });
+  // Potential daily revenue if we sell 100 units (1 of each of top 100)
+  const avgPrice = processedData.slice(0, 100).reduce((s, p) => s + (p.currentPrice || p.suggestedPrice), 0) / Math.min(100, total);
+  const dailyRev = avgPrice * 100;
 
   document.getElementById('statTotal').textContent = total.toLocaleString();
   document.getElementById('statPriced').textContent = pricedCount.toLocaleString();
-  document.getElementById('statPricedPct').textContent = `${((pricedCount/total)*100).toFixed(1)}% of catalog`;
-  document.getElementById('statUnpriced').textContent = unpricedCount.toLocaleString();
-  document.getElementById('statUnpricedPct').textContent = `${((unpricedCount/total)*100).toFixed(1)}% need pricing`;
+  document.getElementById('statPricedPct').textContent = `${((pricedCount/total)*100).toFixed(1)}%`;
+  document.getElementById('statUnpriced').textContent = unpriced.length.toLocaleString();
   document.getElementById('statAvgMargin').textContent = avgMargin.toFixed(1) + '%';
-  document.getElementById('statMarginNote').textContent = avgMargin >= 60 ? '✅ On target' : '⚠️ Below 60% target';
-  document.getElementById('statLowMargin').textContent = lowMarginCount.toLocaleString();
-  document.getElementById('statOpportunity').textContent = '$' + oppGain.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  document.getElementById('statOppNote').textContent = 'Per-unit margin gain if optimized';
+  document.getElementById('statMarginNote').textContent = avgMargin >= 66 ? '✅ At 3× target' : avgMargin >= 50 ? '⚠️ Below target' : '❌ Low';
+  document.getElementById('statTarget3x').textContent = at3x.toLocaleString();
+  document.getElementById('statPotentialRev').textContent = '$' + dailyRev.toFixed(0);
 }
 
-function buildCategorySummary() {
+function buildCategoryCards() {
   const cats = {};
   processedData.forEach(p => {
-    const c = p.category || 'unknown';
-    if (!cats[c]) cats[c] = { count: 0, priced: 0, totalMargin: 0, pricedCount: 0 };
+    const c = p.category || 'other';
+    if (!cats[c]) cats[c] = { count: 0, priced: 0 };
     cats[c].count++;
-    if (p.currentPrice) {
-      cats[c].priced++;
-      cats[c].totalMargin += p.margin;
-      cats[c].pricedCount++;
-    }
+    if (p.currentPrice) cats[c].priced++;
   });
 
-  const container = document.getElementById('catSummary');
-  container.innerHTML = '';
+  const container = document.getElementById('catCards');
+  container.innerHTML = '<div class="cat-card' + (activeCat === null ? ' active' : '') + '" onclick="filterByCategory(null, this)"><div class="cat-name">All</div><div class="cat-count">' + processedData.length + '</div><div class="cat-markup">Full catalog</div></div>';
 
   Object.entries(cats)
     .sort((a, b) => b[1].count - a[1].count)
     .forEach(([cat, data]) => {
-      const avgM = data.pricedCount > 0 ? (data.totalMargin / data.pricedCount).toFixed(0) : '—';
       const rule = PRICING_RULES[cat];
       const label = rule ? rule.label : cat;
-      const card = document.createElement('div');
-      card.className = 'cat-summary-card';
-      card.onclick = () => {
-        document.getElementById('categoryFilter').value = cat;
-        applyFilters();
-        card.classList.toggle('active');
-      };
-      card.innerHTML = `
-        <div class="cat-name"><span class="cat-badge cat-${cat}">${label}</span></div>
+      const markup = rule ? rule.markup + '×' : '3×';
+      container.innerHTML += `<div class="cat-card${activeCat === cat ? ' active' : ''}" onclick="filterByCategory('${cat}', this)">
+        <div class="cat-name">${label}</div>
         <div class="cat-count">${data.count}</div>
-        <div class="cat-margin">${data.priced}/${data.count} priced · Avg margin: ${avgM}%</div>
-      `;
-      container.appendChild(card);
+        <div class="cat-markup">${data.priced}/${data.count} priced · ${markup}</div>
+      </div>`;
     });
 }
 
@@ -622,10 +655,17 @@ function populateCategoryFilter() {
   });
 }
 
-
 // ============================================================
 // FILTERING & SORTING
 // ============================================================
+
+function filterByCategory(cat, el) {
+  activeCat = cat;
+  document.querySelectorAll('.cat-card').forEach(c => c.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('categoryFilter').value = cat || '';
+  applyFilters();
+}
 
 function applyFilters() {
   const search = document.getElementById('searchInput').value.toLowerCase().trim();
@@ -635,18 +675,23 @@ function applyFilters() {
   filteredData = processedData.filter(p => {
     if (search && !(p.name.toLowerCase().includes(search) || (p.brand||'').toLowerCase().includes(search))) return false;
     if (cat && p.category !== cat) return false;
+    if (activeTier && p.tier !== activeTier) return false;
+    
     if (status === 'priced' && !p.currentPrice) return false;
     if (status === 'unpriced' && p.currentPrice) return false;
     if (status === 'good' && (!p.currentPrice || p.margin < 60)) return false;
     if (status === 'review' && (!p.currentPrice || p.margin < 40 || p.margin >= 60)) return false;
     if (status === 'low' && (!p.currentPrice || p.margin >= 40)) return false;
+    if (status === 'above3x' && (!p.currentPrice || p.markup < 3)) return false;
+    if (status === 'below3x' && (!p.currentPrice || p.markup >= 3)) return false;
+    
     return true;
   });
 
   applySorting();
   currentPage = 1;
   renderTable();
-  document.getElementById('filterCount').textContent = `Showing ${filteredData.length} of ${processedData.length} products`;
+  document.getElementById('filterCount').textContent = `Showing ${filteredData.length.toLocaleString()} of ${processedData.length.toLocaleString()}`;
 }
 
 function applySorting() {
@@ -661,11 +706,7 @@ function applySorting() {
       case 'currentPrice': va = a.currentPrice || 0; vb = b.currentPrice || 0; break;
       case 'suggestedPrice': va = a.suggestedPrice; vb = b.suggestedPrice; break;
       case 'margin': va = a.margin ?? a.suggestedMargin; vb = b.margin ?? b.suggestedMargin; break;
-      case 'status':
-        const order = { '🔴': 0, '🟡': 1, '⚪': 2, '🟢': 3 };
-        va = order[a.status.emoji] ?? 2;
-        vb = order[b.status.emoji] ?? 2;
-        break;
+      case 'markup': va = a.markup ?? a.suggestedMarkup; vb = b.markup ?? b.suggestedMarkup; break;
       default: va = a.name; vb = b.name;
     }
     if (typeof va === 'string') return sortDir * va.localeCompare(vb);
@@ -674,23 +715,14 @@ function applySorting() {
 }
 
 function sortBy(field) {
-  // Clear all sort icons
   document.querySelectorAll('.sort-icon').forEach(el => el.textContent = '');
-
-  if (sortField === field) {
-    sortDir *= -1;
-  } else {
-    sortField = field;
-    sortDir = 1;
-  }
-
+  if (sortField === field) sortDir *= -1;
+  else { sortField = field; sortDir = 1; }
   const icon = document.getElementById('sort-' + field);
   if (icon) icon.textContent = sortDir === 1 ? '▲' : '▼';
-
   applySorting();
   renderTable();
 }
-
 
 // ============================================================
 // RENDERING
@@ -703,56 +735,60 @@ function renderTable() {
   const tbody = document.getElementById('tableBody');
 
   tbody.innerHTML = pageData.map(p => {
+    const selected = selectedIds.has(p.id);
     const imgHtml = p.imageUrl
       ? `<img class="thumb" src="${p.imageUrl}" loading="lazy" onerror="this.outerHTML='<div class=thumb-placeholder>📦</div>'">`
       : '<div class="thumb-placeholder">📦</div>';
 
     const currentHtml = p.currentPrice
-      ? `<span class="price-val">$${p.currentPrice.toFixed(2)}</span>`
+      ? `<span class="price-cell price-current">$${p.currentPrice.toFixed(2)}</span>`
       : '<span class="price-not-set">NOT SET</span>';
 
-    const sugHtml = `<span class="price-val suggested">$${p.suggestedPrice.toFixed(2)}</span>`;
+    const sugHtml = `<span class="price-cell price-suggested">$${p.suggestedPrice.toFixed(2)}</span>`;
 
     const marginVal = p.margin !== null ? p.margin : p.suggestedMargin;
-    const marginColor = marginVal >= 60 ? 'v-green' : marginVal >= 40 ? 'v-yellow' : 'v-red';
+    const marginClass = marginVal >= 60 ? 'margin-good' : marginVal >= 40 ? 'margin-ok' : 'margin-low';
     const marginLabel = p.margin !== null ? `${p.margin.toFixed(1)}%` : `${p.suggestedMargin.toFixed(1)}%*`;
-    const marginHtml = `<span class="margin-val ${marginColor}">${marginLabel}</span>`;
 
-    const statusHtml = `<span class="status-badge">${p.status.emoji} ${p.status.label}</span>`;
+    const markupVal = p.markup !== null ? p.markup : p.suggestedMarkup;
+    const markupClass = markupVal >= 3 ? 'margin-good' : markupVal >= 2 ? 'margin-ok' : 'margin-low';
+    const markupLabel = markupVal ? `${markupVal.toFixed(2)}×` : '—';
 
-    return `<tr>
+    const catLabel = PRICING_RULES[p.category]?.label || p.category || 'Other';
+
+    return `<tr class="${selected ? 'selected' : ''}">
+      <td><input type="checkbox" class="row-check" ${selected ? 'checked' : ''} onchange="toggleSelect('${p.id}')"></td>
       <td>${imgHtml}</td>
-      <td style="max-width:220px">${escHtml(p.name)}</td>
+      <td style="max-width:200px">${escHtml(p.name)}</td>
       <td>${escHtml(p.brand || '—')}</td>
       <td>${escHtml(p.size || '—')}</td>
-      <td><span class="cat-badge cat-${p.category}">${(PRICING_RULES[p.category]?.label || p.category)}</span></td>
-      <td><span class="price-val">$${p.unitPrice.toFixed(2)}</span></td>
+      <td><span class="cat-badge cat-${p.category}">${catLabel}</span></td>
+      <td class="price-cell">$${p.unitPrice.toFixed(2)}</td>
       <td>${currentHtml}</td>
       <td>${sugHtml}</td>
-      <td>${marginHtml}</td>
-      <td>${statusHtml}</td>
+      <td><span class="margin-badge ${marginClass}">${marginLabel}</span></td>
+      <td><span class="margin-badge ${markupClass}">${markupLabel}</span></td>
+      <td><input type="number" class="price-input" value="${p.currentPrice ? p.currentPrice.toFixed(2) : ''}" placeholder="${p.suggestedPrice.toFixed(2)}" step="0.25" onchange="setPrice('${p.id}', this.value)"></td>
     </tr>`;
   }).join('');
 
   renderPagination(perPage);
+  updateBulkBar();
 }
 
 function renderPagination(perPage) {
   const totalPages = Math.ceil(filteredData.length / perPage);
   const container = document.getElementById('pagination');
-
   if (totalPages <= 1) { container.innerHTML = ''; return; }
 
   let html = `<button ${currentPage === 1 ? 'disabled' : ''} onclick="goPage(${currentPage-1})">← Prev</button>`;
   html += `<span class="page-info">Page ${currentPage} of ${totalPages}</span>`;
 
-  // Show page numbers around current
   const start = Math.max(1, currentPage - 3);
   const end = Math.min(totalPages, currentPage + 3);
   for (let i = start; i <= end; i++) {
     html += `<button class="${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
   }
-
   html += `<button ${currentPage === totalPages ? 'disabled' : ''} onclick="goPage(${currentPage+1})">Next →</button>`;
   container.innerHTML = html;
 }
@@ -760,7 +796,7 @@ function renderPagination(perPage) {
 function goPage(n) {
   currentPage = n;
   renderTable();
-  document.querySelector('.table-scroll').scrollTop = 0;
+  document.querySelector('.table-container').scrollTop = 0;
 }
 
 function escHtml(s) {
@@ -769,93 +805,420 @@ function escHtml(s) {
   return d.innerHTML;
 }
 
+// ============================================================
+// SELECTION
+// ============================================================
+
+function toggleSelect(id) {
+  if (selectedIds.has(id)) selectedIds.delete(id);
+  else selectedIds.add(id);
+  updateBulkBar();
+  // Update row highlight
+  renderTable();
+}
+
+function toggleSelectAll() {
+  const allChecked = document.getElementById('selectAll').checked;
+  const perPage = parseInt(document.getElementById('perPage').value);
+  const start = (currentPage - 1) * perPage;
+  const pageData = filteredData.slice(start, start + perPage);
+  
+  if (allChecked) {
+    pageData.forEach(p => selectedIds.add(p.id));
+  } else {
+    pageData.forEach(p => selectedIds.delete(p.id));
+  }
+  renderTable();
+}
+
+function clearSelection() {
+  selectedIds.clear();
+  document.getElementById('selectAll').checked = false;
+  renderTable();
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById('bulkBar');
+  const count = selectedIds.size;
+  document.getElementById('selectedCount').textContent = count;
+  bar.classList.toggle('show', count > 0);
+}
 
 // ============================================================
-// BULK PRICING TOOL
+// PRICE SETTING
+// ============================================================
+
+function setPrice(id, value) {
+  const price = parseFloat(value);
+  const product = processedData.find(p => p.id === id);
+  if (!product) return;
+  
+  if (isNaN(price) || price <= 0) {
+    product.currentPrice = null;
+    product.vendingPriceOverride = null;
+    product.margin = null;
+    product.markup = null;
+  } else {
+    product.currentPrice = price;
+    product.vendingPriceOverride = price;
+    product.margin = calculateMargin(product.unitPrice, price);
+    product.markup = calculateMarkup(product.unitPrice, price);
+  }
+  
+  computeStats();
+  showToast(`Price ${price > 0 ? 'set to $' + price.toFixed(2) : 'cleared'} for ${product.name}`);
+}
+
+function applyBulkAction() {
+  const action = document.getElementById('bulkAction').value;
+  const value = parseFloat(document.getElementById('bulkValue').value) || 0;
+  
+  if (selectedIds.size === 0) {
+    showToast('No products selected');
+    return;
+  }
+
+  let updated = 0;
+  selectedIds.forEach(id => {
+    const p = processedData.find(x => x.id === id);
+    if (!p) return;
+
+    let newPrice;
+    switch (action) {
+      case 'markup_pct':
+        newPrice = p.unitPrice * (1 + value / 100);
+        break;
+      case 'flat_add':
+        newPrice = (p.currentPrice || p.suggestedPrice) + value;
+        break;
+      case 'set_3x':
+        newPrice = p.unitPrice * 3;
+        break;
+      case 'round_quarter':
+        newPrice = Math.round((p.currentPrice || p.suggestedPrice) * 4) / 4;
+        break;
+    }
+    
+    if (newPrice > 0) {
+      newPrice = Math.round(newPrice * 4) / 4; // Round to .25
+      p.currentPrice = newPrice;
+      p.vendingPriceOverride = newPrice;
+      p.margin = calculateMargin(p.unitPrice, newPrice);
+      p.markup = calculateMarkup(p.unitPrice, newPrice);
+      updated++;
+    }
+  });
+
+  computeStats();
+  renderTable();
+  showToast(`Updated ${updated} products`);
+}
+
+// ============================================================
+// TABS
+// ============================================================
+
+function switchTab(tab, btn) {
+  activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  
+  document.getElementById('tab-products').style.display = tab === 'products' ? '' : 'none';
+  document.getElementById('tab-tiers').style.display = tab === 'tiers' ? '' : 'none';
+  document.getElementById('tab-calculator').style.display = tab === 'calculator' ? '' : 'none';
+  
+  if (tab === 'tiers') renderTiers();
+}
+
+// ============================================================
+// TIERS
+// ============================================================
+
+function renderTiers() {
+  const tiers = {
+    '$1-2': { icon: '🪙', min: 1, max: 2, products: [] },
+    '$2-3': { icon: '💵', min: 2, max: 3, products: [] },
+    '$3-4': { icon: '💰', min: 3, max: 4, products: [] },
+    '$4+': { icon: '💎', min: 4, max: 999, products: [] }
+  };
+
+  processedData.forEach(p => {
+    const price = p.currentPrice || p.suggestedPrice;
+    for (const [label, tier] of Object.entries(tiers)) {
+      if (price >= tier.min && price < tier.max) {
+        tier.products.push(p);
+        break;
+      }
+    }
+  });
+
+  // Tier cards
+  const cardsContainer = document.getElementById('tierCards');
+  cardsContainer.innerHTML = Object.entries(tiers).map(([label, tier]) => {
+    const count = tier.products.length;
+    const avgCost = count > 0 ? tier.products.reduce((s, p) => s + p.unitPrice, 0) / count : 0;
+    const avgMargin = count > 0 ? tier.products.filter(p => p.margin !== null).reduce((s, p) => s + p.margin, 0) / Math.max(1, tier.products.filter(p => p.margin !== null).length) : 0;
+    const isActive = activeTier === label;
+    
+    return `<div class="tier-card${isActive ? ' active' : ''}" onclick="filterByTier('${label}', this)">
+      <div class="tier-icon">${tier.icon}</div>
+      <div class="tier-label">${label}</div>
+      <div class="tier-range">${label === '$4+' ? '$4.00+' : `$${tier.min}.00 - $${tier.max}.00`}</div>
+      <div class="tier-count">${count}</div>
+      <div class="tier-stats">Avg COGS: $${avgCost.toFixed(2)} · Margin: ${avgMargin.toFixed(0)}%</div>
+    </div>`;
+  }).join('');
+
+  // Tier table
+  const tbody = document.getElementById('tierTableBody');
+  tbody.innerHTML = Object.entries(tiers).map(([label, tier]) => {
+    const count = tier.products.length;
+    if (count === 0) return '';
+    
+    const avgCost = tier.products.reduce((s, p) => s + p.unitPrice, 0) / count;
+    const avgPrice = tier.products.reduce((s, p) => s + (p.currentPrice || p.suggestedPrice), 0) / count;
+    const avgMargin = tier.products.filter(p => p.margin !== null).reduce((s, p) => s + p.margin, 0) / Math.max(1, tier.products.filter(p => p.margin !== null).length);
+    const dailyRev = avgPrice * 10;
+    const weeklyRev = dailyRev * 7;
+    
+    // Top categories
+    const catCounts = {};
+    tier.products.forEach(p => {
+      catCounts[p.category] = (catCounts[p.category] || 0) + 1;
+    });
+    const topCats = Object.entries(catCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([c, n]) => `<span class="cat-badge cat-${c}">${PRICING_RULES[c]?.label || c}</span>`)
+      .join(' ');
+    
+    return `<tr>
+      <td><strong>${label}</strong></td>
+      <td>${label === '$4+' ? '$4.00+' : `$${tier.min}.00 - $${tier.max - 0.01}`}</td>
+      <td><strong>${count}</strong></td>
+      <td>$${avgCost.toFixed(2)}</td>
+      <td><span class="margin-badge ${avgMargin >= 60 ? 'margin-good' : avgMargin >= 40 ? 'margin-ok' : 'margin-low'}">${avgMargin.toFixed(1)}%</span></td>
+      <td>$${dailyRev.toFixed(0)}</td>
+      <td>$${weeklyRev.toFixed(0)}</td>
+      <td>${topCats}</td>
+    </tr>`;
+  }).join('');
+}
+
+function filterByTier(tier, el) {
+  if (activeTier === tier) {
+    activeTier = null;
+  } else {
+    activeTier = tier;
+  }
+  
+  document.querySelectorAll('.tier-card').forEach(c => c.classList.remove('active'));
+  if (activeTier && el) el.classList.add('active');
+  
+  // Switch to products tab to show filtered results
+  switchTab('products', document.querySelector('[data-tab="products"]'));
+  applyFilters();
+}
+
+// ============================================================
+// CALCULATOR
+// ============================================================
+
+function updateCalc() {
+  const cost = parseFloat(document.getElementById('calcCost').value) || 0;
+  const markup = parseFloat(document.getElementById('calcMarkup').value) || 3;
+  const daily = parseInt(document.getElementById('calcDaily').value) || 10;
+  const category = document.getElementById('calcCategory').value;
+
+  const sellPrice = Math.round(cost * markup * 4) / 4;
+  const profit = sellPrice - cost;
+  const margin = sellPrice > 0 ? ((sellPrice - cost) / sellPrice * 100) : 0;
+  const cogsPercent = sellPrice > 0 ? (cost / sellPrice * 100) : 0;
+
+  const dailyRev = sellPrice * daily;
+  const dailyProfit = profit * daily;
+  const weeklyRev = dailyRev * 7;
+  const weeklyProfit = dailyProfit * 7;
+
+  document.getElementById('calcSellPrice').textContent = '$' + sellPrice.toFixed(2);
+  document.getElementById('calcProfit').textContent = '$' + profit.toFixed(2);
+  document.getElementById('calcMargin').textContent = margin.toFixed(1) + '%';
+  document.getElementById('calcCOGS').textContent = cogsPercent.toFixed(1) + '%';
+  document.getElementById('calcDailyRev').textContent = '$' + dailyRev.toFixed(0);
+  document.getElementById('calcDailyProfit').textContent = '$' + dailyProfit.toFixed(0);
+  document.getElementById('calcWeeklyRev').textContent = '$' + weeklyRev.toFixed(0);
+  document.getElementById('calcWeeklyProfit').textContent = '$' + weeklyProfit.toFixed(0);
+}
+
+// ============================================================
+// BULK MODAL
 // ============================================================
 
 function openBulkModal() {
-  document.getElementById('bulkModal').classList.add('show');
-  const unpriced = processedData.filter(p => !p.currentPrice);
-  const lowMargin = processedData.filter(p => p.currentPrice && p.margin < 40);
-
-  let html = `<div style="color:var(--muted);font-size:0.85rem;margin-bottom:12px;">
-    <strong style="color:var(--accent-light)">${unpriced.length}</strong> unpriced products will get suggested prices<br>
-    <strong style="color:var(--yellow)">${lowMargin.length}</strong> products have margins below 40%
-  </div>`;
-
-  // Preview table
-  html += `<table style="width:100%;font-size:0.75rem;border-collapse:collapse;">
-    <tr style="border-bottom:1px solid var(--border);">
-      <th style="text-align:left;padding:4px;color:var(--muted);">Category</th>
-      <th style="text-align:right;padding:4px;color:var(--muted);">Count</th>
-      <th style="text-align:right;padding:4px;color:var(--muted);">Markup</th>
-      <th style="text-align:right;padding:4px;color:var(--muted);">Min Price</th>
-      <th style="text-align:right;padding:4px;color:var(--muted);">Avg Suggested</th>
-    </tr>`;
-
-  const byCat = {};
-  unpriced.forEach(p => {
-    const c = p.category;
-    if (!byCat[c]) byCat[c] = { count: 0, totalSuggested: 0 };
-    byCat[c].count++;
-    byCat[c].totalSuggested += p.suggestedPrice;
-  });
-
-  Object.entries(byCat).sort((a, b) => b[1].count - a[1].count).forEach(([cat, data]) => {
-    const rule = PRICING_RULES[cat] || { markup: 3.0, min: 2.50 };
-    const avg = (data.totalSuggested / data.count).toFixed(2);
-    html += `<tr style="border-bottom:1px solid rgba(45,50,72,0.3);">
-      <td style="padding:4px;"><span class="cat-badge cat-${cat}">${rule.label || cat}</span></td>
-      <td style="text-align:right;padding:4px;">${data.count}</td>
-      <td style="text-align:right;padding:4px;">${rule.markup}x</td>
-      <td style="text-align:right;padding:4px;">$${rule.min.toFixed(2)}</td>
-      <td style="text-align:right;padding:4px;color:var(--accent-light);">$${avg}</td>
-    </tr>`;
-  });
-
-  html += '</table>';
-  document.getElementById('bulkPreview').innerHTML = html;
+  document.getElementById('bulkModal').classList.add('open');
+  updateBulkPreview();
 }
 
 function closeBulkModal() {
-  document.getElementById('bulkModal').classList.remove('show');
+  document.getElementById('bulkModal').classList.remove('open');
 }
 
-function generateBulkJSON() {
-  const unpriced = processedData.filter(p => !p.currentPrice);
-  const data = unpriced.map(p => ({
-    id: p.id,
-    name: p.name,
-    brand: p.brand,
-    category: p.category,
-    size: p.size,
-    cost: p.unitPrice,
-    suggestedPrice: p.suggestedPrice,
-    expectedMargin: p.suggestedMargin.toFixed(1) + '%'
-  }));
+function updateBulkPreview() {
+  const action = document.getElementById('bulkModalAction').value;
+  const applyTo = document.getElementById('bulkApplyTo').value;
+  
+  // Show/hide custom value field
+  const customGroup = document.getElementById('bulkCustomValueGroup');
+  customGroup.style.display = (action === 'markup_pct' || action === 'flat_add') ? '' : 'none';
+  
+  // Get products to update
+  let products;
+  switch (applyTo) {
+    case 'unpriced':
+      products = processedData.filter(p => !p.currentPrice);
+      break;
+    case 'below3x':
+      products = processedData.filter(p => p.currentPrice && p.markup < 3);
+      break;
+    case 'selected':
+      products = processedData.filter(p => selectedIds.has(p.id));
+      break;
+    default:
+      products = processedData;
+  }
+  
+  document.getElementById('bulkPreviewCount').textContent = products.length;
+  
+  // Build preview table (show first 20)
+  const preview = products.slice(0, 20);
+  let html = `<table><thead><tr><th>Product</th><th>Category</th><th>COGS</th><th>Current</th><th>New Price</th><th>Margin</th></tr></thead><tbody>`;
+  
+  preview.forEach(p => {
+    let newPrice;
+    switch (action) {
+      case 'set_3x':
+        newPrice = Math.round(p.unitPrice * 3 * 4) / 4;
+        break;
+      case 'category_rules':
+        newPrice = calculateSuggestedPrice(p, true);
+        break;
+      default:
+        newPrice = p.suggestedPrice;
+    }
+    
+    const newMargin = calculateMargin(p.unitPrice, newPrice);
+    const marginClass = newMargin >= 60 ? 'margin-good' : newMargin >= 40 ? 'margin-ok' : 'margin-low';
+    
+    html += `<tr>
+      <td>${escHtml(p.name.substring(0, 30))}${p.name.length > 30 ? '...' : ''}</td>
+      <td><span class="cat-badge cat-${p.category}">${PRICING_RULES[p.category]?.label || p.category}</span></td>
+      <td>$${p.unitPrice.toFixed(2)}</td>
+      <td>${p.currentPrice ? '$' + p.currentPrice.toFixed(2) : '—'}</td>
+      <td style="color:var(--accent);font-weight:600">$${newPrice.toFixed(2)}</td>
+      <td><span class="margin-badge ${marginClass}">${newMargin.toFixed(1)}%</span></td>
+    </tr>`;
+  });
+  
+  if (products.length > 20) {
+    html += `<tr><td colspan="6" style="text-align:center;color:var(--muted)">... and ${products.length - 20} more</td></tr>`;
+  }
+  
+  html += '</tbody></table>';
+  document.getElementById('bulkPreviewTable').innerHTML = html;
+}
 
+function applyBulkPrices() {
+  const action = document.getElementById('bulkModalAction').value;
+  const applyTo = document.getElementById('bulkApplyTo').value;
+  const customValue = parseFloat(document.getElementById('bulkModalValue').value) || 0;
+  
+  let products;
+  switch (applyTo) {
+    case 'unpriced': products = processedData.filter(p => !p.currentPrice); break;
+    case 'below3x': products = processedData.filter(p => p.currentPrice && p.markup < 3); break;
+    case 'selected': products = processedData.filter(p => selectedIds.has(p.id)); break;
+    default: products = processedData;
+  }
+  
+  let updated = 0;
+  products.forEach(p => {
+    let newPrice;
+    switch (action) {
+      case 'set_3x':
+        newPrice = p.unitPrice * 3;
+        break;
+      case 'category_rules':
+        newPrice = calculateSuggestedPrice(p, true);
+        break;
+      case 'markup_pct':
+        newPrice = p.unitPrice * (1 + customValue / 100);
+        break;
+      case 'flat_add':
+        newPrice = (p.currentPrice || p.suggestedPrice) + customValue;
+        break;
+    }
+    
+    if (newPrice > 0) {
+      newPrice = Math.round(newPrice * 4) / 4;
+      p.currentPrice = newPrice;
+      p.vendingPriceOverride = newPrice;
+      p.margin = calculateMargin(p.unitPrice, newPrice);
+      p.markup = calculateMarkup(p.unitPrice, newPrice);
+      p.tier = newPrice < 2 ? '$1-2' : newPrice < 3 ? '$2-3' : newPrice < 4 ? '$3-4' : '$4+';
+      updated++;
+    }
+  });
+  
+  computeStats();
+  buildCategoryCards();
+  applyFilters();
+  closeBulkModal();
+  showToast(`Applied pricing to ${updated} products`);
+}
+
+function downloadBulkJSON() {
+  const action = document.getElementById('bulkModalAction').value;
+  const applyTo = document.getElementById('bulkApplyTo').value;
+  
+  let products;
+  switch (applyTo) {
+    case 'unpriced': products = processedData.filter(p => !p.currentPrice); break;
+    case 'below3x': products = processedData.filter(p => p.currentPrice && p.markup < 3); break;
+    case 'selected': products = processedData.filter(p => selectedIds.has(p.id)); break;
+    default: products = processedData;
+  }
+  
+  const data = products.map(p => {
+    let newPrice;
+    switch (action) {
+      case 'set_3x': newPrice = Math.round(p.unitPrice * 3 * 4) / 4; break;
+      case 'category_rules': newPrice = calculateSuggestedPrice(p, true); break;
+      default: newPrice = p.suggestedPrice;
+    }
+    return {
+      id: p.id,
+      name: p.name,
+      brand: p.brand,
+      category: p.category,
+      size: p.size,
+      cogs: p.unitPrice,
+      suggestedPrice: newPrice,
+      margin: calculateMargin(p.unitPrice, newPrice).toFixed(1) + '%',
+      markup: (newPrice / p.unitPrice).toFixed(2) + 'x'
+    };
+  });
+  
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  downloadBlob(blob, `kande-vendtech-pricing-${new Date().toISOString().slice(0,10)}.json`);
+  downloadBlob(blob, `kande-pricing-${new Date().toISOString().slice(0,10)}.json`);
   showToast(`Downloaded pricing for ${data.length} products`);
 }
 
-function generateBulkCSV() {
-  const unpriced = processedData.filter(p => !p.currentPrice);
-  let csv = 'ID,Name,Brand,Category,Size,Cost,Suggested Price,Expected Margin %\n';
-  unpriced.forEach(p => {
-    csv += `"${p.id}","${(p.name||'').replace(/"/g,'""')}","${(p.brand||'').replace(/"/g,'""')}","${p.category}","${p.size || ''}",${p.unitPrice},${p.suggestedPrice},${p.suggestedMargin.toFixed(1)}\n`;
-  });
-  const blob = new Blob([csv], { type: 'text/csv' });
-  downloadBlob(blob, `kande-vendtech-pricing-${new Date().toISOString().slice(0,10)}.csv`);
-  showToast(`Downloaded CSV for ${unpriced.length} products`);
-}
-
 function exportCSV() {
-  let csv = 'ID,Name,Brand,Category,Size,Cost,Current Price,Suggested Price,Margin %,Status\n';
+  let csv = 'ID,Name,Brand,Category,Size,COGS,Current Price,Suggested Price,Margin %,Markup\n';
   filteredData.forEach(p => {
     const margin = p.margin !== null ? p.margin.toFixed(1) : p.suggestedMargin.toFixed(1) + ' (suggested)';
-    csv += `"${p.id}","${(p.name||'').replace(/"/g,'""')}","${(p.brand||'').replace(/"/g,'""')}","${p.category}","${p.size || ''}",${p.unitPrice},${p.currentPrice || ''},${p.suggestedPrice},${margin},"${p.status.label}"\n`;
+    const markup = p.markup !== null ? p.markup.toFixed(2) : p.suggestedMarkup.toFixed(2) + ' (suggested)';
+    csv += `"${p.id}","${(p.name||'').replace(/"/g,'""')}","${(p.brand||'').replace(/"/g,'""')}","${p.category}","${p.size || ''}",${p.unitPrice},${p.currentPrice || ''},${p.suggestedPrice},${margin},${markup}\n`;
   });
   const blob = new Blob([csv], { type: 'text/csv' });
   downloadBlob(blob, `kande-pricing-export-${new Date().toISOString().slice(0,10)}.csv`);
@@ -878,7 +1241,6 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-
 // ============================================================
 // INIT
 // ============================================================
@@ -886,15 +1248,24 @@ function showToast(msg) {
 document.addEventListener('DOMContentLoaded', () => {
   processProducts();
   computeStats();
-  buildCategorySummary();
+  buildCategoryCards();
   populateCategoryFilter();
   applyFilters();
+  updateCalc();
 
   // Event listeners
   document.getElementById('searchInput').addEventListener('input', debounce(applyFilters, 200));
-  document.getElementById('categoryFilter').addEventListener('change', applyFilters);
+  document.getElementById('categoryFilter').addEventListener('change', () => {
+    activeCat = document.getElementById('categoryFilter').value || null;
+    document.querySelectorAll('.cat-card').forEach(c => c.classList.remove('active'));
+    if (!activeCat) document.querySelector('.cat-card').classList.add('active');
+    applyFilters();
+  });
   document.getElementById('statusFilter').addEventListener('change', applyFilters);
   document.getElementById('perPage').addEventListener('change', () => { currentPage = 1; renderTable(); });
+  
+  document.getElementById('bulkModalAction').addEventListener('change', updateBulkPreview);
+  document.getElementById('bulkApplyTo').addEventListener('change', updateBulkPreview);
 
   // Close modal on overlay click
   document.getElementById('bulkModal').addEventListener('click', e => {
