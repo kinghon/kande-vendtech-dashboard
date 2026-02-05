@@ -1188,3 +1188,24 @@ Use the 🌿 **Wellness Program** toggle on each prospect card to:
 - Planet Fitness-type with very low membership fees (cost-conscious members)
 
 **Action:** Update lead criteria to distinguish "good" vs "bad" fitness locations.
+
+---
+
+## 2026-02-05 — New Insights from Vendingpreneurs
+
+### Source: "How He Replaced His W2 With Just 2 Vending Locations" (Feb 3, 2026)
+- **Andy Kunselman:** 2 fitness center locations = $10K/month topline (4 machines)
+- Joined Vendingpreneurs Aug 2025 → First install Dec 2025 (4 months)
+
+### Key Takeaways:
+1. **Fitness centers** can be unicorn locations (7-day/week operation = consistent traffic)
+2. **Do the napkin math** — Partner analyzed demographics + foot traffic before committing
+3. **Get existing data** — Business owner shared their current vending numbers
+4. **45-day learning period** before going full-time is reasonable
+5. **"The energy you put in is the energy you get out"**
+6. **Goal setting:** 4 machines → 20 machines in 12 months is achievable
+
+### Location Intel:
+- High-volume fitness centers doing $5K/machine/month
+- If business owner already has vending but doing it poorly = opportunity to take over
+- Ask property managers for existing revenue data when possible

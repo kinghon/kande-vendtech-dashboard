@@ -1,0 +1,52 @@
+name: Post-Deploy Health Check
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        
+      - name: Wait for Railway deploy
+        run: sleep 90
+        
+      - name: Check API health
+        run: |
+          echo "Checking vend.kandedash.com health..."
+          
+          # Check main page
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://vend.kandedash.com/)
+          if [ "$STATUS" != "200" ]; then
+            echo "❌ Main page returned $STATUS"
+            exit 1
+          fi
+          echo "✅ Main page OK"
+          
+          # Check key API endpoints
+          for endpoint in "/api/health" "/api/prospects" "/api/machines"; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://vend.kandedash.com$endpoint")
+            if [ "$STATUS" = "200" ] || [ "$STATUS" = "401" ]; then
+              echo "✅ $endpoint OK ($STATUS)"
+            else
+              echo "❌ $endpoint returned $STATUS"
+              exit 1
+            fi
+          done
+          
+      - name: Alert on failure
+        if: failure()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d '{"chat_id": "${{ secrets.TELEGRAM_CHAT_ID }}", "text": "🚨 vend.kandedash.com health check FAILED after deploy. Check GitHub Actions."}'
+          
+      - name: Alert on success
+        if: success()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d '{"chat_id": "${{ secrets.TELEGRAM_CHAT_ID }}", "text": "✅ vend.kandedash.com deployed & verified."}'
