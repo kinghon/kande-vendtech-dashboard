@@ -22,7 +22,9 @@
         { label: 'Revenue Calculator', href: '/revenue-calculator' },
         { label: 'Contracts', href: '/contracts' },
         { label: 'Contract Gen', href: '/contract-generator' },
-        { label: 'Gift Baskets', href: '/gift-baskets' }
+        { label: 'Gift Baskets', href: '/gift-baskets' },
+        { label: 'Pricing Strategies', href: '/pricing-strategies' },
+        { label: 'Bundles', href: '/bundles' }
       ]
     },
     {
@@ -41,12 +43,14 @@
         { label: 'Restock',        href: '/restock' },
         { label: 'Vendors',        href: '/vendors' },
         { label: 'Machine Locator', href: '/machine-locator' },
-        { label: 'Driver Mobile',  href: '/driver' }
+        { label: 'Driver Mobile',  href: '/driver' },
+        { label: 'Mobile Dashboard', href: '/mobile-dashboard' }
       ]
     },
     {
       label: 'Intelligence', items: [
         { label: 'Product Mix',   href: '/product-mix' },
+        { label: 'Forecasting',   href: '/forecasting' },
         { label: 'Apollo Contacts', href: '/apollo' },
         { label: 'Site Surveys',  href: '/property-analysis' },
         { label: 'Win/Loss Analysis', href: '/win-loss' },

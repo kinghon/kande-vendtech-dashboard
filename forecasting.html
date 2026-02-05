@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forecasting — Kande VendTech</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    
+    /* Header */
+    .page-header {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 24px 32px;
+    }
+    
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    .header-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+    
+    .header-subtitle {
+      font-size: 14px;
+      color: #64748b;
+    }
+    
+    /* Main Content */
+    .main-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px 32px;
+    }
+    
+    /* Controls Bar */
+    .controls-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .control-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .control-select, .control-input {
+      padding: 10px 14px;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 14px;
+      min-width: 180px;
+      background: #ffffff;
+      transition: border-color 0.2s;
+    }
+    
+    .control-select:focus, .control-input:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+    
+    .control-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .control-btn.primary {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+    }
+    
+    .control-btn.primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    
+    .control-btn.secondary {
+      background: #f1f5f9;
+      color: #475569;
+    }
+    
+    .control-btn.secondary:hover {
+      background: #e2e8f0;
+    }
+    
+    /* Metrics Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    
+    .metric-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    
+    .metric-card.highlight {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+    }
+    
+    .metric-card.highlight .metric-label {
+      color: rgba(255,255,255,0.8);
+    }
+    
+    .metric-icon {
+      font-size: 24px;
+      margin-bottom: 12px;
+    }
+    
+    .metric-value {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    
+    .metric-label {
+      font-size: 13px;
+      color: #64748b;
+      font-weight: 500;
+    }
+    
+    .metric-change {
+      font-size: 12px;
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .metric-change.up { color: #22c55e; }
+    .metric-change.down { color: #ef4444; }
+    
+    /* Chart Cards */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    
+    @media (max-width: 1200px) {
+      .chart-grid { grid-template-columns: 1fr; }
+    }
+    
+    .chart-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    
+    .chart-card.full-width {
+      grid-column: 1 / -1;
+    }
+    
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+    
+    .chart-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+    
+    .chart-subtitle {
+      font-size: 13px;
+      color: #64748b;
+    }
+    
+    .chart-badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .chart-badge.good {
+      background: #dcfce7;
+      color: #166534;
+    }
+    
+    .chart-badge.moderate {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    
+    .chart-badge.low {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    .chart-container {
+      position: relative;
+      height: 300px;
+    }
+    
+    /* Seasonality Table */
+    .seasonality-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      margin-top: 16px;
+    }
+    
+    .day-card {
+      text-align: center;
+      padding: 12px 8px;
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+    
+    .day-card.peak {
+      background: #dcfce7;
+    }
+    
+    .day-card.low {
+      background: #fee2e2;
+    }
+    
+    .day-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    
+    .day-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    
+    .day-change {
+      font-size: 10px;
+      margin-top: 4px;
+    }
+    
+    .day-change.up { color: #22c55e; }
+    .day-change.down { color: #ef4444; }
+    
+    /* Projections Table */
+    .projections-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-top: 16px;
+    }
+    
+    .projections-table th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    
+    .projections-table td {
+      padding: 14px 16px;
+      font-size: 14px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .projections-table tr:hover td {
+      background: #f8fafc;
+    }
+    
+    .projection-label {
+      font-weight: 600;
+      color: #0f172a;
+    }
+    
+    .projection-value {
+      font-weight: 700;
+      color: #3b82f6;
+    }
+    
+    .projection-range {
+      font-size: 12px;
+      color: #64748b;
+    }
+    
+    /* Recommendations */
+    .recommendations-list {
+      margin-top: 16px;
+    }
+    
+    .recommendation-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px;
+      background: #f8fafc;
+      border-radius: 12px;
+      margin-bottom: 10px;
+    }
+    
+    .recommendation-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    
+    .recommendation-icon.stock {
+      background: #dbeafe;
+    }
+    
+    .recommendation-icon.timing {
+      background: #dcfce7;
+    }
+    
+    .recommendation-icon.alert {
+      background: #fef3c7;
+    }
+    
+    .recommendation-content {
+      flex: 1;
+    }
+    
+    .recommendation-type {
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    
+    .recommendation-text {
+      font-size: 14px;
+      color: #0f172a;
+    }
+    
+    /* Product Demand Table */
+    .demand-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+    
+    .demand-table th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid #e2e8f0;
+      position: sticky;
+      top: 0;
+      background: #ffffff;
+    }
+    
+    .demand-table td {
+      padding: 14px 16px;
+      font-size: 14px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .demand-table tr:hover td {
+      background: #f8fafc;
+    }
+    
+    .product-name {
+      font-weight: 600;
+      color: #0f172a;
+    }
+    
+    .velocity-bar {
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+      width: 100px;
+    }
+    
+    .velocity-fill {
+      height: 100%;
+      border-radius: 4px;
+    }
+    
+    .velocity-fill.high { background: #22c55e; }
+    .velocity-fill.medium { background: #f59e0b; }
+    .velocity-fill.low { background: #ef4444; }
+    
+    /* Confidence Indicator */
+    .confidence-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: #f8fafc;
+      border-radius: 10px;
+      margin-top: 16px;
+    }
+    
+    .confidence-bar {
+      flex: 1;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    
+    .confidence-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #f59e0b, #22c55e);
+      border-radius: 4px;
+    }
+    
+    .confidence-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+      white-space: nowrap;
+    }
+    
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      background: #ffffff;
+      padding: 8px;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    
+    .tab {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #64748b;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      transition: all 0.2s;
+    }
+    
+    .tab:hover {
+      color: #0f172a;
+      background: #f1f5f9;
+    }
+    
+    .tab.active {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    /* Loading State */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px;
+      color: #64748b;
+    }
+    
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #e2e8f0;
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 12px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #64748b;
+    }
+    
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    
+    .empty-text {
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+    
+    .empty-hint {
+      font-size: 14px;
+      color: #94a3b8;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .main-content { padding: 16px; }
+      .page-header { padding: 16px; }
+      .controls-bar { flex-direction: column; }
+      .control-select, .control-input { width: 100%; }
+      .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+      .seasonality-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+      .chart-container { height: 250px; }
+    }
+    
+    /* Restock Schedule */
+    .restock-schedule {
+      margin-top: 16px;
+    }
+    
+    .restock-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: #f8fafc;
+      border-radius: 10px;
+      margin-bottom: 8px;
+    }
+    
+    .restock-urgency {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    
+    .restock-urgency.critical { background: #ef4444; }
+    .restock-urgency.soon { background: #f59e0b; }
+    .restock-urgency.upcoming { background: #3b82f6; }
+    .restock-urgency.ok { background: #22c55e; }
+    
+    .restock-info {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .restock-product {
+      font-size: 14px;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    
+    .restock-slot {
+      font-size: 12px;
+      color: #64748b;
+    }
+    
+    .restock-days {
+      font-size: 14px;
+      font-weight: 700;
+      color: #475569;
+    }
+  </style>
+</head>
+<body>
+  <script src="/nav.js"></script>
+
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-content">
+      <h1 class="header-title">📈 Forecasting & Analytics</h1>
+      <p class="header-subtitle">AI-powered demand predictions and revenue projections</p>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Controls -->
+    <div class="controls-bar">
+      <div class="control-group">
+        <label class="control-label">Forecast Type</label>
+        <select class="control-select" id="forecastType" onchange="handleTypeChange()">
+          <option value="revenue">Revenue Forecast</option>
+          <option value="demand">Product Demand</option>
+          <option value="restock">Restock Schedule</option>
+        </select>
+      </div>
+      
+      <div class="control-group" id="machineGroup">
+        <label class="control-label">Machine</label>
+        <select class="control-select" id="machineSelect" onchange="loadForecast()">
+          <option value="">All Machines</option>
+        </select>
+      </div>
+      
+      <div class="control-group" id="productGroup" style="display:none;">
+        <label class="control-label">Product</label>
+        <select class="control-select" id="productSelect" onchange="loadForecast()">
+          <option value="">Select Product</option>
+        </select>
+      </div>
+      
+      <div class="control-group">
+        <label class="control-label">Forecast Days</label>
+        <select class="control-select" id="forecastDays" onchange="loadForecast()">
+          <option value="7">7 Days</option>
+          <option value="14" selected>14 Days</option>
+          <option value="30">30 Days</option>
+          <option value="60">60 Days</option>
+        </select>
+      </div>
+      
+      <div class="control-group" style="justify-content:flex-end;">
+        <button class="control-btn primary" onclick="loadForecast()">
+          🔄 Refresh Forecast
+        </button>
+      </div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="metrics-grid" id="metricsGrid">
+      <div class="metric-card highlight">
+        <div class="metric-icon">💰</div>
+        <div class="metric-value" id="projectedRevenue">$0</div>
+        <div class="metric-label">Projected Revenue</div>
+        <div class="metric-change up" id="revenueChange">↑ 0% vs last period</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon">📊</div>
+        <div class="metric-value" id="avgDaily">$0</div>
+        <div class="metric-label">Avg Daily Revenue</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon">📈</div>
+        <div class="metric-value" id="growthRate">0%</div>
+        <div class="metric-label">Growth Trend</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon">🎯</div>
+        <div class="metric-value" id="confidenceLevel">0%</div>
+        <div class="metric-label">Confidence Level</div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="chart-grid">
+      <!-- Main Forecast Chart -->
+      <div class="chart-card full-width" id="mainChartCard">
+        <div class="chart-header">
+          <div>
+            <h3 class="chart-title">Revenue Forecast</h3>
+            <p class="chart-subtitle">Historical data with predictions</p>
+          </div>
+          <span class="chart-badge good" id="forecastAccuracy">85% Confidence</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="forecastChart"></canvas>
+        </div>
+        <div class="confidence-indicator">
+          <span class="confidence-label">Model Confidence:</span>
+          <div class="confidence-bar">
+            <div class="confidence-fill" id="confidenceBar" style="width:85%"></div>
+          </div>
+          <span class="confidence-label" id="confidencePercent">85%</span>
+        </div>
+      </div>
+
+      <!-- Seasonality -->
+      <div class="chart-card" id="seasonalityCard">
+        <div class="chart-header">
+          <div>
+            <h3 class="chart-title">Weekly Patterns</h3>
+            <p class="chart-subtitle">Day-of-week performance analysis</p>
+          </div>
+        </div>
+        <div class="seasonality-grid" id="seasonalityGrid">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Projections Table -->
+      <div class="chart-card" id="projectionsCard">
+        <div class="chart-header">
+          <div>
+            <h3 class="chart-title">Revenue Projections</h3>
+            <p class="chart-subtitle">Short and long-term forecasts</p>
+          </div>
+        </div>
+        <table class="projections-table">
+          <thead>
+            <tr>
+              <th>Period</th>
+              <th>Projected</th>
+              <th>Range</th>
+            </tr>
+          </thead>
+          <tbody id="projectionsBody">
+            <!-- Populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="chart-card" id="recommendationsCard">
+      <div class="chart-header">
+        <div>
+          <h3 class="chart-title">💡 AI Recommendations</h3>
+          <p class="chart-subtitle">Data-driven suggestions to optimize performance</p>
+        </div>
+      </div>
+      <div class="recommendations-list" id="recommendationsList">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+
+    <!-- Demand View (hidden by default) -->
+    <div id="demandView" style="display:none;">
+      <div class="chart-card full-width">
+        <div class="chart-header">
+          <div>
+            <h3 class="chart-title">Product Demand Forecast</h3>
+            <p class="chart-subtitle">Predicted sales for selected product</p>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="demandChart"></canvas>
+        </div>
+      </div>
+      
+      <div class="chart-grid">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <h3 class="chart-title">Daily Demand Pattern</h3>
+              <p class="chart-subtitle">Sales distribution by day</p>
+            </div>
+          </div>
+          <div class="seasonality-grid" id="demandSeasonality">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+        
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <h3 class="chart-title">Stock Recommendations</h3>
+              <p class="chart-subtitle">Optimal inventory levels</p>
+            </div>
+          </div>
+          <div class="recommendations-list" id="demandRecommendations">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Restock View (hidden by default) -->
+    <div id="restockView" style="display:none;">
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-icon">⚠️</div>
+          <div class="metric-value" id="criticalSlots">0</div>
+          <div class="metric-label">Critical Slots</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon">🔶</div>
+          <div class="metric-value" id="soonSlots">0</div>
+          <div class="metric-label">Needs Attention</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon">📅</div>
+          <div class="metric-value" id="nextRestockDays">0</div>
+          <div class="metric-label">Days to Restock</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon">✅</div>
+          <div class="metric-value" id="healthySlots">0</div>
+          <div class="metric-label">Healthy Slots</div>
+        </div>
+      </div>
+      
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <h3 class="chart-title">Restock Schedule Prediction</h3>
+            <p class="chart-subtitle">AI-predicted restock timing by slot</p>
+          </div>
+        </div>
+        <div class="restock-schedule" id="restockSchedule">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+      
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <h3 class="chart-title">Stock Depletion Timeline</h3>
+            <p class="chart-subtitle">When each slot is predicted to run low</p>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="restockChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // State
+    let forecastData = null;
+    let machines = [];
+    let products = [];
+    let forecastChart = null;
+    let demandChart = null;
+    let restockChart = null;
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadMachines();
+      await loadProducts();
+      await loadForecast();
+    });
+
+    async function loadMachines() {
+      try {
+        const response = await fetch('/api/mobile/machines?limit=100');
+        const data = await response.json();
+        machines = data.machines || [];
+        
+        const select = document.getElementById('machineSelect');
+        select.innerHTML = '<option value="">All Machines</option>' +
+          machines.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
+      } catch (e) {
+        console.error('Failed to load machines:', e);
+      }
+    }
+
+    async function loadProducts() {
+      try {
+        const response = await fetch('/api/products?limit=100');
+        const data = await response.json();
+        products = data.products || data || [];
+        
+        const select = document.getElementById('productSelect');
+        select.innerHTML = '<option value="">Select Product</option>' +
+          products.slice(0, 50).map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+      } catch (e) {
+        console.error('Failed to load products:', e);
+      }
+    }
+
+    function handleTypeChange() {
+      const type = document.getElementById('forecastType').value;
+      
+      // Toggle visibility
+      document.getElementById('productGroup').style.display = type === 'demand' ? 'block' : 'none';
+      document.getElementById('machineGroup').style.display = type === 'restock' ? 'block' : 'block';
+      
+      // Toggle views
+      document.getElementById('mainChartCard').style.display = type === 'revenue' ? 'block' : 'none';
+      document.getElementById('seasonalityCard').style.display = type === 'revenue' ? 'block' : 'none';
+      document.getElementById('projectionsCard').style.display = type === 'revenue' ? 'block' : 'none';
+      document.getElementById('recommendationsCard').style.display = type !== 'restock' ? 'block' : 'none';
+      document.getElementById('demandView').style.display = type === 'demand' ? 'block' : 'none';
+      document.getElementById('restockView').style.display = type === 'restock' ? 'block' : 'none';
+      
+      loadForecast();
+    }
+
+    async function loadForecast() {
+      const type = document.getElementById('forecastType').value;
+      const machineId = document.getElementById('machineSelect').value;
+      const productId = document.getElementById('productSelect').value;
+      const days = document.getElementById('forecastDays').value;
+
+      try {
+        if (type === 'revenue') {
+          await loadRevenueForecast(machineId, days);
+        } else if (type === 'demand') {
+          await loadDemandForecast(productId, machineId, days);
+        } else if (type === 'restock') {
+          await loadRestockForecast(machineId);
+        }
+      } catch (e) {
+        console.error('Failed to load forecast:', e);
+      }
+    }
+
+    async function loadRevenueForecast(machineId, days) {
+      const url = `/api/forecasts/revenue?days=${days}${machineId ? `&machine_id=${machineId}` : ''}`;
+      const response = await fetch(url);
+      forecastData = await response.json();
+
+      // Update metrics
+      document.getElementById('projectedRevenue').textContent = `$${forecastData.forecast.total_predicted.toLocaleString()}`;
+      document.getElementById('avgDaily').textContent = `$${forecastData.historical.avg_daily.toLocaleString()}`;
+      document.getElementById('confidenceLevel').textContent = `${Math.round(forecastData.forecast.confidence_level * 100)}%`;
+      
+      const trend = forecastData.trends.recent_7d_vs_prior;
+      document.getElementById('growthRate').textContent = `${trend > 0 ? '+' : ''}${trend}%`;
+      document.getElementById('revenueChange').textContent = `${trend >= 0 ? '↑' : '↓'} ${Math.abs(trend)}% vs last period`;
+      document.getElementById('revenueChange').className = `metric-change ${trend >= 0 ? 'up' : 'down'}`;
+
+      // Update confidence
+      const conf = Math.round(forecastData.forecast.confidence_level * 100);
+      document.getElementById('forecastAccuracy').textContent = `${conf}% Confidence`;
+      document.getElementById('confidenceBar').style.width = `${conf}%`;
+      document.getElementById('confidencePercent').textContent = `${conf}%`;
+
+      // Render chart
+      renderForecastChart(forecastData);
+      
+      // Render seasonality
+      renderSeasonality(forecastData.seasonality);
+      
+      // Render projections
+      renderProjections(forecastData);
+      
+      // Render recommendations
+      renderRecommendations(forecastData);
+    }
+
+    async function loadDemandForecast(productId, machineId, days) {
+      if (!productId) {
+        document.getElementById('demandView').innerHTML = `
+          <div class="chart-card">
+            <div class="empty-state">
+              <div class="empty-icon">📦</div>
+              <div class="empty-text">Select a product to view demand forecast</div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      const url = `/api/forecasts/demand?product_id=${productId}&days=${days}${machineId ? `&machine_id=${machineId}` : ''}`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      // Update metrics
+      document.getElementById('projectedRevenue').textContent = data.forecast.total_predicted.toLocaleString();
+      document.getElementById('avgDaily').textContent = data.historical.avg_daily.toFixed(1);
+      document.getElementById('confidenceLevel').textContent = `${Math.round(data.forecast.confidence_level * 100)}%`;
+      document.getElementById('growthRate').textContent = `${data.historical.total_sales} sales`;
+
+      // Render demand chart
+      renderDemandChart(data);
+      
+      // Render seasonality
+      renderSeasonality(data.seasonality, 'demandSeasonality');
+      
+      // Render recommendations
+      renderDemandRecommendations(data.recommendations);
+    }
+
+    async function loadRestockForecast(machineId) {
+      if (!machineId) {
+        document.getElementById('restockView').innerHTML = `
+          <div class="chart-card">
+            <div class="empty-state">
+              <div class="empty-icon">🤖</div>
+              <div class="empty-text">Select a machine to view restock predictions</div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      const response = await fetch(`/api/forecasts/restock?machine_id=${machineId}`);
+      const data = await response.json();
+
+      // Update metrics
+      document.getElementById('criticalSlots').textContent = data.summary.critical_slots;
+      document.getElementById('soonSlots').textContent = data.summary.soon_slots;
+      document.getElementById('nextRestockDays').textContent = data.recommendation.next_restock_in_days || '—';
+      document.getElementById('healthySlots').textContent = data.summary.healthy_slots;
+
+      // Render schedule
+      renderRestockSchedule(data.slot_forecasts);
+      
+      // Render chart
+      renderRestockChart(data.slot_forecasts);
+    }
+
+    function renderForecastChart(data) {
+      const ctx = document.getElementById('forecastChart').getContext('2d');
+      
+      if (forecastChart) forecastChart.destroy();
+      
+      // Prepare data
+      const historical = data.historical.daily_data.map(d => ({
+        x: new Date(d.date),
+        y: d.value
+      }));
+      
+      const lastDate = new Date(data.historical.daily_data[data.historical.daily_data.length - 1].date);
+      const predictions = data.forecast.predictions.map((p, i) => ({
+        x: new Date(lastDate.getTime() + (i + 1) * 24 * 60 * 60 * 1000),
+        y: p.predicted
+      }));
+      
+      const upperBound = data.forecast.predictions.map((p, i) => ({
+        x: new Date(lastDate.getTime() + (i + 1) * 24 * 60 * 60 * 1000),
+        y: p.upper_bound
+      }));
+      
+      const lowerBound = data.forecast.predictions.map((p, i) => ({
+        x: new Date(lastDate.getTime() + (i + 1) * 24 * 60 * 60 * 1000),
+        y: Math.max(0, p.lower_bound)
+      }));
+
+      forecastChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          datasets: [
+            {
+              label: 'Historical Revenue',
+              data: historical,
+              borderColor: '#3b82f6',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 2
+            },
+            {
+              label: 'Predicted',
+              data: predictions,
+              borderColor: '#22c55e',
+              borderDash: [5, 5],
+              backgroundColor: 'transparent',
+              tension: 0.3,
+              pointRadius: 3
+            },
+            {
+              label: 'Upper Bound',
+              data: upperBound,
+              borderColor: 'rgba(34, 197, 94, 0.3)',
+              backgroundColor: 'transparent',
+              borderDash: [2, 2],
+              pointRadius: 0,
+              fill: false
+            },
+            {
+              label: 'Lower Bound',
+              data: lowerBound,
+              borderColor: 'rgba(34, 197, 94, 0.3)',
+              backgroundColor: 'rgba(34, 197, 94, 0.1)',
+              borderDash: [2, 2],
+              pointRadius: 0,
+              fill: '-1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              type: 'time',
+              time: { unit: 'day' },
+              grid: { display: false }
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: '#f1f5f9' },
+              ticks: {
+                callback: value => '$' + value.toLocaleString()
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              display: true,
+              position: 'bottom',
+              labels: { usePointStyle: true }
+            },
+            tooltip: {
+              callbacks: {
+                label: ctx => `${ctx.dataset.label}: $${ctx.parsed.y.toLocaleString()}`
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderDemandChart(data) {
+      const ctx = document.getElementById('demandChart').getContext('2d');
+      
+      if (demandChart) demandChart.destroy();
+      
+      const historical = data.historical.daily_data.map(d => ({
+        x: new Date(d.date),
+        y: d.value
+      }));
+      
+      const lastDate = new Date(data.historical.daily_data[data.historical.daily_data.length - 1].date);
+      const predictions = data.forecast.predictions.map((p, i) => ({
+        x: new Date(lastDate.getTime() + (i + 1) * 24 * 60 * 60 * 1000),
+        y: p.predicted
+      }));
+
+      demandChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          datasets: [
+            {
+              label: 'Historical Sales',
+              data: historical,
+              backgroundColor: '#3b82f6',
+              borderRadius: 4
+            },
+            {
+              label: 'Predicted Sales',
+              data: predictions,
+              backgroundColor: '#22c55e',
+              borderRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              type: 'time',
+              time: { unit: 'day' },
+              grid: { display: false }
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: '#f1f5f9' }
+            }
+          },
+          plugins: {
+            legend: {
+              display: true,
+              position: 'bottom'
+            }
+          }
+        }
+      });
+    }
+
+    function renderRestockChart(slots) {
+      const ctx = document.getElementById('restockChart').getContext('2d');
+      
+      if (restockChart) restockChart.destroy();
+      
+      const sortedSlots = [...slots].sort((a, b) => a.days_until_empty - b.days_until_empty).slice(0, 15);
+
+      restockChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: sortedSlots.map(s => `${s.slot_code} - ${s.product_name.substring(0, 20)}`),
+          datasets: [{
+            label: 'Days Until Empty',
+            data: sortedSlots.map(s => Math.min(s.days_until_empty, 30)),
+            backgroundColor: sortedSlots.map(s => 
+              s.restock_urgency === 'critical' ? '#ef4444' :
+              s.restock_urgency === 'soon' ? '#f59e0b' :
+              s.restock_urgency === 'upcoming' ? '#3b82f6' : '#22c55e'
+            ),
+            borderRadius: 4
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              beginAtZero: true,
+              max: 30,
+              grid: { color: '#f1f5f9' },
+              title: {
+                display: true,
+                text: 'Days'
+              }
+            },
+            y: {
+              grid: { display: false }
+            }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+    }
+
+    function renderSeasonality(seasonality, containerId = 'seasonalityGrid') {
+      const container = document.getElementById(containerId);
+      
+      if (!seasonality.detected || !seasonality.pattern) {
+        container.innerHTML = `
+          <div style="grid-column: 1/-1; text-align:center; color:#64748b; padding:20px;">
+            Not enough data to detect patterns
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = seasonality.pattern.map(day => {
+        const isPeak = day.day === seasonality.peak_day;
+        const isLow = day.day === seasonality.low_day;
+        
+        return `
+          <div class="day-card ${isPeak ? 'peak' : isLow ? 'low' : ''}">
+            <div class="day-name">${day.day.substring(0, 3)}</div>
+            <div class="day-value">$${day.avg.toFixed(0)}</div>
+            <div class="day-change ${day.vs_avg >= 0 ? 'up' : 'down'}">
+              ${day.vs_avg >= 0 ? '↑' : '↓'}${Math.abs(day.vs_avg)}%
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderProjections(data) {
+      const tbody = document.getElementById('projectionsBody');
+      const weekly = data.projections.weekly;
+      const monthly = data.projections.monthly;
+      const annual = data.projections.annual;
+      
+      tbody.innerHTML = `
+        <tr>
+          <td class="projection-label">This Week</td>
+          <td class="projection-value">$${weekly.toLocaleString()}</td>
+          <td class="projection-range">±15%</td>
+        </tr>
+        <tr>
+          <td class="projection-label">This Month</td>
+          <td class="projection-value">$${monthly.toLocaleString()}</td>
+          <td class="projection-range">±20%</td>
+        </tr>
+        <tr>
+          <td class="projection-label">Annual (Projected)</td>
+          <td class="projection-value">$${annual.toLocaleString()}</td>
+          <td class="projection-range">±30%</td>
+        </tr>
+        <tr>
+          <td class="projection-label">Per Machine Avg</td>
+          <td class="projection-value">$${(monthly / Math.max(1, machines.length)).toLocaleString()}/mo</td>
+          <td class="projection-range">—</td>
+        </tr>
+      `;
+    }
+
+    function renderRecommendations(data) {
+      const container = document.getElementById('recommendationsList');
+      
+      const recommendations = [
+        {
+          type: 'Revenue Target',
+          icon: 'stock',
+          text: `Based on trends, target $${data.projections.monthly.toLocaleString()} monthly revenue. Current trajectory: ${data.trends.recent_7d_vs_prior >= 0 ? 'on track' : 'needs attention'}.`
+        },
+        {
+          type: 'Peak Performance',
+          icon: 'timing',
+          text: data.seasonality.detected 
+            ? `${data.seasonality.peak_day}s generate the highest revenue. Ensure full stock before these days.`
+            : 'Need more data to identify peak days. Continue tracking.'
+        },
+        {
+          type: 'Growth Opportunity',
+          icon: 'alert',
+          text: data.trends.recent_30d_vs_prior >= 0
+            ? `Revenue is up ${data.trends.recent_30d_vs_prior}% month-over-month. Consider expanding locations.`
+            : `Revenue down ${Math.abs(data.trends.recent_30d_vs_prior)}% month-over-month. Review product mix and pricing.`
+        }
+      ];
+
+      container.innerHTML = recommendations.map(rec => `
+        <div class="recommendation-item">
+          <div class="recommendation-icon ${rec.icon}">
+            ${rec.icon === 'stock' ? '📊' : rec.icon === 'timing' ? '⏰' : '💡'}
+          </div>
+          <div class="recommendation-content">
+            <div class="recommendation-type">${rec.type}</div>
+            <div class="recommendation-text">${rec.text}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderDemandRecommendations(recommendations) {
+      const container = document.getElementById('demandRecommendations');
+      
+      if (!recommendations || recommendations.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-text">No recommendations available</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = recommendations.map(rec => `
+        <div class="recommendation-item">
+          <div class="recommendation-icon ${rec.type === 'stock_suggestion' ? 'stock' : 'timing'}">
+            ${rec.type === 'stock_suggestion' ? '📦' : '⏰'}
+          </div>
+          <div class="recommendation-content">
+            <div class="recommendation-type">${rec.type.replace('_', ' ')}</div>
+            <div class="recommendation-text">${rec.message}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderRestockSchedule(slots) {
+      const container = document.getElementById('restockSchedule');
+      
+      container.innerHTML = slots.slice(0, 15).map(slot => `
+        <div class="restock-item">
+          <div class="restock-urgency ${slot.restock_urgency}"></div>
+          <div class="restock-info">
+            <div class="restock-product">${escapeHtml(slot.product_name)}</div>
+            <div class="restock-slot">Slot ${slot.slot_code} • ${slot.current_stock}/${slot.par_level} units • ${slot.daily_velocity}/day</div>
+          </div>
+          <div class="restock-days">
+            ${slot.days_until_empty === 999 ? '—' : slot.days_until_empty + 'd'}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Utils
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>

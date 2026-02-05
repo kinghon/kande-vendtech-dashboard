@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Mobile Dashboard — Kande VendTech</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="/manifest.json">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      line-height: 1.5;
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+    
+    /* Header */
+    .mobile-header {
+      position: sticky;
+      top: 0;
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 100;
+    }
+    
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .header-logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    
+    .header-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    
+    .header-subtitle {
+      font-size: 12px;
+      color: #64748b;
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .header-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      border: none;
+      background: #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 18px;
+      position: relative;
+    }
+    
+    .header-btn:active {
+      background: #e2e8f0;
+    }
+    
+    .notification-badge {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: #ef4444;
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
+      min-width: 16px;
+      height: 16px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+    }
+    
+    /* Main Content */
+    .mobile-content {
+      padding: 16px;
+    }
+    
+    /* Performance Cards */
+    .performance-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    
+    .perf-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    
+    .perf-card.highlight {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+    }
+    
+    .perf-card.highlight .perf-label {
+      color: rgba(255,255,255,0.8);
+    }
+    
+    .perf-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    
+    .perf-value {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    
+    .perf-label {
+      font-size: 12px;
+      color: #64748b;
+      font-weight: 500;
+    }
+    
+    .perf-change {
+      font-size: 11px;
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .perf-change.up { color: #22c55e; }
+    .perf-change.down { color: #ef4444; }
+    
+    /* Section Headers */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding: 0 4px;
+    }
+    
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    
+    .section-link {
+      font-size: 13px;
+      color: #3b82f6;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    
+    /* Quick Actions */
+    .quick-actions {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    
+    .quick-action {
+      flex: 1;
+      min-width: 100px;
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 16px 12px;
+      text-align: center;
+      cursor: pointer;
+      border: 2px solid #e2e8f0;
+      transition: all 0.2s;
+    }
+    
+    .quick-action:active {
+      transform: scale(0.97);
+      border-color: #3b82f6;
+    }
+    
+    .quick-action-icon {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+    
+    .quick-action-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #475569;
+    }
+    
+    /* Alerts Section */
+    .alerts-container {
+      margin-bottom: 24px;
+    }
+    
+    .alert-card {
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    
+    .alert-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    
+    .alert-icon.critical {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+    
+    .alert-icon.warning {
+      background: #fffbeb;
+      color: #d97706;
+    }
+    
+    .alert-icon.info {
+      background: #eff6ff;
+      color: #2563eb;
+    }
+    
+    .alert-content {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .alert-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 2px;
+    }
+    
+    .alert-meta {
+      font-size: 12px;
+      color: #64748b;
+    }
+    
+    .alert-action {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: none;
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    
+    .alert-action:active {
+      background: #e2e8f0;
+    }
+    
+    /* Route Section */
+    .route-container {
+      margin-bottom: 24px;
+    }
+    
+    .route-summary {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 12px;
+    }
+    
+    .route-stats {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 16px;
+    }
+    
+    .route-stat {
+      text-align: center;
+    }
+    
+    .route-stat-value {
+      font-size: 28px;
+      font-weight: 700;
+    }
+    
+    .route-stat-label {
+      font-size: 11px;
+      opacity: 0.9;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .route-list {
+      background: #ffffff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    
+    .route-item {
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #f1f5f9;
+      cursor: pointer;
+    }
+    
+    .route-item:last-child {
+      border-bottom: none;
+    }
+    
+    .route-item:active {
+      background: #f8fafc;
+    }
+    
+    .route-number {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: #3b82f6;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    
+    .route-number.completed {
+      background: #22c55e;
+    }
+    
+    .route-info {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .route-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #0f172a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .route-location {
+      font-size: 12px;
+      color: #64748b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .route-status {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .route-status.pending {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    
+    .route-status.urgent {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    .route-status.done {
+      background: #dcfce7;
+      color: #166534;
+    }
+    
+    /* Machine List */
+    .machine-list {
+      margin-bottom: 24px;
+    }
+    
+    .machine-card {
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    
+    .machine-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    
+    .machine-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    
+    .machine-status {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    
+    .machine-status.active {
+      background: #dcfce7;
+      color: #166534;
+    }
+    
+    .machine-status.low-stock {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    
+    .machine-status.offline {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    .machine-location {
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 12px;
+    }
+    
+    .machine-stats {
+      display: flex;
+      gap: 16px;
+    }
+    
+    .machine-stat {
+      text-align: center;
+    }
+    
+    .machine-stat-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    
+    .machine-stat-label {
+      font-size: 10px;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+    
+    .stock-bar {
+      flex: 1;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    
+    .stock-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.3s;
+    }
+    
+    .stock-fill.good { background: #22c55e; }
+    .stock-fill.medium { background: #f59e0b; }
+    .stock-fill.low { background: #ef4444; }
+    
+    /* Bottom Navigation */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #ffffff;
+      border-top: 1px solid #e2e8f0;
+      padding: 8px 16px;
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
+      display: flex;
+      justify-content: space-around;
+      z-index: 100;
+    }
+    
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-decoration: none;
+      color: #64748b;
+      padding: 8px 16px;
+      border-radius: 12px;
+      transition: all 0.2s;
+    }
+    
+    .nav-item.active {
+      color: #3b82f6;
+    }
+    
+    .nav-item:active {
+      background: #f1f5f9;
+    }
+    
+    .nav-icon {
+      font-size: 22px;
+      margin-bottom: 4px;
+    }
+    
+    .nav-label {
+      font-size: 10px;
+      font-weight: 600;
+    }
+    
+    /* Restock Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 200;
+    }
+    
+    .modal-overlay.active {
+      display: flex;
+    }
+    
+    .modal-content {
+      background: #ffffff;
+      width: 100%;
+      max-height: 90vh;
+      border-radius: 24px 24px 0 0;
+      padding: 24px;
+      padding-bottom: max(24px, env(safe-area-inset-bottom));
+      overflow-y: auto;
+      animation: slideUp 0.3s ease;
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    
+    .modal-handle {
+      width: 40px;
+      height: 4px;
+      background: #d1d5db;
+      border-radius: 2px;
+      margin: 0 auto 20px;
+    }
+    
+    .modal-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+    
+    .modal-subtitle {
+      font-size: 14px;
+      color: #64748b;
+      margin-bottom: 20px;
+    }
+    
+    .slot-list {
+      margin-bottom: 24px;
+    }
+    
+    .slot-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: #f8fafc;
+      border-radius: 12px;
+      margin-bottom: 8px;
+    }
+    
+    .slot-code {
+      font-size: 14px;
+      font-weight: 700;
+      color: #3b82f6;
+      width: 32px;
+    }
+    
+    .slot-product {
+      flex: 1;
+      font-size: 14px;
+      color: #0f172a;
+    }
+    
+    .slot-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .qty-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: none;
+      background: #e2e8f0;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .qty-btn:active {
+      background: #cbd5e1;
+    }
+    
+    .qty-input {
+      width: 50px;
+      height: 32px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      border-radius: 14px;
+      border: none;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    
+    .submit-btn:active {
+      opacity: 0.9;
+    }
+    
+    .submit-btn:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+    
+    /* Refresh indicator */
+    .refresh-indicator {
+      text-align: center;
+      padding: 12px;
+      font-size: 12px;
+      color: #64748b;
+    }
+    
+    /* Loading State */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      color: #64748b;
+    }
+    
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid #e2e8f0;
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 12px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0f172a;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 300;
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    .toast.show {
+      display: block;
+    }
+    
+    .toast.success {
+      background: #22c55e;
+    }
+    
+    .toast.error {
+      background: #ef4444;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #64748b;
+    }
+    
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+    
+    .empty-text {
+      font-size: 14px;
+    }
+    
+    /* Pull to Refresh */
+    .ptr-indicator {
+      text-align: center;
+      padding: 16px;
+      font-size: 12px;
+      color: #64748b;
+      display: none;
+    }
+    
+    .ptr-indicator.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="mobile-header">
+    <div class="header-left">
+      <div class="header-logo">K</div>
+      <div>
+        <div class="header-title">VendTech</div>
+        <div class="header-subtitle" id="currentDate">Today</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="header-btn" onclick="window.location.href='/notifications'">
+        🔔
+        <span class="notification-badge" id="alertBadge" style="display:none;">0</span>
+      </button>
+      <button class="header-btn" onclick="refreshData()">🔄</button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="mobile-content">
+    <!-- Performance Grid -->
+    <div class="performance-grid" id="performanceGrid">
+      <div class="perf-card highlight">
+        <div class="perf-icon">💰</div>
+        <div class="perf-value" id="todayRevenue">$0</div>
+        <div class="perf-label">Today's Revenue</div>
+        <div class="perf-change up" id="revenueChange">↑ 0%</div>
+      </div>
+      <div class="perf-card">
+        <div class="perf-icon">📦</div>
+        <div class="perf-value" id="todaySales">0</div>
+        <div class="perf-label">Sales Today</div>
+        <div class="perf-change" id="salesChange">—</div>
+      </div>
+      <div class="perf-card">
+        <div class="perf-icon">🤖</div>
+        <div class="perf-value" id="activeMachines">0</div>
+        <div class="perf-label">Active Machines</div>
+      </div>
+      <div class="perf-card">
+        <div class="perf-icon">⚠️</div>
+        <div class="perf-value" id="alertCount">0</div>
+        <div class="perf-label">Pending Alerts</div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="section-header">
+      <div class="section-title">Quick Actions</div>
+    </div>
+    <div class="quick-actions">
+      <div class="quick-action" onclick="openRestockModal()">
+        <div class="quick-action-icon">📥</div>
+        <div class="quick-action-label">Restock</div>
+      </div>
+      <div class="quick-action" onclick="window.location.href='/driver'">
+        <div class="quick-action-icon">🚗</div>
+        <div class="quick-action-label">Route</div>
+      </div>
+      <div class="quick-action" onclick="viewAlerts()">
+        <div class="quick-action-icon">🔔</div>
+        <div class="quick-action-label">Alerts</div>
+      </div>
+      <div class="quick-action" onclick="window.location.href='/machines'">
+        <div class="quick-action-icon">📊</div>
+        <div class="quick-action-label">Machines</div>
+      </div>
+    </div>
+
+    <!-- Alerts Section -->
+    <div class="alerts-container" id="alertsContainer">
+      <div class="section-header">
+        <div class="section-title">Active Alerts</div>
+        <a href="/notifications" class="section-link">View All</a>
+      </div>
+      <div id="alertsList">
+        <!-- Alerts loaded dynamically -->
+      </div>
+    </div>
+
+    <!-- Today's Route -->
+    <div class="route-container">
+      <div class="section-header">
+        <div class="section-title">Today's Route</div>
+        <a href="/routes" class="section-link">Full Route</a>
+      </div>
+      <div class="route-summary" id="routeSummary">
+        <div style="font-size:16px;font-weight:600;margin-bottom:4px;">Route Progress</div>
+        <div style="font-size:13px;opacity:0.9;">Complete your scheduled stops</div>
+        <div class="route-stats">
+          <div class="route-stat">
+            <div class="route-stat-value" id="completedStops">0</div>
+            <div class="route-stat-label">Done</div>
+          </div>
+          <div class="route-stat">
+            <div class="route-stat-value" id="pendingStops">0</div>
+            <div class="route-stat-label">Pending</div>
+          </div>
+          <div class="route-stat">
+            <div class="route-stat-value" id="estimatedTime">0h</div>
+            <div class="route-stat-label">Est. Time</div>
+          </div>
+        </div>
+      </div>
+      <div class="route-list" id="routeList">
+        <!-- Route stops loaded dynamically -->
+      </div>
+    </div>
+
+    <!-- Machine Performance -->
+    <div class="machine-list">
+      <div class="section-header">
+        <div class="section-title">Top Machines Today</div>
+        <a href="/sales-analytics" class="section-link">Analytics</a>
+      </div>
+      <div id="machinesList">
+        <!-- Machines loaded dynamically -->
+      </div>
+    </div>
+
+    <div class="refresh-indicator" id="lastUpdate">
+      Last updated: —
+    </div>
+  </main>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <a href="/mobile-dashboard" class="nav-item active">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">Home</span>
+    </a>
+    <a href="/machines" class="nav-item">
+      <span class="nav-icon">🤖</span>
+      <span class="nav-label">Machines</span>
+    </a>
+    <a href="/routes" class="nav-item">
+      <span class="nav-icon">🗺️</span>
+      <span class="nav-label">Routes</span>
+    </a>
+    <a href="/sales-analytics" class="nav-item">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Analytics</span>
+    </a>
+  </nav>
+
+  <!-- Restock Modal -->
+  <div class="modal-overlay" id="restockModal">
+    <div class="modal-content">
+      <div class="modal-handle"></div>
+      <div class="modal-title">Quick Restock</div>
+      <div class="modal-subtitle" id="restockMachineName">Select items to restock</div>
+      
+      <div style="margin-bottom:16px;">
+        <label style="font-size:14px;font-weight:600;color:#475569;margin-bottom:8px;display:block;">Select Machine</label>
+        <select id="machineSelect" style="width:100%;padding:12px;border:2px solid #e2e8f0;border-radius:12px;font-size:14px;background:#fff;">
+          <option value="">Choose machine...</option>
+        </select>
+      </div>
+      
+      <div class="slot-list" id="slotList">
+        <!-- Slots loaded dynamically -->
+      </div>
+      
+      <button class="submit-btn" id="submitRestock" onclick="submitRestock()">
+        Submit Restock
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">Message</div>
+
+  <script>
+    // State
+    let dashboardData = null;
+    let alertsData = null;
+    let routeData = null;
+    let machinesData = null;
+    let selectedMachine = null;
+    let machineDetails = null;
+    let restockItems = {};
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      setCurrentDate();
+      refreshData();
+      
+      // Auto refresh every 2 minutes
+      setInterval(refreshData, 120000);
+      
+      // Close modal on overlay click
+      document.getElementById('restockModal').addEventListener('click', (e) => {
+        if (e.target.id === 'restockModal') closeRestockModal();
+      });
+    });
+
+    function setCurrentDate() {
+      const now = new Date();
+      const options = { weekday: 'long', month: 'short', day: 'numeric' };
+      document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', options);
+    }
+
+    async function refreshData() {
+      try {
+        // Fetch all data in parallel
+        const [dashboard, alerts, route, machines] = await Promise.all([
+          fetch('/api/mobile/dashboard').then(r => r.json()),
+          fetch('/api/mobile/alerts?limit=5').then(r => r.json()),
+          fetch('/api/optimization/route').then(r => r.json()),
+          fetch('/api/mobile/machines?sort_by=revenue&limit=5').then(r => r.json())
+        ]);
+
+        dashboardData = dashboard;
+        alertsData = alerts;
+        routeData = route;
+        machinesData = machines;
+
+        renderDashboard();
+        renderAlerts();
+        renderRoute();
+        renderMachines();
+        updateLastRefresh();
+      } catch (error) {
+        console.error('Failed to load data:', error);
+        showToast('Failed to load data', 'error');
+      }
+    }
+
+    function renderDashboard() {
+      if (!dashboardData) return;
+
+      // Update performance cards
+      document.getElementById('todayRevenue').textContent = `$${dashboardData.today.revenue.toLocaleString()}`;
+      document.getElementById('todaySales').textContent = dashboardData.today.sales.toLocaleString();
+      document.getElementById('activeMachines').textContent = dashboardData.machines.active;
+      document.getElementById('alertCount').textContent = dashboardData.alerts.pending_count;
+
+      // Update alert badge
+      const badge = document.getElementById('alertBadge');
+      if (dashboardData.alerts.pending_count > 0) {
+        badge.textContent = dashboardData.alerts.pending_count > 99 ? '99+' : dashboardData.alerts.pending_count;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    function renderAlerts() {
+      const container = document.getElementById('alertsList');
+      
+      if (!alertsData || alertsData.alerts.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">✅</div>
+            <div class="empty-text">No active alerts</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = alertsData.alerts.map(alert => `
+        <div class="alert-card" data-id="${alert.id}">
+          <div class="alert-icon ${alert.severity}">
+            ${alert.severity === 'critical' ? '🚨' : alert.severity === 'warning' ? '⚠️' : 'ℹ️'}
+          </div>
+          <div class="alert-content">
+            <div class="alert-title">${escapeHtml(alert.message)}</div>
+            <div class="alert-meta">${escapeHtml(alert.machine_name)} • ${alert.age_hours}h ago</div>
+          </div>
+          <button class="alert-action" onclick="acknowledgeAlert(${alert.id})">Dismiss</button>
+        </div>
+      `).join('');
+    }
+
+    function renderRoute() {
+      const list = document.getElementById('routeList');
+      
+      if (!routeData || routeData.route.stops.length === 0) {
+        document.getElementById('completedStops').textContent = '0';
+        document.getElementById('pendingStops').textContent = '0';
+        document.getElementById('estimatedTime').textContent = '0h';
+        list.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">🎉</div>
+            <div class="empty-text">No stops scheduled</div>
+          </div>
+        `;
+        return;
+      }
+
+      document.getElementById('completedStops').textContent = '0';
+      document.getElementById('pendingStops').textContent = routeData.route.total_stops;
+      document.getElementById('estimatedTime').textContent = routeData.route.estimated_completion;
+
+      list.innerHTML = routeData.route.stops.slice(0, 5).map(stop => `
+        <div class="route-item" onclick="window.location.href='/machines/${stop.machine_id}'">
+          <div class="route-number">${stop.order}</div>
+          <div class="route-info">
+            <div class="route-name">${escapeHtml(stop.machine_name)}</div>
+            <div class="route-location">${escapeHtml(stop.location || 'No address')}</div>
+          </div>
+          <div class="route-status ${stop.critical_slots > 0 ? 'urgent' : 'pending'}">
+            ${stop.critical_slots > 0 ? 'Urgent' : 'Pending'}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderMachines() {
+      const container = document.getElementById('machinesList');
+      
+      if (!machinesData || machinesData.machines.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">🤖</div>
+            <div class="empty-text">No machines found</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = machinesData.machines.map(machine => {
+        const stockClass = machine.stock_level >= 50 ? 'good' : machine.stock_level >= 25 ? 'medium' : 'low';
+        const statusClass = machine.slots.empty > 0 ? 'low-stock' : machine.status === 'active' ? 'active' : 'offline';
+        
+        return `
+          <div class="machine-card" onclick="window.location.href='/machines/${machine.id}'">
+            <div class="machine-header">
+              <div class="machine-name">${escapeHtml(machine.name)}</div>
+              <div class="machine-status ${statusClass}">
+                ${machine.slots.empty > 0 ? 'Low Stock' : machine.status}
+              </div>
+            </div>
+            <div class="machine-location">📍 ${escapeHtml(machine.location || 'No location')}</div>
+            <div class="machine-stats">
+              <div class="machine-stat">
+                <div class="machine-stat-value">$${machine.revenue_7d}</div>
+                <div class="machine-stat-label">7-Day Rev</div>
+              </div>
+              <div class="machine-stat">
+                <div class="machine-stat-value">${machine.slots.total}</div>
+                <div class="machine-stat-label">Slots</div>
+              </div>
+              <div class="machine-stat">
+                <div class="machine-stat-value">${machine.slots.low}</div>
+                <div class="machine-stat-label">Low</div>
+              </div>
+            </div>
+            <div class="stock-bar">
+              <div class="stock-fill ${stockClass}" style="width:${machine.stock_level}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateLastRefresh() {
+      const now = new Date();
+      document.getElementById('lastUpdate').textContent = 
+        `Last updated: ${now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+    }
+
+    // Restock Modal
+    async function openRestockModal() {
+      const modal = document.getElementById('restockModal');
+      const select = document.getElementById('machineSelect');
+      
+      // Load machine list
+      try {
+        const data = await fetch('/api/mobile/machines?limit=100').then(r => r.json());
+        select.innerHTML = '<option value="">Choose machine...</option>' + 
+          data.machines.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
+      } catch (e) {
+        console.error('Failed to load machines:', e);
+      }
+      
+      select.onchange = loadMachineSlots;
+      modal.classList.add('active');
+    }
+
+    async function loadMachineSlots() {
+      const machineId = document.getElementById('machineSelect').value;
+      const container = document.getElementById('slotList');
+      
+      if (!machineId) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-text">Select a machine to see slots</div></div>';
+        return;
+      }
+
+      try {
+        const data = await fetch(`/api/mobile/machines/${machineId}`).then(r => r.json());
+        machineDetails = data;
+        restockItems = {};
+        
+        document.getElementById('restockMachineName').textContent = data.machine.name;
+        
+        const lowSlots = data.inventory.slots.filter(s => s.status !== 'ok');
+        
+        if (lowSlots.length === 0) {
+          container.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">All slots fully stocked!</div></div>';
+          return;
+        }
+
+        container.innerHTML = lowSlots.map(slot => `
+          <div class="slot-item">
+            <div class="slot-code">${slot.slot_code}</div>
+            <div class="slot-product">
+              ${escapeHtml(slot.product_name)}
+              <div style="font-size:11px;color:#64748b;">Need: ${slot.fill_needed}</div>
+            </div>
+            <div class="slot-input-wrapper">
+              <button class="qty-btn" onclick="adjustQty('${slot.slot_code}', -1)">−</button>
+              <input type="number" class="qty-input" id="qty-${slot.slot_code}" 
+                     value="${slot.fill_needed}" min="0" max="${slot.fill_needed}"
+                     onchange="updateQty('${slot.slot_code}', this.value)">
+              <button class="qty-btn" onclick="adjustQty('${slot.slot_code}', 1)">+</button>
+            </div>
+          </div>
+        `).join('');
+        
+        // Initialize restock items
+        lowSlots.forEach(slot => {
+          restockItems[slot.slot_code] = slot.fill_needed;
+        });
+      } catch (e) {
+        console.error('Failed to load slots:', e);
+        container.innerHTML = '<div class="empty-state"><div class="empty-text">Failed to load slots</div></div>';
+      }
+    }
+
+    function adjustQty(slotCode, delta) {
+      const input = document.getElementById(`qty-${slotCode}`);
+      const newVal = Math.max(0, parseInt(input.value || 0) + delta);
+      input.value = newVal;
+      restockItems[slotCode] = newVal;
+    }
+
+    function updateQty(slotCode, value) {
+      restockItems[slotCode] = parseInt(value) || 0;
+    }
+
+    async function submitRestock() {
+      const machineId = document.getElementById('machineSelect').value;
+      if (!machineId) {
+        showToast('Please select a machine', 'error');
+        return;
+      }
+
+      const items = Object.entries(restockItems)
+        .filter(([_, qty]) => qty > 0)
+        .map(([slot_code, quantity_added]) => ({ slot_code, quantity_added }));
+
+      if (items.length === 0) {
+        showToast('No items to restock', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('submitRestock');
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+
+      try {
+        const response = await fetch('/api/mobile/restock', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            machine_id: parseInt(machineId),
+            items,
+            source: 'mobile_dashboard'
+          })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+          showToast(`Restocked ${result.total_units_added} items`, 'success');
+          closeRestockModal();
+          refreshData();
+        } else {
+          showToast(result.error || 'Failed to submit', 'error');
+        }
+      } catch (e) {
+        console.error('Restock failed:', e);
+        showToast('Failed to submit restock', 'error');
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Submit Restock';
+    }
+
+    function closeRestockModal() {
+      document.getElementById('restockModal').classList.remove('active');
+    }
+
+    // Alerts
+    function viewAlerts() {
+      window.location.href = '/notifications';
+    }
+
+    async function acknowledgeAlert(alertId) {
+      try {
+        const response = await fetch(`/api/mobile/alerts/${alertId}/acknowledge`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ acknowledged_by: 'mobile_user' })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+          showToast('Alert dismissed', 'success');
+          // Remove from UI
+          const card = document.querySelector(`.alert-card[data-id="${alertId}"]`);
+          if (card) card.remove();
+          // Update badge
+          const badge = document.getElementById('alertBadge');
+          const current = parseInt(badge.textContent) || 0;
+          if (current <= 1) {
+            badge.style.display = 'none';
+          } else {
+            badge.textContent = current - 1;
+          }
+        }
+      } catch (e) {
+        console.error('Failed to acknowledge:', e);
+        showToast('Failed to dismiss alert', 'error');
+      }
+    }
+
+    // Toast
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast show ${type}`;
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // Utils
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>

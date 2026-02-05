@@ -17611,6 +17611,2480 @@ app.post('/api/transactions/import', (req, res) => {
 
 // ===== END PHASE 3: SALES & ANALYTICS =====
 
+// ===== PHASE 4: PRICING STRATEGIES =====
+// Based on VENDTECH-RULES.md: 3x COGS target (33%), $3 avg price target
+
+// Initialize pricing data stores
+if (!db.pricingStrategies) db.pricingStrategies = [];
+if (!db.strategyApplications) db.strategyApplications = [];
+if (!db.slotPriceOverrides) db.slotPriceOverrides = [];
+if (!db.strategyPerformance) db.strategyPerformance = [];
+if (!db.priceHistory) db.priceHistory = [];
+
+// Seed default strategy templates if none exist
+if (db.pricingStrategies.length === 0) {
+  db.pricingStrategies = [
+    {
+      id: nextId(),
+      name: 'Classic Decoy Effect',
+      description: 'Use a medium-priced decoy to make the premium option more attractive. Target: increase premium sales by 30%.',
+      type: 'decoy',
+      config: {
+        target_role: 'premium',
+        products: {
+          economy: { position: 'bottom', price_range: [1.50, 2.00] },
+          decoy: { position: 'middle', price_range: [2.25, 2.75], similar_to: 'premium' },
+          premium: { position: 'top', price_range: [2.50, 3.00] }
+        },
+        placement_rules: { decoy_adjacent_to_premium: true, anchor_first_row: true },
+        expected_lift: 30
+      },
+      is_active: true,
+      is_template: true,
+      created_by: 'system',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: nextId(),
+      name: 'High Anchor Strategy',
+      description: 'Place highest-priced items at eye level to anchor pricing perception.',
+      type: 'anchoring',
+      config: {
+        anchor_positions: ['A1', 'A2', 'B1', 'B2'],
+        anchor_price_minimum: 3.50,
+        anchor_categories: ['energy_drink', 'premium_snack'],
+        expected_avg_transaction_lift: 15
+      },
+      is_active: true,
+      is_template: true,
+      created_by: 'system',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: nextId(),
+      name: 'Happy Hour Discount',
+      description: 'Time-based pricing for slow periods.',
+      type: 'time_based',
+      config: {
+        rules: [
+          { name: 'Morning Boost', days: [1,2,3,4,5], start_hour: 6, end_hour: 8, discount_percent: 10 },
+          { name: 'Late Night Deal', days: [0,1,2,3,4,5,6], start_hour: 21, end_hour: 23, discount_percent: 15 }
+        ],
+        minimum_margin_percent: 40
+      },
+      is_active: true,
+      is_template: true,
+      created_by: 'system',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: nextId(),
+      name: 'Combo Bundle Deal',
+      description: 'Bundle complementary items at a small discount.',
+      type: 'bundle_discount',
+      config: {
+        bundles: [
+          { name: 'Energy Combo', products: ['energy_drink', 'protein_bar'], original_total: 5.50, bundle_price: 4.99, savings_percent: 9 },
+          { name: 'Snack Attack', products: ['chips', 'candy', 'soda'], original_total: 6.00, bundle_price: 5.25, savings_percent: 12.5 }
+        ],
+        display_savings: true,
+        max_bundles_per_transaction: 2
+      },
+      is_active: true,
+      is_template: true,
+      created_by: 'system',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: nextId(),
+      name: '3x COGS Margin Optimizer',
+      description: 'Automatically adjusts prices to maintain 33% COGS target (3x markup).',
+      type: 'margin_optimization',
+      config: {
+        target_margin_percent: 67,
+        target_cogs_percent: 33,
+        price_rounding: 0.25,
+        min_price: 1.50,
+        max_price: 5.00,
+        avg_target_price: 3.00
+      },
+      is_active: true,
+      is_template: true,
+      created_by: 'system',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  ];
+  saveDB(db);
+}
+
+// ===== GET /api/pricing-strategies — List all strategies =====
+app.get('/api/pricing-strategies', (req, res) => {
+  const { type, is_template, is_active } = req.query;
+  
+  let strategies = [...db.pricingStrategies];
+  
+  if (type) {
+    strategies = strategies.filter(s => s.type === type);
+  }
+  if (is_template !== undefined) {
+    strategies = strategies.filter(s => s.is_template === (is_template === 'true'));
+  }
+  if (is_active !== undefined) {
+    strategies = strategies.filter(s => s.is_active === (is_active === 'true'));
+  }
+  
+  // Enrich with application count
+  strategies = strategies.map(s => ({
+    ...s,
+    machines_applied: db.strategyApplications.filter(a => a.strategy_id === s.id && a.status === 'active').length
+  }));
+  
+  res.json(strategies);
+});
+
+// ===== POST /api/pricing-strategies — Create new strategy =====
+app.post('/api/pricing-strategies', (req, res) => {
+  const { name, description, type, config, is_template, is_active } = req.body;
+  
+  if (!name || !type) {
+    return res.status(400).json({ error: 'name and type are required' });
+  }
+  
+  const validTypes = ['decoy', 'anchoring', 'time_based', 'bundle_discount', 'margin_optimization'];
+  if (!validTypes.includes(type)) {
+    return res.status(400).json({ error: `Invalid type. Valid types: ${validTypes.join(', ')}` });
+  }
+  
+  const strategy = {
+    id: nextId(),
+    name: sanitize(name),
+    description: sanitize(description || ''),
+    type,
+    config: config || {},
+    is_template: is_template || false,
+    is_active: is_active !== false,
+    created_by: 'user',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  
+  db.pricingStrategies.push(strategy);
+  saveDB(db);
+  
+  res.status(201).json(strategy);
+});
+
+// ===== GET /api/pricing-strategies/:id — Get single strategy =====
+app.get('/api/pricing-strategies/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const strategy = db.pricingStrategies.find(s => s.id === id);
+  
+  if (!strategy) {
+    return res.status(404).json({ error: 'Strategy not found' });
+  }
+  
+  // Enrich with applications
+  const applications = db.strategyApplications.filter(a => a.strategy_id === id);
+  
+  res.json({
+    ...strategy,
+    applications,
+    machines_applied: applications.filter(a => a.status === 'active').length
+  });
+});
+
+// ===== PUT /api/pricing-strategies/:id — Update strategy =====
+app.put('/api/pricing-strategies/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const index = db.pricingStrategies.findIndex(s => s.id === id);
+  
+  if (index === -1) {
+    return res.status(404).json({ error: 'Strategy not found' });
+  }
+  
+  const { name, description, type, config, is_template, is_active } = req.body;
+  const strategy = db.pricingStrategies[index];
+  
+  if (name) strategy.name = sanitize(name);
+  if (description !== undefined) strategy.description = sanitize(description);
+  if (type) strategy.type = type;
+  if (config) strategy.config = config;
+  if (is_template !== undefined) strategy.is_template = is_template;
+  if (is_active !== undefined) strategy.is_active = is_active;
+  strategy.updated_at = new Date().toISOString();
+  
+  db.pricingStrategies[index] = strategy;
+  saveDB(db);
+  
+  res.json(strategy);
+});
+
+// ===== DELETE /api/pricing-strategies/:id — Delete strategy =====
+app.delete('/api/pricing-strategies/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const index = db.pricingStrategies.findIndex(s => s.id === id);
+  
+  if (index === -1) {
+    return res.status(404).json({ error: 'Strategy not found' });
+  }
+  
+  // Remove all applications
+  db.strategyApplications = db.strategyApplications.filter(a => a.strategy_id !== id);
+  
+  // Remove strategy
+  db.pricingStrategies.splice(index, 1);
+  saveDB(db);
+  
+  res.json({ success: true, message: 'Strategy deleted' });
+});
+
+// ===== POST /api/machines/:id/apply-strategy — Apply strategy to machine =====
+app.post('/api/machines/:id/apply-strategy', (req, res) => {
+  const machineId = parseInt(req.params.id);
+  const { strategy_id, slot_overrides, ends_at } = req.body;
+  
+  if (!strategy_id) {
+    return res.status(400).json({ error: 'strategy_id is required' });
+  }
+  
+  const machine = db.machines.find(m => m.id === machineId);
+  if (!machine) {
+    return res.status(404).json({ error: 'Machine not found' });
+  }
+  
+  const strategy = db.pricingStrategies.find(s => s.id === parseInt(strategy_id));
+  if (!strategy) {
+    return res.status(404).json({ error: 'Strategy not found' });
+  }
+  
+  // Check if already applied
+  const existing = db.strategyApplications.find(a => 
+    a.machine_id === machineId && a.strategy_id === parseInt(strategy_id) && a.status === 'active'
+  );
+  
+  if (existing) {
+    return res.status(400).json({ error: 'Strategy already applied to this machine' });
+  }
+  
+  // Deactivate other active strategies for this machine (one active per machine)
+  db.strategyApplications.forEach(a => {
+    if (a.machine_id === machineId && a.status === 'active') {
+      a.status = 'ended';
+      a.updated_at = new Date().toISOString();
+    }
+  });
+  
+  const application = {
+    id: nextId(),
+    strategy_id: parseInt(strategy_id),
+    machine_id: machineId,
+    applied_at: new Date().toISOString(),
+    applied_by: 'user',
+    status: 'active',
+    slot_overrides: slot_overrides || {},
+    ends_at: ends_at || null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  
+  db.strategyApplications.push(application);
+  
+  // Record in price history
+  db.priceHistory.push({
+    id: nextId(),
+    entity_type: 'machine',
+    entity_id: machineId,
+    change_reason: 'strategy_applied',
+    strategy_id: parseInt(strategy_id),
+    application_id: application.id,
+    changed_by: 'user',
+    changed_at: new Date().toISOString()
+  });
+  
+  saveDB(db);
+  
+  res.status(201).json({
+    success: true,
+    message: `Strategy "${strategy.name}" applied to machine "${machine.name || machineId}"`,
+    application
+  });
+});
+
+// ===== DELETE /api/machines/:id/strategy — Remove strategy from machine =====
+app.delete('/api/machines/:id/strategy', (req, res) => {
+  const machineId = parseInt(req.params.id);
+  
+  const activeApp = db.strategyApplications.find(a => 
+    a.machine_id === machineId && a.status === 'active'
+  );
+  
+  if (!activeApp) {
+    return res.status(404).json({ error: 'No active strategy on this machine' });
+  }
+  
+  activeApp.status = 'ended';
+  activeApp.updated_at = new Date().toISOString();
+  saveDB(db);
+  
+  res.json({ success: true, message: 'Strategy removed from machine' });
+});
+
+// ===== GET /api/pricing-strategies/:id/performance — Get strategy performance metrics =====
+app.get('/api/pricing-strategies/:id/performance', (req, res) => {
+  const strategyId = parseInt(req.params.id);
+  const { period = '30d' } = req.query;
+  
+  const strategy = db.pricingStrategies.find(s => s.id === strategyId);
+  if (!strategy) {
+    return res.status(404).json({ error: 'Strategy not found' });
+  }
+  
+  // Get all applications of this strategy
+  const applications = db.strategyApplications.filter(a => a.strategy_id === strategyId);
+  const machineIds = applications.map(a => a.machine_id);
+  
+  // Calculate date range
+  const now = new Date();
+  let daysBack = 30;
+  switch (period) {
+    case '7d': daysBack = 7; break;
+    case '14d': daysBack = 14; break;
+    case '30d': daysBack = 30; break;
+    case '90d': daysBack = 90; break;
+  }
+  const startDate = new Date(now - daysBack * 24 * 60 * 60 * 1000);
+  
+  // Aggregate transactions for machines with this strategy
+  const transactions = (db.transactions || []).filter(t => {
+    const tDate = new Date(t.transaction_time);
+    return machineIds.includes(t.machine_id) && tDate >= startDate;
+  });
+  
+  const totalRevenue = transactions.reduce((sum, t) => sum + (t.total || 0), 0);
+  const totalUnits = transactions.reduce((sum, t) => sum + (t.quantity || 1), 0);
+  const transactionCount = transactions.length;
+  
+  // Calculate COGS (estimate at 33% if not tracked)
+  const estimatedCOGS = totalRevenue * 0.33;
+  const grossProfit = totalRevenue - estimatedCOGS;
+  const marginPercent = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+  
+  // Daily breakdown
+  const dailyData = {};
+  transactions.forEach(t => {
+    const date = new Date(t.transaction_time).toISOString().split('T')[0];
+    if (!dailyData[date]) {
+      dailyData[date] = { revenue: 0, units: 0, transactions: 0 };
+    }
+    dailyData[date].revenue += t.total || 0;
+    dailyData[date].units += t.quantity || 1;
+    dailyData[date].transactions++;
+  });
+  
+  // Baseline comparison (machines without strategy in same period)
+  const otherMachineIds = db.machines
+    .filter(m => !machineIds.includes(m.id))
+    .map(m => m.id);
+  
+  const baselineTransactions = (db.transactions || []).filter(t => {
+    const tDate = new Date(t.transaction_time);
+    return otherMachineIds.includes(t.machine_id) && tDate >= startDate;
+  });
+  
+  const baselineRevenue = baselineTransactions.reduce((sum, t) => sum + (t.total || 0), 0);
+  const baselineAvgTransaction = baselineTransactions.length > 0 
+    ? baselineRevenue / baselineTransactions.length 
+    : 0;
+  
+  const strategyAvgTransaction = transactionCount > 0 ? totalRevenue / transactionCount : 0;
+  const revenueVsBaseline = baselineAvgTransaction > 0
+    ? ((strategyAvgTransaction - baselineAvgTransaction) / baselineAvgTransaction) * 100
+    : 0;
+  
+  res.json({
+    strategy_id: strategyId,
+    strategy_name: strategy.name,
+    strategy_type: strategy.type,
+    period: `${daysBack}d`,
+    machines_count: machineIds.length,
+    summary: {
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
+      totalUnits,
+      transactionCount,
+      avgTransaction: Math.round(strategyAvgTransaction * 100) / 100,
+      estimatedCOGS: Math.round(estimatedCOGS * 100) / 100,
+      grossProfit: Math.round(grossProfit * 100) / 100,
+      marginPercent: Math.round(marginPercent * 10) / 10
+    },
+    comparison: {
+      baselineAvgTransaction: Math.round(baselineAvgTransaction * 100) / 100,
+      revenueVsBaseline: Math.round(revenueVsBaseline * 10) / 10,
+      performanceLabel: revenueVsBaseline > 0 ? 'above_baseline' : revenueVsBaseline < 0 ? 'below_baseline' : 'at_baseline'
+    },
+    daily: Object.entries(dailyData).map(([date, data]) => ({
+      date,
+      revenue: Math.round(data.revenue * 100) / 100,
+      units: data.units,
+      transactions: data.transactions
+    })).sort((a, b) => a.date.localeCompare(b.date)),
+    applications: applications.map(a => ({
+      id: a.id,
+      machine_id: a.machine_id,
+      machine_name: db.machines.find(m => m.id === a.machine_id)?.name || `Machine ${a.machine_id}`,
+      status: a.status,
+      applied_at: a.applied_at
+    }))
+  });
+});
+
+// ===== GET /api/slot-price-overrides — List all slot overrides =====
+app.get('/api/slot-price-overrides', (req, res) => {
+  const { machine_id } = req.query;
+  
+  let overrides = [...db.slotPriceOverrides];
+  
+  if (machine_id) {
+    overrides = overrides.filter(o => o.machine_id === parseInt(machine_id));
+  }
+  
+  // Enrich with machine and slot info
+  overrides = overrides.map(o => {
+    const machine = db.machines.find(m => m.id === o.machine_id);
+    const slot = machine?.slots?.find(s => s.id === o.slot_id);
+    return {
+      ...o,
+      machine_name: machine?.name || `Machine ${o.machine_id}`,
+      slot_position: slot?.position || o.slot_id,
+      product_name: slot?.product_name || 'Unknown'
+    };
+  });
+  
+  res.json(overrides);
+});
+
+// ===== POST /api/slot-price-overrides — Create slot override =====
+app.post('/api/slot-price-overrides', (req, res) => {
+  const { slot_id, machine_id, custom_price, original_price, reason, effective_until } = req.body;
+  
+  if (!slot_id || !machine_id || custom_price === undefined) {
+    return res.status(400).json({ error: 'slot_id, machine_id, and custom_price are required' });
+  }
+  
+  // Check for existing override
+  const existingIndex = db.slotPriceOverrides.findIndex(o => o.slot_id === slot_id);
+  if (existingIndex !== -1) {
+    // Update existing
+    db.slotPriceOverrides[existingIndex] = {
+      ...db.slotPriceOverrides[existingIndex],
+      custom_price: parseFloat(custom_price),
+      reason: sanitize(reason || ''),
+      effective_until: effective_until || null,
+      updated_at: new Date().toISOString()
+    };
+    saveDB(db);
+    return res.json(db.slotPriceOverrides[existingIndex]);
+  }
+  
+  const override = {
+    id: nextId(),
+    slot_id,
+    machine_id: parseInt(machine_id),
+    custom_price: parseFloat(custom_price),
+    original_price: original_price ? parseFloat(original_price) : null,
+    reason: sanitize(reason || ''),
+    effective_from: new Date().toISOString(),
+    effective_until: effective_until || null,
+    created_by: 'user',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  
+  db.slotPriceOverrides.push(override);
+  
+  // Record in price history
+  db.priceHistory.push({
+    id: nextId(),
+    entity_type: 'slot',
+    entity_id: slot_id,
+    old_price: override.original_price,
+    new_price: override.custom_price,
+    change_reason: 'manual_override',
+    changed_by: 'user',
+    changed_at: new Date().toISOString()
+  });
+  
+  saveDB(db);
+  res.status(201).json(override);
+});
+
+// ===== DELETE /api/slot-price-overrides/:id — Remove slot override =====
+app.delete('/api/slot-price-overrides/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const index = db.slotPriceOverrides.findIndex(o => o.id === id);
+  
+  if (index === -1) {
+    return res.status(404).json({ error: 'Override not found' });
+  }
+  
+  db.slotPriceOverrides.splice(index, 1);
+  saveDB(db);
+  
+  res.json({ success: true, message: 'Override removed' });
+});
+
+// ===== GET /api/pricing-summary — Overall pricing metrics =====
+app.get('/api/pricing-summary', (req, res) => {
+  const activeStrategies = db.pricingStrategies.filter(s => s.is_active && !s.is_template).length;
+  const activeApplications = db.strategyApplications.filter(a => a.status === 'active').length;
+  const machinesWithStrategy = new Set(db.strategyApplications.filter(a => a.status === 'active').map(a => a.machine_id)).size;
+  const totalOverrides = db.slotPriceOverrides.length;
+  
+  // Calculate average price and margin from recent transactions
+  const recentTransactions = (db.transactions || []).filter(t => {
+    const tDate = new Date(t.transaction_time);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    return tDate >= thirtyDaysAgo;
+  });
+  
+  const avgPrice = recentTransactions.length > 0
+    ? recentTransactions.reduce((sum, t) => sum + (t.unit_price || t.total / (t.quantity || 1)), 0) / recentTransactions.length
+    : 3.00;
+  
+  // Estimate margin (target is 67% = 3x COGS)
+  const estimatedMargin = 67; // Default to target
+  
+  res.json({
+    active_strategies: activeStrategies,
+    active_applications: activeApplications,
+    machines_with_strategy: machinesWithStrategy,
+    total_machines: db.machines.length,
+    slot_overrides: totalOverrides,
+    metrics: {
+      avg_price: Math.round(avgPrice * 100) / 100,
+      target_avg_price: 3.00,
+      estimated_margin: estimatedMargin,
+      target_margin: 67,
+      target_cogs: 33
+    },
+    strategy_types: {
+      decoy: db.pricingStrategies.filter(s => s.type === 'decoy').length,
+      anchoring: db.pricingStrategies.filter(s => s.type === 'anchoring').length,
+      time_based: db.pricingStrategies.filter(s => s.type === 'time_based').length,
+      bundle_discount: db.pricingStrategies.filter(s => s.type === 'bundle_discount').length,
+      margin_optimization: db.pricingStrategies.filter(s => s.type === 'margin_optimization').length
+    }
+  });
+});
+
+// ===== END PHASE 4: PRICING STRATEGIES =====
+
+// ============================================================================
+// ===== PHASE 5: BUNDLES & RECOMMENDATIONS =====
+// ============================================================================
+// Bundle management, AI-suggested bundles from purchase patterns,
+// bundle performance tracking, and machine bundle applications.
+// Based on: machine-system/DESIGN.md Phase 5
+// Business Rules: 3x COGS target, $3.00 avg price, bundle upsells increase AOV
+// ============================================================================
+
+// Initialize bundle data structures
+if (!db.bundles) db.bundles = [];
+if (!db.bundleApplications) db.bundleApplications = [];
+if (!db.bundleSales) db.bundleSales = [];
+if (!db.purchasePatterns) db.purchasePatterns = [];
+if (!db.bundleTemplates) db.bundleTemplates = [
+  { id: 1, name: 'Lunch Combo', description: 'Classic lunch pairing - snack + drink', category: 'meal_deal', icon: '🍔', color: '#f59e0b', template_config: { slots: [{ role: 'snack', categories: ['chips', 'crackers', 'pretzels'], price_range: [1.50, 2.50] }, { role: 'drink', categories: ['soda', 'water', 'juice'], price_range: [2.00, 3.00] }], suggested_discount: 10, target_price: 4.00 }, times_used: 0 },
+  { id: 2, name: 'Energy Boost', description: 'Energy drink + protein/candy for quick energy', category: 'energy_boost', icon: '⚡', color: '#ef4444', template_config: { slots: [{ role: 'energy', categories: ['energy'], price_range: [3.00, 4.00] }, { role: 'snack', categories: ['candy', 'protein'], price_range: [1.50, 2.50] }], suggested_discount: 15, target_price: 5.00 }, times_used: 0 },
+  { id: 3, name: 'Healthy Pick', description: 'Healthy snack + water combo', category: 'healthy_combo', icon: '🥗', color: '#22c55e', template_config: { slots: [{ role: 'healthy', categories: ['healthy', 'protein', 'nuts'], price_range: [2.00, 3.50] }, { role: 'water', categories: ['water'], price_range: [1.50, 2.50] }], suggested_discount: 10, target_price: 4.50 }, times_used: 0 },
+  { id: 4, name: 'Sweet Treat', description: 'Candy + soda indulgence combo', category: 'snack_combo', icon: '🍬', color: '#ec4899', template_config: { slots: [{ role: 'candy', categories: ['candy', 'chocolate'], price_range: [1.50, 2.50] }, { role: 'soda', categories: ['soda'], price_range: [2.00, 3.00] }], suggested_discount: 12, target_price: 3.75 }, times_used: 0 },
+  { id: 5, name: 'Beverage Duo', description: 'Two drinks at a discount', category: 'beverage_pair', icon: '🥤', color: '#3b82f6', template_config: { slots: [{ role: 'drink1', categories: ['soda', 'water', 'juice', 'energy'], price_range: [2.00, 3.50] }, { role: 'drink2', categories: ['soda', 'water', 'juice', 'energy'], price_range: [2.00, 3.50] }], suggested_discount: 15, target_price: 5.00 }, times_used: 0 },
+  { id: 6, name: 'Value Pack', description: 'Three items at maximum savings', category: 'value_pack', icon: '📦', color: '#8b5cf6', template_config: { slots: [{ role: 'main', categories: ['chips', 'crackers'], price_range: [1.50, 2.50] }, { role: 'side', categories: ['candy', 'cookies'], price_range: [1.50, 2.50] }, { role: 'drink', categories: ['soda', 'water'], price_range: [2.00, 3.00] }], suggested_discount: 20, target_price: 5.50 }, times_used: 0 }
+];
+
+// ===== Helper: Calculate bundle pricing =====
+function calculateBundlePricing(products, discountType, discountValue) {
+  const originalTotal = products.reduce((sum, p) => sum + ((p.original_price || 0) * (p.quantity || 1)), 0);
+  let bundlePrice = originalTotal;
+  
+  switch (discountType) {
+    case 'percentage':
+      bundlePrice = originalTotal * (1 - (discountValue / 100));
+      break;
+    case 'fixed_amount':
+      bundlePrice = Math.max(0, originalTotal - discountValue);
+      break;
+    case 'fixed_price':
+      bundlePrice = discountValue;
+      break;
+  }
+  
+  const savingsAmount = originalTotal - bundlePrice;
+  const savingsPercent = originalTotal > 0 ? (savingsAmount / originalTotal) * 100 : 0;
+  
+  return {
+    original_total: Math.round(originalTotal * 100) / 100,
+    bundle_price: Math.round(bundlePrice * 100) / 100,
+    savings_amount: Math.round(savingsAmount * 100) / 100,
+    savings_percent: Math.round(savingsPercent * 10) / 10
+  };
+}
+
+// ===== GET /api/bundles — List all bundles =====
+app.get('/api/bundles', (req, res) => {
+  const { active_only, category, is_suggested } = req.query;
+  
+  let bundles = [...db.bundles];
+  
+  // Filter by active status
+  if (active_only === 'true') {
+    bundles = bundles.filter(b => b.is_active);
+  }
+  
+  // Filter by category
+  if (category) {
+    bundles = bundles.filter(b => b.category === category);
+  }
+  
+  // Filter by AI-suggested
+  if (is_suggested === 'true') {
+    bundles = bundles.filter(b => b.is_suggested);
+  } else if (is_suggested === 'false') {
+    bundles = bundles.filter(b => !b.is_suggested);
+  }
+  
+  // Enrich with application count and performance
+  bundles = bundles.map(bundle => {
+    const applications = db.bundleApplications.filter(a => a.bundle_id === bundle.id);
+    const activeApplications = applications.filter(a => a.status === 'active');
+    const sales = db.bundleSales.filter(s => s.bundle_id === bundle.id);
+    
+    return {
+      ...bundle,
+      applied_machines: activeApplications.length,
+      total_applications: applications.length,
+      performance: {
+        total_sales: sales.length,
+        total_revenue: sales.reduce((sum, s) => sum + (s.sale_price || 0), 0),
+        total_savings: sales.reduce((sum, s) => sum + (s.discount_amount || 0), 0),
+        avg_sale_price: sales.length > 0 ? sales.reduce((sum, s) => sum + (s.sale_price || 0), 0) / sales.length : 0
+      }
+    };
+  });
+  
+  // Sort by active first, then by total_sales
+  bundles.sort((a, b) => {
+    if (a.is_active !== b.is_active) return b.is_active - a.is_active;
+    return (b.performance?.total_sales || 0) - (a.performance?.total_sales || 0);
+  });
+  
+  res.json(bundles);
+});
+
+// ===== POST /api/bundles — Create a bundle =====
+app.post('/api/bundles', (req, res) => {
+  const { 
+    name, description, products, discount_type, discount_value,
+    targeting, display_config, category, tags, is_suggested, suggestion_score 
+  } = req.body;
+  
+  if (!name || !name.trim()) {
+    return res.status(400).json({ error: 'Bundle name is required' });
+  }
+  
+  if (!products || !Array.isArray(products) || products.length < 2) {
+    return res.status(400).json({ error: 'Bundle must contain at least 2 products' });
+  }
+  
+  const validDiscountTypes = ['percentage', 'fixed_amount', 'fixed_price'];
+  const dType = discount_type || 'percentage';
+  if (!validDiscountTypes.includes(dType)) {
+    return res.status(400).json({ error: 'Invalid discount_type. Use: percentage, fixed_amount, or fixed_price' });
+  }
+  
+  // Calculate pricing
+  const pricing = calculateBundlePricing(products, dType, discount_value || 0);
+  
+  const bundle = {
+    id: nextId(),
+    name: sanitize(name.trim()),
+    description: sanitize(description || ''),
+    products: products.map(p => ({
+      product_id: p.product_id,
+      product_name: sanitize(p.product_name || ''),
+      quantity: p.quantity || 1,
+      original_price: parseFloat(p.original_price) || 0
+    })),
+    discount_type: dType,
+    discount_value: parseFloat(discount_value) || 0,
+    ...pricing,
+    targeting: targeting || {},
+    display_config: display_config || { show_savings: true, badge_text: 'BUNDLE', badge_color: '#22c55e' },
+    is_active: true,
+    is_suggested: !!is_suggested,
+    suggestion_score: suggestion_score ? parseFloat(suggestion_score) : null,
+    category: sanitize(category || 'custom'),
+    tags: tags || [],
+    total_sales: 0,
+    total_revenue: 0,
+    conversion_rate: 0,
+    created_by: 'user',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  
+  db.bundles.push(bundle);
+  saveDB(db);
+  
+  res.status(201).json(bundle);
+});
+
+// ===== GET /api/bundles/:id — Get single bundle =====
+app.get('/api/bundles/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const bundle = db.bundles.find(b => b.id === id);
+  
+  if (!bundle) {
+    return res.status(404).json({ error: 'Bundle not found' });
+  }
+  
+  // Get applications
+  const applications = db.bundleApplications.filter(a => a.bundle_id === id);
+  
+  // Get sales
+  const sales = db.bundleSales.filter(s => s.bundle_id === id);
+  
+  // Calculate performance metrics
+  const performance = {
+    total_sales: sales.length,
+    total_revenue: Math.round(sales.reduce((sum, s) => sum + (s.sale_price || 0), 0) * 100) / 100,
+    total_savings: Math.round(sales.reduce((sum, s) => sum + (s.discount_amount || 0), 0) * 100) / 100,
+    avg_sale_price: sales.length > 0 ? Math.round(sales.reduce((sum, s) => sum + (s.sale_price || 0), 0) / sales.length * 100) / 100 : 0,
+    applications: applications.map(a => {
+      const machine = db.machines.find(m => m.id === a.machine_id);
+      return {
+        ...a,
+        machine_name: machine?.name || `Machine ${a.machine_id}`,
+        machine_location: machine?.location_name || 'Unknown'
+      };
+    })
+  };
+  
+  // Sales by day of week
+  const salesByDay = [0, 0, 0, 0, 0, 0, 0];
+  sales.forEach(s => {
+    if (s.day_of_week !== undefined) salesByDay[s.day_of_week]++;
+  });
+  
+  // Sales by hour
+  const salesByHour = Array(24).fill(0);
+  sales.forEach(s => {
+    if (s.hour_of_day !== undefined) salesByHour[s.hour_of_day]++;
+  });
+  
+  res.json({
+    ...bundle,
+    performance,
+    sales_by_day: salesByDay,
+    sales_by_hour: salesByHour
+  });
+});
+
+// ===== PUT /api/bundles/:id — Update bundle =====
+app.put('/api/bundles/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const index = db.bundles.findIndex(b => b.id === id);
+  
+  if (index === -1) {
+    return res.status(404).json({ error: 'Bundle not found' });
+  }
+  
+  const bundle = db.bundles[index];
+  const { 
+    name, description, products, discount_type, discount_value,
+    targeting, display_config, category, tags, is_active 
+  } = req.body;
+  
+  // Update fields if provided
+  if (name !== undefined) bundle.name = sanitize(name.trim());
+  if (description !== undefined) bundle.description = sanitize(description);
+  if (targeting !== undefined) bundle.targeting = targeting;
+  if (display_config !== undefined) bundle.display_config = display_config;
+  if (category !== undefined) bundle.category = sanitize(category);
+  if (tags !== undefined) bundle.tags = tags;
+  if (is_active !== undefined) bundle.is_active = !!is_active;
+  
+  // If products or discount changed, recalculate pricing
+  if (products !== undefined) {
+    bundle.products = products.map(p => ({
+      product_id: p.product_id,
+      product_name: sanitize(p.product_name || ''),
+      quantity: p.quantity || 1,
+      original_price: parseFloat(p.original_price) || 0
+    }));
+  }
+  if (discount_type !== undefined) bundle.discount_type = discount_type;
+  if (discount_value !== undefined) bundle.discount_value = parseFloat(discount_value) || 0;
+  
+  // Recalculate pricing
+  const pricing = calculateBundlePricing(bundle.products, bundle.discount_type, bundle.discount_value);
+  Object.assign(bundle, pricing);
+  
+  bundle.updated_at = new Date().toISOString();
+  
+  db.bundles[index] = bundle;
+  saveDB(db);
+  
+  res.json(bundle);
+});
+
+// ===== DELETE /api/bundles/:id — Delete bundle =====
+app.delete('/api/bundles/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const index = db.bundles.findIndex(b => b.id === id);
+  
+  if (index === -1) {
+    return res.status(404).json({ error: 'Bundle not found' });
+  }
+  
+  // Remove bundle
+  db.bundles.splice(index, 1);
+  
+  // Remove related applications
+  db.bundleApplications = db.bundleApplications.filter(a => a.bundle_id !== id);
+  
+  saveDB(db);
+  
+  res.json({ success: true, message: 'Bundle deleted' });
+});
+
+// ===== GET /api/bundles/:id/performance — Bundle performance metrics =====
+app.get('/api/bundles/:id/performance', (req, res) => {
+  const id = parseInt(req.params.id);
+  const bundle = db.bundles.find(b => b.id === id);
+  
+  if (!bundle) {
+    return res.status(404).json({ error: 'Bundle not found' });
+  }
+  
+  const { days = 30 } = req.query;
+  const cutoff = new Date(Date.now() - parseInt(days) * 24 * 60 * 60 * 1000);
+  
+  // Get sales in period
+  const sales = db.bundleSales.filter(s => 
+    s.bundle_id === id && new Date(s.created_at) >= cutoff
+  );
+  
+  // Get applications
+  const applications = db.bundleApplications.filter(a => a.bundle_id === id);
+  const activeApps = applications.filter(a => a.status === 'active');
+  
+  // Calculate metrics
+  const totalRevenue = sales.reduce((sum, s) => sum + (s.sale_price || 0), 0);
+  const totalSavings = sales.reduce((sum, s) => sum + (s.discount_amount || 0), 0);
+  const totalImpressions = applications.reduce((sum, a) => sum + (a.impressions || 0), 0);
+  const totalClicks = applications.reduce((sum, a) => sum + (a.clicks || 0), 0);
+  const totalConversions = applications.reduce((sum, a) => sum + (a.conversions || 0), 0);
+  
+  // Daily breakdown
+  const daily = {};
+  sales.forEach(s => {
+    const date = s.created_at.split('T')[0];
+    if (!daily[date]) daily[date] = { sales: 0, revenue: 0 };
+    daily[date].sales++;
+    daily[date].revenue += s.sale_price || 0;
+  });
+  
+  // By machine
+  const byMachine = {};
+  sales.forEach(s => {
+    if (!s.machine_id) return;
+    if (!byMachine[s.machine_id]) {
+      const machine = db.machines.find(m => m.id === s.machine_id);
+      byMachine[s.machine_id] = { 
+        machine_id: s.machine_id,
+        machine_name: machine?.name || `Machine ${s.machine_id}`,
+        sales: 0, 
+        revenue: 0 
+      };
+    }
+    byMachine[s.machine_id].sales++;
+    byMachine[s.machine_id].revenue += s.sale_price || 0;
+  });
+  
+  // Peak hours
+  const byHour = Array(24).fill(0);
+  sales.forEach(s => {
+    if (s.hour_of_day !== undefined) byHour[s.hour_of_day]++;
+  });
+  const peakHour = byHour.indexOf(Math.max(...byHour));
+  
+  res.json({
+    bundle_id: id,
+    bundle_name: bundle.name,
+    period_days: parseInt(days),
+    summary: {
+      total_sales: sales.length,
+      total_revenue: Math.round(totalRevenue * 100) / 100,
+      total_savings: Math.round(totalSavings * 100) / 100,
+      avg_sale_price: sales.length > 0 ? Math.round(totalRevenue / sales.length * 100) / 100 : 0,
+      active_machines: activeApps.length,
+      total_machines: applications.length
+    },
+    funnel: {
+      impressions: totalImpressions,
+      clicks: totalClicks,
+      conversions: totalConversions,
+      ctr: totalImpressions > 0 ? Math.round(totalClicks / totalImpressions * 10000) / 100 : 0,
+      conversion_rate: totalClicks > 0 ? Math.round(totalConversions / totalClicks * 10000) / 100 : 0
+    },
+    daily: Object.entries(daily).map(([date, data]) => ({
+      date,
+      sales: data.sales,
+      revenue: Math.round(data.revenue * 100) / 100
+    })).sort((a, b) => a.date.localeCompare(b.date)),
+    by_machine: Object.values(byMachine).sort((a, b) => b.sales - a.sales),
+    by_hour: byHour,
+    peak_hour: peakHour
+  });
+});
+
+// ===== GET /api/bundles/suggestions — AI-suggested bundles from purchase patterns =====
+app.get('/api/bundles/suggestions', (req, res) => {
+  const { limit = 10, min_frequency = 5, min_lift = 1.2 } = req.query;
+  
+  // Get significant patterns that haven't been turned into bundles yet
+  let patterns = db.purchasePatterns.filter(p => 
+    p.is_significant && 
+    !p.bundle_created && 
+    p.frequency >= parseInt(min_frequency) &&
+    p.lift >= parseFloat(min_lift)
+  );
+  
+  // Sort by lift (correlation strength) descending
+  patterns.sort((a, b) => b.lift - a.lift);
+  patterns = patterns.slice(0, parseInt(limit));
+  
+  // Convert patterns to bundle suggestions
+  const suggestions = patterns.map(pattern => {
+    // Get product details
+    const productA = db.products.find(p => p.id === pattern.product_a_id);
+    const productB = db.products.find(p => p.id === pattern.product_b_id);
+    
+    const priceA = productA?.vending_price || productA?.price || 2.50;
+    const priceB = productB?.vending_price || productB?.price || 2.50;
+    const originalTotal = priceA + priceB;
+    
+    // Suggest discount based on lift
+    let suggestedDiscount = 10;
+    if (pattern.lift >= 2.0) suggestedDiscount = 15;
+    if (pattern.lift >= 3.0) suggestedDiscount = 20;
+    
+    const bundlePrice = originalTotal * (1 - suggestedDiscount / 100);
+    
+    return {
+      pattern_id: pattern.id,
+      suggestion_name: `${pattern.product_a_name} + ${pattern.product_b_name}`,
+      products: [
+        { product_id: pattern.product_a_id, product_name: pattern.product_a_name, quantity: 1, original_price: priceA },
+        { product_id: pattern.product_b_id, product_name: pattern.product_b_name, quantity: 1, original_price: priceB }
+      ],
+      metrics: {
+        frequency: pattern.frequency,
+        support: pattern.support,
+        lift: pattern.lift,
+        correlation: pattern.lift >= 2.0 ? 'strong' : pattern.lift >= 1.5 ? 'moderate' : 'weak'
+      },
+      suggested_discount: {
+        type: 'percentage',
+        value: suggestedDiscount
+      },
+      pricing: {
+        original_total: Math.round(originalTotal * 100) / 100,
+        bundle_price: Math.round(bundlePrice * 100) / 100,
+        savings: Math.round((originalTotal - bundlePrice) * 100) / 100,
+        savings_percent: suggestedDiscount
+      },
+      context: {
+        common_hour: pattern.common_hour,
+        common_day: pattern.common_day,
+        machine_count: (pattern.machine_ids || []).length
+      },
+      confidence_score: Math.min(100, Math.round((pattern.lift * 20 + pattern.frequency / 10) * 10) / 10)
+    };
+  });
+  
+  res.json({
+    suggestions,
+    total_patterns: db.purchasePatterns.filter(p => p.is_significant && !p.bundle_created).length,
+    filters: { min_frequency: parseInt(min_frequency), min_lift: parseFloat(min_lift) }
+  });
+});
+
+// ===== POST /api/bundles/suggestions/:id/accept — Create bundle from suggestion =====
+app.post('/api/bundles/suggestions/:id/accept', (req, res) => {
+  const patternId = parseInt(req.params.id);
+  const pattern = db.purchasePatterns.find(p => p.id === patternId);
+  
+  if (!pattern) {
+    return res.status(404).json({ error: 'Pattern not found' });
+  }
+  
+  if (pattern.bundle_created) {
+    return res.status(400).json({ error: 'Bundle already created from this pattern' });
+  }
+  
+  // Get product details
+  const productA = db.products.find(p => p.id === pattern.product_a_id);
+  const productB = db.products.find(p => p.id === pattern.product_b_id);
+  
+  const priceA = productA?.vending_price || productA?.price || 2.50;
+  const priceB = productB?.vending_price || productB?.price || 2.50;
+  
+  // Suggest discount based on lift
+  let suggestedDiscount = 10;
+  if (pattern.lift >= 2.0) suggestedDiscount = 15;
+  if (pattern.lift >= 3.0) suggestedDiscount = 20;
+  
+  // Allow override from request body
+  const discountValue = req.body.discount_value !== undefined ? parseFloat(req.body.discount_value) : suggestedDiscount;
+  const name = req.body.name || `${pattern.product_a_name} + ${pattern.product_b_name}`;
+  
+  const products = [
+    { product_id: pattern.product_a_id, product_name: pattern.product_a_name, quantity: 1, original_price: priceA },
+    { product_id: pattern.product_b_id, product_name: pattern.product_b_name, quantity: 1, original_price: priceB }
+  ];
+  
+  const pricing = calculateBundlePricing(products, 'percentage', discountValue);
+  
+  const bundle = {
+    id: nextId(),
+    name: sanitize(name),
+    description: `AI-suggested bundle based on purchase patterns (Lift: ${pattern.lift.toFixed(2)})`,
+    products,
+    discount_type: 'percentage',
+    discount_value: discountValue,
+    ...pricing,
+    targeting: {},
+    display_config: { show_savings: true, badge_text: 'POPULAR COMBO', badge_color: '#8b5cf6' },
+    is_active: true,
+    is_suggested: true,
+    suggestion_score: Math.min(100, Math.round((pattern.lift * 20 + pattern.frequency / 10) * 10) / 10),
+    category: 'ai_suggested',
+    tags: ['ai-generated', 'purchase-pattern'],
+    total_sales: 0,
+    total_revenue: 0,
+    conversion_rate: 0,
+    created_by: 'ai_suggestion',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  
+  db.bundles.push(bundle);
+  
+  // Mark pattern as used
+  const patternIndex = db.purchasePatterns.findIndex(p => p.id === patternId);
+  if (patternIndex !== -1) {
+    db.purchasePatterns[patternIndex].bundle_created = true;
+  }
+  
+  saveDB(db);
+  
+  res.status(201).json(bundle);
+});
+
+// ===== POST /api/machines/:id/apply-bundle — Apply bundle to machine =====
+app.post('/api/machines/:id/apply-bundle', (req, res) => {
+  const machineId = parseInt(req.params.id);
+  const machine = db.machines.find(m => m.id === machineId);
+  
+  if (!machine) {
+    return res.status(404).json({ error: 'Machine not found' });
+  }
+  
+  const { bundle_id, display_slot, display_priority, starts_at, ends_at, time_override } = req.body;
+  
+  if (!bundle_id) {
+    return res.status(400).json({ error: 'bundle_id is required' });
+  }
+  
+  const bundle = db.bundles.find(b => b.id === parseInt(bundle_id));
+  if (!bundle) {
+    return res.status(404).json({ error: 'Bundle not found' });
+  }
+  
+  // Check if bundle is already applied to this machine
+  const existingIndex = db.bundleApplications.findIndex(a => 
+    a.machine_id === machineId && a.bundle_id === parseInt(bundle_id)
+  );
+  
+  if (existingIndex !== -1) {
+    // Update existing application
+    db.bundleApplications[existingIndex] = {
+      ...db.bundleApplications[existingIndex],
+      display_slot: display_slot || 'featured',
+      display_priority: display_priority || 0,
+      starts_at: starts_at || new Date().toISOString(),
+      ends_at: ends_at || null,
+      time_override: time_override || null,
+      status: 'active',
+      updated_at: new Date().toISOString()
+    };
+    saveDB(db);
+    return res.json(db.bundleApplications[existingIndex]);
+  }
+  
+  // Create new application
+  const application = {
+    id: nextId(),
+    bundle_id: parseInt(bundle_id),
+    machine_id: machineId,
+    display_slot: display_slot || 'featured',
+    display_priority: display_priority || 0,
+    status: 'active',
+    starts_at: starts_at || new Date().toISOString(),
+    ends_at: ends_at || null,
+    time_override: time_override || null,
+    impressions: 0,
+    clicks: 0,
+    conversions: 0,
+    revenue: 0,
+    applied_by: 'user',
+    applied_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  
+  db.bundleApplications.push(application);
+  saveDB(db);
+  
+  res.status(201).json({
+    ...application,
+    bundle_name: bundle.name,
+    machine_name: machine.name
+  });
+});
+
+// ===== DELETE /api/machines/:id/bundles/:bundleId — Remove bundle from machine =====
+app.delete('/api/machines/:id/bundles/:bundleId', (req, res) => {
+  const machineId = parseInt(req.params.id);
+  const bundleId = parseInt(req.params.bundleId);
+  
+  const index = db.bundleApplications.findIndex(a => 
+    a.machine_id === machineId && a.bundle_id === bundleId
+  );
+  
+  if (index === -1) {
+    return res.status(404).json({ error: 'Bundle application not found' });
+  }
+  
+  db.bundleApplications.splice(index, 1);
+  saveDB(db);
+  
+  res.json({ success: true, message: 'Bundle removed from machine' });
+});
+
+// ===== GET /api/machines/:id/bundles — Get bundles applied to machine =====
+app.get('/api/machines/:id/bundles', (req, res) => {
+  const machineId = parseInt(req.params.id);
+  const machine = db.machines.find(m => m.id === machineId);
+  
+  if (!machine) {
+    return res.status(404).json({ error: 'Machine not found' });
+  }
+  
+  const applications = db.bundleApplications.filter(a => a.machine_id === machineId);
+  
+  // Enrich with bundle details
+  const enriched = applications.map(app => {
+    const bundle = db.bundles.find(b => b.id === app.bundle_id);
+    return {
+      ...app,
+      bundle: bundle || null
+    };
+  });
+  
+  res.json(enriched);
+});
+
+// ===== GET /api/bundle-templates — Get bundle creation templates =====
+app.get('/api/bundle-templates', (req, res) => {
+  res.json(db.bundleTemplates);
+});
+
+// ===== POST /api/bundle-sales — Record a bundle sale =====
+app.post('/api/bundle-sales', (req, res) => {
+  const { bundle_id, machine_id, sale_price, original_price, products_sold, transaction_id } = req.body;
+  
+  if (!bundle_id || sale_price === undefined) {
+    return res.status(400).json({ error: 'bundle_id and sale_price are required' });
+  }
+  
+  const bundle = db.bundles.find(b => b.id === parseInt(bundle_id));
+  if (!bundle) {
+    return res.status(404).json({ error: 'Bundle not found' });
+  }
+  
+  const now = new Date();
+  
+  const sale = {
+    id: nextId(),
+    bundle_id: parseInt(bundle_id),
+    bundle_application_id: null,
+    machine_id: machine_id ? parseInt(machine_id) : null,
+    transaction_id: transaction_id || null,
+    sale_price: parseFloat(sale_price),
+    original_price: parseFloat(original_price) || bundle.original_total,
+    discount_amount: (parseFloat(original_price) || bundle.original_total) - parseFloat(sale_price),
+    products_sold: products_sold || bundle.products,
+    hour_of_day: now.getHours(),
+    day_of_week: now.getDay(),
+    created_at: now.toISOString()
+  };
+  
+  // Find the application if exists
+  if (machine_id) {
+    const app = db.bundleApplications.find(a => 
+      a.bundle_id === parseInt(bundle_id) && a.machine_id === parseInt(machine_id) && a.status === 'active'
+    );
+    if (app) {
+      sale.bundle_application_id = app.id;
+      app.conversions = (app.conversions || 0) + 1;
+      app.revenue = (app.revenue || 0) + sale.sale_price;
+    }
+  }
+  
+  // Update bundle totals
+  const bundleIndex = db.bundles.findIndex(b => b.id === parseInt(bundle_id));
+  if (bundleIndex !== -1) {
+    db.bundles[bundleIndex].total_sales = (db.bundles[bundleIndex].total_sales || 0) + 1;
+    db.bundles[bundleIndex].total_revenue = (db.bundles[bundleIndex].total_revenue || 0) + sale.sale_price;
+  }
+  
+  db.bundleSales.push(sale);
+  saveDB(db);
+  
+  res.status(201).json(sale);
+});
+
+// ===== POST /api/purchase-patterns/calculate — Recalculate purchase patterns =====
+app.post('/api/purchase-patterns/calculate', (req, res) => {
+  const { min_frequency = 5, lookback_days = 30 } = req.body;
+  
+  const cutoff = new Date(Date.now() - parseInt(lookback_days) * 24 * 60 * 60 * 1000);
+  
+  // Get transactions in period
+  const transactions = (db.transactions || []).filter(t => 
+    new Date(t.transaction_time || t.created_at) >= cutoff
+  );
+  
+  if (transactions.length === 0) {
+    return res.json({ message: 'No transactions in period', patterns_found: 0 });
+  }
+  
+  // Group by transaction_id to find co-purchases
+  const baskets = {};
+  transactions.forEach(t => {
+    const basketId = t.transaction_id || t.id;
+    if (!baskets[basketId]) baskets[basketId] = [];
+    baskets[basketId].push(t);
+  });
+  
+  // Count product pairs
+  const pairs = {};
+  const productCounts = {};
+  const totalBaskets = Object.keys(baskets).length;
+  
+  Object.values(baskets).forEach(basket => {
+    if (basket.length < 2) return;
+    
+    // Count individual products
+    basket.forEach(item => {
+      const pid = item.product_id;
+      productCounts[pid] = (productCounts[pid] || 0) + 1;
+    });
+    
+    // Count pairs
+    for (let i = 0; i < basket.length; i++) {
+      for (let j = i + 1; j < basket.length; j++) {
+        const pA = Math.min(basket[i].product_id, basket[j].product_id);
+        const pB = Math.max(basket[i].product_id, basket[j].product_id);
+        const key = `${pA}_${pB}`;
+        
+        if (!pairs[key]) {
+          pairs[key] = {
+            product_a_id: pA,
+            product_b_id: pB,
+            product_a_name: basket[i].product_id === pA ? (basket[i].product_name || `Product ${pA}`) : (basket[j].product_name || `Product ${pB}`),
+            product_b_name: basket[i].product_id === pB ? (basket[i].product_name || `Product ${pB}`) : (basket[j].product_name || `Product ${pA}`),
+            frequency: 0,
+            machine_ids: new Set(),
+            hours: [],
+            days: []
+          };
+        }
+        pairs[key].frequency++;
+        if (basket[i].machine_id) pairs[key].machine_ids.add(basket[i].machine_id);
+        
+        const dt = new Date(basket[i].transaction_time || basket[i].created_at);
+        pairs[key].hours.push(dt.getHours());
+        pairs[key].days.push(dt.getDay());
+      }
+    }
+  });
+  
+  // Calculate metrics and save significant patterns
+  let patternsFound = 0;
+  
+  Object.values(pairs).forEach(pair => {
+    if (pair.frequency < parseInt(min_frequency)) return;
+    
+    const supportAB = pair.frequency / totalBaskets;
+    const supportA = (productCounts[pair.product_a_id] || 1) / totalBaskets;
+    const supportB = (productCounts[pair.product_b_id] || 1) / totalBaskets;
+    const lift = supportAB / (supportA * supportB);
+    
+    const confAtoB = pair.frequency / (productCounts[pair.product_a_id] || 1);
+    const confBtoA = pair.frequency / (productCounts[pair.product_b_id] || 1);
+    
+    // Find most common hour/day
+    const hourCounts = {};
+    pair.hours.forEach(h => hourCounts[h] = (hourCounts[h] || 0) + 1);
+    const commonHour = parseInt(Object.entries(hourCounts).sort((a, b) => b[1] - a[1])[0]?.[0]) || 12;
+    
+    const dayCounts = {};
+    pair.days.forEach(d => dayCounts[d] = (dayCounts[d] || 0) + 1);
+    const commonDay = parseInt(Object.entries(dayCounts).sort((a, b) => b[1] - a[1])[0]?.[0]) || 3;
+    
+    // Check if pattern exists
+    const existingIndex = db.purchasePatterns.findIndex(p => 
+      p.product_a_id === pair.product_a_id && p.product_b_id === pair.product_b_id
+    );
+    
+    const pattern = {
+      id: existingIndex !== -1 ? db.purchasePatterns[existingIndex].id : nextId(),
+      product_a_id: pair.product_a_id,
+      product_b_id: pair.product_b_id,
+      product_a_name: pair.product_a_name,
+      product_b_name: pair.product_b_name,
+      frequency: pair.frequency,
+      support: Math.round(supportAB * 10000) / 10000,
+      confidence_a_to_b: Math.round(confAtoB * 10000) / 10000,
+      confidence_b_to_a: Math.round(confBtoA * 10000) / 10000,
+      lift: Math.round(lift * 10000) / 10000,
+      common_hour: commonHour,
+      common_day: commonDay,
+      machine_ids: Array.from(pair.machine_ids),
+      is_significant: lift >= 1.2,
+      bundle_created: existingIndex !== -1 ? db.purchasePatterns[existingIndex].bundle_created : false,
+      first_observed: existingIndex !== -1 ? db.purchasePatterns[existingIndex].first_observed : new Date().toISOString(),
+      last_observed: new Date().toISOString(),
+      observation_count: existingIndex !== -1 ? (db.purchasePatterns[existingIndex].observation_count || 0) + 1 : 1
+    };
+    
+    if (existingIndex !== -1) {
+      db.purchasePatterns[existingIndex] = pattern;
+    } else {
+      db.purchasePatterns.push(pattern);
+    }
+    
+    patternsFound++;
+  });
+  
+  saveDB(db);
+  
+  res.json({
+    message: 'Purchase patterns calculated',
+    patterns_found: patternsFound,
+    total_baskets: totalBaskets,
+    lookback_days: parseInt(lookback_days)
+  });
+});
+
+// ===== GET /api/purchase-patterns — List purchase patterns =====
+app.get('/api/purchase-patterns', (req, res) => {
+  const { significant_only = 'true', min_lift = 1.0, limit = 50 } = req.query;
+  
+  let patterns = [...db.purchasePatterns];
+  
+  if (significant_only === 'true') {
+    patterns = patterns.filter(p => p.is_significant);
+  }
+  
+  patterns = patterns.filter(p => p.lift >= parseFloat(min_lift));
+  
+  patterns.sort((a, b) => b.lift - a.lift);
+  patterns = patterns.slice(0, parseInt(limit));
+  
+  res.json(patterns);
+});
+
+// ===== GET /api/bundle-summary — Overall bundle performance summary =====
+app.get('/api/bundle-summary', (req, res) => {
+  const activeBundles = db.bundles.filter(b => b.is_active);
+  const activeApplications = db.bundleApplications.filter(a => a.status === 'active');
+  const machinesWithBundles = new Set(activeApplications.map(a => a.machine_id)).size;
+  
+  // Last 30 days sales
+  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const recentSales = db.bundleSales.filter(s => new Date(s.created_at) >= cutoff);
+  
+  const totalRevenue = recentSales.reduce((sum, s) => sum + (s.sale_price || 0), 0);
+  const totalSavings = recentSales.reduce((sum, s) => sum + (s.discount_amount || 0), 0);
+  
+  // Top bundles by sales
+  const bundleSalesCounts = {};
+  recentSales.forEach(s => {
+    bundleSalesCounts[s.bundle_id] = (bundleSalesCounts[s.bundle_id] || 0) + 1;
+  });
+  
+  const topBundles = Object.entries(bundleSalesCounts)
+    .map(([id, count]) => {
+      const bundle = db.bundles.find(b => b.id === parseInt(id));
+      return { id: parseInt(id), name: bundle?.name || 'Unknown', sales: count };
+    })
+    .sort((a, b) => b.sales - a.sales)
+    .slice(0, 5);
+  
+  // AI suggestions available
+  const suggestionsAvailable = db.purchasePatterns.filter(p => 
+    p.is_significant && !p.bundle_created
+  ).length;
+  
+  res.json({
+    summary: {
+      total_bundles: db.bundles.length,
+      active_bundles: activeBundles.length,
+      suggested_bundles: db.bundles.filter(b => b.is_suggested).length,
+      active_applications: activeApplications.length,
+      machines_with_bundles: machinesWithBundles,
+      total_machines: db.machines.length
+    },
+    performance_30d: {
+      total_sales: recentSales.length,
+      total_revenue: Math.round(totalRevenue * 100) / 100,
+      total_savings: Math.round(totalSavings * 100) / 100,
+      avg_bundle_price: recentSales.length > 0 ? Math.round(totalRevenue / recentSales.length * 100) / 100 : 0
+    },
+    top_bundles: topBundles,
+    ai_suggestions_available: suggestionsAvailable,
+    categories: {
+      meal_deal: db.bundles.filter(b => b.category === 'meal_deal').length,
+      energy_boost: db.bundles.filter(b => b.category === 'energy_boost').length,
+      healthy_combo: db.bundles.filter(b => b.category === 'healthy_combo').length,
+      snack_combo: db.bundles.filter(b => b.category === 'snack_combo').length,
+      beverage_pair: db.bundles.filter(b => b.category === 'beverage_pair').length,
+      value_pack: db.bundles.filter(b => b.category === 'value_pack').length,
+      ai_suggested: db.bundles.filter(b => b.category === 'ai_suggested').length,
+      custom: db.bundles.filter(b => b.category === 'custom' || !b.category).length
+    }
+  });
+});
+
+// ===== END PHASE 5: BUNDLES & RECOMMENDATIONS =====
+
+// =====================================================================
+// ===== PHASE 6: ADVANCED FEATURES — MOBILE, FORECASTING, OPTIMIZATION =====
+// =====================================================================
+
+// ===== MOBILE API ENDPOINTS =====
+
+// GET /api/mobile/dashboard — Summary for mobile app
+app.get('/api/mobile/dashboard', (req, res) => {
+  const today = new Date().toISOString().split('T')[0];
+  const machines = db.machines || [];
+  const alerts = db.alerts || [];
+  const transactions = db.transactions || [];
+  
+  // Calculate today's stats
+  const todayTransactions = transactions.filter(t => 
+    t.timestamp && t.timestamp.startsWith(today)
+  );
+  const todayRevenue = todayTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
+  const todaySales = todayTransactions.length;
+  
+  // Machine health summary
+  const activeMachines = machines.filter(m => m.status === 'active').length;
+  const lowStockMachines = machines.filter(m => {
+    const slots = (db.machineSlots || []).filter(s => s.machine_id === m.id);
+    return slots.some(s => s.current_quantity <= (s.par_level * 0.3));
+  }).length;
+  const offlineMachines = machines.filter(m => m.status === 'offline').length;
+  
+  // Pending alerts
+  const pendingAlerts = alerts.filter(a => 
+    a.status === 'pending' || a.status === 'active'
+  );
+  const criticalAlerts = pendingAlerts.filter(a => a.severity === 'critical').length;
+  const warningAlerts = pendingAlerts.filter(a => a.severity === 'warning').length;
+  
+  // Today's route info
+  const todayRestocks = (db.restockLogs || []).filter(r => 
+    r.created_at && r.created_at.startsWith(today)
+  );
+  const machinesRestocked = new Set(todayRestocks.map(r => r.machine_id)).size;
+  
+  // Top performers today
+  const machineRevenue = {};
+  todayTransactions.forEach(t => {
+    machineRevenue[t.machine_id] = (machineRevenue[t.machine_id] || 0) + (t.amount || 0);
+  });
+  const topMachines = Object.entries(machineRevenue)
+    .map(([id, revenue]) => {
+      const machine = machines.find(m => m.id === parseInt(id));
+      return { id: parseInt(id), name: machine?.name || 'Unknown', revenue };
+    })
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 3);
+  
+  res.json({
+    timestamp: new Date().toISOString(),
+    today: {
+      date: today,
+      revenue: Math.round(todayRevenue * 100) / 100,
+      sales: todaySales,
+      avg_transaction: todaySales > 0 ? Math.round(todayRevenue / todaySales * 100) / 100 : 0
+    },
+    machines: {
+      total: machines.length,
+      active: activeMachines,
+      low_stock: lowStockMachines,
+      offline: offlineMachines,
+      health_score: machines.length > 0 
+        ? Math.round((activeMachines / machines.length) * 100) 
+        : 0
+    },
+    alerts: {
+      pending_count: pendingAlerts.length,
+      critical: criticalAlerts,
+      warnings: warningAlerts
+    },
+    route: {
+      machines_visited: machinesRestocked,
+      restocks_completed: todayRestocks.length,
+      pending_restocks: machines.filter(m => {
+        const slots = (db.machineSlots || []).filter(s => s.machine_id === m.id);
+        return slots.some(s => s.current_quantity <= s.par_level);
+      }).length
+    },
+    top_machines: topMachines
+  });
+});
+
+// GET /api/mobile/machines — Machine list with key metrics
+app.get('/api/mobile/machines', (req, res) => {
+  const { status, sort_by = 'name', limit = 50 } = req.query;
+  let machines = db.machines || [];
+  
+  // Filter by status if provided
+  if (status) {
+    machines = machines.filter(m => m.status === status);
+  }
+  
+  // Enhance with metrics
+  const enhanced = machines.map(m => {
+    const slots = (db.machineSlots || []).filter(s => s.machine_id === m.id);
+    const totalSlots = slots.length;
+    const lowStockSlots = slots.filter(s => s.current_quantity <= (s.par_level * 0.3)).length;
+    const emptySlots = slots.filter(s => s.current_quantity === 0).length;
+    const totalCapacity = slots.reduce((sum, s) => sum + (s.par_level || 0), 0);
+    const currentStock = slots.reduce((sum, s) => sum + (s.current_quantity || 0), 0);
+    
+    // Last 7 days revenue
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const recentTransactions = (db.transactions || []).filter(t => 
+      t.machine_id === m.id && t.timestamp >= weekAgo
+    );
+    const weekRevenue = recentTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
+    
+    // Last restock
+    const lastRestock = (db.restockLogs || [])
+      .filter(r => r.machine_id === m.id)
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+    
+    return {
+      id: m.id,
+      name: m.name,
+      location: m.location || m.address,
+      status: m.status,
+      stock_level: totalCapacity > 0 ? Math.round((currentStock / totalCapacity) * 100) : 0,
+      slots: {
+        total: totalSlots,
+        low: lowStockSlots,
+        empty: emptySlots
+      },
+      revenue_7d: Math.round(weekRevenue * 100) / 100,
+      last_restock: lastRestock?.created_at || null,
+      needs_attention: lowStockSlots > 0 || m.status !== 'active'
+    };
+  });
+  
+  // Sort
+  if (sort_by === 'revenue') {
+    enhanced.sort((a, b) => b.revenue_7d - a.revenue_7d);
+  } else if (sort_by === 'stock') {
+    enhanced.sort((a, b) => a.stock_level - b.stock_level);
+  } else if (sort_by === 'attention') {
+    enhanced.sort((a, b) => (b.needs_attention ? 1 : 0) - (a.needs_attention ? 1 : 0));
+  } else {
+    enhanced.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  }
+  
+  res.json({
+    machines: enhanced.slice(0, parseInt(limit)),
+    total: machines.length
+  });
+});
+
+// GET /api/mobile/machines/:id — Single machine detail
+app.get('/api/mobile/machines/:id', (req, res) => {
+  const machineId = parseInt(req.params.id);
+  const machine = (db.machines || []).find(m => m.id === machineId);
+  
+  if (!machine) {
+    return res.status(404).json({ error: 'Machine not found' });
+  }
+  
+  const slots = (db.machineSlots || []).filter(s => s.machine_id === machineId);
+  const products = db.products || [];
+  
+  // Enhance slots with product info
+  const enhancedSlots = slots.map(s => {
+    const product = products.find(p => p.id === s.product_id);
+    return {
+      slot_code: s.slot_code,
+      product_id: s.product_id,
+      product_name: product?.name || 'Unknown',
+      current_quantity: s.current_quantity,
+      par_level: s.par_level,
+      fill_needed: Math.max(0, (s.par_level || 0) - (s.current_quantity || 0)),
+      status: s.current_quantity === 0 ? 'empty' : 
+              s.current_quantity <= (s.par_level * 0.3) ? 'low' : 'ok',
+      price: s.custom_price || product?.vending_price || product?.price || 0
+    };
+  }).sort((a, b) => (a.slot_code || '').localeCompare(b.slot_code || ''));
+  
+  // Calculate fill requirements
+  const totalFillNeeded = enhancedSlots.reduce((sum, s) => sum + s.fill_needed, 0);
+  const estimatedValue = enhancedSlots.reduce((sum, s) => sum + (s.fill_needed * (s.price || 0)), 0);
+  
+  // 30-day performance
+  const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const monthTransactions = (db.transactions || []).filter(t => 
+    t.machine_id === machineId && t.timestamp >= monthAgo
+  );
+  const monthRevenue = monthTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
+  
+  // Alerts for this machine
+  const machineAlerts = (db.alerts || []).filter(a => 
+    a.machine_id === machineId && (a.status === 'pending' || a.status === 'active')
+  );
+  
+  res.json({
+    machine: {
+      id: machine.id,
+      name: machine.name,
+      location: machine.location || machine.address,
+      status: machine.status,
+      model: machine.model,
+      installed_date: machine.installed_date,
+      last_sync: machine.last_sync
+    },
+    inventory: {
+      slots: enhancedSlots,
+      total_slots: slots.length,
+      empty_slots: enhancedSlots.filter(s => s.status === 'empty').length,
+      low_slots: enhancedSlots.filter(s => s.status === 'low').length,
+      total_fill_needed: totalFillNeeded,
+      estimated_restock_value: Math.round(estimatedValue * 100) / 100
+    },
+    performance: {
+      revenue_30d: Math.round(monthRevenue * 100) / 100,
+      transactions_30d: monthTransactions.length,
+      avg_daily_revenue: Math.round(monthRevenue / 30 * 100) / 100
+    },
+    alerts: machineAlerts.map(a => ({
+      id: a.id,
+      type: a.type,
+      severity: a.severity,
+      message: a.message,
+      created_at: a.created_at
+    }))
+  });
+});
+
+// POST /api/mobile/restock — Log restock from mobile
+app.post('/api/mobile/restock', (req, res) => {
+  const { machine_id, items, notes, driver_id } = req.body;
+  
+  if (!machine_id || !items || !Array.isArray(items)) {
+    return res.status(400).json({ error: 'machine_id and items array required' });
+  }
+  
+  const machine = (db.machines || []).find(m => m.id === parseInt(machine_id));
+  if (!machine) {
+    return res.status(404).json({ error: 'Machine not found' });
+  }
+  
+  const restockId = nextId();
+  const timestamp = new Date().toISOString();
+  let totalUnits = 0;
+  let totalValue = 0;
+  
+  // Update each slot
+  const updates = items.map(item => {
+    const slot = (db.machineSlots || []).find(s => 
+      s.machine_id === parseInt(machine_id) && s.slot_code === item.slot_code
+    );
+    
+    if (!slot) {
+      return { slot_code: item.slot_code, error: 'Slot not found' };
+    }
+    
+    const previousQty = slot.current_quantity || 0;
+    const addedQty = parseInt(item.quantity_added) || 0;
+    slot.current_quantity = Math.min(previousQty + addedQty, slot.par_level || 999);
+    slot.updated_at = timestamp;
+    
+    const product = (db.products || []).find(p => p.id === slot.product_id);
+    const unitCost = product?.wholesale_cost || product?.cost || 0;
+    
+    totalUnits += addedQty;
+    totalValue += addedQty * unitCost;
+    
+    return {
+      slot_code: item.slot_code,
+      product_id: slot.product_id,
+      previous_quantity: previousQty,
+      added: addedQty,
+      new_quantity: slot.current_quantity
+    };
+  });
+  
+  // Create restock log entry
+  const restockLog = {
+    id: restockId,
+    machine_id: parseInt(machine_id),
+    driver_id: driver_id || null,
+    items: updates.filter(u => !u.error),
+    total_units: totalUnits,
+    total_value: Math.round(totalValue * 100) / 100,
+    notes: notes || null,
+    source: 'mobile',
+    created_at: timestamp,
+    updated_at: timestamp
+  };
+  
+  if (!db.restockLogs) db.restockLogs = [];
+  db.restockLogs.push(restockLog);
+  
+  // Clear low stock alerts for this machine
+  (db.alerts || []).forEach(a => {
+    if (a.machine_id === parseInt(machine_id) && 
+        a.type === 'low_stock' && 
+        a.status === 'pending') {
+      a.status = 'resolved';
+      a.resolved_at = timestamp;
+    }
+  });
+  
+  saveDB(db);
+  
+  res.json({
+    success: true,
+    restock_id: restockId,
+    machine_id: parseInt(machine_id),
+    total_units_added: totalUnits,
+    total_value: restockLog.total_value,
+    updates,
+    timestamp
+  });
+});
+
+// GET /api/mobile/alerts — Pending alerts
+app.get('/api/mobile/alerts', (req, res) => {
+  const { severity, machine_id, limit = 50 } = req.query;
+  let alerts = (db.alerts || []).filter(a => 
+    a.status === 'pending' || a.status === 'active'
+  );
+  
+  if (severity) {
+    alerts = alerts.filter(a => a.severity === severity);
+  }
+  
+  if (machine_id) {
+    alerts = alerts.filter(a => a.machine_id === parseInt(machine_id));
+  }
+  
+  // Sort by severity then date
+  const severityOrder = { critical: 0, warning: 1, info: 2 };
+  alerts.sort((a, b) => {
+    const sevDiff = (severityOrder[a.severity] || 99) - (severityOrder[b.severity] || 99);
+    if (sevDiff !== 0) return sevDiff;
+    return new Date(b.created_at) - new Date(a.created_at);
+  });
+  
+  // Enhance with machine info
+  const enhanced = alerts.slice(0, parseInt(limit)).map(a => {
+    const machine = (db.machines || []).find(m => m.id === a.machine_id);
+    return {
+      id: a.id,
+      type: a.type,
+      severity: a.severity,
+      message: a.message,
+      machine_id: a.machine_id,
+      machine_name: machine?.name || 'Unknown',
+      machine_location: machine?.location || machine?.address,
+      slot_code: a.slot_code || null,
+      product_name: a.product_name || null,
+      created_at: a.created_at,
+      age_hours: Math.round((Date.now() - new Date(a.created_at).getTime()) / (1000 * 60 * 60))
+    };
+  });
+  
+  res.json({
+    alerts: enhanced,
+    total: alerts.length,
+    by_severity: {
+      critical: alerts.filter(a => a.severity === 'critical').length,
+      warning: alerts.filter(a => a.severity === 'warning').length,
+      info: alerts.filter(a => a.severity === 'info').length
+    }
+  });
+});
+
+// POST /api/mobile/alerts/:id/acknowledge — Dismiss alert
+app.post('/api/mobile/alerts/:id/acknowledge', (req, res) => {
+  const alertId = parseInt(req.params.id);
+  const { acknowledged_by, notes } = req.body;
+  
+  const alert = (db.alerts || []).find(a => a.id === alertId);
+  if (!alert) {
+    return res.status(404).json({ error: 'Alert not found' });
+  }
+  
+  alert.status = 'acknowledged';
+  alert.acknowledged_at = new Date().toISOString();
+  alert.acknowledged_by = acknowledged_by || 'mobile_user';
+  alert.notes = notes || alert.notes;
+  alert.updated_at = new Date().toISOString();
+  
+  saveDB(db);
+  
+  res.json({
+    success: true,
+    alert_id: alertId,
+    new_status: 'acknowledged',
+    acknowledged_at: alert.acknowledged_at
+  });
+});
+
+// ===== FORECASTING API ENDPOINTS =====
+
+// Helper: Simple moving average forecast
+function forecastWithSMA(data, periods, futureDays) {
+  if (data.length < periods) {
+    return { values: [], confidence: 0.3 };
+  }
+  
+  const lastValues = data.slice(-periods);
+  const avg = lastValues.reduce((sum, v) => sum + v, 0) / periods;
+  
+  // Calculate standard deviation for confidence intervals
+  const variance = lastValues.reduce((sum, v) => sum + Math.pow(v - avg, 2), 0) / periods;
+  const stdDev = Math.sqrt(variance);
+  
+  const forecasts = [];
+  for (let i = 0; i < futureDays; i++) {
+    forecasts.push({
+      day: i + 1,
+      predicted: Math.round(avg * 100) / 100,
+      lower_bound: Math.round((avg - 1.96 * stdDev) * 100) / 100,
+      upper_bound: Math.round((avg + 1.96 * stdDev) * 100) / 100
+    });
+  }
+  
+  return { values: forecasts, confidence: Math.min(0.85, 0.5 + data.length * 0.01) };
+}
+
+// Helper: Detect seasonality (day of week patterns)
+function detectSeasonality(dailyData) {
+  if (dailyData.length < 14) {
+    return { detected: false, pattern: null };
+  }
+  
+  const dayOfWeekTotals = [0, 0, 0, 0, 0, 0, 0];
+  const dayOfWeekCounts = [0, 0, 0, 0, 0, 0, 0];
+  
+  dailyData.forEach(d => {
+    const day = new Date(d.date).getDay();
+    dayOfWeekTotals[day] += d.value;
+    dayOfWeekCounts[day]++;
+  });
+  
+  const dayOfWeekAvgs = dayOfWeekTotals.map((total, i) => 
+    dayOfWeekCounts[i] > 0 ? total / dayOfWeekCounts[i] : 0
+  );
+  
+  const overallAvg = dayOfWeekAvgs.reduce((a, b) => a + b, 0) / 7;
+  const maxVariation = Math.max(...dayOfWeekAvgs) - Math.min(...dayOfWeekAvgs);
+  
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const pattern = dayNames.map((name, i) => ({
+    day: name,
+    avg: Math.round(dayOfWeekAvgs[i] * 100) / 100,
+    vs_avg: overallAvg > 0 ? Math.round((dayOfWeekAvgs[i] / overallAvg - 1) * 100) : 0
+  }));
+  
+  return {
+    detected: maxVariation > overallAvg * 0.2,
+    pattern,
+    peak_day: dayNames[dayOfWeekAvgs.indexOf(Math.max(...dayOfWeekAvgs))],
+    low_day: dayNames[dayOfWeekAvgs.indexOf(Math.min(...dayOfWeekAvgs))]
+  };
+}
+
+// GET /api/forecasts/demand — Demand prediction for a product
+app.get('/api/forecasts/demand', (req, res) => {
+  const { product_id, machine_id, days = 14 } = req.query;
+  
+  if (!product_id) {
+    return res.status(400).json({ error: 'product_id required' });
+  }
+  
+  // Get historical transactions
+  const lookbackDays = 60;
+  const startDate = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
+  
+  let transactions = (db.transactions || []).filter(t => 
+    t.product_id === parseInt(product_id) &&
+    new Date(t.timestamp) >= startDate
+  );
+  
+  if (machine_id) {
+    transactions = transactions.filter(t => t.machine_id === parseInt(machine_id));
+  }
+  
+  // Aggregate by day
+  const dailyData = {};
+  transactions.forEach(t => {
+    const date = t.timestamp.split('T')[0];
+    dailyData[date] = (dailyData[date] || 0) + (t.quantity || 1);
+  });
+  
+  // Fill in missing days with 0
+  const allDays = [];
+  for (let i = lookbackDays; i >= 0; i--) {
+    const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    allDays.push({ date, value: dailyData[date] || 0 });
+  }
+  
+  // Forecast
+  const forecast = forecastWithSMA(allDays.map(d => d.value), 7, parseInt(days));
+  const seasonality = detectSeasonality(allDays);
+  
+  // Product info
+  const product = (db.products || []).find(p => p.id === parseInt(product_id));
+  
+  res.json({
+    product: {
+      id: parseInt(product_id),
+      name: product?.name || 'Unknown'
+    },
+    machine_id: machine_id ? parseInt(machine_id) : null,
+    historical: {
+      days: lookbackDays,
+      total_sales: transactions.length,
+      avg_daily: Math.round(transactions.length / lookbackDays * 100) / 100,
+      daily_data: allDays.slice(-14) // Last 2 weeks
+    },
+    forecast: {
+      days: parseInt(days),
+      predictions: forecast.values,
+      confidence_level: forecast.confidence,
+      total_predicted: forecast.values.reduce((sum, f) => sum + f.predicted, 0)
+    },
+    seasonality,
+    recommendations: [
+      {
+        type: 'stock_suggestion',
+        message: `Maintain ${Math.ceil(transactions.length / lookbackDays * 7 * 1.2)} units buffer for weekly demand`
+      },
+      seasonality.detected ? {
+        type: 'timing',
+        message: `Peak demand on ${seasonality.peak_day}s - ensure full stock`
+      } : null
+    ].filter(Boolean)
+  });
+});
+
+// GET /api/forecasts/revenue — Revenue forecast for a machine
+app.get('/api/forecasts/revenue', (req, res) => {
+  const { machine_id, days = 30 } = req.query;
+  
+  // Get historical transactions
+  const lookbackDays = 90;
+  const startDate = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
+  
+  let transactions = (db.transactions || []).filter(t => 
+    new Date(t.timestamp) >= startDate
+  );
+  
+  if (machine_id) {
+    transactions = transactions.filter(t => t.machine_id === parseInt(machine_id));
+  }
+  
+  // Aggregate by day
+  const dailyData = {};
+  transactions.forEach(t => {
+    const date = t.timestamp.split('T')[0];
+    dailyData[date] = (dailyData[date] || 0) + (t.amount || 0);
+  });
+  
+  // Fill in missing days
+  const allDays = [];
+  for (let i = lookbackDays; i >= 0; i--) {
+    const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    allDays.push({ date, value: dailyData[date] || 0 });
+  }
+  
+  // Forecast
+  const forecast = forecastWithSMA(allDays.map(d => d.value), 14, parseInt(days));
+  const seasonality = detectSeasonality(allDays);
+  
+  // Monthly projections
+  const weeklyAvg = allDays.slice(-7).reduce((sum, d) => sum + d.value, 0);
+  const monthlyProjection = weeklyAvg * 4.33;
+  
+  // Machine info
+  const machine = machine_id ? (db.machines || []).find(m => m.id === parseInt(machine_id)) : null;
+  
+  res.json({
+    machine: machine ? {
+      id: machine.id,
+      name: machine.name
+    } : null,
+    period: `${lookbackDays} days historical, ${days} days forecast`,
+    historical: {
+      total_revenue: Math.round(transactions.reduce((sum, t) => sum + (t.amount || 0), 0) * 100) / 100,
+      avg_daily: Math.round(allDays.reduce((sum, d) => sum + d.value, 0) / lookbackDays * 100) / 100,
+      daily_data: allDays.slice(-30)
+    },
+    forecast: {
+      days: parseInt(days),
+      predictions: forecast.values,
+      confidence_level: forecast.confidence,
+      total_predicted: Math.round(forecast.values.reduce((sum, f) => sum + f.predicted, 0) * 100) / 100
+    },
+    projections: {
+      weekly: Math.round(weeklyAvg * 100) / 100,
+      monthly: Math.round(monthlyProjection * 100) / 100,
+      annual: Math.round(monthlyProjection * 12 * 100) / 100
+    },
+    seasonality,
+    trends: {
+      recent_7d_vs_prior: (() => {
+        const recent = allDays.slice(-7).reduce((sum, d) => sum + d.value, 0);
+        const prior = allDays.slice(-14, -7).reduce((sum, d) => sum + d.value, 0);
+        return prior > 0 ? Math.round((recent / prior - 1) * 100) : 0;
+      })(),
+      recent_30d_vs_prior: (() => {
+        const recent = allDays.slice(-30).reduce((sum, d) => sum + d.value, 0);
+        const prior = allDays.slice(-60, -30).reduce((sum, d) => sum + d.value, 0);
+        return prior > 0 ? Math.round((recent / prior - 1) * 100) : 0;
+      })()
+    }
+  });
+});
+
+// GET /api/forecasts/restock — Restock schedule prediction
+app.get('/api/forecasts/restock', (req, res) => {
+  const { machine_id } = req.query;
+  
+  if (!machine_id) {
+    return res.status(400).json({ error: 'machine_id required' });
+  }
+  
+  const machine = (db.machines || []).find(m => m.id === parseInt(machine_id));
+  if (!machine) {
+    return res.status(404).json({ error: 'Machine not found' });
+  }
+  
+  const slots = (db.machineSlots || []).filter(s => s.machine_id === parseInt(machine_id));
+  
+  // Calculate velocity for each slot
+  const lookbackDays = 14;
+  const startDate = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
+  
+  const slotForecasts = slots.map(slot => {
+    const transactions = (db.transactions || []).filter(t => 
+      t.machine_id === parseInt(machine_id) &&
+      t.product_id === slot.product_id &&
+      new Date(t.timestamp) >= startDate
+    );
+    
+    const dailyVelocity = transactions.length / lookbackDays;
+    const currentStock = slot.current_quantity || 0;
+    const daysUntilEmpty = dailyVelocity > 0 ? Math.floor(currentStock / dailyVelocity) : 999;
+    const daysUntilLow = dailyVelocity > 0 ? Math.floor((currentStock - (slot.par_level * 0.3)) / dailyVelocity) : 999;
+    
+    const product = (db.products || []).find(p => p.id === slot.product_id);
+    
+    return {
+      slot_code: slot.slot_code,
+      product_id: slot.product_id,
+      product_name: product?.name || 'Unknown',
+      current_stock: currentStock,
+      par_level: slot.par_level,
+      daily_velocity: Math.round(dailyVelocity * 100) / 100,
+      days_until_low: Math.max(0, daysUntilLow),
+      days_until_empty: Math.max(0, daysUntilEmpty),
+      restock_urgency: daysUntilEmpty <= 1 ? 'critical' : 
+                       daysUntilEmpty <= 3 ? 'soon' : 
+                       daysUntilLow <= 3 ? 'upcoming' : 'ok',
+      estimated_restock_date: new Date(Date.now() + Math.max(0, daysUntilLow - 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    };
+  });
+  
+  // Sort by urgency
+  const urgencyOrder = { critical: 0, soon: 1, upcoming: 2, ok: 3 };
+  slotForecasts.sort((a, b) => urgencyOrder[a.restock_urgency] - urgencyOrder[b.restock_urgency]);
+  
+  // Calculate next recommended restock
+  const criticalSlots = slotForecasts.filter(s => s.restock_urgency === 'critical').length;
+  const soonSlots = slotForecasts.filter(s => s.restock_urgency === 'soon').length;
+  const earliestRestock = Math.min(...slotForecasts.map(s => s.days_until_low).filter(d => d < 999));
+  
+  res.json({
+    machine: {
+      id: machine.id,
+      name: machine.name
+    },
+    summary: {
+      total_slots: slots.length,
+      critical_slots: criticalSlots,
+      soon_slots: soonSlots,
+      upcoming_slots: slotForecasts.filter(s => s.restock_urgency === 'upcoming').length,
+      healthy_slots: slotForecasts.filter(s => s.restock_urgency === 'ok').length
+    },
+    recommendation: {
+      next_restock_in_days: earliestRestock < 999 ? earliestRestock : null,
+      next_restock_date: earliestRestock < 999 
+        ? new Date(Date.now() + earliestRestock * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        : null,
+      urgency: criticalSlots > 0 ? 'immediate' : soonSlots > 0 ? 'this_week' : 'scheduled',
+      reason: criticalSlots > 0 
+        ? `${criticalSlots} slot(s) critically low`
+        : soonSlots > 0 
+        ? `${soonSlots} slot(s) need attention within 3 days`
+        : 'All slots adequately stocked'
+    },
+    slot_forecasts: slotForecasts
+  });
+});
+
+// ===== OPTIMIZATION API ENDPOINTS =====
+
+// GET /api/optimization/product-placement — Cross-machine product suggestions
+app.get('/api/optimization/product-placement', (req, res) => {
+  const machines = db.machines || [];
+  const slots = db.machineSlots || [];
+  const products = db.products || [];
+  
+  // Analyze performance across all machines
+  const lookbackDays = 30;
+  const startDate = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
+  const transactions = (db.transactions || []).filter(t => new Date(t.timestamp) >= startDate);
+  
+  // Product performance by machine
+  const productMachinePerformance = {};
+  transactions.forEach(t => {
+    const key = `${t.product_id}-${t.machine_id}`;
+    if (!productMachinePerformance[key]) {
+      productMachinePerformance[key] = { sales: 0, revenue: 0 };
+    }
+    productMachinePerformance[key].sales++;
+    productMachinePerformance[key].revenue += t.amount || 0;
+  });
+  
+  // Find top performers
+  const topProducts = {};
+  Object.entries(productMachinePerformance).forEach(([key, data]) => {
+    const [productId] = key.split('-');
+    if (!topProducts[productId] || topProducts[productId].sales < data.sales) {
+      topProducts[productId] = data;
+    }
+  });
+  
+  // Generate suggestions
+  const suggestions = [];
+  
+  machines.forEach(machine => {
+    const machineSlots = slots.filter(s => s.machine_id === machine.id);
+    const machineProductIds = machineSlots.map(s => s.product_id);
+    
+    // Find products performing well elsewhere but not in this machine
+    Object.entries(topProducts).forEach(([productId, data]) => {
+      if (!machineProductIds.includes(parseInt(productId)) && data.sales >= 5) {
+        const product = products.find(p => p.id === parseInt(productId));
+        if (product) {
+          suggestions.push({
+            type: 'add_product',
+            machine_id: machine.id,
+            machine_name: machine.name,
+            product_id: parseInt(productId),
+            product_name: product.name,
+            reason: `Top performer with ${data.sales} sales in 30 days elsewhere`,
+            expected_lift: '+15-25%',
+            confidence: 'medium'
+          });
+        }
+      }
+    });
+    
+    // Find underperformers
+    machineSlots.forEach(slot => {
+      const key = `${slot.product_id}-${machine.id}`;
+      const perf = productMachinePerformance[key];
+      if (!perf || perf.sales < 2) {
+        const product = products.find(p => p.id === slot.product_id);
+        suggestions.push({
+          type: 'review_product',
+          machine_id: machine.id,
+          machine_name: machine.name,
+          product_id: slot.product_id,
+          product_name: product?.name || 'Unknown',
+          slot_code: slot.slot_code,
+          reason: `Only ${perf?.sales || 0} sales in 30 days`,
+          action: 'Consider replacing with higher-velocity product',
+          confidence: 'high'
+        });
+      }
+    });
+  });
+  
+  // Sort by confidence
+  suggestions.sort((a, b) => {
+    const confOrder = { high: 0, medium: 1, low: 2 };
+    return confOrder[a.confidence] - confOrder[b.confidence];
+  });
+  
+  res.json({
+    analysis_period: `${lookbackDays} days`,
+    total_suggestions: suggestions.length,
+    suggestions: suggestions.slice(0, 20),
+    summary: {
+      add_product_suggestions: suggestions.filter(s => s.type === 'add_product').length,
+      review_product_suggestions: suggestions.filter(s => s.type === 'review_product').length
+    }
+  });
+});
+
+// GET /api/optimization/route — Optimized restock route
+app.get('/api/optimization/route', (req, res) => {
+  const { driver_id, date } = req.query;
+  
+  const machines = db.machines || [];
+  const slots = db.machineSlots || [];
+  
+  // Calculate urgency for each machine
+  const machineUrgency = machines.map(machine => {
+    const machineSlots = slots.filter(s => s.machine_id === machine.id);
+    const criticalSlots = machineSlots.filter(s => s.current_quantity === 0).length;
+    const lowSlots = machineSlots.filter(s => 
+      s.current_quantity > 0 && s.current_quantity <= (s.par_level * 0.3)
+    ).length;
+    const totalFillUnits = machineSlots.reduce((sum, s) => 
+      sum + Math.max(0, (s.par_level || 0) - (s.current_quantity || 0)), 0
+    );
+    
+    // Calculate expected revenue (based on historical)
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const recentRevenue = (db.transactions || [])
+      .filter(t => t.machine_id === machine.id && t.timestamp >= weekAgo)
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+    
+    return {
+      machine_id: machine.id,
+      machine_name: machine.name,
+      location: machine.location || machine.address,
+      lat: machine.lat,
+      lng: machine.lng,
+      status: machine.status,
+      critical_slots: criticalSlots,
+      low_slots: lowSlots,
+      fill_units: totalFillUnits,
+      weekly_revenue: Math.round(recentRevenue * 100) / 100,
+      urgency_score: (criticalSlots * 10) + (lowSlots * 3) + (recentRevenue / 100),
+      needs_service: criticalSlots > 0 || lowSlots >= 3
+    };
+  });
+  
+  // Filter to machines needing service
+  const needsService = machineUrgency.filter(m => m.needs_service && m.status !== 'offline');
+  
+  // Sort by urgency score (higher = more urgent)
+  needsService.sort((a, b) => b.urgency_score - a.urgency_score);
+  
+  // Simple route optimization (greedy nearest neighbor if coordinates available)
+  let route = needsService;
+  if (needsService.length > 1 && needsService[0].lat && needsService[0].lng) {
+    // Start from first (most urgent), then nearest neighbor
+    const optimized = [needsService[0]];
+    const remaining = needsService.slice(1);
+    
+    while (remaining.length > 0) {
+      const last = optimized[optimized.length - 1];
+      let nearestIdx = 0;
+      let nearestDist = Infinity;
+      
+      remaining.forEach((m, idx) => {
+        if (m.lat && m.lng && last.lat && last.lng) {
+          const dist = Math.sqrt(
+            Math.pow(m.lat - last.lat, 2) + Math.pow(m.lng - last.lng, 2)
+          );
+          if (dist < nearestDist) {
+            nearestDist = dist;
+            nearestIdx = idx;
+          }
+        }
+      });
+      
+      optimized.push(remaining[nearestIdx]);
+      remaining.splice(nearestIdx, 1);
+    }
+    route = optimized;
+  }
+  
+  // Calculate totals
+  const totalFillUnits = route.reduce((sum, m) => sum + m.fill_units, 0);
+  const estimatedTime = route.length * 45; // 45 min per machine average
+  
+  res.json({
+    date: date || new Date().toISOString().split('T')[0],
+    driver_id: driver_id || null,
+    route: {
+      stops: route.map((m, idx) => ({
+        order: idx + 1,
+        ...m
+      })),
+      total_stops: route.length,
+      total_fill_units: totalFillUnits,
+      estimated_minutes: estimatedTime,
+      estimated_completion: `${Math.floor(estimatedTime / 60)}h ${estimatedTime % 60}m`
+    },
+    deferred: machineUrgency.filter(m => !m.needs_service).map(m => ({
+      machine_id: m.machine_id,
+      machine_name: m.machine_name,
+      reason: 'Adequate stock levels'
+    })),
+    summary: {
+      total_machines: machines.length,
+      needing_service: needsService.length,
+      deferred: machines.length - needsService.length,
+      critical_machines: needsService.filter(m => m.critical_slots > 0).length
+    }
+  });
+});
+
+// GET /api/optimization/inventory-transfer — Suggest transfers between machines
+app.get('/api/optimization/inventory-transfer', (req, res) => {
+  const machines = db.machines || [];
+  const slots = db.machineSlots || [];
+  const products = db.products || [];
+  
+  // Calculate velocity for products at each machine
+  const lookbackDays = 14;
+  const startDate = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
+  const transactions = (db.transactions || []).filter(t => new Date(t.timestamp) >= startDate);
+  
+  const productVelocity = {};
+  transactions.forEach(t => {
+    const key = `${t.product_id}-${t.machine_id}`;
+    productVelocity[key] = (productVelocity[key] || 0) + (t.quantity || 1);
+  });
+  
+  // Find transfer opportunities
+  const transfers = [];
+  
+  products.forEach(product => {
+    const productSlots = slots.filter(s => s.product_id === product.id);
+    
+    // Find machines with excess stock and low velocity
+    const excessMachines = productSlots.filter(s => {
+      const velocity = (productVelocity[`${product.id}-${s.machine_id}`] || 0) / lookbackDays;
+      const daysOfStock = velocity > 0 ? s.current_quantity / velocity : 999;
+      return daysOfStock > 14 && s.current_quantity > 5;
+    });
+    
+    // Find machines with high velocity but low stock
+    const needyMachines = productSlots.filter(s => {
+      const velocity = (productVelocity[`${product.id}-${s.machine_id}`] || 0) / lookbackDays;
+      const daysOfStock = velocity > 0 ? s.current_quantity / velocity : 999;
+      return daysOfStock < 5 && velocity > 0.3;
+    });
+    
+    // Create transfer suggestions
+    excessMachines.forEach(excess => {
+      needyMachines.forEach(needy => {
+        if (excess.machine_id === needy.machine_id) return;
+        
+        const excessMachine = machines.find(m => m.id === excess.machine_id);
+        const needyMachine = machines.find(m => m.id === needy.machine_id);
+        const transferQty = Math.min(
+          Math.floor(excess.current_quantity * 0.3),
+          needy.par_level - needy.current_quantity
+        );
+        
+        if (transferQty >= 3) {
+          transfers.push({
+            product_id: product.id,
+            product_name: product.name,
+            from_machine: {
+              id: excess.machine_id,
+              name: excessMachine?.name || 'Unknown',
+              current_stock: excess.current_quantity,
+              velocity: Math.round((productVelocity[`${product.id}-${excess.machine_id}`] || 0) / lookbackDays * 100) / 100
+            },
+            to_machine: {
+              id: needy.machine_id,
+              name: needyMachine?.name || 'Unknown',
+              current_stock: needy.current_quantity,
+              velocity: Math.round((productVelocity[`${product.id}-${needy.machine_id}`] || 0) / lookbackDays * 100) / 100
+            },
+            suggested_quantity: transferQty,
+            benefit: 'Reduces stockout risk at high-velocity location',
+            priority: needy.current_quantity <= 2 ? 'high' : 'medium'
+          });
+        }
+      });
+    });
+  });
+  
+  // Sort by priority
+  transfers.sort((a, b) => {
+    const priorityOrder = { high: 0, medium: 1, low: 2 };
+    return priorityOrder[a.priority] - priorityOrder[b.priority];
+  });
+  
+  res.json({
+    analysis_period: `${lookbackDays} days`,
+    total_suggestions: transfers.length,
+    transfers: transfers.slice(0, 15),
+    summary: {
+      high_priority: transfers.filter(t => t.priority === 'high').length,
+      medium_priority: transfers.filter(t => t.priority === 'medium').length,
+      total_units_suggested: transfers.reduce((sum, t) => sum + t.suggested_quantity, 0)
+    },
+    note: 'Transfer suggestions based on velocity imbalances between machines'
+  });
+});
+
+// ===== END PHASE 6: ADVANCED FEATURES =====
+
 app.listen(PORT, () => {
   console.log(`🤖 Kande VendTech Dashboard running at http://localhost:${PORT}`);
 

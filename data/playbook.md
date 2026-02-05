@@ -1161,3 +1161,30 @@ Use the 🌿 **Wellness Program** toggle on each prospect card to:
 - Skool course data accessible via Next.js __NEXT_DATA__ with auth cookies
 - 63 of 118 Skool recordings had Loom embeds; 55 pre-Loom recordings had no video links
 - 9 older Loom videos returned 404 (expired/deleted)
+
+---
+
+## 2026-02-04: Fitness Centers CAN Work (Vendingpreneurs Video)
+
+**Source:** "How He Replaced His W2 With Just 2 Vending Locations" (Feb 3, 2026)
+
+**Key Learning:** The "avoid gyms" rule has exceptions. Andy's 2 fitness center locations do $10K/month topline.
+
+**What makes fitness centers work:**
+- 7-day per week operation (not just weekday mornings)
+- High foot traffic throughout the day
+- Right demographics (members who buy on impulse)
+- Owner transparency with existing data
+
+**What to look for:**
+- Ask about daily/weekly member visits
+- Check if it's a 24/7 or extended hours facility
+- Look for family-oriented gyms vs pure bodybuilding
+- Consider fitness centers with pools, classes, amenities (more dwell time)
+
+**Still avoid:**
+- Hardcore bodybuilding gyms (macro counters, meal preppers)
+- Small boutique studios with short class times
+- Planet Fitness-type with very low membership fees (cost-conscious members)
+
+**Action:** Update lead criteria to distinguish "good" vs "bad" fitness locations.
