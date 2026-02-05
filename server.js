@@ -3295,6 +3295,7 @@ app.get('/machines', (req, res) => res.sendFile(path.join(__dirname, 'machines.h
 app.get('/inventory', (req, res) => res.sendFile(path.join(__dirname, 'inventory.html')));
 app.get('/finance', (req, res) => res.sendFile(path.join(__dirname, 'finance.html')));
 app.get('/restock', (req, res) => res.sendFile(path.join(__dirname, 'restock.html')));
+app.get('/restock-planner', (req, res) => res.sendFile(path.join(__dirname, 'restock-planner.html')));
 app.get('/staff', (req, res) => res.sendFile(path.join(__dirname, 'staff.html')));
 app.get('/clients', (req, res) => res.sendFile(path.join(__dirname, 'clients.html')));
 app.get('/ai-office', (req, res) => res.sendFile(path.join(__dirname, 'ai-office.html')));
@@ -15906,6 +15907,1709 @@ app.get('/api/machine-system/products', (req, res) => {
 });
 
 // ===== END MACHINE SYSTEM API =====
+
+// =====================================================
+// PHASE 2: INVENTORY INTELLIGENCE APIs
+// =====================================================
+
+// ===== SALES VELOCITY CALCULATION =====
+
+// Helper: Calculate sales velocity for a slot
+function calculateSlotVelocity(slotId, days = 7) {
+  const sales = (db.slotSales || []).filter(s => 
+    s.slot_id === slotId && 
+    new Date(s.created_at) >= new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+  );
+  
+  const totalUnits = sales.reduce((sum, s) => sum + (s.quantity || 1), 0);
+  const velocity = days > 0 ? totalUnits / days : 0;
+  
+  // Calculate trend (compare current period to previous period)
+  const prevSales = (db.slotSales || []).filter(s => 
+    s.slot_id === slotId && 
+    new Date(s.created_at) >= new Date(Date.now() - (days * 2) * 24 * 60 * 60 * 1000) &&
+    new Date(s.created_at) < new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+  );
+  const prevUnits = prevSales.reduce((sum, s) => sum + (s.quantity || 1), 0);
+  const prevVelocity = days > 0 ? prevUnits / days : 0;
+  
+  let trend = 'stable';
+  if (prevVelocity > 0) {
+    const change = (velocity - prevVelocity) / prevVelocity;
+    if (change > 0.1) trend = 'increasing';
+    else if (change < -0.1) trend = 'decreasing';
+  }
+  
+  return {
+    unitsPerDay: Math.round(velocity * 100) / 100,
+    unitsPerWeek: Math.round(velocity * 7 * 100) / 100,
+    totalUnits,
+    period: days,
+    trend
+  };
+}
+
+// Helper: Calculate days until slot is empty
+function calculateDaysUntilEmpty(slot, velocity) {
+  if (!velocity || velocity.unitsPerDay <= 0) return null;
+  if (slot.current_quantity <= 0) return 0;
+  
+  return Math.round((slot.current_quantity / velocity.unitsPerDay) * 10) / 10;
+}
+
+// Helper: Get restock recommendation for a slot
+function getRestockRecommendation(slot, velocity) {
+  const daysUntilEmpty = calculateDaysUntilEmpty(slot, velocity);
+  const restockTo = slot.par_max || slot.capacity || 10;
+  const currentQty = slot.current_quantity || 0;
+  const needed = Math.max(0, restockTo - currentQty);
+  
+  // Priority levels: urgent, soon, normal, skip
+  let priority = 'normal';
+  let reason = '';
+  
+  if (currentQty === 0) {
+    priority = 'urgent';
+    reason = 'Out of stock';
+  } else if (daysUntilEmpty !== null && daysUntilEmpty <= 2) {
+    priority = 'urgent';
+    reason = `Only ${daysUntilEmpty.toFixed(1)} days until empty`;
+  } else if (currentQty <= (slot.par_min || slot.restock_trigger || 3)) {
+    priority = 'soon';
+    reason = `Below par level (${currentQty}/${slot.par_min || slot.restock_trigger})`;
+  } else if (daysUntilEmpty !== null && daysUntilEmpty <= 7) {
+    priority = 'soon';
+    reason = `${daysUntilEmpty.toFixed(1)} days until empty`;
+  } else if (currentQty >= restockTo * 0.7) {
+    priority = 'skip';
+    reason = 'Well stocked';
+  }
+  
+  return { priority, reason, needed, restockTo, daysUntilEmpty };
+}
+
+// POST /api/machine-system/sales - Record a sale for a slot
+app.post('/api/machine-system/sales', (req, res) => {
+  const { machine_id, slot_id, product_id, quantity, unit_price, payment_method } = req.body;
+  
+  if (!machine_id || !slot_id) {
+    return res.status(400).json({ error: 'machine_id and slot_id required' });
+  }
+  
+  // Find the slot and decrement quantity
+  const slotIdx = (db.machineSlots || []).findIndex(s => s.id === slot_id && s.machine_id === machine_id);
+  if (slotIdx === -1) {
+    return res.status(404).json({ error: 'Slot not found' });
+  }
+  
+  const slot = db.machineSlots[slotIdx];
+  const qty = quantity || 1;
+  
+  // Record the sale
+  const sale = {
+    id: nextId(),
+    machine_id,
+    slot_id,
+    product_id: product_id || slot.product_id,
+    product_name: slot.product_name,
+    quantity: qty,
+    unit_price: unit_price || slot.custom_price || slot.product?.vending_price || 3.00,
+    total: (unit_price || slot.custom_price || 3.00) * qty,
+    payment_method: payment_method || 'card',
+    position_code: slot.position_code,
+    created_at: new Date().toISOString()
+  };
+  
+  if (!db.slotSales) db.slotSales = [];
+  db.slotSales.push(sale);
+  
+  // Decrement slot quantity
+  db.machineSlots[slotIdx].current_quantity = Math.max(0, (slot.current_quantity || 0) - qty);
+  db.machineSlots[slotIdx].last_sale = new Date().toISOString();
+  db.machineSlots[slotIdx].updated_at = new Date().toISOString();
+  
+  saveDB(db);
+  
+  // Check if this triggers low stock alert
+  checkSlotAlerts(db.machineSlots[slotIdx]);
+  
+  res.json({ success: true, sale, slot: db.machineSlots[slotIdx] });
+});
+
+// GET /api/machine-system/sales - Get sales history
+app.get('/api/machine-system/sales', (req, res) => {
+  const { machine_id, slot_id, from, to, limit } = req.query;
+  
+  let sales = db.slotSales || [];
+  
+  if (machine_id) sales = sales.filter(s => s.machine_id === parseInt(machine_id));
+  if (slot_id) sales = sales.filter(s => s.slot_id === parseInt(slot_id));
+  if (from) sales = sales.filter(s => new Date(s.created_at) >= new Date(from));
+  if (to) sales = sales.filter(s => new Date(s.created_at) <= new Date(to));
+  
+  sales = sales.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  
+  if (limit) sales = sales.slice(0, parseInt(limit));
+  
+  res.json(sales);
+});
+
+// GET /api/machine-system/velocity - Get sales velocity for all slots
+app.get('/api/machine-system/velocity', (req, res) => {
+  const { machine_id, days } = req.query;
+  const period = parseInt(days) || 7;
+  
+  let slots = db.machineSlots || [];
+  if (machine_id) {
+    slots = slots.filter(s => s.machine_id === parseInt(machine_id));
+  }
+  
+  // Only include slots with products
+  slots = slots.filter(s => s.product_id && s.is_active);
+  
+  const velocityData = slots.map(slot => {
+    const velocity = calculateSlotVelocity(slot.id, period);
+    const daysUntilEmpty = calculateDaysUntilEmpty(slot, velocity);
+    const recommendation = getRestockRecommendation(slot, velocity);
+    const machine = db.machines.find(m => m.id === slot.machine_id);
+    
+    return {
+      slot_id: slot.id,
+      machine_id: slot.machine_id,
+      machine_name: machine?.name,
+      position_code: slot.position_code,
+      product_id: slot.product_id,
+      product_name: slot.product_name,
+      current_quantity: slot.current_quantity,
+      capacity: slot.capacity,
+      par_min: slot.par_min || slot.restock_trigger,
+      par_max: slot.par_max || slot.capacity,
+      velocity,
+      daysUntilEmpty,
+      recommendation,
+      lastSale: slot.last_sale
+    };
+  });
+  
+  // Sort by urgency
+  const priorityOrder = { urgent: 0, soon: 1, normal: 2, skip: 3 };
+  velocityData.sort((a, b) => {
+    const pA = priorityOrder[a.recommendation.priority] ?? 4;
+    const pB = priorityOrder[b.recommendation.priority] ?? 4;
+    if (pA !== pB) return pA - pB;
+    // Then by days until empty
+    const dA = a.daysUntilEmpty ?? Infinity;
+    const dB = b.daysUntilEmpty ?? Infinity;
+    return dA - dB;
+  });
+  
+  res.json({
+    period,
+    slots: velocityData,
+    summary: {
+      total: velocityData.length,
+      urgent: velocityData.filter(s => s.recommendation.priority === 'urgent').length,
+      soon: velocityData.filter(s => s.recommendation.priority === 'soon').length,
+      wellStocked: velocityData.filter(s => s.recommendation.priority === 'skip').length,
+      avgVelocity: velocityData.length > 0 
+        ? Math.round(velocityData.reduce((sum, s) => sum + s.velocity.unitsPerDay, 0) / velocityData.length * 100) / 100 
+        : 0
+    }
+  });
+});
+
+// GET /api/machine-system/machines/:id/velocity - Get velocity for specific machine
+app.get('/api/machine-system/machines/:id/velocity', (req, res) => {
+  const machineId = parseInt(req.params.id);
+  const machine = db.machines.find(m => m.id === machineId);
+  if (!machine) return res.status(404).json({ error: 'Machine not found' });
+  
+  const period = parseInt(req.query.days) || 7;
+  const slots = (db.machineSlots || []).filter(s => s.machine_id === machineId && s.product_id && s.is_active);
+  
+  const velocityData = slots.map(slot => {
+    const velocity = calculateSlotVelocity(slot.id, period);
+    const daysUntilEmpty = calculateDaysUntilEmpty(slot, velocity);
+    const recommendation = getRestockRecommendation(slot, velocity);
+    const product = db.products.find(p => p.id === slot.product_id);
+    
+    return {
+      slot_id: slot.id,
+      position_code: slot.position_code,
+      zone: slot.zone,
+      product_id: slot.product_id,
+      product_name: slot.product_name || product?.name,
+      category: product?.category,
+      current_quantity: slot.current_quantity,
+      capacity: slot.capacity,
+      par_min: slot.par_min || slot.restock_trigger,
+      par_max: slot.par_max || slot.capacity,
+      velocity,
+      daysUntilEmpty,
+      recommendation,
+      lastSale: slot.last_sale
+    };
+  });
+  
+  // Sort by position
+  velocityData.sort((a, b) => {
+    const rowA = a.position_code.charCodeAt(0);
+    const rowB = b.position_code.charCodeAt(0);
+    if (rowA !== rowB) return rowA - rowB;
+    return parseInt(a.position_code.slice(1)) - parseInt(b.position_code.slice(1));
+  });
+  
+  // Calculate machine-level stats
+  const totalVelocity = velocityData.reduce((sum, s) => sum + s.velocity.unitsPerDay, 0);
+  const avgDaysUntilEmpty = velocityData.filter(s => s.daysUntilEmpty !== null)
+    .reduce((sum, s, i, arr) => sum + s.daysUntilEmpty / arr.length, 0);
+  
+  res.json({
+    machine_id: machineId,
+    machine_name: machine.name,
+    period,
+    slots: velocityData,
+    summary: {
+      totalSlots: velocityData.length,
+      totalVelocity: Math.round(totalVelocity * 100) / 100,
+      avgVelocityPerSlot: velocityData.length > 0 ? Math.round(totalVelocity / velocityData.length * 100) / 100 : 0,
+      avgDaysUntilEmpty: Math.round(avgDaysUntilEmpty * 10) / 10,
+      urgent: velocityData.filter(s => s.recommendation.priority === 'urgent').length,
+      soon: velocityData.filter(s => s.recommendation.priority === 'soon').length
+    }
+  });
+});
+
+// ===== PAR LEVEL MANAGEMENT =====
+
+// PUT /api/machine-system/machines/:id/slots/:slotId/par-levels
+app.put('/api/machine-system/machines/:id/slots/:slotId/par-levels', (req, res) => {
+  const machineId = parseInt(req.params.id);
+  const slotId = parseInt(req.params.slotId);
+  
+  const slotIdx = (db.machineSlots || []).findIndex(s => s.id === slotId && s.machine_id === machineId);
+  if (slotIdx === -1) return res.status(404).json({ error: 'Slot not found' });
+  
+  const { par_min, par_max, restock_trigger } = req.body;
+  
+  if (par_min !== undefined) {
+    db.machineSlots[slotIdx].par_min = parseInt(par_min);
+    db.machineSlots[slotIdx].restock_trigger = parseInt(par_min); // Keep in sync
+  }
+  if (par_max !== undefined) {
+    db.machineSlots[slotIdx].par_max = parseInt(par_max);
+  }
+  if (restock_trigger !== undefined) {
+    db.machineSlots[slotIdx].restock_trigger = parseInt(restock_trigger);
+    db.machineSlots[slotIdx].par_min = parseInt(restock_trigger); // Keep in sync
+  }
+  
+  db.machineSlots[slotIdx].updated_at = new Date().toISOString();
+  saveDB(db);
+  
+  res.json(db.machineSlots[slotIdx]);
+});
+
+// PUT /api/machine-system/machines/:id/par-levels - Bulk update par levels
+app.put('/api/machine-system/machines/:id/par-levels', (req, res) => {
+  const machineId = parseInt(req.params.id);
+  const machine = db.machines.find(m => m.id === machineId);
+  if (!machine) return res.status(404).json({ error: 'Machine not found' });
+  
+  const { slots } = req.body; // Array of { slot_id, par_min, par_max }
+  
+  if (!slots || !Array.isArray(slots)) {
+    return res.status(400).json({ error: 'slots array required' });
+  }
+  
+  const updated = [];
+  slots.forEach(update => {
+    const slotIdx = (db.machineSlots || []).findIndex(s => s.id === update.slot_id && s.machine_id === machineId);
+    if (slotIdx !== -1) {
+      if (update.par_min !== undefined) {
+        db.machineSlots[slotIdx].par_min = parseInt(update.par_min);
+        db.machineSlots[slotIdx].restock_trigger = parseInt(update.par_min);
+      }
+      if (update.par_max !== undefined) {
+        db.machineSlots[slotIdx].par_max = parseInt(update.par_max);
+      }
+      db.machineSlots[slotIdx].updated_at = new Date().toISOString();
+      updated.push(db.machineSlots[slotIdx]);
+    }
+  });
+  
+  saveDB(db);
+  res.json({ success: true, updated: updated.length, slots: updated });
+});
+
+// ===== RESTOCK LIST GENERATION =====
+
+// GET /api/machine-system/restock-plan - Generate restock list for all machines
+app.get('/api/machine-system/restock-plan', (req, res) => {
+  const { threshold, include_ok } = req.query;
+  const days = parseInt(req.query.days) || 7;
+  
+  // Get all active machines
+  const machines = db.machines.filter(m => m.status === 'active' || m.status === 'deployed');
+  
+  const restockPlan = machines.map(machine => {
+    const slots = (db.machineSlots || []).filter(s => s.machine_id === machine.id && s.product_id && s.is_active);
+    const location = db.locations.find(l => l.id === machine.location_id);
+    
+    const slotItems = slots.map(slot => {
+      const velocity = calculateSlotVelocity(slot.id, days);
+      const recommendation = getRestockRecommendation(slot, velocity);
+      const product = db.products.find(p => p.id === slot.product_id);
+      
+      return {
+        slot_id: slot.id,
+        position_code: slot.position_code,
+        product_id: slot.product_id,
+        product_name: slot.product_name || product?.name,
+        upc: product?.upc,
+        category: product?.category,
+        current_quantity: slot.current_quantity,
+        capacity: slot.capacity,
+        par_min: slot.par_min || slot.restock_trigger,
+        par_max: slot.par_max || slot.capacity,
+        needed: recommendation.needed,
+        priority: recommendation.priority,
+        reason: recommendation.reason,
+        daysUntilEmpty: recommendation.daysUntilEmpty,
+        velocity: velocity.unitsPerDay,
+        earliestExpiry: slot.earliest_expiry,
+        cost_per_unit: product?.cost_price || product?.wholesale_cost
+      };
+    });
+    
+    // Filter based on threshold
+    let filteredItems = slotItems;
+    if (!include_ok) {
+      filteredItems = slotItems.filter(item => item.priority !== 'skip');
+    }
+    
+    // Sort by priority then position
+    const priorityOrder = { urgent: 0, soon: 1, normal: 2, skip: 3 };
+    filteredItems.sort((a, b) => {
+      const pA = priorityOrder[a.priority] ?? 4;
+      const pB = priorityOrder[b.priority] ?? 4;
+      if (pA !== pB) return pA - pB;
+      return a.position_code.localeCompare(b.position_code);
+    });
+    
+    const totalNeeded = filteredItems.reduce((sum, i) => sum + i.needed, 0);
+    const estimatedCost = filteredItems.reduce((sum, i) => sum + (i.needed * (i.cost_per_unit || 0)), 0);
+    const urgentCount = filteredItems.filter(i => i.priority === 'urgent').length;
+    const soonCount = filteredItems.filter(i => i.priority === 'soon').length;
+    
+    return {
+      machine_id: machine.id,
+      machine_name: machine.name,
+      location: location ? {
+        id: location.id,
+        name: location.name,
+        address: location.address,
+        lat: location.lat,
+        lng: location.lng
+      } : null,
+      lastRestock: machine.last_restock,
+      items: filteredItems,
+      summary: {
+        totalSlots: slots.length,
+        needsRestock: filteredItems.filter(i => i.priority !== 'skip').length,
+        urgent: urgentCount,
+        soon: soonCount,
+        totalUnits: totalNeeded,
+        estimatedCost: Math.round(estimatedCost * 100) / 100
+      },
+      priority: urgentCount > 0 ? 'urgent' : soonCount > 0 ? 'soon' : 'normal'
+    };
+  });
+  
+  // Sort machines by priority
+  const machinePriorityOrder = { urgent: 0, soon: 1, normal: 2 };
+  restockPlan.sort((a, b) => {
+    const pA = machinePriorityOrder[a.priority] ?? 3;
+    const pB = machinePriorityOrder[b.priority] ?? 3;
+    if (pA !== pB) return pA - pB;
+    return b.summary.totalUnits - a.summary.totalUnits;
+  });
+  
+  // Filter out machines with nothing to restock
+  const needsRestock = restockPlan.filter(m => m.summary.needsRestock > 0);
+  
+  // Aggregate products across all machines (pick list)
+  const productAgg = {};
+  needsRestock.forEach(machine => {
+    machine.items.forEach(item => {
+      if (item.needed > 0) {
+        const key = item.product_id || item.product_name;
+        if (!productAgg[key]) {
+          productAgg[key] = {
+            product_id: item.product_id,
+            product_name: item.product_name,
+            upc: item.upc,
+            category: item.category,
+            totalNeeded: 0,
+            machines: [],
+            cost_per_unit: item.cost_per_unit
+          };
+        }
+        productAgg[key].totalNeeded += item.needed;
+        productAgg[key].machines.push({
+          machine_id: machine.machine_id,
+          machine_name: machine.machine_name,
+          position: item.position_code,
+          quantity: item.needed
+        });
+      }
+    });
+  });
+  
+  const pickList = Object.values(productAgg).sort((a, b) => b.totalNeeded - a.totalNeeded);
+  const totalUnits = pickList.reduce((sum, p) => sum + p.totalNeeded, 0);
+  const totalCost = pickList.reduce((sum, p) => sum + (p.totalNeeded * (p.cost_per_unit || 0)), 0);
+  
+  res.json({
+    generated_at: new Date().toISOString(),
+    period_days: days,
+    machines: needsRestock,
+    pickList,
+    summary: {
+      machinesNeedingRestock: needsRestock.length,
+      totalMachines: machines.length,
+      urgentMachines: needsRestock.filter(m => m.priority === 'urgent').length,
+      totalUnits,
+      totalEstimatedCost: Math.round(totalCost * 100) / 100,
+      uniqueProducts: pickList.length
+    }
+  });
+});
+
+// GET /api/machine-system/machines/:id/restock-plan - Generate restock list for specific machine
+app.get('/api/machine-system/machines/:id/restock-plan', (req, res) => {
+  const machineId = parseInt(req.params.id);
+  const machine = db.machines.find(m => m.id === machineId);
+  if (!machine) return res.status(404).json({ error: 'Machine not found' });
+  
+  const days = parseInt(req.query.days) || 7;
+  const slots = (db.machineSlots || []).filter(s => s.machine_id === machineId && s.product_id && s.is_active);
+  const location = db.locations.find(l => l.id === machine.location_id);
+  
+  const items = slots.map(slot => {
+    const velocity = calculateSlotVelocity(slot.id, days);
+    const recommendation = getRestockRecommendation(slot, velocity);
+    const product = db.products.find(p => p.id === slot.product_id);
+    
+    return {
+      slot_id: slot.id,
+      position_code: slot.position_code,
+      row_num: slot.row_num,
+      column_num: slot.column_num,
+      zone: slot.zone,
+      product_id: slot.product_id,
+      product_name: slot.product_name || product?.name,
+      upc: product?.upc,
+      category: product?.category,
+      current_quantity: slot.current_quantity,
+      capacity: slot.capacity,
+      par_min: slot.par_min || slot.restock_trigger,
+      par_max: slot.par_max || slot.capacity,
+      needed: recommendation.needed,
+      priority: recommendation.priority,
+      reason: recommendation.reason,
+      daysUntilEmpty: recommendation.daysUntilEmpty,
+      velocity: velocity.unitsPerDay,
+      velocityTrend: velocity.trend,
+      earliestExpiry: slot.earliest_expiry,
+      lastSale: slot.last_sale,
+      cost_per_unit: product?.cost_price || product?.wholesale_cost
+    };
+  });
+  
+  // Sort by priority then row/column
+  const priorityOrder = { urgent: 0, soon: 1, normal: 2, skip: 3 };
+  items.sort((a, b) => {
+    const pA = priorityOrder[a.priority] ?? 4;
+    const pB = priorityOrder[b.priority] ?? 4;
+    if (pA !== pB) return pA - pB;
+    if (a.row_num !== b.row_num) return a.row_num - b.row_num;
+    return a.column_num - b.column_num;
+  });
+  
+  const needsRestock = items.filter(i => i.priority !== 'skip');
+  const totalNeeded = needsRestock.reduce((sum, i) => sum + i.needed, 0);
+  const estimatedCost = needsRestock.reduce((sum, i) => sum + (i.needed * (i.cost_per_unit || 0)), 0);
+  
+  // Group by category for easy picking
+  const byCategory = {};
+  needsRestock.forEach(item => {
+    const cat = item.category || 'Other';
+    if (!byCategory[cat]) byCategory[cat] = [];
+    byCategory[cat].push(item);
+  });
+  
+  // Expiring items that need rotation
+  const expiringItems = items.filter(i => i.earliestExpiry && 
+    new Date(i.earliestExpiry) <= new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+  );
+  
+  res.json({
+    machine_id: machineId,
+    machine_name: machine.name,
+    location: location ? {
+      name: location.name,
+      address: location.address,
+      contact_name: location.contact_name,
+      contact_phone: location.contact_phone
+    } : null,
+    lastRestock: machine.last_restock,
+    generated_at: new Date().toISOString(),
+    items,
+    byCategory,
+    expiringItems,
+    summary: {
+      totalSlots: items.length,
+      needsRestock: needsRestock.length,
+      urgent: items.filter(i => i.priority === 'urgent').length,
+      soon: items.filter(i => i.priority === 'soon').length,
+      wellStocked: items.filter(i => i.priority === 'skip').length,
+      totalUnits: totalNeeded,
+      estimatedCost: Math.round(estimatedCost * 100) / 100,
+      expiringCount: expiringItems.length
+    },
+    notes: [
+      machine.last_restock ? `Last restocked: ${new Date(machine.last_restock).toLocaleDateString()}` : 'Never restocked',
+      expiringItems.length > 0 ? `⚠️ ${expiringItems.length} items expiring within 14 days - rotate to front` : null,
+      items.filter(i => i.priority === 'urgent').length > 0 ? `🔴 ${items.filter(i => i.priority === 'urgent').length} slots need immediate attention` : null
+    ].filter(Boolean)
+  });
+});
+
+// POST /api/machine-system/restock-plan/complete - Mark restock visit complete
+app.post('/api/machine-system/restock-plan/complete', (req, res) => {
+  const { machine_id, items, notes, restocked_by } = req.body;
+  
+  if (!machine_id || !items || !Array.isArray(items)) {
+    return res.status(400).json({ error: 'machine_id and items array required' });
+  }
+  
+  const machine = db.machines.find(m => m.id === machine_id);
+  if (!machine) return res.status(404).json({ error: 'Machine not found' });
+  
+  // Record each restock
+  const restocks = [];
+  items.forEach(item => {
+    if (item.quantity_added > 0) {
+      const slotIdx = (db.machineSlots || []).findIndex(s => s.id === item.slot_id && s.machine_id === machine_id);
+      if (slotIdx !== -1) {
+        const slot = db.machineSlots[slotIdx];
+        const previousQuantity = slot.current_quantity || 0;
+        const newQuantity = Math.min(previousQuantity + item.quantity_added, slot.capacity);
+        
+        const restockRecord = {
+          id: nextId(),
+          slot_id: item.slot_id,
+          machine_id,
+          quantity_added: item.quantity_added,
+          previous_quantity: previousQuantity,
+          new_quantity: newQuantity,
+          expiry_date: item.expiry_date || null,
+          restocked_by: restocked_by || 'user',
+          notes: item.notes || null,
+          created_at: new Date().toISOString()
+        };
+        
+        if (!db.restockHistory) db.restockHistory = [];
+        db.restockHistory.push(restockRecord);
+        restocks.push(restockRecord);
+        
+        // Update slot
+        db.machineSlots[slotIdx].current_quantity = newQuantity;
+        db.machineSlots[slotIdx].updated_at = new Date().toISOString();
+        
+        // Handle expiry
+        if (item.expiry_date) {
+          const batches = slot.expiry_batches || [];
+          batches.push({ quantity: item.quantity_added, expiryDate: item.expiry_date, addedDate: new Date().toISOString() });
+          db.machineSlots[slotIdx].expiry_batches = batches;
+          const dates = batches.map(b => new Date(b.expiryDate)).filter(d => !isNaN(d));
+          if (dates.length > 0) {
+            db.machineSlots[slotIdx].earliest_expiry = new Date(Math.min(...dates)).toISOString().split('T')[0];
+          }
+        }
+        
+        // Clear alerts
+        clearSlotAlerts(item.slot_id, ['low_stock', 'out_of_stock']);
+      }
+    }
+  });
+  
+  // Update machine
+  const machineIdx = db.machines.findIndex(m => m.id === machine_id);
+  if (machineIdx !== -1) {
+    db.machines[machineIdx].last_restock = new Date().toISOString();
+  }
+  
+  // Record visit
+  const visit = {
+    id: nextId(),
+    machine_id,
+    type: 'restock',
+    restocks: restocks.length,
+    total_units: restocks.reduce((sum, r) => sum + r.quantity_added, 0),
+    notes,
+    completed_by: restocked_by || 'user',
+    created_at: new Date().toISOString()
+  };
+  
+  if (!db.restockVisits) db.restockVisits = [];
+  db.restockVisits.push(visit);
+  
+  saveDB(db);
+  
+  res.json({
+    success: true,
+    visit,
+    restocks,
+    summary: {
+      slotsRestocked: restocks.length,
+      totalUnits: visit.total_units
+    }
+  });
+});
+
+// GET /api/machine-system/restock-history - Get restock history
+app.get('/api/machine-system/restock-history', (req, res) => {
+  const { machine_id, slot_id, from, to, limit } = req.query;
+  
+  let history = db.restockHistory || [];
+  
+  if (machine_id) history = history.filter(r => r.machine_id === parseInt(machine_id));
+  if (slot_id) history = history.filter(r => r.slot_id === parseInt(slot_id));
+  if (from) history = history.filter(r => new Date(r.created_at) >= new Date(from));
+  if (to) history = history.filter(r => new Date(r.created_at) <= new Date(to));
+  
+  history = history.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  
+  if (limit) history = history.slice(0, parseInt(limit));
+  
+  res.json(history);
+});
+
+// ===== ANALYTICS & PREDICTIONS =====
+
+// GET /api/machine-system/analytics/slot/:slotId - Detailed analytics for a slot
+app.get('/api/machine-system/analytics/slot/:slotId', (req, res) => {
+  const slotId = parseInt(req.params.slotId);
+  const slot = (db.machineSlots || []).find(s => s.id === slotId);
+  if (!slot) return res.status(404).json({ error: 'Slot not found' });
+  
+  const machine = db.machines.find(m => m.id === slot.machine_id);
+  const product = db.products.find(p => p.id === slot.product_id);
+  
+  // Get all sales for this slot
+  const allSales = (db.slotSales || []).filter(s => s.slot_id === slotId)
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  
+  // Calculate velocity over different periods
+  const velocity7d = calculateSlotVelocity(slotId, 7);
+  const velocity14d = calculateSlotVelocity(slotId, 14);
+  const velocity30d = calculateSlotVelocity(slotId, 30);
+  
+  // Daily breakdown (last 14 days)
+  const dailyBreakdown = [];
+  for (let i = 0; i < 14; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const dateStr = date.toISOString().split('T')[0];
+    
+    const daySales = allSales.filter(s => s.created_at.startsWith(dateStr));
+    const units = daySales.reduce((sum, s) => sum + (s.quantity || 1), 0);
+    const revenue = daySales.reduce((sum, s) => sum + (s.total || 0), 0);
+    
+    dailyBreakdown.push({
+      date: dateStr,
+      units,
+      revenue,
+      transactions: daySales.length
+    });
+  }
+  
+  // Hourly pattern (aggregated)
+  const hourlyPattern = Array(24).fill(0);
+  allSales.forEach(sale => {
+    const hour = new Date(sale.created_at).getHours();
+    hourlyPattern[hour] += sale.quantity || 1;
+  });
+  
+  // Restock history
+  const restockHistory = (db.restockHistory || []).filter(r => r.slot_id === slotId)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 10);
+  
+  // Predictions
+  const daysUntilEmpty = calculateDaysUntilEmpty(slot, velocity7d);
+  const recommendation = getRestockRecommendation(slot, velocity7d);
+  
+  // Revenue metrics
+  const totalRevenue = allSales.reduce((sum, s) => sum + (s.total || 0), 0);
+  const totalUnits = allSales.reduce((sum, s) => sum + (s.quantity || 1), 0);
+  const avgTransaction = allSales.length > 0 ? totalRevenue / allSales.length : 0;
+  
+  res.json({
+    slot: {
+      id: slot.id,
+      position_code: slot.position_code,
+      zone: slot.zone,
+      current_quantity: slot.current_quantity,
+      capacity: slot.capacity,
+      par_min: slot.par_min || slot.restock_trigger,
+      par_max: slot.par_max || slot.capacity
+    },
+    machine: {
+      id: machine?.id,
+      name: machine?.name
+    },
+    product: product ? {
+      id: product.id,
+      name: product.name,
+      category: product.category,
+      cost_price: product.cost_price,
+      vending_price: product.sell_price
+    } : null,
+    velocity: {
+      last7days: velocity7d,
+      last14days: velocity14d,
+      last30days: velocity30d
+    },
+    predictions: {
+      daysUntilEmpty,
+      recommendation,
+      suggestedRestockDate: daysUntilEmpty !== null && daysUntilEmpty > 0 
+        ? new Date(Date.now() + Math.max(0, daysUntilEmpty - 2) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        : 'ASAP'
+    },
+    metrics: {
+      totalSales: allSales.length,
+      totalUnits,
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
+      avgTransaction: Math.round(avgTransaction * 100) / 100,
+      firstSale: allSales[0]?.created_at,
+      lastSale: allSales[allSales.length - 1]?.created_at
+    },
+    dailyBreakdown: dailyBreakdown.reverse(),
+    hourlyPattern,
+    restockHistory
+  });
+});
+
+// ===== END PHASE 2: INVENTORY INTELLIGENCE =====
+
+// =====================================================
+// ===== PHASE 3: SALES & ANALYTICS APIS =====
+// =====================================================
+// Supports: transaction recording, sales summaries,
+// velocity metrics, and time-of-day patterns
+// =====================================================
+
+// Initialize transactions collection
+if (!db.transactions) db.transactions = [];
+if (!db.dailySummaries) db.dailySummaries = [];
+if (!db.productVelocity) db.productVelocity = [];
+if (!db.slotAnalytics) db.slotAnalytics = [];
+
+// Serve sales analytics page
+app.get('/sales-analytics', (req, res) => {
+  res.sendFile(path.join(__dirname, 'sales-analytics.html'));
+});
+
+// ===== POST /api/transactions — Record a sale =====
+app.post('/api/transactions', (req, res) => {
+  const { 
+    machine_id, 
+    slot_id, 
+    product_id, 
+    unit_price, 
+    quantity = 1, 
+    payment_method = 'card',
+    timestamp,
+    external_ref
+  } = req.body;
+  
+  if (!machine_id) {
+    return res.status(400).json({ error: 'machine_id is required' });
+  }
+  
+  // Get machine info
+  const machine = db.machines.find(m => m.id === parseInt(machine_id));
+  if (!machine) {
+    return res.status(404).json({ error: 'Machine not found' });
+  }
+  
+  // Get product info if product_id provided
+  let productInfo = null;
+  if (product_id) {
+    productInfo = db.products.find(p => p.id === parseInt(product_id));
+  }
+  
+  // Get slot info if slot_id provided
+  let slotInfo = null;
+  if (slot_id) {
+    const planogram = (db.planograms || []).find(p => p.machine_id === parseInt(machine_id));
+    if (planogram?.slots) {
+      slotInfo = planogram.slots.find(s => s.id === parseInt(slot_id) || s.position_code === slot_id);
+    }
+  }
+  
+  // Calculate total
+  const price = parseFloat(unit_price) || (productInfo?.sell_price) || 0;
+  const qty = parseInt(quantity) || 1;
+  const total = price * qty;
+  
+  const transaction = {
+    id: nextId(),
+    machine_id: parseInt(machine_id),
+    slot_id: slot_id ? (typeof slot_id === 'string' ? slot_id : parseInt(slot_id)) : null,
+    product_id: product_id ? parseInt(product_id) : null,
+    product_name: productInfo?.name || req.body.product_name || null,
+    product_category: productInfo?.category || req.body.product_category || null,
+    unit_price: price,
+    quantity: qty,
+    total: total,
+    payment_method: payment_method,
+    payment_status: 'completed',
+    external_ref: external_ref || null,
+    transaction_time: timestamp ? new Date(timestamp).toISOString() : new Date().toISOString(),
+    created_at: new Date().toISOString()
+  };
+  
+  db.transactions.push(transaction);
+  
+  // Update slot inventory if slot exists
+  if (slotInfo && slotInfo.current_quantity !== undefined) {
+    slotInfo.current_quantity = Math.max(0, (slotInfo.current_quantity || 0) - qty);
+  }
+  
+  // Update product velocity cache
+  updateProductVelocity(parseInt(machine_id), transaction.product_id, transaction.product_name, qty, total);
+  
+  saveDB(db);
+  res.status(201).json(transaction);
+});
+
+// Helper: Update product velocity metrics
+function updateProductVelocity(machineId, productId, productName, quantity, revenue) {
+  if (!productId && !productName) return;
+  
+  let velocity = db.productVelocity.find(v => 
+    v.machine_id === machineId && 
+    (v.product_id === productId || v.product_name === productName)
+  );
+  
+  if (!velocity) {
+    velocity = {
+      id: nextId(),
+      machine_id: machineId,
+      product_id: productId,
+      product_name: productName,
+      units_7d: 0,
+      units_14d: 0,
+      units_30d: 0,
+      revenue_7d: 0,
+      revenue_30d: 0,
+      velocity_7d: 0,
+      velocity_30d: 0,
+      last_sold_at: null,
+      updated_at: new Date().toISOString()
+    };
+    db.productVelocity.push(velocity);
+  }
+  
+  // Increment counters (will be recalculated properly in /velocity endpoint)
+  velocity.units_7d = (velocity.units_7d || 0) + quantity;
+  velocity.units_14d = (velocity.units_14d || 0) + quantity;
+  velocity.units_30d = (velocity.units_30d || 0) + quantity;
+  velocity.revenue_7d = (velocity.revenue_7d || 0) + revenue;
+  velocity.revenue_30d = (velocity.revenue_30d || 0) + revenue;
+  velocity.last_sold_at = new Date().toISOString();
+  velocity.updated_at = new Date().toISOString();
+}
+
+// ===== GET /api/transactions — List transactions with filters =====
+app.get('/api/transactions', (req, res) => {
+  const { machine_id, slot_id, product_id, start, end, payment_method, limit = 100, offset = 0 } = req.query;
+  
+  let transactions = db.transactions || [];
+  
+  // Apply filters
+  if (machine_id) {
+    transactions = transactions.filter(t => t.machine_id === parseInt(machine_id));
+  }
+  if (slot_id) {
+    transactions = transactions.filter(t => t.slot_id == slot_id);
+  }
+  if (product_id) {
+    transactions = transactions.filter(t => t.product_id === parseInt(product_id));
+  }
+  if (payment_method) {
+    transactions = transactions.filter(t => t.payment_method === payment_method);
+  }
+  if (start) {
+    const startDate = new Date(start);
+    transactions = transactions.filter(t => new Date(t.transaction_time) >= startDate);
+  }
+  if (end) {
+    const endDate = new Date(end);
+    endDate.setHours(23, 59, 59, 999);
+    transactions = transactions.filter(t => new Date(t.transaction_time) <= endDate);
+  }
+  
+  // Sort by transaction time descending
+  transactions.sort((a, b) => new Date(b.transaction_time) - new Date(a.transaction_time));
+  
+  // Calculate totals before pagination
+  const totalCount = transactions.length;
+  const totalRevenue = transactions.reduce((sum, t) => sum + (t.total || 0), 0);
+  const totalUnits = transactions.reduce((sum, t) => sum + (t.quantity || 1), 0);
+  
+  // Apply pagination
+  const paginatedTransactions = transactions.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
+  
+  res.json({
+    transactions: paginatedTransactions,
+    meta: {
+      total: totalCount,
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
+      totalUnits,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      hasMore: parseInt(offset) + parseInt(limit) < totalCount
+    }
+  });
+});
+
+// ===== GET /api/machines/:id/sales/summary — Daily/weekly/monthly totals =====
+app.get('/api/machines/:id/sales/summary', (req, res) => {
+  const machineId = parseInt(req.params.id);
+  const { period = '30d', groupBy = 'day' } = req.query;
+  
+  // Determine date range
+  const now = new Date();
+  let startDate = new Date();
+  
+  switch (period) {
+    case 'today':
+      startDate.setHours(0, 0, 0, 0);
+      break;
+    case '7d':
+      startDate.setDate(now.getDate() - 7);
+      break;
+    case '30d':
+      startDate.setDate(now.getDate() - 30);
+      break;
+    case '90d':
+      startDate.setDate(now.getDate() - 90);
+      break;
+    case 'ytd':
+      startDate = new Date(now.getFullYear(), 0, 1);
+      break;
+    default:
+      startDate.setDate(now.getDate() - 30);
+  }
+  
+  // Filter transactions
+  const transactions = (db.transactions || []).filter(t => 
+    t.machine_id === machineId && 
+    new Date(t.transaction_time) >= startDate
+  );
+  
+  // Overall totals
+  const totalRevenue = transactions.reduce((sum, t) => sum + (t.total || 0), 0);
+  const totalUnits = transactions.reduce((sum, t) => sum + (t.quantity || 1), 0);
+  const transactionCount = transactions.length;
+  const avgTransaction = transactionCount > 0 ? totalRevenue / transactionCount : 0;
+  
+  // COGS calculation (using products data)
+  let totalCOGS = 0;
+  transactions.forEach(t => {
+    const product = db.products.find(p => p.id === t.product_id);
+    if (product?.cost_price) {
+      totalCOGS += product.cost_price * (t.quantity || 1);
+    } else {
+      // Estimate COGS at 33% if no cost data (per VENDTECH-RULES)
+      totalCOGS += (t.total || 0) * 0.33;
+    }
+  });
+  const grossProfit = totalRevenue - totalCOGS;
+  const marginPercent = totalRevenue > 0 ? (grossProfit / totalRevenue * 100) : 0;
+  
+  // Group by day/week/month
+  const grouped = {};
+  transactions.forEach(t => {
+    const date = new Date(t.transaction_time);
+    let key;
+    
+    switch (groupBy) {
+      case 'week':
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split('T')[0];
+        break;
+      case 'month':
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        break;
+      case 'hour':
+        key = String(date.getHours()).padStart(2, '0') + ':00';
+        break;
+      default: // day
+        key = date.toISOString().split('T')[0];
+    }
+    
+    if (!grouped[key]) {
+      grouped[key] = { revenue: 0, units: 0, transactions: 0 };
+    }
+    grouped[key].revenue += t.total || 0;
+    grouped[key].units += t.quantity || 1;
+    grouped[key].transactions++;
+  });
+  
+  // Convert to array and sort
+  const breakdown = Object.entries(grouped)
+    .map(([date, data]) => ({
+      date,
+      revenue: Math.round(data.revenue * 100) / 100,
+      units: data.units,
+      transactions: data.transactions,
+      avgTransaction: Math.round((data.revenue / data.transactions) * 100) / 100
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  
+  // Category breakdown
+  const byCategory = {};
+  transactions.forEach(t => {
+    const cat = t.product_category || 'Other';
+    if (!byCategory[cat]) {
+      byCategory[cat] = { revenue: 0, units: 0 };
+    }
+    byCategory[cat].revenue += t.total || 0;
+    byCategory[cat].units += t.quantity || 1;
+  });
+  
+  // Payment method breakdown
+  const byPayment = {};
+  transactions.forEach(t => {
+    const method = t.payment_method || 'unknown';
+    if (!byPayment[method]) {
+      byPayment[method] = { count: 0, revenue: 0 };
+    }
+    byPayment[method].count++;
+    byPayment[method].revenue += t.total || 0;
+  });
+  
+  res.json({
+    machine_id: machineId,
+    period,
+    startDate: startDate.toISOString().split('T')[0],
+    endDate: now.toISOString().split('T')[0],
+    summary: {
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
+      totalCOGS: Math.round(totalCOGS * 100) / 100,
+      grossProfit: Math.round(grossProfit * 100) / 100,
+      marginPercent: Math.round(marginPercent * 10) / 10,
+      totalUnits,
+      transactionCount,
+      avgTransaction: Math.round(avgTransaction * 100) / 100,
+      avgDailyRevenue: Math.round((totalRevenue / Math.max(1, breakdown.length)) * 100) / 100
+    },
+    breakdown,
+    byCategory: Object.entries(byCategory).map(([category, data]) => ({
+      category,
+      revenue: Math.round(data.revenue * 100) / 100,
+      units: data.units,
+      percentage: Math.round((data.revenue / totalRevenue) * 1000) / 10
+    })).sort((a, b) => b.revenue - a.revenue),
+    byPayment: Object.entries(byPayment).map(([method, data]) => ({
+      method,
+      count: data.count,
+      revenue: Math.round(data.revenue * 100) / 100
+    })).sort((a, b) => b.revenue - a.revenue)
+  });
+});
+
+// ===== GET /api/machines/:id/velocity — Units/day per product =====
+app.get('/api/machines/:id/velocity', (req, res) => {
+  const machineId = parseInt(req.params.id);
+  const { period = '7d', minSales = 0 } = req.query;
+  
+  // Determine date range
+  const now = new Date();
+  let daysBack = 7;
+  switch (period) {
+    case '7d': daysBack = 7; break;
+    case '14d': daysBack = 14; break;
+    case '30d': daysBack = 30; break;
+    default: daysBack = parseInt(period) || 7;
+  }
+  const startDate = new Date(now - daysBack * 24 * 60 * 60 * 1000);
+  
+  // Filter transactions for this machine and period
+  const transactions = (db.transactions || []).filter(t => 
+    t.machine_id === machineId && 
+    new Date(t.transaction_time) >= startDate
+  );
+  
+  // Aggregate by product
+  const productStats = {};
+  transactions.forEach(t => {
+    const key = t.product_id || t.product_name || 'Unknown';
+    if (!productStats[key]) {
+      productStats[key] = {
+        product_id: t.product_id,
+        product_name: t.product_name || 'Unknown',
+        product_category: t.product_category,
+        units: 0,
+        revenue: 0,
+        transactions: 0,
+        first_sale: t.transaction_time,
+        last_sale: t.transaction_time
+      };
+    }
+    productStats[key].units += t.quantity || 1;
+    productStats[key].revenue += t.total || 0;
+    productStats[key].transactions++;
+    if (t.transaction_time < productStats[key].first_sale) {
+      productStats[key].first_sale = t.transaction_time;
+    }
+    if (t.transaction_time > productStats[key].last_sale) {
+      productStats[key].last_sale = t.transaction_time;
+    }
+  });
+  
+  // Calculate velocity and format
+  const velocity = Object.values(productStats)
+    .map(p => ({
+      ...p,
+      velocity: Math.round((p.units / daysBack) * 100) / 100, // units per day
+      avgPrice: Math.round((p.revenue / p.units) * 100) / 100,
+      revenue: Math.round(p.revenue * 100) / 100
+    }))
+    .filter(p => p.units >= parseInt(minSales))
+    .sort((a, b) => b.velocity - a.velocity);
+  
+  // Get product details from catalog
+  velocity.forEach(v => {
+    if (v.product_id) {
+      const product = db.products.find(p => p.id === v.product_id);
+      if (product) {
+        v.product_name = product.name;
+        v.product_category = product.category;
+        v.cost_price = product.cost_price;
+        v.margin = product.sell_price && product.cost_price 
+          ? Math.round(((product.sell_price - product.cost_price) / product.sell_price) * 100)
+          : null;
+      }
+    }
+  });
+  
+  // Calculate rankings
+  velocity.forEach((v, i) => {
+    v.rank = i + 1;
+  });
+  
+  res.json({
+    machine_id: machineId,
+    period: `${daysBack}d`,
+    daysAnalyzed: daysBack,
+    totalProducts: velocity.length,
+    totalUnits: velocity.reduce((sum, v) => sum + v.units, 0),
+    totalRevenue: Math.round(velocity.reduce((sum, v) => sum + v.revenue, 0) * 100) / 100,
+    products: velocity,
+    topSellers: velocity.slice(0, 5),
+    slowMovers: velocity.filter(v => v.velocity < 0.5).slice(-5)
+  });
+});
+
+// ===== GET /api/machines/:id/patterns — Time-of-day sales patterns =====
+app.get('/api/machines/:id/patterns', (req, res) => {
+  const machineId = parseInt(req.params.id);
+  const { period = '30d' } = req.query;
+  
+  // Determine date range
+  const now = new Date();
+  let daysBack = 30;
+  switch (period) {
+    case '7d': daysBack = 7; break;
+    case '14d': daysBack = 14; break;
+    case '30d': daysBack = 30; break;
+    case '90d': daysBack = 90; break;
+    default: daysBack = parseInt(period) || 30;
+  }
+  const startDate = new Date(now - daysBack * 24 * 60 * 60 * 1000);
+  
+  // Filter transactions
+  const transactions = (db.transactions || []).filter(t => 
+    t.machine_id === machineId && 
+    new Date(t.transaction_time) >= startDate
+  );
+  
+  // Hourly breakdown (24 hours)
+  const hourly = Array(24).fill(null).map(() => ({ 
+    transactions: 0, 
+    revenue: 0, 
+    units: 0 
+  }));
+  
+  transactions.forEach(t => {
+    const hour = new Date(t.transaction_time).getHours();
+    hourly[hour].transactions++;
+    hourly[hour].revenue += t.total || 0;
+    hourly[hour].units += t.quantity || 1;
+  });
+  
+  // Calculate percentages and find peaks
+  const totalTrans = transactions.length;
+  const hourlyData = hourly.map((h, i) => ({
+    hour: i,
+    label: `${String(i).padStart(2, '0')}:00`,
+    transactions: h.transactions,
+    revenue: Math.round(h.revenue * 100) / 100,
+    units: h.units,
+    percentage: totalTrans > 0 ? Math.round((h.transactions / totalTrans) * 1000) / 10 : 0
+  }));
+  
+  // Day of week breakdown
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const daily = Array(7).fill(null).map(() => ({ 
+    transactions: 0, 
+    revenue: 0, 
+    units: 0 
+  }));
+  
+  transactions.forEach(t => {
+    const day = new Date(t.transaction_time).getDay();
+    daily[day].transactions++;
+    daily[day].revenue += t.total || 0;
+    daily[day].units += t.quantity || 1;
+  });
+  
+  const dailyData = daily.map((d, i) => ({
+    dayIndex: i,
+    day: dayNames[i],
+    shortDay: dayNames[i].slice(0, 3),
+    transactions: d.transactions,
+    revenue: Math.round(d.revenue * 100) / 100,
+    units: d.units,
+    percentage: totalTrans > 0 ? Math.round((d.transactions / totalTrans) * 1000) / 10 : 0
+  }));
+  
+  // Find peak times
+  const peakHour = hourlyData.reduce((max, h) => h.transactions > max.transactions ? h : max, hourlyData[0]);
+  const peakDay = dailyData.reduce((max, d) => d.transactions > max.transactions ? d : max, dailyData[0]);
+  const slowestHour = hourlyData.filter(h => h.transactions > 0).reduce((min, h) => h.transactions < min.transactions ? h : min, hourlyData.find(h => h.transactions > 0) || hourlyData[0]);
+  
+  // Time segments (morning/afternoon/evening/night)
+  const segments = [
+    { name: 'Night', start: 0, end: 5 },
+    { name: 'Morning', start: 6, end: 11 },
+    { name: 'Afternoon', start: 12, end: 17 },
+    { name: 'Evening', start: 18, end: 23 }
+  ].map(seg => {
+    const segData = hourlyData.filter(h => h.hour >= seg.start && h.hour <= seg.end);
+    return {
+      ...seg,
+      transactions: segData.reduce((sum, h) => sum + h.transactions, 0),
+      revenue: Math.round(segData.reduce((sum, h) => sum + h.revenue, 0) * 100) / 100,
+      percentage: totalTrans > 0 
+        ? Math.round((segData.reduce((sum, h) => sum + h.transactions, 0) / totalTrans) * 1000) / 10 
+        : 0
+    };
+  });
+  
+  res.json({
+    machine_id: machineId,
+    period: `${daysBack}d`,
+    totalTransactions: totalTrans,
+    totalRevenue: Math.round(transactions.reduce((sum, t) => sum + (t.total || 0), 0) * 100) / 100,
+    patterns: {
+      peakHour: {
+        hour: peakHour.hour,
+        label: peakHour.label,
+        transactions: peakHour.transactions,
+        revenue: peakHour.revenue
+      },
+      slowestHour: slowestHour ? {
+        hour: slowestHour.hour,
+        label: slowestHour.label,
+        transactions: slowestHour.transactions
+      } : null,
+      peakDay: {
+        day: peakDay.day,
+        transactions: peakDay.transactions,
+        revenue: peakDay.revenue
+      },
+      busySegment: segments.reduce((max, s) => s.transactions > max.transactions ? s : max, segments[0])
+    },
+    hourly: hourlyData,
+    daily: dailyData,
+    segments
+  });
+});
+
+// ===== GET /api/machines/:id/slots/performance — Position heatmap data =====
+app.get('/api/machines/:id/slots/performance', (req, res) => {
+  const machineId = parseInt(req.params.id);
+  const { period = '30d' } = req.query;
+  
+  // Determine date range
+  const now = new Date();
+  let daysBack = 30;
+  switch (period) {
+    case '7d': daysBack = 7; break;
+    case '14d': daysBack = 14; break;
+    case '30d': daysBack = 30; break;
+    default: daysBack = parseInt(period) || 30;
+  }
+  const startDate = new Date(now - daysBack * 24 * 60 * 60 * 1000);
+  
+  // Get planogram for this machine
+  const planogram = (db.planograms || []).find(p => p.machine_id === machineId && !p.is_template);
+  if (!planogram?.slots) {
+    return res.json({
+      machine_id: machineId,
+      period: `${daysBack}d`,
+      slots: [],
+      heatmap: [],
+      message: 'No planogram found for this machine'
+    });
+  }
+  
+  // Filter transactions
+  const transactions = (db.transactions || []).filter(t => 
+    t.machine_id === machineId && 
+    new Date(t.transaction_time) >= startDate
+  );
+  
+  // Aggregate by slot
+  const slotStats = {};
+  transactions.forEach(t => {
+    if (t.slot_id) {
+      if (!slotStats[t.slot_id]) {
+        slotStats[t.slot_id] = { units: 0, revenue: 0, transactions: 0 };
+      }
+      slotStats[t.slot_id].units += t.quantity || 1;
+      slotStats[t.slot_id].revenue += t.total || 0;
+      slotStats[t.slot_id].transactions++;
+    }
+  });
+  
+  // Calculate max for normalization
+  const maxUnits = Math.max(...Object.values(slotStats).map(s => s.units), 1);
+  const maxRevenue = Math.max(...Object.values(slotStats).map(s => s.revenue), 1);
+  
+  // Build slot performance data
+  const slotsWithPerformance = planogram.slots.map(slot => {
+    const stats = slotStats[slot.id] || slotStats[slot.position_code] || { units: 0, revenue: 0, transactions: 0 };
+    const product = slot.product_id ? db.products.find(p => p.id === slot.product_id) : null;
+    
+    return {
+      id: slot.id,
+      position_code: slot.position_code,
+      row: slot.row || parseInt(slot.position_code?.charAt(0)?.charCodeAt(0)) - 64,
+      column: slot.column || parseInt(slot.position_code?.slice(1)),
+      zone: slot.zone,
+      product_id: slot.product_id,
+      product_name: product?.name || slot.product_name,
+      units_sold: stats.units,
+      revenue: Math.round(stats.revenue * 100) / 100,
+      transactions: stats.transactions,
+      velocity: Math.round((stats.units / daysBack) * 100) / 100,
+      // Normalized score (0-100)
+      performanceScore: Math.round((stats.units / maxUnits) * 100),
+      revenueScore: Math.round((stats.revenue / maxRevenue) * 100),
+      // Heat level for visualization
+      heatLevel: stats.units === 0 ? 'cold' 
+        : stats.units / maxUnits > 0.75 ? 'hot'
+        : stats.units / maxUnits > 0.5 ? 'warm'
+        : stats.units / maxUnits > 0.25 ? 'cool'
+        : 'cold'
+    };
+  });
+  
+  // Sort by performance for ranking
+  const ranked = [...slotsWithPerformance].sort((a, b) => b.units_sold - a.units_sold);
+  ranked.forEach((s, i) => {
+    const original = slotsWithPerformance.find(o => o.id === s.id);
+    if (original) original.rank = i + 1;
+  });
+  
+  // Zone performance summary
+  const zones = {};
+  slotsWithPerformance.forEach(s => {
+    const zone = s.zone || 'unknown';
+    if (!zones[zone]) {
+      zones[zone] = { slots: 0, totalUnits: 0, totalRevenue: 0 };
+    }
+    zones[zone].slots++;
+    zones[zone].totalUnits += s.units_sold;
+    zones[zone].totalRevenue += s.revenue;
+  });
+  
+  const zonePerformance = Object.entries(zones).map(([zone, data]) => ({
+    zone,
+    slots: data.slots,
+    totalUnits: data.totalUnits,
+    totalRevenue: Math.round(data.totalRevenue * 100) / 100,
+    avgUnitsPerSlot: Math.round((data.totalUnits / data.slots) * 100) / 100,
+    avgRevenuePerSlot: Math.round((data.totalRevenue / data.slots) * 100) / 100
+  })).sort((a, b) => b.avgUnitsPerSlot - a.avgUnitsPerSlot);
+  
+  res.json({
+    machine_id: machineId,
+    period: `${daysBack}d`,
+    totalSlots: slotsWithPerformance.length,
+    activeSlots: slotsWithPerformance.filter(s => s.units_sold > 0).length,
+    totalUnits: slotsWithPerformance.reduce((sum, s) => sum + s.units_sold, 0),
+    totalRevenue: Math.round(slotsWithPerformance.reduce((sum, s) => sum + s.revenue, 0) * 100) / 100,
+    slots: slotsWithPerformance,
+    topSlots: ranked.slice(0, 5),
+    worstSlots: ranked.slice(-5).reverse(),
+    zonePerformance
+  });
+});
+
+// ===== GET /api/analytics/overview — Cross-machine analytics =====
+app.get('/api/analytics/overview', (req, res) => {
+  const { period = '30d' } = req.query;
+  
+  const now = new Date();
+  let daysBack = 30;
+  switch (period) {
+    case '7d': daysBack = 7; break;
+    case '30d': daysBack = 30; break;
+    case '90d': daysBack = 90; break;
+    default: daysBack = parseInt(period) || 30;
+  }
+  const startDate = new Date(now - daysBack * 24 * 60 * 60 * 1000);
+  
+  const transactions = (db.transactions || []).filter(t => 
+    new Date(t.transaction_time) >= startDate
+  );
+  
+  // Overall metrics
+  const totalRevenue = transactions.reduce((sum, t) => sum + (t.total || 0), 0);
+  const totalUnits = transactions.reduce((sum, t) => sum + (t.quantity || 1), 0);
+  
+  // Per-machine breakdown
+  const machineStats = {};
+  transactions.forEach(t => {
+    if (!machineStats[t.machine_id]) {
+      machineStats[t.machine_id] = { revenue: 0, units: 0, transactions: 0 };
+    }
+    machineStats[t.machine_id].revenue += t.total || 0;
+    machineStats[t.machine_id].units += t.quantity || 1;
+    machineStats[t.machine_id].transactions++;
+  });
+  
+  const machineBreakdown = Object.entries(machineStats).map(([machineId, stats]) => {
+    const machine = db.machines.find(m => m.id === parseInt(machineId));
+    return {
+      machine_id: parseInt(machineId),
+      machine_name: machine?.name || `Machine ${machineId}`,
+      location: machine?.location_id ? db.locations.find(l => l.id === machine.location_id)?.name : null,
+      revenue: Math.round(stats.revenue * 100) / 100,
+      units: stats.units,
+      transactions: stats.transactions,
+      avgTransaction: Math.round((stats.revenue / stats.transactions) * 100) / 100,
+      dailyAvg: Math.round((stats.revenue / daysBack) * 100) / 100
+    };
+  }).sort((a, b) => b.revenue - a.revenue);
+  
+  // Check against $2K/month minimum threshold (per VENDTECH-RULES)
+  const monthlyProjection = machineBreakdown.map(m => ({
+    ...m,
+    projectedMonthly: Math.round((m.revenue / daysBack) * 30 * 100) / 100,
+    meetingThreshold: (m.revenue / daysBack) * 30 >= 2000,
+    status: (m.revenue / daysBack) * 30 >= 2000 ? 'healthy' 
+      : (m.revenue / daysBack) * 30 >= 800 ? 'warning'  // Pull threshold
+      : 'critical'
+  }));
+  
+  res.json({
+    period: `${daysBack}d`,
+    overview: {
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
+      totalUnits,
+      totalTransactions: transactions.length,
+      avgTransaction: transactions.length > 0 ? Math.round((totalRevenue / transactions.length) * 100) / 100 : 0,
+      dailyAvgRevenue: Math.round((totalRevenue / daysBack) * 100) / 100,
+      projectedMonthly: Math.round((totalRevenue / daysBack) * 30 * 100) / 100
+    },
+    machines: monthlyProjection,
+    topMachine: monthlyProjection[0],
+    machinesAboveThreshold: monthlyProjection.filter(m => m.meetingThreshold).length,
+    machinesBelowThreshold: monthlyProjection.filter(m => !m.meetingThreshold).length
+  });
+});
+
+// ===== GET /api/analytics/export — Export data to CSV =====
+app.get('/api/analytics/export', (req, res) => {
+  const { type = 'transactions', machine_id, start, end, format = 'csv' } = req.query;
+  
+  let data = [];
+  let filename = '';
+  let headers = [];
+  
+  const now = new Date();
+  const startDate = start ? new Date(start) : new Date(now - 30 * 24 * 60 * 60 * 1000);
+  const endDate = end ? new Date(end) : now;
+  endDate.setHours(23, 59, 59, 999);
+  
+  switch (type) {
+    case 'transactions':
+      data = (db.transactions || []).filter(t => {
+        const tDate = new Date(t.transaction_time);
+        const machineMatch = !machine_id || t.machine_id === parseInt(machine_id);
+        return machineMatch && tDate >= startDate && tDate <= endDate;
+      });
+      
+      headers = ['ID', 'Date', 'Time', 'Machine ID', 'Slot', 'Product', 'Category', 'Unit Price', 'Quantity', 'Total', 'Payment Method'];
+      data = data.map(t => {
+        const dt = new Date(t.transaction_time);
+        return [
+          t.id,
+          dt.toISOString().split('T')[0],
+          dt.toTimeString().split(' ')[0],
+          t.machine_id,
+          t.slot_id || '',
+          t.product_name || '',
+          t.product_category || '',
+          t.unit_price,
+          t.quantity,
+          t.total,
+          t.payment_method
+        ];
+      });
+      filename = `transactions_${startDate.toISOString().split('T')[0]}_${endDate.toISOString().split('T')[0]}.csv`;
+      break;
+      
+    case 'summary':
+      const summaryStart = startDate;
+      const summaryEnd = endDate;
+      const transactions = (db.transactions || []).filter(t => {
+        const tDate = new Date(t.transaction_time);
+        const machineMatch = !machine_id || t.machine_id === parseInt(machine_id);
+        return machineMatch && tDate >= summaryStart && tDate <= summaryEnd;
+      });
+      
+      // Group by day
+      const dailyData = {};
+      transactions.forEach(t => {
+        const date = new Date(t.transaction_time).toISOString().split('T')[0];
+        if (!dailyData[date]) {
+          dailyData[date] = { revenue: 0, units: 0, transactions: 0 };
+        }
+        dailyData[date].revenue += t.total || 0;
+        dailyData[date].units += t.quantity || 1;
+        dailyData[date].transactions++;
+      });
+      
+      headers = ['Date', 'Revenue', 'Units Sold', 'Transactions', 'Avg Transaction'];
+      data = Object.entries(dailyData).sort((a, b) => a[0].localeCompare(b[0])).map(([date, d]) => [
+        date,
+        d.revenue.toFixed(2),
+        d.units,
+        d.transactions,
+        (d.revenue / d.transactions).toFixed(2)
+      ]);
+      filename = `daily_summary_${startDate.toISOString().split('T')[0]}_${endDate.toISOString().split('T')[0]}.csv`;
+      break;
+      
+    case 'velocity':
+      const velTransactions = (db.transactions || []).filter(t => {
+        const tDate = new Date(t.transaction_time);
+        const machineMatch = !machine_id || t.machine_id === parseInt(machine_id);
+        return machineMatch && tDate >= startDate && tDate <= endDate;
+      });
+      
+      const productStats = {};
+      velTransactions.forEach(t => {
+        const key = t.product_id || t.product_name || 'Unknown';
+        if (!productStats[key]) {
+          productStats[key] = { name: t.product_name, category: t.product_category, units: 0, revenue: 0 };
+        }
+        productStats[key].units += t.quantity || 1;
+        productStats[key].revenue += t.total || 0;
+      });
+      
+      const daysDiff = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)));
+      headers = ['Product', 'Category', 'Units Sold', 'Revenue', 'Velocity (units/day)'];
+      data = Object.values(productStats).sort((a, b) => b.units - a.units).map(p => [
+        p.name,
+        p.category || '',
+        p.units,
+        p.revenue.toFixed(2),
+        (p.units / daysDiff).toFixed(2)
+      ]);
+      filename = `product_velocity_${startDate.toISOString().split('T')[0]}_${endDate.toISOString().split('T')[0]}.csv`;
+      break;
+  }
+  
+  // Build CSV
+  const csvContent = [headers.join(','), ...data.map(row => row.map(cell => 
+    typeof cell === 'string' && (cell.includes(',') || cell.includes('"') || cell.includes('\n'))
+      ? `"${cell.replace(/"/g, '""')}"`
+      : cell
+  ).join(','))].join('\n');
+  
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(csvContent);
+});
+
+// ===== Bulk transaction import (for historical data) =====
+app.post('/api/transactions/import', (req, res) => {
+  const { transactions: importData } = req.body;
+  
+  if (!importData || !Array.isArray(importData)) {
+    return res.status(400).json({ error: 'transactions array required' });
+  }
+  
+  let imported = 0;
+  let errors = [];
+  
+  importData.forEach((t, i) => {
+    if (!t.machine_id) {
+      errors.push({ index: i, error: 'machine_id required' });
+      return;
+    }
+    
+    const transaction = {
+      id: nextId(),
+      machine_id: parseInt(t.machine_id),
+      slot_id: t.slot_id || null,
+      product_id: t.product_id ? parseInt(t.product_id) : null,
+      product_name: t.product_name || null,
+      product_category: t.product_category || null,
+      unit_price: parseFloat(t.unit_price) || parseFloat(t.total) || 0,
+      quantity: parseInt(t.quantity) || 1,
+      total: parseFloat(t.total) || (parseFloat(t.unit_price) * (parseInt(t.quantity) || 1)),
+      payment_method: t.payment_method || 'card',
+      payment_status: 'completed',
+      external_ref: t.external_ref || null,
+      transaction_time: t.transaction_time || t.timestamp || new Date().toISOString(),
+      created_at: new Date().toISOString()
+    };
+    
+    db.transactions.push(transaction);
+    imported++;
+  });
+  
+  saveDB(db);
+  res.json({ imported, errors: errors.length, errorDetails: errors.slice(0, 10) });
+});
+
+// ===== END PHASE 3: SALES & ANALYTICS =====
 
 app.listen(PORT, () => {
   console.log(`🤖 Kande VendTech Dashboard running at http://localhost:${PORT}`);
