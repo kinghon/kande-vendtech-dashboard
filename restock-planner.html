@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Restock Planner — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f7fa; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
+      --muted: #718096; --accent: #3182ce; --hot: #e53e3e; --warn: #dd6b20;
+      --success: #38a169; --purple: #7b2cbf;
+      --gradient: linear-gradient(135deg, #3182ce 0%, #7b2cbf 100%);
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+    /* Nav */
+    .top-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .top-nav .logo { height: 36px; }
+    .top-nav a { color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500; padding: 6px 12px; border-radius: 6px; transition: all 0.2s; }
+    .top-nav a:hover, .top-nav a.active { color: var(--accent); background: rgba(49,130,206,0.08); }
+    .nav-spacer { flex: 1; }
+
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+    .header h1 { font-size: 1.5rem; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+
+    /* Stats Grid */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); position: relative; overflow: hidden; }
+    .stat::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--gradient); }
+    .stat-icon { font-size: 2rem; margin-bottom: 8px; }
+    .stat-value { font-size: 2rem; font-weight: 700; }
+    .stat-value.accent { color: var(--accent); }
+    .stat-value.success { color: var(--success); }
+    .stat-value.warn { color: var(--warn); }
+    .stat-value.hot { color: var(--hot); }
+    .stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; background: var(--card); padding: 4px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 20px; }
+    .tab { padding: 10px 20px; border: none; background: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500; color: var(--muted); transition: all 0.2s; }
+    .tab.active { background: var(--accent); color: white; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Machine Card */
+    .machine-list { display: flex; flex-direction: column; gap: 16px; }
+    .machine-restock-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+    .machine-restock-card.urgent { border-left: 4px solid var(--hot); }
+    .machine-restock-card.soon { border-left: 4px solid var(--warn); }
+    .machine-restock-card.normal { border-left: 4px solid var(--success); }
+    .machine-card-header { padding: 16px 20px; background: #f7fafc; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .machine-card-title { display: flex; align-items: center; gap: 12px; }
+    .machine-card-title h3 { font-size: 1.1rem; }
+    .priority-badge { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+    .priority-badge.urgent { background: rgba(229,62,62,0.15); color: var(--hot); }
+    .priority-badge.soon { background: rgba(221,107,32,0.15); color: var(--warn); }
+    .priority-badge.normal { background: rgba(56,161,105,0.15); color: var(--success); }
+    .machine-card-stats { display: flex; gap: 20px; font-size: 0.85rem; }
+    .machine-card-stats span { display: flex; align-items: center; gap: 4px; }
+    .machine-card-body { padding: 16px 20px; }
+
+    /* Slot Table */
+    .slot-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .slot-table th, .slot-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    .slot-table th { background: #f7fafc; font-weight: 600; color: var(--muted); font-size: 0.75rem; text-transform: uppercase; }
+    .slot-table tr:last-child td { border-bottom: none; }
+    .slot-table tr.urgent { background: rgba(229,62,62,0.05); }
+    .slot-table tr.soon { background: rgba(221,107,32,0.05); }
+    .slot-table tr:hover { background: #f7fafc; }
+    .slot-position { font-weight: 600; font-family: monospace; background: var(--border); padding: 2px 6px; border-radius: 4px; }
+    .qty-indicator { display: flex; align-items: center; gap: 6px; }
+    .qty-bar { width: 50px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+    .qty-fill { height: 100%; border-radius: 3px; }
+    .qty-fill.good { background: var(--success); }
+    .qty-fill.warn { background: var(--warn); }
+    .qty-fill.bad { background: var(--hot); }
+    .velocity-trend { font-size: 0.9rem; }
+    .velocity-trend.increasing { color: var(--success); }
+    .velocity-trend.decreasing { color: var(--hot); }
+    .velocity-trend.stable { color: var(--muted); }
+    .needed-badge { padding: 4px 8px; border-radius: 6px; font-weight: 600; }
+    .needed-badge.urgent { background: var(--hot); color: white; }
+    .needed-badge.soon { background: var(--warn); color: white; }
+    .needed-badge.normal { background: var(--border); color: var(--text); }
+    .restock-input { width: 60px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; text-align: center; font-size: 0.85rem; }
+
+    /* Pick List */
+    .pick-list { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+    .pick-list-header { padding: 16px 20px; background: var(--gradient); color: white; }
+    .pick-list-header h3 { font-size: 1.1rem; margin-bottom: 4px; }
+    .pick-list-header p { font-size: 0.85rem; opacity: 0.9; }
+    .pick-list-body { padding: 0; max-height: 500px; overflow-y: auto; }
+    .pick-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--border); }
+    .pick-item:last-child { border-bottom: none; }
+    .pick-item:hover { background: #f7fafc; }
+    .pick-item-info { flex: 1; }
+    .pick-item-name { font-weight: 500; margin-bottom: 2px; }
+    .pick-item-details { font-size: 0.8rem; color: var(--muted); }
+    .pick-item-qty { font-size: 1.2rem; font-weight: 700; color: var(--accent); min-width: 60px; text-align: right; }
+    .pick-item-check { padding: 6px; cursor: pointer; }
+    .pick-item-check input { width: 18px; height: 18px; cursor: pointer; }
+
+    /* Expiring Items */
+    .expiring-card { background: rgba(123,44,191,0.1); border: 1px solid var(--purple); border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; }
+    .expiring-card h4 { color: var(--purple); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .expiring-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(123,44,191,0.2); }
+    .expiring-item:last-child { border-bottom: none; }
+
+    /* Notes Section */
+    .notes-section { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; }
+    .notes-section h4 { color: #b45309; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .notes-section ul { margin-left: 20px; }
+    .notes-section li { margin-bottom: 6px; color: #92400e; }
+
+    /* Velocity Analytics */
+    .velocity-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+    .velocity-card { background: var(--card); border-radius: 12px; padding: 16px; border: 1px solid var(--border); }
+    .velocity-card h4 { font-size: 0.9rem; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .velocity-stat { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .velocity-stat:last-child { border-bottom: none; }
+    .velocity-label { font-size: 0.85rem; color: var(--muted); }
+    .velocity-value { font-weight: 600; }
+
+    /* Empty State */
+    .empty-state { text-align: center; padding: 60px 20px; }
+    .empty-icon { font-size: 4rem; margin-bottom: 16px; }
+    .empty-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 8px; }
+    .empty-text { color: var(--muted); margin-bottom: 20px; }
+
+    /* Loading */
+    .loading { display: flex; align-items: center; justify-content: center; padding: 40px; }
+    .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Print Styles */
+    @media print {
+      .top-nav, .header-actions, .tabs, .btn, .restock-input { display: none !important; }
+      .machine-restock-card { break-inside: avoid; page-break-inside: avoid; }
+      body { background: white; }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .machine-card-stats { flex-wrap: wrap; }
+      .slot-table { font-size: 0.75rem; }
+      .slot-table th, .slot-table td { padding: 8px 6px; }
+      .header { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <nav class="top-nav" id="mainNav"></nav>
+
+    <div class="header">
+      <h1>📦 Restock Planner</h1>
+      <div class="header-actions">
+        <select id="periodSelect" class="btn btn-secondary" onchange="loadRestockPlan()">
+          <option value="7">Last 7 Days</option>
+          <option value="14">Last 14 Days</option>
+          <option value="30">Last 30 Days</option>
+        </select>
+        <button class="btn btn-secondary" onclick="window.print()">🖨️ Print</button>
+        <button class="btn btn-secondary" onclick="exportCSV()">📥 Export CSV</button>
+        <button class="btn btn-primary" onclick="loadRestockPlan()">🔄 Refresh</button>
+      </div>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="stats" id="restockStats">
+      <div class="stat">
+        <div class="stat-icon">🏭</div>
+        <div class="stat-value accent" id="statMachinesNeed">-</div>
+        <div class="stat-label">Machines Need Restock</div>
+      </div>
+      <div class="stat">
+        <div class="stat-icon">🔴</div>
+        <div class="stat-value hot" id="statUrgent">-</div>
+        <div class="stat-label">Urgent Slots</div>
+      </div>
+      <div class="stat">
+        <div class="stat-icon">📦</div>
+        <div class="stat-value warn" id="statTotalUnits">-</div>
+        <div class="stat-label">Total Units Needed</div>
+      </div>
+      <div class="stat">
+        <div class="stat-icon">🛒</div>
+        <div class="stat-value" id="statUniqueProducts">-</div>
+        <div class="stat-label">Unique Products</div>
+      </div>
+      <div class="stat">
+        <div class="stat-icon">💰</div>
+        <div class="stat-value success" id="statEstCost">-</div>
+        <div class="stat-label">Estimated Cost</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="machines">By Machine</button>
+      <button class="tab" data-tab="picklist">Pick List</button>
+      <button class="tab" data-tab="velocity">Velocity Analysis</button>
+    </div>
+
+    <!-- By Machine Tab -->
+    <div class="tab-content active" id="tab-machines">
+      <div class="machine-list" id="machineList">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Pick List Tab -->
+    <div class="tab-content" id="tab-picklist">
+      <div class="pick-list" id="pickList">
+        <div class="pick-list-header">
+          <h3>📋 Pick List</h3>
+          <p>Total items to load for all machines</p>
+        </div>
+        <div class="pick-list-body" id="pickListBody">
+          <div class="loading"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Velocity Tab -->
+    <div class="tab-content" id="tab-velocity">
+      <div class="velocity-grid" id="velocityGrid">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/nav.js"></script>
+  <script>
+    // =====================================================
+    // Restock Planner
+    // =====================================================
+    
+    let restockPlan = null;
+    let velocityData = null;
+
+    // Tab handling
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    // =====================================================
+    // Data Loading
+    // =====================================================
+    
+    async function loadRestockPlan() {
+      const days = document.getElementById('periodSelect').value;
+      
+      try {
+        const res = await fetch(`/api/machine-system/restock-plan?days=${days}`);
+        restockPlan = await res.json();
+        
+        updateStats();
+        renderMachineList();
+        renderPickList();
+        
+        // Also load velocity data
+        loadVelocityData(days);
+      } catch (err) {
+        console.error('Error loading restock plan:', err);
+        document.getElementById('machineList').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">⚠️</div>
+            <div class="empty-title">Error Loading Data</div>
+            <div class="empty-text">${err.message}</div>
+            <button class="btn btn-primary" onclick="loadRestockPlan()">Retry</button>
+          </div>
+        `;
+      }
+    }
+
+    async function loadVelocityData(days) {
+      try {
+        const res = await fetch(`/api/machine-system/velocity?days=${days}`);
+        velocityData = await res.json();
+        renderVelocityGrid();
+      } catch (err) {
+        console.error('Error loading velocity data:', err);
+      }
+    }
+
+    // =====================================================
+    // Stats
+    // =====================================================
+    
+    function updateStats() {
+      if (!restockPlan) return;
+      
+      document.getElementById('statMachinesNeed').textContent = restockPlan.summary.machinesNeedingRestock;
+      document.getElementById('statUrgent').textContent = restockPlan.summary.urgentMachines;
+      document.getElementById('statTotalUnits').textContent = restockPlan.summary.totalUnits;
+      document.getElementById('statUniqueProducts').textContent = restockPlan.summary.uniqueProducts;
+      document.getElementById('statEstCost').textContent = '$' + restockPlan.summary.totalEstimatedCost.toLocaleString();
+    }
+
+    // =====================================================
+    // Machine List Rendering
+    // =====================================================
+    
+    function renderMachineList() {
+      if (!restockPlan || restockPlan.machines.length === 0) {
+        document.getElementById('machineList').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">✅</div>
+            <div class="empty-title">All Machines Well Stocked!</div>
+            <div class="empty-text">No machines need restocking at this time.</div>
+          </div>
+        `;
+        return;
+      }
+
+      const html = restockPlan.machines.map(machine => {
+        const itemsHtml = machine.items.map(item => `
+          <tr class="${item.priority}">
+            <td><span class="slot-position">${item.position_code}</span></td>
+            <td>
+              <div>${item.product_name || 'Unknown'}</div>
+              <div style="font-size: 0.75rem; color: var(--muted);">${item.category || ''}</div>
+            </td>
+            <td>
+              <div class="qty-indicator">
+                <span>${item.current_quantity}/${item.capacity}</span>
+                <div class="qty-bar">
+                  <div class="qty-fill ${item.current_quantity === 0 ? 'bad' : item.current_quantity <= item.par_min ? 'warn' : 'good'}" 
+                       style="width: ${(item.current_quantity / item.capacity) * 100}%"></div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="velocity-trend ${item.daysUntilEmpty <= 2 ? 'decreasing' : item.daysUntilEmpty <= 7 ? '' : 'increasing'}">
+                ${item.velocity ? item.velocity.toFixed(1) + '/day' : '-'}
+              </span>
+            </td>
+            <td>
+              ${item.daysUntilEmpty !== null ? 
+                `<span style="color: ${item.daysUntilEmpty <= 2 ? 'var(--hot)' : item.daysUntilEmpty <= 7 ? 'var(--warn)' : 'var(--success)'}">
+                  ${item.daysUntilEmpty === 0 ? 'NOW' : item.daysUntilEmpty.toFixed(1) + 'd'}
+                </span>` : '-'
+              }
+            </td>
+            <td>
+              <span class="needed-badge ${item.priority}">${item.needed}</span>
+            </td>
+            <td>
+              <input type="number" class="restock-input" value="${item.needed}" min="0" max="${item.capacity}" 
+                     data-slot-id="${item.slot_id}" data-machine-id="${machine.machine_id}">
+            </td>
+          </tr>
+        `).join('');
+
+        return `
+          <div class="machine-restock-card ${machine.priority}">
+            <div class="machine-card-header">
+              <div class="machine-card-title">
+                <h3>🏭 ${machine.machine_name}</h3>
+                <span class="priority-badge ${machine.priority}">${machine.priority}</span>
+              </div>
+              <div class="machine-card-stats">
+                <span>📍 ${machine.location?.name || 'No location'}</span>
+                <span>📦 ${machine.summary.needsRestock} slots</span>
+                <span>🔴 ${machine.summary.urgent} urgent</span>
+                <span>💰 ~$${machine.summary.estimatedCost.toFixed(2)}</span>
+              </div>
+            </div>
+            <div class="machine-card-body">
+              ${machine.items.some(i => i.earliestExpiry) ? `
+                <div class="expiring-card">
+                  <h4>⏰ Expiring Items - Rotate to Front</h4>
+                  ${machine.items.filter(i => i.earliestExpiry).map(i => `
+                    <div class="expiring-item">
+                      <span>${i.position_code}: ${i.product_name}</span>
+                      <span style="color: var(--purple);">Expires: ${new Date(i.earliestExpiry).toLocaleDateString()}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+              
+              <table class="slot-table">
+                <thead>
+                  <tr>
+                    <th>Slot</th>
+                    <th>Product</th>
+                    <th>Stock</th>
+                    <th>Velocity</th>
+                    <th>Days Left</th>
+                    <th>Need</th>
+                    <th>Load</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${itemsHtml}
+                </tbody>
+              </table>
+              
+              <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.85rem; color: var(--muted);">
+                  Last restock: ${machine.lastRestock ? new Date(machine.lastRestock).toLocaleString() : 'Never'}
+                </span>
+                <button class="btn btn-success btn-sm" onclick="completeRestock(${machine.machine_id})">
+                  ✅ Mark Complete
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('machineList').innerHTML = html;
+    }
+
+    // =====================================================
+    // Pick List Rendering
+    // =====================================================
+    
+    function renderPickList() {
+      if (!restockPlan || restockPlan.pickList.length === 0) {
+        document.getElementById('pickListBody').innerHTML = `
+          <div style="padding: 40px; text-align: center; color: var(--muted);">
+            No items to pick
+          </div>
+        `;
+        return;
+      }
+
+      const html = restockPlan.pickList.map((item, idx) => `
+        <div class="pick-item">
+          <div class="pick-item-check">
+            <input type="checkbox" id="pick-${idx}">
+          </div>
+          <div class="pick-item-info">
+            <div class="pick-item-name">${item.product_name}</div>
+            <div class="pick-item-details">
+              ${item.category || ''} • ${item.upc || 'No UPC'} • 
+              ${item.machines.length} machine${item.machines.length > 1 ? 's' : ''}
+              ${item.cost_per_unit ? ` • $${item.cost_per_unit.toFixed(2)} each` : ''}
+            </div>
+            <div class="pick-item-details" style="margin-top: 4px;">
+              ${item.machines.map(m => `${m.machine_name} (${m.position}: ${m.quantity})`).join(' • ')}
+            </div>
+          </div>
+          <div class="pick-item-qty">${item.totalNeeded}</div>
+        </div>
+      `).join('');
+
+      document.getElementById('pickListBody').innerHTML = html;
+    }
+
+    // =====================================================
+    // Velocity Grid Rendering
+    // =====================================================
+    
+    function renderVelocityGrid() {
+      if (!velocityData || velocityData.slots.length === 0) {
+        document.getElementById('velocityGrid').innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <div class="empty-icon">📊</div>
+            <div class="empty-title">No Velocity Data</div>
+            <div class="empty-text">Record some sales to see velocity analytics.</div>
+          </div>
+        `;
+        return;
+      }
+
+      // Group by machine
+      const byMachine = {};
+      velocityData.slots.forEach(slot => {
+        if (!byMachine[slot.machine_id]) {
+          byMachine[slot.machine_id] = {
+            machine_name: slot.machine_name,
+            slots: [],
+            totalVelocity: 0
+          };
+        }
+        byMachine[slot.machine_id].slots.push(slot);
+        byMachine[slot.machine_id].totalVelocity += slot.velocity.unitsPerDay;
+      });
+
+      const html = Object.entries(byMachine).map(([machineId, data]) => `
+        <div class="velocity-card">
+          <h4>
+            <span>🏭 ${data.machine_name}</span>
+            <span style="font-weight: normal; color: var(--muted);">${data.totalVelocity.toFixed(1)}/day total</span>
+          </h4>
+          ${data.slots.slice(0, 8).map(slot => `
+            <div class="velocity-stat">
+              <span class="velocity-label">
+                <span class="slot-position">${slot.position_code}</span>
+                ${slot.product_name || 'Empty'}
+              </span>
+              <span class="velocity-value velocity-trend ${slot.velocity.trend}">
+                ${slot.velocity.unitsPerDay.toFixed(1)}/day
+                ${slot.velocity.trend === 'increasing' ? '↑' : slot.velocity.trend === 'decreasing' ? '↓' : '→'}
+              </span>
+            </div>
+          `).join('')}
+          ${data.slots.length > 8 ? `<div style="text-align: center; padding: 8px; color: var(--muted); font-size: 0.8rem;">+${data.slots.length - 8} more slots</div>` : ''}
+        </div>
+      `).join('');
+
+      // Summary card
+      const summaryHtml = `
+        <div class="velocity-card" style="grid-column: span 2;">
+          <h4>
+            <span>📊 Overall Summary</span>
+            <span style="font-weight: normal; color: var(--muted);">${velocityData.period} day period</span>
+          </h4>
+          <div class="velocity-stat">
+            <span class="velocity-label">Total Active Slots</span>
+            <span class="velocity-value">${velocityData.summary.total}</span>
+          </div>
+          <div class="velocity-stat">
+            <span class="velocity-label">Average Velocity</span>
+            <span class="velocity-value">${velocityData.summary.avgVelocity}/day per slot</span>
+          </div>
+          <div class="velocity-stat">
+            <span class="velocity-label">Urgent Restock</span>
+            <span class="velocity-value" style="color: var(--hot);">${velocityData.summary.urgent} slots</span>
+          </div>
+          <div class="velocity-stat">
+            <span class="velocity-label">Restock Soon</span>
+            <span class="velocity-value" style="color: var(--warn);">${velocityData.summary.soon} slots</span>
+          </div>
+          <div class="velocity-stat">
+            <span class="velocity-label">Well Stocked</span>
+            <span class="velocity-value" style="color: var(--success);">${velocityData.summary.wellStocked} slots</span>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('velocityGrid').innerHTML = summaryHtml + html;
+    }
+
+    // =====================================================
+    // Actions
+    // =====================================================
+    
+    async function completeRestock(machineId) {
+      // Gather restock inputs for this machine
+      const inputs = document.querySelectorAll(`input.restock-input[data-machine-id="${machineId}"]`);
+      const items = [];
+      
+      inputs.forEach(input => {
+        const qty = parseInt(input.value) || 0;
+        if (qty > 0) {
+          items.push({
+            slot_id: parseInt(input.dataset.slotId),
+            quantity_added: qty
+          });
+        }
+      });
+      
+      if (items.length === 0) {
+        alert('No items to restock. Enter quantities first.');
+        return;
+      }
+      
+      if (!confirm(`Complete restock for ${items.length} slots?`)) return;
+      
+      try {
+        const res = await fetch('/api/machine-system/restock-plan/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            machine_id: machineId,
+            items,
+            restocked_by: 'user'
+          })
+        });
+        
+        if (!res.ok) throw new Error('Failed to record restock');
+        
+        const result = await res.json();
+        alert(`✅ Restocked ${result.summary.slotsRestocked} slots with ${result.summary.totalUnits} total units!`);
+        
+        loadRestockPlan();
+      } catch (err) {
+        alert('Error completing restock: ' + err.message);
+      }
+    }
+
+    function exportCSV() {
+      if (!restockPlan || !restockPlan.pickList.length) {
+        alert('No data to export');
+        return;
+      }
+      
+      const rows = [['Product', 'UPC', 'Category', 'Total Needed', 'Est. Cost', 'Machines']];
+      
+      restockPlan.pickList.forEach(item => {
+        rows.push([
+          item.product_name,
+          item.upc || '',
+          item.category || '',
+          item.totalNeeded,
+          item.cost_per_unit ? (item.totalNeeded * item.cost_per_unit).toFixed(2) : '',
+          item.machines.map(m => m.machine_name).join('; ')
+        ]);
+      });
+      
+      const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `restock-picklist-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // =====================================================
+    // Initialize
+    // =====================================================
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      loadRestockPlan();
+    });
+  </script>
+</body>
+</html>

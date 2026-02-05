@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sales Analytics | Kande VendTech</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --gray-50: #f8fafc;
+      --gray-100: #f1f5f9;
+      --gray-200: #e2e8f0;
+      --gray-300: #cbd5e1;
+      --gray-400: #94a3b8;
+      --gray-500: #64748b;
+      --gray-600: #475569;
+      --gray-700: #334155;
+      --gray-800: #1e293b;
+      --gray-900: #0f172a;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-800);
+      line-height: 1.5;
+    }
+    
+    .page-header {
+      background: white;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+    
+    .page-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin: 0;
+    }
+    
+    .page-subtitle {
+      color: var(--gray-500);
+      font-size: 0.875rem;
+      margin-top: 4px;
+    }
+    
+    .container-fluid {
+      padding: 0 24px 24px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+    
+    /* Filter Bar */
+    .filter-bar {
+      background: white;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .filter-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .filter-select, .filter-input {
+      padding: 8px 12px;
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      font-size: 0.875rem;
+      color: var(--gray-800);
+      background: white;
+      min-width: 160px;
+    }
+    
+    .filter-select:focus, .filter-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .filter-btn {
+      padding: 8px 16px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+      align-self: flex-end;
+    }
+    
+    .filter-btn:hover {
+      background: var(--primary-dark);
+    }
+    
+    .filter-btn-secondary {
+      background: white;
+      color: var(--gray-600);
+      border: 1px solid var(--gray-200);
+    }
+    
+    .filter-btn-secondary:hover {
+      background: var(--gray-50);
+    }
+    
+    /* Date Range Quick Picks */
+    .date-quick-picks {
+      display: flex;
+      gap: 8px;
+      margin-left: auto;
+    }
+    
+    .quick-pick-btn {
+      padding: 6px 12px;
+      background: var(--gray-100);
+      color: var(--gray-600);
+      border: none;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    
+    .quick-pick-btn:hover {
+      background: var(--gray-200);
+    }
+    
+    .quick-pick-btn.active {
+      background: var(--primary);
+      color: white;
+    }
+    
+    /* Metric Cards */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    
+    .metric-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    
+    .metric-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    
+    .metric-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      line-height: 1.2;
+    }
+    
+    .metric-sub {
+      font-size: 0.8rem;
+      color: var(--gray-500);
+      margin-top: 4px;
+    }
+    
+    .metric-change {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-top: 8px;
+    }
+    
+    .metric-change.positive {
+      background: rgba(34, 197, 94, 0.1);
+      color: var(--success);
+    }
+    
+    .metric-change.negative {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--danger);
+    }
+    
+    /* Charts */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    
+    @media (max-width: 1200px) {
+      .chart-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .chart-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    
+    .chart-card.full-width {
+      grid-column: 1 / -1;
+    }
+    
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    
+    .chart-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+    
+    .chart-actions {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .chart-container {
+      position: relative;
+      height: 300px;
+    }
+    
+    /* Tables */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .data-table th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--gray-200);
+      background: var(--gray-50);
+    }
+    
+    .data-table td {
+      padding: 12px 16px;
+      font-size: 0.875rem;
+      color: var(--gray-700);
+      border-bottom: 1px solid var(--gray-100);
+    }
+    
+    .data-table tr:hover td {
+      background: var(--gray-50);
+    }
+    
+    .data-table .numeric {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    
+    /* Heatmap Grid */
+    .heatmap-container {
+      overflow-x: auto;
+    }
+    
+    .heatmap-grid {
+      display: inline-grid;
+      gap: 4px;
+      padding: 8px;
+    }
+    
+    .heatmap-cell {
+      width: 52px;
+      height: 52px;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    
+    .heatmap-cell:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 10;
+    }
+    
+    .heatmap-cell .position {
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+    
+    .heatmap-cell .units {
+      font-size: 0.6rem;
+      opacity: 0.8;
+    }
+    
+    .heatmap-cell.heat-0 { background: var(--gray-100); color: var(--gray-400); }
+    .heatmap-cell.heat-1 { background: #dbeafe; color: #1e40af; }
+    .heatmap-cell.heat-2 { background: #93c5fd; color: #1e3a8a; }
+    .heatmap-cell.heat-3 { background: #60a5fa; color: white; }
+    .heatmap-cell.heat-4 { background: #3b82f6; color: white; }
+    .heatmap-cell.heat-5 { background: #2563eb; color: white; }
+    
+    .heatmap-legend {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
+      font-size: 0.75rem;
+      color: var(--gray-500);
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .legend-box {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+    }
+    
+    /* Velocity Table */
+    .velocity-rank {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+    
+    .velocity-rank.top-1 { background: #fbbf24; color: #78350f; }
+    .velocity-rank.top-2 { background: #e5e7eb; color: #374151; }
+    .velocity-rank.top-3 { background: #f59e0b; color: #78350f; }
+    .velocity-rank.top-other { background: var(--gray-100); color: var(--gray-500); }
+    
+    .velocity-bar {
+      height: 6px;
+      background: var(--gray-100);
+      border-radius: 3px;
+      overflow: hidden;
+      min-width: 80px;
+    }
+    
+    .velocity-bar-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 3px;
+      transition: width 0.3s;
+    }
+    
+    /* Status badges */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    
+    .status-badge.healthy {
+      background: rgba(34, 197, 94, 0.1);
+      color: var(--success);
+    }
+    
+    .status-badge.warning {
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--warning);
+    }
+    
+    .status-badge.critical {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--danger);
+    }
+    
+    /* Loading state */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255,255,255,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid var(--gray-200);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .loading-text {
+      margin-top: 16px;
+      color: var(--gray-600);
+      font-weight: 500;
+    }
+    
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--gray-500);
+    }
+    
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+    
+    .empty-state-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--gray-700);
+      margin-bottom: 8px;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .date-quick-picks {
+        margin-left: 0;
+        flex-wrap: wrap;
+      }
+      
+      .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .metric-card {
+        padding: 16px;
+      }
+      
+      .metric-value {
+        font-size: 1.4rem;
+      }
+    }
+    
+    /* Export dropdown */
+    .export-dropdown {
+      position: relative;
+    }
+    
+    .export-menu {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 4px;
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      min-width: 180px;
+      z-index: 100;
+      display: none;
+    }
+    
+    .export-menu.show {
+      display: block;
+    }
+    
+    .export-menu a {
+      display: block;
+      padding: 10px 16px;
+      color: var(--gray-700);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: background 0.1s;
+    }
+    
+    .export-menu a:hover {
+      background: var(--gray-50);
+    }
+    
+    .export-menu a:first-child {
+      border-radius: 8px 8px 0 0;
+    }
+    
+    .export-menu a:last-child {
+      border-radius: 0 0 8px 8px;
+    }
+  </style>
+</head>
+<body>
+  <script src="/nav.js"></script>
+  
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div style="text-align: center;">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Loading analytics...</div>
+    </div>
+  </div>
+  
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1 class="page-title">📊 Sales Analytics</h1>
+        <p class="page-subtitle">Track revenue, product velocity, and sales patterns</p>
+      </div>
+      <div class="export-dropdown">
+        <button class="filter-btn filter-btn-secondary" onclick="toggleExportMenu()">
+          📥 Export
+        </button>
+        <div class="export-menu" id="exportMenu">
+          <a href="#" onclick="exportData('transactions')">📄 Transactions CSV</a>
+          <a href="#" onclick="exportData('summary')">📊 Daily Summary CSV</a>
+          <a href="#" onclick="exportData('velocity')">🚀 Velocity Report CSV</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="container-fluid">
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label class="filter-label">Machine</label>
+        <select class="filter-select" id="machineSelect">
+          <option value="">All Machines</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label class="filter-label">Start Date</label>
+        <input type="date" class="filter-input" id="startDate">
+      </div>
+      
+      <div class="filter-group">
+        <label class="filter-label">End Date</label>
+        <input type="date" class="filter-input" id="endDate">
+      </div>
+      
+      <button class="filter-btn" onclick="applyFilters()">Apply Filters</button>
+      
+      <div class="date-quick-picks">
+        <button class="quick-pick-btn" data-period="today" onclick="setDateRange('today')">Today</button>
+        <button class="quick-pick-btn active" data-period="7d" onclick="setDateRange('7d')">7 Days</button>
+        <button class="quick-pick-btn" data-period="30d" onclick="setDateRange('30d')">30 Days</button>
+        <button class="quick-pick-btn" data-period="90d" onclick="setDateRange('90d')">90 Days</button>
+      </div>
+    </div>
+    
+    <!-- Metrics Cards -->
+    <div class="metrics-grid" id="metricsGrid">
+      <div class="metric-card">
+        <div class="metric-label">Total Revenue</div>
+        <div class="metric-value" id="metricRevenue">$0.00</div>
+        <div class="metric-sub" id="metricRevenueDaily">$0.00 daily avg</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Units Sold</div>
+        <div class="metric-value" id="metricUnits">0</div>
+        <div class="metric-sub" id="metricUnitsDaily">0 daily avg</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Transactions</div>
+        <div class="metric-value" id="metricTransactions">0</div>
+        <div class="metric-sub" id="metricAvgTransaction">$0.00 avg</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Gross Margin</div>
+        <div class="metric-value" id="metricMargin">0%</div>
+        <div class="metric-sub">Target: 67%</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Projected Monthly</div>
+        <div class="metric-value" id="metricProjected">$0</div>
+        <div class="metric-sub" id="metricThreshold">Threshold: $2,000</div>
+      </div>
+    </div>
+    
+    <!-- Charts Row 1 -->
+    <div class="chart-grid">
+      <div class="chart-card full-width">
+        <div class="chart-header">
+          <div class="chart-title">📈 Revenue Over Time</div>
+          <div class="chart-actions">
+            <button class="quick-pick-btn" data-group="day" onclick="setGroupBy('day')">Daily</button>
+            <button class="quick-pick-btn active" data-group="week" onclick="setGroupBy('week')">Weekly</button>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="revenueChart"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Charts Row 2 -->
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">⏰ Hourly Sales Pattern</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="hourlyChart"></canvas>
+        </div>
+      </div>
+      
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">📅 Sales by Day of Week</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="dailyChart"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Charts Row 3 -->
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">🏷️ Revenue by Category</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="categoryChart"></canvas>
+        </div>
+      </div>
+      
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">💳 Payment Methods</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="paymentChart"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Top Products -->
+    <div class="chart-grid">
+      <div class="chart-card full-width">
+        <div class="chart-header">
+          <div class="chart-title">🚀 Product Velocity (Top Sellers)</div>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="data-table" id="velocityTable">
+            <thead>
+              <tr>
+                <th style="width: 60px;">Rank</th>
+                <th>Product</th>
+                <th>Category</th>
+                <th class="numeric">Units Sold</th>
+                <th class="numeric">Revenue</th>
+                <th style="min-width: 120px;">Velocity</th>
+                <th class="numeric">Units/Day</th>
+              </tr>
+            </thead>
+            <tbody id="velocityTableBody">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Position Heatmap -->
+    <div class="chart-grid" id="heatmapSection" style="display: none;">
+      <div class="chart-card full-width">
+        <div class="chart-header">
+          <div class="chart-title">🗺️ Position Heatmap</div>
+          <div class="chart-actions">
+            <span style="font-size: 0.8rem; color: var(--gray-500);">
+              Shows sales performance by slot position
+            </span>
+          </div>
+        </div>
+        <div class="heatmap-container" id="heatmapContainer">
+          <!-- Populated by JS -->
+        </div>
+        <div class="heatmap-legend">
+          <span>Sales volume:</span>
+          <div class="legend-item"><div class="legend-box" style="background: var(--gray-100);"></div> No sales</div>
+          <div class="legend-item"><div class="legend-box" style="background: #dbeafe;"></div> Low</div>
+          <div class="legend-item"><div class="legend-box" style="background: #60a5fa;"></div> Medium</div>
+          <div class="legend-item"><div class="legend-box" style="background: #2563eb;"></div> High</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Machine Comparison -->
+    <div class="chart-grid" id="machineComparisonSection">
+      <div class="chart-card full-width">
+        <div class="chart-header">
+          <div class="chart-title">🏪 Machine Performance</div>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="data-table" id="machineTable">
+            <thead>
+              <tr>
+                <th>Machine</th>
+                <th>Location</th>
+                <th class="numeric">Revenue</th>
+                <th class="numeric">Units</th>
+                <th class="numeric">Daily Avg</th>
+                <th class="numeric">Projected Monthly</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="machineTableBody">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Recent Transactions -->
+    <div class="chart-grid">
+      <div class="chart-card full-width">
+        <div class="chart-header">
+          <div class="chart-title">📝 Recent Transactions</div>
+          <div class="chart-actions">
+            <button class="quick-pick-btn" onclick="loadMoreTransactions()">Load More</button>
+          </div>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="data-table" id="transactionsTable">
+            <thead>
+              <tr>
+                <th>Date/Time</th>
+                <th>Machine</th>
+                <th>Product</th>
+                <th>Slot</th>
+                <th class="numeric">Qty</th>
+                <th class="numeric">Total</th>
+                <th>Payment</th>
+              </tr>
+            </thead>
+            <tbody id="transactionsTableBody">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="noTransactions" style="display: none;">
+          <div class="empty-state-icon">📭</div>
+          <div class="empty-state-title">No transactions yet</div>
+          <p>Transactions will appear here once sales are recorded</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // ===== State =====
+    let currentMachineId = '';
+    let currentPeriod = '7d';
+    let currentGroupBy = 'day';
+    let machines = [];
+    let charts = {};
+    let transactionOffset = 0;
+    
+    // ===== Initialization =====
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadMachines();
+      setDateRange('7d');
+      hideLoading();
+    });
+    
+    // ===== API Functions =====
+    async function fetchAPI(endpoint) {
+      try {
+        const res = await fetch(endpoint);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      } catch (err) {
+        console.error('API Error:', err);
+        return null;
+      }
+    }
+    
+    async function loadMachines() {
+      const data = await fetchAPI('/api/machines');
+      if (data) {
+        machines = data;
+        const select = document.getElementById('machineSelect');
+        machines.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.id;
+          opt.textContent = m.name + (m.location?.name ? ` (${m.location.name})` : '');
+          select.appendChild(opt);
+        });
+      }
+    }
+    
+    async function loadAnalytics() {
+      showLoading();
+      
+      const machineId = document.getElementById('machineSelect').value;
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      
+      currentMachineId = machineId;
+      
+      // Determine period in days
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+      const period = days + 'd';
+      
+      // Load all data in parallel
+      const [summary, velocity, patterns, overview] = await Promise.all([
+        machineId 
+          ? fetchAPI(`/api/machines/${machineId}/sales/summary?period=${period}&groupBy=${currentGroupBy}`)
+          : null,
+        machineId
+          ? fetchAPI(`/api/machines/${machineId}/velocity?period=${period}`)
+          : null,
+        machineId
+          ? fetchAPI(`/api/machines/${machineId}/patterns?period=${period}`)
+          : null,
+        fetchAPI(`/api/analytics/overview?period=${period}`)
+      ]);
+      
+      // Update metrics
+      if (machineId && summary) {
+        updateMetrics(summary.summary, days);
+        updateRevenueChart(summary.breakdown);
+        updateCategoryChart(summary.byCategory);
+        updatePaymentChart(summary.byPayment);
+      } else if (overview) {
+        updateMetrics(overview.overview, days);
+        updateMachineTable(overview.machines);
+      }
+      
+      if (machineId && velocity) {
+        updateVelocityTable(velocity.products);
+      }
+      
+      if (machineId && patterns) {
+        updateHourlyChart(patterns.hourly);
+        updateDailyChart(patterns.daily);
+      }
+      
+      // Load slot heatmap if machine selected
+      if (machineId) {
+        const slotData = await fetchAPI(`/api/machines/${machineId}/slots/performance?period=${period}`);
+        if (slotData && slotData.slots.length > 0) {
+          updateHeatmap(slotData);
+          document.getElementById('heatmapSection').style.display = 'block';
+        } else {
+          document.getElementById('heatmapSection').style.display = 'none';
+        }
+        document.getElementById('machineComparisonSection').style.display = 'none';
+      } else {
+        document.getElementById('heatmapSection').style.display = 'none';
+        document.getElementById('machineComparisonSection').style.display = 'block';
+      }
+      
+      // Load transactions
+      await loadTransactions();
+      
+      hideLoading();
+    }
+    
+    async function loadTransactions() {
+      const machineId = document.getElementById('machineSelect').value;
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      
+      let url = `/api/transactions?limit=20&offset=${transactionOffset}&start=${startDate}&end=${endDate}`;
+      if (machineId) url += `&machine_id=${machineId}`;
+      
+      const data = await fetchAPI(url);
+      if (data && data.transactions) {
+        updateTransactionsTable(data.transactions, transactionOffset === 0);
+        document.getElementById('noTransactions').style.display = 
+          data.transactions.length === 0 && transactionOffset === 0 ? 'block' : 'none';
+      }
+    }
+    
+    function loadMoreTransactions() {
+      transactionOffset += 20;
+      loadTransactions();
+    }
+    
+    // ===== UI Update Functions =====
+    function updateMetrics(data, days) {
+      document.getElementById('metricRevenue').textContent = formatCurrency(data.totalRevenue || 0);
+      document.getElementById('metricRevenueDaily').textContent = formatCurrency((data.totalRevenue || 0) / days) + ' daily avg';
+      
+      document.getElementById('metricUnits').textContent = (data.totalUnits || 0).toLocaleString();
+      document.getElementById('metricUnitsDaily').textContent = Math.round((data.totalUnits || 0) / days) + ' daily avg';
+      
+      document.getElementById('metricTransactions').textContent = (data.transactionCount || 0).toLocaleString();
+      document.getElementById('metricAvgTransaction').textContent = formatCurrency(data.avgTransaction || 0) + ' avg';
+      
+      const margin = data.marginPercent || 0;
+      document.getElementById('metricMargin').textContent = margin.toFixed(1) + '%';
+      
+      const projected = (data.totalRevenue || 0) / days * 30;
+      document.getElementById('metricProjected').textContent = formatCurrency(projected);
+      const thresholdEl = document.getElementById('metricThreshold');
+      if (projected >= 2000) {
+        thresholdEl.innerHTML = '<span style="color: var(--success);">✓ Above $2K threshold</span>';
+      } else if (projected >= 800) {
+        thresholdEl.innerHTML = '<span style="color: var(--warning);">⚠ Below $2K threshold</span>';
+      } else {
+        thresholdEl.innerHTML = '<span style="color: var(--danger);">⛔ Below pull threshold ($800)</span>';
+      }
+    }
+    
+    function updateRevenueChart(breakdown) {
+      const ctx = document.getElementById('revenueChart').getContext('2d');
+      
+      if (charts.revenue) charts.revenue.destroy();
+      
+      charts.revenue = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: breakdown.map(d => formatDateLabel(d.date)),
+          datasets: [{
+            label: 'Revenue',
+            data: breakdown.map(d => d.revenue),
+            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+            borderRadius: 4,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => formatCurrency(ctx.raw)
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: value => '$' + value.toLocaleString()
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    function updateHourlyChart(hourly) {
+      const ctx = document.getElementById('hourlyChart').getContext('2d');
+      
+      if (charts.hourly) charts.hourly.destroy();
+      
+      const maxTrans = Math.max(...hourly.map(h => h.transactions));
+      
+      charts.hourly = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: hourly.map(h => h.label),
+          datasets: [{
+            label: 'Transactions',
+            data: hourly.map(h => h.transactions),
+            backgroundColor: hourly.map(h => 
+              h.transactions === maxTrans ? 'rgba(34, 197, 94, 0.8)' : 'rgba(59, 130, 246, 0.6)'
+            ),
+            borderRadius: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                afterLabel: (ctx) => {
+                  const h = hourly[ctx.dataIndex];
+                  return `Revenue: ${formatCurrency(h.revenue)}`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    }
+    
+    function updateDailyChart(daily) {
+      const ctx = document.getElementById('dailyChart').getContext('2d');
+      
+      if (charts.daily) charts.daily.destroy();
+      
+      const maxTrans = Math.max(...daily.map(d => d.transactions));
+      
+      charts.daily = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: daily.map(d => d.shortDay),
+          datasets: [{
+            label: 'Transactions',
+            data: daily.map(d => d.transactions),
+            backgroundColor: daily.map(d => 
+              d.transactions === maxTrans ? 'rgba(34, 197, 94, 0.8)' : 'rgba(59, 130, 246, 0.6)'
+            ),
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    }
+    
+    function updateCategoryChart(categories) {
+      const ctx = document.getElementById('categoryChart').getContext('2d');
+      
+      if (charts.category) charts.category.destroy();
+      
+      const colors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+      
+      charts.category = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: categories.map(c => c.category),
+          datasets: [{
+            data: categories.map(c => c.revenue),
+            backgroundColor: colors.slice(0, categories.length)
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'right' },
+            tooltip: {
+              callbacks: {
+                label: ctx => `${ctx.label}: ${formatCurrency(ctx.raw)} (${categories[ctx.dataIndex].percentage}%)`
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    function updatePaymentChart(payments) {
+      const ctx = document.getElementById('paymentChart').getContext('2d');
+      
+      if (charts.payment) charts.payment.destroy();
+      
+      const methodLabels = {
+        card: '💳 Card',
+        nfc: '📱 NFC/Tap',
+        cash: '💵 Cash',
+        apple_pay: ' Apple Pay',
+        google_pay: '🤖 Google Pay'
+      };
+      
+      charts.payment = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: payments.map(p => methodLabels[p.method] || p.method),
+          datasets: [{
+            data: payments.map(p => p.count),
+            backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6', '#06b6d4']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'right' },
+            tooltip: {
+              callbacks: {
+                label: ctx => `${ctx.label}: ${ctx.raw} (${formatCurrency(payments[ctx.dataIndex].revenue)})`
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    function updateVelocityTable(products) {
+      const tbody = document.getElementById('velocityTableBody');
+      const maxVelocity = Math.max(...products.map(p => p.velocity), 1);
+      
+      tbody.innerHTML = products.slice(0, 15).map((p, i) => `
+        <tr>
+          <td>
+            <span class="velocity-rank ${i < 3 ? 'top-' + (i+1) : 'top-other'}">${i + 1}</span>
+          </td>
+          <td><strong>${escapeHtml(p.product_name || 'Unknown')}</strong></td>
+          <td>${escapeHtml(p.product_category || '-')}</td>
+          <td class="numeric">${p.units.toLocaleString()}</td>
+          <td class="numeric">${formatCurrency(p.revenue)}</td>
+          <td>
+            <div class="velocity-bar">
+              <div class="velocity-bar-fill" style="width: ${(p.velocity / maxVelocity * 100).toFixed(1)}%"></div>
+            </div>
+          </td>
+          <td class="numeric"><strong>${p.velocity.toFixed(2)}</strong></td>
+        </tr>
+      `).join('');
+    }
+    
+    function updateMachineTable(machineData) {
+      const tbody = document.getElementById('machineTableBody');
+      
+      tbody.innerHTML = machineData.map(m => `
+        <tr>
+          <td><a href="/sales-analytics?machine=${m.machine_id}" style="color: var(--primary); text-decoration: none; font-weight: 500;">${escapeHtml(m.machine_name)}</a></td>
+          <td>${escapeHtml(m.location || '-')}</td>
+          <td class="numeric">${formatCurrency(m.revenue)}</td>
+          <td class="numeric">${m.units.toLocaleString()}</td>
+          <td class="numeric">${formatCurrency(m.dailyAvg)}</td>
+          <td class="numeric"><strong>${formatCurrency(m.projectedMonthly)}</strong></td>
+          <td><span class="status-badge ${m.status}">${m.status === 'healthy' ? '✓ Healthy' : m.status === 'warning' ? '⚠ Warning' : '⛔ Critical'}</span></td>
+        </tr>
+      `).join('');
+    }
+    
+    function updateHeatmap(data) {
+      const container = document.getElementById('heatmapContainer');
+      
+      // Determine grid dimensions
+      const maxRow = Math.max(...data.slots.map(s => s.row || 1));
+      const maxCol = Math.max(...data.slots.map(s => s.column || 1));
+      
+      // Create grid
+      container.innerHTML = `<div class="heatmap-grid" style="grid-template-columns: repeat(${maxCol}, 52px);">
+        ${data.slots.sort((a, b) => {
+          if (a.row !== b.row) return a.row - b.row;
+          return a.column - b.column;
+        }).map(slot => {
+          const heatLevel = slot.units_sold === 0 ? 0 
+            : slot.performanceScore > 80 ? 5
+            : slot.performanceScore > 60 ? 4
+            : slot.performanceScore > 40 ? 3
+            : slot.performanceScore > 20 ? 2
+            : 1;
+          
+          return `<div class="heatmap-cell heat-${heatLevel}" 
+            title="${slot.product_name || 'Empty'}\n${slot.units_sold} units\n${formatCurrency(slot.revenue)}">
+            <span class="position">${slot.position_code}</span>
+            <span class="units">${slot.units_sold}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }
+    
+    function updateTransactionsTable(transactions, replace = true) {
+      const tbody = document.getElementById('transactionsTableBody');
+      
+      const rows = transactions.map(t => {
+        const dt = new Date(t.transaction_time);
+        const machine = machines.find(m => m.id === t.machine_id);
+        
+        return `<tr>
+          <td>${dt.toLocaleDateString()} ${dt.toLocaleTimeString()}</td>
+          <td>${escapeHtml(machine?.name || `Machine ${t.machine_id}`)}</td>
+          <td>${escapeHtml(t.product_name || '-')}</td>
+          <td>${t.slot_id || '-'}</td>
+          <td class="numeric">${t.quantity}</td>
+          <td class="numeric"><strong>${formatCurrency(t.total)}</strong></td>
+          <td>${formatPaymentMethod(t.payment_method)}</td>
+        </tr>`;
+      }).join('');
+      
+      if (replace) {
+        tbody.innerHTML = rows;
+      } else {
+        tbody.innerHTML += rows;
+      }
+    }
+    
+    // ===== Filter Functions =====
+    function setDateRange(period) {
+      const end = new Date();
+      const start = new Date();
+      
+      switch (period) {
+        case 'today':
+          break;
+        case '7d':
+          start.setDate(end.getDate() - 6);
+          break;
+        case '30d':
+          start.setDate(end.getDate() - 29);
+          break;
+        case '90d':
+          start.setDate(end.getDate() - 89);
+          break;
+      }
+      
+      document.getElementById('startDate').value = formatDateForInput(start);
+      document.getElementById('endDate').value = formatDateForInput(end);
+      
+      // Update active button
+      document.querySelectorAll('.quick-pick-btn[data-period]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.period === period);
+      });
+      
+      currentPeriod = period;
+      transactionOffset = 0;
+      loadAnalytics();
+    }
+    
+    function setGroupBy(groupBy) {
+      currentGroupBy = groupBy;
+      document.querySelectorAll('.quick-pick-btn[data-group]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.group === groupBy);
+      });
+      loadAnalytics();
+    }
+    
+    function applyFilters() {
+      transactionOffset = 0;
+      loadAnalytics();
+    }
+    
+    // ===== Export Functions =====
+    function toggleExportMenu() {
+      document.getElementById('exportMenu').classList.toggle('show');
+    }
+    
+    function exportData(type) {
+      const machineId = document.getElementById('machineSelect').value;
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      
+      let url = `/api/analytics/export?type=${type}&start=${startDate}&end=${endDate}`;
+      if (machineId) url += `&machine_id=${machineId}`;
+      
+      window.location.href = url;
+      toggleExportMenu();
+    }
+    
+    // Close export menu on outside click
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.export-dropdown')) {
+        document.getElementById('exportMenu').classList.remove('show');
+      }
+    });
+    
+    // ===== Helper Functions =====
+    function formatCurrency(value) {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2
+      }).format(value || 0);
+    }
+    
+    function formatDateForInput(date) {
+      return date.toISOString().split('T')[0];
+    }
+    
+    function formatDateLabel(dateStr) {
+      if (dateStr.length === 7) { // YYYY-MM
+        const [y, m] = dateStr.split('-');
+        return new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      }
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    
+    function formatPaymentMethod(method) {
+      const icons = {
+        card: '💳',
+        nfc: '📱',
+        cash: '💵',
+        apple_pay: '',
+        google_pay: '🤖'
+      };
+      return (icons[method] || '💳') + ' ' + (method || 'Card').replace('_', ' ');
+    }
+    
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    function showLoading() {
+      document.getElementById('loadingOverlay').style.display = 'flex';
+    }
+    
+    function hideLoading() {
+      document.getElementById('loadingOverlay').style.display = 'none';
+    }
+    
+    // ===== URL Parameter Handling =====
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('machine')) {
+      document.getElementById('machineSelect').value = urlParams.get('machine');
+    }
+  </script>
+</body>
+</html>
