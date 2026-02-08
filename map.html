@@ -652,7 +652,7 @@
 
         // Geocode start address if provided
         var startAddr = document.getElementById('startAddress').value.trim();
-        if (startAddr) {
+        if (startAddr && startAddr !== 'Could not detect — enter address') {
           try {
             var q = encodeURIComponent(startAddr);
             var res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + q + '&limit=1');
@@ -662,6 +662,12 @@
               coords.push(startCoord.lng + ',' + startCoord.lat);
             }
           } catch(e) {}
+        }
+        
+        // If no start address, use first stop as starting point
+        if (!startCoord && routeStops.length > 0 && routeStops[0].lat && routeStops[0].lng) {
+          startCoord = { lat: routeStops[0].lat, lng: routeStops[0].lng };
+          // First stop will be added in the loop below, so don't double-add
         }
 
         // Add all stop coords (skip any with missing coordinates)
