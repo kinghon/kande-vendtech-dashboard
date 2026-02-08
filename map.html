@@ -722,24 +722,12 @@
         }
 
         if (data.code === 'Ok' && data.trips && data.trips[0]) {
-          // Reorder route stops based on OSRM's optimized waypoint order
+          // Display the optimized route (keep stops in user's order for now)
           var trip = data.trips[0];
-          var waypoints = data.waypoints;
-          var offset = startCoord ? 1 : 0;
-
-          // Build reorder mapping: waypoints[i].waypoint_index tells the optimized order
-          var reordered = new Array(routeStops.length);
-          for (var i = offset; i < waypoints.length; i++) {
-            var origIdx = i - offset;
-            var optIdx = waypoints[i].waypoint_index - offset;
-            reordered[optIdx] = routeStops[origIdx];
-          }
-          // Replace with optimized order
-          routeStops = reordered.filter(Boolean);
+          displayRoute(trip, startCoord);
           renderRouteStops();
           renderRouteLeadsList();
           updateMarkerColors();
-          displayRoute(trip, startCoord);
         } else {
           // Fallback: simple route without TSP optimization
           var routeUrl = 'https://router.project-osrm.org/route/v1/driving/' + coordStr + '?overview=full&geometries=geojson';
