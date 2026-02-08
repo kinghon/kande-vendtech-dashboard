@@ -563,10 +563,17 @@
       map.closePopup();
     }
 
+    var lastToggleTime = 0;
     function toggleRouteStop(prospectId) {
+      // Debounce to prevent double-toggle on mobile
+      var now = Date.now();
+      if (now - lastToggleTime < 300) return;
+      lastToggleTime = now;
+      
       var idx = routeStops.findIndex(function(s) { return s.prospectId === prospectId; });
       if (idx >= 0) {
         routeStops.splice(idx, 1);
+        console.log('Removed from route:', prospectId);
       } else {
         var p = prospects.find(function(p) { return p.id === prospectId; });
         if (p && p.lat) {
@@ -574,6 +581,10 @@
             prospectId: p.id, name: p.name, address: p.address,
             lat: p.lat, lng: p.lng, revenue: prospectRevenue[p.id] || 0
           });
+          console.log('Added to route:', prospectId, p.name);
+        } else {
+          console.warn('Cannot add - missing coordinates:', prospectId, p?.name);
+          alert('Cannot add "' + (p?.name || 'Unknown') + '" - missing coordinates.');
         }
       }
       renderRouteStops();
