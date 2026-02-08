@@ -664,9 +664,21 @@
           } catch(e) {}
         }
 
-        // Add all stop coords
+        // Add all stop coords (skip any with missing coordinates)
         for (var i = 0; i < routeStops.length; i++) {
-          coords.push(routeStops[i].lng + ',' + routeStops[i].lat);
+          var stop = routeStops[i];
+          if (stop.lat && stop.lng) {
+            coords.push(stop.lng + ',' + stop.lat);
+          } else {
+            console.warn('Skipping stop with missing coords:', stop.name);
+          }
+        }
+        
+        if (coords.length < 2) {
+          alert('Need at least 2 stops with valid coordinates to optimize route.');
+          btn.disabled = routeStops.length < 2;
+          btn.textContent = '🗺 Optimize Route Order';
+          return;
         }
 
         var coordStr = coords.join(';');
@@ -675,6 +687,14 @@
 
         var res = await fetch(url);
         var data = await res.json();
+
+        if (!res.ok) {
+          console.error('OSRM request failed:', res.status, res.statusText);
+          alert('Route service unavailable. Status: ' + res.status);
+          btn.disabled = routeStops.length < 2;
+          btn.textContent = '🗺 Optimize Route Order';
+          return;
+        }
 
         if (data.code === 'Ok' && data.trips && data.trips[0]) {
           // Reorder route stops based on OSRM's optimized waypoint order
