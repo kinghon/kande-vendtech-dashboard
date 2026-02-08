@@ -217,6 +217,7 @@
               🗺 Optimize Route Order
             </button>
             <button class="btn-clear" onclick="clearRoute()">Clear Route</button>
+            <span id="stopCount" style="margin-left:10px;font-size:12px;color:#666;"></span>
           </div>
           
           <div class="export-actions" id="exportActions" style="margin-bottom:12px;">
@@ -590,6 +591,7 @@
       renderRouteStops();
       renderRouteLeadsList();
       updateMarkerColors();
+      console.log('Current route stops:', routeStops.length, routeStops.map(function(s) { return s.name; }));
     }
 
     async function addCustomStop() {
@@ -617,6 +619,7 @@
       var container = document.getElementById('routeStops');
       var btn = document.getElementById('btnOptimize');
       btn.disabled = routeStops.length < 2;
+      document.getElementById('stopCount').textContent = routeStops.length + ' stops';
 
       container.innerHTML = routeStops.map(function(s, i) {
         var revLabel = s.revenue > 0 ? fmtMoney(s.revenue) + '/mo' : '';
