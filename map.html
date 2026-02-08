@@ -633,7 +633,7 @@
       }).join('');
 
       // Always update the inline revenue summary
-      updateRevenueSummary();
+      // updateRevenueSummary(); // Removed
     }
 
     function removeStop(idx) {
@@ -652,11 +652,7 @@
       renderMarkers();
     }
 
-    function updateRevenueSummary() {
-      var total = routeStops.reduce(function(s, stop) { return s + (stop.revenue || 0); }, 0);
-      var el = document.getElementById('summaryRevenue');
-      if (el) el.textContent = fmtMoney(total) + '/mo';
-    }
+    // Revenue summary removed per Kurtis request
 
     /* ── Route optimization (OSRM trip solver) ───────── */
     async function optimizeRoute() {
@@ -858,13 +854,10 @@
       var summary = document.getElementById('routeSummary');
       summary.style.display = 'block';
       var distMiles = (route.distance / 1609.34).toFixed(1);
-      var totalRev = routeStops.reduce(function(s, stop) { return s + (stop.revenue || 0); }, 0);
 
       document.getElementById('summaryStops').textContent = routeStops.length;
       document.getElementById('summaryDistance').textContent = distMiles + ' miles';
       document.getElementById('summaryTime').textContent = formatDuration(route.duration);
-      document.getElementById('summaryRevenue').textContent = fmtMoney(totalRev) + '/mo';
-      document.getElementById('summaryRevPerMile').textContent = distMiles > 0 ? fmtMoney(Math.round(totalRev / distMiles)) + '/mi' : '-';
     }
 
     function formatDuration(seconds) {
