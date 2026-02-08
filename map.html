@@ -219,7 +219,7 @@
             <button class="btn-clear" onclick="clearRoute()">Clear Route</button>
           </div>
           
-          <div class="export-actions" id="exportActions" style="display:none; margin-bottom:12px;">
+          <div class="export-actions" id="exportActions" style="margin-bottom:12px;">
             <button class="btn-export" onclick="openInGoogleMaps()" style="background:#4285f4;color:#fff;padding:10px 16px;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-right:8px;">
               📍 Open in Google Maps
             </button>
@@ -638,7 +638,6 @@
       renderRouteLeadsList();
       if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
       document.getElementById('routeSummary').style.display = 'none';
-      document.getElementById('exportActions').style.display = 'none';
       renderMarkers();
     }
 
@@ -731,7 +730,6 @@
           renderRouteLeadsList();
           updateMarkerColors();
           displayRoute(trip, startCoord);
-          document.getElementById('exportActions').style.display = 'block';
         } else {
           // Fallback: simple route without TSP optimization
           var routeUrl = 'https://router.project-osrm.org/route/v1/driving/' + coordStr + '?overview=full&geometries=geojson';
@@ -739,14 +737,13 @@
           var routeData = await routeRes.json();
           if (routeData.code === 'Ok') {
             displayRoute(routeData.routes[0], startCoord);
-            document.getElementById('exportActions').style.display = 'block';
           } else {
             alert('Could not calculate route. Make sure addresses are valid.');
           }
         }
       } catch(e) {
         console.error('Route optimization failed:', e);
-        alert('Route optimization failed. Please try again.');
+        alert('Route optimization failed: ' + (e.message || e) + '\n\nYou can still use the export buttons to open in Google/Apple Maps.');
       }
 
       btn.disabled = routeStops.length < 2;
@@ -755,7 +752,10 @@
 
     /* ── Export to Google Maps / Apple Maps ───────── */
     function openInGoogleMaps() {
-      if (routeStops.length === 0) return;
+      if (routeStops.length === 0) {
+        alert('Add some stops first!');
+        return;
+      }
       
       var startAddr = document.getElementById('startAddress').value.trim();
       var waypoints = routeStops.map(function(s) {
@@ -779,7 +779,10 @@
     }
     
     function openInAppleMaps() {
-      if (routeStops.length === 0) return;
+      if (routeStops.length === 0) {
+        alert('Add some stops first!');
+        return;
+      }
       
       var startAddr = document.getElementById('startAddress').value.trim();
       var addresses = routeStops.map(function(s) {
