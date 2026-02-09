@@ -726,8 +726,31 @@
           ${!isFollowUp && p.next_action_added ? `<span style="font-size:0.7rem;color:var(--muted);">Added: ${new Date(p.next_action_added).toLocaleDateString('en-US', {month:'2-digit',day:'2-digit',year:'2-digit'})}</span>` : ''}
           <span style="flex:1;"></span>
           ${p.next_action_date ? `<span style="font-size:0.75rem;color:var(--accent);">${p.next_action_date}</span>` : ''}
+          <button onclick="event.stopPropagation(); removeTodo(${p.id})" title="Remove from to-do list" style="padding:2px 6px;border-radius:4px;font-size:0.7rem;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);margin-left:4px;">✕</button>
         </div>
       `}).join('');
+    }
+
+    async function removeTodo(id) {
+      const p = prospects.find(pr => pr.id === id);
+      if (!p) return;
+      if (!confirm(`Remove "${p.name}" from to-do list?`)) return;
+      
+      // Clear the next_action fields
+      p.next_action = '';
+      p.next_action_date = '';
+      p.next_action_added = '';
+      
+      try {
+        await fetch(`/api/prospects/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ next_action: '', next_action_date: '', next_action_added: '' })
+        });
+      } catch(e) { console.error('Failed to remove todo:', e); }
+      
+      renderTodoList();
+      render();
     }
 
     function completeTodo(id, actionType) {
