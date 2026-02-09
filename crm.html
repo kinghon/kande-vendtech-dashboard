@@ -1860,18 +1860,19 @@
     }
 
     function renderRouteStops() {
-      // Deduplicate route stops by prospectId, name, or lat/lng
+      // Deduplicate route stops by prospectId only (don't dedupe custom addresses)
       const seen = new Set();
       routeStops = routeStops.filter(s => {
-        // Create unique key from prospectId, or name+address combo, or lat/lng
-        const key = s.prospectId 
-          ? `id:${s.prospectId}` 
-          : `loc:${s.lat},${s.lng}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
+        // Only deduplicate by prospectId if it exists
+        if (s.prospectId) {
+          const key = `id:${s.prospectId}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+        }
+        // Custom addresses (no prospectId) are always kept
         return true;
       });
-      // Also save the deduplicated version to localStorage immediately
+      // Save to localStorage
       localStorage.setItem('vendtech_route', JSON.stringify(routeStops));
       
       const container = document.getElementById('routeStopsList');
