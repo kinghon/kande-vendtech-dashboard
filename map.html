@@ -296,7 +296,7 @@
     /* ── State ───────────────────────────────────────── */
     let prospects = [];
     let markers = {};
-    let routeStops = [];
+    let routeStops = JSON.parse(localStorage.getItem('vendtech_route') || '[]');
     let routeLayer = null;
     let map;
     let serviceCircle = null;
@@ -416,6 +416,7 @@
         prospects = await res.json();
         renderMarkers();
         renderRouteLeadsList();
+        renderRouteStops(); // Render persisted route from localStorage
         document.getElementById('loadingOverlay').classList.add('hidden');
       } catch (e) {
         console.error('Failed to load prospects:', e);
@@ -636,8 +637,8 @@
         '</div>';
       }).join('');
 
-      // Always update the inline revenue summary
-      // updateRevenueSummary(); // Removed
+      // Persist route to localStorage
+      localStorage.setItem('vendtech_route', JSON.stringify(routeStops));
     }
 
     function removeStop(idx) {
@@ -649,6 +650,7 @@
 
     function clearRoute() {
       routeStops = [];
+      localStorage.removeItem('vendtech_route');
       renderRouteStops();
       renderRouteLeadsList();
       if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
