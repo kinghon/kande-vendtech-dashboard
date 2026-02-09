@@ -2058,7 +2058,32 @@
         document.getElementById('routeSummary').style.display = 'block';
       } catch(e) {
         console.error('Route optimization failed:', e);
-        alert('Route optimization failed.');
+        // Still show stops with straight lines even on error
+        if (routeLayer) map.removeLayer(routeLayer);
+        routeLayer = L.layerGroup().addTo(map);
+        
+        const lineCoords = routeStops.map(s => [s.lat, s.lng]);
+        L.polyline(lineCoords, { color: '#22c55e', weight: 4, opacity: 0.7, dashArray: '10, 10' }).addTo(routeLayer);
+        
+        routeStops.forEach((stop, i) => {
+          const numberedIcon = L.divIcon({
+            className: '',
+            html: `<div style="width:28px;height:28px;border-radius:50%;background:#22c55e;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff;">${i + 1}</div>`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+          });
+          L.marker([stop.lat, stop.lng], { icon: numberedIcon })
+            .bindPopup(`<strong>Stop ${i + 1}: ${stop.name}</strong><br><span style="color:#666;font-size:12px;">${stop.address || ''}</span>`)
+            .addTo(routeLayer);
+        });
+        
+        if (routeStops.length > 0) {
+          map.fitBounds(routeLayer.getBounds(), { padding: [40, 40] });
+        }
+        document.getElementById('summaryStops').textContent = routeStops.length;
+        document.getElementById('summaryDistance').textContent = '—';
+        document.getElementById('summaryTime').textContent = '—';
+        document.getElementById('routeSummary').style.display = 'block';
       }
       btn.disabled = routeStops.length < 2;
       btn.textContent = '🧠 Optimize Route';
