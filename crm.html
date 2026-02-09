@@ -1998,13 +1998,31 @@
           return;
         }
 
-        const url = `https://router.project-osrm.org/trip/v1/driving/${coords.join(';')}?overview=full&geometries=geojson&roundtrip=false&source=first&destination=last`;
-        const res = await fetch(url);
-        const data = await res.json();
+        // Try trip API first, fallback to simple route API
+        let routeData = null;
+        let tripUrl = `https://router.project-osrm.org/trip/v1/driving/${coords.join(';')}?overview=full&geometries=geojson&roundtrip=false&source=first&destination=last`;
+        
+        try {
+          const tripRes = await fetch(tripUrl);
+          const tripData = await tripRes.json();
+          if (tripData.code === 'Ok' && tripData.trips && tripData.trips[0]) {
+            routeData = tripData.trips[0];
+          }
+        } catch(e) { console.log('Trip API failed, trying route API'); }
+        
+        // Fallback to simple route API (doesn't optimize order but draws the path)
+        if (!routeData) {
+          try {
+            const routeUrl = `https://router.project-osrm.org/route/v1/driving/${coords.join(';')}?overview=full&geometries=geojson`;
+            const routeRes = await fetch(routeUrl);
+            const routeJson = await routeRes.json();
+            if (routeJson.code === 'Ok' && routeJson.routes && routeJson.routes[0]) {
+              routeData = routeJson.routes[0];
+            }
+          } catch(e) { console.log('Route API also failed'); }
+        }
 
-        if (data.code === 'Ok' && data.trips && data.trips[0]) {
-          const trip = data.trips[0];
-          
+        if (routeData) {
           // Clear existing route layer if any
           if (routeLayer) map.removeLayer(routeLayer);
           
@@ -2012,7 +2030,7 @@
           routeLayer = L.layerGroup().addTo(map);
           
           // Draw route polyline
-          const routeCoords = trip.geometry.coordinates.map(c => [c[1], c[0]]);
+          const routeCoords = routeData.geometry.coordinates.map(c => [c[1], c[0]]);
           L.polyline(routeCoords, { color: '#22c55e', weight: 5, opacity: 0.8 }).addTo(routeLayer);
           
           // Add numbered markers for each stop
@@ -2031,11 +2049,11 @@
           map.fitBounds(routeLayer.getBounds(), { padding: [40, 40] });
           
           document.getElementById('summaryStops').textContent = routeStops.length;
-          document.getElementById('summaryDistance').textContent = (trip.distance / 1609.34).toFixed(1) + ' mi';
-          document.getElementById('summaryTime').textContent = Math.round(trip.duration / 60) + ' min';
+          document.getElementById('summaryDistance').textContent = (routeData.distance / 1609.34).toFixed(1) + ' mi';
+          document.getElementById('summaryTime').textContent = Math.round(routeData.duration / 60) + ' min';
           document.getElementById('routeSummary').style.display = 'block';
         } else {
-          alert('Could not calculate route.');
+          alert('Could not calculate route. Try fewer stops or check your connection.');
         }
       } catch(e) {
         console.error('Route optimization failed:', e);
