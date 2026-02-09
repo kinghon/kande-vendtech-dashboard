@@ -1858,6 +1858,15 @@
     }
 
     function renderRouteStops() {
+      // Deduplicate route stops (in case of any double-add bugs)
+      const seen = new Set();
+      routeStops = routeStops.filter(s => {
+        const key = s.prospectId || s.address;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      
       const container = document.getElementById('routeStopsList');
       const btn = document.getElementById('btnOptimize');
       btn.disabled = routeStops.length < 2;
