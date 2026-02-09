@@ -1998,63 +1998,64 @@
           return;
         }
 
-        // Try trip API first, fallback to simple route API
+        // Try OSRM API first, fallback to straight lines if it fails
         let routeData = null;
-        let tripUrl = `https://router.project-osrm.org/trip/v1/driving/${coords.join(';')}?overview=full&geometries=geojson&roundtrip=false&source=first&destination=last`;
         
         try {
-          const tripRes = await fetch(tripUrl);
-          const tripData = await tripRes.json();
-          if (tripData.code === 'Ok' && tripData.trips && tripData.trips[0]) {
-            routeData = tripData.trips[0];
+          const routeUrl = `https://router.project-osrm.org/route/v1/driving/${coords.join(';')}?overview=full&geometries=geojson`;
+          const routeRes = await fetch(routeUrl);
+          const routeJson = await routeRes.json();
+          if (routeJson.code === 'Ok' && routeJson.routes && routeJson.routes[0]) {
+            routeData = routeJson.routes[0];
           }
-        } catch(e) { console.log('Trip API failed, trying route API'); }
-        
-        // Fallback to simple route API (doesn't optimize order but draws the path)
-        if (!routeData) {
-          try {
-            const routeUrl = `https://router.project-osrm.org/route/v1/driving/${coords.join(';')}?overview=full&geometries=geojson`;
-            const routeRes = await fetch(routeUrl);
-            const routeJson = await routeRes.json();
-            if (routeJson.code === 'Ok' && routeJson.routes && routeJson.routes[0]) {
-              routeData = routeJson.routes[0];
-            }
-          } catch(e) { console.log('Route API also failed'); }
-        }
+        } catch(e) { console.log('OSRM API failed:', e); }
 
+        // Clear existing route layer if any
+        if (routeLayer) map.removeLayer(routeLayer);
+        
+        // Create a layer group for route line + numbered markers
+        routeLayer = L.layerGroup().addTo(map);
+        
         if (routeData) {
-          // Clear existing route layer if any
-          if (routeLayer) map.removeLayer(routeLayer);
-          
-          // Create a layer group for route line + numbered markers
-          routeLayer = L.layerGroup().addTo(map);
-          
-          // Draw route polyline
+          // Draw route polyline from API
           const routeCoords = routeData.geometry.coordinates.map(c => [c[1], c[0]]);
           L.polyline(routeCoords, { color: '#22c55e', weight: 5, opacity: 0.8 }).addTo(routeLayer);
           
-          // Add numbered markers for each stop
-          routeStops.forEach((stop, i) => {
-            const numberedIcon = L.divIcon({
-              className: '',
-              html: `<div style="width:28px;height:28px;border-radius:50%;background:#22c55e;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff;">${i + 1}</div>`,
-              iconSize: [28, 28],
-              iconAnchor: [14, 14]
-            });
-            L.marker([stop.lat, stop.lng], { icon: numberedIcon })
-              .bindPopup(`<strong>Stop ${i + 1}: ${stop.name}</strong><br><span style="color:#666;font-size:12px;">${stop.address || ''}</span>`)
-              .addTo(routeLayer);
-          });
-          
-          map.fitBounds(routeLayer.getBounds(), { padding: [40, 40] });
-          
-          document.getElementById('summaryStops').textContent = routeStops.length;
           document.getElementById('summaryDistance').textContent = (routeData.distance / 1609.34).toFixed(1) + ' mi';
           document.getElementById('summaryTime').textContent = Math.round(routeData.duration / 60) + ' min';
-          document.getElementById('routeSummary').style.display = 'block';
         } else {
-          alert('Could not calculate route. Try fewer stops or check your connection.');
+          // Fallback: draw straight lines between stops
+          const lineCoords = routeStops.map(s => [s.lat, s.lng]);
+          L.polyline(lineCoords, { color: '#22c55e', weight: 4, opacity: 0.7, dashArray: '10, 10' }).addTo(routeLayer);
+          
+          // Estimate distance (straight line)
+          let totalDist = 0;
+          for (let i = 1; i < routeStops.length; i++) {
+            const from = L.latLng(routeStops[i-1].lat, routeStops[i-1].lng);
+            const to = L.latLng(routeStops[i].lat, routeStops[i].lng);
+            totalDist += from.distanceTo(to);
+          }
+          document.getElementById('summaryDistance').textContent = '~' + (totalDist / 1609.34).toFixed(1) + ' mi';
+          document.getElementById('summaryTime').textContent = '~' + Math.round(totalDist / 1609.34 * 2) + ' min';
         }
+        
+        // Add numbered markers for each stop (always works)
+        routeStops.forEach((stop, i) => {
+          const numberedIcon = L.divIcon({
+            className: '',
+            html: `<div style="width:28px;height:28px;border-radius:50%;background:#22c55e;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff;">${i + 1}</div>`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+          });
+          L.marker([stop.lat, stop.lng], { icon: numberedIcon })
+            .bindPopup(`<strong>Stop ${i + 1}: ${stop.name}</strong><br><span style="color:#666;font-size:12px;">${stop.address || ''}</span>`)
+            .addTo(routeLayer);
+        });
+        
+        map.fitBounds(routeLayer.getBounds(), { padding: [40, 40] });
+        
+        document.getElementById('summaryStops').textContent = routeStops.length;
+        document.getElementById('routeSummary').style.display = 'block';
       } catch(e) {
         console.error('Route optimization failed:', e);
         alert('Route optimization failed.');
