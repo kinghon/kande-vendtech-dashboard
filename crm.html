@@ -20,6 +20,7 @@
       --muted: #718096;
       --accent: #3182ce;
       --hot: #e53e3e;
+      --intalks: #8b5cf6;
       --warm: #eab308;
       --success: #38a169;
     }
@@ -90,6 +91,7 @@
     }
     .prospect-card:hover { border-color: var(--accent); }
     .prospect-card.hot { border-left: 4px solid var(--hot); }
+    .prospect-card.intalks { border-left: 4px solid var(--intalks); }
     .prospect-card.warm { border-left: 4px solid var(--warm); }
     .prospect-card.stale { border-left: 4px solid var(--hot); background: rgba(229,62,62,0.08); opacity: 0.85; }
     .prospect-card.expanded { border-color: var(--accent); cursor: default; }
@@ -105,6 +107,7 @@
       font-weight: 600; text-transform: uppercase;
     }
     .badge-hot { background: rgba(229,62,62,0.15); color: var(--hot); }
+    .badge-intalks { background: rgba(139,92,246,0.15); color: var(--intalks); }
     .badge-warm { background: rgba(234,179,8,0.15); color: var(--warm); }
     .badge-new { background: rgba(49,130,206,0.15); color: var(--accent); }
     .badge-closed { background: rgba(160,174,192,0.15); color: #a0aec0; }
@@ -351,6 +354,7 @@
     <div class="filters">
       <button class="filter-btn active" data-filter="all">All</button>
       <button class="filter-btn" data-filter="hot">🔥 Hot</button>
+      <button class="filter-btn" data-filter="intalks">💬 In Talks</button>
       <button class="filter-btn" data-filter="warm">🟠 Warm</button>
       <button class="filter-btn" data-filter="new">🆕 New</button>
       <button class="filter-btn" data-filter="signed">✅ Signed</button>
@@ -853,6 +857,7 @@
       const search = document.getElementById('search').value.toLowerCase();
 
       if (currentFilter === 'hot') filtered = filtered.filter(p => p.priority === 'hot');
+      else if (currentFilter === 'intalks') filtered = filtered.filter(p => p.priority === 'intalks');
       else if (currentFilter === 'warm') filtered = filtered.filter(p => p.priority === 'warm');
       else if (currentFilter === 'new') filtered = filtered.filter(p => p.status === 'new');
       else if (currentFilter === 'signed') filtered = filtered.filter(p => p.status === 'signed');
@@ -928,8 +933,9 @@
               <div class="prospect-name">${p.name}${p.status === 'closed' && p.stale_reason ? `<span style="margin-left:10px;font-size:0.8rem;font-weight:700;color:var(--hot);">⛔ ${esc(p.stale_reason)}</span>` : ''}${p.next_action ? `<span style="margin-left:10px;font-size:0.8rem;font-weight:600;color:var(--accent);background:rgba(49,130,206,0.1);padding:2px 8px;border-radius:4px;">→ ${p.next_action === 'Pop In' ? '🚶' : p.next_action === 'Call' ? '📞' : '📧'} ${esc(p.next_action)}${p.next_action_date ? ' (' + p.next_action_date + ')' : ''}</span>` : ''}</div>
               <span class="saved-indicator" id="saved-${p.id}">✓ Saved</span>
               <div class="badge-row" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-                <select class="status-select" onclick="event.stopPropagation()" onchange="setStatus(${p.id}, this.value)" style="padding:4px 10px;border-radius:12px;font-size:0.7rem;font-weight:700;cursor:pointer;border:none;background:${p.priority === 'hot' ? 'rgba(229,62,62,0.15)' : p.priority === 'warm' ? 'rgba(234,179,8,0.15)' : 'rgba(49,130,206,0.15)'};color:${p.priority === 'hot' ? 'var(--hot)' : p.priority === 'warm' ? 'var(--warm)' : 'var(--accent)'};">
+                <select class="status-select" onclick="event.stopPropagation()" onchange="setStatus(${p.id}, this.value)" style="padding:4px 10px;border-radius:12px;font-size:0.7rem;font-weight:700;cursor:pointer;border:none;background:${p.priority === 'hot' ? 'rgba(229,62,62,0.15)' : p.priority === 'intalks' ? 'rgba(139,92,246,0.15)' : p.priority === 'warm' ? 'rgba(234,179,8,0.15)' : 'rgba(49,130,206,0.15)'};color:${p.priority === 'hot' ? 'var(--hot)' : p.priority === 'intalks' ? 'var(--intalks)' : p.priority === 'warm' ? 'var(--warm)' : 'var(--accent)'};">
                   <option value="hot" ${p.priority === 'hot' ? 'selected' : ''}>🔥 HOT</option>
+                  <option value="intalks" ${p.priority === 'intalks' ? 'selected' : ''}>💬 IN TALKS</option>
                   <option value="warm" ${p.priority === 'warm' ? 'selected' : ''}>🟡 WARM</option>
                   <option value="new" ${!p.priority || p.priority === 'new' || p.priority === 'normal' ? 'selected' : ''}>🆕 NEW</option>
                 </select>
@@ -1092,6 +1098,7 @@
 
     function getBadgeClass(p) {
       if (p.priority === 'hot') return 'hot';
+      if (p.priority === 'intalks') return 'intalks';
       if (p.priority === 'warm') return 'warm';
       // Don't show signed/stale in badge - they have their own buttons
       return 'new';
@@ -1099,6 +1106,7 @@
 
     function getBadgeLabel(p) {
       if (p.priority === 'hot') return '🔥 Hot';
+      if (p.priority === 'intalks') return '💬 In Talks';
       if (p.priority === 'warm') return '🟠 Warm';
       // Don't show Signed/Stale in badge label - they have their own buttons
       return '🆕 New';
@@ -1723,13 +1731,14 @@
     }).addTo(map);
 
     const markers = L.layerGroup().addTo(map);
-    const markerColors = { hot: '#e53e3e', warm: '#eab308', signed: '#38a169', new: '#3182ce', closed: '#a0aec0' };
+    const markerColors = { hot: '#e53e3e', intalks: '#8b5cf6', warm: '#eab308', signed: '#38a169', new: '#3182ce', closed: '#a0aec0' };
 
     function getMarkerColor(p) {
       // Pop In Needed = amber (check next_action for pop in variations)
       if (p.next_action && p.next_action.toLowerCase().includes('pop in')) return '#f59e0b';
       if (p.status === 'signed') return markerColors.signed;
       if (p.priority === 'hot') return markerColors.hot;
+      if (p.priority === 'intalks') return markerColors.intalks || '#8b5cf6';
       if (p.priority === 'warm') return markerColors.warm;
       if (p.status === 'closed') return markerColors.closed;
       return markerColors.new;
