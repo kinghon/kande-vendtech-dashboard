@@ -802,7 +802,7 @@
           ${!isFollowUp && p.next_action_added ? `<span style="font-size:0.7rem;color:var(--muted);">Added: ${new Date(p.next_action_added).toLocaleDateString('en-US', {month:'2-digit',day:'2-digit',year:'2-digit'})}</span>` : ''}
           <span class="todo-spacer" style="flex:1;"></span>
           ${p.next_action_date ? `<span style="font-size:0.75rem;color:var(--accent);">${p.next_action_date}</span>` : ''}
-          <button class="todo-route-btn" onclick="event.stopPropagation(); addToRoute(${p.id})" title="Add to Route Planner" style="padding:3px 10px;border-radius:12px;font-size:0.7rem;font-weight:600;cursor:pointer;border:1px solid var(--success);background:rgba(56,161,105,0.1);color:var(--success);margin-left:4px;">+ Route</button>
+          <button class="todo-route-btn" onclick="event.stopPropagation(); event.preventDefault(); addToRoute(${p.id})" title="Add to Route Planner" style="padding:6px 12px;border-radius:12px;font-size:0.75rem;font-weight:600;cursor:pointer;border:1px solid var(--success);background:rgba(56,161,105,0.15);color:var(--success);margin-left:4px;-webkit-tap-highlight-color:transparent;">+ Route</button>
           <button class="todo-delete-btn" onclick="event.stopPropagation(); removeTodo(${p.id})" title="Remove from to-do list" style="padding:2px 6px;border-radius:4px;font-size:0.7rem;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);margin-left:4px;">✕</button>
         </div>
       `}).join('');
@@ -1870,8 +1870,13 @@
     }
 
     function addToRoute(id) {
+      console.log('addToRoute called with id:', id);
       const p = prospects.find(pr => pr.id === id);
-      if (!p || !p.lat || !p.lng) {
+      if (!p) {
+        console.log('Prospect not found');
+        return;
+      }
+      if (!p.lat || !p.lng) {
         alert('This location doesn\'t have coordinates yet.');
         return;
       }
@@ -1880,10 +1885,9 @@
         return;
       }
       routeStops.push({ prospectId: p.id, name: p.name, address: p.address || '', lat: p.lat, lng: p.lng });
+      console.log('Added to route:', p.name, 'Total stops:', routeStops.length);
       renderRouteStops();
       geocodeAndPlot();
-      // Auto-expand route planner when adding
-      if (!routePlannerExpanded) toggleRoutePlanner();
     }
 
     function removeRouteStop(idx) {
