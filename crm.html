@@ -1841,9 +1841,20 @@
 
     // ── Route Planner Functions ──
     function toggleRoutePlanner() {
-      routePlannerExpanded = !routePlannerExpanded;
+      // If there are stops, always keep expanded
+      if (routeStops.length > 0) {
+        routePlannerExpanded = true;
+      } else {
+        routePlannerExpanded = !routePlannerExpanded;
+      }
       document.getElementById('routePlannerContent').classList.toggle('expanded', routePlannerExpanded);
       document.getElementById('routeArrow').textContent = routePlannerExpanded ? '▼' : '▶';
+    }
+
+    function setRouteExpanded(expanded) {
+      routePlannerExpanded = expanded;
+      document.getElementById('routePlannerContent').classList.toggle('expanded', expanded);
+      document.getElementById('routeArrow').textContent = expanded ? '▼' : '▶';
     }
 
     function renderRouteStops() {
@@ -1853,7 +1864,9 @@
       document.getElementById('routeStopCount').textContent = routeStops.length > 0 ? `(${routeStops.length} stops)` : '';
 
       if (routeStops.length === 0) {
-        container.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:8px;">No stops added yet. Click 🗺️ on prospects below to add.</div>';
+        container.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:8px;">No stops added yet. Click + Route on prospects to add.</div>';
+        // Collapse when empty
+        setRouteExpanded(false);
       } else {
         container.innerHTML = routeStops.map((s, i) => `
           <div class="route-stop">
@@ -1865,6 +1878,8 @@
             <button class="stop-remove" onclick="removeRouteStop(${i})">✕</button>
           </div>
         `).join('');
+        // Always expand when there are stops
+        setRouteExpanded(true);
       }
       localStorage.setItem('vendtech_route', JSON.stringify(routeStops));
     }
