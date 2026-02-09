@@ -2004,10 +2004,31 @@
 
         if (data.code === 'Ok' && data.trips && data.trips[0]) {
           const trip = data.trips[0];
+          
+          // Clear existing route layer if any
           if (routeLayer) map.removeLayer(routeLayer);
+          
+          // Create a layer group for route line + numbered markers
+          routeLayer = L.layerGroup().addTo(map);
+          
+          // Draw route polyline
           const routeCoords = trip.geometry.coordinates.map(c => [c[1], c[0]]);
-          routeLayer = L.polyline(routeCoords, { color: '#22c55e', weight: 4, opacity: 0.8 }).addTo(map);
-          map.fitBounds(routeLayer.getBounds(), { padding: [30, 30] });
+          L.polyline(routeCoords, { color: '#22c55e', weight: 5, opacity: 0.8 }).addTo(routeLayer);
+          
+          // Add numbered markers for each stop
+          routeStops.forEach((stop, i) => {
+            const numberedIcon = L.divIcon({
+              className: '',
+              html: `<div style="width:28px;height:28px;border-radius:50%;background:#22c55e;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff;">${i + 1}</div>`,
+              iconSize: [28, 28],
+              iconAnchor: [14, 14]
+            });
+            L.marker([stop.lat, stop.lng], { icon: numberedIcon })
+              .bindPopup(`<strong>Stop ${i + 1}: ${stop.name}</strong><br><span style="color:#666;font-size:12px;">${stop.address || ''}</span>`)
+              .addTo(routeLayer);
+          });
+          
+          map.fitBounds(routeLayer.getBounds(), { padding: [40, 40] });
           
           document.getElementById('summaryStops').textContent = routeStops.length;
           document.getElementById('summaryDistance').textContent = (trip.distance / 1609.34).toFixed(1) + ' mi';
