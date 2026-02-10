@@ -6806,8 +6806,8 @@ app.get('/api/pipeline/cards', (req, res) => {
     // Touchpoint count (Skool: 8-10 touches to close)
     const allActs = db.activities.filter(a => a.prospect_id === card.prospect_id);
     const touchCount = allActs.filter(a => {
-      const t = (a.type || '').toLowerCase();
-      return ['pop_in', 'email', 'call', 'phone', 'proposal', 'meeting', 'visit', 'outreach', 'thank_you'].includes(t);
+      const t = (a.type || '').toLowerCase().replace('-', '_');
+      return ['pop_in', 'pop-in', 'email', 'call', 'phone', 'proposal', 'meeting', 'visit', 'outreach', 'thank_you', 'status-change', 'note'].includes(t);
     }).length;
     // Qualification score
     const qualScore = calcQualificationScore(prospect);
