@@ -230,6 +230,66 @@
     </div>
   </div>
 
+  <!-- Kurtis To-Do List -->
+  <div class="todo-section" style="background:linear-gradient(135deg,#dc2626,#b91c1c);border-radius:14px;padding:18px 22px;margin-bottom:20px;color:#fff;box-shadow:0 4px 12px rgba(220,38,38,0.25);">
+    <h3 style="margin:0 0 14px 0;font-size:1.05rem;display:flex;align-items:center;gap:8px;font-weight:600;">
+      📋 Priority Tasks
+      <span style="font-size:0.75rem;opacity:0.8;font-weight:normal;margin-left:auto;">Updated Feb 10</span>
+    </h3>
+    <div style="display:flex;flex-direction:column;gap:8px;" id="todoList">
+      <label style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.15);padding:11px 14px;border-radius:10px;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.22)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+        <input type="checkbox" id="todo1" onchange="saveTodos()" style="width:18px;height:18px;cursor:pointer;accent-color:#22c55e;">
+        <span><strong>ESB Certification</strong> — Follow up on unanswered application email</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.15);padding:11px 14px;border-radius:10px;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.22)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+        <input type="checkbox" id="todo2" onchange="saveTodos()" style="width:18px;height:18px;cursor:pointer;accent-color:#22c55e;">
+        <span><strong>GBP Verification</strong> — Get Google Business Profile verified for Kande VendTech</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.1);padding:11px 14px;border-radius:10px;cursor:pointer;opacity:0.7;">
+        <input type="checkbox" id="todo3" checked disabled style="width:18px;height:18px;accent-color:#22c55e;">
+        <span style="text-decoration:line-through;"><strong>Email Warmup</strong> — Instantly.ai setup ✅ Running (2-3 weeks)</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.15);padding:11px 14px;border-radius:10px;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.22)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+        <input type="checkbox" id="todo4" onchange="saveTodos()" style="width:18px;height:18px;cursor:pointer;accent-color:#22c55e;">
+        <span><strong>First Location</strong> — Close first signed location for machine placement</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.15);padding:11px 14px;border-radius:10px;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.22)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+        <input type="checkbox" id="todo5" onchange="saveTodos()" style="width:18px;height:18px;cursor:pointer;accent-color:#22c55e;">
+        <span><strong>Pop-in Visits</strong> — Do 5 pop-ins to hot prospects this week</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.15);padding:11px 14px;border-radius:10px;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.22)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+        <input type="checkbox" id="todo6" onchange="saveTodos()" style="width:18px;height:18px;cursor:pointer;accent-color:#22c55e;">
+        <span><strong>Order Smart Cooler</strong> — Order first SandStar AI cooler ($3,600)</span>
+      </label>
+    </div>
+  </div>
+  <script>
+    // Load/save todo checkboxes
+    function saveTodos() {
+      const todos = {};
+      document.querySelectorAll('#todoList input[type="checkbox"]:not([disabled])').forEach(cb => {
+        todos[cb.id] = cb.checked;
+      });
+      localStorage.setItem('vendtech_todos', JSON.stringify(todos));
+    }
+    function loadTodos() {
+      try {
+        const saved = JSON.parse(localStorage.getItem('vendtech_todos') || '{}');
+        Object.keys(saved).forEach(id => {
+          const cb = document.getElementById(id);
+          if (cb) {
+            cb.checked = saved[id];
+            if (saved[id]) {
+              cb.closest('label').style.opacity = '0.6';
+              cb.closest('label').querySelector('span').style.textDecoration = 'line-through';
+            }
+          }
+        });
+      } catch(e) {}
+    }
+    document.addEventListener('DOMContentLoaded', loadTodos);
+  </script>
+
   <!-- KPI Summary Row -->
   <div class="kpi-grid">
     <div class="kpi-card">
