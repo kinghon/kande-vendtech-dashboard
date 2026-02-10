@@ -2859,6 +2859,118 @@ app.get('/api/outreach/stats', (req, res) => {
   });
 });
 
+// ===== EMAIL DRAFTS API =====
+
+// Initialize email drafts if not exists
+if (!db.emailDrafts) db.emailDrafts = [];
+
+// GET all email drafts
+app.get('/api/email-drafts', (req, res) => {
+  const drafts = (db.emailDrafts || []).map(d => {
+    // Enrich with prospect data if available
+    const prospect = d.prospect_id ? db.prospects.find(p => p.id === d.prospect_id) : null;
+    return {
+      ...d,
+      prospect_name: prospect?.name || null
+    };
+  });
+  res.json(drafts);
+});
+
+// GET single email draft
+app.get('/api/email-drafts/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const draft = (db.emailDrafts || []).find(d => d.id === id);
+  if (!draft) return res.status(404).json({ error: 'Draft not found' });
+  res.json(draft);
+});
+
+// POST create email draft
+app.post('/api/email-drafts', (req, res) => {
+  if (!req.body.to_email) return res.status(400).json({ error: 'to_email required' });
+  
+  const draft = {
+    id: nextId(),
+    to_email: req.body.to_email,
+    subject: req.body.subject || '',
+    body: req.body.body || '',
+    type: req.body.type || 'other', // followup, proposal, other
+    prospect_id: req.body.prospect_id || null,
+    status: 'pending',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  
+  if (!db.emailDrafts) db.emailDrafts = [];
+  db.emailDrafts.push(draft);
+  saveDB(db);
+  res.json(draft);
+});
+
+// PUT update email draft
+app.put('/api/email-drafts/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.emailDrafts || []).findIndex(d => d.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Draft not found' });
+  
+  db.emailDrafts[idx] = {
+    ...db.emailDrafts[idx],
+    ...req.body,
+    id, // Don't allow ID change
+    updated_at: new Date().toISOString()
+  };
+  saveDB(db);
+  res.json(db.emailDrafts[idx]);
+});
+
+// DELETE email draft
+app.delete('/api/email-drafts/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  if (!db.emailDrafts) db.emailDrafts = [];
+  db.emailDrafts = db.emailDrafts.filter(d => d.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// POST send email draft (via gog)
+app.post('/api/email-drafts/:id/send', async (req, res) => {
+  const id = parseInt(req.params.id);
+  const draft = (db.emailDrafts || []).find(d => d.id === id);
+  if (!draft) return res.status(404).json({ error: 'Draft not found' });
+  
+  try {
+    const { execSync } = require('child_process');
+    // Send via gog gmail
+    const cmd = `GOG_KEYRING_PASSWORD=kandepb2026 gog gmail send --to="${draft.to_email}" --subject="${draft.subject.replace(/"/g, '\\"')}" --body="${draft.body.replace(/"/g, '\\"').replace(/\n/g, '\\n')}" --account=kurtis@kandevendtech.com`;
+    execSync(cmd, { encoding: 'utf8', timeout: 30000 });
+    
+    // Mark as sent and remove from drafts
+    draft.status = 'sent';
+    draft.sent_at = new Date().toISOString();
+    
+    // Log activity if linked to prospect
+    if (draft.prospect_id) {
+      if (!db.activities) db.activities = [];
+      db.activities.push({
+        id: nextId(),
+        prospect_id: draft.prospect_id,
+        type: 'email',
+        description: `Email sent: ${draft.subject}`,
+        created_at: new Date().toISOString()
+      });
+    }
+    
+    // Remove from drafts after sending
+    db.emailDrafts = db.emailDrafts.filter(d => d.id !== id);
+    saveDB(db);
+    
+    res.json({ success: true, message: 'Email sent' });
+  } catch (e) {
+    console.error('Error sending email:', e.message);
+    res.status(500).json({ error: 'Failed to send email', details: e.message });
+  }
+});
+
 // ===== RESTOCK PREDICTIONS API =====
 
 // Log a restock event
@@ -3324,6 +3436,7 @@ app.get('/seo', (req, res) => res.sendFile(path.join(__dirname, 'seo.html')));
 app.get('/mobile-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'mobile-dashboard.html')));
 app.get('/forecasting', (req, res) => res.sendFile(path.join(__dirname, 'forecasting.html')));
 app.get('/scraper', (req, res) => res.sendFile(path.join(__dirname, 'scraper.html')));
+app.get('/email-drafts', (req, res) => res.sendFile(path.join(__dirname, 'email-drafts.html')));
 app.get('/pop-ins', (req, res) => res.sendFile(path.join(__dirname, 'activities.html'))); // Redirect to activities
 app.get('/pop-in', (req, res) => res.sendFile(path.join(__dirname, 'activities.html'))); // Redirect to activities
 app.get('/sales-materials', (req, res) => res.sendFile(path.join(__dirname, 'playbook.html'))); // Redirect to playbook

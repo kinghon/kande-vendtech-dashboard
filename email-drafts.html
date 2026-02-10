@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <title>Email Drafts — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
+      --muted: #64748b; --accent: #3b82f6; --success: #22c55e; --warn: #f59e0b; --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+    
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .header h1 { font-size: 1.5rem; display: flex; align-items: center; gap: 10px; }
+    .header-actions { display: flex; gap: 8px; }
+    .btn { padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    
+    .stats-bar { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; flex: 1; min-width: 140px; }
+    .stat-value { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+    .stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+    
+    .drafts-list { display: flex; flex-direction: column; gap: 12px; }
+    
+    .draft-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: all 0.2s; }
+    .draft-card:hover { border-color: var(--accent); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .draft-card.followup { border-left: 4px solid var(--warn); }
+    .draft-card.proposal { border-left: 4px solid var(--accent); }
+    
+    .draft-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; cursor: pointer; }
+    .draft-header:hover { background: #f8fafc; }
+    .draft-info { flex: 1; min-width: 0; }
+    .draft-to { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; }
+    .draft-subject { color: var(--muted); font-size: 0.85rem; margin-bottom: 6px; }
+    .draft-meta { display: flex; gap: 12px; font-size: 0.75rem; color: var(--muted); flex-wrap: wrap; }
+    .draft-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+    .badge-followup { background: rgba(245,158,11,0.15); color: var(--warn); }
+    .badge-proposal { background: rgba(59,130,246,0.15); color: var(--accent); }
+    .badge-pending { background: rgba(100,116,139,0.15); color: var(--muted); }
+    
+    .draft-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .draft-actions .btn { padding: 6px 12px; font-size: 0.8rem; }
+    
+    .draft-body { display: none; padding: 0 20px 20px; border-top: 1px solid var(--border); }
+    .draft-card.expanded .draft-body { display: block; padding-top: 16px; }
+    .draft-content { background: #f8fafc; border-radius: 8px; padding: 16px; font-size: 0.9rem; line-height: 1.6; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+    
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty-state h3 { font-size: 1.1rem; margin-bottom: 8px; color: var(--text); }
+    
+    .loading { text-align: center; padding: 40px; color: var(--muted); }
+    
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--card); border-radius: 16px; padding: 24px; width: 100%; max-width: 600px; max-height: 80vh; overflow-y: auto; }
+    .modal h2 { margin-bottom: 16px; font-size: 1.1rem; }
+    .modal label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; margin-top: 12px; font-weight: 500; }
+    .modal input, .modal textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; font-family: inherit; }
+    .modal textarea { min-height: 200px; resize: vertical; line-height: 1.6; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+    
+    @media (max-width: 640px) {
+      .stats-bar { flex-direction: column; }
+      .draft-header { flex-direction: column; }
+      .draft-actions { width: 100%; justify-content: flex-end; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📧 Email Drafts</h1>
+      <div class="header-actions">
+        <button class="btn btn-ghost" onclick="loadDrafts()">🔄 Refresh</button>
+        <button class="btn btn-primary" onclick="openComposeModal()">✏️ New Draft</button>
+      </div>
+    </div>
+    
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-value" id="totalDrafts">—</div>
+        <div class="stat-label">Total Drafts</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="followupDrafts" style="color: var(--warn);">—</div>
+        <div class="stat-label">Follow-ups Pending</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="proposalDrafts" style="color: var(--accent);">—</div>
+        <div class="stat-label">Proposals</div>
+      </div>
+    </div>
+    
+    <div id="draftsList" class="drafts-list">
+      <div class="loading">Loading drafts...</div>
+    </div>
+  </div>
+  
+  <!-- Compose Modal -->
+  <div class="modal-overlay" id="composeModal">
+    <div class="modal">
+      <h2>✏️ Compose Email Draft</h2>
+      <label>To</label>
+      <input type="email" id="composeTo" placeholder="recipient@example.com">
+      <label>Subject</label>
+      <input type="text" id="composeSubject" placeholder="Email subject">
+      <label>Message</label>
+      <textarea id="composeBody" placeholder="Write your email..."></textarea>
+      <label>Type</label>
+      <select id="composeType" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;">
+        <option value="followup">Follow-up</option>
+        <option value="proposal">Proposal</option>
+        <option value="other">Other</option>
+      </select>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeComposeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveDraft()">💾 Save Draft</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Edit Modal -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <h2>✏️ Edit Draft</h2>
+      <input type="hidden" id="editId">
+      <label>To</label>
+      <input type="email" id="editTo">
+      <label>Subject</label>
+      <input type="text" id="editSubject">
+      <label>Message</label>
+      <textarea id="editBody"></textarea>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="updateDraft()">💾 Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let drafts = [];
+    
+    async function loadDrafts() {
+      try {
+        const res = await fetch('/api/email-drafts');
+        drafts = await res.json();
+        renderDrafts();
+        updateStats();
+      } catch(e) {
+        console.error('Error loading drafts:', e);
+        document.getElementById('draftsList').innerHTML = '<div class="empty-state"><h3>Error loading drafts</h3><p>Please try refreshing the page.</p></div>';
+      }
+    }
+    
+    function updateStats() {
+      document.getElementById('totalDrafts').textContent = drafts.length;
+      document.getElementById('followupDrafts').textContent = drafts.filter(d => d.type === 'followup').length;
+      document.getElementById('proposalDrafts').textContent = drafts.filter(d => d.type === 'proposal').length;
+    }
+    
+    function renderDrafts() {
+      const container = document.getElementById('draftsList');
+      
+      if (drafts.length === 0) {
+        container.innerHTML = '<div class="empty-state"><h3>No drafts yet</h3><p>Email drafts will appear here when you create them or when follow-ups are auto-generated.</p></div>';
+        return;
+      }
+      
+      // Sort by created date, newest first
+      const sorted = [...drafts].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      
+      container.innerHTML = sorted.map(d => {
+        const typeClass = d.type === 'followup' ? 'followup' : d.type === 'proposal' ? 'proposal' : '';
+        const badgeClass = d.type === 'followup' ? 'badge-followup' : d.type === 'proposal' ? 'badge-proposal' : 'badge-pending';
+        const badgeText = d.type === 'followup' ? '🔔 Follow-up' : d.type === 'proposal' ? '📄 Proposal' : '📧 Draft';
+        const timeAgo = getTimeAgo(new Date(d.created_at));
+        const prospectLink = d.prospect_id ? `<a href="/crm/${d.prospect_id}" style="color:var(--accent);">${d.prospect_name || 'View Prospect'}</a>` : '';
+        
+        return `
+          <div class="draft-card ${typeClass}" id="draft-${d.id}">
+            <div class="draft-header" onclick="toggleDraft(${d.id})">
+              <div class="draft-info">
+                <div class="draft-to">To: ${escHtml(d.to_email)}</div>
+                <div class="draft-subject">${escHtml(d.subject)}</div>
+                <div class="draft-meta">
+                  <span class="draft-badge ${badgeClass}">${badgeText}</span>
+                  <span>Created ${timeAgo}</span>
+                  ${prospectLink ? `<span>${prospectLink}</span>` : ''}
+                </div>
+              </div>
+              <div class="draft-actions" onclick="event.stopPropagation()">
+                <button class="btn btn-ghost" onclick="editDraft(${d.id})">✏️ Edit</button>
+                <button class="btn btn-success" onclick="sendDraft(${d.id})">📤 Send</button>
+                <button class="btn btn-danger" onclick="deleteDraft(${d.id})">🗑️</button>
+              </div>
+            </div>
+            <div class="draft-body">
+              <div class="draft-content">${escHtml(d.body)}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    function toggleDraft(id) {
+      const card = document.getElementById('draft-' + id);
+      card.classList.toggle('expanded');
+    }
+    
+    function escHtml(str) {
+      return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    
+    function getTimeAgo(date) {
+      const diff = Date.now() - date.getTime();
+      const mins = Math.floor(diff / 60000);
+      if (mins < 1) return 'just now';
+      if (mins < 60) return mins + 'm ago';
+      const hours = Math.floor(mins / 60);
+      if (hours < 24) return hours + 'h ago';
+      const days = Math.floor(hours / 24);
+      return days + 'd ago';
+    }
+    
+    // Compose Modal
+    function openComposeModal() {
+      document.getElementById('composeTo').value = '';
+      document.getElementById('composeSubject').value = '';
+      document.getElementById('composeBody').value = '';
+      document.getElementById('composeType').value = 'followup';
+      document.getElementById('composeModal').classList.add('open');
+    }
+    
+    function closeComposeModal() {
+      document.getElementById('composeModal').classList.remove('open');
+    }
+    
+    async function saveDraft() {
+      const draft = {
+        to_email: document.getElementById('composeTo').value,
+        subject: document.getElementById('composeSubject').value,
+        body: document.getElementById('composeBody').value,
+        type: document.getElementById('composeType').value
+      };
+      
+      if (!draft.to_email || !draft.subject) {
+        alert('Please fill in To and Subject fields');
+        return;
+      }
+      
+      try {
+        await fetch('/api/email-drafts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(draft)
+        });
+        closeComposeModal();
+        loadDrafts();
+      } catch(e) {
+        alert('Error saving draft');
+      }
+    }
+    
+    // Edit Modal
+    function editDraft(id) {
+      const draft = drafts.find(d => d.id === id);
+      if (!draft) return;
+      
+      document.getElementById('editId').value = id;
+      document.getElementById('editTo').value = draft.to_email;
+      document.getElementById('editSubject').value = draft.subject;
+      document.getElementById('editBody').value = draft.body;
+      document.getElementById('editModal').classList.add('open');
+    }
+    
+    function closeEditModal() {
+      document.getElementById('editModal').classList.remove('open');
+    }
+    
+    async function updateDraft() {
+      const id = document.getElementById('editId').value;
+      const updates = {
+        to_email: document.getElementById('editTo').value,
+        subject: document.getElementById('editSubject').value,
+        body: document.getElementById('editBody').value
+      };
+      
+      try {
+        await fetch('/api/email-drafts/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates)
+        });
+        closeEditModal();
+        loadDrafts();
+      } catch(e) {
+        alert('Error updating draft');
+      }
+    }
+    
+    // Send Draft
+    async function sendDraft(id) {
+      const draft = drafts.find(d => d.id === id);
+      if (!draft) return;
+      
+      if (!confirm(`Send this email to ${draft.to_email}?`)) return;
+      
+      try {
+        const res = await fetch('/api/email-drafts/' + id + '/send', { method: 'POST' });
+        const result = await res.json();
+        if (result.success) {
+          alert('✓ Email sent successfully!');
+          loadDrafts();
+        } else {
+          alert('Error: ' + (result.error || 'Failed to send'));
+        }
+      } catch(e) {
+        alert('Error sending email');
+      }
+    }
+    
+    // Delete Draft
+    async function deleteDraft(id) {
+      if (!confirm('Delete this draft?')) return;
+      
+      try {
+        await fetch('/api/email-drafts/' + id, { method: 'DELETE' });
+        loadDrafts();
+      } catch(e) {
+        alert('Error deleting draft');
+      }
+    }
+    
+    // Initial load
+    loadDrafts();
+  </script>
+  <script src="/nav.js"></script>
+</body>
+</html>
