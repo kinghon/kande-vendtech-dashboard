@@ -929,6 +929,11 @@ app.get('/api/products', (req, res) => {
   res.json(db.products);
 });
 
+// Alias for backward compatibility
+app.get('/api/inventory', (req, res) => {
+  res.json(db.products);
+});
+
 app.post('/api/products', (req, res) => {
   if (!req.body.name || !req.body.name.trim()) {
     return res.status(400).json({ error: 'name is required' });
@@ -3314,6 +3319,18 @@ app.get('/lead-import', (req, res) => res.sendFile(path.join(__dirname, 'lead-im
 app.get('/gift-baskets', (req, res) => res.sendFile(path.join(__dirname, 'gift-baskets.html')));
 app.get('/pricing-strategies', (req, res) => res.sendFile(path.join(__dirname, 'pricing-strategies.html')));
 app.get('/bundles', (req, res) => res.sendFile(path.join(__dirname, 'bundles.html')));
+app.get('/pipeline', (req, res) => res.sendFile(path.join(__dirname, 'pipeline.html')));
+app.get('/seo', (req, res) => res.sendFile(path.join(__dirname, 'seo.html')));
+app.get('/mobile-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'mobile-dashboard.html')));
+app.get('/forecasting', (req, res) => res.sendFile(path.join(__dirname, 'forecasting.html')));
+app.get('/scraper', (req, res) => res.sendFile(path.join(__dirname, 'scraper.html')));
+app.get('/pop-ins', (req, res) => res.sendFile(path.join(__dirname, 'activities.html'))); // Redirect to activities
+app.get('/pop-in', (req, res) => res.sendFile(path.join(__dirname, 'activities.html'))); // Redirect to activities
+app.get('/sales-materials', (req, res) => res.sendFile(path.join(__dirname, 'playbook.html'))); // Redirect to playbook
+app.get('/market-intel', (req, res) => res.sendFile(path.join(__dirname, 'competitors.html'))); // Redirect to competitors
+app.get('/marketing', (req, res) => res.sendFile(path.join(__dirname, 'outreach.html'))); // Redirect to outreach
+app.get('/finances', (req, res) => res.redirect('/finance')); // Fix typo redirect
+app.get('/todo', (req, res) => res.redirect('/todos')); // Fix typo redirect
 app.get('/products', (req, res) => res.sendFile(path.join(__dirname, 'products.html')));
 app.get('/route-planner', (req, res) => res.sendFile(path.join(__dirname, 'route-planner.html')));
 app.get('/outreach', (req, res) => res.sendFile(path.join(__dirname, 'outreach.html')));
@@ -8557,6 +8574,33 @@ if ((db.contractTemplates || []).length === 0) {
   saveDB(db);
   console.log('📄 Seeded 4 default contract templates');
 }
+
+// Operations Incidents API
+app.get('/api/operations/incidents', (req, res) => {
+  res.json(db.operationsIncidents || []);
+});
+
+app.post('/api/operations/incidents', (req, res) => {
+  if (!db.operationsIncidents) db.operationsIncidents = [];
+  const incident = {
+    id: nextId(),
+    ...req.body,
+    status: req.body.status || 'open',
+    created_at: new Date().toISOString()
+  };
+  db.operationsIncidents.push(incident);
+  saveDB(db);
+  res.json(incident);
+});
+
+app.put('/api/operations/incidents/:id', (req, res) => {
+  if (!db.operationsIncidents) db.operationsIncidents = [];
+  const idx = db.operationsIncidents.findIndex(i => i.id === parseInt(req.params.id));
+  if (idx === -1) return res.status(404).json({ error: 'Incident not found' });
+  db.operationsIncidents[idx] = { ...db.operationsIncidents[idx], ...req.body, updated_at: new Date().toISOString() };
+  saveDB(db);
+  res.json(db.operationsIncidents[idx]);
+});
 
 // Contract Templates CRUD
 app.get('/api/contract-templates', (req, res) => {
