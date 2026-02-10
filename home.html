@@ -262,6 +262,13 @@
         <span><strong>Order Smart Cooler</strong> — Order first SandStar AI cooler ($3,600)</span>
       </label>
     </div>
+    <!-- Today's CRM Tasks (dynamic) -->
+    <div id="todayTasksSection" style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.2);">
+      <div style="font-size:0.85rem;font-weight:600;margin-bottom:10px;opacity:0.9;">📅 Today's Tasks</div>
+      <div id="todayTasksList" style="display:flex;flex-direction:column;gap:6px;">
+        <div style="opacity:0.7;font-size:0.85rem;padding:8px;">Loading tasks...</div>
+      </div>
+    </div>
   </div>
   <script>
     // Load/save todo checkboxes
@@ -287,7 +294,51 @@
         });
       } catch(e) {}
     }
-    document.addEventListener('DOMContentLoaded', loadTodos);
+    
+    // Load today's CRM tasks
+    async function loadTodayTasks() {
+      try {
+        const res = await fetch('/api/crm-tasks');
+        if (!res.ok) throw new Error('Failed to load tasks');
+        const tasks = await res.json();
+        const today = new Date().toISOString().split('T')[0];
+        const todayTasks = tasks.filter(t => !t.completed && t.due_date && t.due_date.startsWith(today));
+        const overdueTasks = tasks.filter(t => !t.completed && t.due_date && t.due_date < today);
+        const allTasks = [...overdueTasks, ...todayTasks];
+        
+        const container = document.getElementById('todayTasksList');
+        if (allTasks.length === 0) {
+          container.innerHTML = '<div style="opacity:0.7;font-size:0.85rem;padding:8px;">✨ No tasks due today!</div>';
+        } else {
+          container.innerHTML = allTasks.slice(0, 5).map(t => {
+            const isOverdue = t.due_date < today;
+            return `<label style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,${isOverdue ? '0.25' : '0.12'});padding:9px 12px;border-radius:8px;cursor:pointer;font-size:0.9rem;" onclick="completeTask(${t.id}, this)">
+              <input type="checkbox" style="width:16px;height:16px;cursor:pointer;accent-color:#22c55e;">
+              <span>${isOverdue ? '⚠️ ' : ''}${t.title}${t.prospect_name ? ' <span style="opacity:0.7">(' + t.prospect_name + ')</span>' : ''}</span>
+            </label>`;
+          }).join('');
+          if (allTasks.length > 5) {
+            container.innerHTML += `<a href="/tasks" style="color:#fff;opacity:0.8;font-size:0.8rem;padding:6px;text-align:center;">+ ${allTasks.length - 5} more tasks →</a>`;
+          }
+        }
+      } catch(e) {
+        document.getElementById('todayTasksList').innerHTML = '<div style="opacity:0.6;font-size:0.85rem;padding:8px;">Could not load tasks</div>';
+      }
+    }
+    
+    async function completeTask(id, el) {
+      try {
+        await fetch('/api/crm-tasks/' + id + '/complete', { method: 'PUT' });
+        el.style.opacity = '0.5';
+        el.style.textDecoration = 'line-through';
+        el.querySelector('input').checked = true;
+      } catch(e) {}
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      loadTodos();
+      loadTodayTasks();
+    });
   </script>
 
   <!-- KPI Summary Row -->
@@ -694,13 +745,30 @@
       }).join('');
     }
 
-    // --- Pipeline Funnel ---
+    // --- Pipeline Funnel (use prospects status if pipeline is empty) ---
     var stageOrder = ['new_lead', 'contacted', 'pop_in_done', 'interested', 'site_survey', 'proposal_sent', 'negotiating', 'contract_sent', 'signed'];
     var stageCounts = {};
-    pipelineCards.forEach(function(c) {
-      var s = c.stage || 'new_lead';
-      stageCounts[s] = (stageCounts[s] || 0) + 1;
-    });
+    
+    // Use pipeline cards if available, otherwise use prospects by status
+    if (pipelineCards && pipelineCards.length > 0) {
+      pipelineCards.forEach(function(c) {
+        var s = c.stage || 'new_lead';
+        stageCounts[s] = (stageCounts[s] || 0) + 1;
+      });
+    } else if (prospects && prospects.length > 0) {
+      // Map prospect status to pipeline stages
+      var statusToStage = {
+        'new': 'new_lead', 'hot': 'interested', 'warm': 'contacted', 'cold': 'new_lead',
+        'contacted': 'contacted', 'interested': 'interested', 'proposal_sent': 'proposal_sent',
+        'signed': 'signed', 'lost': 'new_lead'
+      };
+      prospects.forEach(function(p) {
+        var status = (p.status || 'new').toLowerCase();
+        var s = statusToStage[status] || 'new_lead';
+        stageCounts[s] = (stageCounts[s] || 0) + 1;
+      });
+    }
+    
     var maxCount = Math.max(1, ...Object.values(stageCounts));
     var funnelEl = document.getElementById('pipeline-funnel');
     
