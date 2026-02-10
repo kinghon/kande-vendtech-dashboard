@@ -107,7 +107,8 @@
         <span>Total: <b class="count" id="totalCards">0</b></span>
         <span>Tasks: <b class="count" id="overdueTasks">0</b> overdue</span>
         <button class="btn btn-primary btn-sm" onclick="openAddModal()">+ Add Lead</button>
-        <button class="btn btn-ghost btn-sm" onclick="syncPipeline()">⟳ Sync</button>
+        <button class="btn btn-ghost btn-sm" onclick="syncPipeline()">⟳ Sync New</button>
+        <button class="btn btn-ghost btn-sm" onclick="refreshAll()">🔄 Refresh</button>
       </div>
     </div>
     <div style="display:flex;gap:12px;flex:1;overflow:hidden;">
@@ -310,6 +311,13 @@
       showToast(`Synced: ${data.synced} new cards, ${data.total} total`);
       loadPipeline();
       loadRecentActivity();
+    }
+    
+    async function refreshAll() {
+      showToast('Refreshing all data...');
+      await loadPipeline();
+      await loadRecentActivity();
+      showToast('✓ Data refreshed');
     }
 
     async function loadRecentActivity() {
