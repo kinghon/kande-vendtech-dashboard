@@ -193,6 +193,8 @@
           if (a.next_action) text += (text ? ' · ' : '') + 'Next: ' + a.next_action;
 
           allEvents.push({
+            id: a.id,
+            type: a.type,
             prospectId: p.id,
             prospectName: p.name,
             propertyType: p.property_type,
@@ -390,7 +392,7 @@
       Object.entries(byDate).forEach(([dateLabel, dateEvents]) => {
         html += `<div class="date-divider">${dateLabel} <span style="font-weight:normal;opacity:0.6;">(${dateEvents.length})</span></div>`;
         dateEvents.forEach(e => {
-          html += `<div class="event-row">
+          html += `<div class="event-row" id="activity-row-${e.id}">
             <span class="event-icon">${e.icon}</span>
             <div class="event-body">
               <div class="event-text">
@@ -398,6 +400,10 @@
                 ${esc(e.text)}
               </div>
               <div class="event-time">${e.timestamp.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} · ${getTimeAgo(e.timestamp)}</div>
+            </div>
+            <div class="event-actions" style="display:flex;gap:6px;flex-shrink:0;">
+              <button onclick="editActivity(${e.id}, '${esc(e.text).replace(/'/g, "\\'")}', '${e.type}')" style="padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;cursor:pointer;font-size:0.7rem;color:#718096;" title="Edit">✏️</button>
+              <button onclick="deleteActivity(${e.id})" style="padding:4px 8px;border:1px solid #fed7d7;border-radius:6px;background:#fff7f7;cursor:pointer;font-size:0.7rem;color:#e53e3e;" title="Delete">🗑️</button>
             </div>
           </div>`;
         });
@@ -443,6 +449,81 @@
       });
     });
     document.getElementById('search').addEventListener('input', render);
+
+    // Edit activity
+    function editActivity(id, currentText, type) {
+      const modal = document.createElement('div');
+      modal.id = 'edit-activity-modal';
+      modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+      modal.innerHTML = `
+        <div style="background:#fff;border-radius:16px;padding:24px;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+          <h3 style="margin:0 0 16px 0;font-size:1.1rem;">✏️ Edit Activity</h3>
+          <label style="font-size:0.8rem;font-weight:600;color:#4a5568;display:block;margin-bottom:6px;">Type</label>
+          <select id="edit-activity-type" style="width:100%;padding:10px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:0.88rem;margin-bottom:16px;background:#fff;">
+            <option value="call" ${type === 'call' ? 'selected' : ''}>📞 Call</option>
+            <option value="pop-in" ${type === 'pop-in' ? 'selected' : ''}>🚶 Pop-in</option>
+            <option value="email" ${type === 'email' ? 'selected' : ''}>📧 Email</option>
+            <option value="note" ${type === 'note' ? 'selected' : ''}>📝 Note</option>
+            <option value="other" ${type === 'other' ? 'selected' : ''}>📋 Other</option>
+          </select>
+          <label style="font-size:0.8rem;font-weight:600;color:#4a5568;display:block;margin-bottom:6px;">Description</label>
+          <textarea id="edit-activity-text" style="width:100%;padding:10px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:0.88rem;min-height:100px;resize:vertical;font-family:inherit;">${currentText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+          <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px;">
+            <button onclick="closeEditModal()" style="padding:10px 20px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;font-size:0.85rem;font-weight:600;cursor:pointer;">Cancel</button>
+            <button onclick="saveActivity(${id})" style="padding:10px 24px;border:none;border-radius:8px;background:#3182ce;color:#fff;font-size:0.85rem;font-weight:600;cursor:pointer;">Save Changes</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      document.getElementById('edit-activity-text').focus();
+    }
+
+    function closeEditModal() {
+      const modal = document.getElementById('edit-activity-modal');
+      if (modal) modal.remove();
+    }
+
+    async function saveActivity(id) {
+      const type = document.getElementById('edit-activity-type').value;
+      const description = document.getElementById('edit-activity-text').value;
+      
+      try {
+        const res = await fetch('/api/activities/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type, description })
+        });
+        if (res.ok) {
+          closeEditModal();
+          init(); // Reload activities
+        } else {
+          alert('Failed to save changes');
+        }
+      } catch(e) {
+        alert('Error saving changes');
+      }
+    }
+
+    // Delete activity
+    async function deleteActivity(id) {
+      if (!confirm('Delete this activity? This cannot be undone.')) return;
+      
+      try {
+        const res = await fetch('/api/activities/' + id, { method: 'DELETE' });
+        if (res.ok) {
+          const row = document.getElementById('activity-row-' + id);
+          if (row) {
+            row.style.opacity = '0.5';
+            row.style.textDecoration = 'line-through';
+            setTimeout(() => row.remove(), 500);
+          }
+        } else {
+          alert('Failed to delete activity');
+        }
+      } catch(e) {
+        alert('Error deleting activity');
+      }
+    }
 
     init();
   </script>
