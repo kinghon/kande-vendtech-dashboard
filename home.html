@@ -310,11 +310,14 @@
         if (allTasks.length === 0) {
           container.innerHTML = '<div style="opacity:0.7;font-size:0.85rem;padding:8px;">✨ No tasks due today!</div>';
         } else {
-          container.innerHTML = allTasks.slice(0, 5).map(t => {
+          // Store tasks globally for popup access
+          window.todayTasksData = allTasks;
+          container.innerHTML = allTasks.slice(0, 5).map((t, idx) => {
             const isOverdue = t.due_date < today;
-            return `<label style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,${isOverdue ? '0.25' : '0.12'});padding:9px 12px;border-radius:8px;cursor:pointer;font-size:0.9rem;" onclick="completeTask(${t.id}, this)">
+            const isPopIn = (t.category || '').toLowerCase().includes('pop') || (t.title || '').toLowerCase().includes('pop');
+            return `<label style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,${isOverdue ? '0.25' : '0.12'});padding:9px 12px;border-radius:8px;cursor:pointer;font-size:0.9rem;" onclick="completeTask(${t.id}, this, ${isPopIn}, ${t.prospect_id || 'null'})">
               <input type="checkbox" style="width:16px;height:16px;cursor:pointer;accent-color:#22c55e;">
-              <span>${isOverdue ? '⚠️ ' : ''}${t.title}${t.prospect_name ? ' <span style="opacity:0.7">(' + t.prospect_name + ')</span>' : ''}</span>
+              <span>${isOverdue ? '⚠️ ' : ''}${isPopIn ? '🚶 ' : ''}${t.title}${t.prospect_name ? ' <span style="opacity:0.7">(' + t.prospect_name + ')</span>' : ''}</span>
             </label>`;
           }).join('');
           if (allTasks.length > 5) {
@@ -326,13 +329,99 @@
       }
     }
     
-    async function completeTask(id, el) {
+    async function completeTask(id, el, isPopIn, prospectId) {
+      // For pop-in tasks, show foot traffic popup first
+      if (isPopIn) {
+        showFootTrafficPopup(id, el, prospectId);
+        return;
+      }
+      // Regular task completion
       try {
         await fetch('/api/crm-tasks/' + id + '/complete', { method: 'PUT' });
         el.style.opacity = '0.5';
         el.style.textDecoration = 'line-through';
         el.querySelector('input').checked = true;
       } catch(e) {}
+    }
+    
+    function showFootTrafficPopup(taskId, el, prospectId) {
+      // Create popup overlay
+      const overlay = document.createElement('div');
+      overlay.id = 'footTrafficOverlay';
+      overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;';
+      overlay.innerHTML = `
+        <div style="background:#fff;border-radius:16px;padding:24px;max-width:340px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+          <h3 style="margin:0 0 8px 0;font-size:1.1rem;color:#1a202c;">🚶 Pop-In Complete!</h3>
+          <p style="margin:0 0 16px 0;color:#64748b;font-size:0.9rem;">How busy was this location?</p>
+          <label style="display:block;margin-bottom:12px;">
+            <span style="font-size:0.85rem;color:#475569;font-weight:500;">Estimated foot traffic per day</span>
+            <input type="number" id="footTrafficInput" placeholder="e.g., 500" min="0" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:8px;font-size:1rem;margin-top:6px;">
+          </label>
+          <label style="display:block;margin-bottom:16px;">
+            <span style="font-size:0.85rem;color:#475569;font-weight:500;">Notes (optional)</span>
+            <textarea id="popInNotes" placeholder="Any observations..." rows="2" style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;font-size:0.9rem;margin-top:6px;resize:none;"></textarea>
+          </label>
+          <div style="display:flex;gap:10px;">
+            <button onclick="cancelFootTrafficPopup()" style="flex:1;padding:12px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#64748b;font-weight:500;cursor:pointer;">Cancel</button>
+            <button onclick="submitFootTraffic(${taskId}, ${prospectId})" style="flex:1;padding:12px;border:none;border-radius:8px;background:#22c55e;color:#fff;font-weight:600;cursor:pointer;">Complete ✓</button>
+          </div>
+        </div>
+      `;
+      overlay.querySelector('#footTrafficInput').taskEl = el;
+      document.body.appendChild(overlay);
+      document.getElementById('footTrafficInput').focus();
+    }
+    
+    function cancelFootTrafficPopup() {
+      const overlay = document.getElementById('footTrafficOverlay');
+      if (overlay) overlay.remove();
+    }
+    
+    async function submitFootTraffic(taskId, prospectId) {
+      const footTraffic = document.getElementById('footTrafficInput').value;
+      const notes = document.getElementById('popInNotes').value;
+      const el = document.getElementById('footTrafficInput').taskEl;
+      
+      try {
+        // Complete the task
+        await fetch('/api/crm-tasks/' + taskId + '/complete', { method: 'PUT' });
+        
+        // If we have a prospect, update their foot traffic estimate
+        if (prospectId && footTraffic) {
+          await fetch('/api/prospects/' + prospectId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              estimated_foot_traffic: parseInt(footTraffic),
+              notes: notes ? (notes + ' (from pop-in)') : undefined
+            })
+          });
+        }
+        
+        // Log as activity
+        if (prospectId) {
+          await fetch('/api/activities', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              prospect_id: prospectId,
+              type: 'pop_in',
+              notes: 'Foot traffic: ' + (footTraffic || 'not recorded') + (notes ? '. ' + notes : '')
+            })
+          });
+        }
+        
+        // Update UI
+        if (el) {
+          el.style.opacity = '0.5';
+          el.style.textDecoration = 'line-through';
+          el.querySelector('input').checked = true;
+        }
+      } catch(e) {
+        console.error('Error completing pop-in:', e);
+      }
+      
+      cancelFootTrafficPopup();
     }
     
     document.addEventListener('DOMContentLoaded', () => {
