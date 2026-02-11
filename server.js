@@ -20672,6 +20672,11 @@ app.post('/api/campaigns/:id/replied', (req, res) => {
 });
 
 // --- AUTO-PROPOSAL GENERATION ---
+// PDF template: templates/KandeVendTech_proposal_template.pdf (3.4MB, 14 pages)
+// HTML template: templates/proposal-template.html (70+ variables)
+// The PDF is the branded proposal sent as email attachment
+// The HTML template can generate custom web-viewable proposals
+
 app.post('/api/proposals/auto-generate', (req, res) => {
   const { prospect_id } = req.body;
   if (!prospect_id) return res.status(400).json({ error: 'prospect_id required' });
@@ -20696,6 +20701,12 @@ app.post('/api/proposals/auto-generate', (req, res) => {
   const revenueShare = prospect.revenue_share_percent || 5;
   const monthlyEstimate = prospect.monthly_revenue_potential || (machineCount * 1500);
 
+  // Revenue projections
+  const avgTransaction = 4.50;
+  const conservativeDailyTxns = Math.round(count * 0.05);
+  const moderateDailyTxns = Math.round(count * 0.10);
+  const optimisticDailyTxns = Math.round(count * 0.15);
+
   const proposal = {
     id: nextId(),
     prospect_id,
@@ -20713,6 +20724,12 @@ app.post('/api/proposals/auto-generate', (req, res) => {
     installation_cost: 0,
     monthly_service_cost: 0,
     contract_length_months: 12,
+    avg_transaction: avgTransaction,
+    revenue_projections: {
+      conservative: { daily_txns: conservativeDailyTxns, monthly_gross: Math.round(conservativeDailyTxns * avgTransaction * 30), property_share: Math.round(conservativeDailyTxns * avgTransaction * 30 * revenueShare / 100) },
+      moderate: { daily_txns: moderateDailyTxns, monthly_gross: Math.round(moderateDailyTxns * avgTransaction * 30), property_share: Math.round(moderateDailyTxns * avgTransaction * 30 * revenueShare / 100) },
+      optimistic: { daily_txns: optimisticDailyTxns, monthly_gross: Math.round(optimisticDailyTxns * avgTransaction * 30), property_share: Math.round(optimisticDailyTxns * avgTransaction * 30 * revenueShare / 100) }
+    },
     highlights: [
       'Zero cost to property — we provide and maintain everything',
       '24/7 fresh food, beverages, and snacks',
@@ -20721,6 +20738,8 @@ app.post('/api/proposals/auto-generate', (req, res) => {
       `${revenueShare}% monthly revenue share to property`,
       'Weekly restocking and maintenance included'
     ],
+    pdf_template: 'templates/KandeVendTech_proposal_template.pdf',
+    html_template: 'templates/proposal-template.html',
     status: 'draft',
     auto_generated: true,
     created_at: new Date().toISOString(),
@@ -20734,15 +20753,15 @@ app.post('/api/proposals/auto-generate', (req, res) => {
     id: nextId(),
     prospect_id,
     type: 'proposal_drafted',
-    description: `Auto-generated proposal ${proposalNumber}: ${machineCount} machine(s), ${revenueShare}% share`,
+    description: `Auto-generated proposal ${proposalNumber}: ${machineCount} machine(s), ${revenueShare}% share, est. $${monthlyEstimate}/mo`,
     created_at: new Date().toISOString()
   });
 
-  // Create task to review
+  // Create task to review and send
   db.crmTasks.push({
     id: nextId(),
     prospect_id,
-    title: `Review & send proposal ${proposalNumber} for ${prospect.name}`,
+    title: `Review & send proposal ${proposalNumber} for ${prospect.name} — attach PDF + start campaign`,
     task_type: 'proposal',
     priority: 'high',
     due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
@@ -20752,6 +20771,18 @@ app.post('/api/proposals/auto-generate', (req, res) => {
 
   saveDB(db);
   res.json(proposal);
+});
+
+// Serve the proposal PDF for download
+app.get('/api/proposals/pdf-template', (req, res) => {
+  const pdfPath = path.join(__dirname, 'templates', 'KandeVendTech_proposal_template.pdf');
+  if (fs.existsSync(pdfPath)) {
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'inline; filename="KandeVendTech_proposal.pdf"');
+    res.sendFile(pdfPath);
+  } else {
+    res.status(404).json({ error: 'Proposal PDF template not found' });
+  }
 });
 
 // --- PIPELINE AUTO-ADVANCE (when activities are logged) ---
