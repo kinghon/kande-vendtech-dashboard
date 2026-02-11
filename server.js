@@ -20282,12 +20282,12 @@ const CAMPAIGN_TEMPLATES = [
   {
     step: 3, delay_days: 14,
     subject_template: 'Re: Visit Follow-Up: Extra Information About Our Vending',
-    body_template: `Hey {contact_name},\n\nWanted to share a quick update — we just placed machines at a property near {property_name} and they're already seeing great usage from residents.\n\nThe best part is there's zero cost and zero hassle on your end. We handle everything.\n\nIf you're still open to it, I'd love to find a time to chat. No pressure at all.\n\n${KANDE_SIGNATURE_PLAIN}`
+    body_template: `Hey {contact_name},\n\nJust checking in again about our custom vending machines. Adding our modern, luxury machines can provide convenience for your employees and guests while enhancing your space with a professional look.\n\nPlus, having your logo on the machine can reinforce your brand.\n\nAre you available this week for a quick meeting to discuss further?\n\n${KANDE_SIGNATURE_PLAIN}`
   },
   {
     step: 4, delay_days: 21,
     subject_template: 'Re: Visit Follow-Up: Extra Information About Our Vending',
-    body_template: `Hey {contact_name},\n\nQuick heads up — we're filling up our installation schedule for the {area} area. Wanted to make sure {property_name} doesn't miss out if you're still interested.\n\nEither way, no worries. Just let me know!\n\n${KANDE_SIGNATURE_PLAIN}`
+    body_template: `Hey {contact_name},\n\nI hope this message finds you well. A while back, my team mentioned your interest in our custom vending machines. We provide a range of modern, luxury options, and can even include your logo on many designs.\n\nOur machines can enhance your space by offering convenient amenities to your employees and guests while promoting your brand.\n\nCould we schedule a brief chat to revisit how we can assist you?\n\n${KANDE_SIGNATURE_PLAIN}`
   },
   {
     step: 5, delay_days: 30,
