@@ -20276,7 +20276,8 @@ const CAMPAIGN_TEMPLATES = [
   {
     step: 2, delay_days: 7,
     subject_template: 'Re: Visit Follow-Up: Extra Information About Our Vending',
-    body_template: `Hey {contact_name},\n\nJust checking in — I know things get busy. If you have any questions about the vending proposal for {property_name}, I'm happy to help.\n\nWe've been getting great feedback from other properties in the area. Would love to set up a quick 10-minute call this week if that works for you.\n\n${KANDE_SIGNATURE_PLAIN}`
+    body_template: `Hey {contact_name},\n\nI wanted to share some examples of how our custom vending machines can transform your space. We offer sleek, modern machines that can provide snacks, beverages, and even healthy options.\n\nMany of our designs can feature your logo, adding a professional touch and reinforcing your brand. Imagine a break room with a state-of-the-art vending machine offering your team convenient access to refreshments, or a lobby with a stylish, branded machine welcoming guests.\n\nWe'll take care of all of the expenses and we can even give you a percentage of the profits if you'd like to discuss revenue share with us.\n\nAre you available this week for a brief meeting to explore these options?\n\n${KANDE_SIGNATURE_PLAIN}`,
+    inline_images: ['https://vend.kandedash.com/email-lounge.jpg', 'https://vend.kandedash.com/email-machine.jpg']
   },
   {
     step: 3, delay_days: 14,
@@ -20907,7 +20908,14 @@ app.post('/api/campaigns/:id/send-via-instantly', async (req, res) => {
       // Replace plain text signature with HTML signature for Instantly emails
       let body = fillTemplate(tmpl.body_template, vars);
       body = body.replace(KANDE_SIGNATURE_PLAIN, '').trim();
-      body = body.replace(/\n/g, '<br>') + '<br><br>' + KANDE_SIGNATURE_HTML;
+      body = body.replace(/\n/g, '<br>') + '<br><br>';
+      // Add inline images if template has them
+      if (tmpl.inline_images && tmpl.inline_images.length > 0) {
+        body += tmpl.inline_images.map(url =>
+          `<br><img src="${url}" alt="Kande VendTech" style="max-width:500px;width:100%;border-radius:8px;margin:8px 0;">`
+        ).join('') + '<br>';
+      }
+      body += KANDE_SIGNATURE_HTML;
       return {
         subject: fillTemplate(tmpl.subject_template, vars),
         body,
