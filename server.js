@@ -20256,7 +20256,7 @@ if (!db.emailDrafts) db.emailDrafts = [];
 // Campaign email templates (5-step follow-up after proposal)
 // Email signature (matches Gmail/Mixmax signature exactly)
 // Sig format from Kurtis's screenshot: Thanks! / Kurtis Hon (bold blue) / CEO / KandeVendTech (link) / [logo on dark bg]
-const KANDE_SIGNATURE_HTML = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:small;color:#000;">Thanks!<br><b>Kurtis Hon</b><br><span style="color:#000;">CEO</span><br><a href="https://www.kandevendtech.com" style="color:#1155cc;text-decoration:none;"><b>KandeVendTech</b></a><br><a href="https://www.kandevendtech.com"><img src="https://kandevendtech.com/images/kande-sig-logo.jpg" alt="Kande VendTech" width="90" height="51" style="margin-top:4px;"></a></div>`;
+const KANDE_SIGNATURE_HTML = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:small;color:#000;">Thanks!<br><b>Kurtis Hon</b><br><span style="color:#000;">CEO</span><br><a href="https://www.kandevendtech.com" style="color:#1155cc;text-decoration:none;"><b>KandeVendTech</b></a><br><a href="https://www.kandevendtech.com"><img src="https://i.imgur.com/c8P6CjY.jpeg" alt="Kande VendTech" width="90" height="51" style="margin-top:4px;"></a></div>`;
 
 const KANDE_SIGNATURE_PLAIN = `Thanks!\nKurtis Hon\nCEO\nKandeVendTech`;
 
@@ -20277,7 +20277,7 @@ const CAMPAIGN_TEMPLATES = [
     step: 2, delay_days: 7,
     subject_template: 'Custom Vending Solutions for Your Space',
     body_template: `Hey {contact_name},\n\nI wanted to share some examples of how our custom vending machines can transform your space. We offer sleek, modern machines that can provide snacks, beverages, and even healthy options.\n\nMany of our designs can feature your logo, adding a professional touch and reinforcing your brand. Imagine a break room with a state-of-the-art vending machine offering your team convenient access to refreshments, or a lobby with a stylish, branded machine welcoming guests.\n\nWe'll take care of all of the expenses and we can even give you a percentage of the profits if you'd like to discuss revenue share with us.\n\nAre you available this week for a brief meeting to explore these options?\n\n${KANDE_SIGNATURE_PLAIN}`,
-    inline_images: ['https://kandevendtech.com/images/email-lounge.jpg', 'https://kandevendtech.com/images/email-machine.jpg']
+    inline_images: ['https://i.imgur.com/v78yVQ6.jpeg', 'https://i.imgur.com/8GYMdbn.jpeg']
   },
   {
     step: 3, delay_days: 14,
