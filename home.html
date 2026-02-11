@@ -886,10 +886,28 @@
         var key = a.prospect_id;
         if (!locations[key]) locations[key] = { id: key, name: a.prospect_name, type: '', stage: '', events: [], emailStatus: '', maxOpens: 0, hasReply: false };
         var icon = actIcons[a.type] || '📌';
-        var label = a.type === 'pop-in' || a.type === 'pop_in' ? 'Pop-in visit' : a.type === 'call' ? 'Phone call' : a.type === 'interested' ? 'Interested' : a.type === 'proposal' ? 'Proposal' : (a.description || a.type);
+        var desc = (a.description || '').replace(/\s*—\s*$/, '').trim();
+        var label, detail;
+        if (a.type === 'pop-in' || a.type === 'pop_in') {
+          label = 'Pop-in visit';
+          detail = desc.length > 120 ? desc.substring(0, 120) + '…' : desc;
+        } else if (a.type === 'call') {
+          label = 'Phone call';
+          detail = desc.length > 120 ? desc.substring(0, 120) + '…' : desc;
+        } else if (a.type === 'pipeline_move') {
+          label = desc; detail = '';
+        } else if (a.type === 'status-change') {
+          label = desc; detail = '';
+        } else if (a.type === 'email' || a.type === 'campaign_launched' || a.type === 'campaign_started') {
+          label = desc.length > 100 ? desc.substring(0, 100) + '…' : desc;
+          detail = '';
+        } else {
+          label = a.type || 'Activity';
+          detail = desc.length > 120 ? desc.substring(0, 120) + '…' : desc;
+        }
         locations[key].events.push({
           icon: icon, type: a.type,
-          text: '<strong>' + label + '</strong>' + (a.description && a.description !== a.type ? ' — ' + a.description : ''),
+          text: '<strong>' + label + '</strong>' + (detail ? ' — ' + detail : ''),
           detail: a.created_by || 'Jordan',
           date: a.date
         });
