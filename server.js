@@ -20483,13 +20483,28 @@ app.get('/api/sales-dashboard', (req, res) => {
   });
 
   // Sort each prospect's emails by date, newest first
-  Object.values(emailsByProspect).forEach(arr => arr.sort((a, b) => new Date(b.sent_at) - new Date(a.sent_at)));
+  // Filter out emails where the ONLY opens were from internal team
+  Object.values(emailsByProspect).forEach(arr => {
+    arr.sort((a, b) => new Date(b.sent_at) - new Date(a.sent_at));
+    // Adjust open counts: if last_event_by is internal and that's the only opener, mark as 0 external opens
+    arr.forEach(m => {
+      if (m.last_event_by && isInternalEmail(m.last_event_by) && !m.was_replied) {
+        m._internal_opens = true;
+        // We can't know exact split, but if ALL events are from internal, real opens = 0
+        // If last event is internal but there were opens before, some may be real
+        // Conservative: if lastEventBy is internal, subtract 1 from opens as minimum
+        m._adjusted_opens = Math.max(0, (m.num_opens || 0) - 1);
+      } else {
+        m._adjusted_opens = m.num_opens || 0;
+      }
+    });
+  });
 
   const emailActivity = Object.entries(emailsByProspect)
     .map(([pid, msgs]) => {
       const latest = msgs[0];
       const prospect = prospects.find(p => p.id === parseInt(pid));
-      const allOpens = msgs.reduce((s, m) => s + (m.num_opens || 0), 0);
+      const allOpens = msgs.reduce((s, m) => s + (m._adjusted_opens !== undefined ? m._adjusted_opens : (m.num_opens || 0)), 0);
       const anyReply = msgs.some(m => m.was_replied);
       const anyBounce = msgs.some(m => m.was_bounced);
       return {
@@ -20510,13 +20525,14 @@ app.get('/api/sales-dashboard', (req, res) => {
         all_emails: msgs.map(m => ({
           subject: m.subject,
           sent_at: m.sent_at,
-          opens: m.num_opens || 0,
-          last_opened: m.last_event === 'opened' ? m.last_event_at : null,
+          opens: m._adjusted_opens !== undefined ? m._adjusted_opens : (m.num_opens || 0),
+          last_opened: m.last_event === 'opened' && !isInternalEmail(m.last_event_by) ? m.last_event_at : null,
           last_event: m.last_event,
           last_event_at: m.last_event_at,
-          last_event_by: m.last_event_by,
+          last_event_by: isInternalEmail(m.last_event_by) ? null : m.last_event_by,
           replied: m.was_replied || false,
-          bounced: m.was_bounced || false
+          bounced: m.was_bounced || false,
+          has_internal_opens: m._internal_opens || false
         })),
         // Real-time Instantly open timestamps (each individual open event)
         open_events: (prospect && prospect.email_events || [])
@@ -20584,12 +20600,25 @@ app.get('/api/sales-dashboard', (req, res) => {
 });
 
 // --- INSTANTLY WEBHOOK RECEIVER (real-time email events) ---
-// Stores every open/send/reply with exact timestamp
+// Stores every open/send/reply with exact timestamp — EXCLUDES internal team opens
 if (!db.instantlyEvents) db.instantlyEvents = [];
+
+const INTERNAL_DOMAINS = ['kandevendtech.com', 'kandevendtech.co', 'kandephotobooths.com'];
+function isInternalEmail(email) {
+  if (!email) return false;
+  return INTERNAL_DOMAINS.some(d => email.toLowerCase().endsWith('@' + d));
+}
 
 app.post('/api/webhooks/instantly', (req, res) => {
   try {
     const event = req.body;
+
+    // Skip internal team opens (Jordan checking emails, Kurtis previewing, etc.)
+    const openerEmail = event.opener_email || event.opened_by || event.from_email || '';
+    if (event.event_type === 'email_opened' && isInternalEmail(openerEmail)) {
+      return res.json({ ok: true, skipped: 'internal_open' });
+    }
+
     const entry = {
       id: nextId(),
       event_type: event.event_type || event.type || 'unknown',
@@ -20598,6 +20627,7 @@ app.post('/api/webhooks/instantly', (req, res) => {
       campaign_name: event.campaign_name || '',
       subject: event.subject || event.email_subject || '',
       timestamp: event.timestamp || new Date().toISOString(),
+      opener_email: openerEmail,
       raw: event
     };
 
@@ -21389,19 +21419,32 @@ app.post('/api/mixmax/sync-to-crm', async (req, res) => {
 
         if (!prospect) continue;
 
+        // Filter out internal opens (Jordan, Kurtis, team)
+        const internalDomains = ['kandevendtech.com', 'kandevendtech.co', 'kandephotobooths.com'];
+        const isInternalEmail = (email) => email && internalDomains.some(d => email.toLowerCase().endsWith('@' + d));
+        const lastEventByExternal = !isInternalEmail(msg.lastEventByEmail);
+
+        // Count only external opens (subtract internal team opens)
+        // If lastEventBy is internal, the real prospect opens are likely fewer
+        let externalOpens = msg.numOpens || 0;
+        // Mixmax doesn't break down opens by opener, but if lastEventBy is Jordan,
+        // we know at least some opens are internal. Best we can do is note it.
+        const lastEventIsInternal = isInternalEmail(msg.lastEventByEmail);
+
         const tracking = {
           prospect_id: prospect.id,
           prospect_name: prospect.name,
           recipient_email: recipient.email,
           subject: msg.subject,
           sent_at: msg.sent ? new Date(msg.sent).toISOString() : null,
-          num_opens: msg.numOpens || 0,
+          num_opens: externalOpens,
           num_clicks: msg.numClicks || 0,
           was_replied: msg.wasReplied ? true : false,
           was_bounced: msg.wasBounced ? true : false,
           last_event: msg.lastEventType,
           last_event_at: msg.lastEventAt ? new Date(msg.lastEventAt).toISOString() : null,
-          last_event_by: msg.lastEventByEmail
+          last_event_by: msg.lastEventByEmail,
+          last_event_is_internal: lastEventIsInternal
         };
 
         // Update prospect with tracking info
