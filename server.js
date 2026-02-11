@@ -20829,6 +20829,225 @@ app.get('/api/campaign-templates', (req, res) => {
   res.json(CAMPAIGN_TEMPLATES);
 });
 
+// --- INSTANTLY.AI CAMPAIGN INTEGRATION ---
+// Create an Instantly campaign for a prospect and add them as a lead
+
+app.post('/api/campaigns/:id/send-via-instantly', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const campaign = (db.campaigns || []).find(c => c.id === id);
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+    const prospect = db.prospects.find(p => p.id === campaign.prospect_id);
+    if (!prospect) return res.status(404).json({ error: 'Prospect not found' });
+
+    const contact = (db.contacts || []).find(c => c.prospect_id === campaign.prospect_id && c.is_primary) ||
+                    (db.contacts || []).find(c => c.prospect_id === campaign.prospect_id);
+    const toEmail = campaign.contact_email || (contact ? contact.email : prospect.email);
+    if (!toEmail) return res.status(400).json({ error: 'No email address for this prospect' });
+
+    // Build email sequence from campaign templates
+    const vars = {
+      contact_name: campaign.contact_name || 'there',
+      property_name: campaign.property_name || prospect.name || '',
+      area: campaign.area || 'Henderson',
+      machine_count: prospect.recommended_machines || '1'
+    };
+
+    const sequences = CAMPAIGN_TEMPLATES.map((tmpl, idx) => ({
+      subject: fillTemplate(tmpl.subject_template, vars),
+      body: fillTemplate(tmpl.body_template, vars).replace(/\n/g, '<br>'),
+      delay: idx === 0 ? 0 : tmpl.delay_days
+    }));
+
+    // Create Instantly campaign
+    const campaignName = `VendTech Follow-Up: ${prospect.name} (${new Date().toISOString().split('T')[0]})`;
+    const instantlyCampaign = await instantlyFetch('/campaigns', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: campaignName,
+        campaign_schedule: {
+          schedules: [{
+            name: 'Business Hours',
+            timing: { from: '08:00', to: '17:00' },
+            days: { 1: true, 2: true, 3: true, 4: true, 5: true }, // Mon-Fri
+            timezone: 'America/Los_Angeles'
+          }]
+        }
+      })
+    });
+
+    const instantlyCampaignId = instantlyCampaign.id;
+
+    // Add email sequences as subsequences
+    for (let i = 0; i < sequences.length; i++) {
+      const seq = sequences[i];
+      await instantlyFetch(`/campaigns/${instantlyCampaignId}/sequences`, {
+        method: 'POST',
+        body: JSON.stringify({
+          sequences: [{
+            steps: [{
+              type: 'email',
+              delay: seq.delay,
+              variants: [{
+                subject: seq.subject,
+                body: seq.body
+              }]
+            }]
+          }]
+        })
+      });
+    }
+
+    // Add the lead to the campaign
+    await instantlyFetch('/leads', {
+      method: 'POST',
+      body: JSON.stringify({
+        campaign_id: instantlyCampaignId,
+        email: toEmail,
+        first_name: (campaign.contact_name || '').split(' ')[0] || '',
+        last_name: (campaign.contact_name || '').split(' ').slice(1).join(' ') || '',
+        company_name: prospect.name || '',
+        custom_variables: {
+          property_name: prospect.name,
+          property_type: prospect.property_type,
+          prospect_id: String(prospect.id)
+        }
+      })
+    });
+
+    // Add sending account
+    await instantlyFetch(`/campaigns/${instantlyCampaignId}/accounts`, {
+      method: 'POST',
+      body: JSON.stringify({
+        account_ids: ['kurtis@kandevendtech.com']
+      })
+    });
+
+    // Activate the campaign
+    await instantlyFetch(`/campaigns/${instantlyCampaignId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 1 }) // 1 = active
+    });
+
+    // Update local campaign with Instantly ID
+    campaign.instantly_campaign_id = instantlyCampaignId;
+    campaign.instantly_status = 'active';
+    campaign.updated_at = new Date().toISOString();
+
+    // Log activity
+    db.activities.push({
+      id: nextId(),
+      prospect_id: campaign.prospect_id,
+      type: 'campaign_launched',
+      description: `Instantly campaign launched: "${campaignName}" — ${sequences.length} emails to ${toEmail}`,
+      created_at: new Date().toISOString()
+    });
+
+    saveDB(db);
+    res.json({ success: true, instantly_campaign_id: instantlyCampaignId, campaign });
+  } catch (err) {
+    console.error('Instantly campaign error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Check Instantly analytics for opens/replies and update local campaigns
+app.post('/api/campaigns/sync-tracking', async (req, res) => {
+  try {
+    const activeCampaigns = (db.campaigns || []).filter(c => c.instantly_campaign_id && c.status === 'active');
+    const results = [];
+
+    for (const campaign of activeCampaigns) {
+      try {
+        // Get campaign analytics from Instantly
+        const analytics = await instantlyFetch(`/analytics/campaign/summary?campaign_id=${campaign.instantly_campaign_id}`);
+
+        if (analytics) {
+          const opens = analytics.total_opened || analytics.opens || 0;
+          const replies = analytics.total_replied || analytics.replies || 0;
+          const bounced = analytics.total_bounced || analytics.bounced || 0;
+
+          // Update campaign tracking
+          campaign.emails_opened = opens;
+          campaign.updated_at = new Date().toISOString();
+
+          // If they replied, stop the campaign
+          if (replies > 0 && !campaign.last_reply_date) {
+            campaign.status = 'completed';
+            campaign.completed_reason = 'replied';
+            campaign.last_reply_date = new Date().toISOString();
+
+            // Pause Instantly campaign
+            try {
+              await instantlyFetch(`/campaigns/${campaign.instantly_campaign_id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status: 0 }) // 0 = paused
+              });
+            } catch(e) { console.error('Failed to pause Instantly campaign:', e.message); }
+
+            // Auto-advance pipeline
+            const card = db.pipelineCards.find(c => c.prospect_id === campaign.prospect_id);
+            if (card && ['proposal_sent', 'interested', 'pop_in_done', 'contacted'].includes(card.stage)) {
+              card.stage = 'negotiating';
+              card.entered_stage_at = new Date().toISOString();
+              card.updated_at = new Date().toISOString();
+            }
+
+            // Create urgent task
+            db.crmTasks.push({
+              id: nextId(),
+              prospect_id: campaign.prospect_id,
+              title: `🔥 ${campaign.property_name} REPLIED — respond ASAP!`,
+              task_type: 'email',
+              priority: 'high',
+              due_date: new Date().toISOString(),
+              completed: false,
+              created_at: new Date().toISOString()
+            });
+
+            db.activities.push({
+              id: nextId(),
+              prospect_id: campaign.prospect_id,
+              type: 'email_reply',
+              description: `Lead replied to Instantly campaign! Campaign auto-stopped.`,
+              created_at: new Date().toISOString()
+            });
+          }
+
+          // If bounced, mark it
+          if (bounced > 0) {
+            campaign.bounced = true;
+            db.activities.push({
+              id: nextId(),
+              prospect_id: campaign.prospect_id,
+              type: 'email_bounced',
+              description: `Email bounced for ${campaign.contact_email}. Verify address.`,
+              created_at: new Date().toISOString()
+            });
+          }
+
+          results.push({
+            campaign_id: campaign.id,
+            property: campaign.property_name,
+            opens,
+            replies,
+            bounced,
+            status: campaign.status
+          });
+        }
+      } catch (err) {
+        results.push({ campaign_id: campaign.id, error: err.message });
+      }
+    }
+
+    saveDB(db);
+    res.json({ synced: results.length, results });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ===== END SALES AUTOMATION ENGINE =====
 
 app.listen(PORT, () => {
