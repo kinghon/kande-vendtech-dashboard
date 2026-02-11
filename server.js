@@ -20255,7 +20255,8 @@ if (!db.emailDrafts) db.emailDrafts = [];
 
 // Campaign email templates (5-step follow-up after proposal)
 // Email signature (matches Gmail/Mixmax signature exactly)
-const KANDE_SIGNATURE = `Thanks!\nKurtis Hon\nCEO\n<a href="https://www.kandevendtech.com" style="color:#1a73e8;text-decoration:none;">KandeVendTech</a>\n<br><a href="https://www.kandevendtech.com"><img src="https://vend.kandedash.com/logo.png" alt="Kande VendTech" width="100" style="margin-top:4px;"></a>`;
+// Sig format from Kurtis's screenshot: Thanks! / Kurtis Hon (bold blue) / CEO / KandeVendTech (link) / [logo on dark bg]
+const KANDE_SIGNATURE_HTML = `<div style="font-family:Arial,sans-serif;font-size:13px;color:#333;">Thanks!<br><b style="color:#1a73e8;">Kurtis Hon</b><br><span style="color:#666;">CEO</span><br><a href="https://www.kandevendtech.com" style="color:#1a73e8;text-decoration:none;font-weight:bold;">KandeVendTech</a><br><a href="https://www.kandevendtech.com"><img src="https://kandevendtech.com/images/logo.png" alt="Kande VendTech" width="90" style="margin-top:6px;"></a></div>`;
 
 const KANDE_SIGNATURE_PLAIN = `Thanks!\nKurtis Hon\nCEO\nKandeVendTech`;
 
@@ -20902,11 +20903,18 @@ app.post('/api/campaigns/:id/send-via-instantly', async (req, res) => {
       machine_count: prospect.recommended_machines || '1'
     };
 
-    const sequences = CAMPAIGN_TEMPLATES.map((tmpl, idx) => ({
-      subject: fillTemplate(tmpl.subject_template, vars),
-      body: fillTemplate(tmpl.body_template, vars).replace(/\n/g, '<br>'),
-      delay: idx === 0 ? 0 : tmpl.delay_days
-    }));
+    const sequences = CAMPAIGN_TEMPLATES.map((tmpl, idx) => {
+      // Replace plain text signature with HTML signature for Instantly emails
+      let body = fillTemplate(tmpl.body_template, vars);
+      body = body.replace(KANDE_SIGNATURE_PLAIN, '').trim();
+      body = body.replace(/\n/g, '<br>') + '<br><br>' + KANDE_SIGNATURE_HTML;
+      return {
+        subject: fillTemplate(tmpl.subject_template, vars),
+        body,
+        delay: idx === 0 ? 0 : tmpl.delay_days,
+        attach_pdf: tmpl.attach_proposal_pdf || false
+      };
+    });
 
     // Create Instantly campaign
     const campaignName = `VendTech Follow-Up: ${prospect.name} (${new Date().toISOString().split('T')[0]})`;
