@@ -20271,28 +20271,33 @@ const CAMPAIGN_TEMPLATES = [
   {
     step: 1, delay_days: 3,
     subject_template: 'Re: Visit Follow-Up: Extra Information About Our Vending',
-    body_template: `Hey {contact_name},\n\nI wanted to follow up on my previous email regarding our custom smart vending machines. We'd love to help you find the perfect fit for your space.\n\nWe'll take care of all the expenses, installation, and re-stocking with our local team.\n\nAre you available for a quick chat this week?\n\n${KANDE_SIGNATURE_PLAIN}`
+    body_template: `Hey {contact_name},\n\nI wanted to follow up on my previous email regarding our custom smart vending machines. We'd love to help you find the perfect fit for your space.\n\nWe'll take care of all the expenses, installation, and re-stocking with our local team.\n\nAre you available for a quick chat this week?\n\n${KANDE_SIGNATURE_PLAIN}`,
+    cc: 'jordan@kandevendtech.com'
   },
   {
     step: 2, delay_days: 7,
     subject_template: 'Custom Vending Solutions for Your Space',
     body_template: `Hey {contact_name},\n\nI wanted to share some examples of how our custom vending machines can transform your space. We offer sleek, modern machines that can provide snacks, beverages, and even healthy options.\n\nMany of our designs can feature your logo, adding a professional touch and reinforcing your brand. Imagine a break room with a state-of-the-art vending machine offering your team convenient access to refreshments, or a lobby with a stylish, branded machine welcoming guests.\n\nWe'll take care of all of the expenses and we can even give you a percentage of the profits if you'd like to discuss revenue share with us.\n\nAre you available this week for a brief meeting to explore these options?\n\n${KANDE_SIGNATURE_PLAIN}`,
-    inline_images: ['https://i.imgur.com/v78yVQ6.jpeg', 'https://i.imgur.com/8GYMdbn.jpeg']
+    inline_images: ['https://i.imgur.com/v78yVQ6.jpeg', 'https://i.imgur.com/8GYMdbn.jpeg'],
+    cc: 'jordan@kandevendtech.com'
   },
   {
     step: 3, delay_days: 14,
     subject_template: 'Modern Vending Amenities for Your Space',
-    body_template: `Hey {contact_name},\n\nJust checking in again about our custom vending machines. Adding our modern, luxury machines can provide convenience for your employees and guests while enhancing your space with a professional look.\n\nPlus, having your logo on the machine can reinforce your brand.\n\nAre you available this week for a quick meeting to discuss further?\n\n${KANDE_SIGNATURE_PLAIN}`
+    body_template: `Hey {contact_name},\n\nJust checking in again about our custom vending machines. Adding our modern, luxury machines can provide convenience for your employees and guests while enhancing your space with a professional look.\n\nPlus, having your logo on the machine can reinforce your brand.\n\nAre you available this week for a quick meeting to discuss further?\n\n${KANDE_SIGNATURE_PLAIN}`,
+    cc: 'jordan@kandevendtech.com'
   },
   {
     step: 4, delay_days: 21,
     subject_template: 'Quick Follow-Up — Custom Vending Machines',
-    body_template: `Hey {contact_name},\n\nI hope this message finds you well. A while back, my team mentioned your interest in our custom vending machines. We provide a range of modern, luxury options, and can even include your logo on many designs.\n\nOur machines can enhance your space by offering convenient amenities to your employees and guests while promoting your brand.\n\nCould we schedule a brief chat to revisit how we can assist you?\n\n${KANDE_SIGNATURE_PLAIN}`
+    body_template: `Hey {contact_name},\n\nI hope this message finds you well. A while back, my team mentioned your interest in our custom vending machines. We provide a range of modern, luxury options, and can even include your logo on many designs.\n\nOur machines can enhance your space by offering convenient amenities to your employees and guests while promoting your brand.\n\nCould we schedule a brief chat to revisit how we can assist you?\n\n${KANDE_SIGNATURE_PLAIN}`,
+    cc: 'jordan@kandevendtech.com'
   },
   {
     step: 5, delay_days: 30,
     subject_template: 'Still Interested in Smart Vending?',
-    body_template: `Hey {contact_name},\n\nJust one last check-in on the vending proposal. Totally understand if the timing isn't right — we'll keep you on our list and circle back in a few months.\n\nFeel free to reach out anytime if anything changes. Always happy to chat.\n\n${KANDE_SIGNATURE_PLAIN}`
+    body_template: `Hey {contact_name},\n\nJust one last check-in on the vending proposal. Totally understand if the timing isn't right — we'll keep you on our list and circle back in a few months.\n\nFeel free to reach out anytime if anything changes. Always happy to chat.\n\n${KANDE_SIGNATURE_PLAIN}`,
+    cc: 'jordan@kandevendtech.com'
   }
 ];
 
@@ -21182,7 +21187,8 @@ app.post('/api/campaigns/:id/send-via-instantly', async (req, res) => {
         subject: fillTemplate(tmpl.subject_template, vars),
         body,
         delay: idx === 0 ? 0 : tmpl.delay_days,
-        attach_pdf: tmpl.attach_proposal_pdf || false
+        attach_pdf: tmpl.attach_proposal_pdf || false,
+        cc: tmpl.cc || null
       };
     });
 
