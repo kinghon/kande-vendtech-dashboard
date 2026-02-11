@@ -21274,7 +21274,7 @@ app.post('/api/campaigns/:id/send-via-instantly', async (req, res) => {
       let body = fillTemplate(tmpl.body_template, vars);
       body = body.replace(KANDE_SIGNATURE_PLAIN, '').trim();
       // Wrap each paragraph in <p> tags so Instantly doesn't strip the text
-      const pStyle = 'style="color:#000000;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;"';
+      const pStyle = 'style="color:#000000;font-family:Arial,Helvetica,sans-serif;font-size:14px;margin:0 0 8px 0;padding:0;"';
       body = '<div style="font-family:Arial,Helvetica,sans-serif;">' + body.split(/\n\n+/).map(p => {
         // Convert "VIEW PROPOSAL: url" into a styled link
         p = p.replace(/VIEW PROPOSAL:\s*(https?:\/\/\S+)/g, 
