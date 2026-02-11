@@ -926,7 +926,14 @@
         var descLower = desc.toLowerCase();
         if (a.type === 'campaign_started' || a.type === 'campaign_launched') return;
         if (a.type === 'pipeline_move') return;
-        if (a.type === 'status-change') return;
+        // Hide status-change unless it has an "Action set:" directive
+        if (a.type === 'status-change' && !descLower.includes('action set:')) return;
+        // For status-changes with actions, extract just the action part
+        if (a.type === 'status-change' && descLower.includes('action set:')) {
+          var actionMatch = desc.match(/Action set:\s*(.+)/i);
+          if (actionMatch) desc = actionMatch[1].trim();
+          else return;
+        }
         if (a.type === 'campaign_email') return;
 
         var icon = actIcons[a.type] || '📌';
@@ -1029,13 +1036,30 @@
       return hiddenStatuses.indexOf(status) === -1;
     });
 
-    // Sort: Kurtis actions (email/proposal) first by recent activity,
-    // then Jordan actions (call) at bottom by recent activity
+    // Sort priority: 
+    // 1. Kurtis actions (email/proposal/send) — has actionType 'email'
+    // 2. Cards with action items but no email type (generic actions)
+    // 3. Cards with no action items (just pop-ins, needs email badge only)
+    // 4. Jordan actions (call) at bottom
     var locList = filteredLocations.sort(function(a, b) {
-      // Latest action from CRM determines whose task it is
-      var aIsCall = a.latestActionType === 'call' || (a.actionType === 'call' && a.latestActionType !== 'email');
-      var bIsCall = b.latestActionType === 'call' || (b.actionType === 'call' && b.latestActionType !== 'email');
-      if (aIsCall !== bIsCall) return aIsCall ? 1 : -1;
+      var aHasAction = a.events.some(function(e) { return e.isAction; });
+      var bHasAction = b.events.some(function(e) { return e.isAction; });
+      var aIsCall = a.actionType === 'call';
+      var bIsCall = b.actionType === 'call';
+      var aIsEmail = a.actionType === 'email';
+      var bIsEmail = b.actionType === 'email';
+
+      // Kurtis email/proposal actions first
+      if (aIsEmail && !bIsEmail) return -1;
+      if (!aIsEmail && bIsEmail) return 1;
+
+      // Then other action items (send proposal, etc.) above no-action cards
+      if (aHasAction && !bHasAction) return -1;
+      if (!aHasAction && bHasAction) return 1;
+
+      // Call actions last
+      if (aIsCall && !bIsCall) return 1;
+      if (!aIsCall && bIsCall) return -1;
 
       // Within same group: sort by most recent activity date
       var aDate = a.latestActivity ? new Date(a.latestActivity) : new Date(0);
