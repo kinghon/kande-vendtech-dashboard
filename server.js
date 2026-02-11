@@ -20264,9 +20264,9 @@ const CAMPAIGN_TEMPLATES = [
   {
     step: 0, delay_days: 0,
     subject_template: 'Visit Follow-Up: Extra Information About Our Vending',
-    body_template: `Hey {contact_name},\n\nJordan from my team let me know he spoke with you recently and you were interested in getting more info about our free smart vending machines! I wanted to reach out and send over a bit more info for you and your team to review. I've attached a proposal doc for you.\n\nOur team manages everything from installation to maintenance, all at no cost to you.\n\nAfter you have a chance to review our proposal, I'd love to chat about how we can meet your needs. Are you free for a quick meeting this week?\n\n${KANDE_SIGNATURE_PLAIN}`,
+    body_template: `Hey {contact_name},\n\n{visit_opener} I wanted to reach out and send over a bit more info for you and your team to review. I've attached a proposal doc for you.\n\nOur team manages everything from installation to maintenance, all at no cost to you.\n\nAfter you have a chance to review our proposal, I'd love to chat about how we can meet your needs. Are you free for a quick meeting this week?\n\n${KANDE_SIGNATURE_PLAIN}`,
     attach_proposal_pdf: true,
-    notes: 'Initial proposal email — always attach PDF. This is step 0 (sent immediately, not part of follow-up drip).'
+    notes: 'Initial proposal email — always attach PDF. {visit_opener} is generated from Jordan activity notes.'
   },
   {
     step: 1, delay_days: 3,
@@ -20295,6 +20295,47 @@ const CAMPAIGN_TEMPLATES = [
     body_template: `Hey {contact_name},\n\nJust one last check-in on the vending proposal. Totally understand if the timing isn't right — we'll keep you on our list and circle back in a few months.\n\nFeel free to reach out anytime if anything changes. Always happy to chat.\n\n${KANDE_SIGNATURE_PLAIN}`
   }
 ];
+
+// --- Helper: Generate visit opener based on Jordan's activity notes ---
+function generateVisitOpener(prospectId, contactName) {
+  const activities = (db.activities || [])
+    .filter(a => a.prospect_id === prospectId)
+    .sort((a, b) => new Date(b.date || b.created_at) - new Date(a.date || a.created_at));
+
+  // Find the most recent pop-in or visit activity
+  const visit = activities.find(a =>
+    a.type === 'pop-in' || a.type === 'pop_in' || a.type === 'visit' || a.type === 'interested'
+  );
+
+  if (!visit || !visit.notes) {
+    // Default: generic opener
+    return `Jordan from my team recently visited your location and mentioned you may be interested in learning more about our free smart vending machines!`;
+  }
+
+  const notes = (visit.notes || '').toLowerCase();
+
+  // Check if Jordan spoke directly with the contact
+  const spokeDirectly = notes.includes('spoke with') && (
+    notes.includes(contactName?.toLowerCase() || '') ||
+    notes.includes('manager') || notes.includes('owner') || notes.includes('director') ||
+    notes.includes('decision maker') || notes.includes('dm')
+  );
+  const spokeWithStaff = notes.includes('front desk') || notes.includes('receptionist') ||
+    notes.includes('staff') || notes.includes('employee') || notes.includes('left info') ||
+    notes.includes('left card') || notes.includes('left brochure') || notes.includes('dropped off');
+  const leftMaterials = notes.includes('left') || notes.includes('dropped') || notes.includes('brochure') ||
+    notes.includes('flyer') || notes.includes('card');
+
+  if (spokeDirectly) {
+    return `Jordan from my team let me know he spoke with you recently and you were interested in getting more info about our free smart vending machines!`;
+  } else if (spokeWithStaff) {
+    return `Jordan from my team recently stopped by your location and spoke with your team about our free smart vending machines. They mentioned you'd be a great person to connect with!`;
+  } else if (leftMaterials) {
+    return `Jordan from my team recently visited your location and left some information about our free smart vending machines. I wanted to follow up and share a bit more!`;
+  } else {
+    return `Jordan from my team recently visited your location and mentioned you may be interested in learning more about our free smart vending machines!`;
+  }
+}
 
 // --- Helper: Fill template variables ---
 function fillTemplate(template, vars) {
@@ -20554,11 +20595,16 @@ app.get('/api/campaigns/:id/next-email', (req, res) => {
   if (!template) return res.json({ done: true, message: 'Campaign complete' });
 
   const prospect = db.prospects.find(p => p.id === campaign.prospect_id);
+
+  // Generate visit_opener from Jordan's activity notes
+  const visit_opener = generateVisitOpener(campaign.prospect_id, campaign.contact_name);
+
   const vars = {
     contact_name: campaign.contact_name || 'there',
     property_name: campaign.property_name || (prospect ? prospect.name : ''),
     area: campaign.area || 'Henderson',
-    machine_count: prospect ? (prospect.recommended_machines || '1') : '1'
+    machine_count: prospect ? (prospect.recommended_machines || '1') : '1',
+    visit_opener
   };
 
   res.json({
@@ -20897,11 +20943,13 @@ app.post('/api/campaigns/:id/send-via-instantly', async (req, res) => {
     if (!toEmail) return res.status(400).json({ error: 'No email address for this prospect' });
 
     // Build email sequence from campaign templates
+    const visit_opener = generateVisitOpener(campaign.prospect_id, campaign.contact_name);
     const vars = {
       contact_name: campaign.contact_name || 'there',
       property_name: campaign.property_name || prospect.name || '',
       area: campaign.area || 'Henderson',
-      machine_count: prospect.recommended_machines || '1'
+      machine_count: prospect.recommended_machines || '1',
+      visit_opener
     };
 
     const sequences = CAMPAIGN_TEMPLATES.map((tmpl, idx) => {
