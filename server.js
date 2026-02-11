@@ -3419,6 +3419,7 @@ app.get('/ai-office', (req, res) => res.sendFile(path.join(__dirname, 'ai-office
 app.get('/kanban', (req, res) => res.sendFile(path.join(__dirname, 'kanban.html')));
 app.get('/performance', (req, res) => res.sendFile(path.join(__dirname, 'performance.html')));
 app.get('/planogram', (req, res) => res.sendFile(path.join(__dirname, 'planogram.html')));
+app.get('/campaign-tracker', (req, res) => res.sendFile(path.join(__dirname, 'campaign-tracker.html')));
 app.get('/contracts', (req, res) => res.sendFile(path.join(__dirname, 'contracts.html')));
 app.get('/competitors', (req, res) => res.sendFile(path.join(__dirname, 'competitors.html')));
 app.get('/competitor-map', (req, res) => res.sendFile(path.join(__dirname, 'competitor-map.html')));
