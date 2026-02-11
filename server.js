@@ -20795,7 +20795,7 @@ app.post('/api/webhooks/instantly', (req, res) => {
       }
     }
 
-    saveDb();
+    saveDB(db);
     res.json({ ok: true });
   } catch (err) {
     console.error('Instantly webhook error:', err);
