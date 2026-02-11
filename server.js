@@ -20561,6 +20561,53 @@ app.get('/api/sales-dashboard', (req, res) => {
     }
   });
 
+  // 1b. Add prospects with recent activities (pop-ins, status changes) but NO emails yet
+  const emailProspectIds = new Set(emailActivity.map(e => e.prospect_id));
+  const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+  const recentActivityProspects = activities
+    .filter(a => new Date(a.created_at || a.activity_date) >= sevenDaysAgo && !emailProspectIds.has(a.prospect_id))
+    .reduce((acc, a) => {
+      if (!acc[a.prospect_id]) acc[a.prospect_id] = [];
+      acc[a.prospect_id].push(a);
+      return acc;
+    }, {});
+
+  Object.entries(recentActivityProspects).forEach(([pid, acts]) => {
+    const prospect = prospects.find(p => p.id === parseInt(pid));
+    if (!prospect) return;
+    const card = pipelineCards.find(c => c.prospect_id === parseInt(pid));
+    const latestAct = acts.sort((a, b) => new Date(b.created_at || b.activity_date) - new Date(a.created_at || a.activity_date))[0];
+    // Determine action needed from activities
+    const statusChanges = acts.filter(a => a.type === 'status-change');
+    const actionNeeded = statusChanges.find(s => /email proposal|email|send proposal/i.test(s.description));
+    const popIns = acts.filter(a => a.type === 'pop-in');
+
+    emailActivity.push({
+      prospect_id: parseInt(pid),
+      name: prospect.name,
+      email: prospect.email || '',
+      subject: null,
+      sent_at: latestAct.created_at || latestAct.activity_date,
+      opens: 0,
+      replied: false,
+      bounced: false,
+      last_event: null,
+      last_event_at: null,
+      status: 'needs_email',
+      property_type: prospect.property_type || '',
+      pipeline_stage: prospect.status || '',
+      contract_sent_date: prospect.contract_sent_date || null,
+      pipeline_card_stage: card ? card.stage : null,
+      action_needed: actionNeeded ? actionNeeded.description : null,
+      recent_pop_in: popIns.length > 0 ? popIns[0].description : null,
+      all_emails: [],
+      open_events: []
+    });
+  });
+
+  // Re-sort emailActivity
+  emailActivity.sort((a, b) => new Date(b.sent_at) - new Date(a.sent_at));
+
   // 2. Recent sales activities (all time, sorted by date)
   const recentActivities = activities
     .sort((a, b) => new Date(b.created_at || b.activity_date) - new Date(a.created_at || a.activity_date))

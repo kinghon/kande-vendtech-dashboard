@@ -252,6 +252,7 @@
     .loc-stage.new { background: var(--accent-light); color: var(--accent); }
     .loc-stage.replied { background: var(--green-light); color: #15803d; }
     .loc-stage.contract { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+    .loc-stage.needs-email { background: #fef3c7; color: #b45309; border: 1px solid #fcd34d; }
     .loc-timeline { display: flex; flex-direction: column; gap: 4px; }
     .loc-event { display: flex; align-items: center; gap: 10px; font-size: 0.78rem; padding: 4px 0; }
     .loc-event-icon { width: 22px; text-align: center; flex-shrink: 0; }
@@ -833,16 +834,40 @@
         if (e.pipeline_card_stage) locations[key].pipelineStage = e.pipeline_card_stage;
         if (e.contract_sent_date) locations[key].contractDate = e.contract_sent_date;
         if (e.contract_stage_date && !locations[key].contractDate) locations[key].contractDate = e.contract_stage_date;
-        locations[key].events.push({
-          icon: '📧', type: 'email',
-          text: '<strong>Email:</strong> ' + (e.subject || 'Follow-up'),
-          detail: e.email,
-          date: e.sent_at,
-          opens: e.opens,
-          status: e.status,
-          expandable: true,
-          prospectId: e.prospect_id
-        });
+        if (e.status === 'needs_email') {
+          locations[key].emailStatus = 'needs_email';
+          locations[key].actionNeeded = e.action_needed;
+          locations[key].recentPopIn = e.recent_pop_in;
+          // Add action needed + pop-in as events instead of email
+          if (e.action_needed) {
+            locations[key].events.push({
+              icon: '✨', type: 'action',
+              text: '<strong style="color:var(--red);">' + e.action_needed + '</strong>',
+              detail: '',
+              date: e.sent_at,
+              isAction: true
+            });
+          }
+          if (e.recent_pop_in) {
+            locations[key].events.push({
+              icon: '🚶', type: 'activity',
+              text: '<strong>Pop-in visit</strong> — ' + e.recent_pop_in.substring(0, 150),
+              detail: '',
+              date: e.sent_at
+            });
+          }
+        } else {
+          locations[key].events.push({
+            icon: '📧', type: 'email',
+            text: '<strong>Email:</strong> ' + (e.subject || 'Follow-up'),
+            detail: e.email,
+            date: e.sent_at,
+            opens: e.opens,
+            status: e.status,
+            expandable: true,
+            prospectId: e.prospect_id
+          });
+        }
         if (e.opens > locations[key].maxOpens) locations[key].maxOpens = e.opens;
         if (e.replied) locations[key].hasReply = true;
         if (e.status === 'replied') locations[key].emailStatus = 'replied';
@@ -941,10 +966,11 @@
     } else {
       container.innerHTML = locList.map(function(loc) {
         var isContract = loc.pipelineStage === 'contract_sent';
-        var cardClass = isContract ? 'has-reply' : loc.hasReply ? 'has-reply' : loc.emailStatus === 'hot' ? 'has-hot' : '';
-        var stageClass = isContract ? 'contract' : loc.hasReply ? 'replied' : loc.emailStatus === 'hot' ? 'hot' : loc.maxOpens > 0 ? 'warm' : 'new';
+        var needsEmail = loc.emailStatus === 'needs_email';
+        var cardClass = isContract ? 'has-reply' : loc.hasReply ? 'has-reply' : loc.emailStatus === 'hot' ? 'has-hot' : needsEmail ? 'has-hot' : '';
+        var stageClass = isContract ? 'contract' : loc.hasReply ? 'replied' : loc.emailStatus === 'hot' ? 'hot' : needsEmail ? 'needs-email' : loc.maxOpens > 0 ? 'warm' : 'new';
         var contractDateStr = loc.contractDate ? ' · Sent ' + formatDate(loc.contractDate) : '';
-        var stageLabel = isContract ? '📄 In Contract' + contractDateStr : loc.hasReply ? '✅ Replied' : loc.emailStatus === 'hot' ? '🔥 Hot' : loc.maxOpens > 0 ? '👁 Opened' : '📤 Sent';
+        var stageLabel = isContract ? '📄 In Contract' + contractDateStr : loc.hasReply ? '✅ Replied' : loc.emailStatus === 'hot' ? '🔥 Hot' : needsEmail ? '✉️ Needs Email' : loc.maxOpens > 0 ? '👁 Opened' : '📤 Sent';
 
         var detailId = 'email-detail-' + loc.id;
         var eventsHtml = loc.events.slice(0, 6).map(function(e) {
