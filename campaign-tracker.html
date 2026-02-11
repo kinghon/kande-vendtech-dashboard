@@ -115,18 +115,18 @@ const CAMPAIGN_LEADS = [
   { pid: 43, name: 'Auric Symphony Park', contact: 'Kayla Jackson', email: 'kayla.jackson@marc-taylor.com' },
   { pid: 156, name: 'Fora', contact: 'James Gonzalez', email: 'manager@foravegas.com' },
   { pid: 110, name: 'Mera 55+', contact: 'Micheline Dundas', email: 'micheline.dundas@sparrowliving.com' },
-  { pid: 124, name: 'Society', contact: 'Manager', email: 'society@westcorpmg.com' },
-  { pid: 64, name: 'Constellation', contact: 'Manager', email: 'constellationmgr@greystar.com' },
-  { pid: 92, name: 'Dune', contact: 'Manager', email: 'dune@westcorpmg.com' },
-  { pid: 67, name: 'Ilumina at Raiders Way', contact: 'Manager', email: 'iluminaonraidersway@knck.io' },
+  { pid: 124, name: 'Society', contact: 'Property Manager', email: 'society@westcorpmg.com', mgmtCo: 'Westcorp Management Group' },
+  { pid: 64, name: 'Constellation', contact: 'Property Manager', email: 'constellationmgr@greystar.com', mgmtCo: 'Greystar' },
+  { pid: 92, name: 'Dune', contact: 'Property Manager', email: 'dune@westcorpmg.com', mgmtCo: 'Westcorp Management Group' },
+  { pid: 67, name: 'Ilumina at Raiders Way', contact: 'Property Manager', email: 'iluminaonraidersway@knck.io', mgmtCo: 'Knck.io' },
   { pid: 130, name: 'Dig This', contact: 'Ed Mumm', email: 'ed@digthis.info' },
   { pid: 1, name: 'Siegel Select', contact: 'Nicole Marshall', email: 'flamingo.manager@siegelselect.com' },
-  { pid: 95, name: 'Empire', contact: 'Manager', email: 'empireassist@westcorpmg.com' },
-  { pid: 116, name: 'Aspire', contact: 'Manager', email: 'aspiresunridgeheights@ovationco.com' },
-  { pid: 98, name: 'Evolve', contact: 'Manager', email: 'evolveassist@westcorpmg.com' },
-  { pid: 32, name: 'Aura Vegas', contact: 'Manager', email: 'fsantiago@foreproperty.com' },
-  { pid: 113, name: 'Domain', contact: 'Manager', email: 'domainmgr@cushwake.com' },
-  { pid: 104, name: 'Marlowe', contact: 'Manager', email: 'marloweslv@greystar.com' },
+  { pid: 95, name: 'Empire', contact: 'Property Manager', email: 'empireassist@westcorpmg.com', mgmtCo: 'Westcorp Management Group' },
+  { pid: 116, name: 'Aspire', contact: 'Property Manager', email: 'aspiresunridgeheights@ovationco.com', mgmtCo: 'Ovation Co' },
+  { pid: 98, name: 'Evolve', contact: 'Property Manager', email: 'evolveassist@westcorpmg.com', mgmtCo: 'Westcorp Management Group' },
+  { pid: 32, name: 'Aura Vegas', contact: 'F. Santiago', email: 'fsantiago@foreproperty.com', mgmtCo: 'Fore Property Co' },
+  { pid: 113, name: 'Domain', contact: 'Property Manager', email: 'domainmgr@cushwake.com', mgmtCo: 'Cushman & Wakefield' },
+  { pid: 104, name: 'Marlowe', contact: 'Property Manager', email: 'marloweslv@greystar.com', mgmtCo: 'Greystar' },
 ];
 
 const STEP_DELAYS = [0, 3, 7, 14, 21, 30]; // days after email 0
@@ -241,6 +241,20 @@ async function loadData() {
     for (const lead of CAMPAIGN_LEADS) {
       const p = prospectMap[lead.pid] || {};
       const tracking = p.email_tracking || [];
+
+      // Enrich contact name from CRM if available
+      if (lead.contact === 'Property Manager' || lead.contact === 'Manager') {
+        // Check prospect contacts
+        const contacts = p.contacts || [];
+        const primaryContact = contacts.find(c => c.is_primary) || contacts[0];
+        if (primaryContact && primaryContact.name && primaryContact.name !== 'Manager') {
+          lead.contact = primaryContact.name;
+          lead.mgmtCo = null; // Clear mgmt co since we have a real name
+        } else if (p.contact_name && p.contact_name !== 'Manager') {
+          lead.contact = p.contact_name;
+          lead.mgmtCo = null;
+        }
+      }
       
       // Find email 0 sent date from activities or tracking
       let email0SentDate = null;
@@ -289,7 +303,11 @@ async function loadData() {
 
       // Contact
       const tdContact = document.createElement('td');
-      tdContact.textContent = lead.contact;
+      if (lead.mgmtCo && lead.contact === 'Property Manager') {
+        tdContact.innerHTML = '<span style="color:#64748b;">PM</span> <span style="font-size:11px;color:#94a3b8;">(' + lead.mgmtCo + ')</span>';
+      } else {
+        tdContact.textContent = lead.contact;
+      }
       tdContact.style.fontSize = '12px';
       tr.appendChild(tdContact);
 
