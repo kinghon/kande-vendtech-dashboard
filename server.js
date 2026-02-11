@@ -20466,6 +20466,100 @@ app.get('/api/action-items', (req, res) => {
   });
 });
 
+// --- SALES ACTIVITY DASHBOARD DATA ---
+app.get('/api/sales-dashboard', (req, res) => {
+  const now = new Date();
+  const prospects = db.prospects || [];
+  const activities = db.activities || [];
+  const campaigns = db.campaigns || [];
+  const mixmaxData = db.mixmaxTracking || [];
+
+  // 1. Latest emails sent per location (from Mixmax tracking + campaigns)
+  const emailsByProspect = {};
+  mixmaxData.forEach(m => {
+    const key = m.prospect_id;
+    if (!emailsByProspect[key] || new Date(m.sent_at) > new Date(emailsByProspect[key].sent_at)) {
+      emailsByProspect[key] = m;
+    }
+  });
+
+  const emailActivity = Object.values(emailsByProspect)
+    .map(m => {
+      const prospect = prospects.find(p => p.id === m.prospect_id);
+      return {
+        prospect_id: m.prospect_id,
+        name: prospect ? prospect.name : m.prospect_name || 'Unknown',
+        email: m.recipient_email,
+        subject: m.subject,
+        sent_at: m.sent_at,
+        opens: m.num_opens || 0,
+        replied: m.was_replied || false,
+        bounced: m.was_bounced || false,
+        last_event: m.last_event,
+        last_event_at: m.last_event_at,
+        status: m.was_replied ? 'replied' : m.was_bounced ? 'bounced' : (m.num_opens || 0) >= 3 ? 'hot' : (m.num_opens || 0) > 0 ? 'opened' : 'sent',
+        property_type: prospect ? prospect.property_type : '',
+        pipeline_stage: prospect ? prospect.status : ''
+      };
+    })
+    .sort((a, b) => new Date(b.sent_at) - new Date(a.sent_at));
+
+  // 2. Recent sales activities (all time, sorted by date)
+  const recentActivities = activities
+    .sort((a, b) => new Date(b.created_at || b.activity_date) - new Date(a.created_at || a.activity_date))
+    .slice(0, 30)
+    .map(a => {
+      const prospect = prospects.find(p => p.id === a.prospect_id);
+      return {
+        id: a.id,
+        type: a.type,
+        prospect_id: a.prospect_id,
+        prospect_name: prospect ? prospect.name : 'Unknown',
+        description: a.description,
+        outcome: a.outcome,
+        date: a.activity_date || a.created_at,
+        created_by: a.created_by || 'Jordan'
+      };
+    });
+
+  // 3. Active campaigns status
+  const activeCampaigns = campaigns
+    .filter(c => c.status === 'active')
+    .map(c => {
+      const prospect = prospects.find(p => p.id === c.prospect_id);
+      return {
+        id: c.id,
+        prospect_id: c.prospect_id,
+        prospect_name: prospect ? prospect.name : 'Unknown',
+        contact_name: c.contact_name,
+        current_step: c.current_step,
+        total_steps: c.total_steps,
+        next_email_date: c.next_email_date,
+        started_at: c.created_at
+      };
+    });
+
+  // 4. Summary stats
+  const totalEmails = mixmaxData.length;
+  const opened = mixmaxData.filter(m => (m.num_opens || 0) > 0).length;
+  const replied = mixmaxData.filter(m => m.was_replied).length;
+  const hotLeads = mixmaxData.filter(m => (m.num_opens || 0) >= 3 && !m.was_replied).length;
+
+  res.json({
+    email_activity: emailActivity,
+    recent_activities: recentActivities,
+    active_campaigns: activeCampaigns,
+    stats: {
+      total_emails: totalEmails,
+      opened,
+      replied,
+      hot_leads: hotLeads,
+      open_rate: totalEmails > 0 ? Math.round(opened / totalEmails * 100) : 0,
+      reply_rate: totalEmails > 0 ? Math.round(replied / totalEmails * 100) : 0
+    }
+  });
+});
+
 // --- CAMPAIGN MANAGEMENT ---
 
 // Start a campaign for a prospect (typically after proposal sent)
