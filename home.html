@@ -812,10 +812,12 @@
   // Load sales dashboard data — grouped by location
   Promise.all([
     fetch('/api/sales-dashboard').then(r => r.ok ? r.json() : null),
-    fetch('/api/action-items').then(r => r.ok ? r.json() : null)
+    fetch('/api/action-items').then(r => r.ok ? r.json() : null),
+    fetch('/api/prospects').then(r => r.ok ? r.json() : [])
   ]).then(function(results) {
     var sales = results[0];
     var actions = results[1];
+    var prospects = results[2] || [];
 
     // Stats bar
     if (sales && sales.stats) {
