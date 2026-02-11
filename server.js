@@ -73,7 +73,7 @@ function sanitizeObject(obj) {
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
   // Allow these paths without auth
-  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg'];
+  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
     return next();
   }
@@ -20517,7 +20517,12 @@ app.get('/api/sales-dashboard', (req, res) => {
           last_event_by: m.last_event_by,
           replied: m.was_replied || false,
           bounced: m.was_bounced || false
-        }))
+        })),
+        // Real-time Instantly open timestamps (each individual open event)
+        open_events: (prospect && prospect.email_events || [])
+          .filter(e => e.type === 'email_opened')
+          .map(e => ({ timestamp: e.timestamp, subject: e.subject }))
+          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
       };
     })
     .sort((a, b) => new Date(b.sent_at) - new Date(a.sent_at));
@@ -20576,6 +20581,73 @@ app.get('/api/sales-dashboard', (req, res) => {
       reply_rate: totalEmails > 0 ? Math.round(replied / totalEmails * 100) : 0
     }
   });
+});
+
+// --- INSTANTLY WEBHOOK RECEIVER (real-time email events) ---
+// Stores every open/send/reply with exact timestamp
+if (!db.instantlyEvents) db.instantlyEvents = [];
+
+app.post('/api/webhooks/instantly', (req, res) => {
+  try {
+    const event = req.body;
+    const entry = {
+      id: nextId(),
+      event_type: event.event_type || event.type || 'unknown',
+      email: event.lead_email || event.email || event.to_address || '',
+      campaign_id: event.campaign_id || '',
+      campaign_name: event.campaign_name || '',
+      subject: event.subject || event.email_subject || '',
+      timestamp: event.timestamp || new Date().toISOString(),
+      raw: event
+    };
+
+    db.instantlyEvents.push(entry);
+
+    // Match to prospect
+    const contact = (db.contacts || []).find(c => c.email && c.email.toLowerCase() === entry.email.toLowerCase());
+    const prospect = contact
+      ? db.prospects.find(p => p.id === contact.prospect_id)
+      : db.prospects.find(p => p.email && p.email.toLowerCase() === entry.email.toLowerCase());
+
+    if (prospect) {
+      entry.prospect_id = prospect.id;
+      entry.prospect_name = prospect.name;
+
+      // Store open timestamps on the prospect for the dashboard
+      if (!prospect.email_events) prospect.email_events = [];
+      prospect.email_events.push({
+        type: entry.event_type,
+        timestamp: entry.timestamp,
+        subject: entry.subject
+      });
+
+      // Auto-stop campaign on reply
+      if (entry.event_type === 'reply_received') {
+        const campaign = (db.campaigns || []).find(c => c.prospect_id === prospect.id && c.status === 'active');
+        if (campaign) {
+          campaign.status = 'replied';
+          campaign.replied_at = entry.timestamp;
+        }
+      }
+    }
+
+    saveDb();
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Instantly webhook error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get email events for a prospect (open timestamps etc.)
+app.get('/api/prospects/:id/email-events', (req, res) => {
+  const id = parseInt(req.params.id);
+  const prospect = db.prospects.find(p => p.id === id);
+  const events = (db.instantlyEvents || []).filter(e => e.prospect_id === id)
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  // Also include any stored on prospect from webhooks
+  const prospectEvents = prospect && prospect.email_events ? prospect.email_events : [];
+  res.json({ events, prospect_events: prospectEvents });
 });
 
 // --- CAMPAIGN MANAGEMENT ---

@@ -828,6 +828,7 @@
         var key = e.prospect_id;
         if (!locations[key]) locations[key] = { id: key, name: e.name, type: e.property_type, stage: e.pipeline_stage, events: [], emailStatus: 'sent', maxOpens: 0, hasReply: false, allEmails: [] };
         locations[key].allEmails = e.all_emails || [];
+        locations[key].openEvents = e.open_events || [];
         locations[key].events.push({
           icon: '📧', type: 'email',
           text: '<strong>Email:</strong> ' + (e.subject || 'Follow-up'),
@@ -933,7 +934,16 @@
           // Add expandable detail panel for emails
           if (e.expandable && loc.allEmails && loc.allEmails.length > 0) {
             html += '<div class="loc-email-detail" id="' + detailId + '">';
-            html += '<div style="font-weight:600;margin-bottom:6px;color:var(--text);font-size:0.78rem;">📧 All emails to ' + (loc.allEmails[0] ? '' : '') + '</div>';
+            // Show individual open timestamps from Instantly webhooks
+            if (loc.openEvents && loc.openEvents.length > 0) {
+              html += '<div style="font-weight:600;margin-bottom:6px;color:var(--text);font-size:0.78rem;">👁 Open Timestamps</div>';
+              html += loc.openEvents.slice(0, 10).map(function(oe) {
+                var ts = new Date(oe.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+                return '<div class="email-row"><div class="email-subj">👁 Opened' + (oe.subject ? ' — ' + oe.subject : '') + '</div><div class="email-ts">' + ts + '</div></div>';
+              }).join('');
+              html += '<div style="border-top:1px solid var(--border);margin:8px 0;"></div>';
+            }
+            html += '<div style="font-weight:600;margin-bottom:6px;color:var(--text);font-size:0.78rem;">📧 All emails sent</div>';
             html += loc.allEmails.map(function(em) {
               var statusBadge = em.replied ? '<span class="loc-event-badge replied" style="font-size:0.65rem;">✅ Replied</span>' :
                 em.bounced ? '<span class="loc-event-badge bounced" style="font-size:0.65rem;">⛔ Bounced</span>' :
