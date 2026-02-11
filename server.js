@@ -20480,12 +20480,26 @@ app.get('/api/sales-dashboard', (req, res) => {
   const campaigns = db.campaigns || [];
   const mixmaxData = db.mixmaxTracking || [];
 
-  // 1. ALL emails per location (from Mixmax tracking + campaigns)
+  // 1. ALL emails per location (from prospect.email_tracking synced by Mixmax + campaigns)
   const emailsByProspect = {};
+  // Pull from db.mixmaxTracking (legacy) + prospect.email_tracking (current sync source)
   mixmaxData.forEach(m => {
     const key = m.prospect_id;
     if (!emailsByProspect[key]) emailsByProspect[key] = [];
     emailsByProspect[key].push(m);
+  });
+  // Also pull from prospect.email_tracking (where sync-to-crm actually writes)
+  prospects.forEach(p => {
+    if (p.email_tracking && p.email_tracking.length > 0) {
+      if (!emailsByProspect[p.id]) emailsByProspect[p.id] = [];
+      p.email_tracking.forEach(t => {
+        // Avoid duplicates (same subject + recipient)
+        const exists = emailsByProspect[p.id].some(e =>
+          e.subject === t.subject && e.recipient_email === t.recipient_email
+        );
+        if (!exists) emailsByProspect[p.id].push(t);
+      });
+    }
   });
 
   // Sort each prospect's emails by date, newest first
