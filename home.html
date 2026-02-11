@@ -885,8 +885,15 @@
       sales.recent_activities.forEach(function(a) {
         var key = a.prospect_id;
         if (!locations[key]) locations[key] = { id: key, name: a.prospect_name, type: '', stage: '', events: [], emailStatus: '', maxOpens: 0, hasReply: false };
-        var icon = actIcons[a.type] || '📌';
+        // Skip internal/system activities
         var desc = (a.description || '').replace(/\s*—\s*$/, '').trim();
+        var descLower = desc.toLowerCase();
+        if (a.type === 'campaign_started' || a.type === 'campaign_launched') continue;
+        if (a.type === 'pipeline_move') continue;
+        if (a.type === 'status-change' && (descLower.includes('status') || descLower.includes('→'))) continue;
+        if (a.type === 'campaign_email') continue;
+
+        var icon = actIcons[a.type] || '📌';
         var label, detail;
         if (a.type === 'pop-in' || a.type === 'pop_in') {
           label = 'Pop-in visit';
@@ -919,8 +926,10 @@
       actions.action_items.forEach(function(item) {
         var key = item.prospect_id;
         if (!key) return;
+        // Hide campaign follow-up reminders (system-generated)
+        if (item.type === 'campaign_email') return;
         if (!locations[key]) locations[key] = { id: key, name: item.subtitle || 'Unknown', type: '', stage: '', events: [], emailStatus: '', maxOpens: 0, hasReply: false };
-        var icon = item.type === 'hot_lead' ? '🔥' : item.type === 'task_due' ? (item.priority === 'overdue' ? '⚠️' : '📋') : item.type === 'campaign_email' ? '📨' : '📌';
+        var icon = item.type === 'hot_lead' ? '🔥' : item.type === 'task_due' ? (item.priority === 'overdue' ? '⚠️' : '📋') : '📌';
         var title = item.title || '';
         var isCallAction = title.toLowerCase().includes('call') || title.toLowerCase().includes('phone');
         var assignee = isCallAction ? ' <span style="font-size:0.68rem;color:var(--muted);font-weight:normal;">(Jordan)</span>' : '';
