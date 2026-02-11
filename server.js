@@ -20254,38 +20254,43 @@ if (!db.campaignEmails) db.campaignEmails = [];
 if (!db.emailDrafts) db.emailDrafts = [];
 
 // Campaign email templates (5-step follow-up after proposal)
+// Email signature (matches Gmail/Mixmax signature exactly)
+const KANDE_SIGNATURE = `Thanks!\nKurtis Hon\nCEO\n<a href="https://www.kandevendtech.com" style="color:#1a73e8;text-decoration:none;">KandeVendTech</a>\n<br><a href="https://www.kandevendtech.com"><img src="https://vend.kandedash.com/logo.png" alt="Kande VendTech" width="100" style="margin-top:4px;"></a>`;
+
+const KANDE_SIGNATURE_PLAIN = `Thanks!\nKurtis Hon\nCEO\nKandeVendTech`;
+
 const CAMPAIGN_TEMPLATES = [
   {
     step: 0, delay_days: 0,
     subject_template: 'Visit Follow-Up: Extra Information About Our Vending',
-    body_template: `Hey {contact_name},\n\nJordan from my team let me know he spoke with you recently and you were interested in getting more info about our free smart vending machines! I wanted to reach out and send over a bit more info for you and your team to review. I've attached a proposal doc for you.\n\nOur team manages everything from installation to maintenance, all at no cost to you.\n\nAfter you have a chance to review our proposal, I'd love to chat about how we can meet your needs. Are you free for a quick meeting this week?\n\nThanks!\nKurtis Hon\nCEO\nKandeVendTech`,
+    body_template: `Hey {contact_name},\n\nJordan from my team let me know he spoke with you recently and you were interested in getting more info about our free smart vending machines! I wanted to reach out and send over a bit more info for you and your team to review. I've attached a proposal doc for you.\n\nOur team manages everything from installation to maintenance, all at no cost to you.\n\nAfter you have a chance to review our proposal, I'd love to chat about how we can meet your needs. Are you free for a quick meeting this week?\n\n${KANDE_SIGNATURE_PLAIN}`,
     attach_proposal_pdf: true,
     notes: 'Initial proposal email — always attach PDF. This is step 0 (sent immediately, not part of follow-up drip).'
   },
   {
     step: 1, delay_days: 3,
     subject_template: 'Re: Visit Follow-Up: Extra Information About Our Vending',
-    body_template: `Hey {contact_name},\n\nJust wanted to follow up on the proposal I sent over. Did you get a chance to take a look?\n\nHappy to swing by this week if you'd like to chat in person — sometimes it's easier than email!\n\nThanks!\nKurtis Hon\nCEO\nKandeVendTech`
+    body_template: `Hey {contact_name},\n\nJust wanted to follow up on the proposal I sent over. Did you get a chance to take a look?\n\nHappy to swing by this week if you'd like to chat in person — sometimes it's easier than email!\n\n${KANDE_SIGNATURE_PLAIN}`
   },
   {
     step: 2, delay_days: 7,
     subject_template: 'Re: Visit Follow-Up: Extra Information About Our Vending',
-    body_template: `Hey {contact_name},\n\nJust checking in — I know things get busy. If you have any questions about the vending proposal for {property_name}, I'm happy to help.\n\nWe've been getting great feedback from other properties in the area. Would love to set up a quick 10-minute call this week if that works for you.\n\nThanks!\nKurtis Hon\nCEO\nKandeVendTech`
+    body_template: `Hey {contact_name},\n\nJust checking in — I know things get busy. If you have any questions about the vending proposal for {property_name}, I'm happy to help.\n\nWe've been getting great feedback from other properties in the area. Would love to set up a quick 10-minute call this week if that works for you.\n\n${KANDE_SIGNATURE_PLAIN}`
   },
   {
     step: 3, delay_days: 14,
     subject_template: 'Re: Visit Follow-Up: Extra Information About Our Vending',
-    body_template: `Hey {contact_name},\n\nWanted to share a quick update — we just placed machines at a property near {property_name} and they're already seeing great usage from residents.\n\nThe best part is there's zero cost and zero hassle on your end. We handle everything.\n\nIf you're still open to it, I'd love to find a time to chat. No pressure at all.\n\nThanks!\nKurtis Hon\nCEO\nKandeVendTech`
+    body_template: `Hey {contact_name},\n\nWanted to share a quick update — we just placed machines at a property near {property_name} and they're already seeing great usage from residents.\n\nThe best part is there's zero cost and zero hassle on your end. We handle everything.\n\nIf you're still open to it, I'd love to find a time to chat. No pressure at all.\n\n${KANDE_SIGNATURE_PLAIN}`
   },
   {
     step: 4, delay_days: 21,
     subject_template: 'Re: Visit Follow-Up: Extra Information About Our Vending',
-    body_template: `Hey {contact_name},\n\nQuick heads up — we're filling up our installation schedule for the {area} area. Wanted to make sure {property_name} doesn't miss out if you're still interested.\n\nEither way, no worries. Just let me know!\n\nThanks!\nKurtis Hon\nCEO\nKandeVendTech`
+    body_template: `Hey {contact_name},\n\nQuick heads up — we're filling up our installation schedule for the {area} area. Wanted to make sure {property_name} doesn't miss out if you're still interested.\n\nEither way, no worries. Just let me know!\n\n${KANDE_SIGNATURE_PLAIN}`
   },
   {
     step: 5, delay_days: 30,
     subject_template: 'Re: Visit Follow-Up: Extra Information About Our Vending',
-    body_template: `Hey {contact_name},\n\nJust one last check-in on the vending proposal for {property_name}. Totally understand if the timing isn't right — we'll keep you on our list and circle back in a few months.\n\nFeel free to reach out anytime if anything changes. Always happy to chat.\n\nThanks!\nKurtis Hon\nCEO\nKandeVendTech`
+    body_template: `Hey {contact_name},\n\nJust one last check-in on the vending proposal for {property_name}. Totally understand if the timing isn't right — we'll keep you on our list and circle back in a few months.\n\nFeel free to reach out anytime if anything changes. Always happy to chat.\n\n${KANDE_SIGNATURE_PLAIN}`
   }
 ];
 
