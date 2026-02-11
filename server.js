@@ -20619,8 +20619,21 @@ app.get('/api/sales-dashboard', (req, res) => {
     });
   });
 
-  // Re-sort emailActivity
-  emailActivity.sort((a, b) => new Date(b.sent_at) - new Date(a.sent_at));
+  // Add latest_activity_date from CRM activities for each prospect
+  const activitiesByProspect = {};
+  activities.forEach(a => {
+    const pid = a.prospect_id;
+    const date = a.created_at || a.activity_date;
+    if (!activitiesByProspect[pid] || date > activitiesByProspect[pid]) {
+      activitiesByProspect[pid] = date;
+    }
+  });
+  emailActivity.forEach(ea => {
+    ea.latest_activity_date = activitiesByProspect[ea.prospect_id] || ea.sent_at || null;
+  });
+
+  // Sort by most recent CRM activity first
+  emailActivity.sort((a, b) => new Date(b.latest_activity_date || 0) - new Date(a.latest_activity_date || 0));
 
   // 2. Recent sales activities (all time, sorted by date)
   const recentActivities = activities

@@ -828,12 +828,13 @@
     if (sales && sales.email_activity) {
       sales.email_activity.forEach(function(e) {
         var key = e.prospect_id;
-        if (!locations[key]) locations[key] = { id: key, name: e.name, type: e.property_type, stage: e.pipeline_stage, events: [], emailStatus: 'sent', maxOpens: 0, hasReply: false, allEmails: [], pipelineStage: '', contractDate: null };
+        if (!locations[key]) locations[key] = { id: key, name: e.name, type: e.property_type, stage: e.pipeline_stage, events: [], emailStatus: 'sent', maxOpens: 0, hasReply: false, allEmails: [], pipelineStage: '', contractDate: null, latestActivity: null };
         locations[key].allEmails = e.all_emails || [];
         locations[key].openEvents = e.open_events || [];
         if (e.pipeline_card_stage) locations[key].pipelineStage = e.pipeline_card_stage;
         if (e.contract_sent_date) locations[key].contractDate = e.contract_sent_date;
         if (e.contract_stage_date && !locations[key].contractDate) locations[key].contractDate = e.contract_stage_date;
+        if (e.latest_activity_date) locations[key].latestActivity = e.latest_activity_date;
         if (e.status === 'needs_email') {
           locations[key].emailStatus = 'needs_email';
           locations[key].actionNeeded = e.action_needed;
@@ -944,18 +945,17 @@
       loc.actionType = hasEmailAction && !hasCallAction ? 'email' : hasCallAction ? 'call' : 'none';
     });
 
-    // Sort: replied first, then hot, then email actions (Kurtis), then by date, then call actions (Jordan) at bottom
+    // Sort: most recent CRM activity first, then by status priority
+    // Call actions (Jordan's) still sink to bottom within their activity-date group
     var locList = Object.values(locations).sort(function(a, b) {
-      if (a.hasReply !== b.hasReply) return b.hasReply ? 1 : -1;
-      if (a.emailStatus === 'hot' && b.emailStatus !== 'hot') return -1;
-      if (b.emailStatus === 'hot' && a.emailStatus !== 'hot') return 1;
-      // Email/proposal actions (Kurtis) above call actions (Jordan)
-      if (a.actionType === 'email' && b.actionType !== 'email') return -1;
-      if (b.actionType === 'email' && a.actionType !== 'email') return 1;
-      if (a.actionType === 'call' && b.actionType !== 'call') return 1;
-      if (b.actionType === 'call' && a.actionType !== 'call') return -1;
-      var aDate = a.events[0] ? new Date(a.events[0].date || 0) : new Date(0);
-      var bDate = b.events[0] ? new Date(b.events[0].date || 0) : new Date(0);
+      // Call-only actions (Jordan) always at bottom
+      var aIsCallOnly = a.actionType === 'call' && a.emailStatus !== 'hot' && a.emailStatus !== 'replied';
+      var bIsCallOnly = b.actionType === 'call' && b.emailStatus !== 'hot' && b.emailStatus !== 'replied';
+      if (aIsCallOnly !== bIsCallOnly) return aIsCallOnly ? 1 : -1;
+
+      // Within non-call items: sort by most recent activity date
+      var aDate = a.latestActivity ? new Date(a.latestActivity) : new Date(0);
+      var bDate = b.latestActivity ? new Date(b.latestActivity) : new Date(0);
       return bDate - aDate;
     });
 
