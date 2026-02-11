@@ -799,10 +799,11 @@
     var dt = new Date(d);
     var now = new Date();
     var diff = Math.floor((now - dt) / (1000*60*60*24));
-    if (diff === 0) return 'Today';
-    if (diff === 1) return 'Yesterday';
-    if (diff < 7) return diff + 'd ago';
-    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    var time = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    if (diff === 0) return 'Today ' + time;
+    if (diff === 1) return 'Yesterday ' + time;
+    if (diff < 7) return diff + 'd ago ' + time;
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' + time;
   }
 
   // Load sales dashboard data — grouped by location
