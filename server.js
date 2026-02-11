@@ -20264,7 +20264,7 @@ const CAMPAIGN_TEMPLATES = [
   {
     step: 0, delay_days: 0,
     subject_template: 'Visit Follow-Up: Extra Information About Our Vending',
-    body_template: `Hey {contact_name},\n\n{visit_opener} I wanted to reach out and send over a bit more info for you and your team to review.\n\nYou can view our proposal here: https://vend.kandedash.com/KandeVendTech-Proposal.pdf\n\nOur team manages everything from installation to maintenance, all at no cost to you.\n\nAfter you have a chance to review our proposal, I'd love to chat about how we can meet your needs. Are you free for a quick call this week?\n\n${KANDE_SIGNATURE_PLAIN}`,
+    body_template: `Hey {contact_name},\n\n{visit_opener} I wanted to reach out and send over a bit more info for you and your team to review.\n\nYou can view our proposal here: https://kandevendtech.com/KandeVendTech-Proposal.pdf\n\nOur team manages everything from installation to maintenance, all at no cost to you.\n\nAfter you have a chance to review our proposal, I'd love to chat about how we can meet your needs. Are you free for a quick call this week?\n\n${KANDE_SIGNATURE_PLAIN}`,
     attach_proposal_pdf: true,
     cc: 'jordan@kandevendtech.com',
     notes: 'Initial proposal email — always attach PDF. {visit_opener} is generated from Jordan activity notes.'
@@ -21273,9 +21273,9 @@ app.post('/api/campaigns/:id/send-via-instantly', async (req, res) => {
       let body = fillTemplate(tmpl.body_template, vars);
       body = body.replace(KANDE_SIGNATURE_PLAIN, '').trim();
       // Wrap each paragraph in <p> tags so Instantly doesn't strip the text
-      body = body.split(/\n\n+/).map(p => 
-        `<p style="color:#000000;font-family:Arial,sans-serif;font-size:14px;">${p.replace(/\n/g, '<br>')}</p>`
-      ).join('');
+      body = '<div style="font-family:Arial,Helvetica,sans-serif;">' + body.split(/\n\n+/).map(p => 
+        `<p style="color:#000000;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;">${p.replace(/\n/g, '<br>')}</p>`
+      ).join('') + '</div>';
       // Add inline images if template has them
       if (tmpl.inline_images && tmpl.inline_images.length > 0) {
         body += tmpl.inline_images.map(url =>
