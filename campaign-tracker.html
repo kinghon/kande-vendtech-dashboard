@@ -52,6 +52,17 @@
   .refresh-btn { background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; }
   .refresh-btn:hover { background: #1d4ed8; }
 
+  .opens-row td { padding: 0 8px 10px; background: #f8fdf8; }
+  .opens-detail { font-size: 11px; color: #555; padding: 8px 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; }
+  .opens-detail .open-event { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px solid #f1f5f9; }
+  .opens-detail .open-event:last-child { border-bottom: none; }
+  .opens-detail .open-ts { color: #2563eb; font-weight: 500; min-width: 120px; }
+  .opens-detail .open-subject { color: #888; }
+  .opens-detail .open-count { color: #16a34a; font-weight: 600; }
+  .opens-toggle { cursor: pointer; }
+  .opens-toggle:hover { text-decoration: underline; }
+  .no-opens { color: #aaa; font-style: italic; }
+
   @media (max-width: 768px) {
     .header { padding: 14px 16px; }
     .stats-bar { padding: 12px 16px; }
@@ -93,6 +104,7 @@
         <th>Email 3<br><span style="font-weight:400;text-transform:none;font-size:10px;">Day 14</span></th>
         <th>Email 4<br><span style="font-weight:400;text-transform:none;font-size:10px;">Day 21</span></th>
         <th>Email 5<br><span style="font-weight:400;text-transform:none;font-size:10px;">Day 30</span></th>
+        <th>Opens</th>
         <th>Status</th>
       </tr>
     </thead>
@@ -131,6 +143,13 @@ const CAMPAIGN_LEADS = [
 
 const STEP_DELAYS = [0, 3, 7, 14, 21, 30]; // days after email 0
 
+// Internal domains to exclude (Jordan, Kurtis, etc.)
+const INTERNAL_DOMAINS = ['kandevendtech.com', 'kandevendtech.co', 'kandephotobooths.com'];
+function isInternal(email) {
+  if (!email) return false;
+  return INTERNAL_DOMAINS.some(d => email.toLowerCase().endsWith('@' + d));
+}
+
 function fmtDate(d) {
   if (!d) return '';
   const dt = new Date(d);
@@ -141,6 +160,20 @@ function fmtDateTime(d) {
   if (!d) return '';
   const dt = new Date(d);
   return `${dt.getMonth()+1}/${dt.getDate()} ${dt.getHours()}:${String(dt.getMinutes()).padStart(2,'0')}`;
+}
+
+function fmtFullDateTime(d) {
+  if (!d) return '';
+  const dt = new Date(d);
+  const h = dt.getHours();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${dt.getMonth()+1}/${dt.getDate()} ${h12}:${String(dt.getMinutes()).padStart(2,'0')} ${ampm}`;
+}
+
+function toggleOpens(pid) {
+  const row = document.getElementById('opens-' + pid);
+  if (row) row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
 }
 
 function makeCell(step, tracking, email0SentDate) {
@@ -222,13 +255,15 @@ async function loadData() {
   document.getElementById('campaignTable').style.display = 'none';
 
   try {
-    const [prospectsRes, activitiesRes] = await Promise.all([
+    const [prospectsRes, activitiesRes, eventsRes] = await Promise.all([
       fetch('/api/prospects', { headers }),
-      fetch('/api/activities?limit=1000', { headers })
+      fetch('/api/activities?limit=1000', { headers }),
+      fetch('/api/instantly-events', { headers }).catch(() => ({ ok: false }))
     ]);
     
     const prospects = await prospectsRes.json();
     const activities = await activitiesRes.json();
+    const allEvents = eventsRes.ok ? await eventsRes.json() : [];
 
     const prospectMap = {};
     prospects.forEach(p => prospectMap[p.id] = p);
@@ -322,12 +357,64 @@ async function loadData() {
         tr.appendChild(makeCell(step, tracking, email0SentDate));
       }
 
+      // Opens column — individual timestamped opens (exclude internal/Jordan)
+      const tdOpens = document.createElement('td');
+      // Collect opens from prospect.email_events + instantlyEvents
+      const prospectEvents = (p.email_events || []).filter(e => e.type === 'email_opened');
+      const instantlyEvts = allEvents.filter(e => e.prospect_id === lead.pid && e.event_type === 'email_opened' && !isInternal(e.opener_email));
+      // Merge & dedupe by timestamp
+      const allOpens = [];
+      const seenTs = new Set();
+      [...prospectEvents, ...instantlyEvts].forEach(e => {
+        const ts = e.timestamp;
+        if (!ts || seenTs.has(ts)) return;
+        if (isInternal(e.opener_email)) return; // exclude Jordan/team
+        seenTs.add(ts);
+        allOpens.push({ timestamp: ts, subject: e.subject || '', opener: e.opener_email || '' });
+      });
+      // Also count from tracking num_opens if no individual events
+      const trackingOpens = tracking.reduce((s, t) => s + (t._adjusted_opens || t.num_opens || 0), 0);
+      
+      allOpens.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      const openCount = allOpens.length || trackingOpens;
+      
+      if (openCount > 0) {
+        tdOpens.innerHTML = `<span class="opens-toggle open-count" onclick="toggleOpens(${lead.pid})" title="Click to see details">👁 ${openCount}x</span>`;
+        tdOpens.style.textAlign = 'center';
+      } else {
+        tdOpens.innerHTML = '<span class="no-opens">0</span>';
+        tdOpens.style.textAlign = 'center';
+      }
+      tr.appendChild(tdOpens);
+
       // Status badge
       const tdStatus = document.createElement('td');
       tdStatus.innerHTML = `<span class="status-badge ${status}">${status}</span>`;
       tr.appendChild(tdStatus);
 
       tbody.appendChild(tr);
+
+      // Expandable opens detail row
+      if (allOpens.length > 0) {
+        const opensRow = document.createElement('tr');
+        opensRow.id = 'opens-' + lead.pid;
+        opensRow.className = 'opens-row';
+        opensRow.style.display = 'none';
+        const opensCell = document.createElement('td');
+        opensCell.colSpan = 12;
+        let opensHtml = '<div class="opens-detail"><strong>📊 Email Opens (excluding internal team)</strong>';
+        allOpens.forEach((o, i) => {
+          opensHtml += `<div class="open-event">
+            <span class="open-count">#${i + 1}</span>
+            <span class="open-ts">${fmtFullDateTime(o.timestamp)}</span>
+            <span class="open-subject">${o.subject ? o.subject.substring(0, 60) : ''}</span>
+          </div>`;
+        });
+        opensHtml += '</div>';
+        opensCell.innerHTML = opensHtml;
+        opensRow.appendChild(opensCell);
+        tbody.appendChild(opensRow);
+      }
     }
 
     // Update stats

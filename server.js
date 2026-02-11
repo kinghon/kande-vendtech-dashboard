@@ -20803,6 +20803,13 @@ app.post('/api/webhooks/instantly', (req, res) => {
   }
 });
 
+// Get ALL instantly events (for campaign tracker)
+app.get('/api/instantly-events', (req, res) => {
+  const events = (db.instantlyEvents || [])
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  res.json(events);
+});
+
 // Get email events for a prospect (open timestamps etc.)
 app.get('/api/prospects/:id/email-events', (req, res) => {
   const id = parseInt(req.params.id);
