@@ -20474,32 +20474,50 @@ app.get('/api/sales-dashboard', (req, res) => {
   const campaigns = db.campaigns || [];
   const mixmaxData = db.mixmaxTracking || [];
 
-  // 1. Latest emails sent per location (from Mixmax tracking + campaigns)
+  // 1. ALL emails per location (from Mixmax tracking + campaigns)
   const emailsByProspect = {};
   mixmaxData.forEach(m => {
     const key = m.prospect_id;
-    if (!emailsByProspect[key] || new Date(m.sent_at) > new Date(emailsByProspect[key].sent_at)) {
-      emailsByProspect[key] = m;
-    }
+    if (!emailsByProspect[key]) emailsByProspect[key] = [];
+    emailsByProspect[key].push(m);
   });
 
-  const emailActivity = Object.values(emailsByProspect)
-    .map(m => {
-      const prospect = prospects.find(p => p.id === m.prospect_id);
+  // Sort each prospect's emails by date, newest first
+  Object.values(emailsByProspect).forEach(arr => arr.sort((a, b) => new Date(b.sent_at) - new Date(a.sent_at)));
+
+  const emailActivity = Object.entries(emailsByProspect)
+    .map(([pid, msgs]) => {
+      const latest = msgs[0];
+      const prospect = prospects.find(p => p.id === parseInt(pid));
+      const allOpens = msgs.reduce((s, m) => s + (m.num_opens || 0), 0);
+      const anyReply = msgs.some(m => m.was_replied);
+      const anyBounce = msgs.some(m => m.was_bounced);
       return {
-        prospect_id: m.prospect_id,
-        name: prospect ? prospect.name : m.prospect_name || 'Unknown',
-        email: m.recipient_email,
-        subject: m.subject,
-        sent_at: m.sent_at,
-        opens: m.num_opens || 0,
-        replied: m.was_replied || false,
-        bounced: m.was_bounced || false,
-        last_event: m.last_event,
-        last_event_at: m.last_event_at,
-        status: m.was_replied ? 'replied' : m.was_bounced ? 'bounced' : (m.num_opens || 0) >= 3 ? 'hot' : (m.num_opens || 0) > 0 ? 'opened' : 'sent',
+        prospect_id: parseInt(pid),
+        name: prospect ? prospect.name : latest.prospect_name || 'Unknown',
+        email: latest.recipient_email,
+        subject: latest.subject,
+        sent_at: latest.sent_at,
+        opens: allOpens,
+        replied: anyReply,
+        bounced: anyBounce,
+        last_event: latest.last_event,
+        last_event_at: latest.last_event_at,
+        status: anyReply ? 'replied' : anyBounce ? 'bounced' : allOpens >= 3 ? 'hot' : allOpens > 0 ? 'opened' : 'sent',
         property_type: prospect ? prospect.property_type : '',
-        pipeline_stage: prospect ? prospect.status : ''
+        pipeline_stage: prospect ? prospect.status : '',
+        // All emails for this prospect with timestamps
+        all_emails: msgs.map(m => ({
+          subject: m.subject,
+          sent_at: m.sent_at,
+          opens: m.num_opens || 0,
+          last_opened: m.last_event === 'opened' ? m.last_event_at : null,
+          last_event: m.last_event,
+          last_event_at: m.last_event_at,
+          last_event_by: m.last_event_by,
+          replied: m.was_replied || false,
+          bounced: m.was_bounced || false
+        }))
       };
     })
     .sort((a, b) => new Date(b.sent_at) - new Date(a.sent_at));

@@ -262,6 +262,13 @@
     .loc-event-badge.hot-opens { background: var(--red-light); color: var(--red); }
     .loc-event-badge.replied { background: var(--green-light); color: #15803d; }
     .loc-event-badge.bounced { background: #fef2f2; color: #991b1b; }
+    /* Expandable email detail */
+    .loc-email-detail { display: none; margin: 4px 0 6px 32px; padding: 8px 12px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); font-size: 0.75rem; }
+    .loc-email-detail.open { display: block; }
+    .loc-email-detail .email-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid #e2e8f0; }
+    .loc-email-detail .email-row:last-child { border-bottom: none; }
+    .loc-email-detail .email-subj { flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .loc-email-detail .email-ts { color: var(--muted); white-space: nowrap; }
 
     /* Email Activity Table */
     .email-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
@@ -780,6 +787,11 @@
     });
 
   // --- SALES COMMAND CENTER ---
+  function toggleEmailDetail(id) {
+    var el = document.getElementById(id);
+    if (el) el.classList.toggle('open');
+  }
+
   function formatDate(d) {
     if (!d) return '—';
     var dt = new Date(d);
@@ -814,14 +826,17 @@
     if (sales && sales.email_activity) {
       sales.email_activity.forEach(function(e) {
         var key = e.prospect_id;
-        if (!locations[key]) locations[key] = { id: key, name: e.name, type: e.property_type, stage: e.pipeline_stage, events: [], emailStatus: 'sent', maxOpens: 0, hasReply: false };
+        if (!locations[key]) locations[key] = { id: key, name: e.name, type: e.property_type, stage: e.pipeline_stage, events: [], emailStatus: 'sent', maxOpens: 0, hasReply: false, allEmails: [] };
+        locations[key].allEmails = e.all_emails || [];
         locations[key].events.push({
           icon: '📧', type: 'email',
           text: '<strong>Email:</strong> ' + (e.subject || 'Follow-up'),
           detail: e.email,
           date: e.sent_at,
           opens: e.opens,
-          status: e.status
+          status: e.status,
+          expandable: true,
+          prospectId: e.prospect_id
         });
         if (e.opens > locations[key].maxOpens) locations[key].maxOpens = e.opens;
         if (e.replied) locations[key].hasReply = true;
@@ -899,18 +914,44 @@
         var stageClass = loc.hasReply ? 'replied' : loc.emailStatus === 'hot' ? 'hot' : loc.maxOpens > 0 ? 'warm' : 'new';
         var stageLabel = loc.hasReply ? '✅ Replied' : loc.emailStatus === 'hot' ? '🔥 Hot' : loc.maxOpens > 0 ? '👁 Opened' : '📤 Sent';
 
+        var detailId = 'email-detail-' + loc.id;
         var eventsHtml = loc.events.slice(0, 6).map(function(e) {
           var badge = '';
           if (e.opens >= 3) badge = '<span class="loc-event-badge hot-opens">🔥 ' + e.opens + ' opens</span>';
           else if (e.opens > 0) badge = '<span class="loc-event-badge opens">👁 ' + e.opens + ' opens</span>';
           if (e.status === 'replied') badge = '<span class="loc-event-badge replied">✅ Replied</span>';
           if (e.status === 'bounced') badge = '<span class="loc-event-badge bounced">⛔ Bounced</span>';
-          return '<div class="loc-event">' +
+          var clickAttr = e.expandable ? ' onclick="event.stopPropagation(); toggleEmailDetail(\'' + detailId + '\')" style="cursor:pointer;border-radius:6px;padding:4px 0;transition:background 0.1s;" onmouseover="this.style.background=\'var(--accent-light)\'" onmouseout="this.style.background=\'transparent\'"' : '';
+          var expandIcon = e.expandable ? '<span style="font-size:0.68rem;color:var(--muted);margin-left:4px;">▼</span>' : '';
+          var html = '<div class="loc-event"' + clickAttr + '>' +
             '<div class="loc-event-icon">' + e.icon + '</div>' +
-            '<div class="loc-event-text">' + e.text + '</div>' +
+            '<div class="loc-event-text">' + e.text + expandIcon + '</div>' +
             badge +
             '<div class="loc-event-date">' + formatDate(e.date) + '</div>' +
           '</div>';
+
+          // Add expandable detail panel for emails
+          if (e.expandable && loc.allEmails && loc.allEmails.length > 0) {
+            html += '<div class="loc-email-detail" id="' + detailId + '">';
+            html += '<div style="font-weight:600;margin-bottom:6px;color:var(--text);font-size:0.78rem;">📧 All emails to ' + (loc.allEmails[0] ? '' : '') + '</div>';
+            html += loc.allEmails.map(function(em) {
+              var statusBadge = em.replied ? '<span class="loc-event-badge replied" style="font-size:0.65rem;">✅ Replied</span>' :
+                em.bounced ? '<span class="loc-event-badge bounced" style="font-size:0.65rem;">⛔ Bounced</span>' :
+                em.opens >= 3 ? '<span class="loc-event-badge hot-opens" style="font-size:0.65rem;">🔥 ' + em.opens + ' opens</span>' :
+                em.opens > 0 ? '<span class="loc-event-badge opens" style="font-size:0.65rem;">👁 ' + em.opens + '</span>' :
+                '<span style="color:var(--muted);font-size:0.65rem;">No opens</span>';
+              var sentTs = em.sent_at ? new Date(em.sent_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : '—';
+              var lastOpenTs = em.last_opened ? '  ·  Last opened: ' + new Date(em.last_opened).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : '';
+              var openedBy = em.last_event_by && em.last_event === 'opened' ? '  ·  By: ' + em.last_event_by : '';
+              return '<div class="email-row">' +
+                '<div class="email-subj">' + (em.subject || 'Follow-up') + '</div>' +
+                statusBadge +
+                '<div class="email-ts">Sent ' + sentTs + lastOpenTs + openedBy + '</div>' +
+              '</div>';
+            }).join('');
+            html += '</div>';
+          }
+          return html;
         }).join('');
 
         return '<div class="loc-card ' + cardClass + '" onclick="window.location.href=\'/prospect/' + loc.id + '\'">' +
