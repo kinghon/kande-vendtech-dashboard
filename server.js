@@ -73,7 +73,7 @@ function sanitizeObject(obj) {
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
   // Allow these paths without auth
-  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly'];
+  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
     return next();
   }
@@ -20264,7 +20264,7 @@ const CAMPAIGN_TEMPLATES = [
   {
     step: 0, delay_days: 0,
     subject_template: 'Visit Follow-Up: Extra Information About Our Vending',
-    body_template: `Hey {contact_name},\n\n{visit_opener} I wanted to reach out and send over a bit more info for you and your team to review. I've attached a proposal doc for you.\n\nOur team manages everything from installation to maintenance, all at no cost to you.\n\nAfter you have a chance to review our proposal, I'd love to chat about how we can meet your needs. Are you free for a quick call this week?\n\n${KANDE_SIGNATURE_PLAIN}`,
+    body_template: `Hey {contact_name},\n\n{visit_opener} I wanted to reach out and send over a bit more info for you and your team to review.\n\nYou can view our proposal here: https://vend.kandedash.com/KandeVendTech-Proposal.pdf\n\nOur team manages everything from installation to maintenance, all at no cost to you.\n\nAfter you have a chance to review our proposal, I'd love to chat about how we can meet your needs. Are you free for a quick call this week?\n\n${KANDE_SIGNATURE_PLAIN}`,
     attach_proposal_pdf: true,
     cc: 'jordan@kandevendtech.com',
     notes: 'Initial proposal email — always attach PDF. {visit_opener} is generated from Jordan activity notes.'
