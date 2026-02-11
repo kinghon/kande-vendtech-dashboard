@@ -20256,24 +20256,36 @@ if (!db.emailDrafts) db.emailDrafts = [];
 // Campaign email templates (5-step follow-up after proposal)
 const CAMPAIGN_TEMPLATES = [
   {
-    step: 1, delay_days: 3, subject_template: 'Following up — Kande VendTech proposal for {property_name}',
-    body_template: `Hi {contact_name},\n\nI wanted to follow up on the proposal we sent over for {property_name}. We're excited about the opportunity to bring our smart cooler vending solution to your property.\n\nAs a reminder, this is a completely free amenity for your residents/employees — we handle everything from installation to restocking. The {machine_count} unit(s) we proposed would provide fresh, healthy food options 24/7.\n\nDo you have any questions about the proposal? Happy to hop on a quick call or stop by to walk through it.\n\nBest,\nKurtis Hon\nKande VendTech\n725-228-8822`
+    step: 0, delay_days: 0,
+    subject_template: 'Visit Follow-Up: Extra Information About Our Vending',
+    body_template: `Hey {contact_name},\n\nJordan from my team let me know he spoke with you recently and you were interested in getting more info about our free smart vending machines! I wanted to reach out and send over a bit more info for you and your team to review. I've attached a proposal doc for you.\n\nOur team manages everything from installation to maintenance, all at no cost to you.\n\nAfter you have a chance to review our proposal, I'd love to chat about how we can meet your needs. Are you free for a quick meeting this week?\n\nThanks!\nKurtis Hon\nCEO\nKandeVendTech`,
+    attach_proposal_pdf: true,
+    notes: 'Initial proposal email — always attach PDF. This is step 0 (sent immediately, not part of follow-up drip).'
   },
   {
-    step: 2, delay_days: 7, subject_template: 'Quick question about {property_name}',
-    body_template: `Hi {contact_name},\n\nJust checking in — have you had a chance to review our vending proposal for {property_name}?\n\nI know you're busy, so I'll keep this short. If you'd like, I can swing by this week to answer any questions in person.\n\nLet me know what works!\n\nBest,\nKurtis Hon\nKande VendTech\n725-228-8822`
+    step: 1, delay_days: 3,
+    subject_template: 'Re: Visit Follow-Up: Extra Information About Our Vending',
+    body_template: `Hey {contact_name},\n\nJust wanted to follow up on the proposal I sent over. Did you get a chance to take a look?\n\nHappy to swing by this week if you'd like to chat in person — sometimes it's easier than email!\n\nThanks!\nKurtis Hon\nCEO\nKandeVendTech`
   },
   {
-    step: 3, delay_days: 14, subject_template: 'How properties like {property_name} are adding a free amenity',
-    body_template: `Hi {contact_name},\n\nI wanted to share a quick success story. We recently placed our SandStar AI Smart Coolers at similar properties in the Henderson area, and they've been a huge hit with residents.\n\nProperty managers love it because:\n• Zero cost — we provide and maintain everything\n• 24/7 fresh food access for residents/employees\n• Modern smart technology that elevates the property\n• Revenue share opportunity\n\nWould love to bring this to {property_name}. Can we set up 15 minutes to chat?\n\nBest,\nKurtis Hon\nKande VendTech\n725-228-8822`
+    step: 2, delay_days: 7,
+    subject_template: 'Re: Visit Follow-Up: Extra Information About Our Vending',
+    body_template: `Hey {contact_name},\n\nJust checking in — I know things get busy. If you have any questions about the vending proposal for {property_name}, I'm happy to help.\n\nWe've been getting great feedback from other properties in the area. Would love to set up a quick 10-minute call this week if that works for you.\n\nThanks!\nKurtis Hon\nCEO\nKandeVendTech`
   },
   {
-    step: 4, delay_days: 21, subject_template: 'Limited availability in {area} — {property_name}',
-    body_template: `Hi {contact_name},\n\nQuick heads up — we're filling up our placement schedule for the {area} area and wanted to make sure {property_name} doesn't miss out.\n\nWe only have a limited number of machines available for new installations this quarter, and I'd hate for scheduling to be the reason we can't move forward.\n\nIf you're still interested, can we lock in a time to finalize details?\n\nBest,\nKurtis Hon\nKande VendTech\n725-228-8822`
+    step: 3, delay_days: 14,
+    subject_template: 'Re: Visit Follow-Up: Extra Information About Our Vending',
+    body_template: `Hey {contact_name},\n\nWanted to share a quick update — we just placed machines at a property near {property_name} and they're already seeing great usage from residents.\n\nThe best part is there's zero cost and zero hassle on your end. We handle everything.\n\nIf you're still open to it, I'd love to find a time to chat. No pressure at all.\n\nThanks!\nKurtis Hon\nCEO\nKandeVendTech`
   },
   {
-    step: 5, delay_days: 30, subject_template: 'Last check-in — {property_name}',
-    body_template: `Hi {contact_name},\n\nI wanted to send one final follow-up regarding our vending proposal for {property_name}.\n\nIf the timing isn't right, I completely understand. We'll keep you on our list and check back in a few months when things might be different.\n\nIf anything changes or you'd like to revisit the conversation, don't hesitate to reach out. I'm always just a call or email away.\n\nWishing you all the best,\nKurtis Hon\nKande VendTech\n725-228-8822`
+    step: 4, delay_days: 21,
+    subject_template: 'Re: Visit Follow-Up: Extra Information About Our Vending',
+    body_template: `Hey {contact_name},\n\nQuick heads up — we're filling up our installation schedule for the {area} area. Wanted to make sure {property_name} doesn't miss out if you're still interested.\n\nEither way, no worries. Just let me know!\n\nThanks!\nKurtis Hon\nCEO\nKandeVendTech`
+  },
+  {
+    step: 5, delay_days: 30,
+    subject_template: 'Re: Visit Follow-Up: Extra Information About Our Vending',
+    body_template: `Hey {contact_name},\n\nJust one last check-in on the vending proposal for {property_name}. Totally understand if the timing isn't right — we'll keep you on our list and circle back in a few months.\n\nFeel free to reach out anytime if anything changes. Always happy to chat.\n\nThanks!\nKurtis Hon\nCEO\nKandeVendTech`
   }
 ];
 
