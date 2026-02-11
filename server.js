@@ -20256,7 +20256,7 @@ if (!db.emailDrafts) db.emailDrafts = [];
 // Campaign email templates (5-step follow-up after proposal)
 // Email signature (matches Gmail/Mixmax signature exactly)
 // Sig format from Kurtis's screenshot: Thanks! / Kurtis Hon (bold blue) / CEO / KandeVendTech (link) / [logo on dark bg]
-const KANDE_SIGNATURE_HTML = `<div style="font-family:Arial,sans-serif;font-size:13px;color:#333;">Thanks!<br><b style="color:#1a73e8;">Kurtis Hon</b><br><span style="color:#666;">CEO</span><br><a href="https://www.kandevendtech.com" style="color:#1a73e8;text-decoration:none;font-weight:bold;">KandeVendTech</a><br><a href="https://www.kandevendtech.com"><img src="https://vend.kandedash.com/kande-sig-logo-sm.jpg" alt="Kande VendTech" width="120" style="margin-top:6px;border-radius:4px;"></a></div>`;
+const KANDE_SIGNATURE_HTML = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:small;color:#000;">Thanks!<br><b style="color:#1155cc;">Kurtis Hon</b><br>CEO<br><a href="https://www.kandevendtech.com" style="color:#1155cc;text-decoration:none;"><b>KandeVendTech</b></a><br><a href="https://www.kandevendtech.com"><img src="https://vend.kandedash.com/kande-sig-logo-sm.jpg" alt="Kande VendTech" width="90" height="51" style="margin-top:4px;"></a></div>`;
 
 const KANDE_SIGNATURE_PLAIN = `Thanks!\nKurtis Hon\nCEO\nKandeVendTech`;
 
