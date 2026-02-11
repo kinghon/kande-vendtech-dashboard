@@ -210,6 +210,40 @@
       .kpi-grid { grid-template-columns: repeat(2, 1fr); }
       .quick-actions-grid { grid-template-columns: 1fr 1fr; }
     }
+    /* Action Items Command Center */
+    .action-center { margin-bottom: 20px; }
+    .action-center-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .action-center-title { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .action-badges { display: flex; gap: 8px; }
+    .action-badge { font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 12px; }
+    .action-badge.urgent { background: var(--red-light); color: var(--red); }
+    .action-badge.active { background: var(--green-light); color: var(--green); }
+    .action-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .action-list { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+    .action-list-title { font-size: 0.82rem; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .action-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 8px; margin-bottom: 6px; cursor: pointer; transition: background 0.15s; border: 1px solid transparent; }
+    .action-item:hover { background: var(--accent-light); border-color: var(--border); }
+    .action-item.urgent { border-left: 3px solid var(--red); }
+    .action-item.high { border-left: 3px solid var(--amber); }
+    .action-item .action-icon { font-size: 1.1rem; margin-top: 2px; flex-shrink: 0; }
+    .action-item .action-text { flex: 1; }
+    .action-item .action-title { font-size: 0.82rem; font-weight: 600; }
+    .action-item .action-sub { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+    .action-item .action-time { font-size: 0.68rem; color: var(--muted); margin-top: 3px; }
+    .activity-feed { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+    .activity-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+    .activity-entry:last-child { border-bottom: none; }
+    .activity-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+    .activity-dot.pop_in, .activity-dot.pop-in { background: var(--purple); }
+    .activity-dot.email, .activity-dot.campaign_email { background: var(--accent); }
+    .activity-dot.call, .activity-dot.phone { background: var(--green); }
+    .activity-dot.note, .activity-dot.status-change { background: var(--muted); }
+    .activity-dot.proposal, .activity-dot.proposal_drafted { background: var(--amber); }
+    .activity-dot.interested { background: var(--red); }
+    .activity-content { flex: 1; }
+    .activity-text { font-size: 0.8rem; }
+    .activity-meta { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+    @media (max-width: 768px) { .action-columns { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -227,6 +261,33 @@
       <div class="weather-temp" id="weather-temp">—°</div>
       <div class="weather-desc" id="weather-desc">Loading...</div>
       <div class="weather-loc">📍 Las Vegas, NV</div>
+    </div>
+  </div>
+
+  <!-- ACTION ITEMS COMMAND CENTER -->
+  <div class="action-center" id="action-center">
+    <div class="action-center-header">
+      <div class="action-center-title">🎯 Action Items <span id="action-count" class="action-badge urgent" style="display:none"></span></div>
+      <div class="action-badges">
+        <span id="badge-hot" class="action-badge urgent" style="display:none"></span>
+        <span id="badge-tasks" class="action-badge active" style="display:none"></span>
+      </div>
+    </div>
+    <div class="action-columns">
+      <!-- Left: Priority Actions -->
+      <div class="action-list">
+        <div class="action-list-title">🔥 Priority Actions</div>
+        <div id="priority-actions">
+          <div style="text-align:center;padding:20px;color:var(--muted);font-size:0.82rem;">Loading...</div>
+        </div>
+      </div>
+      <!-- Right: Jordan's Activity Feed -->
+      <div class="activity-feed">
+        <div class="action-list-title">📋 Recent Sales Activity <span style="font-size:0.7rem;color:var(--muted);font-weight:normal;margin-left:auto;">Last 48h</span></div>
+        <div id="activity-feed">
+          <div style="text-align:center;padding:20px;color:var(--muted);font-size:0.82rem;">Loading...</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -667,6 +728,73 @@
       document.getElementById('weather-temp').textContent = '—';
       document.getElementById('weather-desc').textContent = 'Unavailable';
     });
+
+  // --- ACTION ITEMS COMMAND CENTER ---
+  fetch('/api/action-items').then(r => r.ok ? r.json() : null).then(function(data) {
+    if (!data) { document.getElementById('action-center').style.display = 'none'; return; }
+    var s = data.summary;
+    var totalActions = s.hot_leads + s.pending_proposals + s.tasks_due + s.campaign_emails_due;
+
+    // Badges
+    if (totalActions > 0) {
+      document.getElementById('action-count').textContent = totalActions + ' items';
+      document.getElementById('action-count').style.display = 'inline';
+    }
+    if (s.hot_leads > 0) {
+      document.getElementById('badge-hot').textContent = '🔥 ' + s.hot_leads + ' hot lead' + (s.hot_leads > 1 ? 's' : '');
+      document.getElementById('badge-hot').style.display = 'inline';
+    }
+    if (s.overdue_tasks > 0) {
+      document.getElementById('badge-tasks').textContent = '⚠️ ' + s.overdue_tasks + ' overdue';
+      document.getElementById('badge-tasks').style.display = 'inline';
+      document.getElementById('badge-tasks').className = 'action-badge urgent';
+    }
+
+    // Priority actions list
+    var el = document.getElementById('priority-actions');
+    var items = data.action_items.slice(0, 8);
+    if (items.length === 0) {
+      el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:0.82rem;">✅ All clear — no actions needed right now</div>';
+    } else {
+      el.innerHTML = items.map(function(item) {
+        var icon = '📌', pClass = '';
+        if (item.type === 'hot_lead') { icon = '🔥'; pClass = 'urgent'; }
+        else if (item.type === 'pending_proposal') { icon = '📧'; pClass = item.priority === 'high' ? 'high' : ''; }
+        else if (item.type === 'task_due') { icon = item.priority === 'overdue' ? '⚠️' : '📋'; pClass = item.priority === 'overdue' ? 'urgent' : ''; }
+        else if (item.type === 'campaign_email') { icon = '📨'; pClass = 'high'; }
+        var link = item.prospect_id ? ' onclick="window.location.href=\'/prospect/' + item.prospect_id + '\'"' : '';
+        return '<div class="action-item ' + pClass + '"' + link + '>' +
+          '<div class="action-icon">' + icon + '</div>' +
+          '<div class="action-text">' +
+            '<div class="action-title">' + (item.title || '') + '</div>' +
+            '<div class="action-sub">' + (item.subtitle || '') +
+              (item.campaign_step ? ' · ' + item.campaign_step : '') +
+              (item.days_waiting ? ' · Waiting ' + item.days_waiting + 'd' : '') +
+            '</div>' +
+          '</div></div>';
+      }).join('');
+    }
+
+    // Activity feed
+    var feedEl = document.getElementById('activity-feed');
+    var acts = data.recent_activities.slice(0, 10);
+    if (acts.length === 0) {
+      feedEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:0.82rem;">No recent activity in last 48h</div>';
+    } else {
+      feedEl.innerHTML = acts.map(function(a) {
+        var dotClass = (a.activity_type || 'note').replace('-', '_');
+        return '<div class="activity-entry">' +
+          '<div class="activity-dot ' + dotClass + '"></div>' +
+          '<div class="activity-content">' +
+            '<div class="activity-text">' + actIcon(a.activity_type) + ' ' + (a.title || '') + '</div>' +
+            '<div class="activity-meta">' + (a.subtitle || '') + ' · ' + timeAgo(a.created_at) + '</div>' +
+          '</div></div>';
+      }).join('');
+    }
+  }).catch(function(e) {
+    console.error('Action items error:', e);
+    document.getElementById('action-center').style.display = 'none';
+  });
 
   // --- Fetch all data ---
   Promise.all([

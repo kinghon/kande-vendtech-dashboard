@@ -20245,6 +20245,592 @@ app.get('/api/optimization/inventory-transfer', (req, res) => {
 
 // ===== END PHASE 6: ADVANCED FEATURES =====
 
+// ===== SALES AUTOMATION ENGINE (Feb 2026) =====
+// Connects: Activities → Pipeline → Proposals → Email Campaigns → Tracking
+
+// Initialize campaign collections
+if (!db.campaigns) db.campaigns = [];
+if (!db.campaignEmails) db.campaignEmails = [];
+if (!db.emailDrafts) db.emailDrafts = [];
+
+// Campaign email templates (5-step follow-up after proposal)
+const CAMPAIGN_TEMPLATES = [
+  {
+    step: 1, delay_days: 3, subject_template: 'Following up — Kande VendTech proposal for {property_name}',
+    body_template: `Hi {contact_name},\n\nI wanted to follow up on the proposal we sent over for {property_name}. We're excited about the opportunity to bring our smart cooler vending solution to your property.\n\nAs a reminder, this is a completely free amenity for your residents/employees — we handle everything from installation to restocking. The {machine_count} unit(s) we proposed would provide fresh, healthy food options 24/7.\n\nDo you have any questions about the proposal? Happy to hop on a quick call or stop by to walk through it.\n\nBest,\nKurtis Hon\nKande VendTech\n725-228-8822`
+  },
+  {
+    step: 2, delay_days: 7, subject_template: 'Quick question about {property_name}',
+    body_template: `Hi {contact_name},\n\nJust checking in — have you had a chance to review our vending proposal for {property_name}?\n\nI know you're busy, so I'll keep this short. If you'd like, I can swing by this week to answer any questions in person.\n\nLet me know what works!\n\nBest,\nKurtis Hon\nKande VendTech\n725-228-8822`
+  },
+  {
+    step: 3, delay_days: 14, subject_template: 'How properties like {property_name} are adding a free amenity',
+    body_template: `Hi {contact_name},\n\nI wanted to share a quick success story. We recently placed our SandStar AI Smart Coolers at similar properties in the Henderson area, and they've been a huge hit with residents.\n\nProperty managers love it because:\n• Zero cost — we provide and maintain everything\n• 24/7 fresh food access for residents/employees\n• Modern smart technology that elevates the property\n• Revenue share opportunity\n\nWould love to bring this to {property_name}. Can we set up 15 minutes to chat?\n\nBest,\nKurtis Hon\nKande VendTech\n725-228-8822`
+  },
+  {
+    step: 4, delay_days: 21, subject_template: 'Limited availability in {area} — {property_name}',
+    body_template: `Hi {contact_name},\n\nQuick heads up — we're filling up our placement schedule for the {area} area and wanted to make sure {property_name} doesn't miss out.\n\nWe only have a limited number of machines available for new installations this quarter, and I'd hate for scheduling to be the reason we can't move forward.\n\nIf you're still interested, can we lock in a time to finalize details?\n\nBest,\nKurtis Hon\nKande VendTech\n725-228-8822`
+  },
+  {
+    step: 5, delay_days: 30, subject_template: 'Last check-in — {property_name}',
+    body_template: `Hi {contact_name},\n\nI wanted to send one final follow-up regarding our vending proposal for {property_name}.\n\nIf the timing isn't right, I completely understand. We'll keep you on our list and check back in a few months when things might be different.\n\nIf anything changes or you'd like to revisit the conversation, don't hesitate to reach out. I'm always just a call or email away.\n\nWishing you all the best,\nKurtis Hon\nKande VendTech\n725-228-8822`
+  }
+];
+
+// --- Helper: Fill template variables ---
+function fillTemplate(template, vars) {
+  let result = template;
+  Object.entries(vars).forEach(([key, val]) => {
+    result = result.replace(new RegExp(`\\{${key}\\}`, 'g'), val || '');
+  });
+  return result;
+}
+
+// --- ACTION ITEMS API (aggregated command center) ---
+app.get('/api/action-items', (req, res) => {
+  const now = new Date();
+  const twoDaysAgo = new Date(now - 48 * 60 * 60 * 1000);
+  const today = now.toISOString().split('T')[0];
+
+  // 1. HOT LEADS: Prospects in "interested" stage without proposals
+  const interestedCards = (db.pipelineCards || []).filter(c => c.stage === 'interested');
+  const hotLeads = interestedCards.map(card => {
+    const prospect = db.prospects.find(p => p.id === card.prospect_id);
+    if (!prospect) return null;
+    const hasProposal = (db.proposals || []).some(p => p.prospect_id === card.prospect_id);
+    if (hasProposal) return null;
+    const contact = (db.contacts || []).find(c => c.prospect_id === card.prospect_id && c.is_primary) ||
+                    (db.contacts || []).find(c => c.prospect_id === card.prospect_id);
+    return {
+      type: 'hot_lead',
+      priority: 'urgent',
+      prospect_id: prospect.id,
+      title: `Draft proposal for ${prospect.name}`,
+      subtitle: contact ? contact.name : prospect.email || 'No contact',
+      property_type: prospect.property_type,
+      days_waiting: Math.floor((now - new Date(card.entered_stage_at)) / (1000*60*60*24)),
+      created_at: card.entered_stage_at
+    };
+  }).filter(Boolean);
+
+  // 2. PROPOSALS PENDING: Sent but no response
+  const pendingProposals = (db.proposals || [])
+    .filter(p => p.status !== 'accepted' && p.status !== 'rejected' && p.status !== 'expired')
+    .map(p => {
+      const prospect = db.prospects.find(pr => pr.id === p.prospect_id);
+      const campaign = (db.campaigns || []).find(c => c.prospect_id === p.prospect_id && c.status === 'active');
+      return {
+        type: 'pending_proposal',
+        priority: campaign ? 'normal' : 'high',
+        proposal_id: p.id,
+        prospect_id: p.prospect_id,
+        title: `Proposal for ${p.property_name || (prospect ? prospect.name : 'Unknown')}`,
+        subtitle: `Sent ${Math.floor((now - new Date(p.created_at)) / (1000*60*60*24))} days ago`,
+        campaign_step: campaign ? `Campaign step ${campaign.current_step}/${campaign.total_steps}` : 'No campaign',
+        email_opened: p.email_opened || false,
+        created_at: p.created_at
+      };
+    });
+
+  // 3. FOLLOW-UPS DUE TODAY: Tasks from workflow
+  const tasksDue = (db.crmTasks || [])
+    .filter(t => !t.completed && t.due_date && t.due_date.split('T')[0] <= today)
+    .map(t => {
+      const prospect = db.prospects.find(p => p.id === t.prospect_id);
+      return {
+        type: 'task_due',
+        priority: t.due_date.split('T')[0] < today ? 'overdue' : 'normal',
+        task_id: t.id,
+        prospect_id: t.prospect_id,
+        title: t.title,
+        subtitle: prospect ? prospect.name : 'Unknown property',
+        task_type: t.task_type,
+        due_date: t.due_date,
+        created_at: t.created_at
+      };
+    });
+
+  // 4. JORDAN'S LATEST ACTIVITIES (last 48h)
+  const recentActivities = (db.activities || [])
+    .filter(a => new Date(a.created_at) >= twoDaysAgo)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 20)
+    .map(a => {
+      const prospect = db.prospects.find(p => p.id === a.prospect_id);
+      return {
+        type: 'activity',
+        activity_type: a.type,
+        prospect_id: a.prospect_id,
+        title: a.description || a.type,
+        subtitle: prospect ? prospect.name : 'Unknown',
+        created_at: a.created_at,
+        created_by: a.created_by || 'Jordan'
+      };
+    });
+
+  // 5. CAMPAIGN ACTIONS: Emails scheduled for today
+  const campaignActions = (db.campaigns || [])
+    .filter(c => c.status === 'active' && c.next_email_date && c.next_email_date.split('T')[0] <= today)
+    .map(c => {
+      const prospect = db.prospects.find(p => p.id === c.prospect_id);
+      const template = CAMPAIGN_TEMPLATES.find(t => t.step === c.current_step);
+      return {
+        type: 'campaign_email',
+        priority: 'high',
+        campaign_id: c.id,
+        prospect_id: c.prospect_id,
+        title: `Send follow-up #${c.current_step} to ${prospect ? prospect.name : 'Unknown'}`,
+        subtitle: template ? template.subject_template.replace('{property_name}', prospect ? prospect.name : '') : '',
+        step: c.current_step,
+        total_steps: c.total_steps,
+        created_at: c.next_email_date
+      };
+    });
+
+  // Sort all by priority then date
+  const priorityOrder = { overdue: 0, urgent: 1, high: 2, normal: 3 };
+  const allItems = [...hotLeads, ...pendingProposals, ...tasksDue, ...campaignActions]
+    .sort((a, b) => (priorityOrder[a.priority] || 9) - (priorityOrder[b.priority] || 9));
+
+  res.json({
+    action_items: allItems,
+    recent_activities: recentActivities,
+    summary: {
+      hot_leads: hotLeads.length,
+      pending_proposals: pendingProposals.length,
+      tasks_due: tasksDue.length,
+      overdue_tasks: tasksDue.filter(t => t.priority === 'overdue').length,
+      campaign_emails_due: campaignActions.length,
+      recent_activity_count: recentActivities.length
+    }
+  });
+});
+
+// --- CAMPAIGN MANAGEMENT ---
+
+// Start a campaign for a prospect (typically after proposal sent)
+app.post('/api/campaigns', (req, res) => {
+  const { prospect_id, proposal_id, start_delay_days } = req.body;
+  if (!prospect_id) return res.status(400).json({ error: 'prospect_id required' });
+
+  // Check if already has active campaign
+  const existing = (db.campaigns || []).find(c => c.prospect_id === prospect_id && c.status === 'active');
+  if (existing) return res.status(409).json({ error: 'Prospect already has active campaign', campaign: existing });
+
+  const prospect = db.prospects.find(p => p.id === prospect_id);
+  if (!prospect) return res.status(404).json({ error: 'Prospect not found' });
+
+  const contact = (db.contacts || []).find(c => c.prospect_id === prospect_id && c.is_primary) ||
+                  (db.contacts || []).find(c => c.prospect_id === prospect_id);
+
+  const startDelay = start_delay_days || CAMPAIGN_TEMPLATES[0].delay_days;
+  const firstEmailDate = new Date(Date.now() + startDelay * 24 * 60 * 60 * 1000);
+
+  const campaign = {
+    id: nextId(),
+    prospect_id,
+    proposal_id: proposal_id || null,
+    contact_name: contact ? contact.name : '',
+    contact_email: contact ? contact.email : prospect.email || '',
+    property_name: prospect.name,
+    area: prospect.city || prospect.address || 'Henderson',
+    status: 'active',
+    current_step: 1,
+    total_steps: CAMPAIGN_TEMPLATES.length,
+    next_email_date: firstEmailDate.toISOString(),
+    emails_sent: 0,
+    emails_opened: 0,
+    last_reply_date: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+
+  db.campaigns.push(campaign);
+  saveDB(db);
+
+  // Log activity
+  db.activities.push({
+    id: nextId(),
+    prospect_id,
+    type: 'campaign_started',
+    description: `Email follow-up campaign started (${CAMPAIGN_TEMPLATES.length} steps)`,
+    created_at: new Date().toISOString()
+  });
+  saveDB(db);
+
+  res.json(campaign);
+});
+
+// List campaigns
+app.get('/api/campaigns', (req, res) => {
+  const { status, prospect_id } = req.query;
+  let campaigns = db.campaigns || [];
+  if (status) campaigns = campaigns.filter(c => c.status === status);
+  if (prospect_id) campaigns = campaigns.filter(c => c.prospect_id === parseInt(prospect_id));
+
+  // Enrich with prospect data
+  const enriched = campaigns.map(c => {
+    const prospect = db.prospects.find(p => p.id === c.prospect_id);
+    const emails = (db.campaignEmails || []).filter(e => e.campaign_id === c.id);
+    return { ...c, prospect_name: prospect ? prospect.name : 'Unknown', emails };
+  });
+
+  res.json(enriched.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
+});
+
+// Get campaign detail
+app.get('/api/campaigns/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const campaign = (db.campaigns || []).find(c => c.id === id);
+  if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+  const prospect = db.prospects.find(p => p.id === campaign.prospect_id);
+  const emails = (db.campaignEmails || []).filter(e => e.campaign_id === id);
+  const proposal = campaign.proposal_id ? (db.proposals || []).find(p => p.id === campaign.proposal_id) : null;
+
+  res.json({ ...campaign, prospect, emails, proposal });
+});
+
+// Pause campaign
+app.put('/api/campaigns/:id/pause', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.campaigns || []).findIndex(c => c.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Campaign not found' });
+  db.campaigns[idx].status = 'paused';
+  db.campaigns[idx].updated_at = new Date().toISOString();
+  saveDB(db);
+  res.json(db.campaigns[idx]);
+});
+
+// Resume campaign
+app.put('/api/campaigns/:id/resume', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.campaigns || []).findIndex(c => c.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Campaign not found' });
+  db.campaigns[idx].status = 'active';
+  db.campaigns[idx].updated_at = new Date().toISOString();
+  saveDB(db);
+  res.json(db.campaigns[idx]);
+});
+
+// Stop campaign (remove prospect from drip)
+app.delete('/api/campaigns/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.campaigns || []).findIndex(c => c.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Campaign not found' });
+  db.campaigns[idx].status = 'completed';
+  db.campaigns[idx].completed_reason = req.body.reason || 'manual_stop';
+  db.campaigns[idx].updated_at = new Date().toISOString();
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// Get next campaign email draft (for review before sending)
+app.get('/api/campaigns/:id/next-email', (req, res) => {
+  const id = parseInt(req.params.id);
+  const campaign = (db.campaigns || []).find(c => c.id === id);
+  if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+  const template = CAMPAIGN_TEMPLATES.find(t => t.step === campaign.current_step);
+  if (!template) return res.json({ done: true, message: 'Campaign complete' });
+
+  const prospect = db.prospects.find(p => p.id === campaign.prospect_id);
+  const vars = {
+    contact_name: campaign.contact_name || 'there',
+    property_name: campaign.property_name || (prospect ? prospect.name : ''),
+    area: campaign.area || 'Henderson',
+    machine_count: prospect ? (prospect.recommended_machines || '1') : '1'
+  };
+
+  res.json({
+    step: template.step,
+    total_steps: CAMPAIGN_TEMPLATES.length,
+    subject: fillTemplate(template.subject_template, vars),
+    body: fillTemplate(template.body_template, vars),
+    to: campaign.contact_email,
+    scheduled_date: campaign.next_email_date,
+    can_edit: true
+  });
+});
+
+// Mark campaign email as sent + advance to next step
+app.post('/api/campaigns/:id/email-sent', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.campaigns || []).findIndex(c => c.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Campaign not found' });
+
+  const campaign = db.campaigns[idx];
+  const template = CAMPAIGN_TEMPLATES.find(t => t.step === campaign.current_step);
+
+  // Log the sent email
+  const emailRecord = {
+    id: nextId(),
+    campaign_id: id,
+    prospect_id: campaign.prospect_id,
+    step: campaign.current_step,
+    subject: req.body.subject || (template ? template.subject_template : ''),
+    sent_at: new Date().toISOString(),
+    opened: false,
+    replied: false,
+    gmail_thread_id: req.body.gmail_thread_id || null,
+    mixmax_tracked: req.body.mixmax_tracked || false
+  };
+  db.campaignEmails.push(emailRecord);
+
+  // Advance campaign
+  const nextStep = campaign.current_step + 1;
+  const nextTemplate = CAMPAIGN_TEMPLATES.find(t => t.step === nextStep);
+
+  if (nextTemplate) {
+    campaign.current_step = nextStep;
+    campaign.next_email_date = new Date(Date.now() + nextTemplate.delay_days * 24 * 60 * 60 * 1000).toISOString();
+    campaign.emails_sent = (campaign.emails_sent || 0) + 1;
+  } else {
+    campaign.status = 'completed';
+    campaign.completed_reason = 'all_steps_done';
+    campaign.emails_sent = (campaign.emails_sent || 0) + 1;
+  }
+  campaign.updated_at = new Date().toISOString();
+
+  // Log activity
+  db.activities.push({
+    id: nextId(),
+    prospect_id: campaign.prospect_id,
+    type: 'campaign_email',
+    description: `Campaign email #${emailRecord.step} sent: "${emailRecord.subject}"`,
+    created_at: new Date().toISOString()
+  });
+
+  saveDB(db);
+  res.json({ campaign, email: emailRecord });
+});
+
+// Record email open (called by tracking check)
+app.post('/api/campaigns/:id/email-opened', (req, res) => {
+  const id = parseInt(req.params.id);
+  const campaign = (db.campaigns || []).find(c => c.id === id);
+  if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+  campaign.emails_opened = (campaign.emails_opened || 0) + 1;
+  campaign.last_open_date = new Date().toISOString();
+  campaign.updated_at = new Date().toISOString();
+
+  // Update the email record too
+  const { step } = req.body;
+  if (step) {
+    const email = (db.campaignEmails || []).find(e => e.campaign_id === id && e.step === step);
+    if (email) email.opened = true;
+  }
+
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// Record reply → stop campaign
+app.post('/api/campaigns/:id/replied', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.campaigns || []).findIndex(c => c.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Campaign not found' });
+
+  const campaign = db.campaigns[idx];
+  campaign.status = 'completed';
+  campaign.completed_reason = 'replied';
+  campaign.last_reply_date = new Date().toISOString();
+  campaign.updated_at = new Date().toISOString();
+
+  // Log activity
+  db.activities.push({
+    id: nextId(),
+    prospect_id: campaign.prospect_id,
+    type: 'email_reply',
+    description: `Lead replied to campaign email! Campaign stopped. Move to negotiating.`,
+    created_at: new Date().toISOString()
+  });
+
+  // Create task to respond
+  db.crmTasks.push({
+    id: nextId(),
+    prospect_id: campaign.prospect_id,
+    title: `Respond to ${campaign.property_name} — they replied to follow-up email!`,
+    task_type: 'email',
+    priority: 'high',
+    due_date: new Date().toISOString(),
+    completed: false,
+    created_at: new Date().toISOString()
+  });
+
+  // Auto-advance pipeline to negotiating
+  const card = db.pipelineCards.find(c => c.prospect_id === campaign.prospect_id);
+  if (card && ['proposal_sent', 'interested', 'pop_in_done', 'contacted'].includes(card.stage)) {
+    card.stage = 'negotiating';
+    card.entered_stage_at = new Date().toISOString();
+    card.updated_at = new Date().toISOString();
+  }
+
+  saveDB(db);
+  res.json({ success: true, message: 'Campaign stopped — lead replied' });
+});
+
+// --- AUTO-PROPOSAL GENERATION ---
+app.post('/api/proposals/auto-generate', (req, res) => {
+  const { prospect_id } = req.body;
+  if (!prospect_id) return res.status(400).json({ error: 'prospect_id required' });
+
+  const prospect = db.prospects.find(p => p.id === prospect_id);
+  if (!prospect) return res.status(404).json({ error: 'Prospect not found' });
+
+  const contact = (db.contacts || []).find(c => c.prospect_id === prospect_id && c.is_primary) ||
+                  (db.contacts || []).find(c => c.prospect_id === prospect_id);
+
+  // Generate proposal number
+  const proposalCount = (db.proposals || []).length + 1;
+  const proposalNumber = `KVT-${new Date().getFullYear()}-${String(proposalCount).padStart(4, '0')}`;
+
+  // Determine machine recommendation based on property
+  const count = parseInt(prospect.resident_employee_count) || 50;
+  let machineCount = 1;
+  if (count >= 200) machineCount = 2;
+  if (count >= 500) machineCount = 3;
+  if (count >= 1000) machineCount = 4;
+
+  const revenueShare = prospect.revenue_share_percent || 5;
+  const monthlyEstimate = prospect.monthly_revenue_potential || (machineCount * 1500);
+
+  const proposal = {
+    id: nextId(),
+    prospect_id,
+    proposal_number: proposalNumber,
+    property_name: prospect.name,
+    property_address: prospect.address,
+    property_type: prospect.property_type,
+    contact_name: contact ? contact.name : '',
+    contact_email: contact ? contact.email : prospect.email || '',
+    contact_phone: contact ? contact.phone : prospect.phone || '',
+    machine_type: 'SandStar AI Smart Cooler',
+    machine_count: machineCount,
+    revenue_share: revenueShare,
+    monthly_estimate: monthlyEstimate,
+    installation_cost: 0,
+    monthly_service_cost: 0,
+    contract_length_months: 12,
+    highlights: [
+      'Zero cost to property — we provide and maintain everything',
+      '24/7 fresh food, beverages, and snacks',
+      'AI-powered smart cooler technology',
+      'Touchless payment (card, Apple Pay, Google Pay)',
+      `${revenueShare}% monthly revenue share to property`,
+      'Weekly restocking and maintenance included'
+    ],
+    status: 'draft',
+    auto_generated: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+
+  db.proposals.push(proposal);
+
+  // Log activity
+  db.activities.push({
+    id: nextId(),
+    prospect_id,
+    type: 'proposal_drafted',
+    description: `Auto-generated proposal ${proposalNumber}: ${machineCount} machine(s), ${revenueShare}% share`,
+    created_at: new Date().toISOString()
+  });
+
+  // Create task to review
+  db.crmTasks.push({
+    id: nextId(),
+    prospect_id,
+    title: `Review & send proposal ${proposalNumber} for ${prospect.name}`,
+    task_type: 'proposal',
+    priority: 'high',
+    due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    completed: false,
+    created_at: new Date().toISOString()
+  });
+
+  saveDB(db);
+  res.json(proposal);
+});
+
+// --- PIPELINE AUTO-ADVANCE (when activities are logged) ---
+app.post('/api/activities', (req, res) => {
+  const activity = {
+    id: nextId(),
+    ...req.body,
+    created_at: new Date().toISOString()
+  };
+  db.activities.push(activity);
+
+  // Auto-advance pipeline based on activity type
+  if (activity.prospect_id) {
+    const card = db.pipelineCards.find(c => c.prospect_id === activity.prospect_id);
+    if (card) {
+      const type = (activity.type || '').toLowerCase().replace('-', '_');
+      const desc = (activity.description || '').toLowerCase();
+      let newStage = null;
+
+      // Pop-in done
+      if (type === 'pop_in' || type === 'pop-in' || desc.includes('pop-in') || desc.includes('pop in')) {
+        if (['new_lead', 'contacted'].includes(card.stage)) newStage = 'pop_in_done';
+      }
+      // Interested
+      if (type === 'interested' || desc.includes('interested') || desc.includes('wants proposal') || desc.includes('send proposal')) {
+        if (['new_lead', 'contacted', 'pop_in_done'].includes(card.stage)) {
+          newStage = 'interested';
+          // Auto-generate proposal
+          try {
+            const prospect = db.prospects.find(p => p.id === activity.prospect_id);
+            const contact = (db.contacts || []).find(c => c.prospect_id === activity.prospect_id);
+            const proposalCount = (db.proposals || []).length + 1;
+            const pNum = `KVT-${new Date().getFullYear()}-${String(proposalCount).padStart(4, '0')}`;
+            const machineCount = parseInt(prospect?.resident_employee_count) >= 200 ? 2 : 1;
+            const autoProposal = {
+              id: nextId(), prospect_id: activity.prospect_id, proposal_number: pNum,
+              property_name: prospect?.name || '', contact_name: contact?.name || '',
+              contact_email: contact?.email || prospect?.email || '',
+              machine_type: 'SandStar AI Smart Cooler', machine_count: machineCount,
+              revenue_share: prospect?.revenue_share_percent || 5,
+              monthly_estimate: prospect?.monthly_revenue_potential || (machineCount * 1500),
+              status: 'draft', auto_generated: true,
+              created_at: new Date().toISOString(), updated_at: new Date().toISOString()
+            };
+            db.proposals.push(autoProposal);
+            db.crmTasks.push({
+              id: nextId(), prospect_id: activity.prospect_id,
+              title: `Review & send auto-proposal ${pNum} for ${prospect?.name}`,
+              task_type: 'proposal', priority: 'high',
+              due_date: new Date(Date.now() + 24*60*60*1000).toISOString(),
+              completed: false, created_at: new Date().toISOString()
+            });
+          } catch(e) { console.error('Auto-proposal error:', e.message); }
+        }
+      }
+      // Proposal sent
+      if (type === 'proposal' || type === 'proposal_sent' || desc.includes('proposal sent')) {
+        if (['interested', 'pop_in_done', 'contacted'].includes(card.stage)) newStage = 'proposal_sent';
+      }
+
+      if (newStage && newStage !== card.stage) {
+        card.stage = newStage;
+        card.entered_stage_at = new Date().toISOString();
+        card.updated_at = new Date().toISOString();
+      }
+    }
+  }
+
+  saveDB(db);
+  res.json(activity);
+});
+
+// --- CAMPAIGN EMAIL TEMPLATES API ---
+app.get('/api/campaign-templates', (req, res) => {
+  res.json(CAMPAIGN_TEMPLATES);
+});
+
+// ===== END SALES AUTOMATION ENGINE =====
+
 app.listen(PORT, () => {
   console.log(`🤖 Kande VendTech Dashboard running at http://localhost:${PORT}`);
 
