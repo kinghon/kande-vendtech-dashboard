@@ -860,9 +860,40 @@
             });
           }
         } else {
+          // Build open timestamps text (from Mixmax all_emails + Instantly open_events)
+          var openTimestamps = [];
+          // Instantly webhook open events (individual timestamps)
+          if (e.open_events) {
+            e.open_events.forEach(function(oe) {
+              openTimestamps.push(oe.timestamp);
+            });
+          }
+          // Mixmax per-email opens (last_opened timestamp)
+          if (e.all_emails) {
+            e.all_emails.forEach(function(em) {
+              if (em.last_opened && !em.has_internal_opens) {
+                openTimestamps.push(em.last_opened);
+              }
+            });
+          }
+          // Dedupe and sort newest first
+          openTimestamps = openTimestamps.filter(function(v, i, a) { return a.indexOf(v) === i; })
+            .sort(function(a, b) { return new Date(b) - new Date(a); });
+
+          var opensText = '';
+          if (openTimestamps.length > 0) {
+            opensText = openTimestamps.slice(0, 5).map(function(ts) {
+              return '👁 ' + formatDate(ts);
+            }).join('<br>');
+          } else if (e.opens > 0) {
+            // Fallback: Mixmax total count without exact timestamps
+            var lastOpen = e.all_emails && e.all_emails.find(function(em) { return em.last_opened; });
+            opensText = '👁 Opened ' + e.opens + 'x' + (lastOpen ? ' · Last: ' + formatDate(lastOpen.last_opened) : '');
+          }
+
           locations[key].events.push({
             icon: '📧', type: 'email',
-            text: '<strong>Email:</strong> ' + (e.subject || 'Follow-up'),
+            text: '<strong>Email:</strong> ' + (e.subject || 'Follow-up') + (opensText ? '<div style="font-size:0.72rem;color:#059669;margin-top:3px;line-height:1.5;">' + opensText + '</div>' : ''),
             detail: e.email,
             date: e.sent_at,
             opens: e.opens,
