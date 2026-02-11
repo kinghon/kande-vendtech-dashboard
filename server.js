@@ -20619,17 +20619,27 @@ app.get('/api/sales-dashboard', (req, res) => {
     });
   });
 
-  // Add latest_activity_date from CRM activities for each prospect
-  const activitiesByProspect = {};
+  // Add latest_activity_date and latest action type from CRM activities for each prospect
+  const activityInfoByProspect = {};
   activities.forEach(a => {
     const pid = a.prospect_id;
     const date = a.created_at || a.activity_date;
-    if (!activitiesByProspect[pid] || date > activitiesByProspect[pid]) {
-      activitiesByProspect[pid] = date;
+    if (!activityInfoByProspect[pid] || date > activityInfoByProspect[pid].date) {
+      activityInfoByProspect[pid] = { date, description: a.description || '', type: a.type };
     }
   });
   emailActivity.forEach(ea => {
-    ea.latest_activity_date = activitiesByProspect[ea.prospect_id] || ea.sent_at || null;
+    const info = activityInfoByProspect[ea.prospect_id];
+    ea.latest_activity_date = info ? info.date : ea.sent_at || null;
+    // Determine if the most recent action is a call (Jordan) or email/proposal (Kurtis)
+    if (info && info.description) {
+      const desc = info.description.toLowerCase();
+      const isCallAction = /\bcall\b|\bphone\b/.test(desc) && !/email|proposal|send/i.test(desc);
+      const isEmailAction = /email|proposal|send/i.test(desc);
+      ea.latest_action_type = isCallAction ? 'call' : isEmailAction ? 'email' : 'other';
+    } else {
+      ea.latest_action_type = 'other';
+    }
   });
 
   // Sort by most recent CRM activity first

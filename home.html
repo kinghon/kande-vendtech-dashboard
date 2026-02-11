@@ -835,6 +835,7 @@
         if (e.contract_sent_date) locations[key].contractDate = e.contract_sent_date;
         if (e.contract_stage_date && !locations[key].contractDate) locations[key].contractDate = e.contract_stage_date;
         if (e.latest_activity_date) locations[key].latestActivity = e.latest_activity_date;
+        if (e.latest_action_type) locations[key].latestActionType = e.latest_action_type;
         if (e.status === 'needs_email') {
           locations[key].emailStatus = 'needs_email';
           locations[key].actionNeeded = e.action_needed;
@@ -945,15 +946,15 @@
       loc.actionType = hasEmailAction && !hasCallAction ? 'email' : hasCallAction ? 'call' : 'none';
     });
 
-    // Sort: most recent CRM activity first, then by status priority
-    // Call actions (Jordan's) still sink to bottom within their activity-date group
+    // Sort: Kurtis actions (email/proposal) first by recent activity,
+    // then Jordan actions (call) at bottom by recent activity
     var locList = Object.values(locations).sort(function(a, b) {
-      // Call-only actions (Jordan) always at bottom
-      var aIsCallOnly = a.actionType === 'call' && a.emailStatus !== 'hot' && a.emailStatus !== 'replied';
-      var bIsCallOnly = b.actionType === 'call' && b.emailStatus !== 'hot' && b.emailStatus !== 'replied';
-      if (aIsCallOnly !== bIsCallOnly) return aIsCallOnly ? 1 : -1;
+      // Latest action from CRM determines whose task it is
+      var aIsCall = a.latestActionType === 'call' || (a.actionType === 'call' && a.latestActionType !== 'email');
+      var bIsCall = b.latestActionType === 'call' || (b.actionType === 'call' && b.latestActionType !== 'email');
+      if (aIsCall !== bIsCall) return aIsCall ? 1 : -1;
 
-      // Within non-call items: sort by most recent activity date
+      // Within same group: sort by most recent activity date
       var aDate = a.latestActivity ? new Date(a.latestActivity) : new Date(0);
       var bDate = b.latestActivity ? new Date(b.latestActivity) : new Date(0);
       return bDate - aDate;
