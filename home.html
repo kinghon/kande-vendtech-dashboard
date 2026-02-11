@@ -238,6 +238,31 @@
     .sales-tab-content { display: none; }
     .sales-tab-content.active { display: block; }
 
+    /* Location Cards */
+    .loc-card { border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin-bottom: 10px; transition: all 0.15s; cursor: pointer; }
+    .loc-card:hover { box-shadow: var(--shadow-sm); border-color: #cbd5e1; }
+    .loc-card.has-hot { border-left: 4px solid var(--red); }
+    .loc-card.has-reply { border-left: 4px solid var(--green); }
+    .loc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .loc-name { font-size: 0.92rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .loc-name .loc-type { font-size: 0.68rem; font-weight: 500; color: var(--muted); background: var(--bg); padding: 2px 8px; border-radius: 6px; }
+    .loc-stage { font-size: 0.7rem; font-weight: 600; padding: 3px 10px; border-radius: 12px; }
+    .loc-stage.hot { background: var(--red-light); color: var(--red); }
+    .loc-stage.warm { background: var(--amber-light); color: #b45309; }
+    .loc-stage.new { background: var(--accent-light); color: var(--accent); }
+    .loc-stage.replied { background: var(--green-light); color: #15803d; }
+    .loc-timeline { display: flex; flex-direction: column; gap: 4px; }
+    .loc-event { display: flex; align-items: center; gap: 10px; font-size: 0.78rem; padding: 4px 0; }
+    .loc-event-icon { width: 22px; text-align: center; flex-shrink: 0; }
+    .loc-event-text { flex: 1; color: var(--text); }
+    .loc-event-text strong { font-weight: 600; }
+    .loc-event-date { font-size: 0.7rem; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+    .loc-event-badge { font-size: 0.68rem; padding: 1px 7px; border-radius: 8px; font-weight: 600; flex-shrink: 0; }
+    .loc-event-badge.opens { background: var(--accent-light); color: var(--accent); }
+    .loc-event-badge.hot-opens { background: var(--red-light); color: var(--red); }
+    .loc-event-badge.replied { background: var(--green-light); color: #15803d; }
+    .loc-event-badge.bounced { background: #fef2f2; color: #991b1b; }
+
     /* Email Activity Table */
     .email-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
     .email-table th { text-align: left; padding: 8px 10px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.3px; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); }
@@ -310,48 +335,9 @@
       </div>
     </div>
 
-    <!-- Action Items — Full Width -->
-    <div style="margin-bottom:18px;">
-      <div style="font-size:0.88rem;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;">🎯 Priority Actions</div>
-      <div id="priority-actions">
-        <div style="text-align:center;padding:16px;color:var(--muted);font-size:0.82rem;">Loading...</div>
-      </div>
-    </div>
-
-    <!-- Divider -->
-    <div style="border-top:1px solid var(--border);margin-bottom:18px;"></div>
-
-    <!-- Recent Sales Activity — Full Width -->
-    <div style="margin-bottom:18px;">
-      <div style="font-size:0.88rem;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;">🏃 Recent Sales Activity</div>
-      <div class="activity-feed-full" id="activity-feed-full">
-        <div style="text-align:center;padding:16px;color:var(--muted);font-size:0.82rem;">Loading...</div>
-      </div>
-    </div>
-
-    <!-- Divider -->
-    <div style="border-top:1px solid var(--border);margin-bottom:18px;"></div>
-
-    <!-- Email Tracking — Full Width -->
-    <div>
-      <div style="font-size:0.88rem;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;">📧 Email Tracking</div>
-      <div style="overflow-x:auto;">
-        <table class="email-table">
-          <thead>
-            <tr>
-              <th>Location</th>
-              <th>Recipient</th>
-              <th>Subject</th>
-              <th>Sent</th>
-              <th>Opens</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="email-tbody">
-            <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--muted);">Loading...</td></tr>
-          </tbody>
-        </table>
-      </div>
+    <!-- Location Cards — Grouped by Property -->
+    <div id="location-cards">
+      <div style="text-align:center;padding:24px;color:var(--muted);font-size:0.82rem;">Loading...</div>
     </div>
   </div>
 
@@ -805,7 +791,7 @@
     return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
 
-  // Load sales dashboard data
+  // Load sales dashboard data — grouped by location
   Promise.all([
     fetch('/api/sales-dashboard').then(r => r.ok ? r.json() : null),
     fetch('/api/action-items').then(r => r.ok ? r.json() : null)
@@ -813,7 +799,7 @@
     var sales = results[0];
     var actions = results[1];
 
-    // Stats
+    // Stats bar
     if (sales && sales.stats) {
       document.getElementById('stat-emails').textContent = sales.stats.total_emails || 0;
       document.getElementById('stat-openrate').textContent = sales.stats.open_rate || 0;
@@ -821,78 +807,120 @@
       document.getElementById('stat-replied').textContent = sales.stats.replied || 0;
     }
 
-    // Tab 1: Email tracking table
+    // Group everything by prospect/location
+    var locations = {};
+
+    // Add email activity
     if (sales && sales.email_activity) {
-      var tbody = document.getElementById('email-tbody');
-      var emails = sales.email_activity.slice(0, 30);
-      if (emails.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--muted);">No emails tracked yet</td></tr>';
-      } else {
-        tbody.innerHTML = emails.map(function(e) {
-          var statusClass = e.status;
-          var statusLabel = e.status === 'hot' ? '🔥 Hot' : e.status === 'opened' ? '👁 Opened' : e.status === 'replied' ? '✅ Replied' : e.status === 'bounced' ? '⛔ Bounced' : '📤 Sent';
-          var opensClass = e.opens >= 3 ? 'high' : e.opens > 0 ? 'med' : 'low';
-          return '<tr onclick="window.location.href=\'/prospect/' + e.prospect_id + '\'" style="cursor:pointer">' +
-            '<td><strong>' + (e.name || '—') + '</strong></td>' +
-            '<td style="color:var(--muted);font-size:0.78rem;">' + (e.email || '—') + '</td>' +
-            '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (e.subject || '—') + '</td>' +
-            '<td>' + formatDate(e.sent_at) + '</td>' +
-            '<td><span class="email-opens ' + opensClass + '">' + e.opens + (e.opens > 0 ? ' 👁' : '') + '</span></td>' +
-            '<td><span class="email-status ' + statusClass + '">' + statusLabel + '</span></td>' +
-          '</tr>';
-        }).join('');
-      }
+      sales.email_activity.forEach(function(e) {
+        var key = e.prospect_id;
+        if (!locations[key]) locations[key] = { id: key, name: e.name, type: e.property_type, stage: e.pipeline_stage, events: [], emailStatus: 'sent', maxOpens: 0, hasReply: false };
+        locations[key].events.push({
+          icon: '📧', type: 'email',
+          text: '<strong>Email:</strong> ' + (e.subject || 'Follow-up'),
+          detail: e.email,
+          date: e.sent_at,
+          opens: e.opens,
+          status: e.status
+        });
+        if (e.opens > locations[key].maxOpens) locations[key].maxOpens = e.opens;
+        if (e.replied) locations[key].hasReply = true;
+        if (e.status === 'replied') locations[key].emailStatus = 'replied';
+        else if (e.status === 'hot' && locations[key].emailStatus !== 'replied') locations[key].emailStatus = 'hot';
+        else if (e.status === 'opened' && locations[key].emailStatus !== 'replied' && locations[key].emailStatus !== 'hot') locations[key].emailStatus = 'opened';
+      });
     }
 
-    // Tab 2: Sales activity feed
+    // Add activities
     if (sales && sales.recent_activities) {
-      var feedEl = document.getElementById('activity-feed-full');
-      var acts = sales.recent_activities.slice(0, 25);
-      if (acts.length === 0) {
-        feedEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);">No recent activity</div>';
-      } else {
-        feedEl.innerHTML = acts.map(function(a) {
-          var type = (a.type || 'note').replace('-', '_');
-          var icons = { pop_in: '🚶', 'pop-in': '🚶', email: '📧', call: '📞', note: '📝', proposal: '📋', interested: '🔥', status_change: '🔄', campaign_email: '📨' };
-          var icon = icons[a.type] || icons[type] || '📌';
-          var badgeClass = (a.type || 'note').replace('_', '-');
-          return '<div class="activity-row" onclick="window.location.href=\'/prospect/' + a.prospect_id + '\'" style="cursor:pointer">' +
-            '<div class="activity-badge ' + badgeClass + '">' + icon + '</div>' +
-            '<div class="activity-info">' +
-              '<div class="act-title">' + (a.description || a.type) + '</div>' +
-              '<div class="act-meta">' + a.prospect_name + ' · ' + (a.created_by || 'Jordan') + '</div>' +
-            '</div>' +
-            '<div class="activity-date">' + formatDate(a.date) + '</div>' +
+      var actIcons = { 'pop-in': '🚶', 'pop_in': '🚶', 'email': '📧', 'call': '📞', 'note': '📝', 'proposal': '📋', 'interested': '🔥', 'status_change': '🔄', 'campaign_email': '📨' };
+      sales.recent_activities.forEach(function(a) {
+        var key = a.prospect_id;
+        if (!locations[key]) locations[key] = { id: key, name: a.prospect_name, type: '', stage: '', events: [], emailStatus: '', maxOpens: 0, hasReply: false };
+        var icon = actIcons[a.type] || '📌';
+        var label = a.type === 'pop-in' || a.type === 'pop_in' ? 'Pop-in visit' : a.type === 'call' ? 'Phone call' : a.type === 'interested' ? 'Interested' : a.type === 'proposal' ? 'Proposal' : (a.description || a.type);
+        locations[key].events.push({
+          icon: icon, type: a.type,
+          text: '<strong>' + label + '</strong>' + (a.description && a.description !== a.type ? ' — ' + a.description : ''),
+          detail: a.created_by || 'Jordan',
+          date: a.date
+        });
+      });
+    }
+
+    // Add action items
+    if (actions && actions.action_items) {
+      actions.action_items.forEach(function(item) {
+        var key = item.prospect_id;
+        if (!key) return;
+        if (!locations[key]) locations[key] = { id: key, name: item.subtitle || 'Unknown', type: '', stage: '', events: [], emailStatus: '', maxOpens: 0, hasReply: false };
+        var icon = item.type === 'hot_lead' ? '🔥' : item.type === 'task_due' ? (item.priority === 'overdue' ? '⚠️' : '📋') : item.type === 'campaign_email' ? '📨' : '📌';
+        locations[key].events.push({
+          icon: icon, type: 'action',
+          text: '<strong style="color:var(--red);">' + (item.title || '') + '</strong>',
+          detail: item.campaign_step || '',
+          date: item.created_at,
+          isAction: true
+        });
+      });
+    }
+
+    // Sort events within each location by date (newest first)
+    Object.values(locations).forEach(function(loc) {
+      loc.events.sort(function(a, b) { return new Date(b.date || 0) - new Date(a.date || 0); });
+      // Deduplicate similar events on same day
+      var seen = {};
+      loc.events = loc.events.filter(function(e) {
+        var key = e.type + '|' + (e.date || '').split('T')[0];
+        if (e.isAction) return true; // always show actions
+        if (seen[key]) return false;
+        seen[key] = true;
+        return true;
+      });
+    });
+
+    // Sort locations: replied first, then hot, then by most recent event
+    var locList = Object.values(locations).sort(function(a, b) {
+      if (a.hasReply !== b.hasReply) return b.hasReply ? 1 : -1;
+      if (a.emailStatus === 'hot' && b.emailStatus !== 'hot') return -1;
+      if (b.emailStatus === 'hot' && a.emailStatus !== 'hot') return 1;
+      var aDate = a.events[0] ? new Date(a.events[0].date || 0) : new Date(0);
+      var bDate = b.events[0] ? new Date(b.events[0].date || 0) : new Date(0);
+      return bDate - aDate;
+    });
+
+    // Render location cards
+    var container = document.getElementById('location-cards');
+    if (locList.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);">No sales activity yet</div>';
+    } else {
+      container.innerHTML = locList.map(function(loc) {
+        var cardClass = loc.hasReply ? 'has-reply' : loc.emailStatus === 'hot' ? 'has-hot' : '';
+        var stageClass = loc.hasReply ? 'replied' : loc.emailStatus === 'hot' ? 'hot' : loc.maxOpens > 0 ? 'warm' : 'new';
+        var stageLabel = loc.hasReply ? '✅ Replied' : loc.emailStatus === 'hot' ? '🔥 Hot' : loc.maxOpens > 0 ? '👁 Opened' : '📤 Sent';
+
+        var eventsHtml = loc.events.slice(0, 6).map(function(e) {
+          var badge = '';
+          if (e.opens >= 3) badge = '<span class="loc-event-badge hot-opens">🔥 ' + e.opens + ' opens</span>';
+          else if (e.opens > 0) badge = '<span class="loc-event-badge opens">👁 ' + e.opens + ' opens</span>';
+          if (e.status === 'replied') badge = '<span class="loc-event-badge replied">✅ Replied</span>';
+          if (e.status === 'bounced') badge = '<span class="loc-event-badge bounced">⛔ Bounced</span>';
+          return '<div class="loc-event">' +
+            '<div class="loc-event-icon">' + e.icon + '</div>' +
+            '<div class="loc-event-text">' + e.text + '</div>' +
+            badge +
+            '<div class="loc-event-date">' + formatDate(e.date) + '</div>' +
           '</div>';
         }).join('');
-      }
-    }
 
-    // Tab 3: Action items
-    if (actions) {
-      var el = document.getElementById('priority-actions');
-      var items = actions.action_items || [];
-      if (items.length === 0) {
-        el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:0.82rem;">✅ All clear — no actions needed right now</div>';
-      } else {
-        el.innerHTML = items.slice(0, 10).map(function(item) {
-          var icon = '📌', pClass = '';
-          if (item.type === 'hot_lead') { icon = '🔥'; pClass = 'urgent'; }
-          else if (item.type === 'pending_proposal') { icon = '📧'; pClass = item.priority === 'high' ? 'high' : ''; }
-          else if (item.type === 'task_due') { icon = item.priority === 'overdue' ? '⚠️' : '📋'; pClass = item.priority === 'overdue' ? 'urgent' : ''; }
-          else if (item.type === 'campaign_email') { icon = '📨'; pClass = 'high'; }
-          var link = item.prospect_id ? ' onclick="window.location.href=\'/prospect/' + item.prospect_id + '\'"' : '';
-          return '<div class="action-item ' + pClass + '"' + link + ' style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:6px;cursor:pointer;border:1px solid transparent;border-left:3px solid ' + (pClass === 'urgent' ? 'var(--red)' : pClass === 'high' ? 'var(--amber)' : 'var(--border)') + ';">' +
-            '<div style="font-size:1.1rem;margin-top:2px;">' + icon + '</div>' +
-            '<div style="flex:1;">' +
-              '<div style="font-size:0.82rem;font-weight:600;">' + (item.title || '') + '</div>' +
-              '<div style="font-size:0.72rem;color:var(--muted);margin-top:2px;">' + (item.subtitle || '') +
-                (item.campaign_step ? ' · ' + item.campaign_step : '') +
-                (item.days_waiting ? ' · Waiting ' + item.days_waiting + 'd' : '') +
-              '</div>' +
-            '</div></div>';
-        }).join('');
-      }
+        return '<div class="loc-card ' + cardClass + '" onclick="window.location.href=\'/prospect/' + loc.id + '\'">' +
+          '<div class="loc-header">' +
+            '<div class="loc-name">' + loc.name + (loc.type ? '<span class="loc-type">' + loc.type + '</span>' : '') + '</div>' +
+            '<span class="loc-stage ' + stageClass + '">' + stageLabel + '</span>' +
+          '</div>' +
+          '<div class="loc-timeline">' + eventsHtml + '</div>' +
+        '</div>';
+      }).join('');
     }
   }).catch(function(e) {
     console.error('Sales center error:', e);
