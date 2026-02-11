@@ -16884,6 +16884,9 @@ app.get('/sales-analytics', (req, res) => {
   res.sendFile(path.join(__dirname, 'sales-analytics.html'));
 });
 
+// ===== Campaign Tracker Page =====
+app.get('/campaign-tracker', (req, res) => res.sendFile(path.join(__dirname, 'campaign-tracker.html')));
+
 // ===== POST /api/transactions — Record a sale =====
 app.post('/api/transactions', (req, res) => {
   const { 

@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>📧 Email Campaign Tracker — Kande VendTech</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0f1117;
+      --bg-raised: #161822;
+      --card: #1c1f2e;
+      --card-hover: #232640;
+      --border: #2a2d3e;
+      --border-light: #363a50;
+      --text: #e8eaf0;
+      --text-secondary: #9ca3af;
+      --muted: #6b7280;
+      --accent: #3b82f6;
+      --accent-light: rgba(59,130,246,0.15);
+      --green: #22c55e;
+      --green-bg: rgba(34,197,94,0.12);
+      --green-border: rgba(34,197,94,0.3);
+      --blue: #3b82f6;
+      --blue-bg: rgba(59,130,246,0.12);
+      --blue-border: rgba(59,130,246,0.3);
+      --gray: #4b5563;
+      --gray-bg: rgba(75,85,99,0.15);
+      --gray-border: rgba(75,85,99,0.35);
+      --red: #ef4444;
+      --red-bg: rgba(239,68,68,0.12);
+      --red-border: rgba(239,68,68,0.3);
+      --gold: #f59e0b;
+      --gold-bg: rgba(245,158,11,0.12);
+      --gold-border: rgba(245,158,11,0.3);
+      --purple: #8b5cf6;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.3);
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 20px 24px 60px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .back-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.85rem;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--card);
+      transition: all 0.2s;
+    }
+    .back-link:hover {
+      background: var(--accent-light);
+      border-color: var(--accent);
+    }
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .refresh-btn {
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.82rem;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .refresh-btn:hover {
+      background: var(--accent-light);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .refresh-btn.loading .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .last-updated {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    /* Stats Bar */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s;
+    }
+    .stat-card:hover {
+      border-color: var(--border-light);
+      box-shadow: var(--shadow-sm);
+    }
+    .stat-accent {
+      position: absolute;
+      top: 0; left: 0;
+      width: 4px; height: 100%;
+    }
+    .stat-icon { font-size: 1.2rem; margin-bottom: 6px; }
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--text);
+    }
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    .stat-sub {
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      margin-top: 6px;
+    }
+
+    /* Filter Controls */
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .filter-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: all 0.15s;
+    }
+    .filter-btn:hover, .filter-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-light);
+    }
+    .search-input {
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-raised);
+      color: var(--text);
+      font-size: 0.85rem;
+      min-width: 200px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-input:focus {
+      border-color: var(--accent);
+    }
+    .search-input::placeholder { color: var(--muted); }
+
+    /* Table Container */
+    .table-wrap {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .table-scroll {
+      overflow-x: auto;
+    }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      min-width: 1200px;
+    }
+    thead {
+      background: var(--bg-raised);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    thead th {
+      padding: 12px 14px;
+      text-align: left;
+      font-weight: 700;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+    thead th.email-col {
+      text-align: center;
+      min-width: 100px;
+    }
+    thead th .step-label {
+      display: block;
+      font-size: 0.65rem;
+      color: var(--muted);
+      font-weight: 500;
+      text-transform: none;
+      letter-spacing: 0;
+      margin-top: 2px;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    tbody tr:hover {
+      background: var(--card-hover);
+    }
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+    tbody td {
+      padding: 10px 14px;
+      vertical-align: middle;
+    }
+
+    /* Lead info cells */
+    .lead-name {
+      font-weight: 600;
+      color: var(--accent);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .lead-name:hover {
+      color: #60a5fa;
+      text-decoration: underline;
+    }
+    .contact-name {
+      color: var(--text);
+      font-size: 0.82rem;
+    }
+    .email-addr {
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      font-family: 'SF Mono', 'Consolas', monospace;
+    }
+
+    /* Email Step Cells */
+    .email-cell {
+      text-align: center;
+      border-radius: 6px;
+      padding: 8px 6px !important;
+      position: relative;
+      cursor: default;
+      transition: all 0.2s;
+      min-width: 90px;
+    }
+    .email-cell .cell-icon {
+      font-size: 1rem;
+      display: block;
+      line-height: 1.3;
+    }
+    .email-cell .cell-detail {
+      font-size: 0.65rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+      line-height: 1.2;
+    }
+    .email-cell .cell-opens {
+      font-size: 0.6rem;
+      margin-top: 1px;
+    }
+
+    /* Cell States */
+    .cell-opened {
+      background: var(--green-bg);
+      border: 1px solid var(--green-border);
+    }
+    .cell-opened .cell-icon { color: var(--green); }
+    .cell-opened .cell-detail { color: var(--green); }
+
+    .cell-sent {
+      background: var(--blue-bg);
+      border: 1px solid var(--blue-border);
+    }
+    .cell-sent .cell-icon { color: var(--blue); }
+    .cell-sent .cell-detail { color: var(--blue); }
+
+    .cell-scheduled {
+      background: var(--gray-bg);
+      border: 1px solid var(--gray-border);
+    }
+    .cell-scheduled .cell-icon { color: var(--gray); }
+    .cell-scheduled .cell-detail { color: var(--muted); }
+
+    .cell-bounced {
+      background: var(--red-bg);
+      border: 1px solid var(--red-border);
+    }
+    .cell-bounced .cell-icon { color: var(--red); }
+    .cell-bounced .cell-detail { color: var(--red); }
+
+    .cell-replied {
+      background: var(--gold-bg);
+      border: 1px solid var(--gold-border);
+    }
+    .cell-replied .cell-icon { color: var(--gold); }
+    .cell-replied .cell-detail { color: var(--gold); }
+
+    .cell-na {
+      opacity: 0.3;
+    }
+
+    /* Status Badge */
+    .status-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .status-active {
+      background: var(--blue-bg);
+      color: var(--blue);
+      border: 1px solid var(--blue-border);
+    }
+    .status-replied {
+      background: var(--gold-bg);
+      color: var(--gold);
+      border: 1px solid var(--gold-border);
+    }
+    .status-bounced {
+      background: var(--red-bg);
+      color: var(--red);
+      border: 1px solid var(--red-border);
+    }
+    .status-paused {
+      background: var(--gray-bg);
+      color: var(--gray);
+      border: 1px solid var(--gray-border);
+    }
+    .status-completed {
+      background: var(--green-bg);
+      color: var(--green);
+      border: 1px solid var(--green-border);
+    }
+
+    /* Tooltip */
+    .email-cell[data-tooltip]:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e2030;
+      color: var(--text);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      white-space: nowrap;
+      z-index: 100;
+      border: 1px solid var(--border-light);
+      box-shadow: var(--shadow);
+      pointer-events: none;
+    }
+    .email-cell[data-tooltip]:hover::before {
+      content: '';
+      position: absolute;
+      bottom: calc(100% + 2px);
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: var(--border-light);
+      z-index: 100;
+    }
+
+    /* Loading State */
+    .loading-overlay {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      color: var(--muted);
+      gap: 12px;
+    }
+    .loading-overlay .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* Legend */
+    .legend {
+      display: flex;
+      gap: 16px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+      padding: 12px 16px;
+      background: var(--bg-raised);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    .legend-swatch {
+      width: 14px; height: 14px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .stats-bar { grid-template-columns: repeat(3, 1fr); }
+      .container { padding: 12px; }
+    }
+    @media (max-width: 600px) {
+      .stats-bar { grid-template-columns: repeat(2, 1fr); }
+      .header h1 { font-size: 1.2rem; }
+    }
+
+    /* Row number */
+    .row-num {
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 600;
+      min-width: 28px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <a href="/" class="back-link">← Dashboard</a>
+        <h1>📧 Email Campaign Tracker</h1>
+      </div>
+      <div class="header-right">
+        <span class="last-updated" id="lastUpdated"></span>
+        <button class="refresh-btn" onclick="loadData()">
+          <span class="spin">🔄</span> Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-accent" style="background: var(--accent);"></div>
+        <div class="stat-icon">👥</div>
+        <div class="stat-value" id="statLeads">—</div>
+        <div class="stat-label">Total Leads</div>
+        <div class="stat-sub" id="statLeadsSub">In campaign</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-accent" style="background: var(--blue);"></div>
+        <div class="stat-icon">📤</div>
+        <div class="stat-value" id="statSent">—</div>
+        <div class="stat-label">Emails Sent</div>
+        <div class="stat-sub" id="statSentSub">Across all steps</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-accent" style="background: var(--green);"></div>
+        <div class="stat-icon">👁️</div>
+        <div class="stat-value" id="statOpens">—</div>
+        <div class="stat-label">Opens</div>
+        <div class="stat-sub" id="statOpensSub">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-accent" style="background: var(--gold);"></div>
+        <div class="stat-icon">💬</div>
+        <div class="stat-value" id="statReplies">—</div>
+        <div class="stat-label">Replies</div>
+        <div class="stat-sub" id="statRepliesSub">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-accent" style="background: var(--purple);"></div>
+        <div class="stat-icon">📊</div>
+        <div class="stat-value" id="statOpenRate">—</div>
+        <div class="stat-label">Open Rate</div>
+        <div class="stat-sub" id="statOpenRateSub">Of sent emails</div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn" data-filter="active" onclick="setFilter('active',this)">🔵 Active</button>
+      <button class="filter-btn" data-filter="opened" onclick="setFilter('opened',this)">👁️ Opened</button>
+      <button class="filter-btn" data-filter="replied" onclick="setFilter('replied',this)">💬 Replied</button>
+      <button class="filter-btn" data-filter="bounced" onclick="setFilter('bounced',this)">🔴 Bounced</button>
+      <input type="text" class="search-input" placeholder="🔍 Search leads..." oninput="filterTable()" id="searchInput">
+    </div>
+
+    <!-- Main Table -->
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table id="campaignTable">
+          <thead>
+            <tr>
+              <th style="width:30px">#</th>
+              <th>Lead</th>
+              <th>Contact</th>
+              <th>Email</th>
+              <th class="email-col">Email 0<span class="step-label">Proposal</span></th>
+              <th class="email-col">Email 1<span class="step-label">Day 3</span></th>
+              <th class="email-col">Email 2<span class="step-label">Day 7</span></th>
+              <th class="email-col">Email 3<span class="step-label">Day 14</span></th>
+              <th class="email-col">Email 4<span class="step-label">Day 21</span></th>
+              <th class="email-col">Email 5<span class="step-label">Day 30</span></th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr>
+              <td colspan="11">
+                <div class="loading-overlay">
+                  <div class="spinner"></div>
+                  <div>Loading campaign data...</div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-swatch" style="background: var(--green-bg); border: 1px solid var(--green-border);"></div>
+        Sent + Opened
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background: var(--blue-bg); border: 1px solid var(--blue-border);"></div>
+        Sent, Not Opened
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background: var(--gray-bg); border: 1px solid var(--gray-border);"></div>
+        Scheduled
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background: var(--gold-bg); border: 1px solid var(--gold-border);"></div>
+        Replied
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background: var(--red-bg); border: 1px solid var(--red-border);"></div>
+        Bounced
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Campaign Configuration =====
+    const API_BASE = '';  // Same origin
+    const API_KEY = (() => {
+      const c = document.cookie.split(';').find(c => c.trim().startsWith('api_key='));
+      return c ? c.trim().split('=')[1] : 'kande2026';
+    })();
+
+    const CAMPAIGN_LEADS = [
+      { id: 15,  name: 'Ainsley at The Collective',  contact: 'Linigar Jimenez',   email: 'linigar.jimenez@cushwake.com' },
+      { id: 11,  name: 'High Line at Hughes Center',  contact: 'Peter Torres',       email: 'peter.torres@livebh.com' },
+      { id: 35,  name: 'Elysian at The Palms',        contact: 'Jose Garcia',        email: 'elysianpalmsmgr@cushwake.com' },
+      { id: 539, name: 'Atria Seville',               contact: 'Markie Hamlin',      email: 'markie.hamlin@atriaseniorliving.com' },
+      { id: 145, name: 'Las Ventanas at Summerlin',   contact: 'Randy Fuller',       email: 'randy.fuller@humangood.org' },
+      { id: 43,  name: 'Auric Symphony Park',         contact: 'Kayla Jackson',      email: 'kayla.jackson@marc-taylor.com' },
+      { id: 156, name: 'Fora',                        contact: 'James Gonzalez',     email: 'manager@foravegas.com' },
+      { id: 110, name: 'Mera 55+',                    contact: 'Micheline Dundas',   email: 'micheline.dundas@sparrowliving.com' },
+      { id: 124, name: 'Society',                     contact: 'Manager',            email: 'Society@westcorpmg.com' },
+      { id: 64,  name: 'Constellation',               contact: 'Manager',            email: 'constellationmgr@greystar.com' },
+      { id: 92,  name: 'Dune',                        contact: 'Manager',            email: 'Dune@westcorpmg.com' },
+      { id: 67,  name: 'Ilumina at Raiders Way',      contact: 'Manager',            email: 'iluminaonraidersway@knck.io' },
+      { id: 130, name: 'Dig This',                    contact: 'Ed Mumm',            email: 'Ed@digthis.info' },
+      { id: 1,   name: 'Siegel Select',               contact: 'Nicole Marshall',    email: 'flamingo.manager@siegelselect.com' },
+      { id: 95,  name: 'Empire',                      contact: 'Manager',            email: 'empireassist@westcorpmg.com' },
+      { id: 116, name: 'Aspire',                      contact: 'Manager',            email: 'aspiresunridgeheights@ovationco.com' },
+      { id: 98,  name: 'Evolve',                      contact: 'Manager',            email: 'evolveassist@westcorpmg.com' },
+      { id: 32,  name: 'Aura Vegas',                  contact: 'Manager',            email: 'fsantiago@foreproperty.com' },
+      { id: 113, name: 'Domain',                      contact: 'Manager',            email: 'domainmgr@cushwake.com' },
+      { id: 104, name: 'Marlowe',                     contact: 'Manager',            email: 'marloweslv@greystar.com' },
+    ];
+
+    // Step delays in days from Email 0
+    const STEP_DELAYS = [0, 3, 7, 14, 21, 30];
+    const STEP_NAMES = ['Proposal', 'Day 3', 'Day 7', 'Day 14', 'Day 21', 'Day 30'];
+
+    // ===== State =====
+    let allRows = [];
+    let currentFilter = 'all';
+
+    // ===== API Helpers =====
+    async function apiFetch(endpoint) {
+      const res = await fetch(`${API_BASE}${endpoint}`, {
+        headers: { 'x-api-key': API_KEY }
+      });
+      if (!res.ok) throw new Error(`API ${endpoint} returned ${res.status}`);
+      return res.json();
+    }
+
+    // ===== Data Loading =====
+    async function loadData() {
+      const btn = document.querySelector('.refresh-btn');
+      btn.classList.add('loading');
+
+      try {
+        // Fetch prospects and activities in parallel
+        const [prospects, activities] = await Promise.all([
+          apiFetch('/api/prospects'),
+          apiFetch('/api/activities')
+        ]);
+
+        const prospectMap = {};
+        (Array.isArray(prospects) ? prospects : []).forEach(p => {
+          prospectMap[p.id] = p;
+        });
+
+        // Filter activities to email type for campaign prospects
+        const campaignIds = new Set(CAMPAIGN_LEADS.map(l => l.id));
+        const emailActivities = (Array.isArray(activities) ? activities : []).filter(a =>
+          a.type === 'email' && campaignIds.has(a.prospect_id)
+        );
+
+        // Build row data for each campaign lead
+        allRows = CAMPAIGN_LEADS.map(lead => {
+          const prospect = prospectMap[lead.id] || {};
+          const prospectActivities = emailActivities
+            .filter(a => a.prospect_id === lead.id)
+            .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+          // Get email_tracking from prospect if available (Mixmax data)
+          const emailTracking = prospect.email_tracking || [];
+
+          // Find Email 0 activity (the first proposal email)
+          const email0Activity = prospectActivities.find(a =>
+            /email\s*0\s*sent/i.test(a.description)
+          );
+
+          // Build step data
+          const steps = [];
+          let email0Date = email0Activity ? new Date(email0Activity.created_at) : null;
+
+          for (let i = 0; i <= 5; i++) {
+            // Look for activity matching this step
+            const stepRegex = new RegExp(`email\\s*${i}\\s*sent`, 'i');
+            const stepActivity = prospectActivities.find(a => stepRegex.test(a.description));
+
+            // Check Mixmax tracking data for opens
+            const trackingEntry = emailTracking.find(t => {
+              if (t.step === i || t.email_step === i) return true;
+              // Match by approximate timestamp if step not labeled
+              if (stepActivity && t.sent_at) {
+                const diff = Math.abs(new Date(t.sent_at) - new Date(stepActivity.created_at));
+                return diff < 3600000; // within 1 hour
+              }
+              return false;
+            });
+
+            // Check for reply/bounce in tracking
+            const wasReplied = trackingEntry?.was_replied || false;
+            const wasBounced = trackingEntry?.was_bounced || false;
+            const numOpens = trackingEntry?.num_opens || trackingEntry?.opens || 0;
+            const wasOpened = numOpens > 0;
+
+            // Determine state
+            let state = 'na'; // not applicable
+            let sentAt = null;
+            let scheduledDate = null;
+
+            if (stepActivity) {
+              sentAt = stepActivity.created_at || stepActivity.date;
+              if (wasBounced) {
+                state = 'bounced';
+              } else if (wasReplied) {
+                state = 'replied';
+              } else if (wasOpened) {
+                state = 'opened';
+              } else {
+                state = 'sent';
+              }
+            } else if (email0Date && i > 0) {
+              // Calculate scheduled date
+              scheduledDate = new Date(email0Date);
+              scheduledDate.setDate(scheduledDate.getDate() + STEP_DELAYS[i]);
+              
+              if (scheduledDate <= new Date()) {
+                // Scheduled date has passed but no activity found — still scheduled (pending)
+                state = 'scheduled';
+              } else {
+                state = 'scheduled';
+              }
+            } else if (i === 0 && !stepActivity) {
+              state = 'scheduled'; // Email 0 not sent yet
+            }
+
+            steps.push({
+              step: i,
+              state,
+              sentAt,
+              scheduledDate: scheduledDate ? scheduledDate.toISOString() : null,
+              numOpens,
+              wasReplied,
+              wasBounced,
+              wasOpened
+            });
+          }
+
+          // Determine overall status
+          let status = 'active';
+          if (steps.some(s => s.wasReplied)) status = 'replied';
+          else if (steps.some(s => s.wasBounced)) status = 'bounced';
+          else if (steps[5]?.state === 'sent' || steps[5]?.state === 'opened') status = 'completed';
+
+          return {
+            ...lead,
+            prospect,
+            steps,
+            status,
+            email0Date
+          };
+        });
+
+        renderTable();
+        updateStats();
+        document.getElementById('lastUpdated').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+      } catch (err) {
+        console.error('Failed to load data:', err);
+        document.getElementById('tableBody').innerHTML = `
+          <tr><td colspan="11" style="text-align:center;padding:40px;color:var(--red);">
+            ⚠️ Failed to load data: ${err.message}<br>
+            <small style="color:var(--muted);">Check API connection and try again</small>
+          </td></tr>`;
+      } finally {
+        btn.classList.remove('loading');
+      }
+    }
+
+    // ===== Rendering =====
+    function renderTable() {
+      const tbody = document.getElementById('tableBody');
+      const search = document.getElementById('searchInput').value.toLowerCase();
+
+      const filtered = allRows.filter(row => {
+        // Search filter
+        if (search) {
+          const haystack = `${row.name} ${row.contact} ${row.email}`.toLowerCase();
+          if (!haystack.includes(search)) return false;
+        }
+        // Status filter
+        if (currentFilter === 'all') return true;
+        if (currentFilter === 'active') return row.status === 'active';
+        if (currentFilter === 'opened') return row.steps.some(s => s.wasOpened);
+        if (currentFilter === 'replied') return row.status === 'replied';
+        if (currentFilter === 'bounced') return row.status === 'bounced';
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted);">
+          No leads match the current filter
+        </td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map((row, idx) => {
+        const stepCells = row.steps.map(step => {
+          let cellClass = '';
+          let icon = '';
+          let detail = '';
+          let tooltip = '';
+
+          switch (step.state) {
+            case 'opened':
+              cellClass = 'cell-opened';
+              icon = '📩';
+              detail = step.numOpens > 1 ? `${step.numOpens} opens` : '1 open';
+              tooltip = `Sent: ${formatDate(step.sentAt)} · ${step.numOpens} open(s)`;
+              break;
+            case 'sent':
+              cellClass = 'cell-sent';
+              icon = '✅';
+              detail = formatShortDate(step.sentAt);
+              tooltip = `Sent: ${formatDate(step.sentAt)}`;
+              break;
+            case 'scheduled':
+              cellClass = 'cell-scheduled';
+              icon = '⏳';
+              detail = step.scheduledDate ? formatShortDate(step.scheduledDate) : 'Pending';
+              tooltip = step.scheduledDate ? `Scheduled: ${formatDate(step.scheduledDate)}` : 'Awaiting Email 0';
+              break;
+            case 'bounced':
+              cellClass = 'cell-bounced';
+              icon = '🔴';
+              detail = 'Bounced';
+              tooltip = `Bounced · Sent: ${formatDate(step.sentAt)}`;
+              break;
+            case 'replied':
+              cellClass = 'cell-replied';
+              icon = '💬';
+              detail = 'Replied!';
+              tooltip = `Replied! · Sent: ${formatDate(step.sentAt)}`;
+              break;
+            default:
+              cellClass = 'cell-na';
+              icon = '—';
+              detail = '';
+              tooltip = 'Not yet in sequence';
+          }
+
+          return `<td class="email-cell ${cellClass}" data-tooltip="${tooltip}">
+            <span class="cell-icon">${icon}</span>
+            <span class="cell-detail">${detail}</span>
+          </td>`;
+        }).join('');
+
+        const statusBadge = getStatusBadge(row.status);
+
+        return `<tr data-status="${row.status}" data-has-opens="${row.steps.some(s => s.wasOpened)}">
+          <td class="row-num">${idx + 1}</td>
+          <td><a href="/crm/${row.id}" class="lead-name">${escapeHtml(row.name)}</a></td>
+          <td class="contact-name">${escapeHtml(row.contact)}</td>
+          <td class="email-addr">${escapeHtml(row.email)}</td>
+          ${stepCells}
+          <td>${statusBadge}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function getStatusBadge(status) {
+      const map = {
+        active:    { label: 'Active',    cls: 'status-active' },
+        replied:   { label: 'Replied',   cls: 'status-replied' },
+        bounced:   { label: 'Bounced',   cls: 'status-bounced' },
+        paused:    { label: 'Paused',    cls: 'status-paused' },
+        completed: { label: 'Complete',  cls: 'status-completed' },
+      };
+      const s = map[status] || map.active;
+      return `<span class="status-badge ${s.cls}">${s.label}</span>`;
+    }
+
+    function updateStats() {
+      const totalLeads = allRows.length;
+      const totalSent = allRows.reduce((sum, r) => sum + r.steps.filter(s => ['sent','opened','replied','bounced'].includes(s.state)).length, 0);
+      const totalOpens = allRows.reduce((sum, r) => sum + r.steps.filter(s => s.wasOpened).length, 0);
+      const totalReplies = allRows.filter(r => r.status === 'replied').length;
+      const openRate = totalSent > 0 ? Math.round((totalOpens / totalSent) * 100) : 0;
+
+      document.getElementById('statLeads').textContent = totalLeads;
+      document.getElementById('statSent').textContent = totalSent;
+      document.getElementById('statOpens').textContent = totalOpens;
+      document.getElementById('statReplies').textContent = totalReplies;
+      document.getElementById('statOpenRate').textContent = `${openRate}%`;
+
+      // Sub-labels
+      const activeCount = allRows.filter(r => r.status === 'active').length;
+      document.getElementById('statLeadsSub').textContent = `${activeCount} active in sequence`;
+      
+      const avgPerLead = totalLeads > 0 ? (totalSent / totalLeads).toFixed(1) : 0;
+      document.getElementById('statSentSub').textContent = `${avgPerLead} avg per lead`;
+
+      const totalOpenCount = allRows.reduce((sum, r) => sum + r.steps.reduce((s2, step) => s2 + step.numOpens, 0), 0);
+      document.getElementById('statOpensSub').textContent = `${totalOpenCount} total opens`;
+
+      const replyRate = totalSent > 0 ? Math.round((totalReplies / totalLeads) * 100) : 0;
+      document.getElementById('statRepliesSub').textContent = `${replyRate}% reply rate`;
+
+      document.getElementById('statOpenRateSub').textContent = `${totalSent} emails tracked`;
+    }
+
+    // ===== Filters =====
+    function setFilter(filter, btn) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderTable();
+    }
+
+    function filterTable() {
+      renderTable();
+    }
+
+    // ===== Helpers =====
+    function formatDate(dateStr) {
+      if (!dateStr) return '—';
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+    }
+
+    function formatShortDate(dateStr) {
+      if (!dateStr) return '—';
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str || '';
+      return div.innerHTML;
+    }
+
+    // ===== Init =====
+    loadData();
+
+    // Auto-refresh every 5 minutes
+    setInterval(loadData, 5 * 60 * 1000);
+  </script>
+</body>
+</html>
