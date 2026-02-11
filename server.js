@@ -20932,9 +20932,9 @@ app.post('/api/campaigns/:id/send-via-instantly', async (req, res) => {
         name: campaignName,
         campaign_schedule: {
           schedules: [{
-            name: 'Business Hours',
-            timing: { from: '08:00', to: '17:00' },
-            days: { 1: true, 2: true, 3: true, 4: true, 5: true }, // Mon-Fri
+            name: 'Weekday Morning',
+            timing: { from: '08:03', to: '08:29' },
+            days: { 1: true, 2: true, 3: true, 4: true, 5: true, 6: false, 0: false }, // Mon-Fri only
             timezone: 'America/Los_Angeles'
           }]
         }
