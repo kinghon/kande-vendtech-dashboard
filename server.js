@@ -20684,11 +20684,39 @@ app.get('/api/sales-dashboard', (req, res) => {
       };
     });
 
-  // 4. Summary stats
-  const totalEmails = mixmaxData.length;
-  const opened = mixmaxData.filter(m => (m.num_opens || 0) > 0).length;
-  const replied = mixmaxData.filter(m => m.was_replied).length;
-  const hotLeads = mixmaxData.filter(m => (m.num_opens || 0) >= 3 && !m.was_replied).length;
+  // 4. Summary stats — pull from ALL sources (mixmax, prospect.email_tracking, campaigns, activities)
+  // Collect all email records from every source
+  const allEmailRecords = [];
+  mixmaxData.forEach(m => allEmailRecords.push(m));
+  prospects.forEach(p => {
+    if (p.email_tracking) p.email_tracking.forEach(t => {
+      // Avoid duplicates already counted from mixmax
+      const dup = allEmailRecords.some(e => e.subject === t.subject && e.recipient_email === t.recipient_email && e.prospect_id === p.id);
+      if (!dup) allEmailRecords.push({ ...t, prospect_id: p.id });
+    });
+  });
+  // Also count from instantlyEvents (webhook data)
+  const instantlyEvents = db.instantlyEvents || [];
+  const instantlySends = instantlyEvents.filter(e => e.event_type === 'email_sent' || e.event_type === 'email_send');
+  const instantlyOpens = instantlyEvents.filter(e => e.event_type === 'email_opened');
+  const instantlyReplies = instantlyEvents.filter(e => e.event_type === 'reply_received');
+
+  // Count unique emails sent (from all sources)
+  const emailActivitiesCount = activities.filter(a => a.type === 'email' && a.description && /sent|campaign|instantly/i.test(a.description)).length;
+  const totalEmails = Math.max(allEmailRecords.length, emailActivitiesCount, instantlySends.length);
+
+  // Opened = from tracking records + unique prospects opened from Instantly events
+  const openedFromTracking = allEmailRecords.filter(m => (m.num_opens || 0) > 0).length;
+  const openedProspectIds = new Set(instantlyOpens.map(e => e.prospect_id).filter(Boolean));
+  const opened = Math.max(openedFromTracking, openedProspectIds.size);
+
+  // Replied
+  const repliedFromTracking = allEmailRecords.filter(m => m.was_replied).length;
+  const repliedProspectIds = new Set(instantlyReplies.map(e => e.prospect_id).filter(Boolean));
+  const replied = Math.max(repliedFromTracking, repliedProspectIds.size);
+
+  // Hot leads (3+ opens, no reply)
+  const hotLeads = allEmailRecords.filter(m => (m.num_opens || 0) >= 3 && !m.was_replied).length;
 
   res.json({
     email_activity: emailActivity,
