@@ -924,7 +924,7 @@
         var descLower = desc.toLowerCase();
         if (a.type === 'campaign_started' || a.type === 'campaign_launched') return;
         if (a.type === 'pipeline_move') return;
-        if (a.type === 'status-change' && (descLower.includes('status') || descLower.includes('→'))) return;
+        if (a.type === 'status-change') return;
         if (a.type === 'campaign_email') return;
 
         var icon = actIcons[a.type] || '📌';
@@ -979,7 +979,13 @@
 
     // Sort events within each location by date (newest first)
     Object.values(locations).forEach(function(loc) {
-      loc.events.sort(function(a, b) { return new Date(b.date || 0) - new Date(a.date || 0); });
+      // Sort: action items first, then by date newest-first
+      loc.events.sort(function(a, b) {
+        // Actions that need attention always on top
+        if (a.isAction && !b.isAction) return -1;
+        if (!a.isAction && b.isAction) return 1;
+        return new Date(b.date || 0) - new Date(a.date || 0);
+      });
       // Deduplicate similar events on same day
       var seen = {};
       loc.events = loc.events.filter(function(e) {
