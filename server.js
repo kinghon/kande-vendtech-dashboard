@@ -20256,7 +20256,7 @@ if (!db.emailDrafts) db.emailDrafts = [];
 // Campaign email templates (5-step follow-up after proposal)
 // Email signature (matches Gmail/Mixmax signature exactly)
 // Sig format from Kurtis's screenshot: Thanks! / Kurtis Hon (bold blue) / CEO / KandeVendTech (link) / [logo on dark bg]
-const KANDE_SIGNATURE_HTML = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:small;color:#000;">Thanks!<br><b>Kurtis Hon</b><br><span style="color:#000;">CEO</span><br><a href="https://www.kandevendtech.com" style="color:#1155cc;text-decoration:underline;"><b>KandeVendTech</b></a><br><a href="https://www.kandevendtech.com"><img src="https://i.imgur.com/c8P6CjY.jpeg" alt="Kande VendTech" width="90" height="51" style="margin-top:4px;"></a></div>`;
+const KANDE_SIGNATURE_HTML = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:small;color:#000000;">Thanks!<br><b style="color:#000000;">Kurtis Hon</b><br><span style="color:#000000;">CEO</span><br><a href="https://www.kandevendtech.com" style="color:#1155cc;text-decoration:underline;"><b>KandeVendTech</b></a><br><a href="https://www.kandevendtech.com"><img src="https://i.imgur.com/c8P6CjY.jpeg" alt="Kande VendTech" width="90" height="51" style="margin-top:4px;"></a></div>`;
 
 const KANDE_SIGNATURE_PLAIN = `Thanks!\nKurtis Hon\nCEO\nKandeVendTech`;
 
@@ -21272,7 +21272,10 @@ app.post('/api/campaigns/:id/send-via-instantly', async (req, res) => {
       // Replace plain text signature with HTML signature for Instantly emails
       let body = fillTemplate(tmpl.body_template, vars);
       body = body.replace(KANDE_SIGNATURE_PLAIN, '').trim();
-      body = body.replace(/\n/g, '<br>') + '<br><br>';
+      // Wrap each paragraph in <p> tags so Instantly doesn't strip the text
+      body = body.split(/\n\n+/).map(p => 
+        `<p style="color:#000000;font-family:Arial,sans-serif;font-size:14px;">${p.replace(/\n/g, '<br>')}</p>`
+      ).join('');
       // Add inline images if template has them
       if (tmpl.inline_images && tmpl.inline_images.length > 0) {
         body += tmpl.inline_images.map(url =>
