@@ -899,11 +899,20 @@
     });
 
     // Classify each location's primary action type
+    // "CALL NOW" / "Call [name]" = Jordan's action → bottom
+    // "Email proposal" / "Send follow-up" = Kurtis's action → top
     Object.values(locations).forEach(function(loc) {
       var actionEvents = loc.events.filter(function(e) { return e.isAction; });
-      var hasEmailAction = actionEvents.some(function(e) { return e.text && (e.text.toLowerCase().includes('email') || e.text.toLowerCase().includes('proposal') || e.text.toLowerCase().includes('send')); });
-      var hasCallAction = actionEvents.some(function(e) { return e.text && (e.text.toLowerCase().includes('call') || e.text.toLowerCase().includes('phone')); });
-      loc.actionType = hasEmailAction ? 'email' : hasCallAction ? 'call' : 'none';
+      var hasCallAction = actionEvents.some(function(e) {
+        var t = (e.text || '').toLowerCase();
+        return t.includes('call now') || t.includes('call ') || t.includes('phone');
+      });
+      var hasEmailAction = actionEvents.some(function(e) {
+        var t = (e.text || '').toLowerCase();
+        return (t.includes('email proposal') || t.includes('send follow') || t.includes('send email') || t.includes('review &amp; send') || t.includes('review & send')) && !t.includes('call now');
+      });
+      // Call NOW takes priority as classification if present
+      loc.actionType = hasEmailAction && !hasCallAction ? 'email' : hasCallAction ? 'call' : 'none';
     });
 
     // Sort: replied first, then hot, then email actions (Kurtis), then by date, then call actions (Jordan) at bottom
