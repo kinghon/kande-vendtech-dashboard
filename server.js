@@ -21298,7 +21298,7 @@ app.post('/api/campaigns/:id/send-via-instantly', async (req, res) => {
         campaign_schedule: {
           schedules: [{
             name: 'Weekday Morning',
-            timing: { from: '10:03', to: '10:29' }, // 8:03-8:29 AM Pacific (stored as Central)
+            timing: { from: '10:00', to: '14:00' }, // 8:00 AM - 12:00 PM Pacific (stored as Central +2h)
             days: { 1: true, 2: true, 3: true, 4: true, 5: true, 6: false, 0: false }, // Mon-Fri only
             timezone: 'America/Chicago' // Instantly doesn't accept America/Los_Angeles; using Central + offset
           }]
