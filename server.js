@@ -20271,7 +20271,7 @@ const CAMPAIGN_TEMPLATES = [
   {
     step: 1, delay_days: 3,
     subject_template: 'Re: Visit Follow-Up: Extra Information About Our Vending',
-    body_template: `Hey {contact_name},\n\nJust wanted to follow up on the proposal I sent over. Did you get a chance to take a look?\n\nHappy to swing by this week if you'd like to chat in person — sometimes it's easier than email!\n\n${KANDE_SIGNATURE_PLAIN}`
+    body_template: `Hey {contact_name},\n\nI wanted to follow up on my previous email regarding our custom smart vending machines. We'd love to help you find the perfect fit for your space.\n\nWe'll take care of all the expenses, installation, and re-stocking with our local team.\n\nAre you available for a quick chat this week?\n\n${KANDE_SIGNATURE_PLAIN}`
   },
   {
     step: 2, delay_days: 7,
