@@ -20264,7 +20264,7 @@ const CAMPAIGN_TEMPLATES = [
   {
     step: 0, delay_days: 0,
     subject_template: 'Visit Follow-Up: Extra Information About Our Vending',
-    body_template: `Hey {contact_name},\n\n{visit_opener} I wanted to reach out and send over a bit more info for you and your team to review. I've attached a proposal doc for you.\n\nOur team manages everything from installation to maintenance, all at no cost to you.\n\nAfter you have a chance to review our proposal, I'd love to chat about how we can meet your needs. Are you free for a quick meeting this week?\n\n${KANDE_SIGNATURE_PLAIN}`,
+    body_template: `Hey {contact_name},\n\n{visit_opener} I wanted to reach out and send over a bit more info for you and your team to review. I've attached a proposal doc for you.\n\nOur team manages everything from installation to maintenance, all at no cost to you.\n\nAfter you have a chance to review our proposal, I'd love to chat about how we can meet your needs. Are you free for a quick call this week?\n\n${KANDE_SIGNATURE_PLAIN}`,
     attach_proposal_pdf: true,
     cc: 'jordan@kandevendtech.com',
     notes: 'Initial proposal email — always attach PDF. {visit_opener} is generated from Jordan activity notes.'
@@ -20278,14 +20278,14 @@ const CAMPAIGN_TEMPLATES = [
   {
     step: 2, delay_days: 7,
     subject_template: 'Custom Vending Solutions for Your Space',
-    body_template: `Hey {contact_name},\n\nI wanted to share some examples of how our custom vending machines can transform your space. We offer sleek, modern machines that can provide snacks, beverages, and even healthy options.\n\nMany of our designs can feature your logo, adding a professional touch and reinforcing your brand. Imagine a break room with a state-of-the-art vending machine offering your team convenient access to refreshments, or a lobby with a stylish, branded machine welcoming guests.\n\nWe'll take care of all of the expenses and we can even give you a percentage of the profits if you'd like to discuss revenue share with us.\n\nAre you available this week for a brief meeting to explore these options?\n\n${KANDE_SIGNATURE_PLAIN}`,
+    body_template: `Hey {contact_name},\n\nI wanted to share some examples of how our custom vending machines can transform your space. We offer sleek, modern machines that can provide snacks, beverages, and even healthy options.\n\nMany of our designs can feature your logo, adding a professional touch and reinforcing your brand. Imagine a break room with a state-of-the-art vending machine offering your team convenient access to refreshments, or a lobby with a stylish, branded machine welcoming guests.\n\nWe'll take care of all of the expenses and we can even give you a percentage of the profits if you'd like to discuss revenue share with us.\n\nAre you available this week for a quick call to explore these options?\n\n${KANDE_SIGNATURE_PLAIN}`,
     inline_images: ['https://i.imgur.com/v78yVQ6.jpeg', 'https://i.imgur.com/8GYMdbn.jpeg'],
     cc: 'jordan@kandevendtech.com'
   },
   {
     step: 3, delay_days: 14,
     subject_template: 'Modern Vending Amenities for Your Space',
-    body_template: `Hey {contact_name},\n\nJust checking in again about our custom vending machines. Adding our modern, luxury machines can provide convenience for your employees and guests while enhancing your space with a professional look.\n\nPlus, having your logo on the machine can reinforce your brand.\n\nAre you available this week for a quick meeting to discuss further?\n\n${KANDE_SIGNATURE_PLAIN}`,
+    body_template: `Hey {contact_name},\n\nJust checking in again about our custom vending machines. Adding our modern, luxury machines can provide convenience for your employees and guests while enhancing your space with a professional look.\n\nPlus, having your logo on the machine can reinforce your brand.\n\nAre you available this week for a quick call to discuss further?\n\n${KANDE_SIGNATURE_PLAIN}`,
     cc: 'jordan@kandevendtech.com'
   },
   {
