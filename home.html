@@ -871,9 +871,12 @@
         if (!key) return;
         if (!locations[key]) locations[key] = { id: key, name: item.subtitle || 'Unknown', type: '', stage: '', events: [], emailStatus: '', maxOpens: 0, hasReply: false };
         var icon = item.type === 'hot_lead' ? '🔥' : item.type === 'task_due' ? (item.priority === 'overdue' ? '⚠️' : '📋') : item.type === 'campaign_email' ? '📨' : '📌';
+        var title = item.title || '';
+        var isCallAction = title.toLowerCase().includes('call') || title.toLowerCase().includes('phone');
+        var assignee = isCallAction ? ' <span style="font-size:0.68rem;color:var(--muted);font-weight:normal;">(Jordan)</span>' : '';
         locations[key].events.push({
           icon: icon, type: 'action',
-          text: '<strong style="color:var(--red);">' + (item.title || '') + '</strong>',
+          text: '<strong style="color:' + (isCallAction ? 'var(--muted)' : 'var(--red)') + ';">' + title + '</strong>' + assignee,
           detail: item.campaign_step || '',
           date: item.created_at,
           isAction: true
@@ -895,11 +898,24 @@
       });
     });
 
-    // Sort locations: replied first, then hot, then by most recent event
+    // Classify each location's primary action type
+    Object.values(locations).forEach(function(loc) {
+      var actionEvents = loc.events.filter(function(e) { return e.isAction; });
+      var hasEmailAction = actionEvents.some(function(e) { return e.text && (e.text.toLowerCase().includes('email') || e.text.toLowerCase().includes('proposal') || e.text.toLowerCase().includes('send')); });
+      var hasCallAction = actionEvents.some(function(e) { return e.text && (e.text.toLowerCase().includes('call') || e.text.toLowerCase().includes('phone')); });
+      loc.actionType = hasEmailAction ? 'email' : hasCallAction ? 'call' : 'none';
+    });
+
+    // Sort: replied first, then hot, then email actions (Kurtis), then by date, then call actions (Jordan) at bottom
     var locList = Object.values(locations).sort(function(a, b) {
       if (a.hasReply !== b.hasReply) return b.hasReply ? 1 : -1;
       if (a.emailStatus === 'hot' && b.emailStatus !== 'hot') return -1;
       if (b.emailStatus === 'hot' && a.emailStatus !== 'hot') return 1;
+      // Email/proposal actions (Kurtis) above call actions (Jordan)
+      if (a.actionType === 'email' && b.actionType !== 'email') return -1;
+      if (b.actionType === 'email' && a.actionType !== 'email') return 1;
+      if (a.actionType === 'call' && b.actionType !== 'call') return 1;
+      if (b.actionType === 'call' && a.actionType !== 'call') return -1;
       var aDate = a.events[0] ? new Date(a.events[0].date || 0) : new Date(0);
       var bDate = b.events[0] ? new Date(b.events[0].date || 0) : new Date(0);
       return bDate - aDate;
