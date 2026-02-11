@@ -21273,14 +21273,11 @@ app.post('/api/campaigns/:id/send-via-instantly', async (req, res) => {
       // Replace plain text signature with HTML signature for Instantly emails
       let body = fillTemplate(tmpl.body_template, vars);
       body = body.replace(KANDE_SIGNATURE_PLAIN, '').trim();
-      // Wrap each paragraph in <p> tags so Instantly doesn't strip the text
-      const pStyle = 'style="color:#000000;font-family:Arial,Helvetica,sans-serif;font-size:14px;margin:0 0 8px 0;padding:0;"';
-      body = '<div style="font-family:Arial,Helvetica,sans-serif;">' + body.split(/\n\n+/).map(p => {
-        // Convert "VIEW PROPOSAL: url" into a styled link
-        p = p.replace(/VIEW PROPOSAL:\s*(https?:\/\/\S+)/g, 
-          '<a href="$1" style="color:#1155cc;font-weight:bold;text-decoration:underline;">VIEW PROPOSAL</a>');
-        return `<p ${pStyle}>${p.replace(/\n/g, '<br>')}</p>`;
-      }).join('') + '</div>';
+      // Wrap in a styled div with <br> between paragraphs (not <p> tags — those add unwanted margins)
+      body = body.replace(/VIEW PROPOSAL:\s*(https?:\/\/\S+)/g, 
+        '<a href="$1" style="color:#1155cc;font-weight:bold;text-decoration:underline;">VIEW PROPOSAL</a>');
+      body = '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#000000;">' +
+        body.replace(/\n/g, '<br>') + '<br><br></div>';
       // Add inline images if template has them
       if (tmpl.inline_images && tmpl.inline_images.length > 0) {
         body += tmpl.inline_images.map(url =>
