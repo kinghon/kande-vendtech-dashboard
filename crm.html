@@ -240,6 +240,8 @@
     .activity-item.pop-in { border-left-color: var(--success); }
     .activity-item.email { border-left-color: var(--warm); }
     .activity-type { font-size: 0.7rem; text-transform: uppercase; color: var(--muted); }
+    .activities-section .auto-activity { display: none !important; }
+    .activities-section.show-auto .auto-activity { display: block !important; }
     .activity-desc { font-size: 0.85rem; margin-top: 2px; }
     .activity-date { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
 
@@ -1115,17 +1117,29 @@
       `).join('');
     }
 
+    const AUTOMATED_TYPES = ['status-change','status_change','pipeline_move','campaign_started','campaign_step'];
+    function isAutoActivity(a) {
+      if (AUTOMATED_TYPES.includes(a.type)) return true;
+      if (a.type === 'email' && a.description && (a.description.includes('Instantly campaign') || a.description.includes('Campaign ID'))) return true;
+      return false;
+    }
+
     function renderDetail(p) {
       const contacts = p.contacts || [];
       const activities = p.activities || [];
+      const manualActivities = activities.filter(a => !isAutoActivity(a));
+      const autoCount = activities.length - manualActivities.length;
 
       return `
         <div class="prospect-detail" style="display:block;">
           <!-- Activities -->
           <div class="activities-section">
-            <div class="detail-section-title" style="margin-bottom:8px;">Activities</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <div class="detail-section-title" style="margin:0;">Activities</div>
+              ${autoCount > 0 ? `<button onclick="this.closest('.activities-section').classList.toggle('show-auto');this.textContent=this.textContent.includes('Show')?'Hide auto (${autoCount})':'Show auto (${autoCount}')" style="background:none;border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:0.7rem;color:var(--muted);cursor:pointer;">Show auto (${autoCount})</button>` : ''}
+            </div>
             ${activities.length ? activities.map(a => `
-              <div class="activity-item ${a.type}" style="position:relative;">
+              <div class="activity-item ${a.type}${isAutoActivity(a) ? ' auto-activity' : ''}" style="position:relative;${isAutoActivity(a) ? 'display:none;' : ''}">
                 <div style="position:absolute;top:6px;right:6px;display:flex;gap:8px;">
                   <button style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px;opacity:0.6;" onclick="editActivity(${p.id},${a.id})" title="Edit activity" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">✏️</button>
                   <button style="background:none;border:none;color:var(--hot);cursor:pointer;font-size:12px;opacity:0.5;" onclick="deleteActivity(${p.id},${a.id})" title="Delete activity" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5">✕</button>
