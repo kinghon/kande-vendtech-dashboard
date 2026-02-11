@@ -20275,23 +20275,23 @@ const CAMPAIGN_TEMPLATES = [
   },
   {
     step: 2, delay_days: 7,
-    subject_template: 'Re: Visit Follow-Up: Extra Information About Our Vending',
+    subject_template: 'Custom Vending Solutions for {property_name}',
     body_template: `Hey {contact_name},\n\nI wanted to share some examples of how our custom vending machines can transform your space. We offer sleek, modern machines that can provide snacks, beverages, and even healthy options.\n\nMany of our designs can feature your logo, adding a professional touch and reinforcing your brand. Imagine a break room with a state-of-the-art vending machine offering your team convenient access to refreshments, or a lobby with a stylish, branded machine welcoming guests.\n\nWe'll take care of all of the expenses and we can even give you a percentage of the profits if you'd like to discuss revenue share with us.\n\nAre you available this week for a brief meeting to explore these options?\n\n${KANDE_SIGNATURE_PLAIN}`,
     inline_images: ['https://vend.kandedash.com/email-lounge.jpg', 'https://vend.kandedash.com/email-machine.jpg']
   },
   {
     step: 3, delay_days: 14,
-    subject_template: 'Re: Visit Follow-Up: Extra Information About Our Vending',
+    subject_template: 'Modern Vending Amenities for Your Space',
     body_template: `Hey {contact_name},\n\nJust checking in again about our custom vending machines. Adding our modern, luxury machines can provide convenience for your employees and guests while enhancing your space with a professional look.\n\nPlus, having your logo on the machine can reinforce your brand.\n\nAre you available this week for a quick meeting to discuss further?\n\n${KANDE_SIGNATURE_PLAIN}`
   },
   {
     step: 4, delay_days: 21,
-    subject_template: 'Re: Visit Follow-Up: Extra Information About Our Vending',
+    subject_template: 'Quick Follow-Up — Custom Vending Machines',
     body_template: `Hey {contact_name},\n\nI hope this message finds you well. A while back, my team mentioned your interest in our custom vending machines. We provide a range of modern, luxury options, and can even include your logo on many designs.\n\nOur machines can enhance your space by offering convenient amenities to your employees and guests while promoting your brand.\n\nCould we schedule a brief chat to revisit how we can assist you?\n\n${KANDE_SIGNATURE_PLAIN}`
   },
   {
     step: 5, delay_days: 30,
-    subject_template: 'Re: Visit Follow-Up: Extra Information About Our Vending',
+    subject_template: 'Still Interested in Smart Vending?',
     body_template: `Hey {contact_name},\n\nJust one last check-in on the vending proposal for {property_name}. Totally understand if the timing isn't right — we'll keep you on our list and circle back in a few months.\n\nFeel free to reach out anytime if anything changes. Always happy to chat.\n\n${KANDE_SIGNATURE_PLAIN}`
   }
 ];
