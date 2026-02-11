@@ -1014,9 +1014,22 @@
       loc.actionType = hasEmailAction && !hasCallAction ? 'email' : hasCallAction ? 'call' : 'none';
     });
 
+    // Build a lookup of prospect statuses to filter out stale/closed/lost
+    var prospectStatusMap = {};
+    if (prospects && prospects.length) {
+      prospects.forEach(function(p) { prospectStatusMap[p.id] = (p.status || '').toLowerCase(); });
+    }
+
+    // Filter out stale, closed, and lost leads
+    var hiddenStatuses = ['stale', 'closed', 'lost', 'dead'];
+    var filteredLocations = Object.values(locations).filter(function(loc) {
+      var status = prospectStatusMap[loc.id] || '';
+      return hiddenStatuses.indexOf(status) === -1;
+    });
+
     // Sort: Kurtis actions (email/proposal) first by recent activity,
     // then Jordan actions (call) at bottom by recent activity
-    var locList = Object.values(locations).sort(function(a, b) {
+    var locList = filteredLocations.sort(function(a, b) {
       // Latest action from CRM determines whose task it is
       var aIsCall = a.latestActionType === 'call' || (a.actionType === 'call' && a.latestActionType !== 'email');
       var bIsCall = b.latestActionType === 'call' || (b.actionType === 'call' && b.latestActionType !== 'email');
