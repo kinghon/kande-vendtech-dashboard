@@ -21048,6 +21048,132 @@ app.post('/api/campaigns/sync-tracking', async (req, res) => {
   }
 });
 
+// --- MIXMAX TRACKING INTEGRATION ---
+const MIXMAX_API_TOKEN = process.env.MIXMAX_API_TOKEN || 'e855fba9-302b-4873-8229-9e459ec8aa12';
+
+async function mixmaxFetch(endpoint) {
+  const res = await fetch(`https://api.mixmax.com/v1${endpoint}`, {
+    headers: { 'X-API-Token': MIXMAX_API_TOKEN }
+  });
+  if (!res.ok) throw new Error(`Mixmax API ${res.status}: ${await res.text()}`);
+  return res.json();
+}
+
+// Get Mixmax livefeed — all email tracking data
+app.get('/api/mixmax/livefeed', async (req, res) => {
+  try {
+    const data = await mixmaxFetch('/livefeed');
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Sync Mixmax tracking data with CRM prospects
+app.post('/api/mixmax/sync-to-crm', async (req, res) => {
+  try {
+    const data = await mixmaxFetch('/livefeed');
+    const results = [];
+
+    for (const msg of (data.results || [])) {
+      // Skip internal emails (to jordan, elaine, self)
+      const externalRecipients = (msg.recipients || []).filter(r =>
+        !r.email.includes('kandevendtech') && !r.email.includes('kurtis') && !r.email.includes('jordan')
+      );
+      if (externalRecipients.length === 0) continue;
+
+      for (const recipient of externalRecipients) {
+        // Try to match with CRM contact or prospect
+        const contact = (db.contacts || []).find(c =>
+          c.email && c.email.toLowerCase() === recipient.email.toLowerCase()
+        );
+        const prospect = contact
+          ? db.prospects.find(p => p.id === contact.prospect_id)
+          : db.prospects.find(p => p.email && p.email.toLowerCase() === recipient.email.toLowerCase());
+
+        if (!prospect) continue;
+
+        const tracking = {
+          prospect_id: prospect.id,
+          prospect_name: prospect.name,
+          recipient_email: recipient.email,
+          subject: msg.subject,
+          sent_at: msg.sent ? new Date(msg.sent).toISOString() : null,
+          num_opens: msg.numOpens || 0,
+          num_clicks: msg.numClicks || 0,
+          was_replied: msg.wasReplied ? true : false,
+          was_bounced: msg.wasBounced ? true : false,
+          last_event: msg.lastEventType,
+          last_event_at: msg.lastEventAt ? new Date(msg.lastEventAt).toISOString() : null,
+          last_event_by: msg.lastEventByEmail
+        };
+
+        // Update prospect with tracking info
+        if (!prospect.email_tracking) prospect.email_tracking = [];
+        const existingIdx = prospect.email_tracking.findIndex(t =>
+          t.subject === tracking.subject && t.recipient_email === tracking.recipient_email
+        );
+        if (existingIdx >= 0) {
+          prospect.email_tracking[existingIdx] = tracking;
+        } else {
+          prospect.email_tracking.push(tracking);
+        }
+
+        // High-intent detection: 3+ opens without reply
+        if (msg.numOpens >= 3 && !msg.wasReplied) {
+          const hasTask = (db.crmTasks || []).some(t =>
+            t.prospect_id === prospect.id &&
+            t.title.includes('opened email') &&
+            !t.completed
+          );
+          if (!hasTask) {
+            db.crmTasks.push({
+              id: nextId(),
+              prospect_id: prospect.id,
+              title: `🔥 ${prospect.name} opened email ${msg.numOpens}x — CALL NOW`,
+              task_type: 'call',
+              priority: 'high',
+              due_date: new Date().toISOString(),
+              completed: false,
+              created_at: new Date().toISOString()
+            });
+          }
+        }
+
+        // Reply detection: auto-advance pipeline
+        if (msg.wasReplied) {
+          const card = db.pipelineCards.find(c => c.prospect_id === prospect.id);
+          if (card && ['proposal_sent', 'interested', 'pop_in_done', 'contacted'].includes(card.stage)) {
+            card.stage = 'negotiating';
+            card.entered_stage_at = new Date().toISOString();
+            card.updated_at = new Date().toISOString();
+          }
+          // Stop any active campaigns
+          const activeCampaign = (db.campaigns || []).find(c =>
+            c.prospect_id === prospect.id && c.status === 'active'
+          );
+          if (activeCampaign) {
+            activeCampaign.status = 'completed';
+            activeCampaign.completed_reason = 'replied_mixmax';
+            activeCampaign.last_reply_date = new Date().toISOString();
+          }
+        }
+
+        results.push(tracking);
+      }
+    }
+
+    saveDB(db);
+    res.json({
+      synced: results.length,
+      stats: data.stats || {},
+      results
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ===== END SALES AUTOMATION ENGINE =====
 
 app.listen(PORT, () => {
