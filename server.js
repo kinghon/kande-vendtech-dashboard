@@ -21621,6 +21621,23 @@ app.post('/api/mixmax/sync-to-crm', async (req, res) => {
 
 // ===== END SALES AUTOMATION ENGINE =====
 
+// ===== SEO LANDING PAGES =====
+app.get('/snack-vending-machines', (req, res) => res.sendFile(path.join(__dirname, 'dashboard/pages/snack-vending-machines.html')));
+app.get('/coffee-vending-machines', (req, res) => res.sendFile(path.join(__dirname, 'dashboard/pages/coffee-vending-machines.html')));
+app.get('/combo-vending-machines', (req, res) => res.sendFile(path.join(__dirname, 'dashboard/pages/combo-vending-machines.html')));
+app.get('/drink-vending-machines', (req, res) => res.sendFile(path.join(__dirname, 'dashboard/pages/drink-vending-machines.html')));
+app.get('/healthy-vending-machines', (req, res) => res.sendFile(path.join(__dirname, 'dashboard/pages/healthy-vending-machines.html')));
+app.get('/meal-vending-machines', (req, res) => res.sendFile(path.join(__dirname, 'dashboard/pages/meal-vending-machines.html')));
+app.get('/apartment-building-vending-machines', (req, res) => res.sendFile(path.join(__dirname, 'dashboard/pages/apartment-building-vending-machines.html')));
+app.get('/gym-vending-machines', (req, res) => res.sendFile(path.join(__dirname, 'dashboard/pages/gym-vending-machines.html')));
+app.get('/hospital-vending-machines', (req, res) => res.sendFile(path.join(__dirname, 'dashboard/pages/hospital-vending-machines.html')));
+app.get('/hotel-vending-machines', (req, res) => res.sendFile(path.join(__dirname, 'dashboard/pages/hotel-vending-machines.html')));
+app.get('/school-vending-machines', (req, res) => res.sendFile(path.join(__dirname, 'dashboard/pages/school-vending-machines.html')));
+app.get('/workplace-vending-machines', (req, res) => res.sendFile(path.join(__dirname, 'dashboard/pages/workplace-vending-machines.html')));
+app.get('/office-vending-machines', (req, res) => res.sendFile(path.join(__dirname, 'dashboard/pages/office-vending-machines.html')));
+app.get('/seo-landing', (req, res) => res.sendFile(path.join(__dirname, 'dashboard/pages/index.html')));
+// ===== END SEO LANDING PAGES =====
+
 app.listen(PORT, () => {
   console.log(`🤖 Kande VendTech Dashboard running at http://localhost:${PORT}`);
 
