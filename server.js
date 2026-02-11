@@ -20527,6 +20527,8 @@ app.get('/api/sales-dashboard', (req, res) => {
         status: anyReply ? 'replied' : anyBounce ? 'bounced' : allOpens >= 3 ? 'hot' : allOpens > 0 ? 'opened' : 'sent',
         property_type: prospect ? prospect.property_type : '',
         pipeline_stage: prospect ? prospect.status : '',
+        contract_sent_date: prospect ? prospect.contract_sent_date : null,
+        pipeline_card_stage: null, // filled below
         // All emails for this prospect with timestamps
         all_emails: msgs.map(m => ({
           subject: m.subject,
@@ -20548,6 +20550,16 @@ app.get('/api/sales-dashboard', (req, res) => {
       };
     })
     .sort((a, b) => new Date(b.sent_at) - new Date(a.sent_at));
+
+  // Enrich with pipeline card stage
+  const pipelineCards = db.pipelineCards || [];
+  emailActivity.forEach(ea => {
+    const card = pipelineCards.find(c => c.prospect_id === ea.prospect_id);
+    if (card) {
+      ea.pipeline_card_stage = card.stage;
+      if (card.stage === 'contract_sent') ea.contract_stage_date = card.entered_stage_at;
+    }
+  });
 
   // 2. Recent sales activities (all time, sorted by date)
   const recentActivities = activities

@@ -251,6 +251,7 @@
     .loc-stage.warm { background: var(--amber-light); color: #b45309; }
     .loc-stage.new { background: var(--accent-light); color: var(--accent); }
     .loc-stage.replied { background: var(--green-light); color: #15803d; }
+    .loc-stage.contract { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
     .loc-timeline { display: flex; flex-direction: column; gap: 4px; }
     .loc-event { display: flex; align-items: center; gap: 10px; font-size: 0.78rem; padding: 4px 0; }
     .loc-event-icon { width: 22px; text-align: center; flex-shrink: 0; }
@@ -826,9 +827,12 @@
     if (sales && sales.email_activity) {
       sales.email_activity.forEach(function(e) {
         var key = e.prospect_id;
-        if (!locations[key]) locations[key] = { id: key, name: e.name, type: e.property_type, stage: e.pipeline_stage, events: [], emailStatus: 'sent', maxOpens: 0, hasReply: false, allEmails: [] };
+        if (!locations[key]) locations[key] = { id: key, name: e.name, type: e.property_type, stage: e.pipeline_stage, events: [], emailStatus: 'sent', maxOpens: 0, hasReply: false, allEmails: [], pipelineStage: '', contractDate: null };
         locations[key].allEmails = e.all_emails || [];
         locations[key].openEvents = e.open_events || [];
+        if (e.pipeline_card_stage) locations[key].pipelineStage = e.pipeline_card_stage;
+        if (e.contract_sent_date) locations[key].contractDate = e.contract_sent_date;
+        if (e.contract_stage_date && !locations[key].contractDate) locations[key].contractDate = e.contract_stage_date;
         locations[key].events.push({
           icon: '📧', type: 'email',
           text: '<strong>Email:</strong> ' + (e.subject || 'Follow-up'),
@@ -936,9 +940,11 @@
       container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);">No sales activity yet</div>';
     } else {
       container.innerHTML = locList.map(function(loc) {
-        var cardClass = loc.hasReply ? 'has-reply' : loc.emailStatus === 'hot' ? 'has-hot' : '';
-        var stageClass = loc.hasReply ? 'replied' : loc.emailStatus === 'hot' ? 'hot' : loc.maxOpens > 0 ? 'warm' : 'new';
-        var stageLabel = loc.hasReply ? '✅ Replied' : loc.emailStatus === 'hot' ? '🔥 Hot' : loc.maxOpens > 0 ? '👁 Opened' : '📤 Sent';
+        var isContract = loc.pipelineStage === 'contract_sent';
+        var cardClass = isContract ? 'has-reply' : loc.hasReply ? 'has-reply' : loc.emailStatus === 'hot' ? 'has-hot' : '';
+        var stageClass = isContract ? 'contract' : loc.hasReply ? 'replied' : loc.emailStatus === 'hot' ? 'hot' : loc.maxOpens > 0 ? 'warm' : 'new';
+        var contractDateStr = loc.contractDate ? ' · Sent ' + formatDate(loc.contractDate) : '';
+        var stageLabel = isContract ? '📄 In Contract' + contractDateStr : loc.hasReply ? '✅ Replied' : loc.emailStatus === 'hot' ? '🔥 Hot' : loc.maxOpens > 0 ? '👁 Opened' : '📤 Sent';
 
         var detailId = 'email-detail-' + loc.id;
         var eventsHtml = loc.events.slice(0, 6).map(function(e) {
