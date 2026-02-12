@@ -391,12 +391,29 @@ async function fetchTeamStatus() {
     const res = await fetch('/api/team/status');
     if (!res.ok) throw new Error(res.status);
     const data = await res.json();
-    if (data.agents) {
-      Object.entries(data.agents).forEach(([id, state]) => {
-        agentStates[id] = { ...agentStates[id], ...state };
+    // API returns flat object: { scout: {...}, relay: {...}, metrics: {...} }
+    // Map API fields (state/statusText/lastActivity) to page fields (status/activity/recentOutput)
+    const knownAgents = ['kurtis','clawd','scout','relay','ralph','mary'];
+    for (const id of knownAgents) {
+      if (data[id]) {
+        const s = data[id];
+        agentStates[id] = {
+          ...agentStates[id],
+          status: s.state || agentStates[id]?.status || 'idle',
+          activity: s.statusText || s.lastActivity || agentStates[id]?.activity || 'Idle',
+          recentOutput: s.lastActivity || agentStates[id]?.recentOutput || '',
+          inMeeting: s.state === 'meeting'
+        };
+      }
+    }
+    if (data.metrics) {
+      updateMetrics({
+        runsToday: data.metrics.totalRuns || 0,
+        leadsFound: data.metrics.leadsFound || 0,
+        emailsDrafted: data.metrics.emailsDrafted || 0,
+        featuresShipped: data.metrics.featuresShipped || 0
       });
     }
-    if (data.metrics) updateMetrics(data.metrics);
     renderTeams();
     updateOfficeAgentStates();
   } catch (e) {
@@ -411,14 +428,29 @@ async function fetchActivity() {
     const res = await fetch('/api/team/activity');
     if (!res.ok) throw new Error(res.status);
     const data = await res.json();
-    if (data.items) {
-      activityItems = data.items;
+    // API returns { activities: [...] } with timestamp (ISO) and agent (lowercase)
+    // Page expects { time, agent (capitalized), text }
+    const items = data.activities || data.items || [];
+    if (items.length) {
+      activityItems = items.map(item => ({
+        time: item.time || formatActivityTime(item.timestamp),
+        agent: item.agent ? item.agent.charAt(0).toUpperCase() + item.agent.slice(1) : 'System',
+        text: item.text || ''
+      }));
       renderActivityFeed();
     }
   } catch (e) {
     useDemoActivity();
     renderActivityFeed();
   }
+}
+
+function formatActivityTime(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:true });
+  } catch { return ''; }
 }
 
 // ── Demo Data ──
