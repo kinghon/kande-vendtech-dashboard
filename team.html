@@ -559,12 +559,19 @@ function initOfficeAgents() {
 }
 
 function updateOfficeAgentStates() {
-  for (const [id, ag] of Object.entries(officeAgents)) {
-    const s = agentStates[id];
-    if (s) {
-      ag.state = (s.status === 'running' || s.status === 'active') ? 'running' : 'idle';
-    }
+  // Build status data from agentStates and pass to real state handler
+  const statusData = {};
+  for (const [id, s] of Object.entries(agentStates)) {
+    if (!s) continue;
+    statusData[id] = {
+      state: (s.status === 'running' || s.status === 'active') ? 'running'
+           : (s.status === 'meeting' || s.status === 'standup') ? 'meeting'
+           : (s.status === 'discussion' || s.status === 'water-cooler') ? 'discussion'
+           : 'idle',
+      lastActivity: s.activity || s.statusText || null
+    };
   }
+  applyAgentStateFromAPI(statusData);
 }
 
 function resizeOfficeCanvas() {
@@ -684,7 +691,8 @@ function drawDashedLine(a, b, opacity) {
 }
 
 function drawAgent(ag) {
-  const bobY = Math.sin(officeFrame * 0.04 + ag.bobPhase) * 2;
+  // Only bob when actively working, still when idle
+  const bobY = ag.state === 'running' ? Math.sin(officeFrame * 0.04 + ag.bobPhase) * 2 : 0;
   const dx = ag.x;
   const dy = ag.y + bobY;
   const r = 18;
@@ -783,80 +791,75 @@ function drawBubble(x, y, text, alpha) {
 }
 
 // ── Agent behavior update ──
+// REAL behavior only — agents move ONLY when actually working or in a real meeting.
+// No random wandering. No fake water cooler chats. Office reflects actual state.
 function updateAgents() {
   for (const [id, ag] of Object.entries(officeAgents)) {
     // Lerp toward target
     ag.x += (ag.targetX - ag.x) * 0.03;
     ag.y += (ag.targetY - ag.y) * 0.03;
 
-    // Wander timer
-    if (!ag.inStandup) {
-      ag.wanderTimer--;
-      if (ag.wanderTimer <= 0) {
-        ag.wanderTimer = 200 + Math.floor(Math.random() * 200);
-
-        if (ag.state === 'running') {
-          // Running agents stay at desk
-          ag.targetX = ag.homeX;
-          ag.targetY = ag.homeY;
-          ag.atWaterCooler = false;
-        } else {
-          // Idle: random chance to visit water cooler
-          if (!ag.atWaterCooler && Math.random() < 0.3) {
-            ag.targetX = waterCoolerPos.x + (Math.random() - 0.5) * 40;
-            ag.targetY = waterCoolerPos.y + (Math.random() - 0.5) * 30;
-            ag.atWaterCooler = true;
-            // Show speech bubble at water cooler
-            const pool = chatPools[id] || chatPools.clawd;
-            ag.bubble = pool[Math.floor(Math.random() * pool.length)];
-            ag.bubbleTimer = 180;
-          } else {
-            ag.targetX = ag.homeX + (Math.random() - 0.5) * 20;
-            ag.targetY = ag.homeY + (Math.random() - 0.5) * 20;
-            ag.atWaterCooler = false;
-          }
-        }
-      }
+    // State-driven positioning (no random movement)
+    if (ag.state === 'running') {
+      // Running agents: at their desk, working
+      ag.targetX = ag.homeX;
+      ag.targetY = ag.homeY;
+    } else if (ag.state === 'meeting' || ag.inStandup) {
+      // In a real meeting: positioned at meeting room (set by API update)
+    } else if (ag.state === 'discussion') {
+      // In a real water cooler discussion (set by API update)
+    } else {
+      // Idle: stay at desk, no movement
+      ag.targetX = ag.homeX;
+      ag.targetY = ag.homeY;
+      ag.atWaterCooler = false;
     }
 
     // Bubble timer
     if (ag.bubbleTimer > 0) ag.bubbleTimer--;
     if (ag.bubbleTimer <= 0) ag.bubble = null;
-
-    // Random chat while running
-    if (ag.state === 'running' && Math.random() < 0.002 && !ag.bubble) {
-      const pool = chatPools[id] || chatPools.clawd;
-      ag.bubble = pool[Math.floor(Math.random() * pool.length)];
-      ag.bubbleTimer = 180;
-    }
   }
+}
 
-  // Standup timer
-  standupTimer++;
-  if (standupTimer >= STANDUP_INTERVAL) {
-    standupTimer = 0;
-    // Pick 3-4 random agents for standup
-    const ids = Object.keys(officeAgents);
-    const shuffled = ids.sort(() => Math.random() - 0.5);
-    const participants = shuffled.slice(0, 3 + Math.floor(Math.random() * 2));
-    participants.forEach((pid, i) => {
-      const ag = officeAgents[pid];
+// Called when API returns agent status updates — triggers real movement
+function applyAgentStateFromAPI(statusData) {
+  for (const [id, data] of Object.entries(statusData)) {
+    const ag = officeAgents[id];
+    if (!ag) continue;
+
+    const prevState = ag.state;
+    ag.state = data.state || 'idle';
+
+    // Show activity text as speech bubble when state changes
+    if (data.lastActivity && ag.state === 'running' && prevState !== 'running') {
+      ag.bubble = data.lastActivity.substring(0, 28);
+      ag.bubbleTimer = 300;
+    }
+
+    // Move to meeting room if in standup/meeting
+    if (ag.state === 'meeting') {
       ag.inStandup = true;
-      ag.targetX = meetingRoomPos.x + (i - 1.5) * 30;
+      const idx = Object.keys(officeAgents).indexOf(id);
+      ag.targetX = meetingRoomPos.x + (idx - 2.5) * 30;
       ag.targetY = meetingRoomPos.y + (Math.random() - 0.5) * 20;
-      ag.bubble = '📞 Standup time!';
-      ag.bubbleTimer = 160;
-    });
-    // Return after STANDUP_DURATION
-    setTimeout(() => {
-      participants.forEach(pid => {
-        const ag = officeAgents[pid];
-        ag.inStandup = false;
-        ag.targetX = ag.homeX;
-        ag.targetY = ag.homeY;
-        ag.wanderTimer = 200 + Math.floor(Math.random() * 200);
-      });
-    }, STANDUP_DURATION / 60 * 1000);
+      if (!ag.bubble) { ag.bubble = '📋 Standup'; ag.bubbleTimer = 200; }
+    } else if (prevState === 'meeting') {
+      ag.inStandup = false;
+      ag.targetX = ag.homeX;
+      ag.targetY = ag.homeY;
+    }
+
+    // Move to water cooler if in discussion
+    if (ag.state === 'discussion') {
+      ag.targetX = waterCoolerPos.x + (Math.random() - 0.5) * 40;
+      ag.targetY = waterCoolerPos.y + (Math.random() - 0.5) * 30;
+      ag.atWaterCooler = true;
+      if (data.lastActivity) { ag.bubble = data.lastActivity.substring(0, 28); ag.bubbleTimer = 300; }
+    } else if (prevState === 'discussion') {
+      ag.atWaterCooler = false;
+      ag.targetX = ag.homeX;
+      ag.targetY = ag.homeY;
+    }
   }
 }
 
