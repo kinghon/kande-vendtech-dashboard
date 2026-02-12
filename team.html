@@ -32,6 +32,12 @@
   .header-right{display:flex;align-items:center;gap:16px}
   .header-time{font-size:13px;color:var(--text-dim);font-variant-numeric:tabular-nums}
 
+  /* View Toggle */
+  .view-toggle{display:flex;gap:4px;background:var(--bg);border-radius:24px;padding:3px;border:1px solid var(--border)}
+  .view-toggle-btn{padding:6px 18px;border-radius:20px;border:2px solid transparent;background:transparent;color:var(--text-dim);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.25s;font-family:inherit;white-space:nowrap}
+  .view-toggle-btn:hover{color:var(--text);background:var(--card)}
+  .view-toggle-btn.active{background:var(--card);color:var(--text);border-color:var(--accent);box-shadow:0 0 12px -3px var(--accent)}
+
   /* Metrics */
   .metric-card{flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 18px;display:flex;flex-direction:column;gap:4px}
   .metric-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:600}
@@ -90,6 +96,12 @@
   .schedule-label{font-size:13px;color:var(--text-dim)}
   .schedule-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 
+  /* Office View */
+  .view-container{display:none}
+  .view-container.active{display:block}
+  #office-view{padding:0;position:relative}
+  #office-canvas{display:block;width:100%;height:100%;background:#0f1117}
+
   /* Animations */
   @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.4}}
   @keyframes glow-pulse{0%,100%{box-shadow:inset 0 0 0 1px transparent}50%{box-shadow:inset 0 0 0 1px var(--glow-color,var(--accent)),0 0 20px -5px var(--glow-color,var(--accent))}}
@@ -121,6 +133,10 @@
         <div class="header-title">🏢 Kande AI Agent Team</div>
         <div class="header-subtitle">Command Center</div>
       </div>
+      <div class="view-toggle">
+        <button class="view-toggle-btn active" data-view="dashboard" onclick="switchView('dashboard')">📊 Dashboard</button>
+        <button class="view-toggle-btn" data-view="office" onclick="switchView('office')">🏢 Office</button>
+      </div>
     </div>
     <div class="header-right">
       <div class="status-badge"><span class="dot"></span> Operational</div>
@@ -148,9 +164,14 @@
     </div>
   </div>
 
-  <!-- Main Content -->
+  <!-- Main Content: Dashboard View -->
   <main class="main">
-    <div class="team-groups" id="team-groups"></div>
+    <div id="dashboard-view" class="view-container active">
+      <div class="team-groups" id="team-groups"></div>
+    </div>
+    <div id="office-view" class="view-container">
+      <canvas id="office-canvas"></canvas>
+    </div>
   </main>
 
   <!-- Activity Sidebar -->
@@ -232,11 +253,31 @@ const TEAMS = [
 let agentStates = {};
 let activityItems = [];
 let expandedAgent = null;
+let currentView = localStorage.getItem('teamView') || 'dashboard';
 
 // ── Initialize defaults ──
 TEAMS.forEach(t => t.agents.forEach(a => {
   agentStates[a.id] = { status:'idle', activity:'Waiting for tasks…', inMeeting:false, recentOutput:'' };
 }));
+
+// ── View Toggle ──
+function switchView(view) {
+  currentView = view;
+  localStorage.setItem('teamView', view);
+  document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.view === view);
+  });
+  document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active'));
+  document.getElementById(view + '-view').classList.add('active');
+  if (view === 'office') {
+    resizeOfficeCanvas();
+  }
+}
+
+// Restore saved view
+if (currentView !== 'dashboard') {
+  requestAnimationFrame(() => switchView(currentView));
+}
 
 // ── Clock ──
 function updateClock() {
@@ -254,7 +295,7 @@ function renderTeams() {
   const container = document.getElementById('team-groups');
   container.innerHTML = TEAMS.map(team => {
     const totalAgents = team.agents.length;
-    const activeCount = team.agents.filter(a => agentStates[a.id]?.status === 'active').length;
+    const activeCount = team.agents.filter(a => agentStates[a.id]?.status === 'active' || agentStates[a.id]?.status === 'running').length;
     return `
       <div class="team-group">
         <div class="team-group-header">
@@ -268,7 +309,6 @@ function renderTeams() {
     `;
   }).join('');
 
-  // Bind click handlers
   container.querySelectorAll('.agent-card').forEach(card => {
     card.addEventListener('click', () => {
       const id = card.dataset.agentId;
@@ -358,10 +398,11 @@ async function fetchTeamStatus() {
     }
     if (data.metrics) updateMetrics(data.metrics);
     renderTeams();
+    updateOfficeAgentStates();
   } catch (e) {
-    // API not available — use demo data
     useDemoData();
     renderTeams();
+    updateOfficeAgentStates();
   }
 }
 
@@ -375,33 +416,19 @@ async function fetchActivity() {
       renderActivityFeed();
     }
   } catch (e) {
-    // API not available — use demo activity
     useDemoActivity();
     renderActivityFeed();
   }
 }
 
-// ── Demo Data (when API is not connected) ──
+// ── Demo Data ──
 function useDemoData() {
-  const activities = [
-    'Monitoring agent pipeline…',
-    'Reviewing daily objectives…',
-    'Scanning for new leads in Henderson area…',
-    'Processing inbound inquiry from website…',
-    'Deploying dashboard update v2.4.1…',
-    'Checking photo booth event schedule…',
-    'Analyzing competitor pricing data…',
-    'Drafting follow-up email for lead #847…',
-  ];
-  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
   agentStates.kurtis = { status:'active', activity:'Reviewing daily priorities', inMeeting:false, recentOutput:'Approved Q2 sales strategy.\nSet target: 15 new vending locations by March.' };
   agentStates.clawd = { status:'running', activity:'Coordinating morning standup across all teams', inMeeting:false, recentOutput:'Standup summary: 3 agents active, 2 pending tasks.\nDeployed team.html update.\nNext: check email pipeline.' };
   agentStates.scout = { status:'running', activity:'Researching warehouse districts in North Las Vegas', inMeeting:false, recentOutput:'Found 4 potential locations:\n- Cheyenne Commerce Center (12 units)\n- Craig Industrial Park (8 units)\n- Losee & Ann intersection (6 units)\nScoring by PEOPLE framework…' };
   agentStates.relay = { status:'active', activity:'Following up on 3 warm leads', inMeeting:false, recentOutput:'Lead #842: Sent pricing sheet, awaiting response.\nLead #845: Scheduled site visit for Thursday.\nLead #847: Draft follow-up ready for review.' };
   agentStates.ralph = { status:'running', activity:'Fixing mobile responsive layout on CRM', inMeeting:false, recentOutput:'Bug fix: map pins not loading on Safari.\nCommit: a3f82c1 "Fix Safari WebGL context"\nDeployed to staging.' };
   agentStates.mary = { status:'active', activity:'Confirming Saturday event staffing', inMeeting:false, recentOutput:'Event #PB-2026-0089: Staff confirmed (2/2)\nEquipment check: ✅ Ring light, ✅ Printer\nClient: awaiting final headcount.' };
-
   updateMetrics({ runsToday: 47, leadsFound: 12, emailsDrafted: 8, featuresShipped: 3 });
 }
 
@@ -441,6 +468,425 @@ function getAgentColor(name) {
   const colors = { Kurtis:'#f59e0b', Clawd:'#8b5cf6', Scout:'#3b82f6', Relay:'#22c55e', Ralph:'#f59e0b', Mary:'#ec4899' };
   return colors[name] || 'var(--text)';
 }
+
+// ══════════════════════════════════════════════════════════
+// ── OFFICE VIEW — Animated Canvas ──
+// ══════════════════════════════════════════════════════════
+
+const canvas = document.getElementById('office-canvas');
+const ctx = canvas.getContext('2d');
+let cW = 0, cH = 0;
+let officeFrame = 0;
+let standupTimer = 0;
+const STANDUP_INTERVAL = 10800; // ~3 min at 60fps
+const STANDUP_DURATION = 900;  // ~15s at 60fps
+
+// Agent definitions for office
+const officeAgents = {
+  kurtis: { emoji:'👑', name:'Kurtis', color:'#f59e0b', bg:'#451a03', state:'idle' },
+  clawd:  { emoji:'🧠', name:'Clawd',  color:'#8b5cf6', bg:'#2e1065', state:'idle' },
+  scout:  { emoji:'🔭', name:'Scout',  color:'#3b82f6', bg:'#172554', state:'idle' },
+  relay:  { emoji:'📡', name:'Relay',  color:'#22c55e', bg:'#052e16', state:'idle' },
+  ralph:  { emoji:'🔧', name:'Ralph',  color:'#f59e0b', bg:'#451a03', state:'idle' },
+  mary:   { emoji:'📋', name:'Mary',   color:'#ec4899', bg:'#500724', state:'idle' },
+};
+
+// Speech bubble pools
+const chatPools = {
+  kurtis: ["Revenue looking good…", "Let's ship faster", "How's the pipeline?", "Q2 targets are set", "Great work team!", "Let's review leads"],
+  clawd:  ["Coordinating tasks…", "Memory updated ✓", "Deploying now…", "All agents online", "Standup in 5…", "Checking heartbeats"],
+  scout:  ["Found a hot lead…", "Scanning Henderson…", "PEOPLE score: 8.2", "New warehouse area!", "4 prospects found", "Research complete ✓"],
+  relay:  ["3 more opens today", "Follow-up sent ✓", "Lead #847 is warm", "Pricing sheet ready", "CRM updated", "Pipeline looking good"],
+  ralph:  ["Bug fix deployed ✓", "PR merged!", "Refactoring CRM…", "Safari fix in prod", "Tests passing ✓", "New feature live!"],
+  mary:   ["Event confirmed ✓", "Staff: 2/2 locked", "Equipment checked", "Client happy!", "Schedule updated", "Invoice sent ✓"],
+};
+
+// Furniture definitions (computed relative to canvas)
+let furniture = [];
+let waterCoolerPos = { x: 0, y: 0 };
+let meetingRoomPos = { x: 0, y: 0 };
+
+function computeLayout() {
+  const w = cW, h = cH;
+  const pad = 30;
+  const fw = (w - pad * 2) / 4; // quarter width
+  const fh = (h - pad * 2) / 4; // quarter height
+
+  furniture = [
+    { label: "CEO's Office",     x: w*0.42, y: pad+10,        w: fw*0.9, h: fh*0.7, homeFor: 'kurtis' },
+    { label: "Chief of Staff",   x: w*0.42, y: pad+fh*0.85,   w: fw*0.9, h: fh*0.7, homeFor: 'clawd' },
+    { label: "Research Lab",     x: pad+10, y: pad+fh*0.3,    w: fw*0.95,h: fh*0.9, homeFor: 'scout' },
+    { label: "Sales Ops",        x: pad+fw*1.05, y: h*0.45,   w: fw*0.9, h: fh*0.8, homeFor: 'relay' },
+    { label: "Engineering",      x: w-pad-fw*1.9, y: h*0.45,  w: fw*0.9, h: fh*0.8, homeFor: 'ralph' },
+    { label: "PB Operations",    x: w-pad-fw*0.95,y: pad+fh*0.3, w: fw*0.95,h: fh*0.9, homeFor: 'mary' },
+    { label: "Meeting Room",     x: w*0.30, y: h-pad-fh*0.95, w: fw*1.5, h: fh*0.85 },
+    { label: "Water Cooler",     x: pad+10, y: h-pad-fh*0.65, w: fw*0.6, h: fh*0.55 },
+  ];
+
+  waterCoolerPos = { x: furniture[7].x + furniture[7].w/2, y: furniture[7].y + furniture[7].h/2 };
+  meetingRoomPos = { x: furniture[6].x + furniture[6].w/2, y: furniture[6].y + furniture[6].h/2 };
+
+  // Set agent home positions
+  for (const f of furniture) {
+    if (f.homeFor && officeAgents[f.homeFor]) {
+      const ag = officeAgents[f.homeFor];
+      const hx = f.x + f.w/2;
+      const hy = f.y + f.h/2 + 5;
+      ag.homeX = hx;
+      ag.homeY = hy;
+      if (ag.x === undefined) { ag.x = hx; ag.y = hy; }
+      ag.targetX = ag.targetX || hx;
+      ag.targetY = ag.targetY || hy;
+    }
+  }
+}
+
+// Initialize agent positions & timers
+function initOfficeAgents() {
+  for (const [id, ag] of Object.entries(officeAgents)) {
+    ag.x = ag.homeX || cW/2;
+    ag.y = ag.homeY || cH/2;
+    ag.targetX = ag.x;
+    ag.targetY = ag.y;
+    ag.wanderTimer = Math.floor(Math.random() * 200) + 200;
+    ag.bubble = null;
+    ag.bubbleTimer = 0;
+    ag.bobPhase = Math.random() * Math.PI * 2;
+    ag.glowPhase = Math.random() * Math.PI * 2;
+    ag.inStandup = false;
+    ag.atWaterCooler = false;
+  }
+}
+
+function updateOfficeAgentStates() {
+  for (const [id, ag] of Object.entries(officeAgents)) {
+    const s = agentStates[id];
+    if (s) {
+      ag.state = (s.status === 'running' || s.status === 'active') ? 'running' : 'idle';
+    }
+  }
+}
+
+function resizeOfficeCanvas() {
+  const container = document.getElementById('office-view');
+  const mainEl = document.querySelector('.main');
+  if (!container || !mainEl) return;
+  const rect = mainEl.getBoundingClientRect();
+  cW = rect.width - 60; // account for padding
+  cH = rect.height - 10;
+  if (cW < 200) cW = 200;
+  if (cH < 200) cH = 200;
+  canvas.width = cW * devicePixelRatio;
+  canvas.height = cH * devicePixelRatio;
+  canvas.style.width = cW + 'px';
+  canvas.style.height = cH + 'px';
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  computeLayout();
+}
+
+window.addEventListener('resize', () => {
+  if (currentView === 'office') resizeOfficeCanvas();
+});
+
+// ── Drawing helpers ──
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.arcTo(x+w, y, x+w, y+r, r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
+  ctx.lineTo(x+r, y+h);
+  ctx.arcTo(x, y+h, x, y+h-r, r);
+  ctx.lineTo(x, y+r);
+  ctx.arcTo(x, y, x+r, y, r);
+  ctx.closePath();
+}
+
+function drawGrid() {
+  ctx.strokeStyle = '#1a1d27';
+  ctx.lineWidth = 0.5;
+  const step = 40;
+  for (let x = 0; x < cW; x += step) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, cH); ctx.stroke();
+  }
+  for (let y = 0; y < cH; y += step) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(cW, y); ctx.stroke();
+  }
+}
+
+function drawFurniture() {
+  for (const f of furniture) {
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    roundRect(f.x+3, f.y+3, f.w, f.h, 10);
+    ctx.fill();
+
+    // Body
+    ctx.fillStyle = '#181c28';
+    ctx.strokeStyle = '#2a3041';
+    ctx.lineWidth = 1.5;
+    roundRect(f.x, f.y, f.w, f.h, 10);
+    ctx.fill();
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = '#4a5568';
+    ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(f.label, f.x + f.w/2, f.y + 18);
+  }
+}
+
+function drawConnectionLines() {
+  const kurtis = officeAgents.kurtis;
+  const clawd = officeAgents.clawd;
+  if (!kurtis || !clawd) return;
+
+  // Kurtis → Clawd
+  drawDashedLine(kurtis, clawd, clawd.state === 'running' ? 0.4 : 0.12);
+
+  // Clawd → each agent
+  for (const [id, ag] of Object.entries(officeAgents)) {
+    if (id === 'kurtis' || id === 'clawd') continue;
+    const opacity = ag.state === 'running' ? 0.4 : 0.1;
+    drawDashedLine(clawd, ag, opacity);
+
+    // Particle for running agents
+    if (ag.state === 'running') {
+      const t = (officeFrame * 0.015) % 1;
+      const px = clawd.x + (ag.x - clawd.x) * t;
+      const py = clawd.y + (ag.y - clawd.y) * t;
+      ctx.fillStyle = ag.color;
+      ctx.beginPath();
+      ctx.arc(px, py, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = ag.color + '60';
+      ctx.beginPath();
+      ctx.arc(px, py, 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+function drawDashedLine(a, b, opacity) {
+  ctx.save();
+  ctx.strokeStyle = `rgba(99, 102, 241, ${opacity})`;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 6]);
+  ctx.lineDashOffset = -officeFrame * 0.5;
+  ctx.beginPath();
+  ctx.moveTo(a.x, a.y);
+  ctx.lineTo(b.x, b.y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+function drawAgent(ag) {
+  const bobY = Math.sin(officeFrame * 0.04 + ag.bobPhase) * 2;
+  const dx = ag.x;
+  const dy = ag.y + bobY;
+  const r = 18;
+
+  // Shadow ellipse
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath();
+  ctx.ellipse(dx, dy + r + 6, r * 0.8, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Glow ring for running agents
+  if (ag.state === 'running') {
+    ag.glowPhase += 0.04;
+    const glowSize = r + 6 + Math.sin(ag.glowPhase) * 3;
+    ctx.strokeStyle = ag.color + '50';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(dx, dy, glowSize, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Spinning arc
+    const arcStart = officeFrame * 0.06;
+    ctx.strokeStyle = ag.color + 'aa';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(dx, dy, r + 8, arcStart, arcStart + 1.2);
+    ctx.stroke();
+  }
+
+  // Circle body
+  ctx.fillStyle = ag.bg;
+  ctx.strokeStyle = ag.color + '80';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(dx, dy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Emoji
+  ctx.font = '18px serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(ag.emoji, dx, dy + 1);
+
+  // Name
+  ctx.fillStyle = '#e2e8f0';
+  ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText(ag.name, dx, dy + r + 10);
+
+  // Speech bubble
+  if (ag.bubble && ag.bubbleTimer > 0) {
+    const alpha = Math.min(1, ag.bubbleTimer / 30);
+    drawBubble(dx, dy - r - 28, ag.bubble, alpha);
+  }
+}
+
+function drawBubble(x, y, text, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  // Truncate text
+  let display = text.length > 28 ? text.slice(0, 26) + '…' : text;
+  ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
+  const tw = ctx.measureText(display).width;
+  const bw = tw + 16;
+  const bh = 24;
+  const bx = x - bw/2;
+  const by = y - bh;
+
+  // Background
+  ctx.fillStyle = '#1e2438';
+  ctx.strokeStyle = '#3a4560';
+  ctx.lineWidth = 1;
+  roundRect(bx, by, bw, bh, 6);
+  ctx.fill();
+  ctx.stroke();
+
+  // Pointer triangle
+  ctx.fillStyle = '#1e2438';
+  ctx.beginPath();
+  ctx.moveTo(x - 5, by + bh);
+  ctx.lineTo(x + 5, by + bh);
+  ctx.lineTo(x, by + bh + 6);
+  ctx.closePath();
+  ctx.fill();
+
+  // Text
+  ctx.fillStyle = '#c8d0e0';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(display, x, by + bh/2);
+
+  ctx.restore();
+}
+
+// ── Agent behavior update ──
+function updateAgents() {
+  for (const [id, ag] of Object.entries(officeAgents)) {
+    // Lerp toward target
+    ag.x += (ag.targetX - ag.x) * 0.03;
+    ag.y += (ag.targetY - ag.y) * 0.03;
+
+    // Wander timer
+    if (!ag.inStandup) {
+      ag.wanderTimer--;
+      if (ag.wanderTimer <= 0) {
+        ag.wanderTimer = 200 + Math.floor(Math.random() * 200);
+
+        if (ag.state === 'running') {
+          // Running agents stay at desk
+          ag.targetX = ag.homeX;
+          ag.targetY = ag.homeY;
+          ag.atWaterCooler = false;
+        } else {
+          // Idle: random chance to visit water cooler
+          if (!ag.atWaterCooler && Math.random() < 0.3) {
+            ag.targetX = waterCoolerPos.x + (Math.random() - 0.5) * 40;
+            ag.targetY = waterCoolerPos.y + (Math.random() - 0.5) * 30;
+            ag.atWaterCooler = true;
+            // Show speech bubble at water cooler
+            const pool = chatPools[id] || chatPools.clawd;
+            ag.bubble = pool[Math.floor(Math.random() * pool.length)];
+            ag.bubbleTimer = 180;
+          } else {
+            ag.targetX = ag.homeX + (Math.random() - 0.5) * 20;
+            ag.targetY = ag.homeY + (Math.random() - 0.5) * 20;
+            ag.atWaterCooler = false;
+          }
+        }
+      }
+    }
+
+    // Bubble timer
+    if (ag.bubbleTimer > 0) ag.bubbleTimer--;
+    if (ag.bubbleTimer <= 0) ag.bubble = null;
+
+    // Random chat while running
+    if (ag.state === 'running' && Math.random() < 0.002 && !ag.bubble) {
+      const pool = chatPools[id] || chatPools.clawd;
+      ag.bubble = pool[Math.floor(Math.random() * pool.length)];
+      ag.bubbleTimer = 180;
+    }
+  }
+
+  // Standup timer
+  standupTimer++;
+  if (standupTimer >= STANDUP_INTERVAL) {
+    standupTimer = 0;
+    // Pick 3-4 random agents for standup
+    const ids = Object.keys(officeAgents);
+    const shuffled = ids.sort(() => Math.random() - 0.5);
+    const participants = shuffled.slice(0, 3 + Math.floor(Math.random() * 2));
+    participants.forEach((pid, i) => {
+      const ag = officeAgents[pid];
+      ag.inStandup = true;
+      ag.targetX = meetingRoomPos.x + (i - 1.5) * 30;
+      ag.targetY = meetingRoomPos.y + (Math.random() - 0.5) * 20;
+      ag.bubble = '📞 Standup time!';
+      ag.bubbleTimer = 160;
+    });
+    // Return after STANDUP_DURATION
+    setTimeout(() => {
+      participants.forEach(pid => {
+        const ag = officeAgents[pid];
+        ag.inStandup = false;
+        ag.targetX = ag.homeX;
+        ag.targetY = ag.homeY;
+        ag.wanderTimer = 200 + Math.floor(Math.random() * 200);
+      });
+    }, STANDUP_DURATION / 60 * 1000);
+  }
+}
+
+// ── Main render loop ──
+function renderOffice() {
+  officeFrame++;
+
+  // Clear
+  ctx.fillStyle = '#0f1117';
+  ctx.fillRect(0, 0, cW, cH);
+
+  drawGrid();
+  drawFurniture();
+  drawConnectionLines();
+
+  updateAgents();
+
+  // Draw agents (sorted by Y for depth)
+  const sorted = Object.values(officeAgents).sort((a, b) => a.y - b.y);
+  for (const ag of sorted) {
+    drawAgent(ag);
+  }
+
+  requestAnimationFrame(renderOffice);
+}
+
+// ── Bootstrap office ──
+resizeOfficeCanvas();
+initOfficeAgents();
+renderOffice();
 
 // ── Init ──
 fetchTeamStatus();
