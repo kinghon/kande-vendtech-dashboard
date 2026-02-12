@@ -7,10 +7,10 @@
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   :root{
-    --bg:#0b0e14;--surface:#131720;--card:#1a1f2e;--card-hover:#1e2438;
-    --border:#2a3041;--text:#e2e8f0;--text-dim:#8896ab;--text-muted:#5a6578;
-    --accent:#6366f1;--green:#22c55e;--red:#ef4444;--amber:#f59e0b;
-    --purple:#8b5cf6;--blue:#3b82f6;--pink:#ec4899;
+    --bg:#f8f9fa;--surface:#ffffff;--card:#ffffff;--card-hover:#f1f5f9;
+    --border:#e2e8f0;--text:#1a1a1a;--text-dim:#64748b;--text-muted:#94a3b8;
+    --accent:#6366f1;--green:#16a34a;--red:#ef4444;--amber:#d97706;
+    --purple:#7c3aed;--blue:#2563eb;--pink:#db2777;
     --radius:12px;--radius-sm:8px;
   }
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh}
@@ -27,16 +27,16 @@
   .header-left{display:flex;align-items:center;gap:16px}
   .header-title{font-size:22px;font-weight:700;letter-spacing:-0.3px}
   .header-subtitle{font-size:13px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px}
-  .status-badge{display:inline-flex;align-items:center;gap:8px;background:#16a34a18;border:1px solid #16a34a40;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;color:var(--green);letter-spacing:0.8px;text-transform:uppercase}
+  .status-badge{display:inline-flex;align-items:center;gap:8px;background:#dcfce7;border:1px solid #86efac;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;color:var(--green);letter-spacing:0.8px;text-transform:uppercase}
   .status-badge .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse-dot 2s ease-in-out infinite}
   .header-right{display:flex;align-items:center;gap:16px}
   .header-time{font-size:13px;color:var(--text-dim);font-variant-numeric:tabular-nums}
 
   /* View Toggle */
-  .view-toggle{display:flex;gap:4px;background:var(--bg);border-radius:24px;padding:3px;border:1px solid var(--border)}
+  .view-toggle{display:flex;gap:4px;background:#f1f5f9;border-radius:24px;padding:3px;border:1px solid var(--border)}
   .view-toggle-btn{padding:6px 18px;border-radius:20px;border:2px solid transparent;background:transparent;color:var(--text-dim);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.25s;font-family:inherit;white-space:nowrap}
-  .view-toggle-btn:hover{color:var(--text);background:var(--card)}
-  .view-toggle-btn.active{background:var(--card);color:var(--text);border-color:var(--accent);box-shadow:0 0 12px -3px var(--accent)}
+  .view-toggle-btn:hover{color:var(--text);background:#fff}
+  .view-toggle-btn.active{background:#fff;color:var(--text);border-color:var(--accent);box-shadow:0 0 8px -2px rgba(99,102,241,0.3)}
 
   /* Metrics */
   .metric-card{flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 18px;display:flex;flex-direction:column;gap:4px}
@@ -100,7 +100,7 @@
   .view-container{display:none}
   .view-container.active{display:block}
   #office-view{padding:0;position:relative}
-  #office-canvas{display:block;width:100%;height:100%;background:#0f1117}
+  #office-canvas{display:block;width:100%;height:100%;background:#f1f5f9}
 
   /* Animations */
   @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.4}}
@@ -699,7 +699,7 @@ function roundRect(x, y, w, h, r) {
 }
 
 function drawGrid() {
-  ctx.strokeStyle = '#1a1d27';
+  ctx.strokeStyle = '#e2e8f0';
   ctx.lineWidth = 0.5;
   const step = 40;
   for (let x = 0; x < cW; x += step) {
@@ -713,20 +713,20 @@ function drawGrid() {
 function drawFurniture() {
   for (const f of furniture) {
     // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    roundRect(f.x+3, f.y+3, f.w, f.h, 10);
+    ctx.fillStyle = 'rgba(0,0,0,0.06)';
+    roundRect(f.x+2, f.y+2, f.w, f.h, 10);
     ctx.fill();
 
     // Body
-    ctx.fillStyle = '#181c28';
-    ctx.strokeStyle = '#2a3041';
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#e2e8f0';
     ctx.lineWidth = 1.5;
     roundRect(f.x, f.y, f.w, f.h, 10);
     ctx.fill();
     ctx.stroke();
 
     // Label
-    ctx.fillStyle = '#4a5568';
+    ctx.fillStyle = '#64748b';
     ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(f.label, f.x + f.w/2, f.y + 18);
@@ -766,7 +766,7 @@ function drawConnectionLines() {
 
 function drawDashedLine(a, b, opacity) {
   ctx.save();
-  ctx.strokeStyle = `rgba(99, 102, 241, ${opacity})`;
+  ctx.strokeStyle = `rgba(99, 102, 241, ${opacity * 1.5})`;
   ctx.lineWidth = 1.5;
   ctx.setLineDash([6, 6]);
   ctx.lineDashOffset = -officeFrame * 0.5;
@@ -826,7 +826,7 @@ function drawAgent(ag) {
   ctx.fillText(ag.emoji, dx, dy + 1);
 
   // Name
-  ctx.fillStyle = '#e2e8f0';
+  ctx.fillStyle = '#1a1a1a';
   ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
@@ -853,15 +853,15 @@ function drawBubble(x, y, text, alpha) {
   const by = y - bh;
 
   // Background
-  ctx.fillStyle = '#1e2438';
-  ctx.strokeStyle = '#3a4560';
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#e2e8f0';
   ctx.lineWidth = 1;
   roundRect(bx, by, bw, bh, 6);
   ctx.fill();
   ctx.stroke();
 
   // Pointer triangle
-  ctx.fillStyle = '#1e2438';
+  ctx.fillStyle = '#ffffff';
   ctx.beginPath();
   ctx.moveTo(x - 5, by + bh);
   ctx.lineTo(x + 5, by + bh);
@@ -870,7 +870,7 @@ function drawBubble(x, y, text, alpha) {
   ctx.fill();
 
   // Text
-  ctx.fillStyle = '#c8d0e0';
+  ctx.fillStyle = '#1a1a1a';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(display, x, by + bh/2);
@@ -956,7 +956,7 @@ function renderOffice() {
   officeFrame++;
 
   // Clear
-  ctx.fillStyle = '#0f1117';
+  ctx.fillStyle = '#f1f5f9';
   ctx.fillRect(0, 0, cW, cH);
 
   drawGrid();
