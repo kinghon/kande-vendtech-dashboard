@@ -6,363 +6,520 @@
 <title>Kande AI Agent Team — Command Center</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; color: #1a1a1a; min-height: 100vh; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; overflow: hidden; }
 
-  .header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; padding: 24px 32px; display: flex; align-items: center; justify-content: space-between; }
-  .header h1 { font-size: 24px; font-weight: 700; }
-  .header h1 span { color: #60a5fa; }
-  .header .status-badge { background: #22c55e; color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; animation: pulse 2s infinite; }
-  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
-  .header .subtitle { color: #94a3b8; font-size: 14px; margin-top: 4px; }
+  .layout { display: flex; height: 100vh; }
 
-  .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+  /* Office View */
+  .office-container { flex: 1; position: relative; overflow: hidden; }
+  .office-header { position: absolute; top: 16px; left: 24px; z-index: 10; }
+  .office-header h1 { font-size: 20px; font-weight: 700; color: #fff; }
+  .office-header h1 span { color: #60a5fa; }
+  .office-header .sub { font-size: 12px; color: #64748b; margin-top: 2px; }
+  .status-pill { position: absolute; top: 16px; right: 280px; background: rgba(34,197,94,0.15); color: #22c55e; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; z-index: 10; border: 1px solid rgba(34,197,94,0.3); }
+  .status-pill::before { content: '●'; margin-right: 6px; animation: blink 2s infinite; }
+  @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
 
-  /* Org Chart */
-  .org-chart { display: flex; flex-direction: column; align-items: center; margin-bottom: 32px; }
-  .org-row { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; }
-  .org-connector { width: 2px; height: 32px; background: #cbd5e1; margin: 0 auto; }
-  .org-branch { display: flex; align-items: flex-start; justify-content: center; gap: 0; margin-top: -1px; }
-  .org-branch-line { height: 2px; background: #cbd5e1; flex: 1; min-width: 60px; margin-top: 0; }
-  .org-branch-down { width: 2px; height: 24px; background: #cbd5e1; }
+  canvas#office { width: 100%; height: 100%; }
 
-  /* Agent Cards */
-  .agent-card { background: #fff; border-radius: 16px; padding: 20px; width: 280px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 2px solid #e2e8f0; transition: all 0.3s; position: relative; overflow: hidden; }
-  .agent-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
-  .agent-card.ceo { border-color: #f59e0b; background: linear-gradient(135deg, #fffbeb 0%, #fff 100%); }
-  .agent-card.chief { border-color: #8b5cf6; background: linear-gradient(135deg, #f5f3ff 0%, #fff 100%); width: 320px; }
-  .agent-card.active { border-color: #22c55e; }
-  .agent-card.idle { border-color: #e2e8f0; }
-  .agent-card.running { border-color: #3b82f6; }
-  .agent-card.running::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #3b82f6, #60a5fa, #3b82f6); background-size: 200% 100%; animation: shimmer 2s infinite; }
-  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  /* Agent Tooltip */
+  .tooltip { position: absolute; background: rgba(15,17,23,0.95); border: 1px solid #334155; border-radius: 12px; padding: 12px 16px; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 20; backdrop-filter: blur(8px); min-width: 180px; }
+  .tooltip.visible { opacity: 1; }
+  .tooltip .name { font-weight: 700; font-size: 14px; }
+  .tooltip .role { font-size: 11px; color: #64748b; }
+  .tooltip .model { font-size: 10px; color: #60a5fa; font-family: monospace; margin-top: 4px; }
+  .tooltip .status { font-size: 12px; margin-top: 6px; color: #94a3b8; }
 
-  .agent-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-  .agent-avatar { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
-  .agent-avatar.scout { background: #dbeafe; }
-  .agent-avatar.relay { background: #dcfce7; }
-  .agent-avatar.ralph { background: #fef3c7; }
-  .agent-avatar.mary { background: #fce7f3; }
-  .agent-avatar.clawd { background: #ede9fe; }
-  .agent-avatar.kurtis { background: #fff7ed; }
-  .agent-name { font-weight: 700; font-size: 16px; }
-  .agent-role { font-size: 12px; color: #64748b; }
-  .agent-model { font-size: 11px; color: #94a3b8; font-family: monospace; background: #f1f5f9; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-top: 2px; }
+  /* Speech Bubbles */
+  .bubble { position: absolute; background: rgba(15,17,23,0.9); border: 1px solid #334155; border-radius: 10px; padding: 8px 12px; font-size: 11px; color: #e2e8f0; max-width: 200px; z-index: 15; opacity: 0; transition: opacity 0.5s; pointer-events: none; }
+  .bubble.visible { opacity: 1; }
+  .bubble::after { content: ''; position: absolute; bottom: -6px; left: 20px; width: 12px; height: 12px; background: rgba(15,17,23,0.9); border-right: 1px solid #334155; border-bottom: 1px solid #334155; transform: rotate(45deg); }
 
-  .agent-status { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 8px; }
-  .status-dot { width: 8px; height: 8px; border-radius: 50%; }
-  .status-dot.running { background: #3b82f6; animation: pulse 1.5s infinite; }
-  .status-dot.idle { background: #94a3b8; }
-  .status-dot.completed { background: #22c55e; }
-  .status-dot.error { background: #ef4444; }
+  /* Sidebar */
+  .sidebar { width: 260px; background: #161822; border-left: 1px solid #1e2130; display: flex; flex-direction: column; overflow: hidden; }
+  .sidebar-header { padding: 16px; border-bottom: 1px solid #1e2130; }
+  .sidebar-header h2 { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .sidebar-header .count { background: #1e293b; color: #64748b; font-size: 11px; padding: 2px 8px; border-radius: 10px; }
 
-  .agent-activity { font-size: 13px; color: #475569; line-height: 1.5; margin-bottom: 8px; min-height: 40px; }
-  .agent-schedule { font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 8px; }
-  .agent-schedule span { display: block; margin-top: 2px; }
-
-  .agent-stats { display: flex; gap: 16px; margin-top: 8px; }
-  .agent-stat { text-align: center; }
-  .agent-stat .num { font-size: 20px; font-weight: 700; color: #1a1a1a; }
-  .agent-stat .label { font-size: 11px; color: #94a3b8; }
+  /* Agent List */
+  .agent-list { padding: 8px; }
+  .agent-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; margin-bottom: 4px; cursor: pointer; transition: background 0.2s; }
+  .agent-item:hover { background: #1e2130; }
+  .agent-item .avatar { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .agent-item .info { flex: 1; }
+  .agent-item .name { font-size: 13px; font-weight: 600; }
+  .agent-item .role { font-size: 11px; color: #64748b; }
+  .agent-item .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-idle { background: #475569; }
+  .dot-running { background: #3b82f6; animation: blink 1.5s infinite; }
+  .dot-completed { background: #22c55e; }
 
   /* Activity Feed */
-  .activity-section { margin-top: 32px; }
-  .activity-section h2 { font-size: 18px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
-  .feed { background: #fff; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow: hidden; }
-  .feed-item { padding: 14px 20px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: flex-start; gap: 12px; transition: background 0.2s; }
-  .feed-item:hover { background: #f8fafc; }
-  .feed-item:last-child { border-bottom: none; }
-  .feed-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
-  .feed-content { flex: 1; }
-  .feed-agent { font-weight: 600; font-size: 13px; }
-  .feed-text { font-size: 13px; color: #475569; margin-top: 2px; }
-  .feed-time { font-size: 11px; color: #94a3b8; margin-top: 4px; }
-  .feed-empty { padding: 40px; text-align: center; color: #94a3b8; font-size: 14px; }
+  .feed-section { flex: 1; overflow-y: auto; border-top: 1px solid #1e2130; }
+  .feed-header { padding: 12px 16px; font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; background: #161822; }
+  .feed-item { padding: 10px 16px; border-bottom: 1px solid #1e2130; transition: background 0.2s; }
+  .feed-item:hover { background: #1e2130; }
+  .feed-item .agent { font-size: 11px; font-weight: 600; color: #60a5fa; }
+  .feed-item .text { font-size: 12px; color: #94a3b8; margin-top: 2px; line-height: 1.4; }
+  .feed-item .time { font-size: 10px; color: #475569; margin-top: 4px; }
+  .feed-item.new { animation: fadeIn 0.5s; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
-  /* Metrics Row */
-  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-  .metric-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-  .metric-card .value { font-size: 28px; font-weight: 700; }
-  .metric-card .label { font-size: 12px; color: #64748b; margin-top: 4px; }
-  .metric-card .trend { font-size: 12px; margin-top: 4px; }
-  .metric-card .trend.up { color: #22c55e; }
-  .metric-card .trend.neutral { color: #94a3b8; }
+  /* Metrics bar */
+  .metrics-bar { display: flex; gap: 0; border-bottom: 1px solid #1e2130; }
+  .metric { flex: 1; text-align: center; padding: 10px 4px; border-right: 1px solid #1e2130; }
+  .metric:last-child { border-right: none; }
+  .metric .val { font-size: 18px; font-weight: 700; color: #fff; }
+  .metric .lbl { font-size: 9px; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; }
 
-  /* Responsive */
   @media (max-width: 768px) {
-    .container { padding: 16px; }
-    .org-row { flex-direction: column; align-items: center; }
-    .agent-card { width: 100%; max-width: 340px; }
+    .sidebar { width: 100%; position: absolute; bottom: 0; height: 40vh; border-top: 1px solid #1e2130; border-left: none; }
+    .office-container { height: 60vh; }
   }
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div>
-    <h1>🏢 Kande <span>AI Agent Team</span></h1>
-    <div class="subtitle">Command Center — Real-time agent overview</div>
-  </div>
-  <div style="display:flex;align-items:center;gap:12px;">
-    <span class="status-badge" id="systemStatus">● OPERATIONAL</span>
-    <span style="font-size:12px;color:#94a3b8;" id="lastUpdate"></span>
-  </div>
-</div>
-
-<div class="container">
-
-  <!-- Metrics -->
-  <div class="metrics" id="metrics">
-    <div class="metric-card">
-      <div class="value" id="totalRuns">—</div>
-      <div class="label">Agent Runs Today</div>
-      <div class="trend neutral" id="totalRunsTrend"></div>
+<div class="layout">
+  <div class="office-container">
+    <div class="office-header">
+      <h1>🏢 Kande <span>AI Agent Team</span></h1>
+      <div class="sub">Command Center — Live View</div>
     </div>
-    <div class="metric-card">
-      <div class="value" id="leadsFound">—</div>
-      <div class="label">Leads Found (Scout)</div>
-    </div>
-    <div class="metric-card">
-      <div class="value" id="emailsDrafted">—</div>
-      <div class="label">Emails Drafted (Relay)</div>
-    </div>
-    <div class="metric-card">
-      <div class="value" id="featuresShipped">—</div>
-      <div class="label">Features Shipped (Ralph)</div>
-    </div>
-    <div class="metric-card">
-      <div class="value" id="pbHandled">—</div>
-      <div class="label">PB Inquiries (Mary)</div>
-    </div>
+    <div class="status-pill">OPERATIONAL</div>
+    <canvas id="office"></canvas>
+    <div class="tooltip" id="tooltip"></div>
+    <div id="bubbles"></div>
   </div>
 
-  <!-- Org Chart -->
-  <div class="org-chart">
-    <!-- CEO -->
-    <div class="org-row">
-      <div class="agent-card ceo" style="width:240px;">
-        <div class="agent-header">
-          <div class="agent-avatar kurtis">👑</div>
-          <div>
-            <div class="agent-name">Kurtis</div>
-            <div class="agent-role">CEO</div>
-          </div>
-        </div>
-        <div class="agent-activity">Sets direction, final approvals</div>
-      </div>
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h2>🤖 Agents <span class="count">5</span></h2>
     </div>
-    <div class="org-connector"></div>
 
-    <!-- Chief of Staff -->
-    <div class="org-row">
-      <div class="agent-card chief" id="card-clawd">
-        <div class="agent-header">
-          <div class="agent-avatar clawd">🧠</div>
-          <div>
-            <div class="agent-name">Clawd</div>
-            <div class="agent-role">Chief of Staff</div>
-            <div class="agent-model">claude-opus-4-6</div>
-          </div>
-        </div>
-        <div class="agent-status">
-          <div class="status-dot completed"></div>
-          <span id="clawd-status">Active — Main Session</span>
-        </div>
-        <div class="agent-activity" id="clawd-activity">Reviews agent output, makes strategic decisions, escalates to Kurtis</div>
-        <div class="agent-stats">
-          <div class="agent-stat"><div class="num" id="clawd-decisions">—</div><div class="label">Decisions</div></div>
-          <div class="agent-stat"><div class="num" id="clawd-escalations">—</div><div class="label">Escalations</div></div>
-        </div>
-      </div>
+    <div class="metrics-bar">
+      <div class="metric"><div class="val" id="m-runs">0</div><div class="lbl">Runs</div></div>
+      <div class="metric"><div class="val" id="m-leads">0</div><div class="lbl">Leads</div></div>
+      <div class="metric"><div class="val" id="m-drafts">0</div><div class="lbl">Drafts</div></div>
+      <div class="metric"><div class="val" id="m-ships">0</div><div class="lbl">Shipped</div></div>
     </div>
-    <div class="org-connector"></div>
 
-    <!-- Agents -->
-    <div class="org-row">
-      <!-- Scout -->
-      <div class="agent-card" id="card-scout">
-        <div class="agent-header">
-          <div class="agent-avatar scout">🔭</div>
-          <div>
-            <div class="agent-name">Scout</div>
-            <div class="agent-role">Research Agent</div>
-            <div class="agent-model">claude-sonnet-4</div>
-          </div>
-        </div>
-        <div class="agent-status">
-          <div class="status-dot idle" id="scout-dot"></div>
-          <span id="scout-status">Idle</span>
-        </div>
-        <div class="agent-activity" id="scout-activity">Scans for leads, monitors competitors, tracks industry trends</div>
-        <div class="agent-schedule">
-          <strong>Schedule:</strong>
-          <span>🌅 9 AM — Lead scan</span>
-          <span>🌙 8 PM — Competitor intel</span>
-        </div>
-        <div class="agent-stats">
-          <div class="agent-stat"><div class="num" id="scout-leads">—</div><div class="label">Leads</div></div>
-          <div class="agent-stat"><div class="num" id="scout-reports">—</div><div class="label">Reports</div></div>
-        </div>
-      </div>
+    <div class="agent-list" id="agentList"></div>
 
-      <!-- Relay -->
-      <div class="agent-card" id="card-relay">
-        <div class="agent-header">
-          <div class="agent-avatar relay">📡</div>
-          <div>
-            <div class="agent-name">Relay</div>
-            <div class="agent-role">Sales Ops Agent</div>
-            <div class="agent-model">claude-sonnet-4</div>
-          </div>
-        </div>
-        <div class="agent-status">
-          <div class="status-dot idle" id="relay-dot"></div>
-          <span id="relay-status">Idle</span>
-        </div>
-        <div class="agent-activity" id="relay-activity">Manages campaigns, tracks pipeline, drafts follow-ups</div>
-        <div class="agent-schedule">
-          <strong>Schedule:</strong>
-          <span>🌅 9 AM — Pipeline review</span>
-          <span>🌆 5 PM — Campaign check</span>
-        </div>
-        <div class="agent-stats">
-          <div class="agent-stat"><div class="num" id="relay-emails">—</div><div class="label">Drafts</div></div>
-          <div class="agent-stat"><div class="num" id="relay-updates">—</div><div class="label">CRM Updates</div></div>
-        </div>
-      </div>
-
-      <!-- Ralph -->
-      <div class="agent-card" id="card-ralph">
-        <div class="agent-header">
-          <div class="agent-avatar ralph">🔧</div>
-          <div>
-            <div class="agent-name">Ralph</div>
-            <div class="agent-role">Engineering Agent</div>
-            <div class="agent-model">claude-sonnet-4</div>
-          </div>
-        </div>
-        <div class="agent-status">
-          <div class="status-dot idle" id="ralph-dot"></div>
-          <span id="ralph-status">Idle</span>
-        </div>
-        <div class="agent-activity" id="ralph-activity">Ships features, fixes bugs, runs QA overnight</div>
-        <div class="agent-schedule">
-          <strong>Schedule:</strong>
-          <span>🌙 11 PM — Build session</span>
-          <span>🌅 6 AM — QA & cleanup</span>
-        </div>
-        <div class="agent-stats">
-          <div class="agent-stat"><div class="num" id="ralph-features">—</div><div class="label">Features</div></div>
-          <div class="agent-stat"><div class="num" id="ralph-bugs">—</div><div class="label">Bugs Fixed</div></div>
-        </div>
-      </div>
-
-      <!-- Mary -->
-      <div class="agent-card" id="card-mary">
-        <div class="agent-header">
-          <div class="agent-avatar mary">📋</div>
-          <div>
-            <div class="agent-name">Mary</div>
-            <div class="agent-role">PB Ops Agent</div>
-            <div class="agent-model">claude-sonnet-4</div>
-          </div>
-        </div>
-        <div class="agent-status">
-          <div class="status-dot idle" id="mary-dot"></div>
-          <span id="mary-status">Idle</span>
-        </div>
-        <div class="agent-activity" id="mary-activity">Monitors PB inbox, drafts replies, flags urgent events</div>
-        <div class="agent-schedule">
-          <strong>Schedule:</strong>
-          <span>⏰ Hourly 8 AM – 10 PM</span>
-          <span>🚨 Flags events &lt;7 days</span>
-        </div>
-        <div class="agent-stats">
-          <div class="agent-stat"><div class="num" id="mary-inquiries">—</div><div class="label">Inquiries</div></div>
-          <div class="agent-stat"><div class="num" id="mary-urgent">—</div><div class="label">Urgent</div></div>
-        </div>
-      </div>
+    <div class="feed-section">
+      <div class="feed-header">📊 Activity Feed</div>
+      <div id="feed"></div>
     </div>
   </div>
-
-  <!-- Activity Feed -->
-  <div class="activity-section">
-    <h2>📊 Live Activity Feed</h2>
-    <div class="feed" id="feed">
-      <div class="feed-empty">Loading activity feed...</div>
-    </div>
-  </div>
-
 </div>
 
 <script>
+// ===== CONFIG =====
 const API = window.location.origin;
-const AUTH = 'kande2026';
+const AGENTS = {
+  kurtis: { name: 'Kurtis', role: 'CEO', emoji: '👑', model: 'Human', color: '#f59e0b', bg: '#451a03' },
+  clawd:  { name: 'Clawd', role: 'Chief of Staff', emoji: '🧠', model: 'claude-opus-4-6', color: '#8b5cf6', bg: '#2e1065' },
+  scout:  { name: 'Scout', role: 'Research Agent', emoji: '🔭', model: 'claude-sonnet-4', color: '#3b82f6', bg: '#172554' },
+  relay:  { name: 'Relay', role: 'Sales Ops Agent', emoji: '📡', model: 'claude-sonnet-4', color: '#22c55e', bg: '#052e16' },
+  ralph:  { name: 'Ralph', role: 'Engineering Agent', emoji: '🔧', model: 'claude-sonnet-4', color: '#f59e0b', bg: '#451a03' },
+  mary:   { name: 'Mary', role: 'PB Ops Agent', emoji: '📋', model: 'claude-sonnet-4', color: '#ec4899', bg: '#500724' },
+};
 
-async function fetchTeamStatus() {
-  try {
-    const res = await fetch(`${API}/api/team/status`, { headers: { 'x-api-key': AUTH } });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch { return null; }
+// ===== OFFICE LAYOUT =====
+const canvas = document.getElementById('office');
+const ctx = canvas.getContext('2d');
+let W, H, dpr;
+
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  W = canvas.parentElement.clientWidth;
+  H = canvas.parentElement.clientHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
+window.addEventListener('resize', resize);
+resize();
 
-async function fetchTeamActivity() {
-  try {
-    const res = await fetch(`${API}/api/team/activity`, { headers: { 'x-api-key': AUTH } });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.activities || [];
-  } catch { return []; }
-}
+// Office furniture locations (relative 0-1)
+const AREAS = {
+  ceoDesk:      { x: 0.50, y: 0.12, w: 80, h: 50, label: "CEO's Office" },
+  chiefDesk:    { x: 0.50, y: 0.30, w: 70, h: 45, label: "Chief of Staff" },
+  scoutDesk:    { x: 0.15, y: 0.55, w: 60, h: 40, label: "Research Lab" },
+  relayDesk:    { x: 0.38, y: 0.55, w: 60, h: 40, label: "Sales Ops" },
+  ralphDesk:    { x: 0.62, y: 0.55, w: 60, h: 40, label: "Engineering" },
+  maryDesk:     { x: 0.85, y: 0.55, w: 60, h: 40, label: "PB Operations" },
+  meetingTable: { x: 0.50, y: 0.78, w: 100, h: 50, label: "Meeting Room" },
+  waterCooler:  { x: 0.10, y: 0.85, w: 30, h: 30, label: "Water Cooler" },
+};
 
-function updateAgentCard(agent, data) {
-  const dot = document.getElementById(`${agent}-dot`);
-  const status = document.getElementById(`${agent}-status`);
-  const activity = document.getElementById(`${agent}-activity`);
-  const card = document.getElementById(`card-${agent}`);
+// Agent positions and targets
+const agents = {};
+Object.keys(AGENTS).forEach(id => {
+  const desk = id === 'kurtis' ? AREAS.ceoDesk :
+               id === 'clawd' ? AREAS.chiefDesk :
+               id === 'scout' ? AREAS.scoutDesk :
+               id === 'relay' ? AREAS.relayDesk :
+               id === 'ralph' ? AREAS.ralphDesk : AREAS.maryDesk;
+  agents[id] = {
+    x: desk.x * W, y: desk.y * H,
+    tx: desk.x * W, ty: desk.y * H,
+    homeX: desk.x, homeY: desk.y,
+    state: 'idle',
+    bobPhase: Math.random() * Math.PI * 2,
+    typingFrame: 0,
+    wanderTimer: Math.random() * 300 + 200,
+    bubbleText: null,
+    bubbleTimer: 0,
+  };
+});
 
-  if (!data || !dot) return;
+// ===== DRAWING =====
+function drawFloor() {
+  // Dark grid floor
+  ctx.fillStyle = '#0f1117';
+  ctx.fillRect(0, 0, W, H);
 
-  // Update status
-  dot.className = `status-dot ${data.state || 'idle'}`;
-  status.textContent = data.statusText || 'Idle';
-  if (data.lastActivity) activity.textContent = data.lastActivity;
-
-  // Update card class
-  card.className = `agent-card ${data.state || 'idle'}`;
-
-  // Update stats
-  if (data.stats) {
-    Object.entries(data.stats).forEach(([key, val]) => {
-      const el = document.getElementById(`${agent}-${key}`);
-      if (el) el.textContent = val;
-    });
+  // Grid lines
+  ctx.strokeStyle = '#1a1d27';
+  ctx.lineWidth = 1;
+  const gridSize = 40;
+  for (let x = 0; x < W; x += gridSize) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
   }
+  for (let y = 0; y < H; y += gridSize) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // Subtle gradient overlay
+  const grad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, W*0.6);
+  grad.addColorStop(0, 'rgba(30,33,48,0.3)');
+  grad.addColorStop(1, 'rgba(15,17,23,0.0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function drawFurniture() {
+  Object.entries(AREAS).forEach(([key, area]) => {
+    const ax = area.x * W;
+    const ay = area.y * H;
+    const hw = area.w / 2;
+    const hh = area.h / 2;
+
+    // Desk/table glow
+    const glow = ctx.createRadialGradient(ax, ay, 0, ax, ay, Math.max(area.w, area.h));
+    if (key === 'meetingTable') {
+      glow.addColorStop(0, 'rgba(99,102,241,0.08)');
+    } else if (key === 'waterCooler') {
+      glow.addColorStop(0, 'rgba(34,197,94,0.06)');
+    } else {
+      glow.addColorStop(0, 'rgba(59,130,246,0.05)');
+    }
+    glow.addColorStop(1, 'transparent');
+    ctx.fillStyle = glow;
+    ctx.fillRect(ax - hw*2, ay - hh*2, area.w*2, area.h*2);
+
+    // Desk shape
+    ctx.fillStyle = key === 'meetingTable' ? '#1a1d2e' : key === 'waterCooler' ? '#0d2818' : '#141621';
+    ctx.strokeStyle = key === 'meetingTable' ? '#2d3154' : key === 'waterCooler' ? '#1a4028' : '#1e2235';
+    ctx.lineWidth = 1.5;
+    roundRect(ctx, ax - hw, ay - hh, area.w, area.h, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = '#334155';
+    ctx.font = '10px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(area.label, ax, ay + hh + 14);
+  });
+}
+
+function drawAgent(id, agent) {
+  const cfg = AGENTS[id];
+  const t = performance.now() / 1000;
+  const bob = Math.sin(t * 2 + agent.bobPhase) * 2;
+  const x = agent.x;
+  const y = agent.y + bob;
+
+  // Shadow
+  ctx.beginPath();
+  ctx.ellipse(x, y + 22, 14, 5, 0, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.fill();
+
+  // Agent circle
+  const radius = 18;
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+
+  // State-based styling
+  if (agent.state === 'running') {
+    // Pulsing glow
+    const pulseAlpha = 0.3 + Math.sin(t * 4) * 0.15;
+    ctx.shadowColor = cfg.color;
+    ctx.shadowBlur = 15;
+    ctx.fillStyle = cfg.bg;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = cfg.color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Activity ring
+    ctx.beginPath();
+    ctx.arc(x, y, radius + 4, -Math.PI/2, -Math.PI/2 + (t % 1) * Math.PI * 2);
+    ctx.strokeStyle = cfg.color + '88';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = cfg.bg;
+    ctx.fill();
+    ctx.strokeStyle = cfg.color + '66';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // Emoji
+  ctx.font = '20px "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(cfg.emoji, x, y);
+
+  // Name tag
+  ctx.font = 'bold 11px -apple-system, sans-serif';
+  ctx.fillStyle = '#e2e8f0';
+  ctx.textBaseline = 'top';
+  ctx.fillText(cfg.name, x, y + 26);
+
+  // Typing indicator when running
+  if (agent.state === 'running') {
+    const dots = Math.floor(t * 3) % 4;
+    ctx.font = '10px monospace';
+    ctx.fillStyle = cfg.color;
+    ctx.fillText('.'.repeat(dots + 1), x, y + 38);
+  }
+
+  // Speech bubble
+  if (agent.bubbleText && agent.bubbleTimer > 0) {
+    const alpha = Math.min(1, agent.bubbleTimer / 30);
+    ctx.globalAlpha = alpha;
+    const bw = Math.min(ctx.measureText(agent.bubbleText).width + 20, 180);
+    const bx = x - bw/2;
+    const by = y - 55;
+
+    ctx.fillStyle = 'rgba(15,17,23,0.9)';
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1;
+    roundRect(ctx, bx, by, bw, 28, 6);
+    ctx.fill();
+    ctx.stroke();
+
+    // Pointer
+    ctx.beginPath();
+    ctx.moveTo(x - 5, by + 28);
+    ctx.lineTo(x, by + 35);
+    ctx.lineTo(x + 5, by + 28);
+    ctx.fillStyle = 'rgba(15,17,23,0.9)';
+    ctx.fill();
+
+    ctx.font = '10px -apple-system, sans-serif';
+    ctx.fillStyle = '#e2e8f0';
+    ctx.textBaseline = 'middle';
+    const truncated = agent.bubbleText.length > 28 ? agent.bubbleText.substring(0, 26) + '…' : agent.bubbleText;
+    ctx.fillText(truncated, x, by + 14);
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.textBaseline = 'alphabetic';
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// Connection lines between agents
+function drawConnections() {
+  const t = performance.now() / 1000;
+  const chief = agents.clawd;
+
+  // Lines from Kurtis to Clawd
+  drawLine(agents.kurtis.x, agents.kurtis.y, chief.x, chief.y, '#8b5cf6', 0.15);
+
+  // Lines from Clawd to each agent
+  ['scout', 'relay', 'ralph', 'mary'].forEach(id => {
+    const a = agents[id];
+    const alpha = a.state === 'running' ? 0.4 : 0.1;
+    drawLine(chief.x, chief.y, a.x, a.y, AGENTS[id].color, alpha);
+
+    // Data flow particles when running
+    if (a.state === 'running') {
+      const progress = (t * 0.5) % 1;
+      const px = chief.x + (a.x - chief.x) * progress;
+      const py = chief.y + (a.y - chief.y) * progress;
+      ctx.beginPath();
+      ctx.arc(px, py, 3, 0, Math.PI * 2);
+      ctx.fillStyle = AGENTS[id].color;
+      ctx.fill();
+    }
+  });
+}
+
+function drawLine(x1, y1, x2, y2, color, alpha) {
+  ctx.beginPath();
+  ctx.moveTo(x1, y1 + 20);
+  ctx.lineTo(x2, y2 - 20);
+  ctx.strokeStyle = color;
+  ctx.globalAlpha = alpha;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
+}
+
+// ===== AGENT AI (movement) =====
+function updateAgents() {
+  Object.entries(agents).forEach(([id, a]) => {
+    // Move toward target
+    const dx = a.tx - a.x;
+    const dy = a.ty - a.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist > 2) {
+      a.x += dx * 0.03;
+      a.y += dy * 0.03;
+    }
+
+    // Wander occasionally (idle agents)
+    if (a.state === 'idle' && id !== 'kurtis') {
+      a.wanderTimer--;
+      if (a.wanderTimer <= 0) {
+        a.wanderTimer = Math.random() * 400 + 200;
+
+        // Sometimes go to water cooler or meeting table
+        const roll = Math.random();
+        if (roll < 0.15) {
+          // Water cooler
+          const wc = AREAS.waterCooler;
+          a.tx = (wc.x + (Math.random() - 0.5) * 0.05) * W;
+          a.ty = (wc.y + (Math.random() - 0.5) * 0.05) * H;
+          a.bubbleText = getWaterCoolerChat(id);
+          a.bubbleTimer = 180;
+        } else if (roll < 0.25) {
+          // Meeting table
+          const mt = AREAS.meetingTable;
+          a.tx = (mt.x + (Math.random() - 0.5) * 0.1) * W;
+          a.ty = (mt.y + (Math.random() - 0.5) * 0.05) * H;
+        } else {
+          // Go home
+          a.tx = a.homeX * W;
+          a.ty = a.homeY * H;
+        }
+      }
+    }
+
+    // Working agents stay at desk
+    if (a.state === 'running') {
+      a.tx = a.homeX * W;
+      a.ty = a.homeY * H;
+    }
+
+    // Bubble timer
+    if (a.bubbleTimer > 0) a.bubbleTimer--;
+    if (a.bubbleTimer <= 0) a.bubbleText = null;
+  });
+}
+
+function getWaterCoolerChat(id) {
+  const chats = {
+    scout: ["Found a hot lead...", "Competitor update!", "Checking Reddit...", "New apartments opening", "Industry trend spotted"],
+    relay: ["3 more opens today", "Pipeline looking good", "Email sequence working", "CRM is clean", "Campaign running smooth"],
+    ralph: ["Shipped a fix 🔧", "Dashboard running smooth", "Light theme forever", "QA passed ✅", "New feature ready"],
+    mary: ["Inbox is clean", "New PB inquiry!", "Event this week", "Draft sent to dashboard", "Client replied!"],
+    clawd: ["Reviewing output...", "Good work team", "Escalating to Kurtis", "Running diagnostics", "Optimizing workflow"],
+  };
+  const pool = chats[id] || chats.clawd;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// ===== RENDER LOOP =====
+function render() {
+  // Recalc positions on resize
+  Object.entries(agents).forEach(([id, a]) => {
+    if (Math.abs(a.tx - a.homeX * W) < 50 && Math.abs(a.ty - a.homeY * H) < 50) {
+      a.tx = a.homeX * W;
+      a.ty = a.homeY * H;
+    }
+  });
+
+  drawFloor();
+  drawFurniture();
+  drawConnections();
+  updateAgents();
+
+  // Draw agents (sorted by y for depth)
+  const sorted = Object.entries(agents).sort((a, b) => a[1].y - b[1].y);
+  sorted.forEach(([id, agent]) => drawAgent(id, agent));
+
+  requestAnimationFrame(render);
+}
+
+// Resize agent positions when window resizes
+window.addEventListener('resize', () => {
+  resize();
+  Object.entries(agents).forEach(([id, a]) => {
+    a.tx = a.homeX * W;
+    a.ty = a.homeY * H;
+    a.x = a.homeX * W;
+    a.y = a.homeY * H;
+  });
+});
+
+// ===== SIDEBAR =====
+function renderAgentList() {
+  const list = document.getElementById('agentList');
+  list.innerHTML = Object.entries(AGENTS).filter(([id]) => id !== 'kurtis').map(([id, cfg]) => {
+    const state = agents[id]?.state || 'idle';
+    const dotClass = state === 'running' ? 'dot-running' : state === 'completed' ? 'dot-completed' : 'dot-idle';
+    return `<div class="agent-item" data-agent="${id}">
+      <div class="avatar" style="background:${cfg.bg};border:1px solid ${cfg.color}44">${cfg.emoji}</div>
+      <div class="info">
+        <div class="name">${cfg.name}</div>
+        <div class="role">${cfg.role}</div>
+      </div>
+      <div class="dot ${dotClass}"></div>
+    </div>`;
+  }).join('');
 }
 
 function renderFeed(activities) {
   const feed = document.getElementById('feed');
   if (!activities || activities.length === 0) {
-    feed.innerHTML = '<div class="feed-empty">No activity yet — agents start their first runs tomorrow at 9 AM 🚀</div>';
+    feed.innerHTML = '<div style="padding:20px;text-align:center;color:#475569;font-size:12px;">Agents start their first runs tomorrow at 9 AM 🚀</div>';
     return;
   }
 
-  const agentColors = { scout: '#dbeafe', relay: '#dcfce7', ralph: '#fef3c7', mary: '#fce7f3', clawd: '#ede9fe' };
-  const agentEmoji = { scout: '🔭', relay: '📡', ralph: '🔧', mary: '📋', clawd: '🧠' };
+  const agentColors = { scout: '#3b82f6', relay: '#22c55e', ralph: '#f59e0b', mary: '#ec4899', clawd: '#8b5cf6' };
 
-  feed.innerHTML = activities.slice(0, 30).map(a => {
-    const ago = timeAgo(new Date(a.timestamp));
-    const color = agentColors[a.agent] || '#f1f5f9';
-    const emoji = agentEmoji[a.agent] || '🤖';
-    return `<div class="feed-item">
-      <div class="feed-icon" style="background:${color}">${emoji}</div>
-      <div class="feed-content">
-        <div class="feed-agent">${capitalize(a.agent)}</div>
-        <div class="feed-text">${a.text}</div>
-        <div class="feed-time">${ago}</div>
-      </div>
-    </div>`;
-  }).join('');
+  feed.innerHTML = activities.slice(0, 30).map(a => `
+    <div class="feed-item">
+      <div class="agent" style="color:${agentColors[a.agent] || '#60a5fa'}">${(a.agent || '').charAt(0).toUpperCase() + (a.agent || '').slice(1)}</div>
+      <div class="text">${a.text}</div>
+      <div class="time">${timeAgo(new Date(a.timestamp))}</div>
+    </div>
+  `).join('');
 }
 
 function timeAgo(date) {
@@ -373,34 +530,96 @@ function timeAgo(date) {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
-function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+// ===== DATA FETCHING =====
+async function fetchData() {
+  try {
+    const [statusRes, actRes] = await Promise.all([
+      fetch(`${API}/api/team/status`).then(r => r.json()).catch(() => ({})),
+      fetch(`${API}/api/team/activity`).then(r => r.json()).catch(() => ({ activities: [] })),
+    ]);
 
-async function refresh() {
-  const [status, activities] = await Promise.all([fetchTeamStatus(), fetchTeamActivity()]);
-  
-  if (status) {
-    ['scout', 'relay', 'ralph', 'mary'].forEach(a => {
-      if (status[a]) updateAgentCard(a, status[a]);
+    // Update agent states
+    ['scout', 'relay', 'ralph', 'mary'].forEach(id => {
+      if (statusRes[id]) {
+        agents[id].state = statusRes[id].state || 'idle';
+        if (statusRes[id].lastActivity && Math.random() < 0.1) {
+          agents[id].bubbleText = statusRes[id].lastActivity.substring(0, 30);
+          agents[id].bubbleTimer = 120;
+        }
+      }
     });
 
     // Update metrics
-    if (status.metrics) {
-      const m = status.metrics;
-      document.getElementById('totalRuns').textContent = m.totalRuns || 0;
-      document.getElementById('leadsFound').textContent = m.leadsFound || 0;
-      document.getElementById('emailsDrafted').textContent = m.emailsDrafted || 0;
-      document.getElementById('featuresShipped').textContent = m.featuresShipped || 0;
-      document.getElementById('pbHandled').textContent = m.pbHandled || 0;
+    if (statusRes.metrics) {
+      document.getElementById('m-runs').textContent = statusRes.metrics.totalRuns || 0;
+      document.getElementById('m-leads').textContent = statusRes.metrics.leadsFound || 0;
+      document.getElementById('m-drafts').textContent = statusRes.metrics.emailsDrafted || 0;
+      document.getElementById('m-ships').textContent = statusRes.metrics.featuresShipped || 0;
     }
-  }
 
-  renderFeed(activities);
-  document.getElementById('lastUpdate').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+    renderAgentList();
+    renderFeed(actRes.activities || []);
+  } catch (e) { console.error('Fetch error:', e); }
 }
 
-// Initial load + auto-refresh every 30s
-refresh();
-setInterval(refresh, 30000);
+// ===== HOVER TOOLTIP =====
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const tooltip = document.getElementById('tooltip');
+
+  let found = false;
+  Object.entries(agents).forEach(([id, a]) => {
+    const dx = mx - a.x;
+    const dy = my - a.y;
+    if (Math.sqrt(dx*dx + dy*dy) < 25) {
+      const cfg = AGENTS[id];
+      tooltip.innerHTML = `
+        <div class="name">${cfg.emoji} ${cfg.name}</div>
+        <div class="role">${cfg.role}</div>
+        <div class="model">${cfg.model}</div>
+        <div class="status">Status: ${a.state}</div>
+      `;
+      tooltip.style.left = (e.clientX + 15) + 'px';
+      tooltip.style.top = (e.clientY - 10) + 'px';
+      tooltip.classList.add('visible');
+      found = true;
+    }
+  });
+  if (!found) tooltip.classList.remove('visible');
+});
+
+// ===== INIT =====
+renderAgentList();
+fetchData();
+setInterval(fetchData, 15000);
+render();
+
+// Trigger random standup meeting every ~3 min
+setInterval(() => {
+  if (Math.random() < 0.3) {
+    const meetAgents = ['scout', 'relay', 'ralph', 'mary'].filter(() => Math.random() > 0.4);
+    if (meetAgents.length >= 2) {
+      meetAgents.push('clawd');
+      meetAgents.forEach((id, i) => {
+        const mt = AREAS.meetingTable;
+        const angle = (i / meetAgents.length) * Math.PI * 2;
+        agents[id].tx = (mt.x + Math.cos(angle) * 0.06) * W;
+        agents[id].ty = (mt.y + Math.sin(angle) * 0.03) * H;
+      });
+      // They'll wander back home after their timer expires
+      setTimeout(() => {
+        meetAgents.forEach(id => {
+          agents[id].tx = agents[id].homeX * W;
+          agents[id].ty = agents[id].homeY * H;
+          agents[id].bubbleText = "Good standup! 🤝";
+          agents[id].bubbleTimer = 120;
+        });
+      }, 15000);
+    }
+  }
+}, 180000);
 </script>
 </body>
 </html>
