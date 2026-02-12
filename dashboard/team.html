@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kande AI Agent Team — Command Center</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; color: #1a1a1a; min-height: 100vh; }
+
+  .header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; padding: 24px 32px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 24px; font-weight: 700; }
+  .header h1 span { color: #60a5fa; }
+  .header .status-badge { background: #22c55e; color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+  .header .subtitle { color: #94a3b8; font-size: 14px; margin-top: 4px; }
+
+  .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+  /* Org Chart */
+  .org-chart { display: flex; flex-direction: column; align-items: center; margin-bottom: 32px; }
+  .org-row { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; }
+  .org-connector { width: 2px; height: 32px; background: #cbd5e1; margin: 0 auto; }
+  .org-branch { display: flex; align-items: flex-start; justify-content: center; gap: 0; margin-top: -1px; }
+  .org-branch-line { height: 2px; background: #cbd5e1; flex: 1; min-width: 60px; margin-top: 0; }
+  .org-branch-down { width: 2px; height: 24px; background: #cbd5e1; }
+
+  /* Agent Cards */
+  .agent-card { background: #fff; border-radius: 16px; padding: 20px; width: 280px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 2px solid #e2e8f0; transition: all 0.3s; position: relative; overflow: hidden; }
+  .agent-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+  .agent-card.ceo { border-color: #f59e0b; background: linear-gradient(135deg, #fffbeb 0%, #fff 100%); }
+  .agent-card.chief { border-color: #8b5cf6; background: linear-gradient(135deg, #f5f3ff 0%, #fff 100%); width: 320px; }
+  .agent-card.active { border-color: #22c55e; }
+  .agent-card.idle { border-color: #e2e8f0; }
+  .agent-card.running { border-color: #3b82f6; }
+  .agent-card.running::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #3b82f6, #60a5fa, #3b82f6); background-size: 200% 100%; animation: shimmer 2s infinite; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  .agent-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .agent-avatar { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  .agent-avatar.scout { background: #dbeafe; }
+  .agent-avatar.relay { background: #dcfce7; }
+  .agent-avatar.ralph { background: #fef3c7; }
+  .agent-avatar.mary { background: #fce7f3; }
+  .agent-avatar.clawd { background: #ede9fe; }
+  .agent-avatar.kurtis { background: #fff7ed; }
+  .agent-name { font-weight: 700; font-size: 16px; }
+  .agent-role { font-size: 12px; color: #64748b; }
+  .agent-model { font-size: 11px; color: #94a3b8; font-family: monospace; background: #f1f5f9; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-top: 2px; }
+
+  .agent-status { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 8px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .status-dot.running { background: #3b82f6; animation: pulse 1.5s infinite; }
+  .status-dot.idle { background: #94a3b8; }
+  .status-dot.completed { background: #22c55e; }
+  .status-dot.error { background: #ef4444; }
+
+  .agent-activity { font-size: 13px; color: #475569; line-height: 1.5; margin-bottom: 8px; min-height: 40px; }
+  .agent-schedule { font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 8px; }
+  .agent-schedule span { display: block; margin-top: 2px; }
+
+  .agent-stats { display: flex; gap: 16px; margin-top: 8px; }
+  .agent-stat { text-align: center; }
+  .agent-stat .num { font-size: 20px; font-weight: 700; color: #1a1a1a; }
+  .agent-stat .label { font-size: 11px; color: #94a3b8; }
+
+  /* Activity Feed */
+  .activity-section { margin-top: 32px; }
+  .activity-section h2 { font-size: 18px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .feed { background: #fff; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow: hidden; }
+  .feed-item { padding: 14px 20px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: flex-start; gap: 12px; transition: background 0.2s; }
+  .feed-item:hover { background: #f8fafc; }
+  .feed-item:last-child { border-bottom: none; }
+  .feed-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .feed-content { flex: 1; }
+  .feed-agent { font-weight: 600; font-size: 13px; }
+  .feed-text { font-size: 13px; color: #475569; margin-top: 2px; }
+  .feed-time { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+  .feed-empty { padding: 40px; text-align: center; color: #94a3b8; font-size: 14px; }
+
+  /* Metrics Row */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .metric-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+  .metric-card .value { font-size: 28px; font-weight: 700; }
+  .metric-card .label { font-size: 12px; color: #64748b; margin-top: 4px; }
+  .metric-card .trend { font-size: 12px; margin-top: 4px; }
+  .metric-card .trend.up { color: #22c55e; }
+  .metric-card .trend.neutral { color: #94a3b8; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .container { padding: 16px; }
+    .org-row { flex-direction: column; align-items: center; }
+    .agent-card { width: 100%; max-width: 340px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>🏢 Kande <span>AI Agent Team</span></h1>
+    <div class="subtitle">Command Center — Real-time agent overview</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span class="status-badge" id="systemStatus">● OPERATIONAL</span>
+    <span style="font-size:12px;color:#94a3b8;" id="lastUpdate"></span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Metrics -->
+  <div class="metrics" id="metrics">
+    <div class="metric-card">
+      <div class="value" id="totalRuns">—</div>
+      <div class="label">Agent Runs Today</div>
+      <div class="trend neutral" id="totalRunsTrend"></div>
+    </div>
+    <div class="metric-card">
+      <div class="value" id="leadsFound">—</div>
+      <div class="label">Leads Found (Scout)</div>
+    </div>
+    <div class="metric-card">
+      <div class="value" id="emailsDrafted">—</div>
+      <div class="label">Emails Drafted (Relay)</div>
+    </div>
+    <div class="metric-card">
+      <div class="value" id="featuresShipped">—</div>
+      <div class="label">Features Shipped (Ralph)</div>
+    </div>
+    <div class="metric-card">
+      <div class="value" id="pbHandled">—</div>
+      <div class="label">PB Inquiries (Mary)</div>
+    </div>
+  </div>
+
+  <!-- Org Chart -->
+  <div class="org-chart">
+    <!-- CEO -->
+    <div class="org-row">
+      <div class="agent-card ceo" style="width:240px;">
+        <div class="agent-header">
+          <div class="agent-avatar kurtis">👑</div>
+          <div>
+            <div class="agent-name">Kurtis</div>
+            <div class="agent-role">CEO</div>
+          </div>
+        </div>
+        <div class="agent-activity">Sets direction, final approvals</div>
+      </div>
+    </div>
+    <div class="org-connector"></div>
+
+    <!-- Chief of Staff -->
+    <div class="org-row">
+      <div class="agent-card chief" id="card-clawd">
+        <div class="agent-header">
+          <div class="agent-avatar clawd">🧠</div>
+          <div>
+            <div class="agent-name">Clawd</div>
+            <div class="agent-role">Chief of Staff</div>
+            <div class="agent-model">claude-opus-4-6</div>
+          </div>
+        </div>
+        <div class="agent-status">
+          <div class="status-dot completed"></div>
+          <span id="clawd-status">Active — Main Session</span>
+        </div>
+        <div class="agent-activity" id="clawd-activity">Reviews agent output, makes strategic decisions, escalates to Kurtis</div>
+        <div class="agent-stats">
+          <div class="agent-stat"><div class="num" id="clawd-decisions">—</div><div class="label">Decisions</div></div>
+          <div class="agent-stat"><div class="num" id="clawd-escalations">—</div><div class="label">Escalations</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="org-connector"></div>
+
+    <!-- Agents -->
+    <div class="org-row">
+      <!-- Scout -->
+      <div class="agent-card" id="card-scout">
+        <div class="agent-header">
+          <div class="agent-avatar scout">🔭</div>
+          <div>
+            <div class="agent-name">Scout</div>
+            <div class="agent-role">Research Agent</div>
+            <div class="agent-model">claude-sonnet-4</div>
+          </div>
+        </div>
+        <div class="agent-status">
+          <div class="status-dot idle" id="scout-dot"></div>
+          <span id="scout-status">Idle</span>
+        </div>
+        <div class="agent-activity" id="scout-activity">Scans for leads, monitors competitors, tracks industry trends</div>
+        <div class="agent-schedule">
+          <strong>Schedule:</strong>
+          <span>🌅 9 AM — Lead scan</span>
+          <span>🌙 8 PM — Competitor intel</span>
+        </div>
+        <div class="agent-stats">
+          <div class="agent-stat"><div class="num" id="scout-leads">—</div><div class="label">Leads</div></div>
+          <div class="agent-stat"><div class="num" id="scout-reports">—</div><div class="label">Reports</div></div>
+        </div>
+      </div>
+
+      <!-- Relay -->
+      <div class="agent-card" id="card-relay">
+        <div class="agent-header">
+          <div class="agent-avatar relay">📡</div>
+          <div>
+            <div class="agent-name">Relay</div>
+            <div class="agent-role">Sales Ops Agent</div>
+            <div class="agent-model">claude-sonnet-4</div>
+          </div>
+        </div>
+        <div class="agent-status">
+          <div class="status-dot idle" id="relay-dot"></div>
+          <span id="relay-status">Idle</span>
+        </div>
+        <div class="agent-activity" id="relay-activity">Manages campaigns, tracks pipeline, drafts follow-ups</div>
+        <div class="agent-schedule">
+          <strong>Schedule:</strong>
+          <span>🌅 9 AM — Pipeline review</span>
+          <span>🌆 5 PM — Campaign check</span>
+        </div>
+        <div class="agent-stats">
+          <div class="agent-stat"><div class="num" id="relay-emails">—</div><div class="label">Drafts</div></div>
+          <div class="agent-stat"><div class="num" id="relay-updates">—</div><div class="label">CRM Updates</div></div>
+        </div>
+      </div>
+
+      <!-- Ralph -->
+      <div class="agent-card" id="card-ralph">
+        <div class="agent-header">
+          <div class="agent-avatar ralph">🔧</div>
+          <div>
+            <div class="agent-name">Ralph</div>
+            <div class="agent-role">Engineering Agent</div>
+            <div class="agent-model">claude-sonnet-4</div>
+          </div>
+        </div>
+        <div class="agent-status">
+          <div class="status-dot idle" id="ralph-dot"></div>
+          <span id="ralph-status">Idle</span>
+        </div>
+        <div class="agent-activity" id="ralph-activity">Ships features, fixes bugs, runs QA overnight</div>
+        <div class="agent-schedule">
+          <strong>Schedule:</strong>
+          <span>🌙 11 PM — Build session</span>
+          <span>🌅 6 AM — QA & cleanup</span>
+        </div>
+        <div class="agent-stats">
+          <div class="agent-stat"><div class="num" id="ralph-features">—</div><div class="label">Features</div></div>
+          <div class="agent-stat"><div class="num" id="ralph-bugs">—</div><div class="label">Bugs Fixed</div></div>
+        </div>
+      </div>
+
+      <!-- Mary -->
+      <div class="agent-card" id="card-mary">
+        <div class="agent-header">
+          <div class="agent-avatar mary">📋</div>
+          <div>
+            <div class="agent-name">Mary</div>
+            <div class="agent-role">PB Ops Agent</div>
+            <div class="agent-model">claude-sonnet-4</div>
+          </div>
+        </div>
+        <div class="agent-status">
+          <div class="status-dot idle" id="mary-dot"></div>
+          <span id="mary-status">Idle</span>
+        </div>
+        <div class="agent-activity" id="mary-activity">Monitors PB inbox, drafts replies, flags urgent events</div>
+        <div class="agent-schedule">
+          <strong>Schedule:</strong>
+          <span>⏰ Hourly 8 AM – 10 PM</span>
+          <span>🚨 Flags events &lt;7 days</span>
+        </div>
+        <div class="agent-stats">
+          <div class="agent-stat"><div class="num" id="mary-inquiries">—</div><div class="label">Inquiries</div></div>
+          <div class="agent-stat"><div class="num" id="mary-urgent">—</div><div class="label">Urgent</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Activity Feed -->
+  <div class="activity-section">
+    <h2>📊 Live Activity Feed</h2>
+    <div class="feed" id="feed">
+      <div class="feed-empty">Loading activity feed...</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API = window.location.origin;
+const AUTH = 'kande2026';
+
+async function fetchTeamStatus() {
+  try {
+    const res = await fetch(`${API}/api/team/status`, { headers: { 'x-api-key': AUTH } });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch { return null; }
+}
+
+async function fetchTeamActivity() {
+  try {
+    const res = await fetch(`${API}/api/team/activity`, { headers: { 'x-api-key': AUTH } });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.activities || [];
+  } catch { return []; }
+}
+
+function updateAgentCard(agent, data) {
+  const dot = document.getElementById(`${agent}-dot`);
+  const status = document.getElementById(`${agent}-status`);
+  const activity = document.getElementById(`${agent}-activity`);
+  const card = document.getElementById(`card-${agent}`);
+
+  if (!data || !dot) return;
+
+  // Update status
+  dot.className = `status-dot ${data.state || 'idle'}`;
+  status.textContent = data.statusText || 'Idle';
+  if (data.lastActivity) activity.textContent = data.lastActivity;
+
+  // Update card class
+  card.className = `agent-card ${data.state || 'idle'}`;
+
+  // Update stats
+  if (data.stats) {
+    Object.entries(data.stats).forEach(([key, val]) => {
+      const el = document.getElementById(`${agent}-${key}`);
+      if (el) el.textContent = val;
+    });
+  }
+}
+
+function renderFeed(activities) {
+  const feed = document.getElementById('feed');
+  if (!activities || activities.length === 0) {
+    feed.innerHTML = '<div class="feed-empty">No activity yet — agents start their first runs tomorrow at 9 AM 🚀</div>';
+    return;
+  }
+
+  const agentColors = { scout: '#dbeafe', relay: '#dcfce7', ralph: '#fef3c7', mary: '#fce7f3', clawd: '#ede9fe' };
+  const agentEmoji = { scout: '🔭', relay: '📡', ralph: '🔧', mary: '📋', clawd: '🧠' };
+
+  feed.innerHTML = activities.slice(0, 30).map(a => {
+    const ago = timeAgo(new Date(a.timestamp));
+    const color = agentColors[a.agent] || '#f1f5f9';
+    const emoji = agentEmoji[a.agent] || '🤖';
+    return `<div class="feed-item">
+      <div class="feed-icon" style="background:${color}">${emoji}</div>
+      <div class="feed-content">
+        <div class="feed-agent">${capitalize(a.agent)}</div>
+        <div class="feed-text">${a.text}</div>
+        <div class="feed-time">${ago}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function timeAgo(date) {
+  const diff = (Date.now() - date.getTime()) / 1000;
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+async function refresh() {
+  const [status, activities] = await Promise.all([fetchTeamStatus(), fetchTeamActivity()]);
+  
+  if (status) {
+    ['scout', 'relay', 'ralph', 'mary'].forEach(a => {
+      if (status[a]) updateAgentCard(a, status[a]);
+    });
+
+    // Update metrics
+    if (status.metrics) {
+      const m = status.metrics;
+      document.getElementById('totalRuns').textContent = m.totalRuns || 0;
+      document.getElementById('leadsFound').textContent = m.leadsFound || 0;
+      document.getElementById('emailsDrafted').textContent = m.emailsDrafted || 0;
+      document.getElementById('featuresShipped').textContent = m.featuresShipped || 0;
+      document.getElementById('pbHandled').textContent = m.pbHandled || 0;
+    }
+  }
+
+  renderFeed(activities);
+  document.getElementById('lastUpdate').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+}
+
+// Initial load + auto-refresh every 30s
+refresh();
+setInterval(refresh, 30000);
+</script>
+</body>
+</html>
