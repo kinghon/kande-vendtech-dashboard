@@ -1056,17 +1056,15 @@ async function fetchLearnings() {
 
     for (const agent of agents) {
       const info = data[agent] || {};
-      const memoryBullets = extractBullets(info.memory);
-      const fileBullets = extractFromFiles(info.recentFiles);
-      const allBullets = [...new Set([...memoryBullets, ...fileBullets])].slice(0, 5);
+      const allBullets = (info.bullets || []).slice(0, 6);
 
       totalLearnings += allBullets.length;
 
       const card = document.createElement('div');
       card.className = 'learning-card';
 
-      const updated = info.memoryUpdated ? new Date(info.memoryUpdated).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
-      const fileCount = (info.recentFiles || []).length;
+      const updated = info.updated ? new Date(info.updated).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+      const fileCount = info.fileCount || 0;
 
       card.innerHTML = `
         <div class="learning-agent-header">
@@ -1083,24 +1081,22 @@ async function fetchLearnings() {
     }
 
     // Shared learnings
-    if (data.shared && data.shared.content) {
-      const sharedBullets = extractBullets(data.shared.content).slice(0, 4);
-      if (sharedBullets.length) {
-        totalLearnings += sharedBullets.length;
-        const card = document.createElement('div');
-        card.className = 'learning-card';
-        card.style.gridColumn = '1 / -1';
-        card.innerHTML = `
-          <div class="learning-agent-header">
-            <span style="font-size:18px">🤝</span>
-            <span class="learning-agent-name">Shared — Cross-Team Insights</span>
-          </div>
-          <div class="learning-items">
-            ${sharedBullets.map(b => `<div class="learning-item" style="border-left-color:var(--amber)"><div class="learning-bullet">${b}</div></div>`).join('')}
-          </div>
-        `;
-        grid.appendChild(card);
-      }
+    const sharedBullets = (data.shared && data.shared.bullets) ? data.shared.bullets.slice(0, 4) : [];
+    if (sharedBullets.length) {
+      totalLearnings += sharedBullets.length;
+      const card = document.createElement('div');
+      card.className = 'learning-card';
+      card.style.gridColumn = '1 / -1';
+      card.innerHTML = `
+        <div class="learning-agent-header">
+          <span style="font-size:18px">🤝</span>
+          <span class="learning-agent-name">Shared — Cross-Team Insights</span>
+        </div>
+        <div class="learning-items">
+          ${sharedBullets.map(b => `<div class="learning-item" style="border-left-color:var(--amber)"><div class="learning-bullet">${b}</div></div>`).join('')}
+        </div>
+      `;
+      grid.appendChild(card);
     }
 
     document.getElementById('learnings-count').textContent = `${totalLearnings} insight${totalLearnings !== 1 ? 's' : ''}`;

@@ -21725,62 +21725,17 @@ app.post('/api/team/activity', express.json(), (req, res) => {
   res.json({ ok: true, entry });
 });
 
-// GET /api/team/learnings — Read agent learnings from memory/skills files (last 72h)
+// GET /api/team/learnings — Get stored agent learnings (pushed from local machine)
 app.get('/api/team/learnings', (req, res) => {
-  const fs = require('fs');
-  const agentDir = '/Users/kurtishon/clawd/agent-output';
-  const agents = ['scout', 'relay', 'ralph', 'mary'];
-  const cutoff = Date.now() - 72 * 60 * 60 * 1000;
-  const learnings = {};
+  res.json(db.teamLearnings || {});
+});
 
-  for (const agent of agents) {
-    learnings[agent] = { memory: '', skills: '', recentFiles: [] };
-
-    // Read memory.md
-    try {
-      const memPath = `${agentDir}/${agent}/memory.md`;
-      const stat = fs.statSync(memPath);
-      if (stat.mtimeMs >= cutoff) {
-        learnings[agent].memory = fs.readFileSync(memPath, 'utf8').slice(0, 3000);
-        learnings[agent].memoryUpdated = stat.mtime.toISOString();
-      }
-    } catch(e) {}
-
-    // Read skills.md
-    try {
-      const skillPath = `${agentDir}/${agent}/skills.md`;
-      const stat = fs.statSync(skillPath);
-      if (stat.mtimeMs >= cutoff) {
-        learnings[agent].skills = fs.readFileSync(skillPath, 'utf8').slice(0, 2000);
-        learnings[agent].skillsUpdated = stat.mtime.toISOString();
-      }
-    } catch(e) {}
-
-    // Find recent output files (last 72h)
-    try {
-      const files = fs.readdirSync(`${agentDir}/${agent}`).filter(f => f.endsWith('.md') && f !== 'memory.md' && f !== 'skills.md');
-      for (const f of files) {
-        try {
-          const fp = `${agentDir}/${agent}/${f}`;
-          const stat = fs.statSync(fp);
-          if (stat.mtimeMs >= cutoff) {
-            const content = fs.readFileSync(fp, 'utf8').slice(0, 2000);
-            learnings[agent].recentFiles.push({ name: f, updated: stat.mtime.toISOString(), preview: content });
-          }
-        } catch(e) {}
-      }
-    } catch(e) {}
-  }
-
-  // Shared learnings
-  try {
-    const shared = fs.readFileSync(`${agentDir}/shared/learnings.md`, 'utf8').slice(0, 4000);
-    learnings.shared = { content: shared };
-  } catch(e) {
-    learnings.shared = { content: '' };
-  }
-
-  res.json(learnings);
+// POST /api/team/learnings — Push agent learnings from local machine
+app.post('/api/team/learnings', express.json({ limit: '500kb' }), (req, res) => {
+  db.teamLearnings = req.body;
+  db.teamLearnings._updatedAt = new Date().toISOString();
+  saveDB(db);
+  res.json({ ok: true });
 });
 
 // Serve team.html
