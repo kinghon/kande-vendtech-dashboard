@@ -21745,6 +21745,80 @@ app.get('/team', (req, res) => {
 
 // ===== END AGENT TEAM API =====
 
+// ===== BRAVE SEARCH USAGE TRACKER =====
+// Track web search API calls ($5 per 1000 searches)
+app.get('/api/search-usage', (req, res) => {
+  if (!db.searchUsage) db.searchUsage = { daily: {}, agents: {} };
+  const now = new Date();
+  const todayKey = now.toISOString().slice(0, 10);
+  const monthKey = now.toISOString().slice(0, 7);
+  
+  // Calculate totals
+  const daily = db.searchUsage.daily || {};
+  const todayCount = daily[todayKey] || 0;
+  
+  // Monthly total
+  let monthCount = 0;
+  Object.entries(daily).forEach(([date, count]) => {
+    if (date.startsWith(monthKey)) monthCount += count;
+  });
+  
+  // All time total
+  let allTimeCount = 0;
+  Object.values(daily).forEach(count => { allTimeCount += count; });
+  
+  // Last 30 days for chart
+  const last30 = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    last30.push({ date: key, count: daily[key] || 0 });
+  }
+  
+  // Per-agent breakdown
+  const agents = db.searchUsage.agents || {};
+  
+  res.json({
+    today: todayCount,
+    month: monthCount,
+    allTime: allTimeCount,
+    monthlyCost: (monthCount / 1000 * 5).toFixed(2),
+    allTimeCost: (allTimeCount / 1000 * 5).toFixed(2),
+    costPer: 0.005,
+    last30,
+    agents,
+    monthKey
+  });
+});
+
+// Log search usage (called by cron watchdog or agents)
+app.post('/api/search-usage/log', (req, res) => {
+  if (!db.searchUsage) db.searchUsage = { daily: {}, agents: {} };
+  const { count = 1, agent = 'unknown', date } = req.body;
+  const todayKey = date || new Date().toISOString().slice(0, 10);
+  
+  if (!db.searchUsage.daily[todayKey]) db.searchUsage.daily[todayKey] = 0;
+  db.searchUsage.daily[todayKey] += count;
+  
+  if (!db.searchUsage.agents[agent]) db.searchUsage.agents[agent] = 0;
+  db.searchUsage.agents[agent] += count;
+  
+  saveDB(db);
+  res.json({ ok: true, todayTotal: db.searchUsage.daily[todayKey] });
+});
+
+// Bulk set (for backfill from logs)
+app.put('/api/search-usage/set', (req, res) => {
+  const { daily, agents } = req.body;
+  if (!db.searchUsage) db.searchUsage = { daily: {}, agents: {} };
+  if (daily) db.searchUsage.daily = { ...db.searchUsage.daily, ...daily };
+  if (agents) db.searchUsage.agents = { ...db.searchUsage.agents, ...agents };
+  saveDB(db);
+  res.json({ ok: true });
+});
+// ===== END SEARCH USAGE TRACKER =====
+
 app.listen(PORT, () => {
   console.log(`🤖 Kande VendTech Dashboard running at http://localhost:${PORT}`);
 

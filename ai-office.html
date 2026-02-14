@@ -410,6 +410,48 @@
       </div>
     </div>
 
+    <!-- Search Usage Tracker -->
+    <div style="margin-bottom:40px;">
+      <h2 class="section-title">🔍 Brave Search Usage</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:20px;">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;">
+          <div style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Today</div>
+          <div id="search-today" style="font-size:1.8rem;font-weight:700;color:var(--accent);">—</div>
+          <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">searches</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;">
+          <div style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">This Month</div>
+          <div id="search-month" style="font-size:1.8rem;font-weight:700;color:var(--text);">—</div>
+          <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">searches</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;">
+          <div style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Monthly Cost</div>
+          <div id="search-cost" style="font-size:1.8rem;font-weight:700;color:var(--warn);">—</div>
+          <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">$5.00 / 1,000 queries</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;">
+          <div style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">All Time</div>
+          <div id="search-alltime" style="font-size:1.8rem;font-weight:700;color:var(--muted);">—</div>
+          <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;" id="search-alltime-cost"></div>
+        </div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <span style="font-size:0.85rem;font-weight:600;">Last 30 Days</span>
+          <span style="font-size:0.75rem;color:var(--muted);" id="search-avg"></span>
+        </div>
+        <div id="search-chart" style="display:flex;align-items:flex-end;gap:3px;height:80px;"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;">
+          <span style="font-size:0.65rem;color:var(--muted);" id="search-chart-start"></span>
+          <span style="font-size:0.65rem;color:var(--muted);" id="search-chart-end"></span>
+        </div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:16px;">
+        <div style="font-size:0.85rem;font-weight:600;margin-bottom:12px;">By Agent</div>
+        <div id="search-agents" style="display:flex;flex-wrap:wrap;gap:12px;"></div>
+      </div>
+    </div>
+
     <!-- Recent Runs -->
     <div class="runs-section">
       <div class="runs-header">
@@ -500,8 +542,53 @@
       }
     }
 
+    // Search Usage
+    async function loadSearchUsage() {
+      try {
+        const data = await fetch('/api/search-usage').then(r => r.json());
+        document.getElementById('search-today').textContent = data.today.toLocaleString();
+        document.getElementById('search-month').textContent = data.month.toLocaleString();
+        document.getElementById('search-cost').textContent = '$' + data.monthlyCost;
+        document.getElementById('search-alltime').textContent = data.allTime.toLocaleString();
+        document.getElementById('search-alltime-cost').textContent = '$' + data.allTimeCost + ' total';
+        
+        // Chart
+        const chart = document.getElementById('search-chart');
+        const max = Math.max(...data.last30.map(d => d.count), 1);
+        const avg = data.last30.reduce((s, d) => s + d.count, 0) / 30;
+        document.getElementById('search-avg').textContent = 'avg: ' + avg.toFixed(1) + '/day ($' + (avg * 0.005).toFixed(3) + '/day)';
+        document.getElementById('search-chart-start').textContent = data.last30[0]?.date?.slice(5) || '';
+        document.getElementById('search-chart-end').textContent = data.last30[29]?.date?.slice(5) || '';
+        
+        chart.innerHTML = data.last30.map(d => {
+          const h = Math.max((d.count / max) * 100, 2);
+          const color = d.count > avg * 2 ? 'var(--warn)' : d.count > 0 ? 'var(--accent)' : 'var(--border)';
+          return `<div title="${d.date}: ${d.count} searches ($${(d.count * 0.005).toFixed(2)})" style="flex:1;height:${h}%;background:${color};border-radius:3px 3px 0 0;min-width:6px;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'"></div>`;
+        }).join('');
+        
+        // Agents
+        const agentsDiv = document.getElementById('search-agents');
+        const agentEntries = Object.entries(data.agents || {}).sort((a, b) => b[1] - a[1]);
+        if (agentEntries.length === 0) {
+          agentsDiv.innerHTML = '<span style="color:var(--muted);font-size:0.8rem;">No agent data yet</span>';
+        } else {
+          const icons = { scout: '🔭', relay: '📡', ralph: '🔧', main: '🤖', standup: '📋', e2e: '🧪' };
+          agentsDiv.innerHTML = agentEntries.map(([name, count]) => {
+            const icon = icons[name] || '⚙️';
+            return `<div style="background:var(--bg);border-radius:8px;padding:8px 14px;display:flex;align-items:center;gap:8px;">
+              <span style="font-size:1.1rem;">${icon}</span>
+              <span style="font-size:0.8rem;font-weight:600;">${name}</span>
+              <span style="font-size:0.75rem;color:var(--muted);">${count.toLocaleString()} ($${(count * 0.005).toFixed(2)})</span>
+            </div>`;
+          }).join('');
+        }
+      } catch (e) { console.error('Search usage load failed:', e); }
+    }
+    
+    loadSearchUsage();
     loadRuns();
     setInterval(loadRuns, 30000);
+    setInterval(loadSearchUsage, 60000);
   </script>
 <script src="/nav.js"></script>
 </body>
