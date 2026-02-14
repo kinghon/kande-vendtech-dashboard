@@ -606,7 +606,7 @@ app.put('/api/prospects/:id', (req, res) => {
   // Auto-log significant changes as system activities
   const changes = [];
   if (req.body.status && req.body.status !== old.status) {
-    const labels = { new: '🆕 New', active: '🔵 Active', signed: '✅ Signed', closed: '⛔ Stale' };
+    const labels = { new: '🆕 New', active: '🔵 Active', opening_soon: '🏗️ Opening Soon', proposal_sent: '📨 Proposal Sent', signed: '✅ Signed', closed: '⛔ Stale' };
     changes.push(`Status: ${labels[old.status] || old.status} → ${labels[req.body.status] || req.body.status}${req.body.stale_reason ? ' (' + req.body.stale_reason + ')' : ''}`);
   }
   if (req.body.priority && req.body.priority !== old.priority) {

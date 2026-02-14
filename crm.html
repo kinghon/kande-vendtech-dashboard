@@ -93,6 +93,7 @@
     .prospect-card.hot { border-left: 4px solid var(--hot); }
     .prospect-card.intalks { border-left: 4px solid var(--intalks); }
     .prospect-card.warm { border-left: 4px solid var(--warm); }
+    .prospect-card.opening-soon { border-left: 4px solid #38b2ac; background: rgba(56,178,172,0.08); }
     .prospect-card.stale { border-left: 4px solid var(--hot); background: rgba(229,62,62,0.08); opacity: 0.85; }
     .prospect-card.expanded { border-color: var(--accent); cursor: default; }
 
@@ -434,6 +435,7 @@
       <button class="filter-btn" data-filter="intalks">💬 In Talks</button>
       <button class="filter-btn" data-filter="warm">🟠 Warm</button>
       <button class="filter-btn" data-filter="new">🆕 New</button>
+      <button class="filter-btn" data-filter="opening_soon">🏗️ Opening Soon</button>
       <button class="filter-btn" data-filter="signed">✅ Signed</button>
       <button class="filter-btn" data-filter="closed">⛔ Stale</button>
       <button class="filter-btn" data-filter="followup">📋 Needs Action</button>
@@ -1005,6 +1007,7 @@
       else if (currentFilter === 'intalks') filtered = filtered.filter(p => p.priority === 'intalks');
       else if (currentFilter === 'warm') filtered = filtered.filter(p => p.priority === 'warm');
       else if (currentFilter === 'new') filtered = filtered.filter(p => p.status === 'new');
+      else if (currentFilter === 'opening_soon') filtered = filtered.filter(p => p.status === 'opening_soon');
       else if (currentFilter === 'signed') filtered = filtered.filter(p => p.status === 'signed');
       else if (currentFilter === 'closed') filtered = filtered.filter(p => p.status === 'closed');
       else if (currentFilter === 'followup') filtered = filtered.filter(p => p.needs_action);
@@ -1072,7 +1075,7 @@
       }
 
       document.getElementById('prospectList').innerHTML = filtered.map(p => `
-        <div class="prospect-card ${p.priority} ${p.status === 'closed' ? 'stale' : ''} ${expandedId === p.id ? 'expanded' : ''}" id="card-${p.id}">
+        <div class="prospect-card ${p.priority} ${p.status === 'closed' ? 'stale' : ''} ${p.status === 'opening_soon' ? 'opening-soon' : ''} ${expandedId === p.id ? 'expanded' : ''}" id="card-${p.id}">
           <div class="prospect-summary" onclick="toggleExpand(${p.id})">
             <div class="prospect-header">
               <div class="prospect-name">${p.name}${p.status === 'closed' && p.stale_reason ? `<span style="margin-left:10px;font-size:0.8rem;font-weight:700;color:var(--hot);">⛔ ${esc(p.stale_reason)}</span>` : ''}${p.next_action ? `<span style="margin-left:10px;font-size:0.8rem;font-weight:600;color:var(--accent);background:rgba(49,130,206,0.1);padding:2px 8px;border-radius:4px;">→ ${p.next_action === 'Pop In' ? '🚶' : p.next_action === 'Call' ? '📞' : '📧'} ${esc(p.next_action)}${p.next_action_date ? ' (' + p.next_action_date + ')' : ''}</span>` : ''}</div>
