@@ -96,6 +96,22 @@
   .schedule-label{font-size:13px;color:var(--text-dim)}
   .schedule-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 
+  /* Learnings Section */
+  .learning-card{background:var(--card);padding:18px 20px;min-height:120px}
+  .learning-agent-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .learning-agent-name{font-size:14px;font-weight:700}
+  .learning-agent-badge{font-size:11px;font-family:'SF Mono',Monaco,monospace;color:var(--text-muted);background:var(--bg);padding:2px 8px;border-radius:4px}
+  .learning-items{display:flex;flex-direction:column;gap:8px}
+  .learning-item{font-size:13px;color:var(--text-dim);line-height:1.5;padding:8px 12px;background:var(--bg);border-radius:var(--radius-sm);border-left:3px solid var(--accent)}
+  .learning-item.scout{border-left-color:var(--blue)}
+  .learning-item.relay{border-left-color:var(--green)}
+  .learning-item.ralph{border-left-color:var(--purple)}
+  .learning-item.mary{border-left-color:var(--pink)}
+  .learning-item .date{font-size:11px;color:var(--text-muted);font-family:'SF Mono',Monaco,monospace}
+  .learning-empty{font-size:13px;color:var(--text-muted);font-style:italic}
+  .learning-bullet{display:flex;gap:6px;align-items:flex-start}
+  .learning-bullet::before{content:'•';color:var(--accent);font-weight:700;flex-shrink:0}
+
   /* Office View */
   .view-container{display:none}
   .view-container.active{display:block}
@@ -224,6 +240,18 @@
   <main class="main">
     <div id="dashboard-view" class="view-container active">
       <div class="team-groups" id="team-groups"></div>
+
+      <!-- Recent Learnings Section -->
+      <div class="learnings-section" id="learnings-section" style="margin-top:28px">
+        <div class="team-group">
+          <div class="team-group-header">
+            <div class="team-group-name">🧠 Recent Learnings (72h)</div>
+            <div class="team-group-count" id="learnings-count">Loading...</div>
+          </div>
+          <div id="learnings-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1px;background:var(--border)">
+          </div>
+        </div>
+      </div>
     </div>
     <div id="office-view" class="view-container">
       <canvas id="office-canvas"></canvas>
@@ -979,11 +1007,116 @@ resizeOfficeCanvas();
 initOfficeAgents();
 renderOffice();
 
+// ── Learnings ──
+const AGENT_COLORS = { scout: 'blue', relay: 'green', ralph: 'purple', mary: 'pink' };
+const AGENT_EMOJIS = { scout: '🔍', relay: '📧', ralph: '🔧', mary: '📸' };
+const AGENT_LABELS = { scout: 'Scout — Research', relay: 'Relay — Sales Ops', ralph: 'Ralph — Engineering', mary: 'Mary — PB Ops' };
+
+function extractBullets(text) {
+  if (!text) return [];
+  const lines = text.split('\n');
+  const bullets = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('• ')) {
+      const content = trimmed.replace(/^[-*•]\s*/, '').replace(/\*\*/g, '');
+      if (content.length > 10 && content.length < 300) {
+        bullets.push(content);
+      }
+    }
+  }
+  return bullets.slice(0, 6);
+}
+
+function extractFromFiles(files) {
+  const bullets = [];
+  for (const f of (files || [])) {
+    // Extract key findings from file previews
+    const preview = f.preview || '';
+    const lines = preview.split('\n');
+    for (const line of lines) {
+      const t = line.trim();
+      if ((t.startsWith('- ') || t.startsWith('* ') || t.startsWith('• ')) && t.length > 15 && t.length < 250) {
+        bullets.push(t.replace(/^[-*•]\s*/, '').replace(/\*\*/g, ''));
+      }
+    }
+  }
+  return bullets.slice(0, 5);
+}
+
+async function fetchLearnings() {
+  try {
+    const res = await fetch('/api/team/learnings');
+    const data = await res.json();
+    const grid = document.getElementById('learnings-grid');
+    const agents = ['scout', 'relay', 'ralph', 'mary'];
+    let totalLearnings = 0;
+
+    grid.innerHTML = '';
+
+    for (const agent of agents) {
+      const info = data[agent] || {};
+      const memoryBullets = extractBullets(info.memory);
+      const fileBullets = extractFromFiles(info.recentFiles);
+      const allBullets = [...new Set([...memoryBullets, ...fileBullets])].slice(0, 5);
+
+      totalLearnings += allBullets.length;
+
+      const card = document.createElement('div');
+      card.className = 'learning-card';
+
+      const updated = info.memoryUpdated ? new Date(info.memoryUpdated).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+      const fileCount = (info.recentFiles || []).length;
+
+      card.innerHTML = `
+        <div class="learning-agent-header">
+          <span style="font-size:18px">${AGENT_EMOJIS[agent]}</span>
+          <span class="learning-agent-name">${AGENT_LABELS[agent]}</span>
+          ${updated ? `<span class="learning-agent-badge">${updated}</span>` : ''}
+          ${fileCount ? `<span class="learning-agent-badge">${fileCount} file${fileCount > 1 ? 's' : ''}</span>` : ''}
+        </div>
+        <div class="learning-items">
+          ${allBullets.length ? allBullets.map(b => `<div class="learning-item ${agent}"><div class="learning-bullet">${b}</div></div>`).join('') : '<div class="learning-empty">No new learnings in the last 72 hours</div>'}
+        </div>
+      `;
+      grid.appendChild(card);
+    }
+
+    // Shared learnings
+    if (data.shared && data.shared.content) {
+      const sharedBullets = extractBullets(data.shared.content).slice(0, 4);
+      if (sharedBullets.length) {
+        totalLearnings += sharedBullets.length;
+        const card = document.createElement('div');
+        card.className = 'learning-card';
+        card.style.gridColumn = '1 / -1';
+        card.innerHTML = `
+          <div class="learning-agent-header">
+            <span style="font-size:18px">🤝</span>
+            <span class="learning-agent-name">Shared — Cross-Team Insights</span>
+          </div>
+          <div class="learning-items">
+            ${sharedBullets.map(b => `<div class="learning-item" style="border-left-color:var(--amber)"><div class="learning-bullet">${b}</div></div>`).join('')}
+          </div>
+        `;
+        grid.appendChild(card);
+      }
+    }
+
+    document.getElementById('learnings-count').textContent = `${totalLearnings} insight${totalLearnings !== 1 ? 's' : ''}`;
+  } catch(e) {
+    console.error('Failed to load learnings:', e);
+    document.getElementById('learnings-count').textContent = 'Error';
+  }
+}
+
 // ── Init ──
 fetchTeamStatus();
 fetchActivity();
+fetchLearnings();
 setInterval(fetchTeamStatus, 15000);
 setInterval(fetchActivity, 15000);
+setInterval(fetchLearnings, 60000);
 </script>
 </body>
 </html>
