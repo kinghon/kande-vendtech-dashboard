@@ -21661,6 +21661,26 @@ app.post('/api/mixmax/sync-to-crm', async (req, res) => {
 
 // ===== END SALES AUTOMATION ENGINE =====
 
+// Get campaign status only (lighter endpoint for tracking)
+app.get('/api/campaigns/:id/status', (req, res) => {
+  const id = parseInt(req.params.id);
+  const campaign = (db.campaigns || []).find(c => c.id === id);
+  if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+  
+  res.json({
+    id: campaign.id,
+    prospect_id: campaign.prospect_id,
+    status: campaign.status,
+    current_step: campaign.current_step,
+    total_steps: campaign.total_steps,
+    emails_sent: campaign.emails_sent,
+    emails_opened: campaign.emails_opened,
+    next_email_date: campaign.next_email_date,
+    updated_at: campaign.updated_at,
+    replied_at: campaign.replied_at
+  });
+});
+
 // ===== AGENT TEAM API =====
 
 // In-memory team state (persisted to db)
