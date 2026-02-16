@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Health Monitoring - Kande Dashboard</title>
+    <link rel="icon" href="apple-touch-icon-vend.png" type="image/png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: #f8f9fa;
+            color: #1a1a1a;
+            line-height: 1.5;
+        }
+
+        .navbar {
+            background-color: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0.75rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1rem;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1a1a1a;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: #1a1a1a;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: #007bff;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #1a1a1a;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #6b7280;
+            font-size: 1.1rem;
+        }
+
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .overview-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .overview-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .overview-label {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .healthy {
+            color: #166534;
+        }
+
+        .warning {
+            color: #92400e;
+        }
+
+        .error {
+            color: #991b1b;
+        }
+
+        .endpoint-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .endpoint-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .endpoint-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .endpoint-url {
+            font-family: monospace;
+            font-size: 0.875rem;
+            color: #1a1a1a;
+            font-weight: 600;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+
+        .status-healthy {
+            background-color: #22c55e;
+        }
+
+        .status-warning {
+            background-color: #f59e0b;
+        }
+
+        .status-error {
+            background-color: #ef4444;
+        }
+
+        .endpoint-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+        }
+
+        .detail-label {
+            color: #6b7280;
+        }
+
+        .detail-value {
+            font-weight: 500;
+        }
+
+        .response-chart {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .chart-bar {
+            height: 20px;
+            background: #e5e7eb;
+            border-radius: 10px;
+            position: relative;
+            margin-bottom: 0.5rem;
+        }
+
+        .chart-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .chart-fast {
+            background: #22c55e;
+        }
+
+        .chart-medium {
+            background: #f59e0b;
+        }
+
+        .chart-slow {
+            background: #ef4444;
+        }
+
+        .refresh-controls {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .refresh-btn {
+            background: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.2s;
+            font-size: 0.875rem;
+        }
+
+        .refresh-btn:hover {
+            background: #0056b3;
+        }
+
+        .auto-refresh {
+            background: #28a745;
+            font-size: 0.75rem;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .auto-refresh.active {
+            background: #dc3545;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .last-updated {
+            text-align: center;
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-top: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .navbar-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .nav-links {
+                gap: 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .endpoint-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .endpoint-details {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="/" class="logo">Kande VendTech</a>
+            <div class="nav-links">
+                <a href="/analytics">Analytics</a>
+                <a href="/team">Team</a>
+                <a href="/pb-monitoring">PB Monitoring</a>
+                <a href="/api-monitoring">API Health</a>
+                <a href="/crm">CRM</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="header">
+            <h1>🔧 API Health Monitor</h1>
+            <p>Real-time monitoring of critical API endpoints</p>
+        </div>
+
+        <div id="loading" class="loading">
+            <p>Running health checks...</p>
+        </div>
+
+        <div id="error" style="display: none;"></div>
+
+        <div id="content" style="display: none;">
+            <div class="overview-grid" id="overviewGrid">
+                <div class="overview-card">
+                    <div class="overview-number healthy" id="healthyCount">-</div>
+                    <div class="overview-label">Healthy</div>
+                </div>
+                <div class="overview-card">
+                    <div class="overview-number warning" id="warningCount">-</div>
+                    <div class="overview-label">Warning</div>
+                </div>
+                <div class="overview-card">
+                    <div class="overview-number error" id="errorCount">-</div>
+                    <div class="overview-label">Error</div>
+                </div>
+                <div class="overview-card">
+                    <div class="overview-number" id="avgResponseTime">-</div>
+                    <div class="overview-label">Avg Response (ms)</div>
+                </div>
+            </div>
+
+            <div class="endpoint-grid" id="endpointGrid">
+                <!-- Endpoint cards will be inserted here -->
+            </div>
+        </div>
+
+        <div class="last-updated" id="lastUpdated">
+            <!-- Last updated time will be shown here -->
+        </div>
+    </div>
+
+    <div class="refresh-controls">
+        <button class="refresh-btn" onclick="runHealthCheck()">
+            🔄 Refresh Now
+        </button>
+        <button class="refresh-btn auto-refresh" id="autoRefreshBtn" onclick="toggleAutoRefresh()">
+            ⏰ Auto-Refresh: OFF
+        </button>
+    </div>
+
+    <script>
+        let autoRefreshInterval = null;
+        let healthData = {};
+
+        // Critical API endpoints to monitor
+        const ENDPOINTS = [
+            { url: '/api/prospects', method: 'GET', name: 'Prospects API', critical: true },
+            { url: '/api/activities', method: 'GET', name: 'Activities API', critical: true },
+            { url: '/api/team/status', method: 'GET', name: 'Team Status', critical: true },
+            { url: '/api/team/activity', method: 'GET', name: 'Team Activity', critical: true },
+            { url: '/api/mixmax/sync-to-crm', method: 'POST', name: 'Mixmax Sync', critical: true },
+            { url: '/api/campaigns/sync-tracking', method: 'POST', name: 'Campaign Sync', critical: false },
+            { url: '/api/cron/status', method: 'GET', name: 'Cron Status', critical: true },
+            { url: '/api/analytics', method: 'GET', name: 'Analytics API', critical: false },
+            { url: '/api/briefing/text', method: 'GET', name: 'Briefing API', critical: true }
+        ];
+
+        async function runHealthCheck() {
+            try {
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('error').style.display = 'none';
+                document.getElementById('content').style.display = 'none';
+
+                const results = await Promise.all(
+                    ENDPOINTS.map(endpoint => checkEndpoint(endpoint))
+                );
+
+                healthData = {
+                    endpoints: results,
+                    timestamp: new Date(),
+                    summary: calculateSummary(results)
+                };
+
+                renderResults();
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+                document.getElementById('lastUpdated').textContent = 
+                    `Last updated: ${healthData.timestamp.toLocaleString()}`;
+
+            } catch (error) {
+                console.error('Health check failed:', error);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').innerHTML = `
+                    <div class="error-message">
+                        Health check failed: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function checkEndpoint(endpoint) {
+            const startTime = Date.now();
+            let status = 'error';
+            let statusCode = 0;
+            let responseTime = 0;
+            let errorMessage = '';
+
+            try {
+                const response = await fetch(endpoint.url, {
+                    method: endpoint.method,
+                    headers: {
+                        'x-api-key': 'kande2026',
+                        'Content-Type': 'application/json'
+                    },
+                    // Add empty body for POST requests
+                    ...(endpoint.method === 'POST' && { body: '{}' })
+                });
+
+                responseTime = Date.now() - startTime;
+                statusCode = response.status;
+
+                if (response.ok) {
+                    status = 'healthy';
+                } else if (response.status >= 400 && response.status < 500) {
+                    status = 'warning';
+                    errorMessage = `HTTP ${response.status}`;
+                } else {
+                    status = 'error';
+                    errorMessage = `HTTP ${response.status}`;
+                }
+
+            } catch (error) {
+                responseTime = Date.now() - startTime;
+                status = 'error';
+                errorMessage = error.message;
+            }
+
+            return {
+                ...endpoint,
+                status,
+                statusCode,
+                responseTime,
+                errorMessage,
+                checkedAt: new Date()
+            };
+        }
+
+        function calculateSummary(results) {
+            const healthy = results.filter(r => r.status === 'healthy').length;
+            const warning = results.filter(r => r.status === 'warning').length;
+            const error = results.filter(r => r.status === 'error').length;
+            const avgResponseTime = Math.round(
+                results.reduce((sum, r) => sum + r.responseTime, 0) / results.length
+            );
+
+            return { healthy, warning, error, avgResponseTime };
+        }
+
+        function renderResults() {
+            renderOverview();
+            renderEndpoints();
+        }
+
+        function renderOverview() {
+            const { healthy, warning, error, avgResponseTime } = healthData.summary;
+            
+            document.getElementById('healthyCount').textContent = healthy;
+            document.getElementById('warningCount').textContent = warning;
+            document.getElementById('errorCount').textContent = error;
+            document.getElementById('avgResponseTime').textContent = avgResponseTime;
+            
+            // Color the avg response time based on performance
+            const avgElement = document.getElementById('avgResponseTime');
+            avgElement.className = 'overview-number ' + 
+                (avgResponseTime < 500 ? 'healthy' : 
+                 avgResponseTime < 2000 ? 'warning' : 'error');
+        }
+
+        function renderEndpoints() {
+            const endpointGrid = document.getElementById('endpointGrid');
+            endpointGrid.innerHTML = '';
+
+            healthData.endpoints.forEach(endpoint => {
+                const card = createEndpointCard(endpoint);
+                endpointGrid.appendChild(card);
+            });
+        }
+
+        function createEndpointCard(endpoint) {
+            const card = document.createElement('div');
+            card.className = 'endpoint-card';
+
+            const statusClass = `status-${endpoint.status}`;
+            const statusIndicator = `<span class="status-indicator ${statusClass}"></span>`;
+            
+            // Performance bar
+            const maxTime = 3000; // 3 seconds max for chart
+            const percentage = Math.min((endpoint.responseTime / maxTime) * 100, 100);
+            const barClass = endpoint.responseTime < 500 ? 'chart-fast' : 
+                           endpoint.responseTime < 2000 ? 'chart-medium' : 'chart-slow';
+
+            card.innerHTML = `
+                <div class="endpoint-header">
+                    <div>
+                        <div class="endpoint-url">${endpoint.method} ${endpoint.url}</div>
+                        <div style="font-size: 0.875rem; color: #6b7280; margin-top: 0.25rem;">
+                            ${statusIndicator}${endpoint.name}${endpoint.critical ? ' (Critical)' : ''}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="endpoint-details">
+                    <div class="detail-item">
+                        <span class="detail-label">Status</span>
+                        <span class="detail-value ${endpoint.status}">${endpoint.statusCode || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Response Time</span>
+                        <span class="detail-value">${endpoint.responseTime}ms</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Checked</span>
+                        <span class="detail-value">${endpoint.checkedAt.toLocaleTimeString()}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Type</span>
+                        <span class="detail-value">${endpoint.critical ? 'Critical' : 'Non-Critical'}</span>
+                    </div>
+                </div>
+
+                ${endpoint.errorMessage ? `
+                    <div style="margin-top: 0.5rem; font-size: 0.875rem; color: #ef4444;">
+                        Error: ${endpoint.errorMessage}
+                    </div>
+                ` : ''}
+
+                <div class="response-chart">
+                    <div style="font-size: 0.75rem; color: #6b7280; margin-bottom: 0.5rem;">
+                        Response Time: ${endpoint.responseTime}ms
+                    </div>
+                    <div class="chart-bar">
+                        <div class="chart-fill ${barClass}" style="width: ${percentage}%"></div>
+                    </div>
+                </div>
+            `;
+
+            return card;
+        }
+
+        function toggleAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                document.getElementById('autoRefreshBtn').textContent = '⏰ Auto-Refresh: OFF';
+                document.getElementById('autoRefreshBtn').classList.remove('active');
+            } else {
+                autoRefreshInterval = setInterval(runHealthCheck, 30000); // Every 30 seconds
+                document.getElementById('autoRefreshBtn').textContent = '⏰ Auto-Refresh: ON';
+                document.getElementById('autoRefreshBtn').classList.add('active');
+            }
+        }
+
+        // Run initial health check when page loads
+        runHealthCheck();
+    </script>
+</body>
+</html>
