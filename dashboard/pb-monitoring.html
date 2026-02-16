@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Booths Cron Monitoring - Kande Dashboard</title>
+    <link rel="icon" href="apple-touch-icon-vend.png" type="image/png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: #f8f9fa;
+            color: #1a1a1a;
+            line-height: 1.5;
+        }
+
+        .navbar {
+            background-color: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0.75rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1rem;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1a1a1a;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: #1a1a1a;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: #007bff;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #1a1a1a;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #6b7280;
+            font-size: 1.1rem;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .status-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .status-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-healthy {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-details {
+            margin-top: 1rem;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .status-label {
+            color: #6b7280;
+        }
+
+        .status-value {
+            font-weight: 500;
+            color: #1a1a1a;
+        }
+
+        .refresh-btn {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 9999px;
+            padding: 1rem 1.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: #0056b3;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .last-updated {
+            text-align: center;
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-top: 2rem;
+        }
+
+        .consecutive-errors {
+            color: #991b1b;
+            font-weight: 600;
+        }
+
+        .timeline {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .timeline h3 {
+            margin-bottom: 1rem;
+            color: #1a1a1a;
+        }
+
+        .timeline-item {
+            display: flex;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .timeline-item:last-child {
+            border-bottom: none;
+        }
+
+        .timeline-time {
+            width: 150px;
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .timeline-content {
+            flex: 1;
+            font-size: 0.875rem;
+        }
+
+        .timeline-success {
+            color: #166534;
+        }
+
+        .timeline-error {
+            color: #991b1b;
+        }
+
+        @media (max-width: 768px) {
+            .navbar-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .nav-links {
+                gap: 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .timeline-item {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+
+            .timeline-time {
+                width: auto;
+                font-weight: 600;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="/" class="logo">Kande VendTech</a>
+            <div class="nav-links">
+                <a href="/analytics">Analytics</a>
+                <a href="/team">Team</a>
+                <a href="/pb-monitoring">PB Monitoring</a>
+                <a href="/crm">CRM</a>
+                <a href="/campaign-tracker">Campaigns</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="header">
+            <h1>📧 Photo Booths Monitoring</h1>
+            <p>Cron job health and email processing status</p>
+        </div>
+
+        <div id="loading" class="loading">
+            <p>Loading monitoring data...</p>
+        </div>
+
+        <div id="error" style="display: none;"></div>
+
+        <div id="content" style="display: none;">
+            <div class="status-grid" id="statusGrid">
+                <!-- Status cards will be inserted here -->
+            </div>
+
+            <div class="timeline" id="timeline">
+                <h3>Recent Activity</h3>
+                <div id="timelineContent">
+                    <!-- Timeline items will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <div class="last-updated" id="lastUpdated">
+            <!-- Last updated time will be shown here -->
+        </div>
+    </div>
+
+    <button class="refresh-btn" onclick="loadData()">
+        🔄 Refresh
+    </button>
+
+    <script>
+        let cronJobs = [];
+
+        // Photo Booths related cron job IDs we want to monitor
+        const PB_CRON_JOBS = [
+            'pb-email-drafts',
+            'pb-gmail-draft-sync', 
+            'gog-gmail-health-check',
+            'pb-deep-email-scrape'
+        ];
+
+        async function loadData() {
+            try {
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('error').style.display = 'none';
+                document.getElementById('content').style.display = 'none';
+
+                const response = await fetch('/api/cron/status', {
+                    headers: {
+                        'x-api-key': 'kande2026'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                cronJobs = data.jobs || [];
+
+                renderStatusCards();
+                renderTimeline();
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+                document.getElementById('lastUpdated').textContent = `Last updated: ${new Date().toLocaleString()}`;
+
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').innerHTML = `
+                    <div class="error-message">
+                        Failed to load monitoring data: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function renderStatusCards() {
+            const statusGrid = document.getElementById('statusGrid');
+            statusGrid.innerHTML = '';
+
+            // Filter to PB-related jobs
+            const pbJobs = cronJobs.filter(job => 
+                PB_CRON_JOBS.some(pbJob => job.name && job.name.includes(pbJob.replace('pb-', '').replace('gog-', '')))
+            );
+
+            pbJobs.forEach(job => {
+                const card = createStatusCard(job);
+                statusGrid.appendChild(card);
+            });
+
+            // If no PB jobs found, show all jobs for debugging
+            if (pbJobs.length === 0) {
+                cronJobs.slice(0, 8).forEach(job => {
+                    const card = createStatusCard(job);
+                    statusGrid.appendChild(card);
+                });
+            }
+        }
+
+        function createStatusCard(job) {
+            const card = document.createElement('div');
+            card.className = 'status-card';
+
+            const { status, statusClass, statusText } = getJobStatus(job);
+            const lastRun = job.state?.lastRunAtMs ? new Date(job.state.lastRunAtMs) : null;
+            const nextRun = job.state?.nextRunAtMs ? new Date(job.state.nextRunAtMs) : null;
+
+            card.innerHTML = `
+                <div class="status-header">
+                    <div class="status-title">${job.name || 'Unknown'}</div>
+                    <div class="status-badge ${statusClass}">${status}</div>
+                </div>
+                <div class="status-details">
+                    <div class="status-row">
+                        <span class="status-label">Enabled</span>
+                        <span class="status-value">${job.enabled ? '✅ Yes' : '❌ No'}</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Last Run</span>
+                        <span class="status-value">${lastRun ? lastRun.toLocaleString() : 'Never'}</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Next Run</span>
+                        <span class="status-value">${nextRun ? nextRun.toLocaleString() : 'Unknown'}</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Consecutive Errors</span>
+                        <span class="status-value ${job.state?.consecutiveErrors > 0 ? 'consecutive-errors' : ''}">
+                            ${job.state?.consecutiveErrors || 0}
+                        </span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Last Status</span>
+                        <span class="status-value">${job.state?.lastStatus || 'Unknown'}</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Duration</span>
+                        <span class="status-value">${job.state?.lastDurationMs ? `${job.state.lastDurationMs}ms` : 'N/A'}</span>
+                    </div>
+                </div>
+                ${statusText ? `<div style="margin-top: 0.5rem; font-size: 0.875rem; color: #6b7280;">${statusText}</div>` : ''}
+            `;
+
+            return card;
+        }
+
+        function getJobStatus(job) {
+            if (!job.enabled) {
+                return {
+                    status: 'Disabled',
+                    statusClass: 'status-warning',
+                    statusText: 'Job is disabled'
+                };
+            }
+
+            if (job.state?.consecutiveErrors > 0) {
+                return {
+                    status: 'Error',
+                    statusClass: 'status-error',
+                    statusText: `${job.state.consecutiveErrors} consecutive errors`
+                };
+            }
+
+            const lastRun = job.state?.lastRunAtMs ? new Date(job.state.lastRunAtMs) : null;
+            const now = new Date();
+
+            if (!lastRun) {
+                return {
+                    status: 'Never Run',
+                    statusClass: 'status-warning',
+                    statusText: 'Job has never executed'
+                };
+            }
+
+            // Check if job should have run recently based on schedule
+            const hoursAgo = (now - lastRun) / (1000 * 60 * 60);
+            const isStale = hoursAgo > getExpectedInterval(job.schedule);
+
+            if (isStale) {
+                return {
+                    status: 'Stale',
+                    statusClass: 'status-warning',
+                    statusText: `Last run ${hoursAgo.toFixed(1)} hours ago`
+                };
+            }
+
+            return {
+                status: 'Healthy',
+                statusClass: 'status-healthy',
+                statusText: job.state?.lastStatus === 'ok' ? 'Running normally' : `Status: ${job.state?.lastStatus}`
+            };
+        }
+
+        function getExpectedInterval(schedule) {
+            if (!schedule) return 24; // Default 24 hours
+            
+            if (schedule.expr) {
+                // Parse cron expression for expected interval
+                const expr = schedule.expr;
+                if (expr.includes('*/5')) return 0.1; // Every 5 minutes
+                if (expr.includes('*/30')) return 0.5; // Every 30 minutes
+                if (expr.includes('8-22') || expr.includes('8-20')) return 1; // Hourly during business hours
+                if (expr.includes('*/4')) return 4; // Every 4 hours
+                if (expr.includes('*/2')) return 2; // Every 2 hours
+                if (expr.includes('* * *')) return 24; // Daily
+            }
+            
+            if (schedule.everyMs) {
+                return schedule.everyMs / (1000 * 60 * 60); // Convert ms to hours
+            }
+
+            return 24; // Default to 24 hours
+        }
+
+        function renderTimeline() {
+            const timelineContent = document.getElementById('timelineContent');
+            timelineContent.innerHTML = '';
+
+            // Get recent runs from all jobs, sorted by time
+            const recentRuns = [];
+            
+            cronJobs.forEach(job => {
+                if (job.state?.lastRunAtMs) {
+                    recentRuns.push({
+                        time: new Date(job.state.lastRunAtMs),
+                        job: job.name,
+                        status: job.state.lastStatus,
+                        duration: job.state.lastDurationMs,
+                        errors: job.state.consecutiveErrors
+                    });
+                }
+            });
+
+            // Sort by most recent first
+            recentRuns.sort((a, b) => b.time - a.time);
+
+            // Show last 20 runs
+            recentRuns.slice(0, 20).forEach(run => {
+                const item = document.createElement('div');
+                item.className = 'timeline-item';
+                
+                const statusClass = run.status === 'ok' && run.errors === 0 ? 'timeline-success' : 'timeline-error';
+                const statusText = run.status === 'ok' ? '✅' : '❌';
+                
+                item.innerHTML = `
+                    <div class="timeline-time">${run.time.toLocaleString()}</div>
+                    <div class="timeline-content ${statusClass}">
+                        ${statusText} <strong>${run.job}</strong> - ${run.status} 
+                        ${run.duration ? `(${run.duration}ms)` : ''}
+                        ${run.errors > 0 ? `- ${run.errors} errors` : ''}
+                    </div>
+                `;
+                
+                timelineContent.appendChild(item);
+            });
+
+            if (recentRuns.length === 0) {
+                timelineContent.innerHTML = '<p style="color: #6b7280; text-align: center;">No recent activity</p>';
+            }
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadData, 30000);
+
+        // Load data when page loads
+        loadData();
+    </script>
+</body>
+</html>

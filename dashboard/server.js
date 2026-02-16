@@ -21732,6 +21732,36 @@ app.get('/team', (req, res) => {
 
 // ===== END AGENT TEAM API =====
 
+// ===== CRON MONITORING API =====
+
+// Get cron job status for monitoring dashboard
+app.get('/api/cron/status', verifyApiKey, async (req, res) => {
+  try {
+    const { exec } = require('child_process');
+    const util = require('util');
+    const execAsync = util.promisify(exec);
+    
+    // Call OpenClaw cron list API to get all job status
+    const { stdout } = await execAsync('openclaw cron list --json');
+    const cronData = JSON.parse(stdout);
+    
+    res.json(cronData);
+  } catch (error) {
+    console.error('Error fetching cron status:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch cron status',
+      details: error.message
+    });
+  }
+});
+
+// Serve PB monitoring page
+app.get('/pb-monitoring', (req, res) => {
+  res.sendFile(path.join(__dirname, '../pb-monitoring.html'));
+});
+
+// ===== END CRON MONITORING API =====
+
 app.listen(PORT, () => {
   console.log(`🤖 Kande VendTech Dashboard running at http://localhost:${PORT}`);
 
