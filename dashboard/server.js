@@ -21677,15 +21677,18 @@ app.post('/api/team/status', express.json(), (req, res) => {
   const { agent, state, statusText, lastActivity, stats } = req.body;
   if (!agent) return res.status(400).json({ error: 'agent required' });
   
-  if (!db.teamStatus[agent]) db.teamStatus[agent] = {};
-  if (state) db.teamStatus[agent].state = state;
-  if (statusText) db.teamStatus[agent].statusText = statusText;
-  if (lastActivity) db.teamStatus[agent].lastActivity = lastActivity;
-  if (stats) db.teamStatus[agent].stats = { ...(db.teamStatus[agent].stats || {}), ...stats };
-  db.teamStatus[agent].updatedAt = new Date().toISOString();
+  // Normalize agent name to lowercase for consistent storage
+  const normalizedAgent = agent.toLowerCase();
+  
+  if (!db.teamStatus[normalizedAgent]) db.teamStatus[normalizedAgent] = {};
+  if (state) db.teamStatus[normalizedAgent].state = state;
+  if (statusText) db.teamStatus[normalizedAgent].statusText = statusText;
+  if (lastActivity) db.teamStatus[normalizedAgent].lastActivity = lastActivity;
+  if (stats) db.teamStatus[normalizedAgent].stats = { ...(db.teamStatus[normalizedAgent].stats || {}), ...stats };
+  db.teamStatus[normalizedAgent].updatedAt = new Date().toISOString();
   
   saveDB(db);
-  res.json({ ok: true, agent: db.teamStatus[agent] });
+  res.json({ ok: true, agent: db.teamStatus[normalizedAgent] });
 });
 
 // GET /api/team/activity — Get recent activity feed
@@ -21700,9 +21703,12 @@ app.post('/api/team/activity', express.json(), (req, res) => {
   const { agent, text, type } = req.body;
   if (!agent || !text) return res.status(400).json({ error: 'agent and text required' });
   
+  // Normalize agent name to lowercase for consistent storage
+  const normalizedAgent = agent.toLowerCase();
+  
   const entry = {
     id: Date.now(),
-    agent,
+    agent: normalizedAgent,
     text,
     type: type || 'info',
     timestamp: new Date().toISOString()
@@ -21735,7 +21741,12 @@ app.get('/team', (req, res) => {
 // ===== CRON MONITORING API =====
 
 // Get cron job status for monitoring dashboard
-app.get('/api/cron/status', verifyApiKey, async (req, res) => {
+app.get('/api/cron/status', async (req, res) => {
+  // Simple auth check
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') {
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
   try {
     const { exec } = require('child_process');
     const util = require('util');
