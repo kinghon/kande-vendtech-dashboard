@@ -21825,6 +21825,63 @@ app.get('/api-monitoring', (req, res) => {
   res.sendFile(path.join(__dirname, '../api-monitoring.html'));
 });
 
+// ===== GENERAL ANALYTICS API =====
+app.get('/api/analytics', verifyApiKey, (req, res) => {
+  try {
+    // Get current pipeline metrics
+    const prospects = db.prospects || [];
+    const activities = db.activities || [];
+    const pipelineCards = db.pipelineCards || [];
+    
+    // Basic counts
+    const totalProspects = prospects.length;
+    const activeProspects = prospects.filter(p => p.status !== 'closed').length;
+    const signedProspects = prospects.filter(p => p.status === 'signed').length;
+    
+    // Pipeline stages
+    const pipelineByStage = {
+      new_lead: pipelineCards.filter(c => c.stage === 'new_lead').length,
+      contacted: pipelineCards.filter(c => c.stage === 'contacted').length,
+      proposal_sent: pipelineCards.filter(c => c.stage === 'proposal_sent').length,
+      negotiation: pipelineCards.filter(c => c.stage === 'negotiation').length,
+      signed: pipelineCards.filter(c => c.stage === 'signed').length
+    };
+    
+    // Recent activity (last 30 days)
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const recentActivities = activities.filter(a => 
+      new Date(a.created_at) > thirtyDaysAgo
+    ).length;
+    
+    // Conversion rates
+    const contactedToProposal = pipelineByStage.contacted > 0 ? 
+      (pipelineByStage.proposal_sent / pipelineByStage.contacted * 100) : 0;
+    const proposalToSigned = pipelineByStage.proposal_sent > 0 ? 
+      (pipelineByStage.signed / pipelineByStage.proposal_sent * 100) : 0;
+    
+    res.json({
+      summary: {
+        totalProspects,
+        activeProspects,
+        signedProspects,
+        recentActivities
+      },
+      pipeline: pipelineByStage,
+      conversions: {
+        contactedToProposal: Math.round(contactedToProposal * 100) / 100,
+        proposalToSigned: Math.round(proposalToSigned * 100) / 100
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error in analytics endpoint:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch analytics data',
+      details: error.message
+    });
+  }
+});
+
 // ===== END CRON MONITORING API =====
 
 app.listen(PORT, () => {
