@@ -21826,7 +21826,12 @@ app.get('/api-monitoring', (req, res) => {
 });
 
 // ===== GENERAL ANALYTICS API =====
-app.get('/api/analytics', verifyApiKey, (req, res) => {
+app.get('/api/analytics', (req, res) => {
+  // Simple auth check
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') {
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
   try {
     // Get current pipeline metrics
     const prospects = db.prospects || [];
