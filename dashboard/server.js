@@ -21825,6 +21825,8 @@ app.get('/api-monitoring', (req, res) => {
   res.sendFile(path.join(__dirname, '../api-monitoring.html'));
 });
 
+// ===== END CRON MONITORING API =====
+
 // ===== GENERAL ANALYTICS API =====
 app.get('/api/analytics', (req, res) => {
   // Simple auth check
@@ -21886,8 +21888,6 @@ app.get('/api/analytics', (req, res) => {
     });
   }
 });
-
-// ===== END CRON MONITORING API =====
 
 app.listen(PORT, () => {
   console.log(`🤖 Kande VendTech Dashboard running at http://localhost:${PORT}`);
