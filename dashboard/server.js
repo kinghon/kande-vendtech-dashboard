@@ -21896,6 +21896,11 @@ app.get('/api/analytics-summary', (req, res) => {
 
 // ===== KANDE DIGITAL: GMB AUDIT TOOL =====
 
+// Test route to verify deployment
+app.get('/api/digital/test', (req, res) => {
+  res.json({ message: 'Kande Digital API is working', timestamp: new Date().toISOString() });
+});
+
 // GMB Audit endpoint
 app.post('/api/digital/gmb/audit', (req, res) => {
   const apiKey = req.headers['x-api-key'];
