@@ -21839,6 +21839,99 @@ app.put('/api/search-usage/set', (req, res) => {
 });
 // ===== END SEARCH USAGE TRACKER =====
 
+// ===== KANDE DIGITAL: GMB AUDIT API =====
+app.post('/api/digital/gmb/audit', express.json(), async (req, res) => {
+  // API key authentication
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') {
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
+
+  const { businessName, location } = req.body;
+
+  if (!businessName || !location) {
+    return res.status(400).json({ error: 'Business name and location are required' });
+  }
+
+  try {
+    // For now, return mock audit data since we don't have API keys configured yet
+    // TODO: Integrate with Google Places API or SerpAPI
+    const auditScore = Math.floor(Math.random() * 40) + 30; // Score between 30-70 for demo
+    
+    const breakdown = {
+      completeness: {
+        score: Math.floor(Math.random() * 30) + 40,
+        details: 'Profile completeness analysis'
+      },
+      photos: {
+        score: Math.floor(Math.random() * 40) + 30,
+        details: 'Photo count and quality'
+      },
+      reviews: {
+        score: Math.floor(Math.random() * 50) + 25,
+        details: 'Review count and rating'
+      },
+      posts: {
+        score: Math.floor(Math.random() * 20) + 10,
+        details: 'Post frequency and engagement'
+      },
+      categories: {
+        score: Math.floor(Math.random() * 20) + 60,
+        details: 'Category accuracy and optimization'
+      }
+    };
+
+    const recommendations = [
+      {
+        priority: 'HIGH',
+        issue: 'Missing or incomplete business description'
+      },
+      {
+        priority: 'MEDIUM',
+        issue: 'Need more high-quality photos'
+      },
+      {
+        priority: 'LOW',
+        issue: 'Inconsistent posting schedule'
+      }
+    ];
+
+    const auditData = {
+      businessName,
+      location,
+      auditScore,
+      breakdown,
+      recommendations,
+      timestamp: new Date().toISOString()
+    };
+
+    // Log audit for tracking
+    console.log(`🏪 GMB Audit completed: ${businessName} (${location}) - Score: ${auditScore}/100`);
+
+    res.json(auditData);
+
+  } catch (error) {
+    console.error('GMB Audit error:', error);
+    res.status(500).json({ error: 'Audit failed', details: error.message });
+  }
+});
+
+// Test endpoint for Kande Digital debugging
+app.get('/api/digital/test', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  res.json({ 
+    status: 'OK', 
+    service: 'Kande Digital API',
+    endpoints: ['/api/digital/gmb/audit'],
+    timestamp: new Date().toISOString()
+  });
+});
+// ===== END KANDE DIGITAL =====
+
 app.listen(PORT, () => {
   console.log(`🤖 Kande VendTech Dashboard running at http://localhost:${PORT}`);
 

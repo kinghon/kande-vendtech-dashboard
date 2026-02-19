@@ -73,7 +73,7 @@ function sanitizeObject(obj) {
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
   // Allow these paths without auth
-  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity'];
+  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
     return next();
   }
@@ -606,7 +606,7 @@ app.put('/api/prospects/:id', (req, res) => {
   // Auto-log significant changes as system activities
   const changes = [];
   if (req.body.status && req.body.status !== old.status) {
-    const labels = { new: '🆕 New', active: '🔵 Active', signed: '✅ Signed', closed: '⛔ Stale' };
+    const labels = { new: '🆕 New', active: '🔵 Active', opening_soon: '🏗️ Opening Soon', proposal_sent: '📨 Proposal Sent', signed: '✅ Signed', closed: '⛔ Stale' };
     changes.push(`Status: ${labels[old.status] || old.status} → ${labels[req.body.status] || req.body.status}${req.body.stale_reason ? ' (' + req.body.stale_reason + ')' : ''}`);
   }
   if (req.body.priority && req.body.priority !== old.priority) {
@@ -21661,6 +21661,26 @@ app.post('/api/mixmax/sync-to-crm', async (req, res) => {
 
 // ===== END SALES AUTOMATION ENGINE =====
 
+// Get campaign status only (lighter endpoint for tracking)
+app.get('/api/campaigns/:id/status', (req, res) => {
+  const id = parseInt(req.params.id);
+  const campaign = (db.campaigns || []).find(c => c.id === id);
+  if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+  
+  res.json({
+    id: campaign.id,
+    prospect_id: campaign.prospect_id,
+    status: campaign.status,
+    current_step: campaign.current_step,
+    total_steps: campaign.total_steps,
+    emails_sent: campaign.emails_sent,
+    emails_opened: campaign.emails_opened,
+    next_email_date: campaign.next_email_date,
+    updated_at: campaign.updated_at,
+    replied_at: campaign.replied_at
+  });
+});
+
 // ===== AGENT TEAM API =====
 
 // In-memory team state (persisted to db)
@@ -21677,18 +21697,15 @@ app.post('/api/team/status', express.json(), (req, res) => {
   const { agent, state, statusText, lastActivity, stats } = req.body;
   if (!agent) return res.status(400).json({ error: 'agent required' });
   
-  // Normalize agent name to lowercase for consistent storage
-  const normalizedAgent = agent.toLowerCase();
-  
-  if (!db.teamStatus[normalizedAgent]) db.teamStatus[normalizedAgent] = {};
-  if (state) db.teamStatus[normalizedAgent].state = state;
-  if (statusText) db.teamStatus[normalizedAgent].statusText = statusText;
-  if (lastActivity) db.teamStatus[normalizedAgent].lastActivity = lastActivity;
-  if (stats) db.teamStatus[normalizedAgent].stats = { ...(db.teamStatus[normalizedAgent].stats || {}), ...stats };
-  db.teamStatus[normalizedAgent].updatedAt = new Date().toISOString();
+  if (!db.teamStatus[agent]) db.teamStatus[agent] = {};
+  if (state) db.teamStatus[agent].state = state;
+  if (statusText) db.teamStatus[agent].statusText = statusText;
+  if (lastActivity) db.teamStatus[agent].lastActivity = lastActivity;
+  if (stats) db.teamStatus[agent].stats = { ...(db.teamStatus[agent].stats || {}), ...stats };
+  db.teamStatus[agent].updatedAt = new Date().toISOString();
   
   saveDB(db);
-  res.json({ ok: true, agent: db.teamStatus[normalizedAgent] });
+  res.json({ ok: true, agent: db.teamStatus[agent] });
 });
 
 // GET /api/team/activity — Get recent activity feed
@@ -21703,12 +21720,9 @@ app.post('/api/team/activity', express.json(), (req, res) => {
   const { agent, text, type } = req.body;
   if (!agent || !text) return res.status(400).json({ error: 'agent and text required' });
   
-  // Normalize agent name to lowercase for consistent storage
-  const normalizedAgent = agent.toLowerCase();
-  
   const entry = {
     id: Date.now(),
-    agent: normalizedAgent,
+    agent,
     text,
     type: type || 'info',
     timestamp: new Date().toISOString()
@@ -21731,6 +21745,19 @@ app.post('/api/team/activity', express.json(), (req, res) => {
   res.json({ ok: true, entry });
 });
 
+// GET /api/team/learnings — Get stored agent learnings (pushed from local machine)
+app.get('/api/team/learnings', (req, res) => {
+  res.json(db.teamLearnings || {});
+});
+
+// POST /api/team/learnings — Push agent learnings from local machine
+app.post('/api/team/learnings', express.json({ limit: '500kb' }), (req, res) => {
+  db.teamLearnings = req.body;
+  db.teamLearnings._updatedAt = new Date().toISOString();
+  saveDB(db);
+  res.json({ ok: true });
+});
+
 // Serve team.html
 app.get('/team', (req, res) => {
   res.sendFile(path.join(__dirname, 'team.html'));
@@ -21738,435 +21765,172 @@ app.get('/team', (req, res) => {
 
 // ===== END AGENT TEAM API =====
 
-// ===== CRON MONITORING API =====
-
-// Get cron job status for monitoring dashboard
-app.get('/api/cron/status', async (req, res) => {
-  // Simple auth check
-  const apiKey = req.headers['x-api-key'];
-  if (apiKey !== 'kande2026') {
-    return res.status(401).json({ error: 'Invalid API key' });
+// ===== BRAVE SEARCH USAGE TRACKER =====
+// Track web search API calls ($5 per 1000 searches)
+app.get('/api/search-usage', (req, res) => {
+  if (!db.searchUsage) db.searchUsage = { daily: {}, agents: {} };
+  const now = new Date();
+  const todayKey = now.toISOString().slice(0, 10);
+  const monthKey = now.toISOString().slice(0, 7);
+  
+  // Calculate totals
+  const daily = db.searchUsage.daily || {};
+  const todayCount = daily[todayKey] || 0;
+  
+  // Monthly total
+  let monthCount = 0;
+  Object.entries(daily).forEach(([date, count]) => {
+    if (date.startsWith(monthKey)) monthCount += count;
+  });
+  
+  // All time total
+  let allTimeCount = 0;
+  Object.values(daily).forEach(count => { allTimeCount += count; });
+  
+  // Last 30 days for chart
+  const last30 = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    last30.push({ date: key, count: daily[key] || 0 });
   }
-  try {
-    const { exec } = require('child_process');
-    const util = require('util');
-    const execAsync = util.promisify(exec);
-    
-    // Try to call OpenClaw cron list API to get all job status
-    try {
-      const { stdout } = await execAsync('openclaw cron list --json', { timeout: 5000 });
-      const cronData = JSON.parse(stdout);
-      res.json(cronData);
-    } catch (execError) {
-      // If OpenClaw command fails (not available on Railway), return mock data for now
-      console.warn('OpenClaw command not available, returning mock data:', execError.message);
-      
-      res.json({
-        jobs: [
-          {
-            id: 'pb-email-drafts',
-            name: 'pb-email-drafts',
-            enabled: true,
-            schedule: { kind: 'cron', expr: '0 8-22 * * *' },
-            state: {
-              lastRunAtMs: Date.now() - (2 * 60 * 60 * 1000), // 2 hours ago
-              nextRunAtMs: Date.now() + (60 * 60 * 1000), // 1 hour from now
-              lastStatus: 'ok',
-              lastDurationMs: 2500,
-              consecutiveErrors: 0
-            }
-          },
-          {
-            id: 'pb-gmail-draft-sync',
-            name: 'pb-gmail-draft-sync', 
-            enabled: true,
-            schedule: { kind: 'cron', expr: '*/5 8-22 * * *' },
-            state: {
-              lastRunAtMs: Date.now() - (15 * 60 * 1000), // 15 minutes ago
-              nextRunAtMs: Date.now() + (5 * 60 * 1000), // 5 minutes from now
-              lastStatus: 'ok',
-              lastDurationMs: 1200,
-              consecutiveErrors: 0
-            }
-          },
-          {
-            id: 'gog-gmail-health-check',
-            name: 'gog-gmail-health-check',
-            enabled: true,
-            schedule: { kind: 'cron', expr: '0 7 * * *' },
-            state: {
-              lastRunAtMs: Date.now() - (5 * 60 * 60 * 1000), // 5 hours ago
-              nextRunAtMs: Date.now() + (19 * 60 * 60 * 1000), // 19 hours from now
-              lastStatus: 'error',
-              lastDurationMs: 0,
-              consecutiveErrors: 2
-            }
-          }
-        ]
-      });
-    }
-    
-  } catch (error) {
-    console.error('Error in cron status endpoint:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch cron status',
-      details: error.message
-    });
-  }
+  
+  // Per-agent breakdown
+  const agents = db.searchUsage.agents || {};
+  
+  res.json({
+    today: todayCount,
+    month: monthCount,
+    allTime: allTimeCount,
+    monthlyCost: (monthCount / 1000 * 5).toFixed(2),
+    allTimeCost: (allTimeCount / 1000 * 5).toFixed(2),
+    costPer: 0.005,
+    last30,
+    agents,
+    monthKey
+  });
 });
 
-// Serve PB monitoring page
-app.get('/pb-monitoring', (req, res) => {
-  res.sendFile(path.join(__dirname, '../pb-monitoring.html'));
+// Log search usage (called by cron watchdog or agents)
+app.post('/api/search-usage/log', (req, res) => {
+  if (!db.searchUsage) db.searchUsage = { daily: {}, agents: {} };
+  const { count = 1, agent = 'unknown', date } = req.body;
+  const todayKey = date || new Date().toISOString().slice(0, 10);
+  
+  if (!db.searchUsage.daily[todayKey]) db.searchUsage.daily[todayKey] = 0;
+  db.searchUsage.daily[todayKey] += count;
+  
+  if (!db.searchUsage.agents[agent]) db.searchUsage.agents[agent] = 0;
+  db.searchUsage.agents[agent] += count;
+  
+  saveDB(db);
+  res.json({ ok: true, todayTotal: db.searchUsage.daily[todayKey] });
 });
 
-// Serve API monitoring page
-app.get('/api-monitoring', (req, res) => {
-  res.sendFile(path.join(__dirname, '../api-monitoring.html'));
+// Bulk set (for backfill from logs)
+app.put('/api/search-usage/set', (req, res) => {
+  const { daily, agents } = req.body;
+  if (!db.searchUsage) db.searchUsage = { daily: {}, agents: {} };
+  if (daily) db.searchUsage.daily = { ...db.searchUsage.daily, ...daily };
+  if (agents) db.searchUsage.agents = { ...db.searchUsage.agents, ...agents };
+  saveDB(db);
+  res.json({ ok: true });
 });
+// ===== END SEARCH USAGE TRACKER =====
 
-// ===== END CRON MONITORING API =====
-
-// ===== TEST ENDPOINT =====
-app.get('/api/test', (req, res) => {
-  res.json({ message: 'Test endpoint working', timestamp: new Date().toISOString() });
-});
-
-// ===== GENERAL ANALYTICS API =====
-app.get('/api/analytics-summary', (req, res) => {
-  // Simple auth check
-  const apiKey = req.headers['x-api-key'];
-  if (apiKey !== 'kande2026') {
-    return res.status(401).json({ error: 'Invalid API key' });
-  }
-  try {
-    // Get current pipeline metrics
-    const prospects = db.prospects || [];
-    const activities = db.activities || [];
-    const pipelineCards = db.pipelineCards || [];
-    
-    // Basic counts
-    const totalProspects = prospects.length;
-    const activeProspects = prospects.filter(p => p.status !== 'closed').length;
-    const signedProspects = prospects.filter(p => p.status === 'signed').length;
-    
-    // Pipeline stages
-    const pipelineByStage = {
-      new_lead: pipelineCards.filter(c => c.stage === 'new_lead').length,
-      contacted: pipelineCards.filter(c => c.stage === 'contacted').length,
-      proposal_sent: pipelineCards.filter(c => c.stage === 'proposal_sent').length,
-      negotiation: pipelineCards.filter(c => c.stage === 'negotiation').length,
-      signed: pipelineCards.filter(c => c.stage === 'signed').length
-    };
-    
-    // Recent activity (last 30 days)
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const recentActivities = activities.filter(a => 
-      new Date(a.created_at) > thirtyDaysAgo
-    ).length;
-    
-    // Conversion rates
-    const contactedToProposal = pipelineByStage.contacted > 0 ? 
-      (pipelineByStage.proposal_sent / pipelineByStage.contacted * 100) : 0;
-    const proposalToSigned = pipelineByStage.proposal_sent > 0 ? 
-      (pipelineByStage.signed / pipelineByStage.proposal_sent * 100) : 0;
-    
-    res.json({
-      summary: {
-        totalProspects,
-        activeProspects,
-        signedProspects,
-        recentActivities
-      },
-      pipeline: pipelineByStage,
-      conversions: {
-        contactedToProposal: Math.round(contactedToProposal * 100) / 100,
-        proposalToSigned: Math.round(proposalToSigned * 100) / 100
-      },
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Error in analytics endpoint:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch analytics data',
-      details: error.message
-    });
-  }
-});
-
-// ===== KANDE DIGITAL: GMB AUDIT TOOL =====
-
-// Test route to verify deployment
-app.get('/api/digital/test', (req, res) => {
-  res.json({ message: 'Kande Digital API is working', timestamp: new Date().toISOString() });
-});
-
-// GMB Audit endpoint
-app.post('/api/digital/gmb/audit', (req, res) => {
+// ===== KANDE DIGITAL: GMB AUDIT API =====
+app.post('/api/digital/gmb/audit', express.json(), async (req, res) => {
+  // API key authentication
   const apiKey = req.headers['x-api-key'];
   if (apiKey !== 'kande2026') {
     return res.status(401).json({ error: 'Invalid API key' });
   }
 
   const { businessName, location } = req.body;
-  
+
   if (!businessName || !location) {
-    return res.status(400).json({ 
-      error: 'Missing required fields: businessName and location' 
-    });
+    return res.status(400).json({ error: 'Business name and location are required' });
   }
 
   try {
-    // For now, this is a mock implementation
+    // For now, return mock audit data since we don't have API keys configured yet
     // TODO: Integrate with Google Places API or SerpAPI
-    const auditScore = performGMBAudit(businessName, location);
+    const auditScore = Math.floor(Math.random() * 40) + 30; // Score between 30-70 for demo
     
-    res.json({
+    const breakdown = {
+      completeness: {
+        score: Math.floor(Math.random() * 30) + 40,
+        details: 'Profile completeness analysis'
+      },
+      photos: {
+        score: Math.floor(Math.random() * 40) + 30,
+        details: 'Photo count and quality'
+      },
+      reviews: {
+        score: Math.floor(Math.random() * 50) + 25,
+        details: 'Review count and rating'
+      },
+      posts: {
+        score: Math.floor(Math.random() * 20) + 10,
+        details: 'Post frequency and engagement'
+      },
+      categories: {
+        score: Math.floor(Math.random() * 20) + 60,
+        details: 'Category accuracy and optimization'
+      }
+    };
+
+    const recommendations = [
+      {
+        priority: 'HIGH',
+        issue: 'Missing or incomplete business description'
+      },
+      {
+        priority: 'MEDIUM',
+        issue: 'Need more high-quality photos'
+      },
+      {
+        priority: 'LOW',
+        issue: 'Inconsistent posting schedule'
+      }
+    ];
+
+    const auditData = {
       businessName,
       location,
-      auditScore: auditScore.totalScore,
-      breakdown: auditScore.breakdown,
-      recommendations: auditScore.recommendations,
-      timestamp: new Date().toISOString(),
-      auditId: `gmb_${Date.now()}`
-    });
+      auditScore,
+      breakdown,
+      recommendations,
+      timestamp: new Date().toISOString()
+    };
+
+    // Log audit for tracking
+    console.log(`🏪 GMB Audit completed: ${businessName} (${location}) - Score: ${auditScore}/100`);
+
+    res.json(auditData);
 
   } catch (error) {
     console.error('GMB Audit error:', error);
-    res.status(500).json({
-      error: 'Failed to perform GMB audit',
-      details: error.message
-    });
+    res.status(500).json({ error: 'Audit failed', details: error.message });
   }
 });
 
-// GMB Audit scoring algorithm
-function performGMBAudit(businessName, location) {
-  // Mock data - in production this would fetch from Google Places API
-  const mockGMBData = generateMockGMBData(businessName);
-  
-  const breakdown = {
-    completeness: scoreCompleteness(mockGMBData),
-    photos: scorePhotos(mockGMBData.photos),
-    reviews: scoreReviews(mockGMBData.reviews),
-    posts: scorePosts(mockGMBData.posts),
-    description: scoreDescription(mockGMBData.description),
-    categories: scoreCategories(mockGMBData.categories),
-    hours: scoreHours(mockGMBData.hours),
-    qna: scoreQnA(mockGMBData.qna)
-  };
-
-  const totalScore = Math.round(
-    (breakdown.completeness.score * 0.2) +
-    (breakdown.photos.score * 0.15) +
-    (breakdown.reviews.score * 0.2) +
-    (breakdown.posts.score * 0.15) +
-    (breakdown.description.score * 0.1) +
-    (breakdown.categories.score * 0.05) +
-    (breakdown.hours.score * 0.1) +
-    (breakdown.qna.score * 0.05)
-  );
-
-  const recommendations = generateRecommendations(breakdown);
-
-  return {
-    totalScore,
-    breakdown,
-    recommendations
-  };
-}
-
-// Scoring functions
-function scoreCompleteness(data) {
-  const requiredFields = ['name', 'address', 'phone', 'website', 'categories', 'hours'];
-  const completedFields = requiredFields.filter(field => data[field] && data[field] !== '');
-  const score = Math.round((completedFields.length / requiredFields.length) * 100);
-  
-  return {
-    score,
-    details: `${completedFields.length}/${requiredFields.length} required fields completed`,
-    issues: requiredFields.filter(field => !data[field] || data[field] === '')
-  };
-}
-
-function scorePhotos(photos) {
-  if (!photos) return { score: 0, details: 'No photos found' };
-  
-  let score = 0;
-  if (photos.count > 0) score += 30;
-  if (photos.count >= 10) score += 30;
-  if (photos.count >= 20) score += 40;
-  
-  return {
-    score: Math.min(score, 100),
-    details: `${photos.count} photos found`,
-    issues: photos.count < 10 ? ['Need at least 10 high-quality photos'] : []
-  };
-}
-
-function scoreReviews(reviews) {
-  if (!reviews) return { score: 0, details: 'No reviews found' };
-  
-  let score = 0;
-  if (reviews.count > 0) score += 20;
-  if (reviews.count >= 10) score += 20;
-  if (reviews.count >= 25) score += 20;
-  if (reviews.averageRating >= 4.0) score += 25;
-  if (reviews.averageRating >= 4.5) score += 15;
-  
-  return {
-    score: Math.min(score, 100),
-    details: `${reviews.count} reviews, ${reviews.averageRating} average rating`,
-    issues: reviews.averageRating < 4.0 ? ['Low review rating needs improvement'] : []
-  };
-}
-
-function scorePosts(posts) {
-  if (!posts) return { score: 0, details: 'No posts found' };
-  
-  const daysSinceLastPost = posts.daysSinceLastPost || 999;
-  let score = 0;
-  
-  if (daysSinceLastPost <= 7) score = 100;
-  else if (daysSinceLastPost <= 30) score = 80;
-  else if (daysSinceLastPost <= 90) score = 60;
-  else if (daysSinceLastPost <= 180) score = 40;
-  else score = 20;
-  
-  return {
-    score,
-    details: `Last post ${daysSinceLastPost} days ago`,
-    issues: daysSinceLastPost > 30 ? ['Posts are outdated - need regular content'] : []
-  };
-}
-
-function scoreDescription(description) {
-  if (!description || description.length === 0) {
-    return { score: 0, details: 'No business description', issues: ['Missing business description'] };
-  }
-  
-  let score = 50; // Base for having a description
-  if (description.length >= 100) score += 25;
-  if (description.length >= 200) score += 25;
-  
-  return {
-    score: Math.min(score, 100),
-    details: `${description.length} characters`,
-    issues: description.length < 100 ? ['Description too short'] : []
-  };
-}
-
-function scoreCategories(categories) {
-  if (!categories || categories.length === 0) {
-    return { score: 0, details: 'No categories set', issues: ['Missing business categories'] };
-  }
-  
-  let score = 70; // Base for having categories
-  if (categories.length >= 3) score += 30;
-  
-  return {
-    score: Math.min(score, 100),
-    details: `${categories.length} categories set`,
-    issues: categories.length < 2 ? ['Need more specific categories'] : []
-  };
-}
-
-function scoreHours(hours) {
-  if (!hours || !hours.isSet) {
-    return { score: 0, details: 'Business hours not set', issues: ['Missing business hours'] };
-  }
-  
-  const score = hours.isAccurate ? 100 : 50;
-  return {
-    score,
-    details: hours.isAccurate ? 'Hours appear accurate' : 'Hours may be inaccurate',
-    issues: !hours.isAccurate ? ['Verify business hours are current'] : []
-  };
-}
-
-function scoreQnA(qna) {
-  if (!qna) return { score: 50, details: 'No Q&A activity' };
-  
-  let score = 60; // Base score
-  if (qna.questionsAnswered > 0) score += 40;
-  
-  return {
-    score: Math.min(score, 100),
-    details: `${qna.questionsAnswered} questions answered`,
-    issues: qna.questionsAnswered === 0 ? ['No customer questions answered'] : []
-  };
-}
-
-function generateRecommendations(breakdown) {
-  const recommendations = [];
-  
-  Object.entries(breakdown).forEach(([category, result]) => {
-    if (result.issues && result.issues.length > 0) {
-      recommendations.push(...result.issues.map(issue => ({
-        category,
-        priority: result.score < 30 ? 'HIGH' : result.score < 60 ? 'MEDIUM' : 'LOW',
-        issue
-      })));
-    }
-  });
-  
-  return recommendations.sort((a, b) => {
-    const priorities = { 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
-    return priorities[b.priority] - priorities[a.priority];
-  });
-}
-
-function generateMockGMBData(businessName) {
-  // Mock data generator - replace with real API calls in production
-  const seed = businessName.length;
-  const random = (min, max) => min + (seed % (max - min + 1));
-  
-  return {
-    name: businessName,
-    address: '123 Business St, Las Vegas, NV',
-    phone: '(702) 555-0123',
-    website: 'https://example.com',
-    categories: ['Plumber', 'Emergency Service'],
-    hours: {
-      isSet: true,
-      isAccurate: random(0, 1) === 1
-    },
-    description: 'A'.repeat(random(50, 300)),
-    photos: {
-      count: random(3, 25)
-    },
-    reviews: {
-      count: random(5, 50),
-      averageRating: random(35, 50) / 10 // 3.5 to 5.0
-    },
-    posts: {
-      count: random(0, 10),
-      daysSinceLastPost: random(1, 200)
-    },
-    qna: {
-      questionsAnswered: random(0, 5)
-    }
-  };
-}
-
-// Serve Kande Digital dashboard
-app.get('/kande-digital.html', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'kande-digital.html'));
-});
-
-// API route to get audit history (for future expansion)
-app.get('/api/digital/audits', (req, res) => {
+// Test endpoint for Kande Digital debugging
+app.get('/api/digital/test', (req, res) => {
   const apiKey = req.headers['x-api-key'];
   if (apiKey !== 'kande2026') {
-    return res.status(401).json({ error: 'Invalid API key' });
+    return res.status(401).json({ error: 'Unauthorized' });
   }
-
-  // For now, return empty array - in future this would come from database
-  res.json({
-    audits: [],
-    totalCount: 0
+  
+  res.json({ 
+    status: 'OK', 
+    service: 'Kande Digital API',
+    endpoints: ['/api/digital/gmb/audit'],
+    timestamp: new Date().toISOString()
   });
 });
+// ===== END KANDE DIGITAL =====
 
 app.listen(PORT, () => {
   console.log(`🤖 Kande VendTech Dashboard running at http://localhost:${PORT}`);
