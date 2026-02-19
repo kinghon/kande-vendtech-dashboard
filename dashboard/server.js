@@ -21827,6 +21827,11 @@ app.get('/api-monitoring', (req, res) => {
 
 // ===== END CRON MONITORING API =====
 
+// ===== TEST ENDPOINT =====
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'Test endpoint working', timestamp: new Date().toISOString() });
+});
+
 // ===== GENERAL ANALYTICS API =====
 app.get('/api/analytics', (req, res) => {
   // Simple auth check
