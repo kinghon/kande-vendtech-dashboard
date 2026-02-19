@@ -21833,7 +21833,7 @@ app.get('/api/test', (req, res) => {
 });
 
 // ===== GENERAL ANALYTICS API =====
-app.get('/api/analytics', (req, res) => {
+app.get('/api/analytics-summary', (req, res) => {
   // Simple auth check
   const apiKey = req.headers['x-api-key'];
   if (apiKey !== 'kande2026') {
