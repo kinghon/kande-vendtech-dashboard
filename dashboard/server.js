@@ -21894,6 +21894,275 @@ app.get('/api/analytics-summary', (req, res) => {
   }
 });
 
+// ===== KANDE DIGITAL: GMB AUDIT TOOL =====
+
+// GMB Audit endpoint
+app.post('/api/digital/gmb/audit', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') {
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
+
+  const { businessName, location } = req.body;
+  
+  if (!businessName || !location) {
+    return res.status(400).json({ 
+      error: 'Missing required fields: businessName and location' 
+    });
+  }
+
+  try {
+    // For now, this is a mock implementation
+    // TODO: Integrate with Google Places API or SerpAPI
+    const auditScore = performGMBAudit(businessName, location);
+    
+    res.json({
+      businessName,
+      location,
+      auditScore: auditScore.totalScore,
+      breakdown: auditScore.breakdown,
+      recommendations: auditScore.recommendations,
+      timestamp: new Date().toISOString(),
+      auditId: `gmb_${Date.now()}`
+    });
+
+  } catch (error) {
+    console.error('GMB Audit error:', error);
+    res.status(500).json({
+      error: 'Failed to perform GMB audit',
+      details: error.message
+    });
+  }
+});
+
+// GMB Audit scoring algorithm
+function performGMBAudit(businessName, location) {
+  // Mock data - in production this would fetch from Google Places API
+  const mockGMBData = generateMockGMBData(businessName);
+  
+  const breakdown = {
+    completeness: scoreCompleteness(mockGMBData),
+    photos: scorePhotos(mockGMBData.photos),
+    reviews: scoreReviews(mockGMBData.reviews),
+    posts: scorePosts(mockGMBData.posts),
+    description: scoreDescription(mockGMBData.description),
+    categories: scoreCategories(mockGMBData.categories),
+    hours: scoreHours(mockGMBData.hours),
+    qna: scoreQnA(mockGMBData.qna)
+  };
+
+  const totalScore = Math.round(
+    (breakdown.completeness.score * 0.2) +
+    (breakdown.photos.score * 0.15) +
+    (breakdown.reviews.score * 0.2) +
+    (breakdown.posts.score * 0.15) +
+    (breakdown.description.score * 0.1) +
+    (breakdown.categories.score * 0.05) +
+    (breakdown.hours.score * 0.1) +
+    (breakdown.qna.score * 0.05)
+  );
+
+  const recommendations = generateRecommendations(breakdown);
+
+  return {
+    totalScore,
+    breakdown,
+    recommendations
+  };
+}
+
+// Scoring functions
+function scoreCompleteness(data) {
+  const requiredFields = ['name', 'address', 'phone', 'website', 'categories', 'hours'];
+  const completedFields = requiredFields.filter(field => data[field] && data[field] !== '');
+  const score = Math.round((completedFields.length / requiredFields.length) * 100);
+  
+  return {
+    score,
+    details: `${completedFields.length}/${requiredFields.length} required fields completed`,
+    issues: requiredFields.filter(field => !data[field] || data[field] === '')
+  };
+}
+
+function scorePhotos(photos) {
+  if (!photos) return { score: 0, details: 'No photos found' };
+  
+  let score = 0;
+  if (photos.count > 0) score += 30;
+  if (photos.count >= 10) score += 30;
+  if (photos.count >= 20) score += 40;
+  
+  return {
+    score: Math.min(score, 100),
+    details: `${photos.count} photos found`,
+    issues: photos.count < 10 ? ['Need at least 10 high-quality photos'] : []
+  };
+}
+
+function scoreReviews(reviews) {
+  if (!reviews) return { score: 0, details: 'No reviews found' };
+  
+  let score = 0;
+  if (reviews.count > 0) score += 20;
+  if (reviews.count >= 10) score += 20;
+  if (reviews.count >= 25) score += 20;
+  if (reviews.averageRating >= 4.0) score += 25;
+  if (reviews.averageRating >= 4.5) score += 15;
+  
+  return {
+    score: Math.min(score, 100),
+    details: `${reviews.count} reviews, ${reviews.averageRating} average rating`,
+    issues: reviews.averageRating < 4.0 ? ['Low review rating needs improvement'] : []
+  };
+}
+
+function scorePosts(posts) {
+  if (!posts) return { score: 0, details: 'No posts found' };
+  
+  const daysSinceLastPost = posts.daysSinceLastPost || 999;
+  let score = 0;
+  
+  if (daysSinceLastPost <= 7) score = 100;
+  else if (daysSinceLastPost <= 30) score = 80;
+  else if (daysSinceLastPost <= 90) score = 60;
+  else if (daysSinceLastPost <= 180) score = 40;
+  else score = 20;
+  
+  return {
+    score,
+    details: `Last post ${daysSinceLastPost} days ago`,
+    issues: daysSinceLastPost > 30 ? ['Posts are outdated - need regular content'] : []
+  };
+}
+
+function scoreDescription(description) {
+  if (!description || description.length === 0) {
+    return { score: 0, details: 'No business description', issues: ['Missing business description'] };
+  }
+  
+  let score = 50; // Base for having a description
+  if (description.length >= 100) score += 25;
+  if (description.length >= 200) score += 25;
+  
+  return {
+    score: Math.min(score, 100),
+    details: `${description.length} characters`,
+    issues: description.length < 100 ? ['Description too short'] : []
+  };
+}
+
+function scoreCategories(categories) {
+  if (!categories || categories.length === 0) {
+    return { score: 0, details: 'No categories set', issues: ['Missing business categories'] };
+  }
+  
+  let score = 70; // Base for having categories
+  if (categories.length >= 3) score += 30;
+  
+  return {
+    score: Math.min(score, 100),
+    details: `${categories.length} categories set`,
+    issues: categories.length < 2 ? ['Need more specific categories'] : []
+  };
+}
+
+function scoreHours(hours) {
+  if (!hours || !hours.isSet) {
+    return { score: 0, details: 'Business hours not set', issues: ['Missing business hours'] };
+  }
+  
+  const score = hours.isAccurate ? 100 : 50;
+  return {
+    score,
+    details: hours.isAccurate ? 'Hours appear accurate' : 'Hours may be inaccurate',
+    issues: !hours.isAccurate ? ['Verify business hours are current'] : []
+  };
+}
+
+function scoreQnA(qna) {
+  if (!qna) return { score: 50, details: 'No Q&A activity' };
+  
+  let score = 60; // Base score
+  if (qna.questionsAnswered > 0) score += 40;
+  
+  return {
+    score: Math.min(score, 100),
+    details: `${qna.questionsAnswered} questions answered`,
+    issues: qna.questionsAnswered === 0 ? ['No customer questions answered'] : []
+  };
+}
+
+function generateRecommendations(breakdown) {
+  const recommendations = [];
+  
+  Object.entries(breakdown).forEach(([category, result]) => {
+    if (result.issues && result.issues.length > 0) {
+      recommendations.push(...result.issues.map(issue => ({
+        category,
+        priority: result.score < 30 ? 'HIGH' : result.score < 60 ? 'MEDIUM' : 'LOW',
+        issue
+      })));
+    }
+  });
+  
+  return recommendations.sort((a, b) => {
+    const priorities = { 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
+    return priorities[b.priority] - priorities[a.priority];
+  });
+}
+
+function generateMockGMBData(businessName) {
+  // Mock data generator - replace with real API calls in production
+  const seed = businessName.length;
+  const random = (min, max) => min + (seed % (max - min + 1));
+  
+  return {
+    name: businessName,
+    address: '123 Business St, Las Vegas, NV',
+    phone: '(702) 555-0123',
+    website: 'https://example.com',
+    categories: ['Plumber', 'Emergency Service'],
+    hours: {
+      isSet: true,
+      isAccurate: random(0, 1) === 1
+    },
+    description: 'A'.repeat(random(50, 300)),
+    photos: {
+      count: random(3, 25)
+    },
+    reviews: {
+      count: random(5, 50),
+      averageRating: random(35, 50) / 10 // 3.5 to 5.0
+    },
+    posts: {
+      count: random(0, 10),
+      daysSinceLastPost: random(1, 200)
+    },
+    qna: {
+      questionsAnswered: random(0, 5)
+    }
+  };
+}
+
+// Serve Kande Digital dashboard
+app.get('/kande-digital.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'kande-digital.html'));
+});
+
+// API route to get audit history (for future expansion)
+app.get('/api/digital/audits', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') {
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
+
+  // For now, return empty array - in future this would come from database
+  res.json({
+    audits: [],
+    totalCount: 0
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`🤖 Kande VendTech Dashboard running at http://localhost:${PORT}`);
 

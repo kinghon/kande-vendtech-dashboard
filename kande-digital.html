@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
+  <title>Kande Digital — GMB Optimization Platform</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#f8f9fa;--card:#ffffff;
+      --border:#e2e8f0;--border-light:#d1d5db;
+      --text:#1a1a1a;--muted:#64748b;--dim:#94a3b8;
+      --accent:#667eea;--accent2:#764ba2;--accent-dim:rgba(102,126,234,0.15);
+      --success:#16a34a;--success-dim:rgba(22,163,74,0.15);
+      --warn:#d97706;--warn-dim:rgba(217,119,6,0.15);
+      --hot:#dc2626;--hot-dim:rgba(220,38,38,0.15);
+      --purple:#7c3aed;--purple-dim:rgba(124,58,237,0.15);
+      --gradient:linear-gradient(135deg,#667eea,#764ba2);
+    }
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    .app{max-width:1440px;margin:0 auto;padding:20px}
+
+    /* Nav */
+    .top-nav{display:flex;align-items:center;gap:10px;margin-bottom:28px;padding-bottom:14px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+    .top-nav .logo{height:36px}
+    .nav-brand{font-size:.88rem;font-weight:600;color:var(--text);margin-right:6px}
+    .top-nav a{color:var(--muted);text-decoration:none;font-size:.82rem;font-weight:500;padding:5px 10px;border-radius:6px;transition:all .2s}
+    .top-nav a:hover{color:var(--text);background:rgba(255,255,255,.06)}
+    .top-nav a.active{color:var(--accent);background:var(--accent-dim)}
+
+    /* Header */
+    .page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;flex-wrap:wrap;gap:16px}
+    .page-header h1{font-size:1.8rem;font-weight:700;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;display:flex;align-items:center;gap:12px}
+    .page-header p{color:var(--muted);font-size:.9rem}
+    .header-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+    /* Buttons */
+    .btn{padding:9px 18px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:.83rem;font-weight:500;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;font-family:inherit}
+    .btn:hover{border-color:var(--accent);color:var(--accent)}
+    .btn-primary{background:var(--gradient);color:#fff;border:none;font-weight:600}
+    .btn-primary:hover{opacity:.9;box-shadow:0 0 20px rgba(102,126,234,.3)}
+
+    /* Form Elements */
+    .form-group{margin-bottom:16px}
+    .form-group label{display:block;margin-bottom:6px;font-weight:500;font-size:.85rem;color:var(--text)}
+    .form-group input{width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:.9rem;font-family:inherit}
+    .form-group input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+
+    /* Cards */
+    .card{background:var(--card);border-radius:14px;padding:24px;border:1px solid var(--border);transition:all .2s}
+    .card:hover{border-color:var(--border-light)}
+    .card h3{font-size:1.1rem;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+    .card p{color:var(--muted);font-size:.9rem;line-height:1.5}
+
+    /* Grid Layout */
+    .grid{display:grid;gap:20px;margin-bottom:28px}
+    .grid-2{grid-template-columns:repeat(auto-fit,minmax(400px,1fr))}
+    .grid-3{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+
+    /* Audit Form */
+    .audit-form{max-width:600px}
+    .audit-results{margin-top:28px}
+    .score-display{text-align:center;margin-bottom:24px}
+    .score-circle{width:120px;height:120px;border-radius:50%;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;color:#fff}
+    .score-excellent{background:linear-gradient(135deg,var(--success),#10b981)}
+    .score-good{background:linear-gradient(135deg,var(--warn),#f59e0b)}
+    .score-poor{background:linear-gradient(135deg,var(--hot),#ef4444)}
+
+    /* Breakdown */
+    .breakdown{margin-bottom:24px}
+    .breakdown-item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+    .breakdown-item:last-child{border-bottom:none}
+    .breakdown-label{font-weight:500}
+    .breakdown-score{font-weight:600;color:var(--accent)}
+
+    /* Recommendations */
+    .recommendations{margin-top:24px}
+    .rec-item{display:flex;align-items:flex-start;gap:12px;padding:12px;border-radius:8px;margin-bottom:8px}
+    .rec-high{background:var(--hot-dim);border-left:4px solid var(--hot)}
+    .rec-medium{background:var(--warn-dim);border-left:4px solid var(--warn)}
+    .rec-low{background:var(--accent-dim);border-left:4px solid var(--accent)}
+    .rec-priority{font-size:.75rem;font-weight:600;text-transform:uppercase;padding:2px 6px;border-radius:4px;color:#fff}
+    .rec-priority.high{background:var(--hot)}
+    .rec-priority.medium{background:var(--warn)}
+    .rec-priority.low{background:var(--accent)}
+    .rec-text{flex:1;font-size:.9rem}
+
+    /* Loading State */
+    .loading{text-align:center;padding:40px;color:var(--muted)}
+    .spinner{width:24px;height:24px;border:2px solid var(--border);border-top:2px solid var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px}
+    @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+
+    /* Error State */
+    .error{background:var(--hot-dim);color:var(--hot);padding:12px;border-radius:8px;margin-top:16px;font-size:.9rem}
+
+    /* Success State */
+    .success{background:var(--success-dim);color:var(--success);padding:12px;border-radius:8px;margin-top:16px;font-size:.9rem}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Navigation -->
+    <nav class="top-nav">
+      <img src="/kande-vend-logo.svg" alt="Kande VendTech" class="logo" onerror="this.style.display='none'">
+      <span class="nav-brand">Kande Digital</span>
+      <a href="/home.html">Dashboard</a>
+      <a href="/crm.html">CRM</a>
+      <a href="/team.html">Agents</a>
+      <a href="/analytics.html">Analytics</a>
+      <a href="/kande-digital.html" class="active">Digital Services</a>
+    </nav>
+
+    <!-- Header -->
+    <div class="page-header">
+      <div>
+        <h1>🏪 Kande Digital</h1>
+        <p>AI-Powered Google My Business Optimization for Blue Collar Businesses</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn" onclick="showAuditHistory()">📊 Audit History</button>
+        <button class="btn" onclick="showClientPortal()">👥 Client Portal</button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="grid grid-2">
+      <!-- GMB Audit Tool -->
+      <div class="card">
+        <h3>🔍 GMB Audit Tool</h3>
+        <p style="margin-bottom:20px">Analyze any local business's Google My Business profile and get a comprehensive optimization score.</p>
+        
+        <div class="audit-form">
+          <div class="form-group">
+            <label for="businessName">Business Name</label>
+            <input type="text" id="businessName" placeholder="e.g., Joe's Plumbing Services">
+          </div>
+          
+          <div class="form-group">
+            <label for="location">Location</label>
+            <input type="text" id="location" placeholder="e.g., Las Vegas, NV">
+          </div>
+          
+          <button class="btn btn-primary" onclick="runGMBAudit()" id="auditBtn">
+            🚀 Run Audit
+          </button>
+        </div>
+        
+        <div id="auditResults" class="audit-results" style="display:none">
+          <!-- Results will be populated here -->
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="card">
+        <h3>📈 Platform Overview</h3>
+        <div style="text-align:center;padding:20px 0">
+          <div style="font-size:2rem;font-weight:700;color:var(--accent);margin-bottom:8px" id="totalAudits">0</div>
+          <div style="color:var(--muted);margin-bottom:20px">Total Audits Performed</div>
+          
+          <div style="font-size:1.4rem;font-weight:600;color:var(--success);margin-bottom:8px" id="avgScore">--</div>
+          <div style="color:var(--muted);margin-bottom:20px">Average GMB Score</div>
+          
+          <div style="font-size:1.2rem;font-weight:600;color:var(--purple);margin-bottom:8px" id="clientCount">0</div>
+          <div style="color:var(--muted)">Active Clients</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Audits -->
+    <div class="card">
+      <h3>📋 Recent Audits</h3>
+      <div id="recentAudits" style="color:var(--muted);text-align:center;padding:20px">
+        No audits performed yet. Run your first audit above!
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Store audit history locally
+    let auditHistory = JSON.parse(localStorage.getItem('gmbAuditHistory') || '[]');
+
+    // Update stats on load
+    updateStats();
+
+    async function runGMBAudit() {
+      const businessName = document.getElementById('businessName').value.trim();
+      const location = document.getElementById('location').value.trim();
+      const auditBtn = document.getElementById('auditBtn');
+      const resultsDiv = document.getElementById('auditResults');
+
+      // Validation
+      if (!businessName || !location) {
+        showError('Please enter both business name and location');
+        return;
+      }
+
+      // Show loading state
+      auditBtn.innerHTML = '<div class="spinner"></div> Running Audit...';
+      auditBtn.disabled = true;
+      resultsDiv.style.display = 'none';
+
+      try {
+        const response = await fetch('/api/digital/gmb/audit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': 'kande2026'
+          },
+          body: JSON.stringify({ businessName, location })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Audit failed');
+        }
+
+        // Store in history
+        auditHistory.unshift({
+          ...data,
+          timestamp: new Date().toISOString()
+        });
+        localStorage.setItem('gmbAuditHistory', JSON.stringify(auditHistory.slice(0, 50))); // Keep last 50
+
+        // Display results
+        displayAuditResults(data);
+        updateStats();
+        updateRecentAudits();
+
+        // Show success message
+        showSuccess('Audit completed successfully!');
+
+      } catch (error) {
+        showError('Audit failed: ' + error.message);
+      } finally {
+        auditBtn.innerHTML = '🚀 Run Audit';
+        auditBtn.disabled = false;
+      }
+    }
+
+    function displayAuditResults(data) {
+      const resultsDiv = document.getElementById('auditResults');
+      
+      // Determine score color
+      let scoreClass = 'score-poor';
+      if (data.auditScore >= 70) scoreClass = 'score-excellent';
+      else if (data.auditScore >= 50) scoreClass = 'score-good';
+
+      let html = `
+        <div class="score-display">
+          <div class="score-circle ${scoreClass}">
+            ${data.auditScore}
+          </div>
+          <div style="font-size:1.1rem;font-weight:600;margin-bottom:4px">${data.businessName}</div>
+          <div style="color:var(--muted);font-size:.9rem">${data.location}</div>
+        </div>
+
+        <div class="breakdown">
+          <h4 style="margin-bottom:16px">Score Breakdown</h4>
+      `;
+
+      // Add breakdown items
+      Object.entries(data.breakdown).forEach(([category, result]) => {
+        const categoryName = category.charAt(0).toUpperCase() + category.slice(1);
+        html += `
+          <div class="breakdown-item">
+            <span class="breakdown-label">${categoryName}</span>
+            <span class="breakdown-score">${result.score}/100</span>
+          </div>
+        `;
+      });
+
+      html += '</div>';
+
+      // Add recommendations
+      if (data.recommendations && data.recommendations.length > 0) {
+        html += '<div class="recommendations"><h4 style="margin-bottom:16px">Recommendations</h4>';
+        
+        data.recommendations.forEach(rec => {
+          html += `
+            <div class="rec-item rec-${rec.priority.toLowerCase()}">
+              <span class="rec-priority ${rec.priority.toLowerCase()}">${rec.priority}</span>
+              <span class="rec-text">${rec.issue}</span>
+            </div>
+          `;
+        });
+        
+        html += '</div>';
+      }
+
+      resultsDiv.innerHTML = html;
+      resultsDiv.style.display = 'block';
+    }
+
+    function updateStats() {
+      document.getElementById('totalAudits').textContent = auditHistory.length;
+      
+      if (auditHistory.length > 0) {
+        const avgScore = Math.round(
+          auditHistory.reduce((sum, audit) => sum + audit.auditScore, 0) / auditHistory.length
+        );
+        document.getElementById('avgScore').textContent = avgScore;
+      } else {
+        document.getElementById('avgScore').textContent = '--';
+      }
+    }
+
+    function updateRecentAudits() {
+      const recentDiv = document.getElementById('recentAudits');
+      
+      if (auditHistory.length === 0) {
+        recentDiv.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px">No audits performed yet. Run your first audit above!</div>';
+        return;
+      }
+
+      let html = '';
+      auditHistory.slice(0, 5).forEach(audit => {
+        const date = new Date(audit.timestamp).toLocaleDateString();
+        let scoreClass = 'var(--hot)';
+        if (audit.auditScore >= 70) scoreClass = 'var(--success)';
+        else if (audit.auditScore >= 50) scoreClass = 'var(--warn)';
+
+        html += `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)">
+            <div>
+              <strong>${audit.businessName}</strong>
+              <div style="font-size:.8rem;color:var(--muted)">${audit.location} • ${date}</div>
+            </div>
+            <div style="font-weight:600;color:${scoreClass};font-size:1.1rem">${audit.auditScore}/100</div>
+          </div>
+        `;
+      });
+
+      recentDiv.innerHTML = html;
+    }
+
+    function showError(message) {
+      const existing = document.querySelector('.error');
+      if (existing) existing.remove();
+
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'error';
+      errorDiv.textContent = message;
+      document.querySelector('.audit-form').appendChild(errorDiv);
+
+      setTimeout(() => errorDiv.remove(), 5000);
+    }
+
+    function showSuccess(message) {
+      const existing = document.querySelector('.success');
+      if (existing) existing.remove();
+
+      const successDiv = document.createElement('div');
+      successDiv.className = 'success';
+      successDiv.textContent = message;
+      document.querySelector('.audit-form').appendChild(successDiv);
+
+      setTimeout(() => successDiv.remove(), 3000);
+    }
+
+    function showAuditHistory() {
+      alert('Audit History feature coming soon!');
+    }
+
+    function showClientPortal() {
+      alert('Client Portal feature coming soon!');
+    }
+
+    // Load recent audits on page load
+    updateRecentAudits();
+  </script>
+</body>
+</html>
