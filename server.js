@@ -73,7 +73,7 @@ function sanitizeObject(obj) {
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
   // Allow these paths without auth
-  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings'];
+  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
     return next();
   }
@@ -2334,6 +2334,35 @@ app.get('/api/analytics/trends', (req, res) => {
     totalMonths: timeSeries.length,
     totalRevenue: timeSeries.reduce((s, t) => s + t.revenue, 0),
     years: Object.keys(byYear).sort()
+  });
+});
+
+// ===== BASE ANALYTICS ROUTE =====
+app.get('/api/analytics', (req, res) => {
+  res.json({
+    service: 'Kande VendTech Analytics API',
+    endpoints: [
+      '/api/analytics/funnel',
+      '/api/analytics/time-to-close',
+      '/api/analytics/property-types',
+      '/api/analytics/trends',
+      '/api/analytics/overview',
+      '/api/analytics/export'
+    ],
+    timestamp: new Date().toISOString()
+  });
+});
+
+// ===== BASE TEST ROUTE =====
+app.get('/api/test', (req, res) => {
+  res.json({
+    status: 'OK',
+    service: 'Kande VendTech API Test',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      analytics: '/api/analytics',
+      digital: '/api/digital/test'
+    }
   });
 });
 
