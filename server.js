@@ -73,7 +73,7 @@ function sanitizeObject(obj) {
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
   // Allow these paths without auth
-  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content'];
+  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
     return next();
   }
@@ -23072,12 +23072,8 @@ function getSearchMatches(content, query) {
 
 // ===== TASKS BOARD API =====
 
-// API: Get all tasks
-app.get('/api/tasks', (req, res) => {
-  const apiKey = req.headers['x-api-key'];
-  if (apiKey !== 'kande2026') {
-    return res.status(401).json({ error: 'Invalid API key' });
-  }
+// API: Get all Mission Control tasks
+app.get('/api/mission-control/tasks', (req, res) => {
   
   try {
     const tasks = db.missionControlTasks || [];
@@ -23101,12 +23097,7 @@ app.get('/api/tasks', (req, res) => {
 });
 
 // API: Create new task
-app.post('/api/tasks', express.json(), (req, res) => {
-  const apiKey = req.headers['x-api-key'];
-  if (apiKey !== 'kande2026') {
-    return res.status(401).json({ error: 'Invalid API key' });
-  }
-  
+app.post('/api/mission-control/tasks', express.json(), (req, res) => {
   try {
     const { title, description, agent, assignedAgent, project, priority, status } = req.body;
     
@@ -23131,7 +23122,7 @@ app.post('/api/tasks', express.json(), (req, res) => {
     db.missionControlTasks.push(task);
     saveDB(db);
     
-    res.json(task);
+    res.json({ task, ok: true });
   } catch (error) {
     console.error('Create task error:', error);
     res.status(500).json({ error: 'Failed to create task' });
@@ -23139,7 +23130,7 @@ app.post('/api/tasks', express.json(), (req, res) => {
 });
 
 // API: Update task
-app.put('/api/tasks/:id', express.json(), (req, res) => {
+app.put('/api/mission-control/tasks/:id', express.json(), (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, assignedAgent, project, priority, status } = req.body;
@@ -23169,7 +23160,7 @@ app.put('/api/tasks/:id', express.json(), (req, res) => {
 });
 
 // API: Delete task
-app.delete('/api/tasks/:id', (req, res) => {
+app.delete('/api/mission-control/tasks/:id', (req, res) => {
   try {
     const { id } = req.params;
     

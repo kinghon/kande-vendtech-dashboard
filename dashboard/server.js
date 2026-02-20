@@ -73,7 +73,7 @@ function sanitizeObject(obj) {
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
   // Allow these paths without auth
-  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks'];
+  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
     return next();
   }
@@ -23072,23 +23072,24 @@ function getSearchMatches(content, query) {
 
 // ===== TASKS BOARD API =====
 
-// API: Get all tasks
-app.get('/api/tasks', (req, res) => {
-  const apiKey = req.headers['x-api-key'];
-  if (apiKey !== 'kande2026') {
-    return res.status(401).json({ error: 'Invalid API key' });
-  }
+// API: Get all Mission Control tasks
+app.get('/api/mission-control/tasks', (req, res) => {
   
   try {
-    let tasks = db.tasks || [];
+    const tasks = db.missionControlTasks || [];
     
-    // Transform assignedAgent to agent for frontend compatibility
-    tasks = tasks.map(task => ({
-      ...task,
-      agent: task.assignedAgent || task.agent || 'unassigned'
-    }));
+    // Add stats
+    const stats = {
+      recurring: tasks.filter(t => t.status === 'recurring').length,
+      backlog: tasks.filter(t => t.status === 'backlog').length,
+      inProgress: tasks.filter(t => t.status === 'in-progress').length,
+      review: tasks.filter(t => t.status === 'review').length,
+      done: tasks.filter(t => t.status === 'done').length,
+      total: tasks.length,
+      completion: tasks.length > 0 ? Math.round((tasks.filter(t => t.status === 'done').length / tasks.length) * 100) : 0
+    };
     
-    res.json(tasks);
+    res.json({ tasks, stats });
   } catch (error) {
     console.error('Tasks API error:', error);
     res.status(500).json({ error: 'Failed to fetch tasks' });
@@ -23096,12 +23097,7 @@ app.get('/api/tasks', (req, res) => {
 });
 
 // API: Create new task
-app.post('/api/tasks', express.json(), (req, res) => {
-  const apiKey = req.headers['x-api-key'];
-  if (apiKey !== 'kande2026') {
-    return res.status(401).json({ error: 'Invalid API key' });
-  }
-  
+app.post('/api/mission-control/tasks', express.json(), (req, res) => {
   try {
     const { title, description, agent, assignedAgent, project, priority, status } = req.body;
     
@@ -23122,11 +23118,11 @@ app.post('/api/tasks', express.json(), (req, res) => {
       updatedAt: new Date().toISOString()
     };
     
-    if (!db.tasks) db.tasks = [];
-    db.tasks.push(task);
+    if (!db.missionControlTasks) db.missionControlTasks = [];
+    db.missionControlTasks.push(task);
     saveDB(db);
     
-    res.json(task);
+    res.json({ task, ok: true });
   } catch (error) {
     console.error('Create task error:', error);
     res.status(500).json({ error: 'Failed to create task' });
@@ -23134,19 +23130,19 @@ app.post('/api/tasks', express.json(), (req, res) => {
 });
 
 // API: Update task
-app.put('/api/tasks/:id', express.json(), (req, res) => {
+app.put('/api/mission-control/tasks/:id', express.json(), (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, assignedAgent, project, priority, status } = req.body;
     
-    if (!db.tasks) db.tasks = [];
-    const taskIndex = db.tasks.findIndex(t => t.id === id);
+    if (!db.missionControlTasks) db.missionControlTasks = [];
+    const taskIndex = db.missionControlTasks.findIndex(t => t.id === id);
     
     if (taskIndex === -1) {
       return res.status(404).json({ error: 'Task not found' });
     }
     
-    const task = db.tasks[taskIndex];
+    const task = db.missionControlTasks[taskIndex];
     if (title !== undefined) task.title = sanitize(title);
     if (description !== undefined) task.description = sanitize(description);
     if (assignedAgent !== undefined) task.assignedAgent = assignedAgent;
@@ -23164,18 +23160,18 @@ app.put('/api/tasks/:id', express.json(), (req, res) => {
 });
 
 // API: Delete task
-app.delete('/api/tasks/:id', (req, res) => {
+app.delete('/api/mission-control/tasks/:id', (req, res) => {
   try {
     const { id } = req.params;
     
-    if (!db.tasks) db.tasks = [];
-    const taskIndex = db.tasks.findIndex(t => t.id === id);
+    if (!db.missionControlTasks) db.missionControlTasks = [];
+    const taskIndex = db.missionControlTasks.findIndex(t => t.id === id);
     
     if (taskIndex === -1) {
       return res.status(404).json({ error: 'Task not found' });
     }
     
-    db.tasks.splice(taskIndex, 1);
+    db.missionControlTasks.splice(taskIndex, 1);
     saveDB(db);
     res.json({ ok: true });
   } catch (error) {
@@ -23186,8 +23182,8 @@ app.delete('/api/tasks/:id', (req, res) => {
 
 // Initialize default tasks from backlog
 function initializeDefaultTasks() {
-  if (!db.tasks) {
-    db.tasks = [
+  if (!db.missionControlTasks) {
+    db.missionControlTasks = [
       {
         id: '1',
         title: 'Build Mission Control Office View',
