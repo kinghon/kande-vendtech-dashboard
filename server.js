@@ -21955,7 +21955,12 @@ app.get('/api/digital/test', (req, res) => {
   res.json({ 
     status: 'OK', 
     service: 'Kande Digital API',
-    endpoints: ['/api/digital/gmb/audit'],
+    endpoints: [
+      '/api/digital/gmb/audit',
+      '/api/digital/gmb/report', 
+      '/api/digital/content/generate',
+      '/api/digital/reviews/respond'
+    ],
     timestamp: new Date().toISOString()
   });
 });
