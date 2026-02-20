@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mission Control — Digital Office</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #f8f9fa;
+            color: #1a1a1a;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        h1 {
+            color: #1f2937;
+            margin-bottom: 10px;
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .subtitle {
+            color: #6b7280;
+            font-size: 1.1rem;
+        }
+        
+        .office-container {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+            min-height: 600px;
+        }
+        
+        .office-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .agent-desk {
+            position: relative;
+            background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+            border: 2px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            min-height: 160px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .agent-desk:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border-color: #3b82f6;
+        }
+        
+        .agent-desk.working {
+            background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+            border-color: #10b981;
+        }
+        
+        .agent-desk.working::before {
+            content: '⚡';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 1.2rem;
+            animation: pulse 2s infinite;
+        }
+        
+        .agent-desk.idle {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-color: #f59e0b;
+        }
+        
+        .agent-desk.idle::before {
+            content: '😴';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 1.2rem;
+            animation: bob 3s ease-in-out infinite;
+        }
+        
+        .agent-desk.error {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            border-color: #ef4444;
+        }
+        
+        .agent-desk.error::before {
+            content: '🚨';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 1.2rem;
+            animation: shake 0.5s infinite;
+        }
+        
+        .agent-avatar {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            display: block;
+            animation: float 4s ease-in-out infinite;
+        }
+        
+        .agent-name {
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 5px;
+            font-size: 1.1rem;
+        }
+        
+        .agent-role {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-bottom: 8px;
+        }
+        
+        .agent-status {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 20px;
+            display: inline-block;
+            font-weight: 500;
+        }
+        
+        .status-working {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .status-idle {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .office-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0.1;
+            z-index: 1;
+            background-image: 
+                linear-gradient(45deg, #e2e8f0 25%, transparent 25%),
+                linear-gradient(-45deg, #e2e8f0 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #e2e8f0 75%),
+                linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+            background-size: 40px 40px;
+            background-position: 0 0, 0 20px, 20px -20px, -20px 0px;
+        }
+        
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        
+        .stat-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            background: #3b82f6;
+            color: white;
+            transition: background-color 0.2s;
+        }
+        
+        .btn:hover {
+            background: #2563eb;
+        }
+        
+        .btn.secondary {
+            background: #6b7280;
+        }
+        
+        .btn.secondary:hover {
+            background: #4b5563;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+        
+        @keyframes bob {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            75% { transform: translateX(2px); }
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-3px); }
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 15px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.875rem;
+        }
+        
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .legend-dot.working { background: #10b981; }
+        .legend-dot.idle { background: #f59e0b; }
+        .legend-dot.error { background: #ef4444; }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: #fff;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            margin: 20px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6b7280;
+            padding: 5px;
+        }
+        
+        .close-btn:hover {
+            color: #1f2937;
+        }
+        
+        .agent-details {
+            line-height: 1.6;
+        }
+        
+        .agent-details h3 {
+            color: #1f2937;
+            margin: 15px 0 10px 0;
+            font-size: 1.1rem;
+        }
+        
+        .agent-details p {
+            color: #4b5563;
+            margin-bottom: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .office-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 15px;
+            }
+            
+            .agent-desk {
+                min-height: 120px;
+                padding: 15px;
+            }
+            
+            .agent-avatar {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏢 Mission Control Digital Office</h1>
+            <p class="subtitle">Real-time agent status visualization • Live operational overview</p>
+        </header>
+        
+        <div class="stats-panel">
+            <div class="stat-card">
+                <div class="stat-value" id="totalAgents">-</div>
+                <div class="stat-label">Total Agents</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="workingAgents">-</div>
+                <div class="stat-label">Working</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="idleAgents">-</div>
+                <div class="stat-label">Idle</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="errorAgents">-</div>
+                <div class="stat-label">Errors</div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-dot working"></div>
+                <span>Working</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot idle"></div>
+                <span>Idle</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot error"></div>
+                <span>Error</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn" onclick="refreshOffice()">🔄 Refresh Status</button>
+            <button class="btn secondary" onclick="toggleAutoRefresh()">⏸️ Auto Refresh: ON</button>
+        </div>
+        
+        <div class="office-container">
+            <div class="office-background"></div>
+            <div class="office-grid" id="officeGrid">
+                <div class="loading">Loading digital office...</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Agent Details Modal -->
+    <div class="modal" id="agentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">Agent Details</div>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="agent-details" id="modalContent">
+                Loading agent details...
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Digital Office Management System
+        let autoRefreshInterval;
+        let autoRefreshEnabled = true;
+        let agentsData = {};
+        
+        // Status mapping for visual representation
+        const statusMapping = {
+            'completed': 'working',
+            'active': 'working',
+            'running': 'working',
+            'idle': 'idle',
+            'waiting': 'idle',
+            'error': 'error',
+            'failed': 'error',
+            'warning': 'idle'
+        };
+        
+        // Agent emoji mapping
+        const agentEmojis = {
+            'scout': '🔍',
+            'relay': '📡',
+            'ralph': '🔧',
+            'main': '🧠',
+            'claude': '🧠',
+            'pbemaildrafter': '📸',
+            'pbgmailsync': '📨',
+            'standup': '📋',
+            'watercooler': '💬',
+            'retro': '🔄',
+            'morningbriefing': '🌅',
+            'e2eqa': '✅',
+            'healthwatchdog': '🩺',
+            'qasweep': '🔍',
+            'sessioncleanup': '🧹',
+            'nightlybackup': '💾',
+            'selfupdate': '🔄',
+            'goghealthcheck': '📧',
+            'vendingpreneurs': '📰',
+            'seovt': '🔍',
+            'seopb': '📸',
+            'sevenelevenscrape': '🏪',
+            'autodraftemail': '📬',
+            'emailfollowup': '📤',
+            'emailsync': '🔄',
+            'mixmaxsync': '📊',
+            'proposalfollowup': '📋'
+        };
+        
+        async function loadOfficeData() {
+            try {
+                const response = await fetch('/api/team/status');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                
+                agentsData = data.agents || {};
+                
+                // Update stats
+                const agents = Object.values(agentsData);
+                const workingCount = agents.filter(a => statusMapping[a.status] === 'working').length;
+                const idleCount = agents.filter(a => statusMapping[a.status] === 'idle').length;
+                const errorCount = agents.filter(a => statusMapping[a.status] === 'error').length;
+                
+                document.getElementById('totalAgents').textContent = agents.length;
+                document.getElementById('workingAgents').textContent = workingCount;
+                document.getElementById('idleAgents').textContent = idleCount;
+                document.getElementById('errorAgents').textContent = errorCount;
+                
+                renderOffice();
+                
+            } catch (error) {
+                console.error('Failed to load office data:', error);
+                document.getElementById('officeGrid').innerHTML = 
+                    '<div class="loading" style="color: #ef4444;">⚠️ Failed to load agent status</div>';
+            }
+        }
+        
+        function renderOffice() {
+            const grid = document.getElementById('officeGrid');
+            
+            if (!agentsData || Object.keys(agentsData).length === 0) {
+                grid.innerHTML = '<div class="loading">No agents found</div>';
+                return;
+            }
+            
+            const agents = Object.entries(agentsData);
+            const coreAgents = agents.filter(([key, agent]) => agent.type === 'core');
+            const otherAgents = agents.filter(([key, agent]) => agent.type !== 'core');
+            
+            // Sort: core agents first, then by type
+            const sortedAgents = [...coreAgents, ...otherAgents];
+            
+            let html = '';
+            
+            sortedAgents.forEach(([key, agent]) => {
+                const status = statusMapping[agent.status] || 'idle';
+                const emoji = agentEmojis[key] || agent.emoji || '🤖';
+                
+                html += `
+                    <div class="agent-desk ${status}" onclick="showAgentDetails('${key}')">
+                        <div class="agent-avatar">${emoji}</div>
+                        <div class="agent-name">${agent.name}</div>
+                        <div class="agent-role">${agent.role}</div>
+                        <div class="agent-status status-${status}">
+                            ${status.charAt(0).toUpperCase() + status.slice(1)}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            grid.innerHTML = html;
+        }
+        
+        function showAgentDetails(agentKey) {
+            const agent = agentsData[agentKey];
+            if (!agent) return;
+            
+            const status = statusMapping[agent.status] || 'idle';
+            const emoji = agentEmojis[agentKey] || agent.emoji || '🤖';
+            
+            document.getElementById('modalTitle').textContent = `${emoji} ${agent.name}`;
+            
+            const lastRun = agent.lastRun && agent.lastRun !== 'Unknown' 
+                ? new Date(agent.lastRun).toLocaleString()
+                : 'Never';
+            
+            document.getElementById('modalContent').innerHTML = `
+                <h3>🔧 Role & Function</h3>
+                <p><strong>Role:</strong> ${agent.role}</p>
+                <p><strong>Description:</strong> ${agent.description}</p>
+                <p><strong>Type:</strong> ${agent.type}</p>
+                
+                <h3>📊 Status Information</h3>
+                <p><strong>Current Status:</strong> <span class="agent-status status-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></p>
+                <p><strong>Current Task:</strong> ${agent.currentTask}</p>
+                <p><strong>Jobs:</strong> ${agent.jobs || 0}</p>
+                
+                <h3>⚙️ Technical Details</h3>
+                <p><strong>Model:</strong> ${agent.model}</p>
+                <p><strong>Last Run:</strong> ${lastRun}</p>
+                <p><strong>Agent Key:</strong> <code>${agentKey}</code></p>
+            `;
+            
+            document.getElementById('agentModal').style.display = 'flex';
+        }
+        
+        function closeModal() {
+            document.getElementById('agentModal').style.display = 'none';
+        }
+        
+        function refreshOffice() {
+            loadOfficeData();
+        }
+        
+        function toggleAutoRefresh() {
+            const btn = document.querySelector('.controls .btn.secondary');
+            
+            if (autoRefreshEnabled) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshEnabled = false;
+                btn.textContent = '▶️ Auto Refresh: OFF';
+                btn.style.background = '#ef4444';
+            } else {
+                startAutoRefresh();
+                autoRefreshEnabled = true;
+                btn.textContent = '⏸️ Auto Refresh: ON';
+                btn.style.background = '#6b7280';
+            }
+        }
+        
+        function startAutoRefresh() {
+            autoRefreshInterval = setInterval(loadOfficeData, 30000); // 30 seconds
+        }
+        
+        // Close modal when clicking outside
+        document.getElementById('agentModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+        
+        // Initialize office
+        document.addEventListener('DOMContentLoaded', function() {
+            loadOfficeData();
+            startAutoRefresh();
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            } else if (e.key === 'r' || e.key === 'R') {
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    refreshOffice();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

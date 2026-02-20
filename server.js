@@ -73,7 +73,7 @@ function sanitizeObject(obj) {
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
   // Allow these paths without auth
-  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb'];
+  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
     return next();
   }
@@ -23638,3 +23638,296 @@ app.get('/api/pb/backlog-estimate', (req, res) => {
     res.status(500).json({ error: 'Backlog estimation failed', details: error.message });
   }
 });
+
+// ===== MISSION CONTROL OFFICE VIEW (Ralph 2026-02-20) =====
+
+// Mission Control Digital Office View
+app.get('/office', (req, res) => {
+  res.sendFile(path.join(__dirname, 'office.html'));
+});
+
+// API: Live Agent Status for Office View
+app.get('/api/agents/live-status', (req, res) => {
+  try {
+    // Enhanced team status with real-time cron job integration
+    const teamStatus = db.teamStatus || {};
+    const cronJobs = db.cronJobs || [];
+    
+    // Build enhanced agent status with live cron data
+    const agents = {};
+    
+    // Core agents with priority display
+    const coreAgents = ['scout', 'relay', 'ralph', 'main', 'claude'];
+    
+    coreAgents.forEach(agent => {
+      const status = teamStatus[agent] || {};
+      const relatedJobs = cronJobs.filter(job => 
+        job.name.toLowerCase().includes(agent) ||
+        job.description?.toLowerCase().includes(agent)
+      );
+      
+      agents[agent] = {
+        name: agent.charAt(0).toUpperCase() + agent.slice(1),
+        role: getAgentRole(agent),
+        emoji: getAgentEmoji(agent),
+        model: status.model || 'anthropic/claude-sonnet-4-20250514',
+        description: getAgentDescription(agent),
+        type: 'core',
+        status: determineAgentStatus(status, relatedJobs),
+        lastRun: status.updatedAt || status.lastRun || null,
+        jobs: relatedJobs.length,
+        currentTask: status.lastActivity || getDefaultTask(agent),
+        statusText: status.statusText || 'Ready for work',
+        workingIndicator: isAgentWorking(status, relatedJobs)
+      };
+    });
+    
+    // Support agents grouped by type
+    const supportAgentTypes = {
+      'vendtech': ['autodraftemail', 'emailfollowup', 'emailsync', 'mixmaxsync', 'proposalfollowup'],
+      'photobooths': ['pbemaildrafter', 'pbgmailsync'],
+      'coordination': ['standup', 'watercooler', 'retro', 'morningbriefing'],
+      'system': ['e2eqa', 'healthwatchdog', 'qasweep', 'sessioncleanup', 'nightlybackup', 'selfupdate', 'goghealthcheck'],
+      'research': ['vendingpreneurs', 'seovt', 'seopb', 'sevenelevenscrape']
+    };
+    
+    Object.entries(supportAgentTypes).forEach(([type, agentList]) => {
+      agentList.forEach(agent => {
+        const status = teamStatus[agent] || {};
+        const relatedJobs = cronJobs.filter(job => 
+          job.name.includes(agent) || agent.includes(job.name.replace(/[-_]/g, ''))
+        );
+        
+        agents[agent] = {
+          name: formatAgentName(agent),
+          role: getAgentRole(agent),
+          emoji: getAgentEmoji(agent),
+          model: status.model || 'anthropic/claude-sonnet-4-20250514',
+          description: getAgentDescription(agent),
+          type: type,
+          status: determineAgentStatus(status, relatedJobs),
+          lastRun: status.updatedAt || status.lastRun || null,
+          jobs: relatedJobs.length,
+          currentTask: status.lastActivity || getDefaultTask(agent),
+          statusText: status.statusText || 'Waiting for next run',
+          workingIndicator: isAgentWorking(status, relatedJobs)
+        };
+      });
+    });
+    
+    // Calculate office-wide metrics
+    const agentList = Object.values(agents);
+    const workingCount = agentList.filter(a => a.status === 'working' || a.status === 'completed').length;
+    const idleCount = agentList.filter(a => a.status === 'idle' || a.status === 'waiting').length;
+    const errorCount = agentList.filter(a => a.status === 'error' || a.status === 'failed').length;
+    
+    res.json({
+      agents,
+      metrics: {
+        totalAgents: agentList.length,
+        workingAgents: workingCount,
+        idleAgents: idleCount,
+        errorAgents: errorCount,
+        lastUpdate: new Date().toISOString()
+      },
+      timestamp: new Date().toISOString(),
+      cronJobs: cronJobs.length
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Live agent status failed', details: error.message });
+  }
+});
+
+// Helper functions for agent status determination
+function getAgentRole(agent) {
+  const roles = {
+    'scout': 'Research Agent',
+    'relay': 'Sales Operations',
+    'ralph': 'Engineering Agent',
+    'main': 'Chief of Staff',
+    'claude': 'Chief of Staff',
+    'pbemaildrafter': 'PB Email Creation',
+    'pbgmailsync': 'PB Email Sync',
+    'standup': 'Team Coordination',
+    'watercooler': 'Team Check-ins',
+    'retro': 'Team Retrospectives',
+    'morningbriefing': 'Daily Updates',
+    'e2eqa': 'Quality Assurance',
+    'healthwatchdog': 'System Monitoring',
+    'qasweep': 'Quality Monitoring',
+    'sessioncleanup': 'System Maintenance',
+    'nightlybackup': 'Data Protection',
+    'selfupdate': 'System Updates',
+    'goghealthcheck': 'Email System Monitor',
+    'vendingpreneurs': 'Industry Research',
+    'seovt': 'VendTech SEO Monitor',
+    'seopb': 'Photo Booth SEO Monitor',
+    'sevenelevenscrape': 'Market Research',
+    'autodraftemail': 'VendTech Email Automation',
+    'emailfollowup': 'VendTech Follow-ups',
+    'emailsync': 'VendTech Email Tracking',
+    'mixmaxsync': 'Campaign Tracking',
+    'proposalfollowup': 'VendTech Proposals'
+  };
+  return roles[agent] || 'Specialized Agent';
+}
+
+function getAgentEmoji(agent) {
+  const emojis = {
+    'scout': '🔍',
+    'relay': '📡',
+    'ralph': '🔧',
+    'main': '🧠',
+    'claude': '🧠',
+    'pbemaildrafter': '📸',
+    'pbgmailsync': '📨',
+    'standup': '📋',
+    'watercooler': '💬',
+    'retro': '🔄',
+    'morningbriefing': '🌅',
+    'e2eqa': '✅',
+    'healthwatchdog': '🩺',
+    'qasweep': '🔍',
+    'sessioncleanup': '🧹',
+    'nightlybackup': '💾',
+    'selfupdate': '🔄',
+    'goghealthcheck': '📧',
+    'vendingpreneurs': '📰',
+    'seovt': '🔍',
+    'seopb': '📸',
+    'sevenelevenscrape': '🏪',
+    'autodraftemail': '📬',
+    'emailfollowup': '📤',
+    'emailsync': '🔄',
+    'mixmaxsync': '📊',
+    'proposalfollowup': '📋'
+  };
+  return emojis[agent] || '🤖';
+}
+
+function getAgentDescription(agent) {
+  const descriptions = {
+    'scout': 'Lead research and market analysis across all businesses',
+    'relay': 'Sales pipeline management and outreach coordination',
+    'ralph': 'Dashboard development, system engineering, and technical operations',
+    'main': 'Orchestrates all operations, strategic decision making, memory management',
+    'claude': 'Orchestrates all operations, strategic decision making, memory management',
+    'pbemaildrafter': 'Photo Booth inquiry responses and email drafting',
+    'pbgmailsync': 'Photo Booth Gmail draft synchronization',
+    'standup': 'Daily team coordination and planning sessions',
+    'watercooler': 'Regular team communication and status updates',
+    'retro': 'Weekly team retrospectives and process improvement',
+    'morningbriefing': 'Daily morning briefings and status summaries',
+    'e2eqa': 'End-to-end dashboard health monitoring and QA',
+    'healthwatchdog': 'Cron job health monitoring and error detection',
+    'qasweep': 'Regular VendTech quality assurance sweeps',
+    'sessioncleanup': 'Weekly session cleanup and maintenance',
+    'nightlybackup': 'Nightly Google Drive backups and data protection',
+    'selfupdate': 'System self-update and maintenance tasks',
+    'goghealthcheck': 'Gmail API and email system health monitoring',
+    'vendingpreneurs': 'Vending industry news and trend monitoring',
+    'seovt': 'Weekly VendTech website SEO monitoring and optimization',
+    'seopb': 'Weekly Photo Booth website SEO monitoring and optimization',
+    'sevenelevenscrape': 'Weekly 7-Eleven pricing data collection and analysis',
+    'autodraftemail': 'Automated VendTech email drafting and queue management',
+    'emailfollowup': 'VendTech follow-up email generation and scheduling',
+    'emailsync': 'Synchronizes sent VendTech emails with CRM',
+    'mixmaxsync': 'Mixmax campaign data synchronization and tracking',
+    'proposalfollowup': 'Automated proposal follow-up and status tracking'
+  };
+  return descriptions[agent] || 'Specialized business automation agent';
+}
+
+function getDefaultTask(agent) {
+  const tasks = {
+    'scout': 'Market research and lead analysis',
+    'relay': 'Pipeline operations and sales coordination',
+    'ralph': 'Mission Control development and engineering',
+    'main': 'Strategic oversight and team coordination',
+    'claude': 'Strategic oversight and team coordination',
+    'pbemaildrafter': 'Photo Booth email drafting',
+    'pbgmailsync': 'Gmail draft synchronization',
+    'standup': 'Daily team planning',
+    'watercooler': 'Team communication',
+    'retro': 'Weekly retrospectives',
+    'morningbriefing': 'Daily briefing generation',
+    'e2eqa': 'Dashboard health monitoring',
+    'healthwatchdog': 'System health monitoring',
+    'qasweep': 'Quality assurance monitoring',
+    'sessioncleanup': 'Session maintenance',
+    'nightlybackup': 'Data backup operations',
+    'selfupdate': 'System maintenance',
+    'goghealthcheck': 'Email system monitoring',
+    'vendingpreneurs': 'Industry trend monitoring',
+    'seovt': 'VendTech SEO monitoring',
+    'seopb': 'Photo Booth SEO monitoring',
+    'sevenelevenscrape': 'Market pricing research',
+    'autodraftemail': 'VendTech email automation',
+    'emailfollowup': 'Follow-up email generation',
+    'emailsync': 'Email tracking and CRM sync',
+    'mixmaxsync': 'Campaign data synchronization',
+    'proposalfollowup': 'Proposal tracking and follow-up'
+  };
+  return tasks[agent] || 'Specialized automation tasks';
+}
+
+function formatAgentName(agent) {
+  const names = {
+    'pbemaildrafter': 'PB Email Drafts',
+    'pbgmailsync': 'PB Gmail Draft Sync',
+    'morningbriefing': 'Morning Briefing',
+    'e2eqa': 'E2E QA',
+    'healthwatchdog': 'Health Watchdog',
+    'qasweep': 'QA Sweep',
+    'sessioncleanup': 'Session Cleanup',
+    'nightlybackup': 'Nightly Backup',
+    'selfupdate': 'Self-Update',
+    'goghealthcheck': 'GOG Health Check',
+    'vendingpreneurs': 'Vendingpreneurs Scrape',
+    'seovt': 'SEO Check (VT)',
+    'seopb': 'SEO Check (PB)',
+    'sevenelevenscrape': '7-Eleven Price Scrape',
+    'autodraftemail': 'Auto-Draft Email',
+    'emailfollowup': 'Email Follow-up Drafter',
+    'emailsync': 'Sent Email Sync',
+    'mixmaxsync': 'Mixmax Sync',
+    'proposalfollowup': 'Proposal Follow-up'
+  };
+  
+  return names[agent] || agent.charAt(0).toUpperCase() + agent.slice(1);
+}
+
+function determineAgentStatus(status, relatedJobs) {
+  // Check if agent has recent activity (within last hour)
+  if (status.updatedAt) {
+    const lastUpdate = new Date(status.updatedAt);
+    const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    if (lastUpdate > hourAgo) {
+      return status.state === 'error' ? 'error' : 'working';
+    }
+  }
+  
+  // Check cron job status for recent activity
+  const recentJob = relatedJobs.find(job => {
+    if (job.lastRun) {
+      const lastRun = new Date(job.lastRun);
+      const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      return lastRun > hourAgo;
+    }
+    return false;
+  });
+  
+  if (recentJob) {
+    return recentJob.status === 'error' ? 'error' : 'working';
+  }
+  
+  // Default based on stored status
+  if (status.state === 'error' || status.state === 'failed') return 'error';
+  if (status.state === 'completed' || status.state === 'active') return 'working';
+  
+  return 'idle';
+}
+
+function isAgentWorking(status, relatedJobs) {
+  return determineAgentStatus(status, relatedJobs) === 'working';
+}
