@@ -73,7 +73,7 @@ function sanitizeObject(obj) {
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
   // Allow these paths without auth
-  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb/health', '/api/pb/crisis-timeline', '/api/pb/backlog-estimate'];
+  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
     return next();
   }
