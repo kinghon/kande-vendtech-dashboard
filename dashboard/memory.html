@@ -21,13 +21,8 @@
             --green: #10b981;
             --red: #ef4444;
             --blue: #3b82f6;
-            --amber: #f59e0b;
-            --purple: #7c3aed;
             --orange: #f97316;
-            --gold: #eab308;
-            --light-purple: #8b5cf6;
-            --gray: #6b7280;
-            --teal: #06b6d4;
+            --amber: #f59e0b;
         }
         
         body {
@@ -35,637 +30,681 @@
             background: var(--bg);
             color: var(--text);
             line-height: 1.5;
-        }
-        
-        .header {
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-            padding: 16px 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .header-left h1 {
-            font-size: 24px;
-            font-weight: 700;
+            min-height: 100vh;
             margin: 0;
         }
         
-        .header-left p {
-            font-size: 14px;
-            color: var(--text-dim);
-            margin-top: 2px;
+        .memory-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            height: 100vh;
+            gap: 0;
         }
         
-        .header-right {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-        }
-        
-        .nav-links {
-            display: flex;
-            gap: 16px;
-        }
-        
-        .nav-links a {
-            color: var(--text-dim);
-            text-decoration: none;
-            font-weight: 500;
-            padding: 8px 12px;
-            border-radius: 6px;
-            transition: all 0.2s;
-        }
-        
-        .nav-links a:hover {
-            background: var(--bg);
-            color: var(--text);
-        }
-        
-        .nav-links a.active {
-            background: var(--accent);
-            color: white;
-        }
-        
-        .main-container {
-            padding: 24px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        .search-section {
+        /* LEFT PANEL - File List */
+        .file-panel {
             background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 24px;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
         }
         
-        .search-box {
-            display: flex;
-            gap: 12px;
-            align-items: center;
+        .file-panel-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .panel-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+        
+        .panel-subtitle {
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+        
+        .search-bar {
+            margin-top: 16px;
         }
         
         .search-input {
-            flex: 1;
-            padding: 12px 16px;
+            width: 100%;
+            background: var(--card);
             border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 16px;
-            background: var(--bg);
+            color: var(--text);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        
+        .search-input::placeholder {
+            color: var(--text-muted);
         }
         
         .search-input:focus {
             outline: none;
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
         }
         
-        .search-btn {
+        .file-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 0;
+        }
+        
+        .file-item {
             padding: 12px 20px;
-            background: var(--accent);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        
-        .search-btn:hover {
-            background: #4f46e5;
-        }
-        
-        .search-results {
-            margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px solid var(--border);
-            display: none;
-        }
-        
-        .search-results.show {
-            display: block;
-        }
-        
-        .search-result {
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 12px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        
-        .search-result:hover {
-            background: #f1f5f9;
-        }
-        
-        .search-result-header {
-            display: flex;
-            justify-content: between;
-            align-items: center;
-            margin-bottom: 4px;
-        }
-        
-        .search-result-file {
-            font-weight: 600;
-            color: var(--text);
-        }
-        
-        .search-result-matches {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-left: auto;
-        }
-        
-        .search-result-excerpt {
-            font-size: 13px;
-            color: var(--text-dim);
-            line-height: 1.4;
-            font-family: 'SF Mono', Monaco, monospace;
-            background: var(--surface);
-            padding: 8px;
-            border-radius: 4px;
-            margin-top: 8px;
-            white-space: pre-wrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-height: 100px;
-        }
-        
-        .memory-files {
-            display: grid;
-            gap: 16px;
-        }
-        
-        .memory-file {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            overflow: hidden;
             cursor: pointer;
             transition: all 0.2s;
-        }
-        
-        .memory-file:hover {
-            border-color: var(--accent);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        
-        .memory-file.long-term {
-            border-color: var(--purple);
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.05), rgba(124, 58, 237, 0.02));
-        }
-        
-        .memory-file.long-term .file-header {
-            background: var(--purple);
-            color: white;
-        }
-        
-        .file-header {
-            background: var(--bg);
-            padding: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-        
-        .file-info h3 {
-            font-size: 18px;
-            font-weight: 700;
-            margin: 0;
+            border-left: 3px solid transparent;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
+        }
+        
+        .file-item:hover {
+            background: var(--card-hover);
+        }
+        
+        .file-item.active {
+            background: var(--card-hover);
+            border-left-color: var(--accent);
+        }
+        
+        .file-item.ltm {
+            border-left-color: var(--green);
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .file-item.ltm:hover {
+            background: rgba(16, 185, 129, 0.15);
+        }
+        
+        .file-icon {
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        
+        .file-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .file-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 2px;
+        }
+        
+        .file-item.ltm .file-name {
+            color: var(--green);
+        }
+        
+        .file-meta {
+            font-size: 12px;
+            color: var(--text-muted);
         }
         
         .file-badge {
-            background: var(--purple);
+            background: var(--green);
             color: white;
-            padding: 2px 8px;
-            border-radius: 4px;
             font-size: 10px;
             font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         
-        .file-date {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-top: 4px;
-            font-family: 'SF Mono', Monaco, monospace;
-        }
-        
-        .file-meta {
-            text-align: right;
-        }
-        
-        .file-size {
-            font-size: 12px;
-            color: var(--text-muted);
-            font-family: 'SF Mono', Monaco, monospace;
-        }
-        
-        .file-preview {
-            padding: 16px;
-            font-size: 14px;
-            line-height: 1.6;
-            color: var(--text-dim);
-            border-top: 1px solid var(--border);
+        /* RIGHT PANEL - Document Reader */
+        .reader-panel {
             background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
         }
         
-        .file-content {
-            display: none;
-            padding: 24px;
-            max-height: 80vh;
-            overflow-y: auto;
+        .reader-header {
             background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 20px 24px;
         }
         
-        .file-content.show {
-            display: block;
-        }
-        
-        .markdown-content {
-            font-size: 15px;
-            line-height: 1.7;
-        }
-        
-        .markdown-content h1, .markdown-content h2, .markdown-content h3 {
-            margin-top: 24px;
-            margin-bottom: 12px;
-            color: var(--text);
-        }
-        
-        .markdown-content h1 {
-            font-size: 28px;
-            border-bottom: 2px solid var(--border);
-            padding-bottom: 8px;
-        }
-        
-        .markdown-content h2 {
-            font-size: 24px;
-        }
-        
-        .markdown-content h3 {
+        .reader-title {
             font-size: 20px;
-        }
-        
-        .markdown-content p {
-            margin-bottom: 16px;
-        }
-        
-        .markdown-content ul, .markdown-content ol {
-            margin-left: 24px;
-            margin-bottom: 16px;
-        }
-        
-        .markdown-content li {
+            font-weight: 700;
+            color: #fff;
             margin-bottom: 4px;
         }
         
-        .markdown-content code {
-            background: var(--bg);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'SF Mono', Monaco, monospace;
+        .reader-subtitle {
             font-size: 13px;
-        }
-        
-        .markdown-content pre {
-            background: var(--bg);
-            padding: 16px;
-            border-radius: 6px;
-            overflow-x: auto;
-            margin-bottom: 16px;
-            border: 1px solid var(--border);
-        }
-        
-        .markdown-content pre code {
-            background: none;
-            padding: 0;
-        }
-        
-        .markdown-content blockquote {
-            border-left: 4px solid var(--accent);
-            padding-left: 16px;
-            margin-left: 0;
-            margin-bottom: 16px;
             color: var(--text-dim);
-            font-style: italic;
         }
         
-        .close-btn {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: var(--text-muted);
-            width: 32px;
-            height: 32px;
+        .reader-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+        
+        .reader-empty {
             display: flex;
             align-items: center;
             justify-content: center;
+            height: 100%;
+            color: var(--text-muted);
+            font-style: italic;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .reader-empty .empty-icon {
+            font-size: 48px;
+            opacity: 0.5;
+        }
+        
+        /* Journal Entry Styling */
+        .journal-entry {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            padding: 16px;
+            background: var(--surface);
+            border-radius: 8px;
+            border-left: 4px solid var(--border);
+        }
+        
+        .entry-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            margin-top: 6px;
+        }
+        
+        .entry-dot.decision { background: var(--green); }
+        .entry-dot.error { background: var(--red); }
+        .entry-dot.info { background: var(--blue); }
+        .entry-dot.warning { background: var(--orange); }
+        
+        .entry-content {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .entry-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .entry-time {
+            font-size: 12px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            color: var(--text-muted);
+            background: var(--card);
+            padding: 2px 6px;
             border-radius: 4px;
         }
         
-        .close-btn:hover {
-            background: var(--bg);
+        .entry-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+            flex: 1;
+        }
+        
+        .entry-body {
+            font-size: 14px;
+            color: var(--text-dim);
+            line-height: 1.6;
+        }
+        
+        .entry-body h1, .entry-body h2, .entry-body h3 {
+            color: #fff;
+            margin-top: 16px;
+            margin-bottom: 8px;
+        }
+        
+        .entry-body h1 { font-size: 18px; }
+        .entry-body h2 { font-size: 16px; }
+        .entry-body h3 { font-size: 14px; }
+        
+        .entry-body p {
+            margin-bottom: 12px;
+        }
+        
+        .entry-body ul, .entry-body ol {
+            margin-left: 20px;
+            margin-bottom: 12px;
+        }
+        
+        .entry-body li {
+            margin-bottom: 4px;
+        }
+        
+        .entry-body code {
+            background: var(--card);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 13px;
+            color: var(--accent);
+        }
+        
+        .entry-body pre {
+            background: var(--card);
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 12px 0;
+        }
+        
+        .entry-body pre code {
+            background: none;
+            padding: 0;
             color: var(--text);
         }
         
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            padding: 20px;
-        }
-        
-        .modal-overlay.show {
-            display: flex;
-        }
-        
-        .modal-content {
-            background: var(--surface);
-            border-radius: 8px;
-            width: 100%;
-            max-width: 900px;
-            max-height: 90vh;
-            overflow: hidden;
-            position: relative;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        
-        .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 200px;
+        .entry-body blockquote {
+            border-left: 3px solid var(--accent);
+            padding-left: 16px;
+            margin: 12px 0;
+            font-style: italic;
             color: var(--text-dim);
         }
         
+        /* Loading state */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 40px;
+            color: var(--text-dim);
+        }
+        
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top: 2px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Mobile responsiveness */
         @media (max-width: 768px) {
-            .main-container {
-                padding: 16px;
+            .memory-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
             }
             
-            .search-box {
-                flex-direction: column;
+            .file-panel {
+                height: auto;
+                max-height: 300px;
             }
             
-            .search-input {
-                margin-bottom: 8px;
+            .reader-panel {
+                height: calc(100vh - 300px);
             }
-            
-            .modal-overlay {
-                padding: 10px;
-            }
-            
-            .file-header {
-                flex-direction: column;
-                gap: 8px;
-            }
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
         }
     </style>
 </head>
 <body>
     <script src="/nav.js"></script>
-    <div class="header">
-        <div class="header-left">
-            <h1>🚀 Mission Control — Memory Browser</h1>
-            <p>Searchable archive of all memory files and operational knowledge</p>
-        </div>
-        <div class="header-right">
-            <nav class="nav-links">
-                <a href="/team">👥 Team</a>
-                <a href="/calendar">📅 Calendar</a>
-                <a href="/memory" class="active">🧠 Memory</a>
-                <a href="#" style="color: var(--text-muted);">🏢 Office</a>
-            </nav>
-        </div>
-    </div>
-
-    <div class="main-container">
-        <div class="search-section">
-            <div class="search-box">
-                <input type="text" class="search-input" placeholder="Search across all memory files..." id="search-input">
-                <button class="search-btn" onclick="performSearch()">Search</button>
+    
+    <div class="memory-container">
+        <!-- LEFT PANEL - File List -->
+        <div class="file-panel">
+            <div class="file-panel-header">
+                <h1 class="panel-title">Memory Browser</h1>
+                <p class="panel-subtitle">Search and explore agent memories</p>
+                
+                <div class="search-bar">
+                    <input type="text" class="search-input" placeholder="Search memories..." id="search-input" onkeyup="searchFiles()">
+                </div>
             </div>
-            <div class="search-results" id="search-results">
-                <!-- Search results will appear here -->
+            
+            <div class="file-list" id="file-list">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    Loading memory files...
+                </div>
             </div>
         </div>
-
-        <div id="memory-files" class="memory-files">
-            <div class="loading">Loading memory files...</div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="modal-overlay">
-        <div class="modal-content">
-            <button class="close-btn" onclick="closeModal()">×</button>
-            <div id="modal-content">
-                <!-- File content will appear here -->
+        
+        <!-- RIGHT PANEL - Document Reader -->
+        <div class="reader-panel">
+            <div class="reader-header">
+                <h2 class="reader-title" id="reader-title">Select a Memory File</h2>
+                <p class="reader-subtitle" id="reader-subtitle">Choose from the files on the left to read</p>
+            </div>
+            
+            <div class="reader-content" id="reader-content">
+                <div class="reader-empty">
+                    <div class="empty-icon">📖</div>
+                    <p>Select a memory file from the left panel to start reading</p>
+                </div>
             </div>
         </div>
     </div>
-
+    
     <script>
         let memoryFiles = [];
-        let currentSearchResults = [];
-
+        let filteredFiles = [];
+        
         // Load memory files on page load
+        document.addEventListener('DOMContentLoaded', loadMemoryFiles);
+        
         async function loadMemoryFiles() {
             try {
-                const response = await fetch('/api/memory/list');
-                const data = await response.json();
-                memoryFiles = data.files || [];
-                renderMemoryFiles();
-            } catch (error) {
-                console.error('Error loading memory files:', error);
-                document.getElementById('memory-files').innerHTML = 
-                    '<div class="loading" style="color: var(--red)">Error loading memory files</div>';
-            }
-        }
-
-        function renderMemoryFiles() {
-            const container = document.getElementById('memory-files');
-            container.innerHTML = '';
-
-            memoryFiles.forEach(file => {
-                const fileElement = document.createElement('div');
-                fileElement.className = `memory-file ${file.isLongTerm ? 'long-term' : ''}`;
-                fileElement.onclick = () => openFile(file.filename);
-                
-                const date = new Date(file.date).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
+                const response = await fetch('/api/memory/list', {
+                    headers: {
+                        'x-api-key': 'kande2026'
+                    }
                 });
                 
-                const sizeKB = Math.round(file.size / 1024);
-                
-                fileElement.innerHTML = `
-                    <div class="file-header">
-                        <div class="file-info">
-                            <h3>
-                                ${file.filename}
-                                ${file.isLongTerm ? '<span class="file-badge">Long-Term Memory</span>' : ''}
-                            </h3>
-                            <div class="file-date">${date}</div>
-                        </div>
-                        <div class="file-meta">
-                            <div class="file-size">${sizeKB} KB</div>
-                        </div>
-                    </div>
-                    <div class="file-preview">${file.preview}</div>
-                `;
-                
-                container.appendChild(fileElement);
-            });
-        }
-
-        async function openFile(filename) {
-            try {
-                const response = await fetch(`/api/memory/read/${encodeURIComponent(filename)}`);
-                const data = await response.json();
-                
-                if (data.error) {
-                    alert('Error loading file: ' + data.error);
-                    return;
+                if (response.ok) {
+                    memoryFiles = await response.json();
+                } else {
+                    memoryFiles = [];
                 }
-                
-                const modalContent = document.getElementById('modal-content');
-                const date = new Date(data.date).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                
-                // Convert markdown to HTML
-                const htmlContent = marked.parse(data.content);
-                
-                modalContent.innerHTML = `
-                    <div style="padding: 24px; border-bottom: 1px solid var(--border);">
-                        <h2 style="margin: 0; display: flex; align-items: center; gap: 12px;">
-                            ${data.filename}
-                            ${data.filename === 'MEMORY.md' ? '<span class="file-badge">Long-Term Memory</span>' : ''}
-                        </h2>
-                        <p style="margin: 8px 0 0 0; color: var(--text-dim); font-size: 14px;">${date} • ${Math.round(data.size / 1024)} KB</p>
-                    </div>
-                    <div class="file-content show">
-                        <div class="markdown-content">${htmlContent}</div>
-                    </div>
-                `;
-                
-                document.getElementById('modal-overlay').classList.add('show');
             } catch (error) {
-                console.error('Error opening file:', error);
-                alert('Error opening file');
+                console.error('Failed to load memory files:', error);
+                memoryFiles = [];
             }
-        }
-
-        function closeModal() {
-            document.getElementById('modal-overlay').classList.remove('show');
-        }
-
-        async function performSearch() {
-            const query = document.getElementById('search-input').value.trim();
-            const resultsContainer = document.getElementById('search-results');
             
-            if (!query) {
-                resultsContainer.classList.remove('show');
+            filteredFiles = [...memoryFiles];
+            renderFileList();
+        }
+        
+        function renderFileList() {
+            const fileList = document.getElementById('file-list');
+            
+            if (filteredFiles.length === 0) {
+                fileList.innerHTML = '<div class="reader-empty"><p>No memory files found</p></div>';
                 return;
             }
             
-            try {
-                const response = await fetch(`/api/memory/search?q=${encodeURIComponent(query)}`);
-                const data = await response.json();
-                
-                currentSearchResults = data.results || [];
-                renderSearchResults(data);
-            } catch (error) {
-                console.error('Error searching:', error);
-                resultsContainer.innerHTML = '<div style="color: var(--red);">Search error</div>';
-                resultsContainer.classList.add('show');
-            }
-        }
-
-        function renderSearchResults(data) {
-            const resultsContainer = document.getElementById('search-results');
+            // Sort files: MEMORY.md first, then by date (newest first)
+            const sortedFiles = [...filteredFiles].sort((a, b) => {
+                if (a.filename === 'MEMORY.md') return -1;
+                if (b.filename === 'MEMORY.md') return 1;
+                return new Date(b.date) - new Date(a.date);
+            });
             
-            if (data.results.length === 0) {
-                resultsContainer.innerHTML = `
-                    <div style="text-align: center; padding: 20px; color: var(--text-muted);">
-                        No results found for "${data.query}"
+            fileList.innerHTML = sortedFiles.map(file => {
+                const isLTM = file.filename === 'MEMORY.md';
+                const displayName = isLTM ? 'Long Term Memory' : formatFileDate(file.filename);
+                const icon = isLTM ? '🧠' : '📝';
+                const badge = isLTM ? '<span class="file-badge">LTM</span>' : '';
+                
+                return `
+                    <div class="file-item ${isLTM ? 'ltm' : ''}" onclick="loadMemoryFile('${file.filename}')">
+                        <div class="file-icon">${icon}</div>
+                        <div class="file-info">
+                            <div class="file-name">${displayName}</div>
+                            <div class="file-meta">${formatFileSize(file.size)} • ${file.date}</div>
+                        </div>
+                        ${badge}
                     </div>
                 `;
+            }).join('');
+        }
+        
+        function formatFileDate(filename) {
+            if (filename === 'MEMORY.md') return 'Long Term Memory';
+            
+            const match = filename.match(/(\d{4}-\d{2}-\d{2})/);
+            if (match) {
+                const date = new Date(match[1]);
+                return date.toLocaleDateString('en-US', { 
+                    weekday: 'short', 
+                    month: 'short', 
+                    day: 'numeric'
+                });
+            }
+            return filename.replace('.md', '');
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+            return Math.round(bytes / (1024 * 1024)) + ' MB';
+        }
+        
+        async function loadMemoryFile(filename) {
+            // Update UI immediately
+            document.querySelectorAll('.file-item').forEach(item => item.classList.remove('active'));
+            event.target.closest('.file-item').classList.add('active');
+            
+            const readerTitle = document.getElementById('reader-title');
+            const readerSubtitle = document.getElementById('reader-subtitle');
+            const readerContent = document.getElementById('reader-content');
+            
+            // Show loading state
+            readerContent.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading memory...</div>';
+            
+            if (filename === 'MEMORY.md') {
+                readerTitle.textContent = 'Long Term Memory';
+                readerSubtitle.textContent = 'Curated memories and core learnings';
             } else {
-                resultsContainer.innerHTML = `
-                    <div style="margin-bottom: 16px; font-weight: 600; color: var(--text-dim);">
-                        ${data.total} result${data.total === 1 ? '' : 's'} for "${data.query}"
-                    </div>
-                ` + data.results.map(result => `
-                    <div class="search-result" onclick="openFile('${result.filename}')">
-                        <div class="search-result-header">
-                            <div class="search-result-file">
-                                ${result.filename}
-                                ${result.isLongTerm ? '<span class="file-badge" style="margin-left: 8px;">LTM</span>' : ''}
+                const match = filename.match(/(\d{4}-\d{2}-\d{2})/);
+                if (match) {
+                    const date = new Date(match[1]);
+                    readerTitle.textContent = `Journal: ${date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`;
+                    readerSubtitle.textContent = `Daily memories and session notes`;
+                } else {
+                    readerTitle.textContent = filename.replace('.md', '');
+                    readerSubtitle.textContent = 'Memory file content';
+                }
+            }
+            
+            try {
+                const response = await fetch(`/api/memory/read/${encodeURIComponent(filename)}`, {
+                    headers: {
+                        'x-api-key': 'kande2026'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    renderMemoryContent(data.content, filename);
+                } else {
+                    readerContent.innerHTML = '<div class="reader-empty"><div class="empty-icon">❌</div><p>Failed to load memory file</p></div>';
+                }
+            } catch (error) {
+                console.error('Failed to load memory file:', error);
+                readerContent.innerHTML = '<div class="reader-empty"><div class="empty-icon">❌</div><p>Error loading memory file</p></div>';
+            }
+        }
+        
+        function renderMemoryContent(content, filename) {
+            const readerContent = document.getElementById('reader-content');
+            
+            if (filename === 'MEMORY.md') {
+                // Render MEMORY.md as regular markdown
+                readerContent.innerHTML = `<div class="memory-content">${marked.parse(content)}</div>`;
+            } else {
+                // Parse daily memory files into journal entries
+                const entries = parseJournalEntries(content);
+                
+                if (entries.length === 0) {
+                    readerContent.innerHTML = '<div class="reader-empty"><div class="empty-icon">📝</div><p>No entries found in this memory file</p></div>';
+                    return;
+                }
+                
+                readerContent.innerHTML = entries.map(entry => `
+                    <div class="journal-entry">
+                        <div class="entry-dot ${entry.type}"></div>
+                        <div class="entry-content">
+                            <div class="entry-header">
+                                <div class="entry-time">${entry.time}</div>
+                                <div class="entry-title">${entry.title}</div>
                             </div>
-                            <div class="search-result-matches">${result.matches} match${result.matches === 1 ? '' : 'es'}</div>
+                            <div class="entry-body">${marked.parse(entry.content)}</div>
                         </div>
-                        ${result.excerpts.map(excerpt => `
-                            <div class="search-result-excerpt">${excerpt}</div>
-                        `).join('')}
                     </div>
                 `).join('');
             }
             
-            resultsContainer.classList.add('show');
+            // Style any resulting markdown content
+            styleMarkdownContent();
         }
-
-        // Enable search on Enter key
-        document.getElementById('search-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                performSearch();
+        
+        function parseJournalEntries(content) {
+            const entries = [];
+            const lines = content.split('\n');
+            let currentEntry = null;
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                
+                // Look for timestamp patterns (various formats)
+                const timeMatch = line.match(/^(\d{1,2}:\d{2}(?::\d{2})?(?:\s?[AP]M)?)\s*[-—]\s*(.+)$/i) ||
+                                line.match(/^\[(\d{1,2}:\d{2}(?::\d{2})?(?:\s?[AP]M)?)\]\s*(.+)$/i) ||
+                                line.match(/^## (.+) — (\d{1,2}:\d{2}(?::\d{2})?(?:\s?[AP]M)?)$/i);
+                
+                if (timeMatch) {
+                    // Save previous entry
+                    if (currentEntry) {
+                        entries.push(currentEntry);
+                    }
+                    
+                    // Start new entry
+                    const time = timeMatch[1] || timeMatch[2];
+                    const title = timeMatch[2] || timeMatch[1];
+                    
+                    currentEntry = {
+                        time: time,
+                        title: title,
+                        content: '',
+                        type: determineEntryType(title)
+                    };
+                } else if (currentEntry && line) {
+                    // Add content to current entry
+                    if (currentEntry.content) {
+                        currentEntry.content += '\n' + line;
+                    } else {
+                        currentEntry.content = line;
+                    }
+                }
             }
-        });
-
-        // Close modal on escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                closeModal();
+            
+            // Save last entry
+            if (currentEntry) {
+                entries.push(currentEntry);
             }
-        });
-
-        // Close modal when clicking outside
-        document.getElementById('modal-overlay').addEventListener('click', (e) => {
-            if (e.target === e.currentTarget) {
-                closeModal();
+            
+            return entries;
+        }
+        
+        function determineEntryType(title) {
+            const titleLower = title.toLowerCase();
+            
+            if (titleLower.includes('error') || titleLower.includes('fail') || titleLower.includes('bug') || titleLower.includes('issue') || titleLower.includes('problem')) {
+                return 'error';
+            } else if (titleLower.includes('complete') || titleLower.includes('done') || titleLower.includes('finish') || titleLower.includes('success') || titleLower.includes('ship') || titleLower.includes('deploy')) {
+                return 'decision';
+            } else if (titleLower.includes('warning') || titleLower.includes('block') || titleLower.includes('slow') || titleLower.includes('delay') || titleLower.includes('concern')) {
+                return 'warning';
+            } else {
+                return 'info';
             }
-        });
-
-        // Load data on page load
-        loadMemoryFiles();
+        }
+        
+        function styleMarkdownContent() {
+            // Apply dark theme styling to generated markdown
+            const content = document.querySelector('#reader-content');
+            if (!content) return;
+            
+            // Style headers
+            content.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(h => {
+                h.style.color = '#fff';
+                h.style.marginTop = '20px';
+                h.style.marginBottom = '10px';
+            });
+            
+            // Style paragraphs
+            content.querySelectorAll('p').forEach(p => {
+                p.style.marginBottom = '12px';
+                p.style.lineHeight = '1.6';
+            });
+            
+            // Style lists
+            content.querySelectorAll('ul, ol').forEach(list => {
+                list.style.marginLeft = '20px';
+                list.style.marginBottom = '12px';
+            });
+            
+            // Style code blocks
+            content.querySelectorAll('pre').forEach(pre => {
+                pre.style.background = 'var(--card)';
+                pre.style.padding = '12px';
+                pre.style.borderRadius = '6px';
+                pre.style.overflowX = 'auto';
+                pre.style.margin = '12px 0';
+            });
+            
+            content.querySelectorAll('code').forEach(code => {
+                if (code.parentElement.tagName !== 'PRE') {
+                    code.style.background = 'var(--card)';
+                    code.style.padding = '2px 4px';
+                    code.style.borderRadius = '3px';
+                    code.style.color = 'var(--accent)';
+                }
+            });
+        }
+        
+        function searchFiles() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            
+            if (!query.trim()) {
+                filteredFiles = [...memoryFiles];
+            } else {
+                filteredFiles = memoryFiles.filter(file => 
+                    file.filename.toLowerCase().includes(query) ||
+                    formatFileDate(file.filename).toLowerCase().includes(query)
+                );
+            }
+            
+            renderFileList();
+        }
     </script>
 </body>
 </html>

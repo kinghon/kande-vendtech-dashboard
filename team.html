@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mission Control — Agent Team</title>
+<title>Mission Control — Meet the Team</title>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   :root{
@@ -13,1169 +13,676 @@
     --purple:#7c3aed;--blue:#3b82f6;--orange:#f97316;--teal:#06b6d4;--gold:#eab308;--light-purple:#8b5cf6;--gray:#6b7280;
     --radius:12px;--radius-sm:8px;
   }
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;margin:0}
   
-  /* Layout */
-  .app{display:grid;grid-template-columns:1fr 360px;grid-template-rows:auto auto 1fr auto;min-height:100vh}
-  .header{grid-column:1/-1;padding:20px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:var(--surface)}
-  .metrics-bar{grid-column:1/-1;padding:16px 32px;display:flex;gap:16px;border-bottom:1px solid var(--border);background:var(--surface)}
-  .main{padding:28px 32px;overflow-y:auto;max-height:calc(100vh - 200px)}
-  .sidebar{border-left:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;max-height:calc(100vh - 200px)}
-  .footer{grid-column:1/-1;padding:16px 32px;border-top:1px solid var(--border);background:var(--surface)}
-
-  /* Header */
-  .header-left{display:flex;align-items:center;gap:16px}
-  .header-title{font-size:22px;font-weight:700;letter-spacing:-0.3px}
-  .header-subtitle{font-size:13px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px}
-  .status-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(16,185,129,0.2);border:1px solid rgba(16,185,129,0.4);padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;color:var(--green);letter-spacing:0.8px;text-transform:uppercase}
-  .status-badge .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse-dot 2s ease-in-out infinite}
-  .header-right{display:flex;align-items:center;gap:16px}
-  .header-time{font-size:13px;color:var(--text-dim);font-variant-numeric:tabular-nums}
-
-  /* View Toggle */
-  .view-toggle{display:flex;gap:4px;background:rgba(45,45,74,0.6);border-radius:24px;padding:3px;border:1px solid var(--border)}
-  .view-toggle-btn{padding:6px 18px;border-radius:20px;border:2px solid transparent;background:transparent;color:var(--text-dim);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.25s;font-family:inherit;white-space:nowrap}
-  .view-toggle-btn:hover{color:var(--text);background:var(--card-hover)}
-  .view-toggle-btn.active{background:var(--card-hover);color:#fff;border-color:var(--accent);box-shadow:0 0 8px -2px rgba(124,58,237,0.3)}
-
-  /* Metrics */
-  .metric-card{flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 18px;display:flex;flex-direction:column;gap:4px}
-  .metric-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:600}
-  .metric-value{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
-  .metric-value.green{color:var(--green)}.metric-value.blue{color:var(--blue)}.metric-value.amber{color:var(--amber)}.metric-value.purple{color:var(--purple)}
-
-  /* Team Groups */
-  .team-groups{display:flex;flex-direction:column;gap:20px}
-  .team-group{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
-  .team-group-header{padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
-  .team-group-name{font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim)}
-  .team-group-count{font-size:12px;color:var(--text-muted);background:var(--card);padding:2px 10px;border-radius:10px}
-  .team-group-agents{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1px;background:var(--border)}
-
-  /* Agent Cards */
-  .agent-card{background:var(--card);padding:16px 20px;cursor:pointer;transition:background 0.2s,box-shadow 0.3s;position:relative;overflow:hidden}
-  .agent-card:hover{background:var(--card-hover)}
-  .agent-card.running{animation:glow-pulse 3s ease-in-out infinite}
-  .agent-card.expanded .agent-expand{display:block}
-  .agent-top{display:flex;align-items:flex-start;gap:12px}
-  .agent-dot{width:10px;height:10px;border-radius:50%;margin-top:5px;flex-shrink:0;transition:background 0.3s}
-  .agent-dot.active{background:var(--green);box-shadow:0 0 8px var(--green)}
-  .agent-dot.idle{background:var(--text-muted)}
-  .agent-dot.meeting{background:var(--amber);box-shadow:0 0 8px var(--amber);animation:pulse-dot 1.5s ease-in-out infinite}
-  .agent-info{flex:1;min-width:0}
-  .agent-name-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .agent-name{font-size:15px;font-weight:700}
-  .agent-role{font-size:12px;color:var(--text-dim)}
-  .agent-model{font-size:11px;font-family:'SF Mono',Monaco,'Cascadia Code',monospace;color:var(--text-muted);background:var(--bg);padding:2px 8px;border-radius:4px;margin-top:4px;display:inline-block}
-  .agent-activity{font-size:13px;color:var(--text-dim);margin-top:8px;line-height:1.4;display:flex;align-items:flex-start;gap:6px}
-  .agent-activity .activity-icon{flex-shrink:0;margin-top:1px}
-  .meeting-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;background:rgba(245,158,11,0.2);color:var(--amber);border:1px solid rgba(245,158,11,0.4);padding:2px 8px;border-radius:4px;font-weight:600;margin-left:auto}
-  .agent-expand{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:13px;color:var(--text-dim);line-height:1.6;max-height:150px;overflow-y:auto}
-  .agent-expand pre{font-family:'SF Mono',Monaco,monospace;font-size:12px;white-space:pre-wrap;word-break:break-word;color:var(--text-muted);background:var(--bg);padding:10px;border-radius:6px;margin-top:6px}
-  .agent-color-bar{position:absolute;left:0;top:0;bottom:0;width:3px}
-
-  /* Sidebar */
-  .sidebar-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-  .sidebar-title{font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim)}
-  .sidebar-live{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);font-weight:600}
-  .sidebar-live .dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse-dot 2s ease-in-out infinite}
-  .activity-feed{flex:1;overflow-y:auto;padding:8px 0}
-  .activity-item{padding:10px 20px;border-bottom:1px solid var(--border);transition:background 0.2s}
-  .activity-item:hover{background:var(--card)}
-  .activity-item.new{animation:fade-in 0.4s ease}
-  .activity-time{font-size:11px;color:var(--text-muted);font-variant-numeric:tabular-nums;font-family:'SF Mono',Monaco,monospace}
-  .activity-agent{font-size:12px;font-weight:600;margin-top:2px}
-  .activity-text{font-size:13px;color:var(--text-dim);margin-top:2px;line-height:1.4}
-  .activity-empty{padding:40px 20px;text-align:center;color:var(--text-muted);font-size:13px}
-
-  /* Footer / Schedule */
-  .footer-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:10px}
-  .schedule-items{display:flex;gap:16px;overflow-x:auto;padding-bottom:4px}
-  .schedule-item{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 16px;white-space:nowrap;min-width:200px}
-  .schedule-time{font-size:12px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums}
-  .schedule-label{font-size:13px;color:var(--text-dim)}
-  .schedule-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-
-  /* Learnings Section */
-  .learning-card{background:var(--card);padding:18px 20px;min-height:120px}
-  .learning-agent-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-  .learning-agent-name{font-size:14px;font-weight:700}
-  .learning-agent-badge{font-size:11px;font-family:'SF Mono',Monaco,monospace;color:var(--text-muted);background:var(--bg);padding:2px 8px;border-radius:4px}
-  .learning-items{display:flex;flex-direction:column;gap:8px}
-  .learning-item{font-size:13px;color:var(--text-dim);line-height:1.5;padding:8px 12px;background:var(--bg);border-radius:var(--radius-sm);border-left:3px solid var(--accent)}
-  .learning-item.scout{border-left-color:var(--blue)}
-  .learning-item.relay{border-left-color:var(--green)}
-  .learning-item.ralph{border-left-color:var(--purple)}
-  .learning-item.mary{border-left-color:var(--pink)}
-  .learning-item.mistake{border-left-color:var(--red);background:rgba(239,68,68,0.1)}
-  .learning-item.strategy{border-left-color:var(--amber);background:rgba(245,158,11,0.1)}
-  .learning-item.fail{border-left-color:var(--red)}
-  .learning-type-tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:1px 6px;border-radius:3px;margin-right:6px;display:inline-block}
-  .learning-type-tag.mistake{background:rgba(239,68,68,0.2);color:var(--red)}
-  .learning-type-tag.learning{background:rgba(59,130,246,0.2);color:var(--blue)}
-  .learning-type-tag.works{background:rgba(16,185,129,0.2);color:var(--green)}
-  .learning-type-tag.fail{background:rgba(239,68,68,0.2);color:var(--red)}
-  .learning-type-tag.strategy{background:rgba(245,158,11,0.2);color:var(--amber)}
-  .learning-item .date{font-size:11px;color:var(--text-muted);font-family:'SF Mono',Monaco,monospace}
-  .learning-empty{font-size:13px;color:var(--text-muted);font-style:italic}
-  .learning-bullet{display:flex;gap:6px;align-items:flex-start}
-  .learning-bullet::before{content:'•';color:var(--accent);font-weight:700;flex-shrink:0}
-  .learning-subsection{margin-top:12px;padding-top:10px;border-top:1px solid var(--border)}
-  .learning-subsection-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:8px}
-
-  /* Office View */
-  .view-container{display:none}
-  .view-container.active{display:block}
-  #office-view{padding:0;position:relative}
-  #office-canvas{display:block;width:100%;height:100%;background:var(--bg)}
-
-  /* Animations */
-  @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.4}}
-  @keyframes glow-pulse{0%,100%{box-shadow:inset 0 0 0 1px transparent}50%{box-shadow:inset 0 0 0 1px var(--glow-color,var(--accent)),0 0 20px -5px var(--glow-color,var(--accent))}}
-  @keyframes fade-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
-
-  /* Scrollbar */
-  ::-webkit-scrollbar{width:6px}
-  ::-webkit-scrollbar-track{background:transparent}
-  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-  ::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
-
-  /* Responsive */
-  /* Tablet */
-  @media(max-width:900px){
-    .app{grid-template-columns:1fr;grid-template-rows:auto auto 1fr auto auto}
-    .sidebar{max-height:350px;border-left:none;border-top:1px solid var(--border)}
-    .metrics-bar{flex-wrap:wrap}
-    .metric-card{min-width:140px}
-    .team-group-agents{grid-template-columns:1fr}
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 24px;
   }
-
-  /* Mobile */
-  @media(max-width:520px){
-    .app{grid-template-columns:1fr;grid-template-rows:auto auto 1fr auto auto}
+  
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  
+  .header h1 {
+    font-size: 42px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 8px;
+    letter-spacing: -1px;
+  }
+  
+  .header .subtitle {
+    font-size: 18px;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+    font-weight: 500;
+  }
+  
+  .description {
+    max-width: 600px;
+    margin: 0 auto;
+    font-size: 16px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    text-align: center;
+  }
+  
+  /* Featured Card - Main Agent */
+  .featured-section {
+    margin-bottom: 64px;
+  }
+  
+  .featured-card {
+    background: linear-gradient(135deg, var(--purple), #6d28d9);
+    border: 1px solid rgba(124, 58, 237, 0.3);
+    border-radius: var(--radius);
+    padding: 40px;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto;
+    box-shadow: 0 8px 32px rgba(124, 58, 237, 0.3);
+  }
+  
+  .featured-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(124, 58, 237, 0.1) 0%, transparent 70%);
+    z-index: 0;
+  }
+  
+  .featured-content {
+    position: relative;
+    z-index: 1;
+  }
+  
+  .featured-avatar {
+    font-size: 64px;
+    margin-bottom: 16px;
+    display: block;
+  }
+  
+  .featured-name {
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  
+  .featured-role {
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 20px;
+    font-weight: 500;
+  }
+  
+  .featured-description {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.6;
+    margin-bottom: 24px;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .skill-tags {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .skill-tag {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  
+  /* Section Titles */
+  .section {
+    margin-bottom: 48px;
+  }
+  
+  .section-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  /* Agent Cards Grid */
+  .agent-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+  
+  .core-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+  
+  .coordination-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+  
+  .support-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  
+  /* Agent Card Styles */
+  .agent-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border-left: 4px solid var(--border);
+  }
+  
+  .agent-card:hover {
+    background: var(--card-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Agent Colors */
+  .agent-card.scout { border-left-color: var(--blue); }
+  .agent-card.relay { border-left-color: var(--green); }
+  .agent-card.ralph { border-left-color: var(--orange); }
+  .agent-card.main { border-left-color: var(--purple); }
+  .agent-card.coordination { border-left-color: var(--light-purple); }
+  .agent-card.system { border-left-color: var(--gray); }
+  .agent-card.email { border-left-color: var(--gold); }
+  .agent-card.pb { border-left-color: var(--teal); }
+  
+  .agent-card.scout:hover { box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2); }
+  .agent-card.relay:hover { box-shadow: 0 8px 25px rgba(16, 185, 129, 0.2); }
+  .agent-card.ralph:hover { box-shadow: 0 8px 25px rgba(249, 115, 22, 0.2); }
+  .agent-card.coordination:hover { box-shadow: 0 8px 25px rgba(139, 92, 246, 0.2); }
+  
+  .agent-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  
+  .agent-avatar {
+    font-size: 32px;
+    flex-shrink: 0;
+  }
+  
+  .agent-info {
+    flex: 1;
+  }
+  
+  .agent-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  
+  .agent-role {
+    font-size: 14px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+  
+  .agent-description {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    margin-bottom: 16px;
+  }
+  
+  .agent-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  
+  .agent-tag {
+    background: var(--card-hover);
+    color: var(--text-dim);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  /* Agent-specific tag colors */
+  .agent-card.scout .agent-tag { background: rgba(59, 130, 246, 0.2); color: var(--blue); }
+  .agent-card.relay .agent-tag { background: rgba(16, 185, 129, 0.2); color: var(--green); }
+  .agent-card.ralph .agent-tag { background: rgba(249, 115, 22, 0.2); color: var(--orange); }
+  .agent-card.main .agent-tag { background: rgba(124, 58, 237, 0.2); color: var(--purple); }
+  .agent-card.coordination .agent-tag { background: rgba(139, 92, 246, 0.2); color: var(--light-purple); }
+  .agent-card.system .agent-tag { background: rgba(107, 114, 128, 0.2); color: var(--gray); }
+  .agent-card.email .agent-tag { background: rgba(234, 179, 8, 0.2); color: var(--gold); }
+  .agent-card.pb .agent-tag { background: rgba(6, 182, 212, 0.2); color: var(--teal); }
+  
+  /* Support roles - smaller cards */
+  .support-grid .agent-card {
+    padding: 20px;
+  }
+  
+  .support-grid .agent-header {
+    margin-bottom: 12px;
+  }
+  
+  .support-grid .agent-avatar {
+    font-size: 24px;
+  }
+  
+  .support-grid .agent-name {
+    font-size: 16px;
+  }
+  
+  .support-grid .agent-role {
+    font-size: 13px;
+  }
+  
+  .support-grid .agent-description {
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+  
+  .support-grid .agent-tag {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+  
+  /* Coordination cards - medium size */
+  .coordination-grid .agent-card {
+    padding: 20px;
+  }
+  
+  .coordination-grid .agent-avatar {
+    font-size: 28px;
+  }
+  
+  .coordination-grid .agent-name {
+    font-size: 17px;
+  }
+  
+  /* Status indicators */
+  .status-indicator {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+  }
+  
+  .status-indicator.idle {
+    background: var(--gray);
+    box-shadow: 0 0 8px rgba(107, 114, 128, 0.5);
+  }
+  
+  .status-indicator.busy {
+    background: var(--amber);
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+    animation: pulse 2s infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  
+  /* Mobile responsiveness */
+  @media (max-width: 768px) {
+    .container {
+      padding: 24px 16px;
+    }
     
-    /* Header: stack vertically */
-    .header{flex-direction:column;align-items:flex-start;gap:10px;padding:14px 16px}
-    .header-left{flex-direction:column;align-items:flex-start;gap:8px}
-    .header-title{font-size:18px}
-    .header-subtitle{font-size:11px}
-    .header-right{width:100%;justify-content:space-between}
-    .status-badge{padding:4px 12px;font-size:11px}
-    .header-time{font-size:12px}
-    .view-toggle{width:100%}
-    .view-toggle-btn{flex:1;text-align:center;padding:8px 12px;font-size:12px}
-
-    /* Metrics: 2x2 grid */
-    .metrics-bar{padding:10px 12px;gap:8px;display:grid;grid-template-columns:1fr 1fr}
-    .metric-card{min-width:unset;padding:10px 12px}
-    .metric-label{font-size:10px;letter-spacing:0.6px}
-    .metric-value{font-size:22px}
-
-    /* Main content */
-    .main{padding:14px 12px;max-height:unset}
-    .sidebar{max-height:300px;border-left:none;border-top:1px solid var(--border)}
-
-    /* Team groups */
-    .team-group-header{padding:10px 14px}
-    .team-group-name{font-size:12px}
-    .team-group-agents{grid-template-columns:1fr;padding:10px}
-    .agent-card{padding:12px}
-    .agent-name{font-size:14px}
-    .agent-role{font-size:11px}
-    .agent-model{font-size:10px;padding:2px 6px}
-    .agent-activity{font-size:12px}
-
-    /* Activity feed */
-    .sidebar-title{padding:12px 14px;font-size:12px}
-    .activity-feed{padding:0 10px}
-    .activity-item{padding:10px 0}
-    .activity-text{font-size:12px;line-height:1.4;word-break:break-word}
-    .activity-agent{font-size:12px}
-    .activity-time{font-size:10px}
-
-    /* Footer schedule: horizontal scroll with smaller items */
-    .footer{padding:12px;overflow:hidden}
-    .footer-title{font-size:11px;margin-bottom:8px}
-    .schedule-items{gap:8px;-webkit-overflow-scrolling:touch}
-    .schedule-item{min-width:160px;padding:8px 12px}
-    .schedule-time{font-size:11px}
-    .schedule-label{font-size:11px}
-
-    /* Office canvas full width */
-    #office-canvas{width:100%!important}
+    .header h1 {
+      font-size: 32px;
+    }
+    
+    .header .subtitle {
+      font-size: 16px;
+    }
+    
+    .featured-card {
+      padding: 32px 24px;
+    }
+    
+    .featured-avatar {
+      font-size: 48px;
+    }
+    
+    .featured-name {
+      font-size: 24px;
+    }
+    
+    .core-grid,
+    .coordination-grid,
+    .support-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .skill-tags,
+    .agent-tags {
+      justify-content: flex-start;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .agent-header {
+      flex-direction: column;
+      text-align: center;
+      gap: 12px;
+    }
+    
+    .agent-info {
+      text-align: center;
+    }
   }
 </style>
 </head>
 <body>
     <script src="/nav.js"></script>
-
-<div class="app">
-  <!-- Header -->
-  <header class="header">
-    <div class="header-left">
-      <div>
-        <div class="header-title">🚀 Mission Control</div>
-        <div class="header-subtitle">Unified Agent Team Command Center</div>
-      </div>
-      <div class="view-toggle">
-        <a class="view-toggle-btn active" href="/team">👥 Team</a>
-        <a class="view-toggle-btn" href="/calendar">📅 Calendar</a>
-        <a class="view-toggle-btn" href="/memory">🧠 Memory</a>
-        <a class="view-toggle-btn" href="#" style="color: var(--text-muted);">🏢 Office</a>
-      </div>
-    </div>
-    <div class="header-right">
-      <div class="status-badge"><span class="dot"></span> Operational</div>
-      <div class="header-time" id="clock"></div>
-    </div>
-  </header>
-
-  <!-- Metrics Bar -->
-  <div class="metrics-bar">
-    <div class="metric-card">
-      <div class="metric-label">Runs Today</div>
-      <div class="metric-value green" id="m-runs">—</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Leads Found</div>
-      <div class="metric-value blue" id="m-leads">—</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Emails Drafted</div>
-      <div class="metric-value amber" id="m-emails">—</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Features Shipped</div>
-      <div class="metric-value purple" id="m-features">—</div>
-    </div>
-  </div>
-
-  <!-- Main Content: Dashboard View -->
-  <main class="main">
-    <div id="dashboard-view" class="view-container active">
-      <div class="team-groups" id="team-groups"></div>
-
-      <!-- Recent Learnings Section -->
-      <div class="learnings-section" id="learnings-section" style="margin-top:28px">
-        <div class="team-group">
-          <div class="team-group-header">
-            <div class="team-group-name">🧠 Recent Learnings (72h)</div>
-            <div class="team-group-count" id="learnings-count">Loading...</div>
-          </div>
-          <div id="learnings-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1px;background:var(--border)">
-          </div>
+    
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Meet the Team</h1>
+            <p class="subtitle">12 agents, each with a real role and personality</p>
+            <p class="description">
+                Our autonomous agent team operates as a coordinated unit, with each member specializing in specific business functions. 
+                From research and sales operations to engineering and coordination, every agent contributes unique skills to deliver 
+                comprehensive business automation and intelligence.
+            </p>
         </div>
-      </div>
-    </div>
-    <div id="office-view" class="view-container">
-      <canvas id="office-canvas"></canvas>
-    </div>
-  </main>
-
-  <!-- Activity Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-title">Activity Feed</div>
-      <div class="sidebar-live"><span class="dot"></span> Live</div>
-    </div>
-    <div class="activity-feed" id="activity-feed">
-      <div class="activity-empty">Connecting to activity feed…</div>
-    </div>
-  </aside>
-
-  <!-- Footer / Schedule -->
-  <footer class="footer">
-    <div class="footer-title">📅 Upcoming Schedule</div>
-    <div class="schedule-items" id="schedule-items">
-      <div class="schedule-item">
-        <div class="schedule-dot" style="background:var(--purple)"></div>
-        <div class="schedule-time">09:00</div>
-        <div class="schedule-label">Morning Standup</div>
-      </div>
-      <div class="schedule-item">
-        <div class="schedule-dot" style="background:var(--blue)"></div>
-        <div class="schedule-time">11:00</div>
-        <div class="schedule-label">Scout Research Sprint</div>
-      </div>
-      <div class="schedule-item">
-        <div class="schedule-dot" style="background:var(--green)"></div>
-        <div class="schedule-time">14:00</div>
-        <div class="schedule-label">Sales Pipeline Review</div>
-      </div>
-      <div class="schedule-item">
-        <div class="schedule-dot" style="background:var(--pink)"></div>
-        <div class="schedule-time">16:00</div>
-        <div class="schedule-label">Ops Check-in</div>
-      </div>
-    </div>
-  </footer>
-</div>
-
-<script>
-// ── Agent Definitions ──
-const TEAMS = [
-  {
-    name: 'Core Agents',
-    agents: [
-      { id:'scout', name:'Scout', role:'Research', model:'claude-sonnet-4-20250514', color:'#3b82f6' },
-      { id:'relay', name:'Relay', role:'Sales Operations', model:'claude-sonnet-4-20250514', color:'#22c55e' },
-      { id:'ralph', name:'Ralph', role:'Engineering', model:'claude-sonnet-4-20250514', color:'#f59e0b' },
-    ]
-  },
-  {
-    name: 'VendTech Operations',
-    agents: [
-      { id:'autodraftemail', name:'Auto-Draft Email0', role:'Email Automation', model:'claude-sonnet-4-20250514', color:'#22c55e' },
-      { id:'emailfollowup', name:'Email Follow-up Drafter', role:'Follow-ups', model:'claude-sonnet-4-20250514', color:'#16a34a' },
-      { id:'emailsync', name:'Sent Email Sync', role:'Email Tracking', model:'claude-sonnet-4-20250514', color:'#059669' },
-      { id:'mixmaxsync', name:'Mixmax Sync', role:'Campaign Tracking', model:'claude-sonnet-4-20250514', color:'#0d9488' },
-      { id:'proposalfollowup', name:'Proposal Follow-up', role:'Proposals', model:'claude-sonnet-4-20250514', color:'#0891b2' },
-    ]
-  },
-  {
-    name: 'Photo Booths Operations', 
-    agents: [
-      { id:'pbemaildrafter', name:'PB Email Drafts', role:'Email Creation', model:'claude-sonnet-4-20250514', color:'#ec4899' },
-      { id:'pbgmailsync', name:'PB Gmail Draft Sync', role:'Email Sync', model:'claude-sonnet-4-20250514', color:'#be185d' },
-    ]
-  },
-  {
-    name: 'Coordination',
-    agents: [
-      { id:'standup', name:'Daily Standup', role:'Team Coordination', model:'claude-sonnet-4-20250514', color:'#7c3aed' },
-      { id:'watercooler', name:'Water Cooler', role:'Team Check-ins', model:'claude-sonnet-4-20250514', color:'#8b5cf6' },
-      { id:'retro', name:'Weekly Retro', role:'Retrospectives', model:'claude-sonnet-4-20250514', color:'#a855f7' },
-      { id:'morningbriefing', name:'Morning Briefing', role:'Daily Updates', model:'claude-sonnet-4-20250514', color:'#c084fc' },
-    ]
-  },
-  {
-    name: 'System', 
-    agents: [
-      { id:'e2eqa', name:'E2E QA', role:'Quality Assurance', model:'claude-sonnet-4-20250514', color:'#dc2626' },
-      { id:'healthwatchdog', name:'Health Watchdog', role:'System Monitoring', model:'claude-sonnet-4-20250514', color:'#ef4444' },
-      { id:'qasweep', name:'QA Sweep', role:'Quality Monitoring', model:'claude-sonnet-4-20250514', color:'#f87171' },
-      { id:'sessioncleanup', name:'Session Cleanup', role:'Maintenance', model:'claude-sonnet-4-20250514', color:'#fca5a5' },
-      { id:'nightlybackup', name:'Nightly Backup', role:'Data Protection', model:'claude-sonnet-4-20250514', color:'#fecaca' },
-      { id:'selfupdate', name:'Self-Update', role:'System Updates', model:'claude-sonnet-4-20250514', color:'#fee2e2' },
-      { id:'goghealthcheck', name:'GOG Health Check', role:'Email System Monitoring', model:'claude-sonnet-4-20250514', color:'#fef2f2' },
-    ]
-  },
-  {
-    name: 'Research',
-    agents: [
-      { id:'vendingpreneurs', name:'Vendingpreneurs Scrape', role:'Industry Research', model:'claude-sonnet-4-20250514', color:'#0891b2' },
-      { id:'seovt', name:'SEO Check (VT)', role:'VendTech SEO', model:'claude-sonnet-4-20250514', color:'#0e7490' },
-      { id:'seopb', name:'SEO Check (PB)', role:'Photo Booth SEO', model:'claude-sonnet-4-20250514', color:'#155e75' },
-      { id:'sevenelevenscrape', name:'7-Eleven Price Scrape', role:'Market Research', model:'claude-sonnet-4-20250514', color:'#164e63' },
-    ]
-  },
-];
-
-// ── State ──
-let agentStates = {};
-let activityItems = [];
-let expandedAgent = null;
-let currentView = localStorage.getItem('teamView') || 'dashboard';
-
-// ── Initialize defaults ──
-TEAMS.forEach(t => t.agents.forEach(a => {
-  agentStates[a.id] = { status:'idle', activity:'Waiting for tasks…', inMeeting:false, recentOutput:'' };
-}));
-
-// ── View Toggle ──
-function switchView(view) {
-  currentView = view;
-  localStorage.setItem('teamView', view);
-  document.querySelectorAll('.view-toggle-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.view === view);
-  });
-  document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active'));
-  document.getElementById(view + '-view').classList.add('active');
-  if (view === 'office') {
-    resizeOfficeCanvas();
-  }
-}
-
-// Restore saved view
-if (currentView !== 'dashboard') {
-  requestAnimationFrame(() => switchView(currentView));
-}
-
-// ── Clock ──
-function updateClock() {
-  const now = new Date();
-  document.getElementById('clock').textContent = now.toLocaleString('en-US', {
-    weekday:'short', month:'short', day:'numeric',
-    hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true
-  });
-}
-setInterval(updateClock, 1000);
-updateClock();
-
-// ── Render Teams ──
-function renderTeams() {
-  const container = document.getElementById('team-groups');
-  container.innerHTML = TEAMS.map(team => {
-    const totalAgents = team.agents.length;
-    const activeCount = team.agents.filter(a => agentStates[a.id]?.status === 'active' || agentStates[a.id]?.status === 'running').length;
-    return `
-      <div class="team-group">
-        <div class="team-group-header">
-          <div class="team-group-name">${team.name}</div>
-          <div class="team-group-count">${activeCount}/${totalAgents} active</div>
-        </div>
-        <div class="team-group-agents">
-          ${team.agents.map(a => renderAgentCard(a)).join('')}
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  container.querySelectorAll('.agent-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const id = card.dataset.agentId;
-      if (expandedAgent === id) {
-        expandedAgent = null;
-        card.classList.remove('expanded');
-      } else {
-        container.querySelectorAll('.agent-card.expanded').forEach(c => c.classList.remove('expanded'));
-        expandedAgent = id;
-        card.classList.add('expanded');
-      }
-    });
-  });
-}
-
-function renderAgentCard(agent) {
-  const state = agentStates[agent.id] || {};
-  const isActive = state.status === 'active' || state.status === 'running';
-  const isRunning = state.status === 'running';
-  const inMeeting = state.inMeeting;
-  const dotClass = inMeeting ? 'meeting' : (isActive ? 'active' : 'idle');
-  const isExpanded = expandedAgent === agent.id;
-
-  return `
-    <div class="agent-card ${isRunning ? 'running' : ''} ${isExpanded ? 'expanded' : ''}"
-         data-agent-id="${agent.id}"
-         style="--glow-color:${agent.color}">
-      <div class="agent-color-bar" style="background:${agent.color}"></div>
-      <div class="agent-top">
-        <div class="agent-dot ${dotClass}"></div>
-        <div class="agent-info">
-          <div class="agent-name-row">
-            <span class="agent-name" style="color:${agent.color}">${agent.name}</span>
-            <span class="agent-role">${agent.role}</span>
-            ${inMeeting ? '<span class="meeting-badge">📞 In Standup</span>' : ''}
-          </div>
-          <div class="agent-model">${agent.model}</div>
-          <div class="agent-activity">
-            <span class="activity-icon">${isActive ? '⚡' : '💤'}</span>
-            <span>${escapeHtml(state.activity || 'Idle')}</span>
-          </div>
-        </div>
-      </div>
-      <div class="agent-expand">
-        <strong>Recent Output</strong>
-        <pre>${escapeHtml(state.recentOutput || 'No recent output.')}</pre>
-      </div>
-    </div>
-  `;
-}
-
-// ── Render Activity Feed ──
-function renderActivityFeed() {
-  const feed = document.getElementById('activity-feed');
-  if (!activityItems.length) {
-    feed.innerHTML = '<div class="activity-empty">No activity yet.</div>';
-    return;
-  }
-  feed.innerHTML = activityItems.slice(0, 50).map((item, i) => `
-    <div class="activity-item ${i === 0 ? 'new' : ''}">
-      <div class="activity-time">${item.time}</div>
-      <div class="activity-agent" style="color:${getAgentColor(item.agent)}">${item.agent}</div>
-      <div class="activity-text">${escapeHtml(item.text)}</div>
-    </div>
-  `).join('');
-}
-
-// ── Update Metrics ──
-function updateMetrics(data) {
-  if (!data) return;
-  if (data.runsToday != null) document.getElementById('m-runs').textContent = data.runsToday;
-  if (data.leadsFound != null) document.getElementById('m-leads').textContent = data.leadsFound;
-  if (data.emailsDrafted != null) document.getElementById('m-emails').textContent = data.emailsDrafted;
-  if (data.featuresShipped != null) document.getElementById('m-features').textContent = data.featuresShipped;
-}
-
-// ── API Polling ──
-async function fetchTeamStatus() {
-  try {
-    const res = await fetch('/api/team/status');
-    if (!res.ok) throw new Error(res.status);
-    const data = await res.json();
-    // API returns flat object: { scout: {...}, relay: {...}, metrics: {...} }
-    // Map API fields (state/statusText/lastActivity) to page fields (status/activity/recentOutput)
-    const knownAgents = ['kurtis','clawd','scout','relay','ralph','mary'];
-    for (const id of knownAgents) {
-      if (data[id]) {
-        const s = data[id];
-        agentStates[id] = {
-          ...agentStates[id],
-          status: s.state || agentStates[id]?.status || 'idle',
-          activity: s.statusText || s.lastActivity || agentStates[id]?.activity || 'Idle',
-          recentOutput: s.lastActivity || agentStates[id]?.recentOutput || '',
-          inMeeting: s.state === 'meeting'
-        };
-      }
-    }
-    if (data.metrics) {
-      updateMetrics({
-        runsToday: data.metrics.totalRuns || 0,
-        leadsFound: data.metrics.leadsFound || 0,
-        emailsDrafted: data.metrics.emailsDrafted || 0,
-        featuresShipped: data.metrics.featuresShipped || 0
-      });
-    }
-    renderTeams();
-    updateOfficeAgentStates();
-  } catch (e) {
-    useDemoData();
-    renderTeams();
-    updateOfficeAgentStates();
-  }
-}
-
-async function fetchActivity() {
-  try {
-    const res = await fetch('/api/team/activity');
-    if (!res.ok) throw new Error(res.status);
-    const data = await res.json();
-    // API returns { activities: [...] } with timestamp (ISO) and agent (lowercase)
-    // Page expects { time, agent (capitalized), text }
-    const items = data.activities || data.items || [];
-    if (items.length) {
-      activityItems = items.map(item => ({
-        time: item.time || formatActivityTime(item.timestamp),
-        agent: item.agent ? item.agent.charAt(0).toUpperCase() + item.agent.slice(1) : 'System',
-        text: item.text || ''
-      }));
-      renderActivityFeed();
-    }
-  } catch (e) {
-    useDemoActivity();
-    renderActivityFeed();
-  }
-}
-
-function formatActivityTime(iso) {
-  if (!iso) return '';
-  try {
-    const d = new Date(iso);
-    return d.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:true });
-  } catch { return ''; }
-}
-
-// ── Demo Data ──
-function useDemoData() {
-  agentStates.kurtis = { status:'active', activity:'Reviewing daily priorities', inMeeting:false, recentOutput:'Approved Q2 sales strategy.\nSet target: 15 new vending locations by March.' };
-  agentStates.clawd = { status:'running', activity:'Coordinating morning standup across all teams', inMeeting:false, recentOutput:'Standup summary: 3 agents active, 2 pending tasks.\nDeployed team.html update.\nNext: check email pipeline.' };
-  agentStates.scout = { status:'running', activity:'Researching warehouse districts in North Las Vegas', inMeeting:false, recentOutput:'Found 4 potential locations:\n- Cheyenne Commerce Center (12 units)\n- Craig Industrial Park (8 units)\n- Losee & Ann intersection (6 units)\nScoring by PEOPLE framework…' };
-  agentStates.relay = { status:'active', activity:'Following up on 3 warm leads', inMeeting:false, recentOutput:'Lead #842: Sent pricing sheet, awaiting response.\nLead #845: Scheduled site visit for Thursday.\nLead #847: Draft follow-up ready for review.' };
-  agentStates.ralph = { status:'running', activity:'Fixing mobile responsive layout on CRM', inMeeting:false, recentOutput:'Bug fix: map pins not loading on Safari.\nCommit: a3f82c1 "Fix Safari WebGL context"\nDeployed to staging.' };
-  agentStates.mary = { status:'active', activity:'Confirming Saturday event staffing', inMeeting:false, recentOutput:'Event #PB-2026-0089: Staff confirmed (2/2)\nEquipment check: ✅ Ring light, ✅ Printer\nClient: awaiting final headcount.' };
-  updateMetrics({ runsToday: 47, leadsFound: 12, emailsDrafted: 8, featuresShipped: 3 });
-}
-
-function useDemoActivity() {
-  const now = new Date();
-  const fmt = (minAgo) => {
-    const d = new Date(now - minAgo * 60000);
-    return d.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:true });
-  };
-  activityItems = [
-    { time:fmt(1),  agent:'Clawd',  text:'Completed morning standup coordination' },
-    { time:fmt(3),  agent:'Scout',  text:'Found 4 potential locations in North Las Vegas' },
-    { time:fmt(5),  agent:'Ralph',  text:'Deployed Safari WebGL fix to staging' },
-    { time:fmt(8),  agent:'Relay',  text:'Sent pricing sheet to lead #842' },
-    { time:fmt(12), agent:'Mary',   text:'Confirmed staff for Saturday event PB-2026-0089' },
-    { time:fmt(18), agent:'Scout',  text:'Completed Henderson warehouse district scan' },
-    { time:fmt(25), agent:'Clawd',  text:'Updated MEMORY.md with Q2 strategy notes' },
-    { time:fmt(30), agent:'Ralph',  text:'Committed map pin clustering optimization' },
-    { time:fmt(35), agent:'Relay',  text:'Drafted follow-up for lead #847' },
-    { time:fmt(42), agent:'Mary',   text:'Sent equipment checklist to Saturday crew' },
-    { time:fmt(50), agent:'Clawd',  text:'Reviewed and merged Scout research findings' },
-    { time:fmt(58), agent:'Scout',  text:'Started PEOPLE scoring for new prospects' },
-    { time:fmt(65), agent:'Ralph',  text:'Opened PR #127: Mobile CRM responsive fixes' },
-    { time:fmt(70), agent:'Relay',  text:'Updated CRM with 3 new lead entries' },
-    { time:fmt(80), agent:'Mary',   text:'Processed incoming inquiry via website form' },
-  ];
-}
-
-// ── Helpers ──
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-function getAgentColor(name) {
-  const colors = { Kurtis:'#f59e0b', Clawd:'#8b5cf6', Scout:'#3b82f6', Relay:'#22c55e', Ralph:'#f59e0b', Mary:'#ec4899' };
-  return colors[name] || 'var(--text)';
-}
-
-// ══════════════════════════════════════════════════════════
-// ── OFFICE VIEW — Animated Canvas ──
-// ══════════════════════════════════════════════════════════
-
-const canvas = document.getElementById('office-canvas');
-const ctx = canvas.getContext('2d');
-let cW = 0, cH = 0;
-let officeFrame = 0;
-let standupTimer = 0;
-const STANDUP_INTERVAL = 10800; // ~3 min at 60fps
-const STANDUP_DURATION = 900;  // ~15s at 60fps
-
-// Agent definitions for office
-const officeAgents = {
-  kurtis: { emoji:'👑', name:'Kurtis', color:'#f59e0b', bg:'#451a03', state:'idle' },
-  clawd:  { emoji:'🧠', name:'Clawd',  color:'#8b5cf6', bg:'#2e1065', state:'idle' },
-  scout:  { emoji:'🔭', name:'Scout',  color:'#3b82f6', bg:'#172554', state:'idle' },
-  relay:  { emoji:'📡', name:'Relay',  color:'#22c55e', bg:'#052e16', state:'idle' },
-  ralph:  { emoji:'🔧', name:'Ralph',  color:'#f59e0b', bg:'#451a03', state:'idle' },
-  mary:   { emoji:'📋', name:'Mary',   color:'#ec4899', bg:'#500724', state:'idle' },
-};
-
-// Speech bubble pools
-const chatPools = {
-  kurtis: ["Revenue looking good…", "Let's ship faster", "How's the pipeline?", "Q2 targets are set", "Great work team!", "Let's review leads"],
-  clawd:  ["Coordinating tasks…", "Memory updated ✓", "Deploying now…", "All agents online", "Standup in 5…", "Checking heartbeats"],
-  scout:  ["Found a hot lead…", "Scanning Henderson…", "PEOPLE score: 8.2", "New warehouse area!", "4 prospects found", "Research complete ✓"],
-  relay:  ["3 more opens today", "Follow-up sent ✓", "Lead #847 is warm", "Pricing sheet ready", "CRM updated", "Pipeline looking good"],
-  ralph:  ["Bug fix deployed ✓", "PR merged!", "Refactoring CRM…", "Safari fix in prod", "Tests passing ✓", "New feature live!"],
-  mary:   ["Event confirmed ✓", "Staff: 2/2 locked", "Equipment checked", "Client happy!", "Schedule updated", "Invoice sent ✓"],
-};
-
-// Furniture definitions (computed relative to canvas)
-let furniture = [];
-let waterCoolerPos = { x: 0, y: 0 };
-let meetingRoomPos = { x: 0, y: 0 };
-
-function computeLayout() {
-  const w = cW, h = cH;
-  const pad = 30;
-  const fw = (w - pad * 2) / 4; // quarter width
-  const fh = (h - pad * 2) / 4; // quarter height
-
-  furniture = [
-    { label: "CEO's Office",     x: w*0.42, y: pad+10,        w: fw*0.9, h: fh*0.7, homeFor: 'kurtis' },
-    { label: "Chief of Staff",   x: w*0.42, y: pad+fh*0.85,   w: fw*0.9, h: fh*0.7, homeFor: 'clawd' },
-    { label: "Research Lab",     x: pad+10, y: pad+fh*0.3,    w: fw*0.95,h: fh*0.9, homeFor: 'scout' },
-    { label: "Sales Ops",        x: pad+fw*1.05, y: h*0.45,   w: fw*0.9, h: fh*0.8, homeFor: 'relay' },
-    { label: "Engineering",      x: w-pad-fw*1.9, y: h*0.45,  w: fw*0.9, h: fh*0.8, homeFor: 'ralph' },
-    { label: "PB Operations",    x: w-pad-fw*0.95,y: pad+fh*0.3, w: fw*0.95,h: fh*0.9, homeFor: 'mary' },
-    { label: "Meeting Room",     x: w*0.30, y: h-pad-fh*0.95, w: fw*1.5, h: fh*0.85 },
-    { label: "Water Cooler",     x: pad+10, y: h-pad-fh*0.65, w: fw*0.6, h: fh*0.55 },
-  ];
-
-  waterCoolerPos = { x: furniture[7].x + furniture[7].w/2, y: furniture[7].y + furniture[7].h/2 };
-  meetingRoomPos = { x: furniture[6].x + furniture[6].w/2, y: furniture[6].y + furniture[6].h/2 };
-
-  // Set agent home positions
-  for (const f of furniture) {
-    if (f.homeFor && officeAgents[f.homeFor]) {
-      const ag = officeAgents[f.homeFor];
-      const hx = f.x + f.w/2;
-      const hy = f.y + f.h/2 + 5;
-      ag.homeX = hx;
-      ag.homeY = hy;
-      if (ag.x === undefined) { ag.x = hx; ag.y = hy; }
-      ag.targetX = ag.targetX || hx;
-      ag.targetY = ag.targetY || hy;
-    }
-  }
-}
-
-// Initialize agent positions & timers
-function initOfficeAgents() {
-  for (const [id, ag] of Object.entries(officeAgents)) {
-    ag.x = ag.homeX || cW/2;
-    ag.y = ag.homeY || cH/2;
-    ag.targetX = ag.x;
-    ag.targetY = ag.y;
-    ag.wanderTimer = Math.floor(Math.random() * 200) + 200;
-    ag.bubble = null;
-    ag.bubbleTimer = 0;
-    ag.bobPhase = Math.random() * Math.PI * 2;
-    ag.glowPhase = Math.random() * Math.PI * 2;
-    ag.inStandup = false;
-    ag.atWaterCooler = false;
-  }
-}
-
-function updateOfficeAgentStates() {
-  // Build status data from agentStates and pass to real state handler
-  const statusData = {};
-  for (const [id, s] of Object.entries(agentStates)) {
-    if (!s) continue;
-    statusData[id] = {
-      state: (s.status === 'running' || s.status === 'active') ? 'running'
-           : (s.status === 'meeting' || s.status === 'standup') ? 'meeting'
-           : (s.status === 'discussion' || s.status === 'water-cooler') ? 'discussion'
-           : 'idle',
-      lastActivity: s.activity || s.statusText || null
-    };
-  }
-  applyAgentStateFromAPI(statusData);
-}
-
-function resizeOfficeCanvas() {
-  const container = document.getElementById('office-view');
-  const mainEl = document.querySelector('.main');
-  if (!container || !mainEl) return;
-  const rect = mainEl.getBoundingClientRect();
-  cW = rect.width - 60; // account for padding
-  cH = rect.height - 10;
-  if (cW < 200) cW = 200;
-  if (cH < 200) cH = 200;
-  canvas.width = cW * devicePixelRatio;
-  canvas.height = cH * devicePixelRatio;
-  canvas.style.width = cW + 'px';
-  canvas.style.height = cH + 'px';
-  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-  computeLayout();
-}
-
-window.addEventListener('resize', () => {
-  if (currentView === 'office') resizeOfficeCanvas();
-});
-
-// ── Drawing helpers ──
-function roundRect(x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x+r, y);
-  ctx.lineTo(x+w-r, y);
-  ctx.arcTo(x+w, y, x+w, y+r, r);
-  ctx.lineTo(x+w, y+h-r);
-  ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
-  ctx.lineTo(x+r, y+h);
-  ctx.arcTo(x, y+h, x, y+h-r, r);
-  ctx.lineTo(x, y+r);
-  ctx.arcTo(x, y, x+r, y, r);
-  ctx.closePath();
-}
-
-function drawGrid() {
-  ctx.strokeStyle = '#e2e8f0';
-  ctx.lineWidth = 0.5;
-  const step = 40;
-  for (let x = 0; x < cW; x += step) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, cH); ctx.stroke();
-  }
-  for (let y = 0; y < cH; y += step) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(cW, y); ctx.stroke();
-  }
-}
-
-function drawFurniture() {
-  for (const f of furniture) {
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.06)';
-    roundRect(f.x+2, f.y+2, f.w, f.h, 10);
-    ctx.fill();
-
-    // Body
-    ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = '#e2e8f0';
-    ctx.lineWidth = 1.5;
-    roundRect(f.x, f.y, f.w, f.h, 10);
-    ctx.fill();
-    ctx.stroke();
-
-    // Label
-    ctx.fillStyle = '#64748b';
-    ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(f.label, f.x + f.w/2, f.y + 18);
-  }
-}
-
-function drawConnectionLines() {
-  const kurtis = officeAgents.kurtis;
-  const clawd = officeAgents.clawd;
-  if (!kurtis || !clawd) return;
-
-  // Kurtis → Clawd
-  drawDashedLine(kurtis, clawd, clawd.state === 'running' ? 0.4 : 0.12);
-
-  // Clawd → each agent
-  for (const [id, ag] of Object.entries(officeAgents)) {
-    if (id === 'kurtis' || id === 'clawd') continue;
-    const opacity = ag.state === 'running' ? 0.4 : 0.1;
-    drawDashedLine(clawd, ag, opacity);
-
-    // Particle for running agents
-    if (ag.state === 'running') {
-      const t = (officeFrame * 0.015) % 1;
-      const px = clawd.x + (ag.x - clawd.x) * t;
-      const py = clawd.y + (ag.y - clawd.y) * t;
-      ctx.fillStyle = ag.color;
-      ctx.beginPath();
-      ctx.arc(px, py, 3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = ag.color + '60';
-      ctx.beginPath();
-      ctx.arc(px, py, 6, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-}
-
-function drawDashedLine(a, b, opacity) {
-  ctx.save();
-  ctx.strokeStyle = `rgba(99, 102, 241, ${opacity * 1.5})`;
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([6, 6]);
-  ctx.lineDashOffset = -officeFrame * 0.5;
-  ctx.beginPath();
-  ctx.moveTo(a.x, a.y);
-  ctx.lineTo(b.x, b.y);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.restore();
-}
-
-function drawAgent(ag) {
-  // Only bob when actively working, still when idle
-  const bobY = ag.state === 'running' ? Math.sin(officeFrame * 0.04 + ag.bobPhase) * 2 : 0;
-  const dx = ag.x;
-  const dy = ag.y + bobY;
-  const r = 18;
-
-  // Shadow ellipse
-  ctx.fillStyle = 'rgba(0,0,0,0.35)';
-  ctx.beginPath();
-  ctx.ellipse(dx, dy + r + 6, r * 0.8, 4, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Glow ring for running agents
-  if (ag.state === 'running') {
-    ag.glowPhase += 0.04;
-    const glowSize = r + 6 + Math.sin(ag.glowPhase) * 3;
-    ctx.strokeStyle = ag.color + '50';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(dx, dy, glowSize, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Spinning arc
-    const arcStart = officeFrame * 0.06;
-    ctx.strokeStyle = ag.color + 'aa';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.arc(dx, dy, r + 8, arcStart, arcStart + 1.2);
-    ctx.stroke();
-  }
-
-  // Circle body
-  ctx.fillStyle = ag.bg;
-  ctx.strokeStyle = ag.color + '80';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(dx, dy, r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-
-  // Emoji
-  ctx.font = '18px serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(ag.emoji, dx, dy + 1);
-
-  // Name
-  ctx.fillStyle = '#1a1a1a';
-  ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  ctx.fillText(ag.name, dx, dy + r + 10);
-
-  // Speech bubble
-  if (ag.bubble && ag.bubbleTimer > 0) {
-    const alpha = Math.min(1, ag.bubbleTimer / 30);
-    drawBubble(dx, dy - r - 28, ag.bubble, alpha);
-  }
-}
-
-function drawBubble(x, y, text, alpha) {
-  ctx.save();
-  ctx.globalAlpha = alpha;
-
-  // Truncate text
-  let display = text.length > 28 ? text.slice(0, 26) + '…' : text;
-  ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
-  const tw = ctx.measureText(display).width;
-  const bw = tw + 16;
-  const bh = 24;
-  const bx = x - bw/2;
-  const by = y - bh;
-
-  // Background
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#e2e8f0';
-  ctx.lineWidth = 1;
-  roundRect(bx, by, bw, bh, 6);
-  ctx.fill();
-  ctx.stroke();
-
-  // Pointer triangle
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  ctx.moveTo(x - 5, by + bh);
-  ctx.lineTo(x + 5, by + bh);
-  ctx.lineTo(x, by + bh + 6);
-  ctx.closePath();
-  ctx.fill();
-
-  // Text
-  ctx.fillStyle = '#1a1a1a';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(display, x, by + bh/2);
-
-  ctx.restore();
-}
-
-// ── Agent behavior update ──
-// REAL behavior only — agents move ONLY when actually working or in a real meeting.
-// No random wandering. No fake water cooler chats. Office reflects actual state.
-function updateAgents() {
-  for (const [id, ag] of Object.entries(officeAgents)) {
-    // Lerp toward target
-    ag.x += (ag.targetX - ag.x) * 0.03;
-    ag.y += (ag.targetY - ag.y) * 0.03;
-
-    // State-driven positioning (no random movement)
-    if (ag.state === 'running') {
-      // Running agents: at their desk, working
-      ag.targetX = ag.homeX;
-      ag.targetY = ag.homeY;
-    } else if (ag.state === 'meeting' || ag.inStandup) {
-      // In a real meeting: positioned at meeting room (set by API update)
-    } else if (ag.state === 'discussion') {
-      // In a real water cooler discussion (set by API update)
-    } else {
-      // Idle: stay at desk, no movement
-      ag.targetX = ag.homeX;
-      ag.targetY = ag.homeY;
-      ag.atWaterCooler = false;
-    }
-
-    // Bubble timer
-    if (ag.bubbleTimer > 0) ag.bubbleTimer--;
-    if (ag.bubbleTimer <= 0) ag.bubble = null;
-  }
-}
-
-// Called when API returns agent status updates — triggers real movement
-function applyAgentStateFromAPI(statusData) {
-  for (const [id, data] of Object.entries(statusData)) {
-    const ag = officeAgents[id];
-    if (!ag) continue;
-
-    const prevState = ag.state;
-    ag.state = data.state || 'idle';
-
-    // Show activity text as speech bubble when state changes
-    if (data.lastActivity && ag.state === 'running' && prevState !== 'running') {
-      ag.bubble = data.lastActivity.substring(0, 28);
-      ag.bubbleTimer = 300;
-    }
-
-    // Move to meeting room if in standup/meeting
-    if (ag.state === 'meeting') {
-      ag.inStandup = true;
-      const idx = Object.keys(officeAgents).indexOf(id);
-      ag.targetX = meetingRoomPos.x + (idx - 2.5) * 30;
-      ag.targetY = meetingRoomPos.y + (Math.random() - 0.5) * 20;
-      if (!ag.bubble) { ag.bubble = '📋 Standup'; ag.bubbleTimer = 200; }
-    } else if (prevState === 'meeting') {
-      ag.inStandup = false;
-      ag.targetX = ag.homeX;
-      ag.targetY = ag.homeY;
-    }
-
-    // Move to water cooler if in discussion
-    if (ag.state === 'discussion') {
-      ag.targetX = waterCoolerPos.x + (Math.random() - 0.5) * 40;
-      ag.targetY = waterCoolerPos.y + (Math.random() - 0.5) * 30;
-      ag.atWaterCooler = true;
-      if (data.lastActivity) { ag.bubble = data.lastActivity.substring(0, 28); ag.bubbleTimer = 300; }
-    } else if (prevState === 'discussion') {
-      ag.atWaterCooler = false;
-      ag.targetX = ag.homeX;
-      ag.targetY = ag.homeY;
-    }
-  }
-}
-
-// ── Main render loop ──
-function renderOffice() {
-  officeFrame++;
-
-  // Clear
-  ctx.fillStyle = '#f1f5f9';
-  ctx.fillRect(0, 0, cW, cH);
-
-  drawGrid();
-  drawFurniture();
-  drawConnectionLines();
-
-  updateAgents();
-
-  // Draw agents (sorted by Y for depth)
-  const sorted = Object.values(officeAgents).sort((a, b) => a.y - b.y);
-  for (const ag of sorted) {
-    drawAgent(ag);
-  }
-
-  requestAnimationFrame(renderOffice);
-}
-
-// ── Bootstrap office ──
-resizeOfficeCanvas();
-initOfficeAgents();
-renderOffice();
-
-// ── Learnings ──
-const AGENT_COLORS = { scout: 'blue', relay: 'green', ralph: 'purple', mary: 'pink' };
-const AGENT_EMOJIS = { scout: '🔍', relay: '📧', ralph: '🔧', mary: '📸' };
-const AGENT_LABELS = { scout: 'Scout — Research', relay: 'Relay — Sales Ops', ralph: 'Ralph — Engineering', mary: 'Mary — PB Ops' };
-
-function extractBullets(text) {
-  if (!text) return [];
-  const lines = text.split('\n');
-  const bullets = [];
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('• ')) {
-      const content = trimmed.replace(/^[-*•]\s*/, '').replace(/\*\*/g, '');
-      if (content.length > 10 && content.length < 300) {
-        bullets.push(content);
-      }
-    }
-  }
-  return bullets.slice(0, 6);
-}
-
-function extractFromFiles(files) {
-  const bullets = [];
-  for (const f of (files || [])) {
-    // Extract key findings from file previews
-    const preview = f.preview || '';
-    const lines = preview.split('\n');
-    for (const line of lines) {
-      const t = line.trim();
-      if ((t.startsWith('- ') || t.startsWith('* ') || t.startsWith('• ')) && t.length > 15 && t.length < 250) {
-        bullets.push(t.replace(/^[-*•]\s*/, '').replace(/\*\*/g, ''));
-      }
-    }
-  }
-  return bullets.slice(0, 5);
-}
-
-async function fetchLearnings() {
-  try {
-    const res = await fetch('/api/team/learnings');
-    const data = await res.json();
-    const grid = document.getElementById('learnings-grid');
-    const agents = ['scout', 'relay', 'ralph', 'mary'];
-    let totalLearnings = 0;
-
-    grid.innerHTML = '';
-
-    for (const agent of agents) {
-      const info = data[agent] || {};
-      const items = (info.items || []).slice(0, 8);
-
-      totalLearnings += items.length;
-
-      const card = document.createElement('div');
-      card.className = 'learning-card';
-
-      const updated = info.updated ? new Date(info.updated).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
-      const mc = info.mistakeCount || 0;
-      const lc = info.learningCount || 0;
-
-      card.innerHTML = `
-        <div class="learning-agent-header">
-          <span style="font-size:18px">${AGENT_EMOJIS[agent]}</span>
-          <span class="learning-agent-name">${AGENT_LABELS[agent]}</span>
-          ${updated ? `<span class="learning-agent-badge">${updated}</span>` : ''}
-          ${mc ? `<span class="learning-agent-badge">⚠️ ${mc} mistake${mc>1?'s':''}</span>` : ''}
-        </div>
-        <div class="learning-items">
-          ${items.length ? items.map(i => {
-            const tag = i.type === 'mistake'
-              ? '<span class="learning-type-tag mistake">mistake</span>'
-              : '<span class="learning-type-tag learning">learned</span>';
-            const cls = i.type === 'mistake' ? 'mistake' : agent;
-            return `<div class="learning-item ${cls}">${tag}${i.text}</div>`;
-          }).join('') : '<div class="learning-empty">No new learnings in the last 72 hours</div>'}
-        </div>
-      `;
-      grid.appendChild(card);
-    }
-
-    // Shared cross-team learnings
-    const shared = data.shared || {};
-    const sections = [
-      { key: 'what_works', title: '✅ What Works', tag: 'works', color: 'var(--green)' },
-      { key: 'what_fails', title: '❌ What Doesn\'t Work', tag: 'fail', color: 'var(--red)' },
-      { key: 'strategies', title: '🎯 Strategies', tag: 'strategy', color: 'var(--amber)' }
-    ];
-
-    const sharedItems = sections.flatMap(s => (shared[s.key] || []).map(b => ({ ...s, text: b })));
-    if (sharedItems.length) {
-      totalLearnings += sharedItems.length;
-      const card = document.createElement('div');
-      card.className = 'learning-card';
-      card.style.gridColumn = '1 / -1';
-
-      let html = `<div class="learning-agent-header">
-        <span style="font-size:18px">🤝</span>
-        <span class="learning-agent-name">Cross-Team Learnings</span>
-        ${shared.updated ? `<span class="learning-agent-badge">${new Date(shared.updated).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>` : ''}
-      </div>`;
-
-      for (const section of sections) {
-        const items = shared[section.key] || [];
-        if (items.length) {
-          html += `<div class="learning-subsection">
-            <div class="learning-subsection-title">${section.title}</div>
-            <div class="learning-items">
-              ${items.slice(0, 4).map(b => `<div class="learning-item" style="border-left-color:${section.color}"><span class="learning-type-tag ${section.tag}">${section.tag}</span>${b}</div>`).join('')}
+        
+        <!-- Featured Card - Main Agent -->
+        <div class="featured-section">
+            <div class="featured-card">
+                <div class="featured-content">
+                    <div class="featured-avatar">🎯</div>
+                    <div class="featured-name">Claude (Main Agent)</div>
+                    <div class="featured-role">Orchestrator & Chief of Staff</div>
+                    <div class="featured-description">
+                        I coordinate the entire operation, make strategic decisions, manage memory and context across sessions, 
+                        and ensure all agents work together effectively toward business objectives. Think of me as the central 
+                        nervous system that connects all specialized functions.
+                    </div>
+                    <div class="skill-tags">
+                        <div class="skill-tag">Strategy</div>
+                        <div class="skill-tag">Coordination</div>
+                        <div class="skill-tag">Memory</div>
+                        <div class="skill-tag">Decision Making</div>
+                    </div>
+                </div>
+                <div class="status-indicator busy"></div>
             </div>
-          </div>`;
-        }
-      }
-
-      card.innerHTML = html;
-      grid.appendChild(card);
-    }
-
-    document.getElementById('learnings-count').textContent = `${totalLearnings} insight${totalLearnings !== 1 ? 's' : ''}`;
-  } catch(e) {
-    console.error('Failed to load learnings:', e);
-    document.getElementById('learnings-count').textContent = 'Error';
-  }
-}
-
-// ── Init ──
-fetchTeamStatus();
-fetchActivity();
-fetchLearnings();
-setInterval(fetchTeamStatus, 15000);
-setInterval(fetchActivity, 15000);
-setInterval(fetchLearnings, 60000);
-</script>
+        </div>
+        
+        <!-- Core Agents -->
+        <div class="section">
+            <h2 class="section-title">Core Agents</h2>
+            <div class="core-grid">
+                <div class="agent-card scout">
+                    <div class="agent-header">
+                        <div class="agent-avatar">🕵️</div>
+                        <div class="agent-info">
+                            <div class="agent-name">Scout</div>
+                            <div class="agent-role">Research Analyst</div>
+                        </div>
+                    </div>
+                    <div class="agent-description">
+                        Continuously researches markets, competitors, and opportunities. Generates detailed intelligence reports 
+                        on leads, industry trends, and business landscapes across all verticals.
+                    </div>
+                    <div class="agent-tags">
+                        <div class="agent-tag">Leads</div>
+                        <div class="agent-tag">Intel</div>
+                        <div class="agent-tag">Market Research</div>
+                        <div class="agent-tag">Analysis</div>
+                    </div>
+                    <div class="status-indicator"></div>
+                </div>
+                
+                <div class="agent-card relay">
+                    <div class="agent-header">
+                        <div class="agent-avatar">📈</div>
+                        <div class="agent-info">
+                            <div class="agent-name">Relay</div>
+                            <div class="agent-role">Sales Operations</div>
+                        </div>
+                    </div>
+                    <div class="agent-description">
+                        Manages sales pipeline, email campaigns, prospect nurturing, and conversion optimization. 
+                        Handles all customer-facing communications and sales process automation.
+                    </div>
+                    <div class="agent-tags">
+                        <div class="agent-tag">Pipeline</div>
+                        <div class="agent-tag">Email</div>
+                        <div class="agent-tag">Analytics</div>
+                        <div class="agent-tag">Conversion</div>
+                    </div>
+                    <div class="status-indicator busy"></div>
+                </div>
+                
+                <div class="agent-card ralph">
+                    <div class="agent-header">
+                        <div class="agent-avatar">⚙️</div>
+                        <div class="agent-info">
+                            <div class="agent-name">Ralph</div>
+                            <div class="agent-role">Lead Engineer</div>
+                        </div>
+                    </div>
+                    <div class="agent-description">
+                        Builds and maintains all technical infrastructure, dashboards, APIs, and automation systems. 
+                        Ensures reliable deployment and quality assurance across all platforms.
+                    </div>
+                    <div class="agent-tags">
+                        <div class="agent-tag">Code</div>
+                        <div class="agent-tag">Deploy</div>
+                        <div class="agent-tag">QA</div>
+                        <div class="agent-tag">Infrastructure</div>
+                    </div>
+                    <div class="status-indicator"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Coordination Agents -->
+        <div class="section">
+            <h2 class="section-title">Coordination</h2>
+            <div class="coordination-grid">
+                <div class="agent-card coordination">
+                    <div class="agent-header">
+                        <div class="agent-avatar">📋</div>
+                        <div class="agent-info">
+                            <div class="agent-name">Standup</div>
+                            <div class="agent-role">Daily Planning</div>
+                        </div>
+                    </div>
+                    <div class="agent-description">
+                        Orchestrates daily team coordination, priority setting, and progress tracking. 
+                        Ensures all agents stay aligned on objectives and deliverables.
+                    </div>
+                    <div class="agent-tags">
+                        <div class="agent-tag">Planning</div>
+                        <div class="agent-tag">Priorities</div>
+                        <div class="agent-tag">Sync</div>
+                    </div>
+                    <div class="status-indicator"></div>
+                </div>
+                
+                <div class="agent-card coordination">
+                    <div class="agent-header">
+                        <div class="agent-avatar">☕</div>
+                        <div class="agent-info">
+                            <div class="agent-name">Water Cooler</div>
+                            <div class="agent-role">Team Insights</div>
+                        </div>
+                    </div>
+                    <div class="agent-description">
+                        Facilitates knowledge sharing, cross-team learning, and strategic discussions. 
+                        Captures insights and patterns across agent interactions.
+                    </div>
+                    <div class="agent-tags">
+                        <div class="agent-tag">Insights</div>
+                        <div class="agent-tag">Learning</div>
+                        <div class="agent-tag">Strategy</div>
+                    </div>
+                    <div class="status-indicator idle"></div>
+                </div>
+                
+                <div class="agent-card coordination">
+                    <div class="agent-header">
+                        <div class="agent-avatar">📊</div>
+                        <div class="agent-info">
+                            <div class="agent-name">Weekly Retro</div>
+                            <div class="agent-role">Performance Review</div>
+                        </div>
+                    </div>
+                    <div class="agent-description">
+                        Analyzes weekly performance, identifies improvement opportunities, and drives 
+                        continuous optimization across all business functions.
+                    </div>
+                    <div class="agent-tags">
+                        <div class="agent-tag">Review</div>
+                        <div class="agent-tag">Metrics</div>
+                        <div class="agent-tag">Optimize</div>
+                    </div>
+                    <div class="status-indicator"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Support Roles -->
+        <div class="section">
+            <h2 class="section-title">Support Roles</h2>
+            <div class="support-grid">
+                <div class="agent-card system">
+                    <div class="agent-header">
+                        <div class="agent-avatar">🔍</div>
+                        <div class="agent-info">
+                            <div class="agent-name">E2E QA</div>
+                            <div class="agent-role">Quality Assurance</div>
+                        </div>
+                    </div>
+                    <div class="agent-description">
+                        Monitors system health, validates deployments, and ensures quality across all platforms.
+                    </div>
+                    <div class="agent-tags">
+                        <div class="agent-tag">Testing</div>
+                        <div class="agent-tag">Health</div>
+                        <div class="agent-tag">Monitor</div>
+                    </div>
+                    <div class="status-indicator"></div>
+                </div>
+                
+                <div class="agent-card system">
+                    <div class="agent-header">
+                        <div class="agent-avatar">🚨</div>
+                        <div class="agent-info">
+                            <div class="agent-name">Health Watchdog</div>
+                            <div class="agent-role">System Monitor</div>
+                        </div>
+                    </div>
+                    <div class="agent-description">
+                        Tracks cron job health, system uptime, and alerts on failures or performance issues.
+                    </div>
+                    <div class="agent-tags">
+                        <div class="agent-tag">Alerts</div>
+                        <div class="agent-tag">Uptime</div>
+                        <div class="agent-tag">Cron</div>
+                    </div>
+                    <div class="status-indicator busy"></div>
+                </div>
+                
+                <div class="agent-card email">
+                    <div class="agent-header">
+                        <div class="agent-avatar">✍️</div>
+                        <div class="agent-info">
+                            <div class="agent-name">Email Drafter</div>
+                            <div class="agent-role">Content Writer</div>
+                        </div>
+                    </div>
+                    <div class="agent-description">
+                        Creates and optimizes email content, subject lines, and campaign messaging.
+                    </div>
+                    <div class="agent-tags">
+                        <div class="agent-tag">Copy</div>
+                        <div class="agent-tag">Subject</div>
+                        <div class="agent-tag">A/B Test</div>
+                    </div>
+                    <div class="status-indicator"></div>
+                </div>
+                
+                <div class="agent-card email">
+                    <div class="agent-header">
+                        <div class="agent-avatar">📧</div>
+                        <div class="agent-info">
+                            <div class="agent-name">Email Frequency</div>
+                            <div class="agent-role">Deliverability</div>
+                        </div>
+                    </div>
+                    <div class="agent-description">
+                        Monitors email frequency, bounce rates, and deliverability metrics to maintain sender reputation.
+                    </div>
+                    <div class="agent-tags">
+                        <div class="agent-tag">Delivery</div>
+                        <div class="agent-tag">Bounce</div>
+                        <div class="agent-tag">Reputation</div>
+                    </div>
+                    <div class="status-indicator busy"></div>
+                </div>
+                
+                <div class="agent-card pb">
+                    <div class="agent-header">
+                        <div class="agent-avatar">📷</div>
+                        <div class="agent-info">
+                            <div class="agent-name">PB Draft Sync</div>
+                            <div class="agent-role">Photo Booth Ops</div>
+                        </div>
+                    </div>
+                    <div class="agent-description">
+                        Manages photo booth email drafts, client communications, and booking coordination.
+                    </div>
+                    <div class="agent-tags">
+                        <div class="agent-tag">Bookings</div>
+                        <div class="agent-tag">Client</div>
+                        <div class="agent-tag">Events</div>
+                    </div>
+                    <div class="status-indicator"></div>
+                </div>
+                
+                <div class="agent-card system">
+                    <div class="agent-header">
+                        <div class="agent-avatar">🔄</div>
+                        <div class="agent-info">
+                            <div class="agent-name">Self-Update</div>
+                            <div class="agent-role">Maintenance</div>
+                        </div>
+                    </div>
+                    <div class="agent-description">
+                        Handles system updates, dependency management, and automated maintenance tasks.
+                    </div>
+                    <div class="agent-tags">
+                        <div class="agent-tag">Updates</div>
+                        <div class="agent-tag">Deps</div>
+                        <div class="agent-tag">Maintain</div>
+                    </div>
+                    <div class="status-indicator"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
