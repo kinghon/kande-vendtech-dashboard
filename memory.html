@@ -433,14 +433,15 @@
         
         async function loadMemoryFiles() {
             try {
-                const response = await fetch('/api/memory/list', {
+                const response = await fetch('/api/memory/db-list', {
                     headers: {
                         'x-api-key': 'kande2026'
                     }
                 });
                 
                 if (response.ok) {
-                    memoryFiles = await response.json();
+                    const data = await response.json();
+                    memoryFiles = data.files || [];
                 } else {
                     memoryFiles = [];
                 }
@@ -536,7 +537,7 @@
             }
             
             try {
-                const response = await fetch(`/api/memory/read/${encodeURIComponent(filename)}`, {
+                const response = await fetch(`/api/memory/db-read/${encodeURIComponent(filename)}`, {
                     headers: {
                         'x-api-key': 'kande2026'
                     }

@@ -73,7 +73,7 @@ function sanitizeObject(obj) {
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
   // Allow these paths without auth
-  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status'];
+  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status', '/api/memory/db-list', '/api/memory/db-read', '/api/memory/db-search', '/api/memory/sync'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
     return next();
   }
@@ -23931,3 +23931,82 @@ function determineAgentStatus(status, relatedJobs) {
 function isAgentWorking(status, relatedJobs) {
   return determineAgentStatus(status, relatedJobs) === 'working';
 }
+
+// ===== MEMORY BROWSER — DB-BACKED API (Ralph 2026-02-20) =====
+// Replaces the broken filesystem-based /api/memory/list which hardcodes a Mac path.
+// memory.html calls these new endpoints; agents sync content via POST /api/memory/sync.
+
+// GET /api/memory/db-list — list all memory files stored in DB
+app.get('/api/memory/db-list', (req, res) => {
+  try {
+    const files = db.memoryFiles || [];
+    // Sort: MEMORY.md (isLongTerm) first, then by date descending
+    const sorted = [...files].sort((a, b) => {
+      if (a.isLongTerm) return -1;
+      if (b.isLongTerm) return 1;
+      return new Date(b.date || 0) - new Date(a.date || 0);
+    });
+    res.json({ files: sorted });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to list memory files from DB', details: err.message });
+  }
+});
+
+// GET /api/memory/db-read/:filename — read a single memory file from DB
+app.get('/api/memory/db-read/:filename', (req, res) => {
+  try {
+    const { filename } = req.params;
+    const files = db.memoryFiles || [];
+    const file = files.find(f => f.filename === filename);
+    if (!file) return res.status(404).json({ error: 'Memory file not found', filename });
+    res.json({ filename: file.filename, content: file.content, date: file.date, isLongTerm: file.isLongTerm });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to read memory file', details: err.message });
+  }
+});
+
+// POST /api/memory/sync — upsert a memory file into DB (called by agents or seeder)
+app.post('/api/memory/sync', express.json({ limit: '2mb' }), (req, res) => {
+  try {
+    const { filename, content, date, isLongTerm } = req.body;
+    if (!filename || content === undefined) {
+      return res.status(400).json({ error: 'filename and content are required' });
+    }
+    if (!db.memoryFiles) db.memoryFiles = [];
+    const idx = db.memoryFiles.findIndex(f => f.filename === filename);
+    const entry = {
+      filename,
+      content,
+      date: date || new Date().toISOString(),
+      isLongTerm: !!isLongTerm,
+      preview: content.substring(0, 200) + (content.length > 200 ? '...' : ''),
+      size: content.length,
+      syncedAt: new Date().toISOString()
+    };
+    if (idx >= 0) {
+      db.memoryFiles[idx] = entry;
+    } else {
+      db.memoryFiles.push(entry);
+    }
+    saveDB(db);
+    res.json({ ok: true, filename, size: content.length });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to sync memory file', details: err.message });
+  }
+});
+
+// GET /api/memory/db-search?q=term — full-text search across DB memory files
+app.get('/api/memory/db-search', (req, res) => {
+  try {
+    const q = (req.query.q || '').toLowerCase().trim();
+    const files = db.memoryFiles || [];
+    if (!q) return res.json({ files, query: '' });
+    const matched = files.filter(f =>
+      f.filename.toLowerCase().includes(q) ||
+      (f.content || '').toLowerCase().includes(q)
+    );
+    res.json({ files: matched, query: q, count: matched.length });
+  } catch (err) {
+    res.status(500).json({ error: 'Memory search failed', details: err.message });
+  }
+});
