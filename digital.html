@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kande Digital — Blue Collar AI Platform</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:      #f8f9fa;
+            --card:    #ffffff;
+            --border:  #e2e8f0;
+            --text:    #1a1a1a;
+            --muted:   #6b7280;
+            --blue:    #3b82f6;
+            --blue-dk: #2563eb;
+            --green:   #10b981;
+            --amber:   #f59e0b;
+            --red:     #ef4444;
+            --purple:  #8b5cf6;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* ── Sidebar nav ── */
+        .layout { display: flex; min-height: 100vh; }
+
+        .sidebar {
+            width: 220px;
+            background: var(--card);
+            border-right: 1px solid var(--border);
+            padding: 20px 0;
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .sidebar-brand {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 15px;
+        }
+
+        .sidebar-brand h2 { font-size: 1.1rem; color: var(--blue); font-weight: 700; }
+        .sidebar-brand p  { font-size: 0.75rem; color: var(--muted); }
+
+        .nav-section { padding: 5px 10px 0; font-size: 0.7rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-top: 10px; }
+
+        .nav-link {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 20px;
+            color: var(--text); text-decoration: none;
+            font-size: 0.9rem; border-radius: 0;
+            transition: background .15s;
+        }
+        .nav-link:hover  { background: var(--bg); }
+        .nav-link.active { background: #eff6ff; color: var(--blue); font-weight: 600; border-left: 3px solid var(--blue); }
+
+        /* ── Main content ── */
+        .main { margin-left: 220px; padding: 30px; max-width: 1100px; }
+
+        /* ── Page header ── */
+        .page-header {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px 28px;
+            margin-bottom: 24px;
+            display: flex; align-items: center; gap: 20px;
+        }
+        .page-header-icon { font-size: 2.5rem; }
+        .page-header h1   { font-size: 1.6rem; color: var(--text); margin-bottom: 4px; }
+        .page-header p    { color: var(--muted); font-size: 0.95rem; }
+
+        /* ── Tier cards ── */
+        .tier-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+        .tier-card {
+            background: var(--card); border: 2px solid var(--border);
+            border-radius: 12px; padding: 22px; text-align: center; position: relative;
+        }
+        .tier-card.featured { border-color: var(--blue); }
+        .tier-badge {
+            position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
+            background: var(--blue); color: #fff; font-size: 0.7rem; font-weight: 700;
+            padding: 2px 12px; border-radius: 20px; text-transform: uppercase;
+        }
+        .tier-price { font-size: 2rem; font-weight: 700; color: var(--text); }
+        .tier-price span { font-size: 1rem; color: var(--muted); font-weight: 400; }
+        .tier-name { font-weight: 600; font-size: 1.1rem; margin: 6px 0 12px; }
+        .tier-features { list-style: none; text-align: left; font-size: 0.875rem; color: var(--muted); }
+        .tier-features li { padding: 4px 0; }
+        .tier-features li::before { content: "✓ "; color: var(--green); font-weight: 700; }
+
+        /* ── Tool sections ── */
+        .tool-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 28px; margin-bottom: 24px;
+        }
+        .tool-header {
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 20px; padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .tool-icon { font-size: 1.8rem; }
+        .tool-header h2  { font-size: 1.2rem; margin-bottom: 2px; }
+        .tool-header p   { color: var(--muted); font-size: 0.875rem; }
+        .tool-badge {
+            margin-left: auto; padding: 4px 10px; border-radius: 20px;
+            font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+        }
+        .badge-live  { background: #dcfce7; color: #166534; }
+        .badge-beta  { background: #fef3c7; color: #92400e; }
+
+        /* ── Forms ── */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+        .form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group.full { grid-column: 1 / -1; }
+        label { font-size: 0.8rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+        input, select, textarea {
+            padding: 10px 12px; border: 1px solid var(--border);
+            border-radius: 6px; font-size: 0.9rem; color: var(--text);
+            background: var(--bg); font-family: inherit;
+            transition: border-color .15s;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none; border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(59,130,246,.1);
+        }
+        textarea { resize: vertical; min-height: 80px; }
+
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 10px 20px; border: none; border-radius: 6px;
+            font-size: 0.9rem; font-weight: 600; cursor: pointer;
+            transition: all .15s; text-decoration: none;
+        }
+        .btn-primary  { background: var(--blue);   color: #fff; }
+        .btn-primary:hover  { background: var(--blue-dk); }
+        .btn-green    { background: var(--green);  color: #fff; }
+        .btn-green:hover    { background: #059669; }
+        .btn-purple   { background: var(--purple); color: #fff; }
+        .btn-purple:hover   { background: #7c3aed; }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+        /* ── Results panels ── */
+        .result-panel {
+            margin-top: 20px; background: var(--bg); border: 1px solid var(--border);
+            border-radius: 8px; padding: 20px; display: none;
+        }
+        .result-panel.visible { display: block; }
+
+        .score-display {
+            display: flex; align-items: center; gap: 20px; margin-bottom: 20px;
+        }
+        .score-circle {
+            width: 90px; height: 90px; border-radius: 50%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-size: 1.8rem; font-weight: 700; border: 4px solid;
+            flex-shrink: 0;
+        }
+        .score-circle.poor   { border-color: var(--red);   color: var(--red);   background: #fee2e2; }
+        .score-circle.fair   { border-color: var(--amber); color: var(--amber); background: #fef3c7; }
+        .score-circle.good   { border-color: var(--green); color: var(--green); background: #dcfce7; }
+        .score-label { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; }
+
+        .score-details h3 { font-size: 1.1rem; margin-bottom: 4px; }
+        .score-details p  { color: var(--muted); font-size: 0.875rem; }
+
+        .breakdown-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
+        .breakdown-item {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 8px; padding: 12px; text-align: center;
+        }
+        .breakdown-score { font-size: 1.3rem; font-weight: 700; }
+        .breakdown-label { font-size: 0.75rem; color: var(--muted); text-transform: capitalize; }
+
+        .rec-list { list-style: none; }
+        .rec-list li {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 10px 0; border-bottom: 1px solid var(--border);
+            font-size: 0.875rem;
+        }
+        .rec-list li:last-child { border-bottom: none; }
+        .priority-badge {
+            padding: 2px 8px; border-radius: 12px; font-size: 0.7rem;
+            font-weight: 700; text-transform: uppercase; flex-shrink: 0; margin-top: 1px;
+        }
+        .priority-HIGH   { background: #fee2e2; color: #991b1b; }
+        .priority-MEDIUM { background: #fef3c7; color: #92400e; }
+        .priority-LOW    { background: #f0fdf4; color: #166534; }
+
+        .content-output {
+            white-space: pre-wrap; font-family: inherit; font-size: 0.9rem;
+            line-height: 1.7; color: var(--text);
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 6px; padding: 16px; margin-top: 12px;
+        }
+        .copy-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 14px; border: 1px solid var(--border);
+            border-radius: 6px; font-size: 0.8rem; cursor: pointer;
+            background: var(--card); color: var(--muted); transition: all .15s;
+            margin-top: 10px;
+        }
+        .copy-btn:hover { background: var(--bg); border-color: var(--blue); color: var(--blue); }
+        .copy-btn.copied { background: #dcfce7; border-color: var(--green); color: #166534; }
+
+        /* ── Loading spinner ── */
+        .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Responsive ── */
+        @media (max-width: 900px) {
+            .sidebar { display: none; }
+            .main { margin-left: 0; padding: 15px; }
+            .tier-grid, .form-grid, .form-grid.three { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-brand">
+            <h2>🏗️ Kande Digital</h2>
+            <p>Blue Collar AI Platform</p>
+        </div>
+        <div class="nav-section">Tools</div>
+        <a href="#audit"   class="nav-link active" onclick="scrollTo('audit')">🔍 GMB Auditor</a>
+        <a href="#content" class="nav-link"         onclick="scrollTo('content')">✍️ Content Generator</a>
+        <a href="#reviews" class="nav-link"         onclick="scrollTo('reviews')">⭐ Review Responder</a>
+        <div class="nav-section">Mission Control</div>
+        <a href="/team"    class="nav-link">👥 Team</a>
+        <a href="/tasks"   class="nav-link">📋 Tasks</a>
+        <a href="/calendar" class="nav-link">📅 Calendar</a>
+        <a href="/"        class="nav-link">🏠 VendTech</a>
+    </nav>
+
+    <!-- Main -->
+    <main class="main">
+
+        <!-- Header -->
+        <div class="page-header">
+            <div class="page-header-icon">🏗️</div>
+            <div>
+                <h1>Kande Digital — Blue Collar AI</h1>
+                <p>GMB optimization platform for Las Vegas tradespeople. Run audits, generate content, and respond to reviews instantly.</p>
+            </div>
+        </div>
+
+        <!-- Service Tiers -->
+        <div class="tier-grid">
+            <div class="tier-card">
+                <div class="tier-name">Starter</div>
+                <div class="tier-price">$149<span>/mo</span></div>
+                <ul class="tier-features" style="margin-top:12px;">
+                    <li>Full GMB profile audit</li>
+                    <li>Monthly optimization report</li>
+                    <li>4 Google Posts / month</li>
+                    <li>Review response drafts</li>
+                    <li>Business description rewrite</li>
+                </ul>
+            </div>
+            <div class="tier-card featured">
+                <div class="tier-badge">Most Popular</div>
+                <div class="tier-name">Pro</div>
+                <div class="tier-price">$199<span>/mo</span></div>
+                <ul class="tier-features" style="margin-top:12px;">
+                    <li>Everything in Starter</li>
+                    <li>Weekly GMB posts</li>
+                    <li>Real-time review monitoring</li>
+                    <li>Q&amp;A management</li>
+                    <li>Competitor tracking</li>
+                    <li>Monthly strategy call</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ── Tool 1: GMB Auditor ── -->
+        <div class="tool-card" id="audit">
+            <div class="tool-header">
+                <div class="tool-icon">🔍</div>
+                <div>
+                    <h2>GMB Auditor</h2>
+                    <p>Score any business's Google presence in seconds. Reveals quick wins and revenue leaks.</p>
+                </div>
+                <span class="tool-badge badge-live">Live</span>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Business Name *</label>
+                    <input type="text" id="audit-name" placeholder="Vegas HVAC Pro" />
+                </div>
+                <div class="form-group">
+                    <label>Location *</label>
+                    <input type="text" id="audit-location" placeholder="Las Vegas, NV" />
+                </div>
+                <div class="form-group">
+                    <label>Business Type</label>
+                    <select id="audit-type">
+                        <option value="">Select type…</option>
+                        <option value="HVAC">HVAC</option>
+                        <option value="Plumbing">Plumbing</option>
+                        <option value="Electrical">Electrical</option>
+                        <option value="Landscaping">Landscaping</option>
+                        <option value="Auto Repair">Auto Repair</option>
+                        <option value="Restaurant">Restaurant</option>
+                        <option value="Cleaning">Cleaning</option>
+                        <option value="Painting">Painting</option>
+                        <option value="Roofing">Roofing</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Website (optional)</label>
+                    <input type="text" id="audit-website" placeholder="vegashvacpro.com" />
+                </div>
+            </div>
+            <button class="btn btn-primary" id="audit-btn" onclick="runAudit()">
+                🔍 Run Audit
+            </button>
+
+            <!-- Audit Results -->
+            <div class="result-panel" id="audit-result">
+                <div class="score-display">
+                    <div class="score-circle" id="score-circle">
+                        <span id="score-num">--</span>
+                        <span class="score-label">Score</span>
+                    </div>
+                    <div class="score-details">
+                        <h3 id="score-headline">Audit Complete</h3>
+                        <p id="score-summary">–</p>
+                        <p style="margin-top:6px;font-size:0.75rem;color:var(--muted);" id="score-timestamp"></p>
+                    </div>
+                </div>
+
+                <div class="breakdown-grid" id="breakdown-grid"></div>
+
+                <h4 style="margin-bottom:10px;">📋 Recommendations</h4>
+                <ul class="rec-list" id="rec-list"></ul>
+
+                <div style="margin-top:16px;display:flex;gap:10px;">
+                    <button class="btn btn-green" onclick="generateReport()">📄 Generate Full Report</button>
+                    <button class="btn btn-purple" onclick="prefillContent()">✍️ Generate Content</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Tool 2: Content Generator ── -->
+        <div class="tool-card" id="content">
+            <div class="tool-header">
+                <div class="tool-icon">✍️</div>
+                <div>
+                    <h2>Content Generator</h2>
+                    <p>Create Google Posts, business descriptions, and seasonal promotions for any trade business.</p>
+                </div>
+                <span class="tool-badge badge-live">Live</span>
+            </div>
+
+            <div class="form-grid three">
+                <div class="form-group">
+                    <label>Industry *</label>
+                    <select id="content-industry">
+                        <option value="">Select industry…</option>
+                        <option value="HVAC">HVAC</option>
+                        <option value="Plumbing">Plumbing</option>
+                        <option value="Electrical">Electrical</option>
+                        <option value="Landscaping">Landscaping</option>
+                        <option value="Auto Repair">Auto Repair</option>
+                        <option value="Restaurant">Restaurant</option>
+                        <option value="Cleaning">Cleaning</option>
+                        <option value="Painting">Painting</option>
+                        <option value="Roofing">Roofing</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Content Type *</label>
+                    <select id="content-type">
+                        <option value="">Select type…</option>
+                        <option value="post">Google Post</option>
+                        <option value="description">Business Description</option>
+                        <option value="seasonal">Seasonal Promo</option>
+                        <option value="service">Service Highlight</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Business Name</label>
+                    <input type="text" id="content-name" placeholder="Optional" />
+                </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" id="content-location" placeholder="Las Vegas, NV" />
+                </div>
+                <div class="form-group">
+                    <label>Tone</label>
+                    <select id="content-tone">
+                        <option value="professional">Professional</option>
+                        <option value="friendly">Friendly</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn btn-primary" id="content-btn" onclick="generateContent()">
+                ✍️ Generate Content
+            </button>
+
+            <div class="result-panel" id="content-result">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <h4 id="content-type-label">Generated Content</h4>
+                    <button class="copy-btn" id="copy-content-btn" onclick="copyContent('content-output', 'copy-content-btn')">📋 Copy</button>
+                </div>
+                <div class="content-output" id="content-output"></div>
+                <p style="font-size:0.75rem;color:var(--muted);margin-top:8px;" id="content-meta"></p>
+            </div>
+        </div>
+
+        <!-- ── Tool 3: Review Responder ── -->
+        <div class="tool-card" id="reviews">
+            <div class="tool-header">
+                <div class="tool-icon">⭐</div>
+                <div>
+                    <h2>Review Responder</h2>
+                    <p>Generate professional, on-brand responses to Google reviews in seconds.</p>
+                </div>
+                <span class="tool-badge badge-live">Live</span>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Business Name *</label>
+                    <input type="text" id="review-biz" placeholder="Vegas HVAC Pro" />
+                </div>
+                <div class="form-group">
+                    <label>Star Rating *</label>
+                    <select id="review-rating">
+                        <option value="5">⭐⭐⭐⭐⭐ 5 Stars</option>
+                        <option value="4">⭐⭐⭐⭐ 4 Stars</option>
+                        <option value="3">⭐⭐⭐ 3 Stars</option>
+                        <option value="2">⭐⭐ 2 Stars</option>
+                        <option value="1">⭐ 1 Star</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Reviewer Name</label>
+                    <input type="text" id="review-name" placeholder="John D." />
+                </div>
+                <div class="form-group">
+                    <label>Business Type</label>
+                    <select id="review-type">
+                        <option value="HVAC">HVAC</option>
+                        <option value="Plumbing">Plumbing</option>
+                        <option value="Electrical">Electrical</option>
+                        <option value="Auto Repair">Auto Repair</option>
+                        <option value="Restaurant">Restaurant</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group full">
+                    <label>Review Text *</label>
+                    <textarea id="review-text" placeholder="Paste the customer's review here…"></textarea>
+                </div>
+            </div>
+            <button class="btn btn-primary" id="review-btn" onclick="generateResponse()">
+                ⭐ Generate Response
+            </button>
+
+            <div class="result-panel" id="review-result">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <h4>Generated Response</h4>
+                    <button class="copy-btn" id="copy-review-btn" onclick="copyContent('review-output', 'copy-review-btn')">📋 Copy</button>
+                </div>
+                <div class="content-output" id="review-output"></div>
+                <p style="font-size:0.75rem;color:var(--muted);margin-top:8px;" id="review-meta"></p>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<script>
+    const API_KEY = 'kande2026';
+    let lastAuditData = null;
+    let lastAuditBiz  = '';
+
+    function setLoading(btnId, loading) {
+        const btn = document.getElementById(btnId);
+        if (loading) {
+            btn.disabled = true;
+            btn.innerHTML = btn.innerHTML.replace(/^[^\s<]+/, '') ;
+            btn.insertAdjacentHTML('afterbegin', '<span class="spinner"></span> ');
+        } else {
+            btn.disabled = false;
+        }
+    }
+
+    function showResult(panelId) {
+        document.getElementById(panelId).classList.add('visible');
+    }
+
+    // ── GMB Audit ──
+    async function runAudit() {
+        const businessName = document.getElementById('audit-name').value.trim();
+        const location     = document.getElementById('audit-location').value.trim();
+        if (!businessName || !location) { alert('Business name and location are required.'); return; }
+
+        const btn = document.getElementById('audit-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Running Audit…';
+
+        try {
+            const res = await fetch('/api/digital/gmb/audit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+                body: JSON.stringify({
+                    businessName,
+                    location,
+                    businessType: document.getElementById('audit-type').value,
+                    website:      document.getElementById('audit-website').value.trim()
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) { alert(data.error || 'Audit failed.'); return; }
+
+            lastAuditData = data;
+            lastAuditBiz  = businessName;
+            renderAuditResult(data);
+
+        } catch (err) {
+            alert('Network error — please try again.');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '🔍 Run Audit';
+        }
+    }
+
+    function renderAuditResult(data) {
+        const score   = data.auditScore;
+        const circle  = document.getElementById('score-circle');
+        const num     = document.getElementById('score-num');
+        const headline = document.getElementById('score-headline');
+        const summary  = document.getElementById('score-summary');
+        const ts       = document.getElementById('score-timestamp');
+
+        circle.className = 'score-circle ' + (score < 45 ? 'poor' : score < 65 ? 'fair' : 'good');
+        num.textContent   = score;
+        headline.textContent = score < 45
+            ? `${data.businessName} needs urgent attention`
+            : score < 65 ? `${data.businessName} has room to grow` : `${data.businessName} is well-optimized`;
+        summary.textContent = score < 45
+            ? 'Significant opportunities to capture more local search traffic.'
+            : score < 65 ? 'Some key improvements will drive meaningful visibility gains.'
+            : 'Strong profile. Fine-tune to maintain competitive edge.';
+        ts.textContent = `Audited ${new Date(data.timestamp).toLocaleString()}`;
+
+        // Breakdown
+        const grid = document.getElementById('breakdown-grid');
+        grid.innerHTML = '';
+        if (data.breakdown) {
+            Object.entries(data.breakdown).forEach(([key, val]) => {
+                const s = val.score;
+                const color = s < 45 ? 'var(--red)' : s < 65 ? 'var(--amber)' : 'var(--green)';
+                grid.innerHTML += `
+                    <div class="breakdown-item">
+                        <div class="breakdown-score" style="color:${color}">${s}</div>
+                        <div class="breakdown-label">${key}</div>
+                    </div>`;
+            });
+        }
+
+        // Recommendations
+        const list = document.getElementById('rec-list');
+        list.innerHTML = '';
+        (data.recommendations || []).forEach(rec => {
+            list.innerHTML += `
+                <li>
+                    <span class="priority-badge priority-${rec.priority}">${rec.priority}</span>
+                    <span>${rec.issue}</span>
+                </li>`;
+        });
+
+        showResult('audit-result');
+        document.getElementById('audit-result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async function generateReport() {
+        if (!lastAuditData) { alert('Run an audit first.'); return; }
+        const btn = event.target;
+        btn.disabled = true; btn.textContent = 'Generating…';
+        try {
+            const res = await fetch('/api/digital/gmb/report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+                body: JSON.stringify({ businessName: lastAuditBiz, location: lastAuditData.location || '', auditData: lastAuditData })
+            });
+            const data = await res.json();
+            if (!res.ok) { alert(data.error || 'Report failed.'); return; }
+            // Open HTML report in new tab
+            const win = window.open('', '_blank');
+            win.document.write(data.reportHtml || '<p>Report generated.</p>');
+            win.document.close();
+        } catch (err) {
+            alert('Error generating report.');
+        } finally {
+            btn.disabled = false; btn.textContent = '📄 Generate Full Report';
+        }
+    }
+
+    function prefillContent() {
+        if (!lastAuditBiz) return;
+        document.getElementById('content-name').value = lastAuditBiz;
+        const type = document.getElementById('audit-type').value;
+        if (type) {
+            document.getElementById('content-industry').value = type;
+        }
+        document.getElementById('content').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // ── Content Generator ──
+    async function generateContent() {
+        const industry   = document.getElementById('content-industry').value;
+        const contentType = document.getElementById('content-type').value;
+        if (!industry || !contentType) { alert('Industry and content type are required.'); return; }
+
+        const btn = document.getElementById('content-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Generating…';
+
+        try {
+            const res = await fetch('/api/digital/content/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+                body: JSON.stringify({
+                    industry,
+                    contentType,
+                    businessName: document.getElementById('content-name').value.trim(),
+                    location:     document.getElementById('content-location').value.trim(),
+                    tone:         document.getElementById('content-tone').value
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) { alert(data.error || 'Content generation failed.'); return; }
+
+            const typeLabels = { post: 'Google Post', description: 'Business Description', seasonal: 'Seasonal Promotion', service: 'Service Highlight' };
+            document.getElementById('content-type-label').textContent = typeLabels[contentType] || 'Generated Content';
+            document.getElementById('content-output').textContent = data.content || 'No content generated.';
+            document.getElementById('content-meta').textContent = `Generated for ${data.businessName} · ${industry} · ${new Date(data.timestamp).toLocaleString()}`;
+            document.getElementById('copy-content-btn').className = 'copy-btn';
+            document.getElementById('copy-content-btn').textContent = '📋 Copy';
+            showResult('content-result');
+        } catch (err) {
+            alert('Network error — please try again.');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '✍️ Generate Content';
+        }
+    }
+
+    // ── Review Responder ──
+    async function generateResponse() {
+        const businessName = document.getElementById('review-biz').value.trim();
+        const reviewText   = document.getElementById('review-text').value.trim();
+        if (!businessName || !reviewText) { alert('Business name and review text are required.'); return; }
+
+        const btn = document.getElementById('review-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Generating…';
+
+        try {
+            const res = await fetch('/api/digital/reviews/respond', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+                body: JSON.stringify({
+                    businessName,
+                    reviewText,
+                    rating:       parseInt(document.getElementById('review-rating').value),
+                    reviewerName: document.getElementById('review-name').value.trim() || 'Customer',
+                    businessType: document.getElementById('review-type').value
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) { alert(data.error || 'Response generation failed.'); return; }
+
+            document.getElementById('review-output').textContent = data.response || 'No response generated.';
+            document.getElementById('review-meta').textContent   = `Response ID: ${data.responseId} · ${new Date(data.timestamp).toLocaleString()}`;
+            document.getElementById('copy-review-btn').className = 'copy-btn';
+            document.getElementById('copy-review-btn').textContent = '📋 Copy';
+            showResult('review-result');
+        } catch (err) {
+            alert('Network error — please try again.');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '⭐ Generate Response';
+        }
+    }
+
+    // ── Shared utilities ──
+    function copyContent(outputId, btnId) {
+        const text = document.getElementById(outputId).textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = document.getElementById(btnId);
+            btn.textContent = '✅ Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.textContent = '📋 Copy'; btn.classList.remove('copied'); }, 2000);
+        });
+    }
+
+    // Smooth scroll helper
+    function scrollTo(id) {
+        document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        event.target.classList.add('active');
+        return false;
+    }
+</script>
+</body>
+</html>
