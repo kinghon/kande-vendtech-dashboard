@@ -14189,7 +14189,7 @@ app.get('/api/search', (req, res) => {
 });
 
 // ===== TASKS API (Enhanced version using todos collection) =====
-app.get('/tasks', (req, res) => res.sendFile(path.join(__dirname, 'tasks.html')));
+// Removed duplicate route - main route is in Mission Control section
 
 // Tasks API - uses the same todos collection but with enhanced features
 app.get('/api/tasks', (req, res) => {
@@ -15249,8 +15249,7 @@ backfillActivityLog();
 // ===== CALENDAR EVENTS API =====
 if (!db.calendarEvents) db.calendarEvents = [];
 
-// Calendar page route
-app.get('/calendar', (req, res) => res.sendFile(path.join(__dirname, 'calendar.html')));
+// Removed duplicate route - main route is in Mission Control section
 
 // Get all calendar events
 app.get('/api/calendar/events', (req, res) => {
