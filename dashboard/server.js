@@ -73,7 +73,7 @@ function sanitizeObject(obj) {
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
   // Allow these paths without auth
-  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test'];
+  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
     return next();
   }
@@ -21717,9 +21717,277 @@ if (!db.teamStatus) db.teamStatus = {};
 if (!db.teamActivity) db.teamActivity = [];
 
 // GET /api/team/status — Get all agent statuses
-app.get('/api/team/status', (req, res) => {
-  res.json(db.teamStatus);
+app.get('/api/team/status', async (req, res) => {
+  try {
+    // Get current cron job status to determine live agent states
+    let cronJobs = [];
+    try {
+      const { exec } = require('child_process');
+      const util = require('util');
+      const execAsync = util.promisify(exec);
+      const { stdout } = await execAsync('openclaw cron list');
+      const lines = stdout.split('\n').filter(line => line.trim());
+      
+      cronJobs = lines.slice(1).map(line => {
+        const parts = line.split(/\s+/);
+        if (parts.length < 8) return null;
+        return {
+          id: parts[0],
+          name: parts[1],
+          status: parts[parts.length - 3],
+          next: parts[parts.length - 5],
+          last: parts[parts.length - 4],
+          agent: parts[parts.length - 1]
+        };
+      }).filter(Boolean);
+    } catch (error) {
+      console.error('Error fetching cron status:', error);
+    }
+    
+    // Define comprehensive agent data
+    const agentData = {
+      orchestrator: {
+        name: 'Orchestrator',
+        role: 'Chief of Staff',
+        emoji: '🎯',
+        model: 'anthropic/claude-opus-4-6',
+        description: 'Main agent managing all operations, cron jobs, and team coordination',
+        type: 'core',
+        lastRun: getLastActivity('main', cronJobs),
+        status: 'active',
+        jobs: cronJobs.filter(job => job.agent === 'main' && job.name.includes('auto')).length,
+        currentTask: 'Managing team operations and monitoring all systems'
+      },
+      scout: {
+        name: 'Scout',
+        role: 'Research Agent',
+        emoji: '🔍',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Finds and analyzes VendTech leads, researches market opportunities',
+        type: 'core',
+        lastRun: getLastActivity('scout', cronJobs),
+        status: getAgentStatus('scout', cronJobs),
+        jobs: cronJobs.filter(job => job.name.includes('scout')).length,
+        currentTask: 'Lead research and market analysis'
+      },
+      relay: {
+        name: 'Relay',
+        role: 'Sales Operations',
+        emoji: '📡',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Manages sales pipeline, drafts emails, processes leads',
+        type: 'core',
+        lastRun: getLastActivity('relay', cronJobs),
+        status: getAgentStatus('relay', cronJobs),
+        jobs: cronJobs.filter(job => job.name.includes('relay')).length,
+        currentTask: 'Pipeline management and email operations'
+      },
+      ralph: {
+        name: 'Ralph',
+        role: 'Engineering Agent',
+        emoji: '🔧',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Builds dashboard features, fixes bugs, ships production code',
+        type: 'core',
+        lastRun: getLastActivity('ralph', cronJobs),
+        status: getAgentStatus('ralph', cronJobs),
+        jobs: cronJobs.filter(job => job.name.includes('ralph')).length,
+        currentTask: 'Building Mission Control pages'
+      },
+      standup: {
+        name: 'Standup',
+        role: 'Daily Coordination',
+        emoji: '📋',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Daily team standup and coordination meetings',
+        type: 'coordination',
+        lastRun: getJobLastRun('daily-standup', cronJobs),
+        status: getJobStatus('daily-standup', cronJobs),
+        jobs: 1,
+        currentTask: 'Team daily planning and coordination'
+      },
+      watercooler: {
+        name: 'Water Cooler',
+        role: 'Team Check-ins',
+        emoji: '💬',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Regular team check-ins and status updates',
+        type: 'coordination',
+        lastRun: getJobLastRun('water-cooler', cronJobs),
+        status: getJobStatus('water-cooler', cronJobs),
+        jobs: 1,
+        currentTask: 'Team communication and updates'
+      },
+      retro: {
+        name: 'Weekly Retro',
+        role: 'Retrospectives',
+        emoji: '🔄',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Weekly retrospectives and team improvement sessions',
+        type: 'coordination',
+        lastRun: getJobLastRun('weekly-retro', cronJobs),
+        status: getJobStatus('weekly-retro', cronJobs),
+        jobs: 1,
+        currentTask: 'Weekly team retrospectives'
+      },
+      e2eqa: {
+        name: 'E2E QA',
+        role: 'Quality Assurance',
+        emoji: '✅',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'End-to-end quality assurance and dashboard monitoring',
+        type: 'support',
+        lastRun: getJobLastRun('daily-e2e-dashboards', cronJobs),
+        status: getJobStatus('daily-e2e-dashboards', cronJobs),
+        jobs: 1,
+        currentTask: 'Dashboard health monitoring'
+      },
+      emaildrafter: {
+        name: 'Email Drafter',
+        role: 'Content Creation',
+        emoji: '📧',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Drafts VendTech and Photo Booth emails',
+        type: 'support',
+        lastRun: getJobLastRun('pb-email-drafts', cronJobs),
+        status: getJobStatus('pb-email-drafts', cronJobs),
+        jobs: cronJobs.filter(job => job.name.includes('email') || job.name.includes('draft')).length,
+        currentTask: 'Email drafting and content creation'
+      },
+      pbdraftsync: {
+        name: 'PB Draft Sync',
+        role: 'Email Synchronization',
+        emoji: '📨',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Synchronizes Photo Booth draft emails with Gmail',
+        type: 'support',
+        lastRun: getJobLastRun('pb-gmail-draft-sync', cronJobs),
+        status: getJobStatus('pb-gmail-draft-sync', cronJobs),
+        jobs: cronJobs.filter(job => job.name.includes('pb-gmail-draft-sync')).length,
+        currentTask: 'Gmail draft synchronization'
+      },
+      healthwatchdog: {
+        name: 'Health Watchdog',
+        role: 'System Monitoring',
+        emoji: '🩺',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Monitors cron job health and system status',
+        type: 'support',
+        lastRun: getJobLastRun('cron-health-watchdog', cronJobs),
+        status: getJobStatus('cron-health-watchdog', cronJobs),
+        jobs: 1,
+        currentTask: 'System health monitoring'
+      },
+      emailmonitor: {
+        name: 'Email Frequency Monitor',
+        role: 'Email Monitoring',
+        emoji: '⚡',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Monitors email sending frequency and prevents spam',
+        type: 'support',
+        lastRun: getJobLastRun('email-send-frequency-monitor', cronJobs),
+        status: getJobStatus('email-send-frequency-monitor', cronJobs),
+        jobs: 1,
+        currentTask: 'Email frequency monitoring'
+      }
+    };
+    
+    // Add team metrics
+    const metrics = {
+      totalAgents: Object.keys(agentData).length,
+      activeAgents: Object.values(agentData).filter(a => a.status === 'active').length,
+      totalJobs: cronJobs.length,
+      healthyJobs: cronJobs.filter(job => job.status === 'ok').length,
+      errorJobs: cronJobs.filter(job => job.status === 'error').length,
+      lastUpdate: new Date().toISOString()
+    };
+    
+    res.json({
+      agents: agentData,
+      metrics,
+      cronJobs: cronJobs.length,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('Team status API error:', error);
+    res.status(500).json({ error: 'Failed to fetch team status' });
+  }
 });
+
+// Helper functions for agent status
+function getLastActivity(agentType, cronJobs) {
+  const jobs = cronJobs.filter(job => job.name.includes(agentType));
+  if (jobs.length === 0) return 'Unknown';
+  
+  // Find the most recent activity
+  const recent = jobs.reduce((latest, job) => {
+    if (job.last && job.last !== 'never') {
+      // Convert relative time to comparable format
+      const timeValue = parseRelativeTime(job.last);
+      const latestValue = parseRelativeTime(latest);
+      return timeValue < latestValue ? job.last : latest;
+    }
+    return latest;
+  }, 'never');
+  
+  return recent;
+}
+
+function getAgentStatus(agentType, cronJobs) {
+  const jobs = cronJobs.filter(job => job.name.includes(agentType));
+  if (jobs.length === 0) return 'idle';
+  
+  // If any job has errors, agent status is error
+  if (jobs.some(job => job.status === 'error')) return 'error';
+  
+  // If any job ran recently (within last hour), agent is active
+  const recentlyActive = jobs.some(job => {
+    if (!job.last || job.last === 'never') return false;
+    const timeValue = parseRelativeTime(job.last);
+    return timeValue < 60; // less than 60 minutes ago
+  });
+  
+  return recentlyActive ? 'active' : 'idle';
+}
+
+function getJobLastRun(jobName, cronJobs) {
+  const job = cronJobs.find(j => j.name === jobName);
+  return job ? job.last : 'Unknown';
+}
+
+function getJobStatus(jobName, cronJobs) {
+  const job = cronJobs.find(j => j.name === jobName);
+  if (!job) return 'idle';
+  
+  if (job.status === 'error') return 'error';
+  
+  // Check if job ran recently
+  if (job.last && job.last !== 'never') {
+    const timeValue = parseRelativeTime(job.last);
+    return timeValue < 60 ? 'active' : 'idle';
+  }
+  
+  return 'idle';
+}
+
+function parseRelativeTime(timeStr) {
+  if (!timeStr || timeStr === 'never') return Infinity;
+  
+  const match = timeStr.match(/(\d+)([smhd])/);
+  if (!match) return Infinity;
+  
+  const value = parseInt(match[1]);
+  const unit = match[2];
+  
+  switch (unit) {
+    case 's': return value / 60; // convert to minutes
+    case 'm': return value;
+    case 'h': return value * 60;
+    case 'd': return value * 24 * 60;
+    default: return Infinity;
+  }
+}
 
 // POST /api/team/status — Update an agent's status
 app.post('/api/team/status', express.json(), (req, res) => {
@@ -22237,6 +22505,375 @@ function generateReviewResponse(reviewText, rating, businessName = 'our business
 }
 
 // ===== END KANDE DIGITAL =====
+
+// ===== MISSION CONTROL PAGES =====
+
+// Calendar page - Visual cron job calendar
+app.get('/calendar', (req, res) => {
+  res.sendFile(path.join(__dirname, 'calendar.html'));
+});
+
+// Memory browser page
+app.get('/memory', (req, res) => {
+  res.sendFile(path.join(__dirname, 'memory.html'));
+});
+
+// API: Get cron job schedules in calendar format
+app.get('/api/cron/schedule', async (req, res) => {
+  try {
+    const { exec } = require('child_process');
+    const util = require('util');
+    const execAsync = util.promisify(exec);
+    
+    try {
+      // Get cron job list from OpenClaw
+      const { stdout } = await execAsync('openclaw cron list');
+      const lines = stdout.split('\n').filter(line => line.trim());
+      
+      // Skip header line
+      const cronJobs = lines.slice(1).map(line => {
+        // Parse the table format - split by spaces but handle multi-word names
+        const parts = line.split(/\s+/);
+        if (parts.length < 8) return null;
+        
+        const id = parts[0];
+        const name = parts[1];
+        const schedule = parts.slice(2, -5).join(' '); // Everything between name and last 5 columns
+        const next = parts[parts.length - 5];
+        const last = parts[parts.length - 4];
+        const status = parts[parts.length - 3];
+        const target = parts[parts.length - 2];
+        const agent = parts[parts.length - 1];
+        
+        return {
+          id,
+          name,
+          schedule,
+          next,
+          last,
+          status,
+          target,
+          agent,
+          // Add display properties
+          type: getJobType(name),
+          color: getJobColor(name, status),
+          description: getJobDescription(name)
+        };
+      }).filter(Boolean);
+      
+      // Parse schedules into calendar format
+      const calendarEvents = cronJobs.map(job => {
+        const parsed = parseCronSchedule(job.schedule);
+        return {
+          ...job,
+          ...parsed
+        };
+      });
+      
+      res.json({ jobs: calendarEvents });
+    } catch (error) {
+      console.error('Error fetching cron jobs:', error);
+      // Return mock data if command fails
+      res.json({ 
+        jobs: getMockCronJobs(),
+        note: 'Mock data - OpenClaw command unavailable'
+      });
+    }
+  } catch (error) {
+    console.error('Cron schedule API error:', error);
+    res.status(500).json({ error: 'Failed to fetch cron schedules' });
+  }
+});
+
+// API: List memory files
+app.get('/api/memory/list', async (req, res) => {
+  try {
+    const memoryDir = '/Users/kurtishon/.openclaw/workspace/memory/';
+    const files = fs.readdirSync(memoryDir);
+    
+    const memoryFiles = [];
+    
+    // Add MEMORY.md first (long-term memory)
+    const memoryMdPath = '/Users/kurtishon/.openclaw/workspace/MEMORY.md';
+    if (fs.existsSync(memoryMdPath)) {
+      const stats = fs.statSync(memoryMdPath);
+      const content = fs.readFileSync(memoryMdPath, 'utf8');
+      memoryFiles.push({
+        filename: 'MEMORY.md',
+        path: memoryMdPath,
+        date: stats.mtime,
+        isLongTerm: true,
+        preview: content.substring(0, 200) + (content.length > 200 ? '...' : ''),
+        size: content.length
+      });
+    }
+    
+    // Add daily memory files
+    for (const file of files) {
+      if (file.endsWith('.md') && file !== '.DS_Store') {
+        try {
+          const filePath = path.join(memoryDir, file);
+          const stats = fs.statSync(filePath);
+          const content = fs.readFileSync(filePath, 'utf8');
+          
+          memoryFiles.push({
+            filename: file,
+            path: filePath,
+            date: stats.mtime,
+            isLongTerm: false,
+            preview: content.substring(0, 200) + (content.length > 200 ? '...' : ''),
+            size: content.length
+          });
+        } catch (err) {
+          console.error(`Error reading memory file ${file}:`, err);
+        }
+      }
+    }
+    
+    // Sort by date, newest first (but MEMORY.md stays at top)
+    memoryFiles.sort((a, b) => {
+      if (a.isLongTerm) return -1;
+      if (b.isLongTerm) return 1;
+      return new Date(b.date) - new Date(a.date);
+    });
+    
+    res.json({ files: memoryFiles });
+  } catch (error) {
+    console.error('Memory list API error:', error);
+    res.status(500).json({ error: 'Failed to list memory files' });
+  }
+});
+
+// API: Read memory file content
+app.get('/api/memory/read/:filename', (req, res) => {
+  try {
+    const filename = req.params.filename;
+    let filePath;
+    
+    if (filename === 'MEMORY.md') {
+      filePath = '/Users/kurtishon/.openclaw/workspace/MEMORY.md';
+    } else {
+      filePath = path.join('/Users/kurtishon/.openclaw/workspace/memory/', filename);
+    }
+    
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    
+    const content = fs.readFileSync(filePath, 'utf8');
+    const stats = fs.statSync(filePath);
+    
+    res.json({
+      filename,
+      content,
+      date: stats.mtime,
+      size: content.length
+    });
+  } catch (error) {
+    console.error('Memory read API error:', error);
+    res.status(500).json({ error: 'Failed to read memory file' });
+  }
+});
+
+// API: Search memory files
+app.get('/api/memory/search', async (req, res) => {
+  try {
+    const query = req.query.q || '';
+    if (!query) {
+      return res.json({ results: [], query: '' });
+    }
+    
+    const memoryDir = '/Users/kurtishon/.openclaw/workspace/memory/';
+    const files = fs.readdirSync(memoryDir);
+    const results = [];
+    
+    // Search MEMORY.md first
+    const memoryMdPath = '/Users/kurtishon/.openclaw/workspace/MEMORY.md';
+    if (fs.existsSync(memoryMdPath)) {
+      const content = fs.readFileSync(memoryMdPath, 'utf8');
+      if (content.toLowerCase().includes(query.toLowerCase())) {
+        const matches = getSearchMatches(content, query);
+        results.push({
+          filename: 'MEMORY.md',
+          isLongTerm: true,
+          matches: matches.length,
+          excerpts: matches.slice(0, 3)
+        });
+      }
+    }
+    
+    // Search daily files
+    for (const file of files) {
+      if (file.endsWith('.md')) {
+        try {
+          const filePath = path.join(memoryDir, file);
+          const content = fs.readFileSync(filePath, 'utf8');
+          
+          if (content.toLowerCase().includes(query.toLowerCase())) {
+            const matches = getSearchMatches(content, query);
+            results.push({
+              filename: file,
+              isLongTerm: false,
+              matches: matches.length,
+              excerpts: matches.slice(0, 3)
+            });
+          }
+        } catch (err) {
+          console.error(`Error searching file ${file}:`, err);
+        }
+      }
+    }
+    
+    // Sort by relevance (match count)
+    results.sort((a, b) => {
+      if (a.isLongTerm && !b.isLongTerm) return -1;
+      if (b.isLongTerm && !a.isLongTerm) return 1;
+      return b.matches - a.matches;
+    });
+    
+    res.json({ results, query, total: results.length });
+  } catch (error) {
+    console.error('Memory search API error:', error);
+    res.status(500).json({ error: 'Failed to search memory files' });
+  }
+});
+
+// Helper functions for cron job parsing
+function getJobType(name) {
+  if (name.includes('scout')) return 'agent';
+  if (name.includes('relay')) return 'agent';
+  if (name.includes('ralph')) return 'agent';
+  if (name.includes('standup') || name.includes('water-cooler') || name.includes('retro')) return 'coordination';
+  if (name.includes('email') || name.includes('draft')) return 'email';
+  if (name.includes('sync') || name.includes('backup')) return 'sync';
+  if (name.includes('health') || name.includes('watchdog') || name.includes('monitoring')) return 'monitoring';
+  return 'maintenance';
+}
+
+function getJobColor(name, status) {
+  if (status === 'error') return '#ef4444';
+  if (status === 'running') return '#2563eb';
+  
+  // Color by type
+  const type = getJobType(name);
+  switch (type) {
+    case 'agent': return '#16a34a';
+    case 'coordination': return '#7c3aed';
+    case 'email': return '#d97706';
+    case 'sync': return '#0891b2';
+    case 'monitoring': return '#dc2626';
+    default: return '#6b7280';
+  }
+}
+
+function getJobDescription(name) {
+  const descriptions = {
+    'scout-morning': 'Research new VendTech leads and opportunities',
+    'scout-evening': 'Evening lead analysis and market research',
+    'relay-morning': 'Process sales pipeline and draft outreach',
+    'relay-evening': 'Evening sales operations and follow-ups',
+    'ralph-overnight': 'Engineering tasks and system maintenance',
+    'daily-standup': 'Team coordination and daily planning',
+    'water-cooler': 'Team check-ins and status updates',
+    'weekly-retro': 'Weekly team retrospective and planning',
+    'daily-e2e-dashboards': 'End-to-end dashboard health checks',
+    'pb-gmail-draft-sync': 'Sync Photo Booth email drafts',
+    'email-frequency-monitor': 'Monitor email sending frequency',
+    'cron-health-watchdog': 'System health monitoring and alerts',
+    'morning-briefing': 'Daily briefing and status summary'
+  };
+  
+  return descriptions[name] || 'Automated system task';
+}
+
+function parseCronSchedule(schedule) {
+  try {
+    // Remove timezone and extra info
+    const cronPart = schedule.split('@')[0].replace(/cron\s+/, '').trim();
+    const parts = cronPart.split(/\s+/);
+    
+    if (parts.length < 5) return { hours: [], days: [0,1,2,3,4,5,6] };
+    
+    const [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
+    
+    // Parse hours
+    const hours = [];
+    if (hour === '*') {
+      for (let i = 0; i < 24; i++) hours.push(i);
+    } else if (hour.includes('-')) {
+      const [start, end] = hour.split('-').map(Number);
+      for (let i = start; i <= end; i++) hours.push(i);
+    } else if (hour.includes(',')) {
+      hours.push(...hour.split(',').map(Number));
+    } else if (hour.includes('/')) {
+      const [range, step] = hour.split('/');
+      const [start, end] = range === '*' ? [0, 23] : range.split('-').map(Number);
+      for (let i = start; i <= end; i += parseInt(step)) {
+        hours.push(i);
+      }
+    } else {
+      hours.push(parseInt(hour));
+    }
+    
+    // Parse days (0 = Sunday)
+    const days = [];
+    if (dayOfWeek === '*') {
+      days.push(0,1,2,3,4,5,6);
+    } else if (dayOfWeek.includes('-')) {
+      const [start, end] = dayOfWeek.split('-').map(Number);
+      for (let i = start; i <= end; i++) days.push(i);
+    } else if (dayOfWeek.includes(',')) {
+      days.push(...dayOfWeek.split(',').map(Number));
+    } else {
+      days.push(parseInt(dayOfWeek));
+    }
+    
+    return { hours, days, minute: parseInt(minute) || 0 };
+  } catch (error) {
+    console.error('Error parsing cron schedule:', schedule, error);
+    return { hours: [9], days: [1,2,3,4,5], minute: 0 };
+  }
+}
+
+function getMockCronJobs() {
+  return [
+    {
+      id: '1', name: 'scout-morning', schedule: '0 7 * * *', status: 'ok', 
+      type: 'agent', color: '#16a34a', description: 'Research new leads',
+      hours: [7], days: [0,1,2,3,4,5,6], minute: 0
+    },
+    {
+      id: '2', name: 'relay-evening', schedule: '0 16,20 * * *', status: 'ok',
+      type: 'agent', color: '#16a34a', description: 'Sales operations',
+      hours: [16, 20], days: [0,1,2,3,4,5,6], minute: 0
+    },
+    {
+      id: '3', name: 'daily-standup', schedule: '0 10 * * *', status: 'ok',
+      type: 'coordination', color: '#7c3aed', description: 'Team planning',
+      hours: [10], days: [0,1,2,3,4,5,6], minute: 0
+    }
+  ];
+}
+
+function getSearchMatches(content, query) {
+  const lines = content.split('\n');
+  const matches = [];
+  const queryLower = query.toLowerCase();
+  
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].toLowerCase().includes(queryLower)) {
+      // Get context around the match
+      const start = Math.max(0, i - 1);
+      const end = Math.min(lines.length, i + 2);
+      const excerpt = lines.slice(start, end).join('\n').substring(0, 200);
+      matches.push(excerpt);
+    }
+  }
+  
+  return matches;
+}
+
+// ===== END MISSION CONTROL =====
 
 app.listen(PORT, () => {
   console.log(`🤖 Kande VendTech Dashboard running at http://localhost:${PORT}`);
