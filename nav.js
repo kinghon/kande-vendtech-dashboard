@@ -54,8 +54,17 @@
         { label: 'Apollo Contacts', href: '/apollo' },
         { label: 'Site Surveys',  href: '/property-analysis' },
         { label: 'Win/Loss Analysis', href: '/win-loss' },
-        { label: 'Tasks',         href: '/tasks' },
         { label: 'Analytics',     href: '/analytics' }
+      ]
+    },
+    {
+      label: 'Mission Control', items: [
+        { label: 'Tasks',         href: '/tasks' },
+        { label: 'Content',       href: '/content' },
+        { label: 'Calendar',      href: '/calendar' },
+        { label: 'Memory',        href: '/memory' },
+        { label: 'Team',          href: '/team' },
+        { label: 'Office',        href: '#', disabled: true, title: 'Coming Soon' }
       ]
     },
     {

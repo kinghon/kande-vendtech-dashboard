@@ -73,7 +73,7 @@ function sanitizeObject(obj) {
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
   // Allow these paths without auth
-  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search'];
+  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
     return next();
   }
@@ -22685,6 +22685,11 @@ app.get('/memory', (req, res) => {
   res.sendFile(path.join(__dirname, 'memory.html'));
 });
 
+// Tasks board page
+app.get('/tasks', (req, res) => {
+  res.sendFile(path.join(__dirname, 'tasks.html'));
+});
+
 // API: Get cron job schedules in calendar format
 app.get('/api/cron/schedule', async (req, res) => {
   try {
@@ -23065,10 +23070,384 @@ function getSearchMatches(content, query) {
   return matches;
 }
 
+// ===== TASKS BOARD API =====
+
+// API: Get all tasks
+app.get('/api/tasks', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') {
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
+  
+  try {
+    const tasks = db.missionControlTasks || [];
+    
+    // Add stats
+    const stats = {
+      recurring: tasks.filter(t => t.status === 'recurring').length,
+      backlog: tasks.filter(t => t.status === 'backlog').length,
+      inProgress: tasks.filter(t => t.status === 'in-progress').length,
+      review: tasks.filter(t => t.status === 'review').length,
+      done: tasks.filter(t => t.status === 'done').length,
+      total: tasks.length,
+      completion: tasks.length > 0 ? Math.round((tasks.filter(t => t.status === 'done').length / tasks.length) * 100) : 0
+    };
+    
+    res.json({ tasks, stats });
+  } catch (error) {
+    console.error('Tasks API error:', error);
+    res.status(500).json({ error: 'Failed to fetch tasks' });
+  }
+});
+
+// API: Create new task
+app.post('/api/tasks', express.json(), (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') {
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
+  
+  try {
+    const { title, description, agent, assignedAgent, project, priority, status } = req.body;
+    
+    if (!title) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+    
+    const task = {
+      id: Date.now().toString(),
+      title: sanitize(title),
+      description: sanitize(description || ''),
+      assignedAgent: agent || assignedAgent || 'unassigned',
+      agent: agent || assignedAgent || 'unassigned',
+      project: project || 'System',
+      priority: priority || 'medium',
+      status: status || 'backlog',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    if (!db.missionControlTasks) db.missionControlTasks = [];
+    db.missionControlTasks.push(task);
+    saveDB(db);
+    
+    res.json(task);
+  } catch (error) {
+    console.error('Create task error:', error);
+    res.status(500).json({ error: 'Failed to create task' });
+  }
+});
+
+// API: Update task
+app.put('/api/tasks/:id', express.json(), (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, assignedAgent, project, priority, status } = req.body;
+    
+    if (!db.missionControlTasks) db.missionControlTasks = [];
+    const taskIndex = db.missionControlTasks.findIndex(t => t.id === id);
+    
+    if (taskIndex === -1) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+    
+    const task = db.missionControlTasks[taskIndex];
+    if (title !== undefined) task.title = sanitize(title);
+    if (description !== undefined) task.description = sanitize(description);
+    if (assignedAgent !== undefined) task.assignedAgent = assignedAgent;
+    if (project !== undefined) task.project = project;
+    if (priority !== undefined) task.priority = priority;
+    if (status !== undefined) task.status = status;
+    task.updatedAt = new Date().toISOString();
+    
+    saveDB(db);
+    res.json({ task, ok: true });
+  } catch (error) {
+    console.error('Update task error:', error);
+    res.status(500).json({ error: 'Failed to update task' });
+  }
+});
+
+// API: Delete task
+app.delete('/api/tasks/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!db.missionControlTasks) db.missionControlTasks = [];
+    const taskIndex = db.missionControlTasks.findIndex(t => t.id === id);
+    
+    if (taskIndex === -1) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+    
+    db.missionControlTasks.splice(taskIndex, 1);
+    saveDB(db);
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Delete task error:', error);
+    res.status(500).json({ error: 'Failed to delete task' });
+  }
+});
+
+// Initialize default tasks from backlog
+function initializeDefaultTasks() {
+  if (!db.missionControlTasks) {
+    db.missionControlTasks = [
+      {
+        id: '1',
+        title: 'Build Mission Control Office View',
+        description: 'Animated pixel-art office with agent avatars showing working/idle/error status',
+        assignedAgent: 'ralph',
+        project: 'Mission Control',
+        priority: 'high',
+        status: 'backlog',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: '2', 
+        title: 'Kande Digital Dashboard',
+        description: 'Client/admin portal for Blue Collar AI GMB optimization service',
+        assignedAgent: 'ralph',
+        project: 'Blue Collar AI',
+        priority: 'high',
+        status: 'backlog',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: '3',
+        title: 'Vegas Blue Collar Market Scan',
+        description: 'Scrape Google Maps for every trade business in Las Vegas metro area',
+        assignedAgent: 'scout',
+        project: 'Blue Collar AI',
+        priority: 'medium',
+        status: 'backlog',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: '4',
+        title: 'Cold Email System',
+        description: 'Mixmax integration for Blue Collar AI digital outreach campaigns',
+        assignedAgent: 'relay',
+        project: 'Blue Collar AI',
+        priority: 'medium',
+        status: 'backlog',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: '5',
+        title: 'Daily Agent Status Updates',
+        description: 'Automated status reporting and team coordination',
+        assignedAgent: 'main',
+        project: 'System',
+        priority: 'low',
+        status: 'recurring',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: '6',
+        title: 'Mission Control Dark Theme',
+        description: 'Convert all Mission Control pages to dark theme design',
+        assignedAgent: 'ralph',
+        project: 'Mission Control',
+        priority: 'high',
+        status: 'in-progress',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ];
+    saveDB(db);
+  }
+}
+
+// ===== END TASKS BOARD =====
+
+// ===== CONTENT PIPELINE API =====
+
+// Initialize default content items
+function initializeDefaultContent() {
+  if (!db.content || db.content.length === 0) {
+    db.content = [
+      {
+        id: '1',
+        title: 'Blue Collar AI Launch Video',
+        description: 'Explaining how AI can help blue collar businesses with GMB optimization, review responses, and content generation. Focus on practical benefits and ROI.',
+        stage: 'ideas',
+        tags: ['ai', 'blue-collar', 'launch'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: '2',
+        title: 'VendTech Success Stories',
+        description: 'Case study compilation of successful vending machine placements. Include revenue numbers, property types, and key learnings.',
+        stage: 'ideas',
+        tags: ['vending', 'case-study', 'success'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: '3',
+        title: 'Mission Control Behind the Scenes',
+        description: 'Technical walkthrough of the agent coordination system. Show how agents work together on real projects.',
+        stage: 'scripting',
+        tags: ['technical', 'ai', 'mission-control'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: '4',
+        title: 'Las Vegas Market Analysis',
+        description: 'Deep dive into the Las Vegas vending market. Competitor analysis, opportunity sizing, and expansion strategy.',
+        stage: 'ideas',
+        tags: ['market', 'analysis', 'vegas'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ];
+    saveDB(db);
+  }
+}
+
+// API: Get all content
+app.get('/api/content', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') {
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
+  
+  try {
+    const content = db.content || [];
+    
+    // Add stats by stage
+    const stats = {
+      ideas: content.filter(c => c.stage === 'ideas').length,
+      scripting: content.filter(c => c.stage === 'scripting').length,
+      thumbnail: content.filter(c => c.stage === 'thumbnail').length,
+      filming: content.filter(c => c.stage === 'filming').length,
+      editing: content.filter(c => c.stage === 'editing').length,
+      published: content.filter(c => c.stage === 'published').length,
+      total: content.length
+    };
+    
+    res.json(content);
+  } catch (error) {
+    console.error('Content API error:', error);
+    res.status(500).json({ error: 'Failed to fetch content' });
+  }
+});
+
+// API: Create new content
+app.post('/api/content', express.json(), (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') {
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
+  
+  try {
+    const { title, description, stage, tags } = req.body;
+    
+    if (!title) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+    
+    const content = {
+      id: Date.now().toString(),
+      title: sanitize(title),
+      description: sanitize(description || ''),
+      stage: stage || 'ideas',
+      tags: tags || [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    if (!db.content) db.content = [];
+    db.content.push(content);
+    saveDB(db);
+    
+    res.json(content);
+  } catch (error) {
+    console.error('Create content error:', error);
+    res.status(500).json({ error: 'Failed to create content' });
+  }
+});
+
+// API: Update content
+app.put('/api/content/:id', express.json(), (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') {
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
+  
+  try {
+    const { id } = req.params;
+    const { title, description, stage, tags } = req.body;
+    
+    if (!db.content) db.content = [];
+    const contentIndex = db.content.findIndex(c => c.id === id);
+    
+    if (contentIndex === -1) {
+      return res.status(404).json({ error: 'Content not found' });
+    }
+    
+    const content = db.content[contentIndex];
+    if (title !== undefined) content.title = sanitize(title);
+    if (description !== undefined) content.description = sanitize(description);
+    if (stage !== undefined) content.stage = stage;
+    if (tags !== undefined) content.tags = tags;
+    content.updatedAt = new Date().toISOString();
+    
+    saveDB(db);
+    res.json(content);
+  } catch (error) {
+    console.error('Update content error:', error);
+    res.status(500).json({ error: 'Failed to update content' });
+  }
+});
+
+// API: Delete content
+app.delete('/api/content/:id', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') {
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
+  
+  try {
+    const { id } = req.params;
+    
+    if (!db.content) db.content = [];
+    const contentIndex = db.content.findIndex(c => c.id === id);
+    
+    if (contentIndex === -1) {
+      return res.status(404).json({ error: 'Content not found' });
+    }
+    
+    db.content.splice(contentIndex, 1);
+    saveDB(db);
+    
+    res.json({ success: true, message: 'Content deleted' });
+  } catch (error) {
+    console.error('Delete content error:', error);
+    res.status(500).json({ error: 'Failed to delete content' });
+  }
+});
+
+// ===== END CONTENT PIPELINE =====
+
 // ===== END MISSION CONTROL =====
 
 app.listen(PORT, () => {
   console.log(`🤖 Kande VendTech Dashboard running at http://localhost:${PORT}`);
+
+  // Initialize default tasks if none exist
+  initializeDefaultTasks();
+  
+  // Initialize default content if none exist
+  initializeDefaultContent();
 
   // Backfill: ensure all existing prospects have pipeline cards on startup
   let backfilled = 0;
