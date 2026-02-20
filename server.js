@@ -22690,6 +22690,11 @@ app.get('/tasks', (req, res) => {
   res.sendFile(path.join(__dirname, 'tasks.html'));
 });
 
+// Content pipeline page
+app.get('/content', (req, res) => {
+  res.sendFile(path.join(__dirname, 'content.html'));
+});
+
 // API: Get cron job schedules in calendar format
 app.get('/api/cron/schedule', async (req, res) => {
   try {
@@ -23306,10 +23311,6 @@ function initializeDefaultContent() {
 
 // API: Get all content
 app.get('/api/content', (req, res) => {
-  const apiKey = req.headers['x-api-key'];
-  if (apiKey !== 'kande2026') {
-    return res.status(401).json({ error: 'Invalid API key' });
-  }
   
   try {
     const content = db.content || [];
@@ -23334,13 +23335,9 @@ app.get('/api/content', (req, res) => {
 
 // API: Create new content
 app.post('/api/content', express.json(), (req, res) => {
-  const apiKey = req.headers['x-api-key'];
-  if (apiKey !== 'kande2026') {
-    return res.status(401).json({ error: 'Invalid API key' });
-  }
   
   try {
-    const { title, description, stage, tags } = req.body;
+    const { title, description, status, stage, tags } = req.body;
     
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
@@ -23350,7 +23347,7 @@ app.post('/api/content', express.json(), (req, res) => {
       id: Date.now().toString(),
       title: sanitize(title),
       description: sanitize(description || ''),
-      stage: stage || 'ideas',
+      status: status || stage || 'ideas', // use status, fall back to stage for backward compatibility
       tags: tags || [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -23369,14 +23366,10 @@ app.post('/api/content', express.json(), (req, res) => {
 
 // API: Update content
 app.put('/api/content/:id', express.json(), (req, res) => {
-  const apiKey = req.headers['x-api-key'];
-  if (apiKey !== 'kande2026') {
-    return res.status(401).json({ error: 'Invalid API key' });
-  }
   
   try {
     const { id } = req.params;
-    const { title, description, stage, tags } = req.body;
+    const { title, description, status, stage, tags } = req.body;
     
     if (!db.content) db.content = [];
     const contentIndex = db.content.findIndex(c => c.id === id);
@@ -23388,7 +23381,8 @@ app.put('/api/content/:id', express.json(), (req, res) => {
     const content = db.content[contentIndex];
     if (title !== undefined) content.title = sanitize(title);
     if (description !== undefined) content.description = sanitize(description);
-    if (stage !== undefined) content.stage = stage;
+    if (status !== undefined) content.status = status;
+    if (stage !== undefined) content.stage = stage; // backward compatibility
     if (tags !== undefined) content.tags = tags;
     content.updatedAt = new Date().toISOString();
     
@@ -23402,10 +23396,6 @@ app.put('/api/content/:id', express.json(), (req, res) => {
 
 // API: Delete content
 app.delete('/api/content/:id', (req, res) => {
-  const apiKey = req.headers['x-api-key'];
-  if (apiKey !== 'kande2026') {
-    return res.status(401).json({ error: 'Invalid API key' });
-  }
   
   try {
     const { id } = req.params;

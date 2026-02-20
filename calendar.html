@@ -3,30 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mission Control — Agent Calendar</title>
+    <title>Mission Control — Scheduled Tasks</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
         :root {
-            --bg: #0f0f1a;
-            --surface: #1a1a2e;
-            --card: #1a1a2e;
-            --card-hover: #2a2a4a;
-            --border: #2d2d4a;
-            --text: #e2e8f0;
-            --text-dim: #94a3b8;
-            --text-muted: #64748b;
+            --bg: #1a1a2e;
+            --surface: #2a2a4a;
+            --card: #353557;
+            --border: #4a4a6a;
+            --text: #ffffff;
+            --text-dim: #b0b0c8;
+            --text-muted: #8080a0;
             --accent: #7c3aed;
-            --green: #10b981;
-            --red: #ef4444;
-            --blue: #3b82f6;
-            --amber: #f59e0b;
-            --purple: #7c3aed;
-            --cyan: #06b6d4;
-            --gray: #6b7280;
-            --orange: #f97316;
-            --gold: #eab308;
-            --light-purple: #8b5cf6;
+            --scout: #3b82f6;
+            --relay: #22c55e;
+            --ralph: #f59e0b;
+            --coordination: #7c3aed;
+            --system: #6b7280;
+            --pb: #06b6d4;
+            --mixmax: #eab308;
         }
         
         body {
@@ -36,25 +32,102 @@
             line-height: 1.5;
         }
         
-        .header {
+        .app {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
             background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 24px 0;
+            overflow-y: auto;
+        }
+        
+        .sidebar-header {
+            padding: 0 24px 24px;
             border-bottom: 1px solid var(--border);
-            padding: 16px 24px;
+        }
+        
+        .sidebar-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+        
+        .sidebar-subtitle {
+            font-size: 14px;
+            color: var(--text-dim);
+        }
+        
+        .nav-section {
+            padding: 24px 0 16px;
+        }
+        
+        .nav-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            padding: 0 24px 12px;
+        }
+        
+        .nav-links {
+            list-style: none;
+        }
+        
+        .nav-link {
+            display: block;
+            padding: 12px 24px;
+            color: var(--text-dim);
+            text-decoration: none;
+            font-weight: 500;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .nav-link:hover {
+            background: rgba(124, 58, 237, 0.1);
+            color: var(--text);
+            border-left-color: var(--accent);
+        }
+        
+        .nav-link.active {
+            background: rgba(124, 58, 237, 0.2);
+            color: var(--text);
+            border-left-color: var(--accent);
+        }
+        
+        .nav-link.disabled {
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
+        
+        .main {
+            padding: 24px;
+            overflow-y: auto;
+        }
+        
+        .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 32px;
         }
         
         .header-left h1 {
-            font-size: 24px;
+            font-size: 32px;
             font-weight: 700;
             margin: 0;
         }
         
         .header-left p {
-            font-size: 14px;
+            font-size: 16px;
             color: var(--text-dim);
-            margin-top: 2px;
+            margin-top: 4px;
         }
         
         .header-right {
@@ -63,249 +136,206 @@
             align-items: center;
         }
         
-        .nav-links {
+        .view-toggle {
             display: flex;
-            gap: 16px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 2px;
         }
         
-        .nav-links a {
+        .view-btn {
+            padding: 8px 16px;
+            background: none;
+            border: none;
             color: var(--text-dim);
-            text-decoration: none;
             font-weight: 500;
-            padding: 8px 12px;
+            cursor: pointer;
             border-radius: 6px;
             transition: all 0.2s;
         }
         
-        .nav-links a:hover {
-            background: var(--bg);
-            color: var(--text);
-        }
-        
-        .nav-links a.active {
+        .view-btn.active {
             background: var(--accent);
             color: white;
         }
         
         .status-badge {
-            background: #dcfce7;
-            border: 1px solid #86efac;
-            color: var(--green);
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #22c55e;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
         }
         
         .status-dot {
             width: 6px;
             height: 6px;
-            background: var(--green);
+            background: #22c55e;
             border-radius: 50%;
             animation: pulse 2s infinite;
         }
         
-        .view-toggle {
+        .section {
+            margin-bottom: 32px;
+        }
+        
+        .section-header {
             display: flex;
-            gap: 4px;
-            background: rgba(45,45,74,0.6);
-            border-radius: 24px;
-            padding: 3px;
-            border: 1px solid var(--border);
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
         }
         
-        .toggle-btn {
-            padding: 6px 18px;
-            border-radius: 20px;
-            border: 2px solid transparent;
-            background: transparent;
-            color: var(--text-dim);
-            font-size: 13px;
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .section-count {
+            background: var(--accent);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
             font-weight: 600;
+        }
+        
+        .always-running {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        
+        .job-pill {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             cursor: pointer;
-            transition: all 0.25s;
-            font-family: inherit;
-            white-space: nowrap;
+            transition: all 0.2s;
         }
         
-        .toggle-btn:hover {
-            color: var(--text);
-            background: var(--card-hover);
+        .job-pill:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
         
-        .toggle-btn.active {
-            background: var(--card-hover);
-            color: #fff;
-            border-color: var(--accent);
-            box-shadow: 0 0 8px -2px rgba(124,58,237,0.3);
+        .job-pill-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
         }
         
-        .main-container {
-            padding: 24px;
-            max-width: 1400px;
-            margin: 0 auto;
+        .job-pill-name {
+            font-weight: 500;
+            font-size: 14px;
         }
         
-        .filters {
+        .job-pill-schedule {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        
+        .weekly-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 16px;
+        }
+        
+        .day-column {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .day-header {
+            background: var(--card);
+            padding: 16px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .day-name {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .day-jobs {
+            padding: 16px;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .job-block {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .job-block:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .next-up {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .next-job {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 8px;
             padding: 16px;
-            margin-bottom: 24px;
             display: flex;
-            gap: 16px;
+            justify-content: space-between;
             align-items: center;
-        }
-        
-        .filter-group {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        
-        .filter-group label {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-dim);
-        }
-        
-        .filter-tag {
-            background: var(--bg);
-            border: 1px solid var(--border);
-            padding: 4px 12px;
-            border-radius: 16px;
-            font-size: 12px;
-            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
         }
         
-        .filter-tag.active {
-            background: var(--accent);
-            color: white;
+        .next-job:hover {
             border-color: var(--accent);
         }
         
-        .calendar-container {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        
-        .calendar-header {
-            display: grid;
-            grid-template-columns: 60px repeat(7, 1fr);
-            border-bottom: 1px solid var(--border);
-            background: var(--bg);
-        }
-        
-        .calendar-header div {
-            padding: 12px 8px;
-            font-size: 14px;
-            font-weight: 600;
-            text-align: center;
-            color: var(--text-dim);
-            border-right: 1px solid var(--border);
-        }
-        
-        .calendar-header div:last-child {
-            border-right: none;
-        }
-        
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: 60px repeat(7, 1fr);
-        }
-        
-        .time-slot {
-            padding: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-align: center;
-            border-right: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
-            background: var(--bg);
-            font-family: 'SF Mono', Monaco, monospace;
-        }
-        
-        .day-column {
-            border-right: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
-            position: relative;
-            min-height: 40px;
-            background: var(--surface);
-        }
-        
-        .day-column:last-child {
-            border-right: none;
-        }
-        
-        .job-block {
-            position: absolute;
-            left: 2px;
-            right: 2px;
-            margin: 2px 0;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: 600;
-            color: white;
-            cursor: pointer;
-            transition: all 0.2s;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            z-index: 1;
-        }
-        
-        .job-block:hover {
-            transform: scale(1.05);
-            z-index: 10;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-        
-        .job-tooltip {
-            position: absolute;
-            background: var(--text);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            white-space: nowrap;
-            pointer-events: none;
-            z-index: 1000;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-        
-        .job-tooltip.show {
-            opacity: 1;
-        }
-        
-        .legend {
-            display: flex;
-            gap: 16px;
-            margin-top: 16px;
-            flex-wrap: wrap;
-        }
-        
-        .legend-item {
+        .next-job-info {
             display: flex;
             align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            color: var(--text-dim);
+            gap: 12px;
         }
         
-        .legend-color {
-            width: 12px;
-            height: 12px;
-            border-radius: 2px;
+        .next-job-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        
+        .next-job-name {
+            font-weight: 600;
+        }
+        
+        .next-job-time {
+            font-size: 14px;
+            color: var(--text-dim);
+            font-family: 'SF Mono', Monaco, monospace;
         }
         
         .loading {
@@ -314,6 +344,23 @@
             align-items: center;
             height: 200px;
             color: var(--text-dim);
+            font-size: 18px;
+        }
+        
+        .detail-view {
+            display: block;
+        }
+        
+        .today-view {
+            display: none;
+        }
+        
+        .today-view.active {
+            display: block;
+        }
+        
+        .detail-view.hidden {
+            display: none;
         }
         
         @keyframes pulse {
@@ -321,234 +368,368 @@
             50% { opacity: 0.5; }
         }
         
+        @media (max-width: 1200px) {
+            .weekly-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
         @media (max-width: 768px) {
-            .calendar-header, .calendar-grid {
-                grid-template-columns: 50px repeat(7, 1fr);
+            .app {
+                grid-template-columns: 1fr;
             }
             
-            .filters {
-                flex-wrap: wrap;
+            .sidebar {
+                display: none;
             }
             
-            .job-block {
-                font-size: 9px;
-                padding: 1px 4px;
+            .weekly-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .always-running {
+                flex-direction: column;
             }
         }
     </style>
 </head>
 <body>
-    <script src="/nav.js"></script>
-    <div class="header">
-        <div class="header-left">
-            <h1>Scheduled Tasks</h1>
-            <p>Track + prioritize all cron jobs</p>
+    <div class="app">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">🚀 Mission Control</div>
+                <div class="sidebar-subtitle">Command Center</div>
+            </div>
+            
+            <nav>
+                <div class="nav-section">
+                    <div class="nav-section-title">Mission Control</div>
+                    <ul class="nav-links">
+                        <li><a href="/tasks" class="nav-link">📋 Tasks</a></li>
+                        <li><a href="/content" class="nav-link">🎬 Content</a></li>
+                        <li><a href="/calendar" class="nav-link active">📅 Calendar</a></li>
+                        <li><a href="/memory" class="nav-link">🧠 Memory</a></li>
+                        <li><a href="/team" class="nav-link">👥 Team</a></li>
+                        <li><a href="#" class="nav-link disabled">🏢 Office</a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">VendTech Dashboard</div>
+                    <ul class="nav-links">
+                        <li><a href="/" class="nav-link">🏠 Home</a></li>
+                        <li><a href="/crm" class="nav-link">👥 CRM</a></li>
+                        <li><a href="/pipeline" class="nav-link">📊 Pipeline</a></li>
+                        <li><a href="/analytics" class="nav-link">📈 Analytics</a></li>
+                    </ul>
+                </div>
+            </nav>
         </div>
-        <div class="header-right">
-            <div class="view-toggle">
-                <button class="toggle-btn active" onclick="switchView('detail')" id="detail-btn">Detail</button>
-                <button class="toggle-btn" onclick="switchView('today')" id="today-btn">Today</button>
+        
+        <!-- Main Content -->
+        <div class="main">
+            <div class="header">
+                <div class="header-left">
+                    <h1>Scheduled Tasks</h1>
+                    <p>Track + prioritize all cron jobs</p>
+                </div>
+                <div class="header-right">
+                    <div class="view-toggle">
+                        <button class="view-btn active" data-view="detail">Detail</button>
+                        <button class="view-btn" data-view="today">Today</button>
+                    </div>
+                    <div class="status-badge">
+                        <div class="status-dot"></div>
+                        LIVE
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-view" id="detail-view">
+                <!-- Always Running Section -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">⚙️ Always Running</h2>
+                        <span class="section-count" id="always-running-count">0</span>
+                    </div>
+                    <div class="always-running" id="always-running">
+                        <div class="loading">Loading high-frequency jobs...</div>
+                    </div>
+                </div>
+                
+                <!-- Weekly Grid Section -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">📅 Weekly Schedule</h2>
+                        <span class="section-count" id="weekly-count">0</span>
+                    </div>
+                    <div class="weekly-grid" id="weekly-grid">
+                        <div class="loading">Loading weekly schedule...</div>
+                    </div>
+                </div>
+                
+                <!-- Next Up Section -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">🕐 Next Up</h2>
+                        <span class="section-count" id="next-up-count">0</span>
+                    </div>
+                    <div class="next-up" id="next-up">
+                        <div class="loading">Loading upcoming jobs...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="today-view" id="today-view">
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">📅 Today's Jobs</h2>
+                        <span class="section-count" id="today-count">0</span>
+                    </div>
+                    <div class="next-up" id="today-jobs">
+                        <div class="loading">Loading today's jobs...</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-
-    <div class="main-container">
-        <div class="filters">
-            <div class="filter-group">
-                <label>Business:</label>
-                <div class="filter-tag active" data-filter="all">All</div>
-                <div class="filter-tag" data-filter="core">Core Agents</div>
-                <div class="filter-tag" data-filter="vendtech">VendTech</div>
-                <div class="filter-tag" data-filter="photobooths">Photo Booths</div>
-                <div class="filter-tag" data-filter="coordination">Coordination</div>
-                <div class="filter-tag" data-filter="system">System</div>
-                <div class="filter-tag" data-filter="research">Research</div>
-            </div>
-            <div class="filter-group">
-                <label>Status:</label>
-                <div class="filter-tag active" data-status="all">All</div>
-                <div class="filter-tag" data-status="ok">Healthy</div>
-                <div class="filter-tag" data-status="error">Errors</div>
-            </div>
-        </div>
-
-        <div class="calendar-container">
-            <div class="calendar-header">
-                <div></div>
-                <div>Sun</div>
-                <div>Mon</div>
-                <div>Tue</div>
-                <div>Wed</div>
-                <div>Thu</div>
-                <div>Fri</div>
-                <div>Sat</div>
-            </div>
-            <div id="calendar-grid" class="calendar-grid">
-                <div class="loading">Loading schedule data...</div>
-            </div>
-        </div>
-
-        <div class="legend">
-            <div class="legend-item">
-                <div class="legend-color" style="background: #3b82f6"></div>
-                <span>Core Agents (Scout, Relay, Ralph)</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #16a34a"></div>
-                <span>VendTech Operations</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #ec4899"></div>
-                <span>Photo Booths Operations</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #7c3aed"></div>
-                <span>Coordination & Planning</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #dc2626"></div>
-                <span>System Monitoring</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #0891b2"></div>
-                <span>Research & SEO</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #ef4444"></div>
-                <span>Error Status</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="job-tooltip" id="tooltip"></div>
-
+    
     <script>
         let cronJobs = [];
-        let activeFilters = { type: 'all', status: 'all' };
-
-        // Load schedule data
-        async function loadSchedule() {
+        let currentView = 'detail';
+        
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        
+        const jobColors = {
+            scout: '#3b82f6',
+            relay: '#22c55e', 
+            ralph: '#f59e0b',
+            coordination: '#7c3aed',
+            system: '#6b7280',
+            pb: '#06b6d4',
+            mixmax: '#eab308'
+        };
+        
+        async function loadScheduleData() {
             try {
                 const response = await fetch('/api/cron/schedule');
                 const data = await response.json();
                 cronJobs = data.jobs || [];
-                renderCalendar();
+                renderScheduledTasks();
             } catch (error) {
                 console.error('Error loading schedule:', error);
-                document.getElementById('calendar-grid').innerHTML = 
-                    '<div class="loading" style="color: var(--red)">Error loading schedule data</div>';
+                document.querySelectorAll('.loading').forEach(el => {
+                    el.textContent = 'Error loading schedule data';
+                    el.style.color = 'var(--red)';
+                });
             }
         }
-
-        function renderCalendar() {
-            const grid = document.getElementById('calendar-grid');
-            grid.innerHTML = '';
-
-            // Create time slots and day columns
-            for (let hour = 0; hour < 24; hour++) {
-                // Time label
-                const timeSlot = document.createElement('div');
-                timeSlot.className = 'time-slot';
-                timeSlot.textContent = hour.toString().padStart(2, '0') + ':00';
-                grid.appendChild(timeSlot);
-
-                // Day columns
-                for (let day = 0; day < 7; day++) {
-                    const dayColumn = document.createElement('div');
-                    dayColumn.className = 'day-column';
-                    dayColumn.dataset.hour = hour;
-                    dayColumn.dataset.day = day;
-                    grid.appendChild(dayColumn);
-                }
-            }
-
-            // Add job blocks
-            const filteredJobs = cronJobs.filter(job => {
-                const typeMatch = activeFilters.type === 'all' || job.type === activeFilters.type;
-                const statusMatch = activeFilters.status === 'all' || job.status === activeFilters.status;
-                return typeMatch && statusMatch;
+        
+        function renderScheduledTasks() {
+            renderAlwaysRunning();
+            renderWeeklyGrid();
+            renderNextUp();
+            renderTodayView();
+        }
+        
+        function renderAlwaysRunning() {
+            const container = document.getElementById('always-running');
+            const countEl = document.getElementById('always-running-count');
+            
+            // High-frequency jobs (every few minutes/hours)
+            const highFreqJobs = cronJobs.filter(job => {
+                return job.schedule && (
+                    job.schedule.includes('*/10') || 
+                    job.schedule.includes('*/15') || 
+                    job.schedule.includes('*/30') ||
+                    job.schedule.includes('*/4') ||
+                    (job.schedule.includes('*') && !job.schedule.includes('0 '))
+                );
             });
-
-            filteredJobs.forEach(job => {
-                if (job.hours && job.days) {
-                    job.hours.forEach(hour => {
-                        job.days.forEach(day => {
-                            const dayColumn = grid.querySelector(`[data-hour="${hour}"][data-day="${day}"]`);
-                            if (dayColumn) {
-                                const jobBlock = document.createElement('div');
-                                jobBlock.className = 'job-block';
-                                jobBlock.style.backgroundColor = job.color;
-                                jobBlock.textContent = job.name;
-                                jobBlock.dataset.job = JSON.stringify(job);
-                                
-                                // Position multiple jobs in same slot
-                                const existingJobs = dayColumn.querySelectorAll('.job-block');
-                                jobBlock.style.top = `${existingJobs.length * 14}px`;
-                                jobBlock.style.height = '12px';
-                                
-                                dayColumn.appendChild(jobBlock);
-                            }
-                        });
+            
+            countEl.textContent = highFreqJobs.length;
+            
+            container.innerHTML = highFreqJobs.map(job => {
+                const color = getJobColor(job.name);
+                const schedule = extractScheduleFrequency(job.schedule);
+                
+                return `
+                    <div class="job-pill" title="${job.description || job.name}">
+                        <div class="job-pill-dot" style="background: ${color}"></div>
+                        <div class="job-pill-name">${truncateName(job.name)}</div>
+                        <div class="job-pill-schedule">${schedule}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function renderWeeklyGrid() {
+            const container = document.getElementById('weekly-grid');
+            const countEl = document.getElementById('weekly-count');
+            
+            const dailyJobs = groupJobsByDay();
+            const totalJobs = Object.values(dailyJobs).reduce((sum, jobs) => sum + jobs.length, 0);
+            countEl.textContent = totalJobs;
+            
+            container.innerHTML = dayNames.map((dayName, dayIndex) => {
+                const jobs = dailyJobs[dayIndex] || [];
+                
+                return `
+                    <div class="day-column">
+                        <div class="day-header">
+                            <div class="day-name">${dayName}</div>
+                        </div>
+                        <div class="day-jobs">
+                            ${jobs.map(job => {
+                                const color = getJobColor(job.name);
+                                return `
+                                    <div class="job-block" style="background: ${color}" title="${job.description || job.name}">
+                                        ${truncateName(job.name)}
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function renderNextUp() {
+            const container = document.getElementById('next-up');
+            const countEl = document.getElementById('next-up-count');
+            
+            // Sort jobs by next run time
+            const upcomingJobs = cronJobs
+                .filter(job => job.next && job.next !== 'never')
+                .sort((a, b) => parseRelativeTime(a.next) - parseRelativeTime(b.next))
+                .slice(0, 10);
+            
+            countEl.textContent = upcomingJobs.length;
+            
+            container.innerHTML = upcomingJobs.map(job => {
+                const color = getJobColor(job.name);
+                
+                return `
+                    <div class="next-job" title="${job.description || job.name}">
+                        <div class="next-job-info">
+                            <div class="next-job-dot" style="background: ${color}"></div>
+                            <div class="next-job-name">${truncateName(job.name)}</div>
+                        </div>
+                        <div class="next-job-time">${job.next}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function renderTodayView() {
+            const container = document.getElementById('today-jobs');
+            const countEl = document.getElementById('today-count');
+            
+            const today = new Date().getDay();
+            const todayJobs = cronJobs.filter(job => {
+                return job.days && job.days.includes(today);
+            });
+            
+            countEl.textContent = todayJobs.length;
+            
+            container.innerHTML = todayJobs.map(job => {
+                const color = getJobColor(job.name);
+                const nextRun = job.hours ? `Next: ${job.hours[0] || 0}:00` : job.next;
+                
+                return `
+                    <div class="next-job" title="${job.description || job.name}">
+                        <div class="next-job-info">
+                            <div class="next-job-dot" style="background: ${color}"></div>
+                            <div class="next-job-name">${job.name}</div>
+                        </div>
+                        <div class="next-job-time">${nextRun}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function getJobColor(jobName) {
+            if (jobName.includes('scout')) return jobColors.scout;
+            if (jobName.includes('relay')) return jobColors.relay;
+            if (jobName.includes('ralph')) return jobColors.ralph;
+            if (jobName.includes('standup') || jobName.includes('water-cooler') || jobName.includes('retro') || jobName.includes('briefing')) return jobColors.coordination;
+            if (jobName.includes('pb-') || jobName.includes('photo')) return jobColors.pb;
+            if (jobName.includes('mixmax') || jobName.includes('email')) return jobColors.mixmax;
+            return jobColors.system;
+        }
+        
+        function groupJobsByDay() {
+            const dailyJobs = {};
+            
+            cronJobs.forEach(job => {
+                if (job.days && Array.isArray(job.days)) {
+                    job.days.forEach(day => {
+                        if (!dailyJobs[day]) dailyJobs[day] = [];
+                        dailyJobs[day].push(job);
                     });
                 }
             });
-
-            setupTooltips();
+            
+            return dailyJobs;
         }
-
-        function setupTooltips() {
-            const tooltip = document.getElementById('tooltip');
-            const jobBlocks = document.querySelectorAll('.job-block');
-
-            jobBlocks.forEach(block => {
-                block.addEventListener('mouseenter', (e) => {
-                    const job = JSON.parse(e.target.dataset.job);
-                    tooltip.innerHTML = `
-                        <strong>${job.name}</strong><br>
-                        ${job.description}<br>
-                        Schedule: ${job.schedule}<br>
-                        Status: ${job.status}<br>
-                        Next: ${job.next || 'N/A'}
-                    `;
-                    tooltip.classList.add('show');
-                });
-
-                block.addEventListener('mousemove', (e) => {
-                    tooltip.style.left = e.pageX + 10 + 'px';
-                    tooltip.style.top = e.pageY - 10 + 'px';
-                });
-
-                block.addEventListener('mouseleave', () => {
-                    tooltip.classList.remove('show');
-                });
-            });
+        
+        function extractScheduleFrequency(schedule) {
+            if (!schedule) return '';
+            if (schedule.includes('*/10')) return 'Every 10min';
+            if (schedule.includes('*/15')) return 'Every 15min';
+            if (schedule.includes('*/30')) return 'Every 30min';
+            if (schedule.includes('*/4')) return 'Every 4hr';
+            return schedule.split(' ')[0] + ' ' + schedule.split(' ')[1];
         }
-
-        // Filter handling
-        document.querySelectorAll('.filter-tag').forEach(tag => {
-            tag.addEventListener('click', (e) => {
-                const filterType = e.target.dataset.filter ? 'type' : 'status';
-                const filterValue = e.target.dataset.filter || e.target.dataset.status;
+        
+        function truncateName(name) {
+            if (name.length > 20) return name.substring(0, 17) + '...';
+            return name;
+        }
+        
+        function parseRelativeTime(timeStr) {
+            if (!timeStr || timeStr === 'never') return Infinity;
+            
+            const match = timeStr.match(/(\d+)([smhd])/);
+            if (!match) return Infinity;
+            
+            const value = parseInt(match[1]);
+            const unit = match[2];
+            
+            switch (unit) {
+                case 's': return value;
+                case 'm': return value * 60;
+                case 'h': return value * 60 * 60;
+                case 'd': return value * 24 * 60 * 60;
+                default: return Infinity;
+            }
+        }
+        
+        // View toggle functionality
+        document.querySelectorAll('.view-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const view = btn.dataset.view;
+                currentView = view;
                 
-                // Update active filters
-                if (filterType === 'type') {
-                    activeFilters.type = filterValue;
-                    document.querySelectorAll('[data-filter]').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                if (view === 'detail') {
+                    document.getElementById('detail-view').classList.remove('hidden');
+                    document.getElementById('today-view').classList.remove('active');
                 } else {
-                    activeFilters.status = filterValue;
-                    document.querySelectorAll('[data-status]').forEach(t => t.classList.remove('active'));
+                    document.getElementById('detail-view').classList.add('hidden');
+                    document.getElementById('today-view').classList.add('active');
                 }
-                
-                e.target.classList.add('active');
-                renderCalendar();
             });
         });
-
+        
         // Load data on page load
-        loadSchedule();
-
-        // Refresh every 5 minutes
-        setInterval(loadSchedule, 5 * 60 * 1000);
+        loadScheduleData();
+        
+        // Refresh every 2 minutes
+        setInterval(loadScheduleData, 2 * 60 * 1000);
     </script>
 </body>
 </html>

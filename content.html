@@ -8,26 +8,18 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
         :root {
-            --bg: #0f0f1a;
-            --surface: #1a1a2e;
-            --card: #1a1a2e;
-            --card-hover: #2a2a4a;
-            --border: #2d2d4a;
-            --text: #e2e8f0;
-            --text-dim: #94a3b8;
-            --text-muted: #64748b;
+            --bg: #1a1a2e;
+            --surface: #2a2a4a;
+            --card: #353557;
+            --border: #4a4a6a;
+            --text: #ffffff;
+            --text-dim: #b0b0c8;
+            --text-muted: #8080a0;
             --accent: #7c3aed;
-            --green: #10b981;
-            --red: #ef4444;
-            --blue: #3b82f6;
-            --amber: #f59e0b;
-            --purple: #7c3aed;
-            --orange: #f97316;
-            --gold: #eab308;
-            --light-purple: #8b5cf6;
-            --gray: #6b7280;
-            --teal: #06b6d4;
-            --pink: #ec4899;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --info: #3b82f6;
         }
         
         body {
@@ -38,47 +30,138 @@
             min-height: 100vh;
         }
         
-        .header {
+        .app {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
             background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 24px 0;
+            overflow-y: auto;
+        }
+        
+        .sidebar-header {
+            padding: 0 24px 24px;
             border-bottom: 1px solid var(--border);
-            padding: 16px 24px;
+        }
+        
+        .sidebar-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+        
+        .sidebar-subtitle {
+            font-size: 14px;
+            color: var(--text-dim);
+        }
+        
+        .nav-section {
+            padding: 24px 0 16px;
+        }
+        
+        .nav-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            padding: 0 24px 12px;
+        }
+        
+        .nav-links {
+            list-style: none;
+        }
+        
+        .nav-link {
+            display: block;
+            padding: 12px 24px;
+            color: var(--text-dim);
+            text-decoration: none;
+            font-weight: 500;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .nav-link:hover {
+            background: rgba(124, 58, 237, 0.1);
+            color: var(--text);
+            border-left-color: var(--accent);
+        }
+        
+        .nav-link.active {
+            background: rgba(124, 58, 237, 0.2);
+            color: var(--text);
+            border-left-color: var(--accent);
+        }
+        
+        .nav-link.disabled {
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
+        
+        .main {
+            padding: 24px;
+            overflow-y: auto;
+        }
+        
+        .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 32px;
         }
         
         .header-left h1 {
-            font-size: 24px;
+            font-size: 32px;
             font-weight: 700;
             margin: 0;
-            color: #fff;
         }
         
         .header-left p {
-            font-size: 14px;
+            font-size: 16px;
             color: var(--text-dim);
-            margin-top: 2px;
+            margin-top: 4px;
         }
         
-        .kanban-board {
-            padding: 24px;
+        .new-content-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+        
+        .new-content-btn:hover {
+            background: #8b5cf6;
+        }
+        
+        .pipeline-board {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
             gap: 24px;
-            min-height: calc(100vh - 120px);
-            overflow-x: auto;
+            min-height: 600px;
         }
         
-        .kanban-column {
+        .pipeline-column {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 12px;
-            min-height: 600px;
-            display: flex;
-            flex-direction: column;
+            overflow: hidden;
         }
         
         .column-header {
+            background: var(--card);
             padding: 16px 20px;
             border-bottom: 1px solid var(--border);
             display: flex;
@@ -87,25 +170,23 @@
         }
         
         .column-title {
-            font-size: 14px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
         }
         
         .column-count {
-            background: var(--card-hover);
-            color: var(--text-dim);
-            padding: 4px 10px;
+            background: var(--accent);
+            color: white;
+            padding: 4px 8px;
             border-radius: 12px;
             font-size: 12px;
             font-weight: 600;
         }
         
         .column-body {
-            flex: 1;
             padding: 16px;
+            min-height: 500px;
             display: flex;
             flex-direction: column;
             gap: 12px;
@@ -118,242 +199,208 @@
             padding: 16px;
             cursor: pointer;
             transition: all 0.2s;
-            border-left: 4px solid var(--border);
         }
         
         .content-card:hover {
-            background: var(--card-hover);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
         }
-        
-        .content-card.stage-ideas { border-left-color: var(--blue); }
-        .content-card.stage-scripting { border-left-color: var(--amber); }
-        .content-card.stage-thumbnail { border-left-color: var(--pink); }
-        .content-card.stage-filming { border-left-color: var(--red); }
-        .content-card.stage-editing { border-left-color: var(--orange); }
-        .content-card.stage-published { border-left-color: var(--green); }
         
         .content-title {
             font-size: 16px;
             font-weight: 600;
+            color: var(--text);
             margin-bottom: 8px;
-            color: #fff;
-            line-height: 1.3;
+            line-height: 1.4;
         }
         
         .content-description {
             font-size: 14px;
             color: var(--text-dim);
-            line-height: 1.4;
             margin-bottom: 12px;
+            line-height: 1.5;
             display: -webkit-box;
             -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
         
-        .content-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 12px;
-        }
-        
-        .content-tag {
-            background: var(--card-hover);
-            color: var(--text-dim);
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .content-tag.tag-vending { background: rgba(59, 130, 246, 0.2); color: var(--blue); }
-        .content-tag.tag-ai { background: rgba(124, 58, 237, 0.2); color: var(--purple); }
-        .content-tag.tag-business { background: rgba(16, 185, 129, 0.2); color: var(--green); }
-        .content-tag.tag-tutorial { background: rgba(245, 158, 11, 0.2); color: var(--amber); }
-        .content-tag.tag-marketing { background: rgba(236, 72, 153, 0.2); color: var(--pink); }
-        .content-tag.tag-case-study { background: rgba(239, 68, 68, 0.2); color: var(--red); }
-        
         .content-meta {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 12px;
+            gap: 8px;
         }
         
-        .edit-btn {
+        .content-tags {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        
+        .tag {
             background: var(--accent);
             color: white;
-            border: none;
-            padding: 4px 12px;
-            border-radius: 6px;
+            padding: 2px 8px;
+            border-radius: 12px;
             font-size: 11px;
-            font-weight: 600;
+            font-weight: 500;
+        }
+        
+        .tag.blue-collar { background: #3b82f6; }
+        .tag.vendtech { background: #22c55e; }
+        .tag.social { background: #ec4899; }
+        .tag.marketing { background: #f59e0b; }
+        
+        .content-edit {
+            background: none;
+            border: none;
+            color: var(--text-dim);
             cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
             transition: all 0.2s;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
         
-        .edit-btn:hover {
-            background: #6d28d9;
-        }
-        
-        .content-time {
-            color: var(--text-muted);
-            font-variant-numeric: tabular-nums;
+        .content-edit:hover {
+            background: var(--surface);
+            color: var(--text);
         }
         
         .empty-column {
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            text-align: center;
             color: var(--text-muted);
             font-style: italic;
             padding: 40px 20px;
-            text-align: center;
         }
         
         .loading {
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 40px;
+            height: 400px;
             color: var(--text-dim);
+            font-size: 18px;
         }
         
-        .new-content-btn {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 16px 20px;
-            border-radius: 50px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
-        }
-        
-        .new-content-btn:hover {
-            background: #6d28d9;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(124, 58, 237, 0.5);
-        }
-        
-        /* Modal for New Content */
-        .modal {
-            display: none;
+        .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 1000;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
             align-items: center;
             justify-content: center;
+            z-index: 1000;
+            padding: 20px;
         }
         
-        .modal.show {
+        .modal-overlay.show {
             display: flex;
         }
         
-        .modal-content {
+        .modal {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 24px;
-            width: 90%;
+            width: 100%;
             max-width: 600px;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
+            padding: 24px;
         }
         
         .modal-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: #fff;
-        }
-        
-        .close-btn {
-            background: none;
-            border: none;
-            color: var(--text-dim);
             font-size: 24px;
-            cursor: pointer;
-            padding: 0;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .close-btn:hover {
+            font-weight: 700;
             color: var(--text);
+            margin-bottom: 20px;
         }
         
         .form-group {
-            margin-bottom: 16px;
+            margin-bottom: 20px;
         }
         
         .form-label {
             display: block;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-muted);
+            font-size: 14px;
             font-weight: 600;
-            margin-bottom: 6px;
+            color: var(--text);
+            margin-bottom: 8px;
         }
         
-        .form-input, .form-textarea, .form-select {
+        .form-input,
+        .form-select,
+        .form-textarea {
             width: 100%;
+            padding: 12px;
             background: var(--card);
             border: 1px solid var(--border);
-            color: var(--text);
-            padding: 10px 12px;
             border-radius: 6px;
+            color: var(--text);
             font-size: 14px;
-            font-family: inherit;
+        }
+        
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
         }
         
         .form-textarea {
-            min-height: 100px;
             resize: vertical;
+            min-height: 100px;
         }
         
-        .tag-input {
+        .tags-input {
             display: flex;
             flex-wrap: wrap;
-            gap: 6px;
-            align-items: center;
-            min-height: 40px;
+            gap: 8px;
+            padding: 8px;
             background: var(--card);
             border: 1px solid var(--border);
             border-radius: 6px;
-            padding: 6px;
+            min-height: 44px;
         }
         
-        .tag-input input {
+        .tags-input:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+        }
+        
+        .tag-item {
+            background: var(--accent);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .tag-remove {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 0;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        
+        .tag-remove:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .tag-input {
             flex: 1;
             min-width: 100px;
             background: none;
@@ -361,192 +408,136 @@
             outline: none;
             color: var(--text);
             font-size: 14px;
-            padding: 4px;
         }
         
-        .tag-pill {
-            background: var(--accent);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        
-        .tag-pill button {
-            background: none;
-            border: none;
-            color: white;
-            cursor: pointer;
-            padding: 0;
-            font-size: 16px;
-            line-height: 1;
-        }
-        
-        .form-actions {
+        .modal-actions {
             display: flex;
             gap: 12px;
+            justify-content: flex-end;
             margin-top: 24px;
         }
         
-        .btn-primary {
-            flex: 1;
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 14px;
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
             font-weight: 600;
             cursor: pointer;
+            border: none;
             transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: white;
         }
         
         .btn-primary:hover {
-            background: #6d28d9;
+            background: #8b5cf6;
         }
         
         .btn-secondary {
-            flex: 1;
-            background: transparent;
-            color: var(--text-dim);
+            background: var(--card);
+            color: var(--text);
             border: 1px solid var(--border);
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
         }
         
         .btn-secondary:hover {
-            background: var(--card-hover);
-            color: var(--text);
+            background: var(--surface);
         }
         
-        /* Mobile */
+        @media (max-width: 1400px) {
+            .pipeline-board {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
         @media (max-width: 768px) {
-            .kanban-board {
+            .app {
                 grid-template-columns: 1fr;
-                gap: 16px;
             }
             
-            .new-content-btn {
-                bottom: 16px;
-                right: 16px;
-                padding: 12px 16px;
-                font-size: 14px;
+            .sidebar {
+                display: none;
+            }
+            
+            .pipeline-board {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body>
-    <script src="/nav.js"></script>
-    <div class="header">
-        <div class="header-left">
-            <h1>Content Pipeline</h1>
-            <p>Track content from ideas to publication</p>
-        </div>
-    </div>
-    
-    <div class="kanban-board">
-        <div class="kanban-column">
-            <div class="column-header">
-                <div class="column-title">Ideas</div>
-                <div class="column-count" id="count-ideas">0</div>
+    <div class="app">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">🚀 Mission Control</div>
+                <div class="sidebar-subtitle">Command Center</div>
             </div>
-            <div class="column-body" id="column-ideas">
-                <div class="empty-column">No ideas yet</div>
-            </div>
-        </div>
-        
-        <div class="kanban-column">
-            <div class="column-header">
-                <div class="column-title">Scripting</div>
-                <div class="column-count" id="count-scripting">0</div>
-            </div>
-            <div class="column-body" id="column-scripting">
-                <div class="empty-column">No scripts in progress</div>
-            </div>
-        </div>
-        
-        <div class="kanban-column">
-            <div class="column-header">
-                <div class="column-title">Thumbnail</div>
-                <div class="column-count" id="count-thumbnail">0</div>
-            </div>
-            <div class="column-body" id="column-thumbnail">
-                <div class="empty-column">No thumbnails needed</div>
-            </div>
+            
+            <nav>
+                <div class="nav-section">
+                    <div class="nav-section-title">Mission Control</div>
+                    <ul class="nav-links">
+                        <li><a href="/tasks" class="nav-link">📋 Tasks</a></li>
+                        <li><a href="/content" class="nav-link active">🎬 Content</a></li>
+                        <li><a href="/calendar" class="nav-link">📅 Calendar</a></li>
+                        <li><a href="/memory" class="nav-link">🧠 Memory</a></li>
+                        <li><a href="/team" class="nav-link">👥 Team</a></li>
+                        <li><a href="#" class="nav-link disabled">🏢 Office</a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">VendTech Dashboard</div>
+                    <ul class="nav-links">
+                        <li><a href="/" class="nav-link">🏠 Home</a></li>
+                        <li><a href="/crm" class="nav-link">👥 CRM</a></li>
+                        <li><a href="/pipeline" class="nav-link">📊 Pipeline</a></li>
+                        <li><a href="/analytics" class="nav-link">📈 Analytics</a></li>
+                    </ul>
+                </div>
+            </nav>
         </div>
         
-        <div class="kanban-column">
-            <div class="column-header">
-                <div class="column-title">Filming</div>
-                <div class="column-count" id="count-filming">0</div>
+        <!-- Main Content -->
+        <div class="main">
+            <div class="header">
+                <div class="header-left">
+                    <h1>Content Pipeline</h1>
+                    <p>Track content from idea to publication</p>
+                </div>
+                <button class="new-content-btn" onclick="showNewContentModal()">
+                    <span>+</span> New Content
+                </button>
             </div>
-            <div class="column-body" id="column-filming">
-                <div class="empty-column">Nothing ready to film</div>
-            </div>
-        </div>
-        
-        <div class="kanban-column">
-            <div class="column-header">
-                <div class="column-title">Editing</div>
-                <div class="column-count" id="count-editing">0</div>
-            </div>
-            <div class="column-body" id="column-editing">
-                <div class="empty-column">Nothing in post-production</div>
-            </div>
-        </div>
-        
-        <div class="kanban-column">
-            <div class="column-header">
-                <div class="column-title">Published</div>
-                <div class="column-count" id="count-published">0</div>
-            </div>
-            <div class="column-body" id="column-published">
-                <div class="empty-column">No published content</div>
+            
+            <div class="pipeline-board" id="pipeline-board">
+                <div class="loading">Loading content pipeline...</div>
             </div>
         </div>
     </div>
-    
-    <button class="new-content-btn" onclick="openNewContentModal()">
-        ✚ New Content
-    </button>
     
     <!-- New Content Modal -->
-    <div class="modal" id="new-content-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">Create New Content</h2>
-                <button class="close-btn" onclick="closeNewContentModal()">&times;</button>
-            </div>
-            <form id="new-content-form" onsubmit="createContent(event)">
+    <div class="modal-overlay" id="content-modal">
+        <div class="modal">
+            <h2 class="modal-title" id="modal-title">New Content</h2>
+            
+            <form id="content-form">
                 <div class="form-group">
-                    <label class="form-label">Title</label>
-                    <input type="text" class="form-input" id="content-title" required>
+                    <label class="form-label" for="content-title">Title *</label>
+                    <input type="text" id="content-title" class="form-input" required>
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Description</label>
-                    <textarea class="form-textarea" id="content-description" placeholder="Content description, script notes, or filming details..."></textarea>
+                    <label class="form-label" for="content-description">Description</label>
+                    <textarea id="content-description" class="form-textarea" placeholder="Brief description of the content piece..."></textarea>
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Tags</label>
-                    <div class="tag-input" id="tag-container">
-                        <input type="text" placeholder="Add tags (press Enter)" id="tag-input" onkeydown="handleTagInput(event)">
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Stage</label>
-                    <select class="form-select" id="content-stage" required>
-                        <option value="ideas">Ideas</option>
+                    <label class="form-label" for="content-status">Status</label>
+                    <select id="content-status" class="form-select">
+                        <option value="ideas" selected>Ideas</option>
                         <option value="scripting">Scripting</option>
                         <option value="thumbnail">Thumbnail</option>
                         <option value="filming">Filming</option>
@@ -555,218 +546,234 @@
                     </select>
                 </div>
                 
-                <div class="form-actions">
-                    <button type="button" class="btn-secondary" onclick="closeNewContentModal()">Cancel</button>
-                    <button type="submit" class="btn-primary">Create Content</button>
+                <div class="form-group">
+                    <label class="form-label" for="content-tags">Tags</label>
+                    <div class="tags-input" id="tags-container">
+                        <input type="text" class="tag-input" id="tag-input" placeholder="Add tags..." onkeypress="handleTagInput(event)">
+                    </div>
                 </div>
             </form>
+            
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="hideContentModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveContent()">Save Content</button>
+            </div>
         </div>
     </div>
     
     <script>
-        let content = [];
-        let selectedTags = [];
+        let contentItems = [];
+        let editingContentId = null;
+        let contentTags = [];
+        
+        const columns = [
+            { id: 'ideas', title: 'Ideas', color: '#3b82f6' },
+            { id: 'scripting', title: 'Scripting', color: '#7c3aed' },
+            { id: 'thumbnail', title: 'Thumbnail', color: '#ec4899' },
+            { id: 'filming', title: 'Filming', color: '#f59e0b' },
+            { id: 'editing', title: 'Editing', color: '#ef4444' },
+            { id: 'published', title: 'Published', color: '#22c55e' }
+        ];
         
         // Load content on page load
-        document.addEventListener('DOMContentLoaded', loadContent);
-        
         async function loadContent() {
             try {
-                const response = await fetch('/api/content', {
-                    headers: {
-                        'x-api-key': 'kande2026'
-                    }
-                });
-                
-                if (response.ok) {
-                    content = await response.json();
-                } else {
-                    // If API fails, show empty state
-                    content = [];
-                }
+                const response = await fetch('/api/content');
+                const data = await response.json();
+                contentItems = data || [];
+                renderPipelineBoard();
             } catch (error) {
-                console.error('Failed to load content:', error);
-                content = [];
+                console.error('Error loading content:', error);
+                document.getElementById('pipeline-board').innerHTML = 
+                    '<div class="loading" style="color: var(--error);">Error loading content</div>';
             }
-            
-            renderContent();
         }
         
-        function renderContent() {
-            // Clear all columns
-            const stages = ['ideas', 'scripting', 'thumbnail', 'filming', 'editing', 'published'];
-            stages.forEach(stage => {
-                const columnBody = document.getElementById(`column-${stage}`);
-                columnBody.innerHTML = '';
-            });
+        function renderPipelineBoard() {
+            const board = document.getElementById('pipeline-board');
             
-            // Group content by stage
-            const contentByStage = {
-                'ideas': [],
-                'scripting': [],
-                'thumbnail': [],
-                'filming': [],
-                'editing': [],
-                'published': []
-            };
-            
-            content.forEach(item => {
-                if (contentByStage[item.stage]) {
-                    contentByStage[item.stage].push(item);
-                }
-            });
-            
-            // Render content in each column
-            Object.keys(contentByStage).forEach(stage => {
-                const columnBody = document.getElementById(`column-${stage}`);
-                const columnCount = document.getElementById(`count-${stage}`);
-                const stageContent = contentByStage[stage];
+            board.innerHTML = columns.map(column => {
+                const columnContent = contentItems.filter(item => item.status === column.id);
                 
-                columnCount.textContent = stageContent.length;
-                
-                if (stageContent.length === 0) {
-                    const emptyMessages = {
-                        'ideas': 'No ideas yet',
-                        'scripting': 'No scripts in progress',
-                        'thumbnail': 'No thumbnails needed',
-                        'filming': 'Nothing ready to film',
-                        'editing': 'Nothing in post-production',
-                        'published': 'No published content'
-                    };
-                    columnBody.innerHTML = `<div class="empty-column">${emptyMessages[stage]}</div>`;
-                } else {
-                    columnBody.innerHTML = stageContent.map(item => `
-                        <div class="content-card stage-${item.stage}" onclick="editContent('${item.id}')">
-                            <div class="content-title">${item.title}</div>
-                            <div class="content-description">${item.description}</div>
-                            <div class="content-tags">
-                                ${item.tags.map(tag => `<div class="content-tag tag-${tag.replace(/[^a-z0-9]/gi, '-').toLowerCase()}">${tag}</div>`).join('')}
-                            </div>
-                            <div class="content-meta">
-                                <div class="content-time">${formatDate(item.createdAt)}</div>
-                                <button class="edit-btn" onclick="event.stopPropagation(); editContent('${item.id}')">EDIT</button>
-                            </div>
+                return `
+                    <div class="pipeline-column" data-status="${column.id}">
+                        <div class="column-header">
+                            <div class="column-title">${column.title}</div>
+                            <div class="column-count">${columnContent.length}</div>
                         </div>
-                    `).join('');
-                }
-            });
-        }
-        
-        function openNewContentModal() {
-            document.getElementById('new-content-modal').classList.add('show');
-        }
-        
-        function closeNewContentModal() {
-            document.getElementById('new-content-modal').classList.remove('show');
-            document.getElementById('new-content-form').reset();
-            selectedTags = [];
-            renderTagInput();
-        }
-        
-        function handleTagInput(event) {
-            if (event.key === 'Enter' && event.target.value.trim()) {
-                event.preventDefault();
-                const tag = event.target.value.trim();
-                if (!selectedTags.includes(tag)) {
-                    selectedTags.push(tag);
-                    renderTagInput();
-                }
-                event.target.value = '';
-            }
-        }
-        
-        function renderTagInput() {
-            const container = document.getElementById('tag-container');
-            const input = container.querySelector('input');
-            
-            // Remove existing tag pills
-            const pills = container.querySelectorAll('.tag-pill');
-            pills.forEach(pill => pill.remove());
-            
-            // Add tag pills
-            selectedTags.forEach(tag => {
-                const pill = document.createElement('div');
-                pill.className = 'tag-pill';
-                pill.innerHTML = `
-                    ${tag}
-                    <button onclick="removeTag('${tag}')" type="button">&times;</button>
+                        <div class="column-body">
+                            ${columnContent.length > 0 
+                                ? columnContent.map(item => renderContentCard(item)).join('')
+                                : '<div class="empty-column">No content</div>'
+                            }
+                        </div>
+                    </div>
                 `;
-                container.insertBefore(pill, input);
-            });
+            }).join('');
         }
         
-        function removeTag(tag) {
-            selectedTags = selectedTags.filter(t => t !== tag);
-            renderTagInput();
+        function renderContentCard(item) {
+            const tags = item.tags || [];
+            
+            return `
+                <div class="content-card" data-content-id="${item.id}" onclick="editContent('${item.id}')">
+                    <div class="content-title">${item.title}</div>
+                    <div class="content-description">${item.description || ''}</div>
+                    <div class="content-meta">
+                        <div class="content-tags">
+                            ${tags.map(tag => `
+                                <span class="tag ${getTagClass(tag)}">${tag}</span>
+                            `).join('')}
+                        </div>
+                        <button class="content-edit" onclick="event.stopPropagation(); editContent('${item.id}')">
+                            ✏️
+                        </button>
+                    </div>
+                </div>
+            `;
         }
         
-        async function createContent(event) {
-            event.preventDefault();
-            
-            const title = document.getElementById('content-title').value;
-            const description = document.getElementById('content-description').value;
-            const stage = document.getElementById('content-stage').value;
-            
-            const newContent = {
-                title,
-                description,
-                tags: selectedTags,
-                stage,
-                createdAt: new Date().toISOString()
-            };
-            
-            try {
-                const response = await fetch('/api/content', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': 'kande2026'
-                    },
-                    body: JSON.stringify(newContent)
-                });
-                
-                if (response.ok) {
-                    const createdContent = await response.json();
-                    content.push(createdContent);
-                    renderContent();
-                    closeNewContentModal();
-                } else {
-                    alert('Failed to create content');
-                }
-            } catch (error) {
-                console.error('Failed to create content:', error);
-                alert('Failed to create content');
-            }
+        function getTagClass(tag) {
+            const tagLower = tag.toLowerCase();
+            if (tagLower.includes('blue collar') || tagLower.includes('ai')) return 'blue-collar';
+            if (tagLower.includes('vendtech') || tagLower.includes('vending')) return 'vendtech';
+            if (tagLower.includes('social') || tagLower.includes('instagram') || tagLower.includes('tiktok')) return 'social';
+            if (tagLower.includes('marketing') || tagLower.includes('ad')) return 'marketing';
+            return '';
+        }
+        
+        function showNewContentModal() {
+            editingContentId = null;
+            contentTags = [];
+            document.getElementById('modal-title').textContent = 'New Content';
+            document.getElementById('content-form').reset();
+            document.getElementById('content-status').value = 'ideas';
+            renderTagsInput();
+            document.getElementById('content-modal').classList.add('show');
         }
         
         function editContent(contentId) {
-            // TODO: Implement content editing
-            console.log('Edit content:', contentId);
+            const content = contentItems.find(c => c.id === contentId);
+            if (!content) return;
+            
+            editingContentId = contentId;
+            contentTags = [...(content.tags || [])];
+            document.getElementById('modal-title').textContent = 'Edit Content';
+            document.getElementById('content-title').value = content.title;
+            document.getElementById('content-description').value = content.description || '';
+            document.getElementById('content-status').value = content.status;
+            renderTagsInput();
+            document.getElementById('content-modal').classList.add('show');
         }
         
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
+        function hideContentModal() {
+            document.getElementById('content-modal').classList.remove('show');
+            editingContentId = null;
+            contentTags = [];
+        }
+        
+        async function saveContent() {
+            const title = document.getElementById('content-title').value.trim();
+            const description = document.getElementById('content-description').value.trim();
+            const status = document.getElementById('content-status').value;
+            
+            if (!title) {
+                alert('Title is required');
+                return;
+            }
+            
+            const contentData = { title, description, status, tags: contentTags };
+            
+            try {
+                let response;
+                if (editingContentId) {
+                    response = await fetch(`/api/content/${editingContentId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(contentData)
+                    });
+                } else {
+                    response = await fetch('/api/content', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(contentData)
+                    });
+                }
+                
+                const result = await response.json();
+                if (result.ok) {
+                    hideContentModal();
+                    loadContent(); // Reload content
+                } else {
+                    alert('Error saving content: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error saving content:', error);
+                alert('Error saving content');
+            }
+        }
+        
+        function handleTagInput(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                addTag();
+            }
+        }
+        
+        function addTag() {
+            const input = document.getElementById('tag-input');
+            const tag = input.value.trim();
+            
+            if (tag && !contentTags.includes(tag)) {
+                contentTags.push(tag);
+                input.value = '';
+                renderTagsInput();
+            }
+        }
+        
+        function removeTag(tag) {
+            contentTags = contentTags.filter(t => t !== tag);
+            renderTagsInput();
+        }
+        
+        function renderTagsInput() {
+            const container = document.getElementById('tags-container');
+            const input = container.querySelector('.tag-input');
+            
+            // Clear existing tags
+            container.querySelectorAll('.tag-item').forEach(el => el.remove());
+            
+            // Add current tags
+            contentTags.forEach(tag => {
+                const tagElement = document.createElement('div');
+                tagElement.className = 'tag-item';
+                tagElement.innerHTML = `
+                    ${tag}
+                    <button class="tag-remove" onclick="removeTag('${tag}')">×</button>
+                `;
+                container.insertBefore(tagElement, input);
             });
         }
         
         // Close modal on escape key
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                closeNewContentModal();
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                hideContentModal();
             }
         });
         
-        // Close modal on outside click
-        document.getElementById('new-content-modal').addEventListener('click', function(event) {
-            if (event.target === this) {
-                closeNewContentModal();
+        // Close modal when clicking outside
+        document.getElementById('content-modal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                hideContentModal();
             }
         });
+        
+        // Load content on page load
+        loadContent();
+        
+        // Refresh every 30 seconds
+        setInterval(loadContent, 30000);
     </script>
 </body>
 </html>
