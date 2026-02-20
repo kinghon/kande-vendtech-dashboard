@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kande AI Agent Team — Command Center</title>
+<title>Mission Control — Agent Team</title>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   :root{
-    --bg:#f8f9fa;--surface:#ffffff;--card:#ffffff;--card-hover:#f1f5f9;
-    --border:#e2e8f0;--text:#1a1a1a;--text-dim:#64748b;--text-muted:#94a3b8;
-    --accent:#6366f1;--green:#16a34a;--red:#ef4444;--amber:#d97706;
-    --purple:#7c3aed;--blue:#2563eb;--pink:#db2777;
+    --bg:#0f0f1a;--surface:#1a1a2e;--card:#1a1a2e;--card-hover:#2a2a4a;
+    --border:#2d2d4a;--text:#e2e8f0;--text-dim:#94a3b8;--text-muted:#64748b;
+    --accent:#7c3aed;--green:#10b981;--red:#ef4444;--amber:#f59e0b;
+    --purple:#7c3aed;--blue:#3b82f6;--orange:#f97316;--teal:#06b6d4;--gold:#eab308;--light-purple:#8b5cf6;--gray:#6b7280;
     --radius:12px;--radius-sm:8px;
   }
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh}
@@ -27,16 +27,16 @@
   .header-left{display:flex;align-items:center;gap:16px}
   .header-title{font-size:22px;font-weight:700;letter-spacing:-0.3px}
   .header-subtitle{font-size:13px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px}
-  .status-badge{display:inline-flex;align-items:center;gap:8px;background:#dcfce7;border:1px solid #86efac;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;color:var(--green);letter-spacing:0.8px;text-transform:uppercase}
+  .status-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(16,185,129,0.2);border:1px solid rgba(16,185,129,0.4);padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;color:var(--green);letter-spacing:0.8px;text-transform:uppercase}
   .status-badge .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse-dot 2s ease-in-out infinite}
   .header-right{display:flex;align-items:center;gap:16px}
   .header-time{font-size:13px;color:var(--text-dim);font-variant-numeric:tabular-nums}
 
   /* View Toggle */
-  .view-toggle{display:flex;gap:4px;background:#f1f5f9;border-radius:24px;padding:3px;border:1px solid var(--border)}
+  .view-toggle{display:flex;gap:4px;background:rgba(45,45,74,0.6);border-radius:24px;padding:3px;border:1px solid var(--border)}
   .view-toggle-btn{padding:6px 18px;border-radius:20px;border:2px solid transparent;background:transparent;color:var(--text-dim);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.25s;font-family:inherit;white-space:nowrap}
-  .view-toggle-btn:hover{color:var(--text);background:#fff}
-  .view-toggle-btn.active{background:#fff;color:var(--text);border-color:var(--accent);box-shadow:0 0 8px -2px rgba(99,102,241,0.3)}
+  .view-toggle-btn:hover{color:var(--text);background:var(--card-hover)}
+  .view-toggle-btn.active{background:var(--card-hover);color:#fff;border-color:var(--accent);box-shadow:0 0 8px -2px rgba(124,58,237,0.3)}
 
   /* Metrics */
   .metric-card{flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 18px;display:flex;flex-direction:column;gap:4px}
@@ -69,7 +69,7 @@
   .agent-model{font-size:11px;font-family:'SF Mono',Monaco,'Cascadia Code',monospace;color:var(--text-muted);background:var(--bg);padding:2px 8px;border-radius:4px;margin-top:4px;display:inline-block}
   .agent-activity{font-size:13px;color:var(--text-dim);margin-top:8px;line-height:1.4;display:flex;align-items:flex-start;gap:6px}
   .agent-activity .activity-icon{flex-shrink:0;margin-top:1px}
-  .meeting-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;background:#f59e0b20;color:var(--amber);border:1px solid #f59e0b40;padding:2px 8px;border-radius:4px;font-weight:600;margin-left:auto}
+  .meeting-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;background:rgba(245,158,11,0.2);color:var(--amber);border:1px solid rgba(245,158,11,0.4);padding:2px 8px;border-radius:4px;font-weight:600;margin-left:auto}
   .agent-expand{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:13px;color:var(--text-dim);line-height:1.6;max-height:150px;overflow-y:auto}
   .agent-expand pre{font-family:'SF Mono',Monaco,monospace;font-size:12px;white-space:pre-wrap;word-break:break-word;color:var(--text-muted);background:var(--bg);padding:10px;border-radius:6px;margin-top:6px}
   .agent-color-bar{position:absolute;left:0;top:0;bottom:0;width:3px}
@@ -213,12 +213,14 @@
   <header class="header">
     <div class="header-left">
       <div>
-        <div class="header-title">🏢 Kande AI Agent Team</div>
-        <div class="header-subtitle">Command Center</div>
+        <div class="header-title">🚀 Mission Control</div>
+        <div class="header-subtitle">Unified Agent Team Command Center</div>
       </div>
       <div class="view-toggle">
-        <button class="view-toggle-btn active" data-view="dashboard" onclick="switchView('dashboard')">📊 Dashboard</button>
-        <button class="view-toggle-btn" data-view="office" onclick="switchView('office')">🏢 Office</button>
+        <a class="view-toggle-btn active" href="/team">👥 Team</a>
+        <a class="view-toggle-btn" href="/calendar">📅 Calendar</a>
+        <a class="view-toggle-btn" href="/memory">🧠 Memory</a>
+        <a class="view-toggle-btn" href="#" style="color: var(--text-muted);">🏢 Office</a>
       </div>
     </div>
     <div class="header-right">
@@ -312,34 +314,58 @@
 // ── Agent Definitions ──
 const TEAMS = [
   {
-    name: 'Leadership',
+    name: 'Core Agents',
     agents: [
-      { id:'kurtis', name:'Kurtis', role:'CEO', model:'Human', color:'#f59e0b' },
-      { id:'clawd',  name:'Clawd',  role:'Chief of Staff', model:'claude-opus-4-6', color:'#8b5cf6' },
+      { id:'scout', name:'Scout', role:'Research', model:'claude-sonnet-4-20250514', color:'#3b82f6' },
+      { id:'relay', name:'Relay', role:'Sales Operations', model:'claude-sonnet-4-20250514', color:'#22c55e' },
+      { id:'ralph', name:'Ralph', role:'Engineering', model:'claude-sonnet-4-20250514', color:'#f59e0b' },
     ]
   },
   {
-    name: 'Research Team',
+    name: 'VendTech Operations',
     agents: [
-      { id:'scout', name:'Scout', role:'Research Agent', model:'claude-sonnet-4', color:'#3b82f6' },
+      { id:'autodraftemail', name:'Auto-Draft Email0', role:'Email Automation', model:'claude-sonnet-4-20250514', color:'#22c55e' },
+      { id:'emailfollowup', name:'Email Follow-up Drafter', role:'Follow-ups', model:'claude-sonnet-4-20250514', color:'#16a34a' },
+      { id:'emailsync', name:'Sent Email Sync', role:'Email Tracking', model:'claude-sonnet-4-20250514', color:'#059669' },
+      { id:'mixmaxsync', name:'Mixmax Sync', role:'Campaign Tracking', model:'claude-sonnet-4-20250514', color:'#0d9488' },
+      { id:'proposalfollowup', name:'Proposal Follow-up', role:'Proposals', model:'claude-sonnet-4-20250514', color:'#0891b2' },
     ]
   },
   {
-    name: 'Sales Team',
+    name: 'Photo Booths Operations', 
     agents: [
-      { id:'relay', name:'Relay', role:'Sales Ops Agent', model:'claude-sonnet-4', color:'#22c55e' },
+      { id:'pbemaildrafter', name:'PB Email Drafts', role:'Email Creation', model:'claude-sonnet-4-20250514', color:'#ec4899' },
+      { id:'pbgmailsync', name:'PB Gmail Draft Sync', role:'Email Sync', model:'claude-sonnet-4-20250514', color:'#be185d' },
     ]
   },
   {
-    name: 'Engineering Team',
+    name: 'Coordination',
     agents: [
-      { id:'ralph', name:'Ralph', role:'Engineering Agent', model:'claude-sonnet-4', color:'#f59e0b' },
+      { id:'standup', name:'Daily Standup', role:'Team Coordination', model:'claude-sonnet-4-20250514', color:'#7c3aed' },
+      { id:'watercooler', name:'Water Cooler', role:'Team Check-ins', model:'claude-sonnet-4-20250514', color:'#8b5cf6' },
+      { id:'retro', name:'Weekly Retro', role:'Retrospectives', model:'claude-sonnet-4-20250514', color:'#a855f7' },
+      { id:'morningbriefing', name:'Morning Briefing', role:'Daily Updates', model:'claude-sonnet-4-20250514', color:'#c084fc' },
     ]
   },
   {
-    name: 'Operations Team',
+    name: 'System', 
     agents: [
-      { id:'mary', name:'Mary', role:'PB Ops Agent', model:'claude-sonnet-4', color:'#ec4899' },
+      { id:'e2eqa', name:'E2E QA', role:'Quality Assurance', model:'claude-sonnet-4-20250514', color:'#dc2626' },
+      { id:'healthwatchdog', name:'Health Watchdog', role:'System Monitoring', model:'claude-sonnet-4-20250514', color:'#ef4444' },
+      { id:'qasweep', name:'QA Sweep', role:'Quality Monitoring', model:'claude-sonnet-4-20250514', color:'#f87171' },
+      { id:'sessioncleanup', name:'Session Cleanup', role:'Maintenance', model:'claude-sonnet-4-20250514', color:'#fca5a5' },
+      { id:'nightlybackup', name:'Nightly Backup', role:'Data Protection', model:'claude-sonnet-4-20250514', color:'#fecaca' },
+      { id:'selfupdate', name:'Self-Update', role:'System Updates', model:'claude-sonnet-4-20250514', color:'#fee2e2' },
+      { id:'goghealthcheck', name:'GOG Health Check', role:'Email System Monitoring', model:'claude-sonnet-4-20250514', color:'#fef2f2' },
+    ]
+  },
+  {
+    name: 'Research',
+    agents: [
+      { id:'vendingpreneurs', name:'Vendingpreneurs Scrape', role:'Industry Research', model:'claude-sonnet-4-20250514', color:'#0891b2' },
+      { id:'seovt', name:'SEO Check (VT)', role:'VendTech SEO', model:'claude-sonnet-4-20250514', color:'#0e7490' },
+      { id:'seopb', name:'SEO Check (PB)', role:'Photo Booth SEO', model:'claude-sonnet-4-20250514', color:'#155e75' },
+      { id:'sevenelevenscrape', name:'7-Eleven Price Scrape', role:'Market Research', model:'claude-sonnet-4-20250514', color:'#164e63' },
     ]
   },
 ];

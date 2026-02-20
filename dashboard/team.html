@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kande AI Agent Team — Command Center</title>
+<title>Mission Control — Agent Team</title>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   :root{
-    --bg:#f8f9fa;--surface:#ffffff;--card:#ffffff;--card-hover:#f1f5f9;
-    --border:#e2e8f0;--text:#1a1a1a;--text-dim:#64748b;--text-muted:#94a3b8;
-    --accent:#6366f1;--green:#16a34a;--red:#ef4444;--amber:#d97706;
-    --purple:#7c3aed;--blue:#2563eb;--pink:#db2777;
+    --bg:#0f0f1a;--surface:#1a1a2e;--card:#1a1a2e;--card-hover:#2a2a4a;
+    --border:#2d2d4a;--text:#e2e8f0;--text-dim:#94a3b8;--text-muted:#64748b;
+    --accent:#7c3aed;--green:#10b981;--red:#ef4444;--amber:#f59e0b;
+    --purple:#7c3aed;--blue:#3b82f6;--orange:#f97316;--teal:#06b6d4;--gold:#eab308;--light-purple:#8b5cf6;--gray:#6b7280;
     --radius:12px;--radius-sm:8px;
   }
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh}
@@ -95,6 +95,33 @@
   .schedule-time{font-size:12px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums}
   .schedule-label{font-size:13px;color:var(--text-dim)}
   .schedule-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+  /* Learnings Section */
+  .learning-card{background:var(--card);padding:18px 20px;min-height:120px}
+  .learning-agent-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .learning-agent-name{font-size:14px;font-weight:700}
+  .learning-agent-badge{font-size:11px;font-family:'SF Mono',Monaco,monospace;color:var(--text-muted);background:var(--bg);padding:2px 8px;border-radius:4px}
+  .learning-items{display:flex;flex-direction:column;gap:8px}
+  .learning-item{font-size:13px;color:var(--text-dim);line-height:1.5;padding:8px 12px;background:var(--bg);border-radius:var(--radius-sm);border-left:3px solid var(--accent)}
+  .learning-item.scout{border-left-color:var(--blue)}
+  .learning-item.relay{border-left-color:var(--green)}
+  .learning-item.ralph{border-left-color:var(--purple)}
+  .learning-item.mary{border-left-color:var(--pink)}
+  .learning-item.mistake{border-left-color:var(--red);background:#fef2f2}
+  .learning-item.strategy{border-left-color:var(--amber);background:#fffbeb}
+  .learning-item.fail{border-left-color:var(--red)}
+  .learning-type-tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:1px 6px;border-radius:3px;margin-right:6px;display:inline-block}
+  .learning-type-tag.mistake{background:#fee2e2;color:var(--red)}
+  .learning-type-tag.learning{background:#dbeafe;color:var(--blue)}
+  .learning-type-tag.works{background:#dcfce7;color:var(--green)}
+  .learning-type-tag.fail{background:#fee2e2;color:var(--red)}
+  .learning-type-tag.strategy{background:#fef3c7;color:var(--amber)}
+  .learning-item .date{font-size:11px;color:var(--text-muted);font-family:'SF Mono',Monaco,monospace}
+  .learning-empty{font-size:13px;color:var(--text-muted);font-style:italic}
+  .learning-bullet{display:flex;gap:6px;align-items:flex-start}
+  .learning-bullet::before{content:'•';color:var(--accent);font-weight:700;flex-shrink:0}
+  .learning-subsection{margin-top:12px;padding-top:10px;border-top:1px solid var(--border)}
+  .learning-subsection-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:8px}
 
   /* Office View */
   .view-container{display:none}
@@ -186,12 +213,14 @@
   <header class="header">
     <div class="header-left">
       <div>
-        <div class="header-title">🏢 Kande AI Agent Team</div>
-        <div class="header-subtitle">Command Center</div>
+        <div class="header-title">🚀 Mission Control</div>
+        <div class="header-subtitle">Unified Agent Team Command Center</div>
       </div>
       <div class="view-toggle">
-        <button class="view-toggle-btn active" data-view="dashboard" onclick="switchView('dashboard')">📊 Dashboard</button>
-        <button class="view-toggle-btn" data-view="office" onclick="switchView('office')">🏢 Office</button>
+        <a class="view-toggle-btn active" href="/team">👥 Team</a>
+        <a class="view-toggle-btn" href="/calendar">📅 Calendar</a>
+        <a class="view-toggle-btn" href="/memory">🧠 Memory</a>
+        <a class="view-toggle-btn" href="#" style="color: var(--text-muted);">🏢 Office</a>
       </div>
     </div>
     <div class="header-right">
@@ -224,6 +253,18 @@
   <main class="main">
     <div id="dashboard-view" class="view-container active">
       <div class="team-groups" id="team-groups"></div>
+
+      <!-- Recent Learnings Section -->
+      <div class="learnings-section" id="learnings-section" style="margin-top:28px">
+        <div class="team-group">
+          <div class="team-group-header">
+            <div class="team-group-name">🧠 Recent Learnings (72h)</div>
+            <div class="team-group-count" id="learnings-count">Loading...</div>
+          </div>
+          <div id="learnings-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1px;background:var(--border)">
+          </div>
+        </div>
+      </div>
     </div>
     <div id="office-view" class="view-container">
       <canvas id="office-canvas"></canvas>
@@ -273,34 +314,58 @@
 // ── Agent Definitions ──
 const TEAMS = [
   {
-    name: 'Leadership',
+    name: 'Core Agents',
     agents: [
-      { id:'kurtis', name:'Kurtis', role:'CEO', model:'Human', color:'#f59e0b' },
-      { id:'clawd',  name:'Clawd',  role:'Chief of Staff', model:'claude-opus-4-6', color:'#8b5cf6' },
+      { id:'scout', name:'Scout', role:'Research', model:'claude-sonnet-4-20250514', color:'#3b82f6' },
+      { id:'relay', name:'Relay', role:'Sales Operations', model:'claude-sonnet-4-20250514', color:'#22c55e' },
+      { id:'ralph', name:'Ralph', role:'Engineering', model:'claude-sonnet-4-20250514', color:'#f59e0b' },
     ]
   },
   {
-    name: 'Research Team',
+    name: 'VendTech Operations',
     agents: [
-      { id:'scout', name:'Scout', role:'Research Agent', model:'claude-sonnet-4', color:'#3b82f6' },
+      { id:'autodraftemail', name:'Auto-Draft Email0', role:'Email Automation', model:'claude-sonnet-4-20250514', color:'#22c55e' },
+      { id:'emailfollowup', name:'Email Follow-up Drafter', role:'Follow-ups', model:'claude-sonnet-4-20250514', color:'#16a34a' },
+      { id:'emailsync', name:'Sent Email Sync', role:'Email Tracking', model:'claude-sonnet-4-20250514', color:'#059669' },
+      { id:'mixmaxsync', name:'Mixmax Sync', role:'Campaign Tracking', model:'claude-sonnet-4-20250514', color:'#0d9488' },
+      { id:'proposalfollowup', name:'Proposal Follow-up', role:'Proposals', model:'claude-sonnet-4-20250514', color:'#0891b2' },
     ]
   },
   {
-    name: 'Sales Team',
+    name: 'Photo Booths Operations', 
     agents: [
-      { id:'relay', name:'Relay', role:'Sales Ops Agent', model:'claude-sonnet-4', color:'#22c55e' },
+      { id:'pbemaildrafter', name:'PB Email Drafts', role:'Email Creation', model:'claude-sonnet-4-20250514', color:'#ec4899' },
+      { id:'pbgmailsync', name:'PB Gmail Draft Sync', role:'Email Sync', model:'claude-sonnet-4-20250514', color:'#be185d' },
     ]
   },
   {
-    name: 'Engineering Team',
+    name: 'Coordination',
     agents: [
-      { id:'ralph', name:'Ralph', role:'Engineering Agent', model:'claude-sonnet-4', color:'#f59e0b' },
+      { id:'standup', name:'Daily Standup', role:'Team Coordination', model:'claude-sonnet-4-20250514', color:'#7c3aed' },
+      { id:'watercooler', name:'Water Cooler', role:'Team Check-ins', model:'claude-sonnet-4-20250514', color:'#8b5cf6' },
+      { id:'retro', name:'Weekly Retro', role:'Retrospectives', model:'claude-sonnet-4-20250514', color:'#a855f7' },
+      { id:'morningbriefing', name:'Morning Briefing', role:'Daily Updates', model:'claude-sonnet-4-20250514', color:'#c084fc' },
     ]
   },
   {
-    name: 'Operations Team',
+    name: 'System', 
     agents: [
-      { id:'mary', name:'Mary', role:'PB Ops Agent', model:'claude-sonnet-4', color:'#ec4899' },
+      { id:'e2eqa', name:'E2E QA', role:'Quality Assurance', model:'claude-sonnet-4-20250514', color:'#dc2626' },
+      { id:'healthwatchdog', name:'Health Watchdog', role:'System Monitoring', model:'claude-sonnet-4-20250514', color:'#ef4444' },
+      { id:'qasweep', name:'QA Sweep', role:'Quality Monitoring', model:'claude-sonnet-4-20250514', color:'#f87171' },
+      { id:'sessioncleanup', name:'Session Cleanup', role:'Maintenance', model:'claude-sonnet-4-20250514', color:'#fca5a5' },
+      { id:'nightlybackup', name:'Nightly Backup', role:'Data Protection', model:'claude-sonnet-4-20250514', color:'#fecaca' },
+      { id:'selfupdate', name:'Self-Update', role:'System Updates', model:'claude-sonnet-4-20250514', color:'#fee2e2' },
+      { id:'goghealthcheck', name:'GOG Health Check', role:'Email System Monitoring', model:'claude-sonnet-4-20250514', color:'#fef2f2' },
+    ]
+  },
+  {
+    name: 'Research',
+    agents: [
+      { id:'vendingpreneurs', name:'Vendingpreneurs Scrape', role:'Industry Research', model:'claude-sonnet-4-20250514', color:'#0891b2' },
+      { id:'seovt', name:'SEO Check (VT)', role:'VendTech SEO', model:'claude-sonnet-4-20250514', color:'#0e7490' },
+      { id:'seopb', name:'SEO Check (PB)', role:'Photo Booth SEO', model:'claude-sonnet-4-20250514', color:'#155e75' },
+      { id:'sevenelevenscrape', name:'7-Eleven Price Scrape', role:'Market Research', model:'claude-sonnet-4-20250514', color:'#164e63' },
     ]
   },
 ];
@@ -979,11 +1044,137 @@ resizeOfficeCanvas();
 initOfficeAgents();
 renderOffice();
 
+// ── Learnings ──
+const AGENT_COLORS = { scout: 'blue', relay: 'green', ralph: 'purple', mary: 'pink' };
+const AGENT_EMOJIS = { scout: '🔍', relay: '📧', ralph: '🔧', mary: '📸' };
+const AGENT_LABELS = { scout: 'Scout — Research', relay: 'Relay — Sales Ops', ralph: 'Ralph — Engineering', mary: 'Mary — PB Ops' };
+
+function extractBullets(text) {
+  if (!text) return [];
+  const lines = text.split('\n');
+  const bullets = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('• ')) {
+      const content = trimmed.replace(/^[-*•]\s*/, '').replace(/\*\*/g, '');
+      if (content.length > 10 && content.length < 300) {
+        bullets.push(content);
+      }
+    }
+  }
+  return bullets.slice(0, 6);
+}
+
+function extractFromFiles(files) {
+  const bullets = [];
+  for (const f of (files || [])) {
+    // Extract key findings from file previews
+    const preview = f.preview || '';
+    const lines = preview.split('\n');
+    for (const line of lines) {
+      const t = line.trim();
+      if ((t.startsWith('- ') || t.startsWith('* ') || t.startsWith('• ')) && t.length > 15 && t.length < 250) {
+        bullets.push(t.replace(/^[-*•]\s*/, '').replace(/\*\*/g, ''));
+      }
+    }
+  }
+  return bullets.slice(0, 5);
+}
+
+async function fetchLearnings() {
+  try {
+    const res = await fetch('/api/team/learnings');
+    const data = await res.json();
+    const grid = document.getElementById('learnings-grid');
+    const agents = ['scout', 'relay', 'ralph', 'mary'];
+    let totalLearnings = 0;
+
+    grid.innerHTML = '';
+
+    for (const agent of agents) {
+      const info = data[agent] || {};
+      const items = (info.items || []).slice(0, 8);
+
+      totalLearnings += items.length;
+
+      const card = document.createElement('div');
+      card.className = 'learning-card';
+
+      const updated = info.updated ? new Date(info.updated).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+      const mc = info.mistakeCount || 0;
+      const lc = info.learningCount || 0;
+
+      card.innerHTML = `
+        <div class="learning-agent-header">
+          <span style="font-size:18px">${AGENT_EMOJIS[agent]}</span>
+          <span class="learning-agent-name">${AGENT_LABELS[agent]}</span>
+          ${updated ? `<span class="learning-agent-badge">${updated}</span>` : ''}
+          ${mc ? `<span class="learning-agent-badge">⚠️ ${mc} mistake${mc>1?'s':''}</span>` : ''}
+        </div>
+        <div class="learning-items">
+          ${items.length ? items.map(i => {
+            const tag = i.type === 'mistake'
+              ? '<span class="learning-type-tag mistake">mistake</span>'
+              : '<span class="learning-type-tag learning">learned</span>';
+            const cls = i.type === 'mistake' ? 'mistake' : agent;
+            return `<div class="learning-item ${cls}">${tag}${i.text}</div>`;
+          }).join('') : '<div class="learning-empty">No new learnings in the last 72 hours</div>'}
+        </div>
+      `;
+      grid.appendChild(card);
+    }
+
+    // Shared cross-team learnings
+    const shared = data.shared || {};
+    const sections = [
+      { key: 'what_works', title: '✅ What Works', tag: 'works', color: 'var(--green)' },
+      { key: 'what_fails', title: '❌ What Doesn\'t Work', tag: 'fail', color: 'var(--red)' },
+      { key: 'strategies', title: '🎯 Strategies', tag: 'strategy', color: 'var(--amber)' }
+    ];
+
+    const sharedItems = sections.flatMap(s => (shared[s.key] || []).map(b => ({ ...s, text: b })));
+    if (sharedItems.length) {
+      totalLearnings += sharedItems.length;
+      const card = document.createElement('div');
+      card.className = 'learning-card';
+      card.style.gridColumn = '1 / -1';
+
+      let html = `<div class="learning-agent-header">
+        <span style="font-size:18px">🤝</span>
+        <span class="learning-agent-name">Cross-Team Learnings</span>
+        ${shared.updated ? `<span class="learning-agent-badge">${new Date(shared.updated).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>` : ''}
+      </div>`;
+
+      for (const section of sections) {
+        const items = shared[section.key] || [];
+        if (items.length) {
+          html += `<div class="learning-subsection">
+            <div class="learning-subsection-title">${section.title}</div>
+            <div class="learning-items">
+              ${items.slice(0, 4).map(b => `<div class="learning-item" style="border-left-color:${section.color}"><span class="learning-type-tag ${section.tag}">${section.tag}</span>${b}</div>`).join('')}
+            </div>
+          </div>`;
+        }
+      }
+
+      card.innerHTML = html;
+      grid.appendChild(card);
+    }
+
+    document.getElementById('learnings-count').textContent = `${totalLearnings} insight${totalLearnings !== 1 ? 's' : ''}`;
+  } catch(e) {
+    console.error('Failed to load learnings:', e);
+    document.getElementById('learnings-count').textContent = 'Error';
+  }
+}
+
 // ── Init ──
 fetchTeamStatus();
 fetchActivity();
+fetchLearnings();
 setInterval(fetchTeamStatus, 15000);
 setInterval(fetchActivity, 15000);
+setInterval(fetchLearnings, 60000);
 </script>
 </body>
 </html>

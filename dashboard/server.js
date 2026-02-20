@@ -21744,151 +21744,318 @@ app.get('/api/team/status', async (req, res) => {
       console.error('Error fetching cron status:', error);
     }
     
-    // Define comprehensive agent data
+    // Define comprehensive agent data for ALL businesses and operations
     const agentData = {
-      orchestrator: {
-        name: 'Orchestrator',
-        role: 'Chief of Staff',
-        emoji: '🎯',
-        model: 'anthropic/claude-opus-4-6',
-        description: 'Main agent managing all operations, cron jobs, and team coordination',
-        type: 'core',
-        lastRun: getLastActivity('main', cronJobs),
-        status: 'active',
-        jobs: cronJobs.filter(job => job.agent === 'main' && job.name.includes('auto')).length,
-        currentTask: 'Managing team operations and monitoring all systems'
-      },
+      // CORE AGENTS (Business Operations)
       scout: {
         name: 'Scout',
         role: 'Research Agent',
         emoji: '🔍',
         model: 'anthropic/claude-sonnet-4-20250514',
-        description: 'Finds and analyzes VendTech leads, researches market opportunities',
+        description: 'Lead research and market analysis across all businesses',
         type: 'core',
-        lastRun: getLastActivity('scout', cronJobs),
+        lastRun: getJobLastRun('scout-morning', cronJobs) || getJobLastRun('scout-evening', cronJobs),
         status: getAgentStatus('scout', cronJobs),
         jobs: cronJobs.filter(job => job.name.includes('scout')).length,
-        currentTask: 'Lead research and market analysis'
+        currentTask: 'Market research and lead analysis'
       },
       relay: {
         name: 'Relay',
         role: 'Sales Operations',
         emoji: '📡',
         model: 'anthropic/claude-sonnet-4-20250514',
-        description: 'Manages sales pipeline, drafts emails, processes leads',
+        description: 'Sales pipeline management and outreach coordination',
         type: 'core',
-        lastRun: getLastActivity('relay', cronJobs),
+        lastRun: getJobLastRun('relay-morning', cronJobs) || getJobLastRun('relay-evening', cronJobs),
         status: getAgentStatus('relay', cronJobs),
         jobs: cronJobs.filter(job => job.name.includes('relay')).length,
-        currentTask: 'Pipeline management and email operations'
+        currentTask: 'Pipeline operations and sales coordination'
       },
       ralph: {
         name: 'Ralph',
         role: 'Engineering Agent',
         emoji: '🔧',
         model: 'anthropic/claude-sonnet-4-20250514',
-        description: 'Builds dashboard features, fixes bugs, ships production code',
+        description: 'Dashboard development, system engineering, and technical operations',
         type: 'core',
-        lastRun: getLastActivity('ralph', cronJobs),
-        status: getAgentStatus('ralph', cronJobs),
+        lastRun: getJobLastRun('ralph-overnight', cronJobs),
+        status: getJobStatus('ralph-overnight', cronJobs),
         jobs: cronJobs.filter(job => job.name.includes('ralph')).length,
-        currentTask: 'Building Mission Control pages'
+        currentTask: 'Mission Control development and engineering'
       },
-      standup: {
-        name: 'Standup',
-        role: 'Daily Coordination',
+      
+      // VENDTECH OPERATIONS
+      autodraftemail: {
+        name: 'Auto-Draft Email0',
+        role: 'VendTech Email Automation',
+        emoji: '📬',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Automated VendTech email drafting and queue management',
+        type: 'vendtech',
+        lastRun: getJobLastRun('auto-draft-email0', cronJobs),
+        status: getJobStatus('auto-draft-email0', cronJobs),
+        jobs: 1,
+        currentTask: 'VendTech email automation'
+      },
+      emailfollowup: {
+        name: 'Email Follow-up Drafter',
+        role: 'VendTech Follow-ups',
+        emoji: '📤',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'VendTech follow-up email generation and scheduling',
+        type: 'vendtech',
+        lastRun: getJobLastRun('email-followup-drafter', cronJobs),
+        status: getJobStatus('email-followup-drafter', cronJobs),
+        jobs: 1,
+        currentTask: 'Follow-up email generation'
+      },
+      emailsync: {
+        name: 'Sent Email Sync',
+        role: 'VendTech Email Tracking',
+        emoji: '🔄',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Synchronizes sent VendTech emails with CRM',
+        type: 'vendtech',
+        lastRun: getJobLastRun('vendtech-sent-email-sync', cronJobs),
+        status: getJobStatus('vendtech-sent-email-sync', cronJobs),
+        jobs: 1,
+        currentTask: 'Email tracking and CRM sync'
+      },
+      mixmaxsync: {
+        name: 'Mixmax Sync',
+        role: 'Campaign Tracking',
+        emoji: '📊',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Mixmax campaign data synchronization and tracking',
+        type: 'vendtech',
+        lastRun: getJobLastRun('mixmax-tracking-sync', cronJobs),
+        status: getJobStatus('mixmax-tracking-sync', cronJobs),
+        jobs: 1,
+        currentTask: 'Campaign data synchronization'
+      },
+      proposalfollowup: {
+        name: 'Proposal Follow-up',
+        role: 'VendTech Proposals',
         emoji: '📋',
         model: 'anthropic/claude-sonnet-4-20250514',
-        description: 'Daily team standup and coordination meetings',
+        description: 'Automated proposal follow-up and status tracking',
+        type: 'vendtech',
+        lastRun: getJobLastRun('proposal-followup-check', cronJobs),
+        status: getJobStatus('proposal-followup-check', cronJobs),
+        jobs: 1,
+        currentTask: 'Proposal tracking and follow-up'
+      },
+      
+      // PHOTO BOOTHS OPERATIONS
+      pbemaildrafter: {
+        name: 'PB Email Drafts',
+        role: 'Photo Booth Email Creation',
+        emoji: '📸',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Photo Booth inquiry responses and email drafting',
+        type: 'photobooths',
+        lastRun: getJobLastRun('pb-email-drafts', cronJobs),
+        status: getJobStatus('pb-email-drafts', cronJobs),
+        jobs: 1,
+        currentTask: 'Photo Booth email drafting'
+      },
+      pbgmailsync: {
+        name: 'PB Gmail Draft Sync',
+        role: 'Photo Booth Email Sync',
+        emoji: '📨',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Photo Booth Gmail draft synchronization (business + off hours)',
+        type: 'photobooths',
+        lastRun: getJobLastRun('pb-gmail-draft-sync', cronJobs) || getJobLastRun('pb-gmail-draft-sync-offhours', cronJobs),
+        status: getJobStatus('pb-gmail-draft-sync', cronJobs),
+        jobs: cronJobs.filter(job => job.name.includes('pb-gmail-draft-sync')).length,
+        currentTask: 'Gmail draft synchronization'
+      },
+      
+      // COORDINATION AGENTS
+      standup: {
+        name: 'Daily Standup',
+        role: 'Team Coordination',
+        emoji: '📋',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Daily team coordination and planning sessions',
         type: 'coordination',
         lastRun: getJobLastRun('daily-standup', cronJobs),
         status: getJobStatus('daily-standup', cronJobs),
         jobs: 1,
-        currentTask: 'Team daily planning and coordination'
+        currentTask: 'Daily team planning'
       },
       watercooler: {
         name: 'Water Cooler',
         role: 'Team Check-ins',
         emoji: '💬',
         model: 'anthropic/claude-sonnet-4-20250514',
-        description: 'Regular team check-ins and status updates',
+        description: 'Regular team communication and status updates',
         type: 'coordination',
         lastRun: getJobLastRun('water-cooler', cronJobs),
         status: getJobStatus('water-cooler', cronJobs),
         jobs: 1,
-        currentTask: 'Team communication and updates'
+        currentTask: 'Team communication'
       },
       retro: {
         name: 'Weekly Retro',
-        role: 'Retrospectives',
+        role: 'Team Retrospectives',
         emoji: '🔄',
         model: 'anthropic/claude-sonnet-4-20250514',
-        description: 'Weekly retrospectives and team improvement sessions',
+        description: 'Weekly team retrospectives and process improvement',
         type: 'coordination',
         lastRun: getJobLastRun('weekly-retro', cronJobs),
         status: getJobStatus('weekly-retro', cronJobs),
         jobs: 1,
-        currentTask: 'Weekly team retrospectives'
+        currentTask: 'Weekly retrospectives'
       },
+      morningbriefing: {
+        name: 'Morning Briefing',
+        role: 'Daily Updates',
+        emoji: '🌅',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Daily morning briefings and status summaries',
+        type: 'coordination',
+        lastRun: getJobLastRun('morning-briefing', cronJobs),
+        status: getJobStatus('morning-briefing', cronJobs),
+        jobs: 1,
+        currentTask: 'Daily briefing generation'
+      },
+      
+      // SYSTEM AGENTS
       e2eqa: {
         name: 'E2E QA',
         role: 'Quality Assurance',
         emoji: '✅',
         model: 'anthropic/claude-sonnet-4-20250514',
-        description: 'End-to-end quality assurance and dashboard monitoring',
-        type: 'support',
+        description: 'End-to-end dashboard health monitoring and QA',
+        type: 'system',
         lastRun: getJobLastRun('daily-e2e-dashboards', cronJobs),
         status: getJobStatus('daily-e2e-dashboards', cronJobs),
         jobs: 1,
         currentTask: 'Dashboard health monitoring'
-      },
-      emaildrafter: {
-        name: 'Email Drafter',
-        role: 'Content Creation',
-        emoji: '📧',
-        model: 'anthropic/claude-sonnet-4-20250514',
-        description: 'Drafts VendTech and Photo Booth emails',
-        type: 'support',
-        lastRun: getJobLastRun('pb-email-drafts', cronJobs),
-        status: getJobStatus('pb-email-drafts', cronJobs),
-        jobs: cronJobs.filter(job => job.name.includes('email') || job.name.includes('draft')).length,
-        currentTask: 'Email drafting and content creation'
-      },
-      pbdraftsync: {
-        name: 'PB Draft Sync',
-        role: 'Email Synchronization',
-        emoji: '📨',
-        model: 'anthropic/claude-sonnet-4-20250514',
-        description: 'Synchronizes Photo Booth draft emails with Gmail',
-        type: 'support',
-        lastRun: getJobLastRun('pb-gmail-draft-sync', cronJobs),
-        status: getJobStatus('pb-gmail-draft-sync', cronJobs),
-        jobs: cronJobs.filter(job => job.name.includes('pb-gmail-draft-sync')).length,
-        currentTask: 'Gmail draft synchronization'
       },
       healthwatchdog: {
         name: 'Health Watchdog',
         role: 'System Monitoring',
         emoji: '🩺',
         model: 'anthropic/claude-sonnet-4-20250514',
-        description: 'Monitors cron job health and system status',
-        type: 'support',
+        description: 'Cron job health monitoring and error detection',
+        type: 'system',
         lastRun: getJobLastRun('cron-health-watchdog', cronJobs),
         status: getJobStatus('cron-health-watchdog', cronJobs),
         jobs: 1,
         currentTask: 'System health monitoring'
       },
-      emailmonitor: {
-        name: 'Email Frequency Monitor',
-        role: 'Email Monitoring',
-        emoji: '⚡',
+      qasweep: {
+        name: 'QA Sweep',
+        role: 'Quality Monitoring',
+        emoji: '🔍',
         model: 'anthropic/claude-sonnet-4-20250514',
-        description: 'Monitors email sending frequency and prevents spam',
-        type: 'support',
-        lastRun: getJobLastRun('email-send-frequency-monitor', cronJobs),
-        status: getJobStatus('email-send-frequency-monitor', cronJobs),
+        description: 'Regular VendTech quality assurance sweeps',
+        type: 'system',
+        lastRun: getJobLastRun('vendtech-qa-sweep', cronJobs),
+        status: getJobStatus('vendtech-qa-sweep', cronJobs),
         jobs: 1,
-        currentTask: 'Email frequency monitoring'
+        currentTask: 'Quality assurance monitoring'
+      },
+      sessioncleanup: {
+        name: 'Session Cleanup',
+        role: 'System Maintenance',
+        emoji: '🧹',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Weekly session cleanup and maintenance',
+        type: 'system',
+        lastRun: getJobLastRun('session-cleanup-weekly', cronJobs),
+        status: getJobStatus('session-cleanup-weekly', cronJobs),
+        jobs: 1,
+        currentTask: 'Session maintenance'
+      },
+      nightlybackup: {
+        name: 'Nightly Backup',
+        role: 'Data Protection',
+        emoji: '💾',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Nightly Google Drive backups and data protection',
+        type: 'system',
+        lastRun: getJobLastRun('nightly-gdrive-backup', cronJobs),
+        status: getJobStatus('nightly-gdrive-backup', cronJobs),
+        jobs: 1,
+        currentTask: 'Data backup operations'
+      },
+      selfupdate: {
+        name: 'Self-Update',
+        role: 'System Updates',
+        emoji: '🔄',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'System self-update and maintenance tasks',
+        type: 'system',
+        lastRun: getJobLastRun('daily-self-update', cronJobs),
+        status: getJobStatus('daily-self-update', cronJobs),
+        jobs: 1,
+        currentTask: 'System maintenance'
+      },
+      goghealthcheck: {
+        name: 'GOG Health Check',
+        role: 'Email System Monitoring',
+        emoji: '📧',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Gmail API and email system health monitoring',
+        type: 'system',
+        lastRun: getJobLastRun('gog-gmail-health-check', cronJobs),
+        status: getJobStatus('gog-gmail-health-check', cronJobs),
+        jobs: 1,
+        currentTask: 'Email system monitoring'
+      },
+      
+      // RESEARCH AGENTS
+      vendingpreneurs: {
+        name: 'Vendingpreneurs Scrape',
+        role: 'Industry Research',
+        emoji: '📰',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Vending industry news and trend monitoring',
+        type: 'research',
+        lastRun: getJobLastRun('daily-vendingpreneurs-scrape', cronJobs),
+        status: getJobStatus('daily-vendingpreneurs-scrape', cronJobs),
+        jobs: 1,
+        currentTask: 'Industry trend monitoring'
+      },
+      seovt: {
+        name: 'SEO Check (VT)',
+        role: 'VendTech SEO Monitoring',
+        emoji: '🔍',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Weekly VendTech website SEO monitoring and optimization',
+        type: 'research',
+        lastRun: getJobLastRun('weekly-seo-check', cronJobs),
+        status: getJobStatus('weekly-seo-check', cronJobs),
+        jobs: 1,
+        currentTask: 'VendTech SEO monitoring'
+      },
+      seopb: {
+        name: 'SEO Check (PB)',
+        role: 'Photo Booth SEO Monitoring',
+        emoji: '📸',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Weekly Photo Booth website SEO monitoring and optimization',
+        type: 'research',
+        lastRun: getJobLastRun('weekly-seo-photobooths', cronJobs),
+        status: getJobStatus('weekly-seo-photobooths', cronJobs),
+        jobs: 1,
+        currentTask: 'Photo Booth SEO monitoring'
+      },
+      sevenelevenscrape: {
+        name: '7-Eleven Price Scrape',
+        role: 'Market Research',
+        emoji: '🏪',
+        model: 'anthropic/claude-sonnet-4-20250514',
+        description: 'Weekly 7-Eleven pricing data collection and analysis',
+        type: 'research',
+        lastRun: getJobLastRun('7eleven-price-scrape-weekly', cronJobs),
+        status: getJobStatus('7eleven-price-scrape-weekly', cronJobs),
+        jobs: 1,
+        currentTask: 'Market pricing research'
       }
     };
     
@@ -22740,29 +22907,54 @@ app.get('/api/memory/search', async (req, res) => {
 
 // Helper functions for cron job parsing
 function getJobType(name) {
-  if (name.includes('scout')) return 'agent';
-  if (name.includes('relay')) return 'agent';
-  if (name.includes('ralph')) return 'agent';
-  if (name.includes('standup') || name.includes('water-cooler') || name.includes('retro')) return 'coordination';
-  if (name.includes('email') || name.includes('draft')) return 'email';
-  if (name.includes('sync') || name.includes('backup')) return 'sync';
-  if (name.includes('health') || name.includes('watchdog') || name.includes('monitoring')) return 'monitoring';
-  return 'maintenance';
+  // Core Agents
+  if (name.includes('scout') || name.includes('relay') || name.includes('ralph')) return 'core';
+  
+  // VendTech Operations
+  if (name.includes('auto-draft-email0') || name.includes('email-followup-drafter') || 
+      name.includes('vendtech-sent-email-sync') || name.includes('mixmax-tracking-sync') ||
+      name.includes('proposal-followup-check')) return 'vendtech';
+  
+  // Photo Booths Operations  
+  if (name.includes('pb-email-drafts') || name.includes('pb-gmail-draft-sync')) return 'photobooths';
+  
+  // Coordination
+  if (name.includes('standup') || name.includes('water-cooler') || name.includes('retro') ||
+      name.includes('morning-briefing')) return 'coordination';
+  
+  // System
+  if (name.includes('e2e-dashboards') || name.includes('health-watchdog') || name.includes('qa-sweep') ||
+      name.includes('session-cleanup') || name.includes('nightly-gdrive-backup') || 
+      name.includes('daily-self-update') || name.includes('gog-gmail-health-check')) return 'system';
+  
+  // Research
+  if (name.includes('vendingpreneurs-scrape') || name.includes('seo-check') || name.includes('seo-photobooths') ||
+      name.includes('7eleven-price-scrape')) return 'research';
+      
+  // Email frequency monitoring
+  if (name.includes('email-send-frequency-monitor')) return 'system';
+  
+  // Fallbacks
+  if (name.includes('email') || name.includes('draft')) return 'vendtech';
+  if (name.includes('sync') || name.includes('backup')) return 'system';
+  
+  return 'system';
 }
 
 function getJobColor(name, status) {
   if (status === 'error') return '#ef4444';
   if (status === 'running') return '#2563eb';
   
-  // Color by type
+  // Color by business/function type
   const type = getJobType(name);
   switch (type) {
-    case 'agent': return '#16a34a';
-    case 'coordination': return '#7c3aed';
-    case 'email': return '#d97706';
-    case 'sync': return '#0891b2';
-    case 'monitoring': return '#dc2626';
-    default: return '#6b7280';
+    case 'core': return '#3b82f6';          // Blue - Core Agents
+    case 'vendtech': return '#16a34a';      // Green - VendTech Ops
+    case 'photobooths': return '#ec4899';   // Pink - Photo Booths
+    case 'coordination': return '#7c3aed';  // Purple - Coordination
+    case 'system': return '#dc2626';        // Red - System
+    case 'research': return '#0891b2';      // Teal - Research
+    default: return '#6b7280';              // Gray - Other
   }
 }
 
