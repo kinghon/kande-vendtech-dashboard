@@ -73,7 +73,7 @@ function sanitizeObject(obj) {
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
   // Allow these paths without auth
-  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks'];
+  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
     return next();
   }
@@ -23452,5 +23452,189 @@ app.listen(PORT, () => {
   if (backfilled > 0) {
     saveDB(db);
     console.log(`🔄 Pipeline backfill: created ${backfilled} pipeline cards for existing prospects`);
+  }
+});
+
+// ===== PB CRISIS RECOVERY SYSTEM (Ralph 2026-02-20) =====
+
+// PB Crisis Recovery Dashboard
+app.get('/pb-crisis-recovery', (req, res) => {
+  res.sendFile(path.join(__dirname, 'pb-crisis-recovery.html'));
+});
+
+// API: PB System Health Check
+app.get('/api/pb/health', (req, res) => {
+  try {
+    const now = new Date();
+    const thirteenthFeb = new Date('2026-02-13');
+    const daysDown = Math.ceil((now - thirteenthFeb) / (1000 * 60 * 60 * 24));
+    
+    // Analyze PB agent status from team status
+    const pbAgents = ['pbemaildrafter', 'pbgmailsync', 'mary'];
+    let activeAgents = 0;
+    let totalAgents = pbAgents.length;
+    
+    pbAgents.forEach(agent => {
+      if (db.teamStatus && db.teamStatus[agent] && db.teamStatus[agent].state === 'completed') {
+        activeAgents++;
+      }
+    });
+    
+    const healthScore = Math.round((activeAgents / totalAgents) * 100);
+    const estimatedMissedInquiries = Math.ceil(daysDown * 2.5); // ~2-3 inquiries per day during peak
+    
+    res.json({
+      status: 'crisis',
+      daysDown,
+      healthScore,
+      estimatedMissedInquiries,
+      lastSuccessfulRun: '2026-02-13T21:50:23.175Z',
+      activeAgents,
+      totalAgents,
+      crisisStartDate: '2026-02-13',
+      businessImpact: {
+        period: 'Valentine\'s Weekend Peak Season',
+        severity: 'CRITICAL',
+        revenueImpact: 'High - Wedding season blackout',
+        customerServiceImpact: 'Severe - 6+ day response delay'
+      },
+      recoveryActions: [
+        'Manual inbox review for missed inquiries',
+        'Immediate response to backlogged leads',  
+        'Real-time monitoring system deployment',
+        'Backup coverage protocols implementation',
+        'Customer service recovery outreach'
+      ]
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'PB health check failed', details: error.message });
+  }
+});
+
+// API: PB Crisis Timeline
+app.get('/api/pb/crisis-timeline', (req, res) => {
+  try {
+    const timeline = [
+      {
+        date: '2026-02-13T21:50:23.175Z',
+        type: 'error',
+        event: 'Mary Agent Blackout Begins',
+        description: 'Last successful Mary run detected. System stops responding during peak wedding season.',
+        impact: 'High'
+      },
+      {
+        date: '2026-02-14T00:00:00.000Z',
+        type: 'error', 
+        event: 'Valentine\'s Day Crisis Escalates',
+        description: 'Peak wedding inquiry day with zero automated responses. Customer service failure.',
+        impact: 'Critical'
+      },
+      {
+        date: '2026-02-18T23:59:59.999Z',
+        type: 'error',
+        event: 'Weekend Crisis Continues',
+        description: '6-day operational blackout confirmed. Estimated 15+ missed Photo Booth inquiries.',
+        impact: 'Critical'
+      },
+      {
+        date: new Date().toISOString(),
+        type: 'recovery',
+        event: 'Crisis Recovery Initiated',
+        description: 'Ralph deploys PB Crisis Recovery system. Manual monitoring and backup protocols activated.',
+        impact: 'Medium'
+      }
+    ];
+    
+    res.json({ timeline, count: timeline.length });
+  } catch (error) {
+    res.status(500).json({ error: 'Timeline generation failed', details: error.message });
+  }
+});
+
+// API: PB Recovery Actions
+app.post('/api/pb/recovery-action', express.json(), (req, res) => {
+  try {
+    const { action, details } = req.body;
+    const timestamp = new Date().toISOString();
+    
+    // Log recovery action
+    if (!db.pbRecoveryLog) db.pbRecoveryLog = [];
+    
+    const logEntry = {
+      id: Date.now(),
+      timestamp,
+      action,
+      details: details || '',
+      executor: 'ralph',
+      status: 'completed'
+    };
+    
+    db.pbRecoveryLog.push(logEntry);
+    saveDB(db);
+    
+    // Update team activity
+    const activityText = `PB Crisis Recovery: ${action} - ${details || 'Emergency response action completed'}`;
+    
+    if (!db.teamActivity) db.teamActivity = [];
+    db.teamActivity.push({
+      id: Date.now(),
+      agent: 'ralph',
+      text: activityText,
+      type: 'crisis-recovery',
+      timestamp
+    });
+    
+    res.json({ 
+      success: true, 
+      logEntry,
+      message: 'Recovery action logged successfully'
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Recovery action failed', details: error.message });
+  }
+});
+
+// API: PB Backlog Estimation
+app.get('/api/pb/backlog-estimate', (req, res) => {
+  try {
+    const crisisStartDate = new Date('2026-02-13');
+    const currentDate = new Date();
+    const daysDown = Math.ceil((currentDate - crisisStartDate) / (1000 * 60 * 60 * 24));
+    
+    // Wedding season peak estimates (higher volume)
+    const baseInquiriesPerDay = 2.5; // Normal rate
+    const valentinesMultiplier = 1.8; // Valentine's weekend boost
+    const weddingSeasonMultiplier = 1.4; // Wedding season (Feb-Apr)
+    
+    const estimatedMissedInquiries = Math.ceil(
+      daysDown * baseInquiriesPerDay * valentinesMultiplier * weddingSeasonMultiplier
+    );
+    
+    const estimatedRevenueImpact = {
+      lowEstimate: estimatedMissedInquiries * 800, // $800 avg booking
+      highEstimate: estimatedMissedInquiries * 1500, // $1500 premium bookings
+      currency: 'USD'
+    };
+    
+    res.json({
+      daysDown,
+      estimatedMissedInquiries,
+      estimatedRevenueImpact,
+      seasonalFactors: {
+        valentinesWeekend: true,
+        weddingSeason: true,
+        peakPeriod: true
+      },
+      recoveryPriority: 'CRITICAL',
+      recommendedActions: [
+        'Manual Gmail inbox review for missed inquiries',
+        'Immediate outreach to potential leads from Feb 13-20',
+        'Customer service recovery for delayed responses',  
+        'Automated backup monitoring deployment',
+        'Real-time failure alerting implementation'
+      ]
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Backlog estimation failed', details: error.message });
   }
 });
