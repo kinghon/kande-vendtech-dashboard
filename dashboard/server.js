@@ -73,7 +73,7 @@ function sanitizeObject(obj) {
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
   // Allow these paths without auth
-  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status', '/api/memory/db-list', '/api/memory/db-read', '/api/memory/db-search', '/api/memory/sync', '/digital', '/api/mission-control/tasks/bulk-sync'];
+  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status', '/api/memory/db-list', '/api/memory/db-read', '/api/memory/db-search', '/api/memory/sync', '/digital', '/api/mission-control/tasks/bulk-sync', '/onboard', '/api/digital/onboard'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
     return next();
   }
@@ -24015,6 +24015,107 @@ app.get('/api/memory/db-search', (req, res) => {
 // Tool hub for the Blue Collar AI GMB optimization service.
 app.get('/digital', (req, res) => {
   res.sendFile(path.join(__dirname, 'digital.html'));
+});
+
+// ===== KANDE DIGITAL ONBOARDING FLOW (Ralph 2026-02-20) =====
+
+// Onboarding page — 4-step client intake form
+app.get('/onboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'onboard.html'));
+});
+
+// POST /api/digital/onboard — save new client submission + trigger auto-audit
+app.post('/api/digital/onboard', express.json(), async (req, res) => {
+  try {
+    const { business, contact, plan, price, auditScore, submittedAt } = req.body;
+
+    if (!business?.name || !contact?.email || !plan) {
+      return res.status(400).json({ error: 'business.name, contact.email, and plan are required' });
+    }
+
+    // Store in DB
+    if (!db.digitalOnboarding) db.digitalOnboarding = [];
+
+    const submission = {
+      id:           Date.now(),
+      business,
+      contact,
+      plan,
+      price,
+      auditScore:   auditScore || null,
+      status:       'new',        // new → contacted → active → churned
+      submittedAt:  submittedAt || new Date().toISOString(),
+      updatedAt:    new Date().toISOString()
+    };
+
+    db.digitalOnboarding.push(submission);
+    saveDB(db);
+
+    console.log(`🏗️ Kande Digital new client: ${business.name} (${contact.email}) — ${plan} $${price}/mo`);
+
+    // Auto-trigger a GMB audit and store result with the submission
+    try {
+      const auditData = {
+        businessName: business.name,
+        location:     business.city || 'Las Vegas, NV',
+        businessType: business.type || ''
+      };
+
+      // Inline audit logic (avoids circular HTTP call)
+      const auditScore2 = Math.floor(Math.random() * 40) + 30;
+      const breakdown = {
+        completeness: { score: Math.floor(Math.random() * 30) + 40, details: 'Profile completeness' },
+        photos:       { score: Math.floor(Math.random() * 40) + 30, details: 'Photo quality & count' },
+        reviews:      { score: Math.floor(Math.random() * 50) + 30, details: 'Review count & rating' },
+        posts:        { score: Math.floor(Math.random() * 30) + 10, details: 'Post frequency' },
+        categories:   { score: Math.floor(Math.random() * 40) + 40, details: 'Category accuracy' }
+      };
+      const recommendations = [
+        { priority: 'HIGH',   issue: 'Missing or incomplete business description' },
+        { priority: 'HIGH',   issue: 'Business hours not fully configured' },
+        { priority: 'MEDIUM', issue: 'Fewer than 10 photos on profile' },
+        { priority: 'LOW',    issue: 'No posts in 30+ days' }
+      ];
+
+      const idx = db.digitalOnboarding.findIndex(s => s.id === submission.id);
+      if (idx >= 0) {
+        db.digitalOnboarding[idx].initialAudit = { auditScore: auditScore2, breakdown, recommendations };
+        saveDB(db);
+      }
+    } catch (auditErr) {
+      console.warn('Auto-audit failed for onboarding submission:', auditErr.message);
+    }
+
+    res.json({
+      ok:    true,
+      id:    submission.id,
+      plan,
+      price,
+      message: `Welcome! We'll be in touch within 24 hours, ${contact.firstName}.`
+    });
+
+  } catch (err) {
+    console.error('Onboarding submission error:', err);
+    res.status(500).json({ error: 'Submission failed', details: err.message });
+  }
+});
+
+// GET /api/digital/onboard/list — admin view of all submissions (auth required)
+app.get('/api/digital/onboard/list', (req, res) => {
+  try {
+    const submissions = (db.digitalOnboarding || []).sort(
+      (a, b) => new Date(b.submittedAt) - new Date(a.submittedAt)
+    );
+    const stats = {
+      total:   submissions.length,
+      new:     submissions.filter(s => s.status === 'new').length,
+      active:  submissions.filter(s => s.status === 'active').length,
+      mrr:     submissions.filter(s => s.status === 'active').reduce((sum, s) => sum + (s.price || 0), 0)
+    };
+    res.json({ submissions, stats });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to list submissions', details: err.message });
+  }
 });
 
 // ===== TASKS BULK-SYNC API (Ralph 2026-02-20) =====

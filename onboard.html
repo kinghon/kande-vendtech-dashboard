@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kande Digital — Get Started</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:      #f8f9fa;
+            --card:    #ffffff;
+            --border:  #e2e8f0;
+            --text:    #1a1a1a;
+            --muted:   #6b7280;
+            --blue:    #3b82f6;
+            --blue-dk: #2563eb;
+            --green:   #10b981;
+            --amber:   #f59e0b;
+            --red:     #ef4444;
+            --purple:  #7c3aed;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* ── Progress bar ── */
+        .progress-bar-wrap {
+            height: 4px;
+            background: var(--border);
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 200;
+        }
+        .progress-bar {
+            height: 100%;
+            background: var(--blue);
+            transition: width .4s ease;
+        }
+
+        /* ── Nav ── */
+        .nav {
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .nav-brand { font-size: 1.1rem; font-weight: 700; color: var(--blue); }
+        .nav-divider { color: var(--border); }
+        .nav-title { color: var(--muted); font-size: 0.9rem; }
+
+        /* ── Layout ── */
+        .page {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 40px 20px 80px;
+        }
+
+        /* ── Steps indicator ── */
+        .steps {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            margin-bottom: 36px;
+        }
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+        }
+        .step-circle {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            background: var(--card);
+            color: var(--muted);
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            transition: all .3s;
+            position: relative;
+            z-index: 1;
+        }
+        .step-label {
+            font-size: 0.7rem;
+            color: var(--muted);
+            font-weight: 500;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .step-line {
+            flex: 1;
+            height: 2px;
+            background: var(--border);
+            margin-top: -22px;
+            transition: background .3s;
+        }
+        .step.active .step-circle {
+            border-color: var(--blue);
+            background: var(--blue);
+            color: #fff;
+        }
+        .step.active .step-label { color: var(--blue); font-weight: 600; }
+        .step.done   .step-circle {
+            border-color: var(--green);
+            background: var(--green);
+            color: #fff;
+        }
+        .step.done .step-label { color: var(--green); }
+        .step.done + .step-line { background: var(--green); }
+
+        /* ── Cards ── */
+        .form-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px;
+            display: none;
+        }
+        .form-card.active { display: block; }
+
+        .card-header { margin-bottom: 24px; }
+        .card-icon { font-size: 2rem; margin-bottom: 10px; }
+        .card-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
+        .card-subtitle { color: var(--muted); font-size: 0.9rem; }
+
+        /* ── Form elements ── */
+        .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+        .field-row.single { grid-template-columns: 1fr; }
+
+        .field { display: flex; flex-direction: column; gap: 5px; }
+        label { font-size: 0.8rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+        label .req { color: var(--red); margin-left: 2px; }
+
+        input, select, textarea {
+            padding: 11px 13px;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            font-size: 0.95rem;
+            color: var(--text);
+            background: var(--bg);
+            font-family: inherit;
+            transition: border-color .15s, box-shadow .15s;
+            width: 100%;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(59,130,246,.1);
+            background: var(--card);
+        }
+        input.error { border-color: var(--red); }
+        .field-hint { font-size: 0.75rem; color: var(--muted); }
+        .field-error { font-size: 0.75rem; color: var(--red); display: none; }
+        .field-error.visible { display: block; }
+
+        textarea { resize: vertical; min-height: 90px; }
+
+        /* ── Tier selector ── */
+        .tier-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .tier-option {
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            padding: 18px;
+            cursor: pointer;
+            transition: all .2s;
+            position: relative;
+        }
+        .tier-option:hover { border-color: var(--blue); }
+        .tier-option.selected { border-color: var(--blue); background: #eff6ff; }
+        .tier-option .tier-badge {
+            position: absolute; top: -11px; left: 16px;
+            background: var(--blue); color: #fff;
+            font-size: 0.65rem; font-weight: 700;
+            padding: 2px 8px; border-radius: 10px;
+            text-transform: uppercase;
+        }
+        .tier-name { font-weight: 700; font-size: 1rem; margin-bottom: 2px; }
+        .tier-price { font-size: 1.4rem; font-weight: 700; color: var(--blue); }
+        .tier-price span { font-size: 0.85rem; color: var(--muted); font-weight: 400; }
+        .tier-features { margin-top: 8px; font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
+        .tier-features li { list-style: none; }
+        .tier-features li::before { content: "✓ "; color: var(--green); font-weight: 700; }
+        .tier-radio { position: absolute; opacity: 0; pointer-events: none; }
+
+        /* ── Summary box ── */
+        .summary-box {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 0.875rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .summary-row:last-child { border-bottom: none; }
+        .summary-row .label { color: var(--muted); }
+        .summary-row .value { font-weight: 600; }
+        .summary-row.total {
+            margin-top: 8px;
+            padding-top: 12px;
+            border-top: 2px solid var(--border);
+            font-size: 1rem;
+        }
+        .summary-row.total .value { color: var(--blue); font-size: 1.1rem; }
+
+        /* ── Audit preview card ── */
+        .audit-preview {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+            display: none;
+        }
+        .audit-preview.visible { display: block; }
+        .audit-score-row {
+            display: flex; align-items: center; gap: 16px;
+            margin-bottom: 12px;
+        }
+        .mini-score {
+            width: 64px; height: 64px;
+            border-radius: 50%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-size: 1.3rem; font-weight: 700;
+            border: 3px solid;
+            flex-shrink: 0;
+        }
+        .mini-score.poor   { border-color: var(--red);   color: var(--red);   background: #fee2e2; }
+        .mini-score.fair   { border-color: var(--amber); color: var(--amber); background: #fef3c7; }
+        .mini-score.good   { border-color: var(--green); color: var(--green); background: #dcfce7; }
+        .mini-score-label  { font-size: 0.6rem; font-weight: 600; }
+        .audit-headline { font-weight: 600; font-size: 0.95rem; }
+        .audit-recs { margin-top: 8px; }
+        .audit-rec {
+            display: flex; align-items: flex-start; gap: 8px;
+            font-size: 0.8rem; padding: 5px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .audit-rec:last-child { border-bottom: none; }
+        .priority-pill {
+            padding: 1px 7px; border-radius: 10px;
+            font-size: 0.65rem; font-weight: 700; flex-shrink: 0;
+        }
+        .HIGH   { background: #fee2e2; color: #991b1b; }
+        .MEDIUM { background: #fef3c7; color: #92400e; }
+        .LOW    { background: #dcfce7; color: #166534; }
+
+        /* ── Buttons ── */
+        .btn-row { display: flex; gap: 10px; margin-top: 24px; }
+        .btn {
+            padding: 12px 24px; border: none; border-radius: 7px;
+            font-size: 0.95rem; font-weight: 600; cursor: pointer;
+            transition: all .15s; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-next   { background: var(--blue);  color: #fff; flex: 1; justify-content: center; }
+        .btn-next:hover { background: var(--blue-dk); }
+        .btn-back   { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+        .btn-back:hover { border-color: var(--text); color: var(--text); }
+        .btn-submit { background: var(--green); color: #fff; flex: 1; justify-content: center; }
+        .btn-submit:hover { background: #059669; }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Confirmation page ── */
+        .confirm-page {
+            text-align: center;
+            padding: 20px 0;
+            display: none;
+        }
+        .confirm-page.visible { display: block; }
+        .confirm-icon { font-size: 4rem; margin-bottom: 16px; }
+        .confirm-title { font-size: 1.6rem; font-weight: 700; margin-bottom: 8px; }
+        .confirm-sub { color: var(--muted); font-size: 0.95rem; max-width: 420px; margin: 0 auto 24px; }
+        .next-steps {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: left;
+            max-width: 420px;
+            margin: 0 auto;
+        }
+        .next-steps h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 12px; }
+        .next-step {
+            display: flex; gap: 12px; padding: 8px 0;
+            font-size: 0.875rem; border-bottom: 1px solid var(--border);
+        }
+        .next-step:last-child { border-bottom: none; }
+        .next-step-num {
+            width: 22px; height: 22px; border-radius: 50%;
+            background: var(--blue); color: #fff;
+            font-size: 0.7rem; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; margin-top: 1px;
+        }
+
+        @media (max-width: 600px) {
+            .field-row { grid-template-columns: 1fr; }
+            .tier-options { grid-template-columns: 1fr; }
+            .form-card { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="progress-bar-wrap">
+    <div class="progress-bar" id="progress-bar" style="width:25%"></div>
+</div>
+
+<nav class="nav">
+    <span class="nav-brand">🏗️ Kande Digital</span>
+    <span class="nav-divider">|</span>
+    <span class="nav-title">Client Onboarding</span>
+</nav>
+
+<div class="page">
+
+    <!-- Step indicators -->
+    <div class="steps" id="steps-indicator">
+        <div class="step active" id="step-ind-1">
+            <div class="step-circle">1</div>
+            <div class="step-label">Your Business</div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" id="step-ind-2">
+            <div class="step-circle">2</div>
+            <div class="step-label">Contact</div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" id="step-ind-3">
+            <div class="step-circle">3</div>
+            <div class="step-label">Choose Plan</div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" id="step-ind-4">
+            <div class="step-circle">4</div>
+            <div class="step-label">Confirm</div>
+        </div>
+    </div>
+
+    <!-- ── Step 1: Business Info ── -->
+    <div class="form-card active" id="step-1">
+        <div class="card-header">
+            <div class="card-icon">🏢</div>
+            <h2 class="card-title">Tell us about your business</h2>
+            <p class="card-subtitle">We'll run a free Google Business audit in seconds.</p>
+        </div>
+
+        <div class="field-row">
+            <div class="field">
+                <label for="biz-name">Business Name <span class="req">*</span></label>
+                <input type="text" id="biz-name" placeholder="Vegas HVAC Pro" autocomplete="organization">
+                <div class="field-error" id="err-biz-name">Business name is required</div>
+            </div>
+            <div class="field">
+                <label for="biz-type">Business Type <span class="req">*</span></label>
+                <select id="biz-type">
+                    <option value="">Select type…</option>
+                    <option value="HVAC">HVAC</option>
+                    <option value="Plumbing">Plumbing</option>
+                    <option value="Electrical">Electrical</option>
+                    <option value="Landscaping">Landscaping</option>
+                    <option value="Roofing">Roofing</option>
+                    <option value="Painting">Painting</option>
+                    <option value="Auto Repair">Auto Repair</option>
+                    <option value="Cleaning">Cleaning</option>
+                    <option value="Restaurant">Restaurant</option>
+                    <option value="General Contractor">General Contractor</option>
+                    <option value="Pest Control">Pest Control</option>
+                    <option value="Other">Other</option>
+                </select>
+                <div class="field-error" id="err-biz-type">Business type is required</div>
+            </div>
+        </div>
+
+        <div class="field-row">
+            <div class="field">
+                <label for="biz-city">City / Location <span class="req">*</span></label>
+                <input type="text" id="biz-city" placeholder="Las Vegas, NV" autocomplete="address-level2">
+                <div class="field-error" id="err-biz-city">City is required</div>
+            </div>
+            <div class="field">
+                <label for="biz-phone">Business Phone</label>
+                <input type="tel" id="biz-phone" placeholder="702-555-1234" autocomplete="tel">
+            </div>
+        </div>
+
+        <div class="field-row single">
+            <div class="field">
+                <label for="biz-website">Website (if you have one)</label>
+                <input type="url" id="biz-website" placeholder="https://yourbusiness.com" autocomplete="url">
+            </div>
+        </div>
+
+        <div class="field-row single">
+            <div class="field">
+                <label for="biz-gmb">Google Business Profile URL (if you have one)</label>
+                <input type="url" id="biz-gmb" placeholder="https://maps.google.com/...">
+                <div class="field-hint">Find it by searching your business name on Google Maps</div>
+            </div>
+        </div>
+
+        <!-- Live audit preview fires after name + location entered -->
+        <div class="audit-preview" id="audit-preview">
+            <p style="font-size:0.8rem;font-weight:600;color:var(--muted);margin-bottom:10px;">📊 FREE INSTANT AUDIT</p>
+            <div class="audit-score-row">
+                <div class="mini-score" id="preview-score-circle">
+                    <span id="preview-score-num">--</span>
+                    <span class="mini-score-label">Score</span>
+                </div>
+                <div>
+                    <div class="audit-headline" id="preview-headline">Running audit…</div>
+                    <p style="font-size:0.8rem;color:var(--muted);margin-top:4px;" id="preview-sub"></p>
+                </div>
+            </div>
+            <div class="audit-recs" id="preview-recs"></div>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn btn-next" onclick="nextStep(1)">Continue →</button>
+        </div>
+    </div>
+
+    <!-- ── Step 2: Contact Info ── -->
+    <div class="form-card" id="step-2">
+        <div class="card-header">
+            <div class="card-icon">👤</div>
+            <h2 class="card-title">How do we reach you?</h2>
+            <p class="card-subtitle">We'll send your audit report and setup instructions here.</p>
+        </div>
+
+        <div class="field-row">
+            <div class="field">
+                <label for="owner-first">First Name <span class="req">*</span></label>
+                <input type="text" id="owner-first" placeholder="Mike" autocomplete="given-name">
+                <div class="field-error" id="err-owner-first">First name is required</div>
+            </div>
+            <div class="field">
+                <label for="owner-last">Last Name <span class="req">*</span></label>
+                <input type="text" id="owner-last" placeholder="Torres" autocomplete="family-name">
+                <div class="field-error" id="err-owner-last">Last name is required</div>
+            </div>
+        </div>
+
+        <div class="field-row">
+            <div class="field">
+                <label for="owner-email">Email Address <span class="req">*</span></label>
+                <input type="email" id="owner-email" placeholder="mike@vegashvac.com" autocomplete="email">
+                <div class="field-error" id="err-owner-email">Valid email is required</div>
+            </div>
+            <div class="field">
+                <label for="owner-phone">Mobile Number <span class="req">*</span></label>
+                <input type="tel" id="owner-phone" placeholder="702-555-1234" autocomplete="tel">
+                <div class="field-error" id="err-owner-phone">Phone number is required</div>
+            </div>
+        </div>
+
+        <div class="field-row single">
+            <div class="field">
+                <label for="owner-pain">What's your biggest online visibility challenge?</label>
+                <textarea id="owner-pain" placeholder="e.g. Not showing up in Google searches, not enough reviews, competitors outranking me…"></textarea>
+                <div class="field-hint">Optional — helps us prioritize the right improvements for you</div>
+            </div>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn btn-back" onclick="prevStep(2)">← Back</button>
+            <button class="btn btn-next" onclick="nextStep(2)">Continue →</button>
+        </div>
+    </div>
+
+    <!-- ── Step 3: Plan Selection ── -->
+    <div class="form-card" id="step-3">
+        <div class="card-header">
+            <div class="card-icon">📦</div>
+            <h2 class="card-title">Choose your plan</h2>
+            <p class="card-subtitle">Cancel anytime. No contracts. Results in 30 days or we refund.</p>
+        </div>
+
+        <div class="tier-options">
+            <label class="tier-option" id="tier-starter">
+                <input type="radio" name="plan" value="starter" class="tier-radio" onchange="selectPlan('starter')">
+                <div class="tier-name">Starter</div>
+                <div class="tier-price">$149<span>/mo</span></div>
+                <ul class="tier-features">
+                    <li>Full GMB profile audit</li>
+                    <li>Monthly optimization report</li>
+                    <li>4 Google Posts / month</li>
+                    <li>Review response drafts</li>
+                    <li>Business description rewrite</li>
+                    <li>Email support</li>
+                </ul>
+            </label>
+
+            <label class="tier-option selected" id="tier-pro">
+                <div class="tier-badge">Most Popular</div>
+                <input type="radio" name="plan" value="pro" class="tier-radio" checked onchange="selectPlan('pro')">
+                <div class="tier-name">Pro</div>
+                <div class="tier-price">$199<span>/mo</span></div>
+                <ul class="tier-features">
+                    <li>Everything in Starter</li>
+                    <li>Weekly Google Posts</li>
+                    <li>Real-time review monitoring</li>
+                    <li>Q&amp;A management</li>
+                    <li>Competitor tracking</li>
+                    <li>Monthly strategy call</li>
+                </ul>
+            </label>
+        </div>
+
+        <!-- Order summary -->
+        <div class="summary-box" id="order-summary">
+            <div class="summary-row">
+                <span class="label">Business</span>
+                <span class="value" id="sum-biz">—</span>
+            </div>
+            <div class="summary-row">
+                <span class="label">Plan</span>
+                <span class="value" id="sum-plan">Pro</span>
+            </div>
+            <div class="summary-row">
+                <span class="label">Billing</span>
+                <span class="value">Monthly (cancel anytime)</span>
+            </div>
+            <div class="summary-row total">
+                <span class="label">Total</span>
+                <span class="value" id="sum-price">$199/mo</span>
+            </div>
+        </div>
+
+        <p style="font-size:0.78rem;color:var(--muted);margin-bottom:20px;text-align:center;">
+            💳 Secure payment via Stripe — you'll be redirected after confirming your info
+        </p>
+
+        <div class="btn-row">
+            <button class="btn btn-back" onclick="prevStep(3)">← Back</button>
+            <button class="btn btn-next" onclick="nextStep(3)">Review Order →</button>
+        </div>
+    </div>
+
+    <!-- ── Step 4: Review & Submit ── -->
+    <div class="form-card" id="step-4">
+        <div class="card-header">
+            <div class="card-icon">✅</div>
+            <h2 class="card-title">Review your order</h2>
+            <p class="card-subtitle">Everything look right? Hit submit to lock in your spot.</p>
+        </div>
+
+        <div class="summary-box" id="final-summary"></div>
+
+        <div class="field-row single" style="margin-top:16px;">
+            <div class="field">
+                <label style="display:flex;align-items:flex-start;gap:8px;text-transform:none;font-size:0.85rem;font-weight:400;">
+                    <input type="checkbox" id="agree-terms" style="width:auto;margin-top:3px;">
+                    I agree to the <a href="#" style="color:var(--blue);">Terms of Service</a> and authorize Kande Digital to optimize my Google Business Profile.
+                </label>
+            </div>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn btn-back" onclick="prevStep(4)">← Back</button>
+            <button class="btn btn-submit" id="submit-btn" onclick="submitOnboarding()">
+                🚀 Submit & Get Started
+            </button>
+        </div>
+    </div>
+
+    <!-- ── Confirmation ── -->
+    <div class="confirm-page" id="confirm-page">
+        <div class="confirm-icon">🎉</div>
+        <h2 class="confirm-title">You're in! Welcome to Kande Digital.</h2>
+        <p class="confirm-sub">We've received your application and started your GMB audit. Expect a call within 24 hours to get everything set up.</p>
+
+        <div class="next-steps">
+            <h3>What happens next</h3>
+            <div class="next-step">
+                <div class="next-step-num">1</div>
+                <div><strong>Audit delivered</strong> — Your full Google Business audit lands in your inbox within the hour.</div>
+            </div>
+            <div class="next-step">
+                <div class="next-step-num">2</div>
+                <div><strong>Kickoff call</strong> — A Kande Digital specialist calls within 24 hours to walk through the findings.</div>
+            </div>
+            <div class="next-step">
+                <div class="next-step-num">3</div>
+                <div><strong>Access grant</strong> — We'll send a simple Google Business Manager invite — one click, no technical knowledge needed.</div>
+            </div>
+            <div class="next-step">
+                <div class="next-step-num">4</div>
+                <div><strong>First optimizations live</strong> — Within 7 days, your profile will be updated and we'll send you a before/after report.</div>
+            </div>
+        </div>
+
+        <div style="margin-top:24px;">
+            <a href="/digital" style="color:var(--blue);font-size:0.875rem;">← Back to Kande Digital</a>
+        </div>
+    </div>
+
+</div><!-- /.page -->
+
+<script>
+    // ── State ──────────────────────────────────────────────────────────────────
+    let currentStep  = 1;
+    const TOTAL_STEPS = 4;
+    let selectedPlan = 'pro';
+    let auditResult  = null;
+    let auditPending = false;
+    let auditTimer   = null;
+
+    const PLAN_PRICES = { starter: 149, pro: 199 };
+    const PLAN_NAMES  = { starter: 'Starter — $149/mo', pro: 'Pro — $199/mo' };
+
+    // ── Navigation ─────────────────────────────────────────────────────────────
+    function nextStep(from) {
+        if (!validateStep(from)) return;
+        if (from === 3) buildFinalSummary();
+        goToStep(from + 1);
+    }
+
+    function prevStep(from) { goToStep(from - 1); }
+
+    function goToStep(n) {
+        document.getElementById(`step-${currentStep}`)?.classList.remove('active');
+        currentStep = n;
+        const card = document.getElementById(`step-${n}`);
+        if (card) {
+            card.classList.add('active');
+            card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        updateProgress();
+    }
+
+    function updateProgress() {
+        const pct = (currentStep / (TOTAL_STEPS + 1)) * 100;
+        document.getElementById('progress-bar').style.width = pct + '%';
+
+        for (let i = 1; i <= TOTAL_STEPS; i++) {
+            const ind = document.getElementById(`step-ind-${i}`);
+            ind.classList.remove('active', 'done');
+            if (i < currentStep)  ind.classList.add('done');
+            if (i === currentStep) ind.classList.add('active');
+        }
+
+        // Update done step circles to checkmarks
+        document.querySelectorAll('.step.done .step-circle').forEach(c => {
+            if (!c.dataset.orig) c.dataset.orig = c.textContent;
+            c.textContent = '✓';
+        });
+        document.querySelectorAll('.step:not(.done) .step-circle').forEach(c => {
+            if (c.dataset.orig) c.textContent = c.dataset.orig;
+        });
+    }
+
+    // ── Validation ─────────────────────────────────────────────────────────────
+    function validateStep(step) {
+        let ok = true;
+        if (step === 1) {
+            ok = requireField('biz-name',  'err-biz-name')  && ok;
+            ok = requireSelect('biz-type', 'err-biz-type')  && ok;
+            ok = requireField('biz-city',  'err-biz-city')  && ok;
+        }
+        if (step === 2) {
+            ok = requireField('owner-first',  'err-owner-first')  && ok;
+            ok = requireField('owner-last',   'err-owner-last')   && ok;
+            ok = requireEmail('owner-email',  'err-owner-email')  && ok;
+            ok = requireField('owner-phone',  'err-owner-phone')  && ok;
+        }
+        return ok;
+    }
+
+    function requireField(id, errId) {
+        const val = document.getElementById(id).value.trim();
+        const err = document.getElementById(errId);
+        const bad = !val;
+        document.getElementById(id).classList.toggle('error', bad);
+        err?.classList.toggle('visible', bad);
+        return !bad;
+    }
+
+    function requireSelect(id, errId) {
+        const val = document.getElementById(id).value;
+        const err = document.getElementById(errId);
+        const bad = !val;
+        document.getElementById(id).classList.toggle('error', bad);
+        err?.classList.toggle('visible', bad);
+        return !bad;
+    }
+
+    function requireEmail(id, errId) {
+        const val = document.getElementById(id).value.trim();
+        const bad = !val || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+        document.getElementById(id).classList.toggle('error', bad);
+        document.getElementById(errId)?.classList.toggle('visible', bad);
+        return !bad;
+    }
+
+    // ── Live audit preview ─────────────────────────────────────────────────────
+    ['biz-name', 'biz-city'].forEach(id => {
+        document.getElementById(id).addEventListener('blur', maybeRunPreviewAudit);
+    });
+
+    async function maybeRunPreviewAudit() {
+        const name = document.getElementById('biz-name').value.trim();
+        const city = document.getElementById('biz-city').value.trim();
+        if (!name || !city || auditPending) return;
+
+        clearTimeout(auditTimer);
+        auditTimer = setTimeout(() => runPreviewAudit(name, city), 400);
+    }
+
+    async function runPreviewAudit(name, city) {
+        auditPending = true;
+        const preview = document.getElementById('audit-preview');
+        preview.classList.add('visible');
+        document.getElementById('preview-headline').textContent = `Auditing ${name}…`;
+        document.getElementById('preview-sub').textContent = 'Checking Google Business profile…';
+        document.getElementById('preview-recs').innerHTML = '';
+
+        try {
+            const res = await fetch('/api/digital/gmb/audit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': 'kande2026' },
+                body: JSON.stringify({ businessName: name, location: city })
+            });
+            if (!res.ok) throw new Error(res.status);
+            auditResult = await res.json();
+            renderPreviewAudit(auditResult);
+        } catch {
+            preview.classList.remove('visible');
+        } finally {
+            auditPending = false;
+        }
+    }
+
+    function renderPreviewAudit(data) {
+        const score = data.auditScore;
+        const cls   = score < 45 ? 'poor' : score < 65 ? 'fair' : 'good';
+        const circle = document.getElementById('preview-score-circle');
+        circle.className = `mini-score ${cls}`;
+        document.getElementById('preview-score-num').textContent = score;
+        document.getElementById('preview-headline').textContent =
+            score < 45 ? 'Needs significant improvement' :
+            score < 65 ? 'Room for meaningful growth'  : 'Already well-optimized';
+        document.getElementById('preview-sub').textContent =
+            `We found ${(data.recommendations||[]).filter(r=>r.priority==='HIGH').length} high-priority quick wins.`;
+
+        const recsEl = document.getElementById('preview-recs');
+        recsEl.innerHTML = (data.recommendations || []).slice(0,3).map(r =>
+            `<div class="audit-rec">
+                <span class="priority-pill ${r.priority}">${r.priority}</span>
+                <span>${r.issue}</span>
+             </div>`
+        ).join('');
+    }
+
+    // ── Plan selector ──────────────────────────────────────────────────────────
+    function selectPlan(plan) {
+        selectedPlan = plan;
+        document.querySelectorAll('.tier-option').forEach(el => el.classList.remove('selected'));
+        document.getElementById(`tier-${plan}`).classList.add('selected');
+        document.getElementById('sum-plan').textContent  = plan.charAt(0).toUpperCase() + plan.slice(1);
+        document.getElementById('sum-price').textContent = `$${PLAN_PRICES[plan]}/mo`;
+        const bizName = document.getElementById('biz-name').value.trim();
+        document.getElementById('sum-biz').textContent = bizName || '—';
+    }
+
+    // Update summary biz name when entering step 3
+    document.getElementById('step-3');  // referenced in nextStep(2)
+
+    // ── Final summary ──────────────────────────────────────────────────────────
+    function buildFinalSummary() {
+        const biz    = document.getElementById('biz-name').value.trim();
+        const city   = document.getElementById('biz-city').value.trim();
+        const type   = document.getElementById('biz-type').value;
+        const first  = document.getElementById('owner-first').value.trim();
+        const last   = document.getElementById('owner-last').value.trim();
+        const email  = document.getElementById('owner-email').value.trim();
+        const phone  = document.getElementById('owner-phone').value.trim();
+        const price  = PLAN_PRICES[selectedPlan];
+        const pName  = selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1);
+
+        document.getElementById('final-summary').innerHTML = `
+            <div class="summary-row"><span class="label">Business</span><span class="value">${esc(biz)}, ${esc(city)}</span></div>
+            <div class="summary-row"><span class="label">Type</span><span class="value">${esc(type)}</span></div>
+            <div class="summary-row"><span class="label">Contact</span><span class="value">${esc(first)} ${esc(last)}</span></div>
+            <div class="summary-row"><span class="label">Email</span><span class="value">${esc(email)}</span></div>
+            <div class="summary-row"><span class="label">Phone</span><span class="value">${esc(phone)}</span></div>
+            <div class="summary-row"><span class="label">Plan</span><span class="value">${pName}</span></div>
+            <div class="summary-row total"><span class="label">Monthly Total</span><span class="value">$${price}/mo</span></div>
+        `;
+    }
+
+    // ── Submit ─────────────────────────────────────────────────────────────────
+    async function submitOnboarding() {
+        if (!document.getElementById('agree-terms').checked) {
+            alert('Please agree to the Terms of Service to continue.');
+            return;
+        }
+
+        const btn = document.getElementById('submit-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Submitting…';
+
+        const payload = {
+            business: {
+                name:     document.getElementById('biz-name').value.trim(),
+                type:     document.getElementById('biz-type').value,
+                city:     document.getElementById('biz-city').value.trim(),
+                phone:    document.getElementById('biz-phone').value.trim(),
+                website:  document.getElementById('biz-website').value.trim(),
+                gmbUrl:   document.getElementById('biz-gmb').value.trim()
+            },
+            contact: {
+                firstName: document.getElementById('owner-first').value.trim(),
+                lastName:  document.getElementById('owner-last').value.trim(),
+                email:     document.getElementById('owner-email').value.trim(),
+                phone:     document.getElementById('owner-phone').value.trim(),
+                painPoint: document.getElementById('owner-pain').value.trim()
+            },
+            plan:       selectedPlan,
+            price:      PLAN_PRICES[selectedPlan],
+            auditScore: auditResult?.auditScore || null,
+            submittedAt: new Date().toISOString()
+        };
+
+        try {
+            const res = await fetch('/api/digital/onboard', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': 'kande2026' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error(res.status);
+
+            // Hide all steps, show confirmation
+            document.getElementById(`step-4`).classList.remove('active');
+            document.getElementById('steps-indicator').style.display = 'none';
+            document.getElementById('progress-bar').style.width = '100%';
+            document.getElementById('confirm-page').classList.add('visible');
+
+        } catch (err) {
+            alert('Submission failed — please try again or email hello@kandevendtech.com');
+            btn.disabled = false;
+            btn.innerHTML = '🚀 Submit & Get Started';
+        }
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+    function esc(s) {
+        return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // Pre-fill summary when landing on step 3
+    const origNextStep2 = null;
+    document.addEventListener('DOMContentLoaded', () => {
+        // Populate biz name in summary when reaching step 3
+        document.querySelectorAll('.btn-next').forEach(btn => {
+            const step = parseInt(btn.getAttribute('onclick')?.match(/\d+/)?.[0]);
+            if (step === 2) {
+                btn.addEventListener('click', () => {
+                    setTimeout(() => {
+                        const biz = document.getElementById('biz-name').value.trim();
+                        document.getElementById('sum-biz').textContent = biz || '—';
+                    }, 100);
+                });
+            }
+        });
+    });
+</script>
+</body>
+</html>
