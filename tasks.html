@@ -6,860 +6,717 @@
     <title>Mission Control — Tasks Board</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        
+
         :root {
-            --bg-dark: #1a1a2e;
-            --surface-dark: #2a2a4a;
-            --card-dark: #353557;
-            --border-dark: #4a4a6a;
-            --text-light: #ffffff;
-            --text-dim: #b0b0c8;
-            --text-muted: #8080a0;
-            --accent-purple: #7c3aed;
-            --accent-light: #a855f7;
-            --success: #22c55e;
-            --warning: #f59e0b;
-            --error: #ef4444;
-            --info: #3b82f6;
-            
-            /* Agent colors */
-            --scout-color: #3b82f6;
-            --relay-color: #22c55e;
-            --ralph-color: #f59e0b;
-            --main-color: #7c3aed;
-            --system-color: #6b7280;
+            --bg:          #f8f9fa;
+            --card:        #ffffff;
+            --border:      #e2e8f0;
+            --border-md:   #cbd5e1;
+            --text:        #1a1a1a;
+            --text-muted:  #6b7280;
+            --blue:        #3b82f6;
+            --blue-dk:     #2563eb;
+            --purple:      #7c3aed;
+            --green:       #10b981;
+            --amber:       #f59e0b;
+            --red:         #ef4444;
+            --sidebar-w:   240px;
+
+            --c-scout:  #3b82f6;
+            --c-relay:  #10b981;
+            --c-ralph:  #f59e0b;
+            --c-main:   #7c3aed;
+            --c-system: #6b7280;
         }
-        
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-dark);
-            color: var(--text-light);
+            font-family: system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
             line-height: 1.5;
             min-height: 100vh;
         }
-        
-        .app {
-            display: grid;
-            grid-template-columns: 280px 1fr;
+
+        /* ── Layout ── */
+        .layout { display: flex; min-height: 100vh; }
+
+        .sidebar {
+            width: var(--sidebar-w);
+            background: var(--card);
+            border-right: 1px solid var(--border);
+            padding: 20px 0;
+            position: fixed; top: 0; left: 0; bottom: 0;
+            overflow-y: auto; z-index: 100;
+            flex-shrink: 0;
+        }
+
+        .sidebar-brand {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 10px;
+        }
+        .sidebar-brand h2 { font-size: 1rem; color: var(--purple); font-weight: 700; }
+        .sidebar-brand p  { font-size: 0.75rem; color: var(--text-muted); }
+
+        .nav-section-title {
+            padding: 12px 20px 6px;
+            font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+            letter-spacing: .05em; color: var(--text-muted);
+        }
+
+        .nav-link {
+            display: flex; align-items: center; gap: 8px;
+            padding: 9px 20px;
+            color: var(--text); text-decoration: none;
+            font-size: 0.875rem;
+            border-left: 3px solid transparent;
+            transition: all .15s;
+        }
+        .nav-link:hover  { background: var(--bg); }
+        .nav-link.active {
+            background: #f5f3ff;
+            color: var(--purple);
+            border-left-color: var(--purple);
+            font-weight: 600;
+        }
+
+        /* ── Main ── */
+        .main {
+            margin-left: var(--sidebar-w);
+            padding: 28px;
+            flex: 1;
+            display: flex; flex-direction: column;
             min-height: 100vh;
         }
-        
-        .sidebar {
-            background: var(--surface-dark);
-            border-right: 1px solid var(--border-dark);
-            padding: 24px 0;
-            overflow-y: auto;
+
+        /* ── Header ── */
+        .page-header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 20px;
         }
-        
-        .sidebar-header {
-            padding: 0 24px 24px;
-            border-bottom: 1px solid var(--border-dark);
+        .page-title { font-size: 1.8rem; font-weight: 700; margin-bottom: 2px; }
+        .page-subtitle { font-size: 0.875rem; color: var(--text-muted); }
+
+        .btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 9px 18px; border: none; border-radius: 6px;
+            font-size: 0.875rem; font-weight: 600; cursor: pointer;
+            transition: all .15s;
         }
-        
-        .sidebar-title {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--text-light);
-            margin-bottom: 4px;
-        }
-        
-        .sidebar-subtitle {
-            font-size: 14px;
-            color: var(--text-dim);
-        }
-        
-        .nav-section {
-            padding: 24px 0 16px;
-        }
-        
-        .nav-section-title {
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-muted);
-            padding: 0 24px 12px;
-        }
-        
-        .nav-links {
-            list-style: none;
-        }
-        
-        .nav-link {
-            display: block;
-            padding: 12px 24px;
-            color: var(--text-dim);
-            text-decoration: none;
-            font-weight: 500;
-            border-left: 3px solid transparent;
-            transition: all 0.2s;
-        }
-        
-        .nav-link:hover {
-            background: rgba(124, 58, 237, 0.1);
-            color: var(--text-light);
-            border-left-color: var(--accent-purple);
-        }
-        
-        .nav-link.active {
-            background: rgba(124, 58, 237, 0.2);
-            color: var(--text-light);
-            border-left-color: var(--accent-purple);
-        }
-        
-        .nav-link.disabled {
-            color: var(--text-muted);
-            cursor: not-allowed;
-        }
-        
-        .main {
-            padding: 24px;
-            overflow-y: auto;
-        }
-        
-        .header {
-            margin-bottom: 32px;
-        }
-        
-        .header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-        
-        .header-title {
-            font-size: 32px;
-            font-weight: 700;
-            color: var(--text-light);
-        }
-        
-        .new-task-btn {
-            background: var(--accent-purple);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: background 0.2s;
-        }
-        
-        .new-task-btn:hover {
-            background: var(--accent-light);
-        }
-        
+        .btn-primary { background: var(--purple); color: #fff; }
+        .btn-primary:hover { background: #6d28d9; }
+
+        /* ── Stats bar ── */
         .stats-bar {
-            background: var(--surface-dark);
-            border: 1px solid var(--border-dark);
-            border-radius: 12px;
-            padding: 20px;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 24px;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 12px; margin-bottom: 20px;
         }
-        
-        .stat-item {
-            text-align: center;
+        .stat-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 8px; padding: 14px; text-align: center;
         }
-        
-        .stat-value {
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--text-light);
-            margin-bottom: 4px;
-        }
-        
-        .stat-label {
-            font-size: 14px;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .filters {
-            margin: 24px 0;
-            display: flex;
-            gap: 16px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        
-        .filter-group {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        
-        .filter-label {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-dim);
-        }
-        
+        .stat-value { font-size: 1.6rem; font-weight: 700; color: var(--text); }
+        .stat-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+
+        /* ── Filters ── */
+        .filters { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+        .filter-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .filter-label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
         .filter-tag {
-            background: var(--card-dark);
-            border: 1px solid var(--border-dark);
-            color: var(--text-dim);
-            padding: 6px 12px;
-            border-radius: 16px;
-            font-size: 12px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
+            padding: 4px 12px; border: 1px solid var(--border); border-radius: 20px;
+            font-size: 0.8rem; cursor: pointer; transition: all .15s;
+            background: var(--card); color: var(--text-muted);
         }
-        
-        .filter-tag.active {
-            background: var(--accent-purple);
-            color: white;
-            border-color: var(--accent-purple);
-        }
-        
-        .filter-tag:hover:not(.active) {
-            background: var(--surface-dark);
-            color: var(--text-light);
-        }
-        
+        .filter-tag:hover  { border-color: var(--purple); color: var(--purple); }
+        .filter-tag.active { background: var(--purple); border-color: var(--purple); color: #fff; font-weight: 600; }
+
+        /* ── Kanban board ── */
         .kanban-board {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 24px;
-            min-height: 600px;
+            grid-template-columns: repeat(5, minmax(200px, 1fr));
+            gap: 16px;
+            align-items: start;
+            flex: 1;
         }
-        
+
         .kanban-column {
-            background: var(--surface-dark);
-            border: 1px solid var(--border-dark);
-            border-radius: 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
             overflow: hidden;
+            min-height: 300px;
+            transition: box-shadow .15s;
         }
-        
+        .kanban-column.drag-over {
+            border-color: var(--purple);
+            box-shadow: 0 0 0 3px rgba(124,58,237,.15);
+            background: #f5f3ff;
+        }
+
         .column-header {
-            background: var(--card-dark);
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--border-dark);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border);
+            background: var(--card);
+            font-size: 0.875rem; font-weight: 600;
         }
-        
-        .column-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text-light);
+        .column-header .col-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            display: inline-block; margin-right: 6px;
         }
-        
         .column-count {
-            background: var(--accent-purple);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
+            background: var(--border); color: var(--text-muted);
+            border-radius: 12px; padding: 1px 8px;
+            font-size: 0.75rem; font-weight: 600;
         }
-        
+
         .column-body {
-            padding: 16px;
-            min-height: 500px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+            padding: 10px; min-height: 200px;
+            display: flex; flex-direction: column; gap: 8px;
         }
-        
+
+        .empty-column {
+            color: var(--text-muted); font-size: 0.8rem;
+            text-align: center; padding: 20px 0; font-style: italic;
+        }
+
+        /* ── Task cards ── */
         .task-card {
-            background: var(--card-dark);
-            border: 1px solid var(--border-dark);
+            background: var(--card);
+            border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 16px;
-            cursor: pointer;
-            transition: all 0.2s;
+            padding: 12px;
+            cursor: grab;
+            transition: all .15s;
             position: relative;
-        }
-        
-        .task-card:hover {
-            border-color: var(--accent-purple);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-        }
-        
-        .task-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text-light);
-            margin-bottom: 8px;
-            line-height: 1.4;
-        }
-        
-        .task-description {
-            font-size: 14px;
-            color: var(--text-dim);
-            margin-bottom: 16px;
-            line-height: 1.5;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
             overflow: hidden;
         }
-        
+        .task-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; bottom: 0;
+            width: 3px;
+        }
+        .task-card.priority-high::before   { background: var(--red); }
+        .task-card.priority-medium::before { background: var(--amber); }
+        .task-card.priority-low::before    { background: var(--green); }
+
+        .task-card:hover {
+            border-color: var(--purple);
+            box-shadow: 0 2px 8px rgba(0,0,0,.06);
+            transform: translateY(-1px);
+        }
+        .task-card:active { cursor: grabbing; }
+        .task-card.dragging {
+            opacity: .45;
+            transform: rotate(2deg);
+        }
+
+        .task-title {
+            font-weight: 600; font-size: 0.875rem;
+            margin-bottom: 5px; color: var(--text);
+        }
+        .task-desc {
+            font-size: 0.78rem; color: var(--text-muted);
+            margin-bottom: 10px; line-height: 1.4;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
         .task-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
+            display: flex; justify-content: space-between; align-items: center;
         }
-        
+        .task-date { font-size: 0.7rem; color: var(--text-muted); }
+
         .agent-badge {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            color: white;
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 2px 8px; border-radius: 12px;
+            font-size: 0.7rem; font-weight: 600; color: #fff;
         }
-        
-        .agent-badge.scout { background: var(--scout-color); }
-        .agent-badge.relay { background: var(--relay-color); }
-        .agent-badge.ralph { background: var(--ralph-color); }
-        .agent-badge.main { background: var(--main-color); }
-        .agent-badge.system { background: var(--system-color); }
-        .agent-badge.unassigned { background: var(--text-muted); }
-        
-        .task-timestamp {
-            font-size: 12px;
-            color: var(--text-muted);
-            font-family: 'SF Mono', Monaco, monospace;
-        }
-        
-        .priority-indicator {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-        
-        .priority-indicator.high { background: var(--error); }
-        .priority-indicator.medium { background: var(--warning); }
-        .priority-indicator.low { background: var(--success); }
-        
-        .empty-column {
-            text-align: center;
-            color: var(--text-muted);
-            font-style: italic;
-            padding: 40px 20px;
-        }
-        
-        .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 400px;
-            color: var(--text-dim);
-            font-size: 18px;
-        }
-        
+        .agent-badge.scout  { background: var(--c-scout); }
+        .agent-badge.relay  { background: var(--c-relay); }
+        .agent-badge.ralph  { background: var(--c-ralph); color: #1a1a1a; }
+        .agent-badge.main   { background: var(--c-main); }
+        .agent-badge.system { background: var(--c-system); }
+        .agent-badge.unassigned { background: #e5e7eb; color: var(--text-muted); }
+
+        /* ── Modal ── */
         .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            padding: 20px;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.45);
+            display: none; align-items: center; justify-content: center;
+            z-index: 1000; padding: 20px;
         }
-        
-        .modal-overlay.show {
-            display: flex;
-        }
-        
+        .modal-overlay.open { display: flex; }
+
         .modal {
-            background: var(--surface-dark);
-            border: 1px solid var(--border-dark);
-            border-radius: 12px;
-            width: 100%;
-            max-width: 500px;
-            padding: 24px;
+            background: var(--card);
+            border-radius: 12px; padding: 28px;
+            width: 100%; max-width: 500px;
+            max-height: 90vh; overflow-y: auto;
+            border: 1px solid var(--border);
         }
-        
-        .modal-title {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--text-light);
-            margin-bottom: 20px;
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
         }
-        
-        .form-group {
-            margin-bottom: 20px;
+        .modal-title { font-size: 1.1rem; font-weight: 700; }
+        .modal-close {
+            background: none; border: none; font-size: 1.4rem;
+            cursor: pointer; color: var(--text-muted); padding: 4px;
         }
-        
+        .modal-close:hover { color: var(--text); }
+
+        .form-group { margin-bottom: 14px; }
         .form-label {
-            display: block;
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-light);
-            margin-bottom: 8px;
+            display: block; font-size: 0.8rem; font-weight: 600;
+            color: var(--text-muted); text-transform: uppercase;
+            letter-spacing: .04em; margin-bottom: 5px;
         }
-        
-        .form-input,
-        .form-select,
-        .form-textarea {
-            width: 100%;
-            padding: 12px;
-            background: var(--card-dark);
-            border: 1px solid var(--border-dark);
-            border-radius: 6px;
-            color: var(--text-light);
-            font-size: 14px;
+        .form-input, .form-select, .form-textarea {
+            width: 100%; padding: 9px 12px;
+            border: 1px solid var(--border); border-radius: 6px;
+            font-size: 0.9rem; color: var(--text); background: var(--bg);
+            font-family: inherit; transition: border-color .15s;
         }
-        
-        .form-input:focus,
-        .form-select:focus,
-        .form-textarea:focus {
-            outline: none;
-            border-color: var(--accent-purple);
-            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none; border-color: var(--purple);
+            box-shadow: 0 0 0 3px rgba(124,58,237,.1);
         }
-        
-        .form-textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-        
-        .modal-actions {
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-            margin-top: 24px;
-        }
-        
-        .btn {
-            padding: 10px 20px;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s;
-        }
-        
-        .btn-primary {
-            background: var(--accent-purple);
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: var(--accent-light);
-        }
-        
+        .form-textarea { resize: vertical; min-height: 80px; }
+
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
         .btn-secondary {
-            background: var(--card-dark);
-            color: var(--text-light);
-            border: 1px solid var(--border-dark);
+            background: var(--bg); color: var(--text-muted);
+            border: 1px solid var(--border); font-size: 0.875rem;
+            padding: 9px 18px; border-radius: 6px; cursor: pointer; font-weight: 600;
         }
-        
-        .btn-secondary:hover {
-            background: var(--surface-dark);
+        .btn-secondary:hover { border-color: var(--text-muted); }
+        .btn-delete { background: var(--red); color: #fff; border: none; }
+        .btn-delete:hover { background: #dc2626; }
+
+        /* ── Drag ghost hint ── */
+        .drag-hint {
+            position: fixed; bottom: 24px; right: 24px;
+            background: var(--purple); color: #fff;
+            padding: 8px 14px; border-radius: 8px;
+            font-size: 0.8rem; opacity: 0; pointer-events: none;
+            transition: opacity .3s; z-index: 500;
         }
-        
-        @media (max-width: 1200px) {
-            .kanban-board {
-                grid-template-columns: repeat(3, 1fr);
-            }
+        .drag-hint.visible { opacity: 1; }
+
+        .loading { color: var(--text-muted); padding: 20px; text-align: center; font-size: 0.9rem; }
+
+        @media (max-width: 1000px) {
+            .kanban-board { grid-template-columns: repeat(3, minmax(160px, 1fr)); }
         }
-        
-        @media (max-width: 768px) {
-            .app {
-                grid-template-columns: 1fr;
-            }
-            
-            .sidebar {
-                display: none;
-            }
-            
-            .kanban-board {
-                grid-template-columns: 1fr;
-            }
-            
-            .stats-bar {
-                grid-template-columns: repeat(2, 1fr);
-            }
+        @media (max-width: 700px) {
+            .sidebar { display: none; }
+            .main { margin-left: 0; padding: 15px; }
+            .kanban-board { grid-template-columns: 1fr 1fr; }
         }
     </style>
 </head>
 <body>
-    <script src="/nav.js"></script>
-    <div class="app">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <div class="sidebar-title">🚀 Mission Control</div>
-                <div class="sidebar-subtitle">Command Center</div>
-            </div>
-            
-            <nav>
-                <div class="nav-section">
-                    <div class="nav-section-title">Mission Control</div>
-                    <ul class="nav-links">
-                        <li><a href="/tasks" class="nav-link active">📋 Tasks</a></li>
-                        <li><a href="/content" class="nav-link">🎬 Content</a></li>
-                        <li><a href="/calendar" class="nav-link">📅 Calendar</a></li>
-                        <li><a href="/memory" class="nav-link">🧠 Memory</a></li>
-                        <li><a href="/team" class="nav-link">👥 Team</a></li>
-                        <li><a href="#" class="nav-link disabled">🏢 Office</a></li>
-                    </ul>
-                </div>
-                
-                <div class="nav-section">
-                    <div class="nav-section-title">VendTech Dashboard</div>
-                    <ul class="nav-links">
-                        <li><a href="/" class="nav-link">🏠 Home</a></li>
-                        <li><a href="/crm" class="nav-link">👥 CRM</a></li>
-                        <li><a href="/pipeline" class="nav-link">📊 Pipeline</a></li>
-                        <li><a href="/analytics" class="nav-link">📈 Analytics</a></li>
-                    </ul>
-                </div>
-            </nav>
+<div class="layout">
+
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-brand">
+            <h2>🚀 Mission Control</h2>
+            <p>Command Center</p>
         </div>
-        
-        <!-- Main Content -->
-        <div class="main">
-            <div class="header">
-                <div class="header-top">
-                    <h1 class="header-title">Tasks Board</h1>
-                    <button class="new-task-btn" onclick="showNewTaskModal()">
-                        <span>+</span> New Task
-                    </button>
-                </div>
-                
-                <div class="stats-bar" id="stats-bar">
-                    <div class="loading">Loading task statistics...</div>
-                </div>
+        <div class="nav-section-title">Mission Control</div>
+        <a href="/tasks"   class="nav-link active">📋 Tasks</a>
+        <a href="/content" class="nav-link">🎬 Content</a>
+        <a href="/calendar" class="nav-link">📅 Calendar</a>
+        <a href="/memory"  class="nav-link">🧠 Memory</a>
+        <a href="/team"    class="nav-link">👥 Team</a>
+        <a href="/office"  class="nav-link">🏢 Office</a>
+        <a href="/digital" class="nav-link">🏗️ Kande Digital</a>
+        <div class="nav-section-title">VendTech Dashboard</div>
+        <a href="/"        class="nav-link">🏠 Home</a>
+        <a href="/analytics" class="nav-link">📈 Analytics</a>
+    </nav>
+
+    <!-- Main content -->
+    <main class="main">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">📋 Tasks Board</h1>
+                <p class="page-subtitle">Drag cards between columns to update status</p>
             </div>
-            
-            <div class="filters">
-                <div class="filter-group">
-                    <span class="filter-label">Agent:</span>
-                    <div class="filter-tag active" data-filter="agent" data-value="all">All</div>
-                    <div class="filter-tag" data-filter="agent" data-value="scout">Scout</div>
-                    <div class="filter-tag" data-filter="agent" data-value="relay">Relay</div>
-                    <div class="filter-tag" data-filter="agent" data-value="ralph">Ralph</div>
-                    <div class="filter-tag" data-filter="agent" data-value="main">Main</div>
-                </div>
-                
-                <div class="filter-group">
-                    <span class="filter-label">Project:</span>
-                    <div class="filter-tag active" data-filter="project" data-value="all">All</div>
-                    <div class="filter-tag" data-filter="project" data-value="VendTech">VendTech</div>
-                    <div class="filter-tag" data-filter="project" data-value="Photo Booths">Photo Booths</div>
-                    <div class="filter-tag" data-filter="project" data-value="Blue Collar AI">Blue Collar AI</div>
-                    <div class="filter-tag" data-filter="project" data-value="Mission Control">Mission Control</div>
-                    <div class="filter-tag" data-filter="project" data-value="System">System</div>
-                </div>
+            <button class="btn btn-primary" onclick="showNewTaskModal()">+ New Task</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-bar" id="stats-bar">
+            <div class="loading">Loading…</div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filter-group">
+                <span class="filter-label">Agent:</span>
+                <div class="filter-tag active" data-filter="agent" data-value="all">All</div>
+                <div class="filter-tag" data-filter="agent" data-value="scout">🔍 Scout</div>
+                <div class="filter-tag" data-filter="agent" data-value="relay">📡 Relay</div>
+                <div class="filter-tag" data-filter="agent" data-value="ralph">🔧 Ralph</div>
+                <div class="filter-tag" data-filter="agent" data-value="main">🎯 Main</div>
             </div>
-            
-            <div class="kanban-board" id="kanban-board">
-                <div class="loading">Loading tasks...</div>
+            <div class="filter-group">
+                <span class="filter-label">Project:</span>
+                <div class="filter-tag active" data-filter="project" data-value="all">All</div>
+                <div class="filter-tag" data-filter="project" data-value="VendTech">VendTech</div>
+                <div class="filter-tag" data-filter="project" data-value="Photo Booths">Photo Booths</div>
+                <div class="filter-tag" data-filter="project" data-value="Blue Collar AI">Blue Collar AI</div>
+                <div class="filter-tag" data-filter="project" data-value="Mission Control">Mission Control</div>
+                <div class="filter-tag" data-filter="project" data-value="System">System</div>
             </div>
         </div>
-    </div>
-    
-    <!-- New Task Modal -->
-    <div class="modal-overlay" id="task-modal">
-        <div class="modal">
+
+        <!-- Kanban board -->
+        <div class="kanban-board" id="kanban-board">
+            <div class="loading">Loading tasks…</div>
+        </div>
+    </main>
+</div>
+
+<!-- Task Modal -->
+<div class="modal-overlay" id="task-modal">
+    <div class="modal">
+        <div class="modal-header">
             <h2 class="modal-title" id="modal-title">New Task</h2>
-            
-            <form id="task-form">
-                <div class="form-group">
-                    <label class="form-label" for="task-title">Title *</label>
-                    <input type="text" id="task-title" class="form-input" required>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label" for="task-description">Description</label>
-                    <textarea id="task-description" class="form-textarea" placeholder="Brief description of the task..."></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label" for="task-agent">Assigned Agent</label>
-                    <select id="task-agent" class="form-select">
-                        <option value="unassigned">Unassigned</option>
-                        <option value="scout">Scout</option>
-                        <option value="relay">Relay</option>
-                        <option value="ralph">Ralph</option>
-                        <option value="main">Main</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label" for="task-project">Project</label>
-                    <select id="task-project" class="form-select">
-                        <option value="System">System</option>
-                        <option value="VendTech">VendTech</option>
-                        <option value="Photo Booths">Photo Booths</option>
-                        <option value="Blue Collar AI">Blue Collar AI</option>
-                        <option value="Mission Control">Mission Control</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label" for="task-priority">Priority</label>
-                    <select id="task-priority" class="form-select">
-                        <option value="low">Low</option>
-                        <option value="medium" selected>Medium</option>
-                        <option value="high">High</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label" for="task-status">Status</label>
-                    <select id="task-status" class="form-select">
-                        <option value="backlog" selected>Backlog</option>
-                        <option value="recurring">Recurring</option>
-                        <option value="in-progress">In Progress</option>
-                        <option value="review">Review</option>
-                        <option value="done">Done</option>
-                    </select>
-                </div>
-            </form>
-            
-            <div class="modal-actions">
-                <button type="button" class="btn btn-secondary" onclick="hideTaskModal()">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveTask()">Save Task</button>
-            </div>
+            <button class="modal-close" onclick="closeModal()">×</button>
         </div>
+        <form id="task-form" onsubmit="saveTask(event)">
+            <div class="form-group">
+                <label class="form-label" for="task-title">Title *</label>
+                <input type="text" id="task-title" class="form-input" required placeholder="What needs to get done?">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="task-description">Description</label>
+                <textarea id="task-description" class="form-textarea" placeholder="Brief description…"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="task-agent">Assigned Agent</label>
+                <select id="task-agent" class="form-select">
+                    <option value="unassigned">Unassigned</option>
+                    <option value="scout">🔍 Scout</option>
+                    <option value="relay">📡 Relay</option>
+                    <option value="ralph">🔧 Ralph</option>
+                    <option value="main">🎯 Main</option>
+                    <option value="system">⚙️ System</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="task-project">Project</label>
+                <select id="task-project" class="form-select">
+                    <option value="System">System</option>
+                    <option value="VendTech">VendTech</option>
+                    <option value="Photo Booths">Photo Booths</option>
+                    <option value="Blue Collar AI">Blue Collar AI</option>
+                    <option value="Mission Control">Mission Control</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="task-priority">Priority</label>
+                <select id="task-priority" class="form-select">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="task-status">Status</label>
+                <select id="task-status" class="form-select">
+                    <option value="backlog" selected>Backlog</option>
+                    <option value="recurring">Recurring</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="review">Review</option>
+                    <option value="done">Done</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-primary" id="save-btn">Save Task</button>
+                <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
+                <button type="button" class="btn btn-delete" id="delete-btn" onclick="deleteTask()" style="display:none;margin-left:auto;">Delete</button>
+            </div>
+        </form>
     </div>
-    
-    <script>
-        let tasks = [];
-        let stats = {};
-        let currentFilters = { agent: 'all', project: 'all' };
-        let editingTaskId = null;
-        
-        const columns = [
-            { id: 'recurring', title: 'Recurring', color: '#6b7280' },
-            { id: 'backlog', title: 'Backlog', color: '#3b82f6' },
-            { id: 'in-progress', title: 'In Progress', color: '#f59e0b' },
-            { id: 'review', title: 'Review', color: '#7c3aed' },
-            { id: 'done', title: 'Done', color: '#22c55e' }
-        ];
-        
-        // Load tasks on page load
-        async function loadTasks() {
-            try {
-                const response = await fetch('/api/mission-control/tasks');
-                const data = await response.json();
-                tasks = data.tasks || [];
-                stats = data.stats || {};
-                renderStats();
-                renderKanbanBoard();
-            } catch (error) {
-                console.error('Error loading tasks:', error);
-                document.getElementById('kanban-board').innerHTML = 
-                    '<div class="loading" style="color: var(--error);">Error loading tasks</div>';
-            }
-        }
-        
-        function renderStats() {
-            const statsBar = document.getElementById('stats-bar');
-            
-            statsBar.innerHTML = `
-                <div class="stat-item">
-                    <div class="stat-value">${stats.backlog + stats.recurring || 0}</div>
-                    <div class="stat-label">To Start</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">${stats.inProgress || 0}</div>
-                    <div class="stat-label">In Progress</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">${stats.total || 0}</div>
-                    <div class="stat-label">Total</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">${stats.completion || 0}%</div>
-                    <div class="stat-label">Completion</div>
-                </div>
-            `;
-        }
-        
-        function renderKanbanBoard() {
-            const board = document.getElementById('kanban-board');
-            
-            const filteredTasks = tasks.filter(task => {
-                const agentMatch = currentFilters.agent === 'all' || task.assignedAgent === currentFilters.agent;
-                const projectMatch = currentFilters.project === 'all' || task.project === currentFilters.project;
-                return agentMatch && projectMatch;
-            });
-            
-            board.innerHTML = columns.map(column => {
-                const columnTasks = filteredTasks.filter(task => task.status === column.id);
-                
-                return `
-                    <div class="kanban-column" data-status="${column.id}">
-                        <div class="column-header">
-                            <div class="column-title">${column.title}</div>
-                            <div class="column-count">${columnTasks.length}</div>
-                        </div>
-                        <div class="column-body">
-                            ${columnTasks.length > 0 
-                                ? columnTasks.map(task => renderTaskCard(task)).join('')
-                                : '<div class="empty-column">No tasks</div>'
-                            }
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-        
-        function renderTaskCard(task) {
-            const timestamp = new Date(task.updatedAt).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric'
-            });
-            
-            return `
-                <div class="task-card" data-task-id="${task.id}" onclick="editTask('${task.id}')">
-                    <div class="priority-indicator ${task.priority}"></div>
-                    <div class="task-title">${task.title}</div>
-                    <div class="task-description">${task.description}</div>
-                    <div class="task-meta">
-                        <div class="agent-badge ${task.assignedAgent}">
-                            ${getAgentEmoji(task.assignedAgent)} ${task.assignedAgent}
-                        </div>
-                        <div class="task-timestamp">${timestamp}</div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        function getAgentEmoji(agent) {
-            const emojis = {
-                scout: '🔍',
-                relay: '📡', 
-                ralph: '🔧',
-                main: '🎯',
-                system: '⚙️',
-                unassigned: '❓'
-            };
-            return emojis[agent] || '❓';
-        }
-        
-        function showNewTaskModal() {
-            editingTaskId = null;
-            document.getElementById('modal-title').textContent = 'New Task';
-            document.getElementById('task-form').reset();
-            document.getElementById('task-modal').classList.add('show');
-        }
-        
-        function editTask(taskId) {
-            const task = tasks.find(t => t.id === taskId);
-            if (!task) return;
-            
-            editingTaskId = taskId;
-            document.getElementById('modal-title').textContent = 'Edit Task';
-            document.getElementById('task-title').value = task.title;
-            document.getElementById('task-description').value = task.description;
-            document.getElementById('task-agent').value = task.assignedAgent;
-            document.getElementById('task-project').value = task.project;
-            document.getElementById('task-priority').value = task.priority;
-            document.getElementById('task-status').value = task.status;
-            document.getElementById('task-modal').classList.add('show');
-        }
-        
-        function hideTaskModal() {
-            document.getElementById('task-modal').classList.remove('show');
-            editingTaskId = null;
-        }
-        
-        async function saveTask() {
-            const title = document.getElementById('task-title').value.trim();
-            const description = document.getElementById('task-description').value.trim();
-            const assignedAgent = document.getElementById('task-agent').value;
-            const project = document.getElementById('task-project').value;
-            const priority = document.getElementById('task-priority').value;
-            const status = document.getElementById('task-status').value;
-            
-            if (!title) {
-                alert('Title is required');
-                return;
-            }
-            
-            const taskData = { title, description, assignedAgent, project, priority, status };
-            
-            try {
-                let response;
-                if (editingTaskId) {
-                    response = await fetch(`/api/mission-control/tasks/${editingTaskId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(taskData)
-                    });
-                } else {
-                    response = await fetch('/api/mission-control/tasks', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(taskData)
-                    });
-                }
-                
-                const result = await response.json();
-                if (result.ok) {
-                    hideTaskModal();
-                    loadTasks(); // Reload tasks
-                } else {
-                    alert('Error saving task: ' + result.error);
-                }
-            } catch (error) {
-                console.error('Error saving task:', error);
-                alert('Error saving task');
-            }
-        }
-        
-        // Filter handling
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('filter-tag')) {
-                const filterType = e.target.dataset.filter;
-                const filterValue = e.target.dataset.value;
-                
-                // Update active filter
-                document.querySelectorAll(`[data-filter="${filterType}"]`).forEach(tag => {
-                    tag.classList.remove('active');
-                });
-                e.target.classList.add('active');
-                
-                currentFilters[filterType] = filterValue;
-                renderKanbanBoard();
-            }
-        });
-        
-        // Close modal on escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                hideTaskModal();
-            }
-        });
-        
-        // Close modal when clicking outside
-        document.getElementById('task-modal').addEventListener('click', (e) => {
-            if (e.target === e.currentTarget) {
-                hideTaskModal();
-            }
-        });
-        
-        // Load tasks on page load
+</div>
+
+<!-- Drag hint toast -->
+<div class="drag-hint" id="drag-hint">Drop to move →</div>
+
+<script>
+    // ── State ──────────────────────────────────────────────────────────────────
+    let tasks = [];
+    let editingTaskId = null;
+    let currentFilters = { agent: 'all', project: 'all' };
+    let draggedTaskId  = null;
+
+    const COLUMNS = [
+        { id: 'backlog',     label: 'Backlog',     color: '#6b7280' },
+        { id: 'recurring',   label: 'Recurring',   color: '#3b82f6' },
+        { id: 'in-progress', label: 'In Progress', color: '#f59e0b' },
+        { id: 'review',      label: 'Review',      color: '#8b5cf6' },
+        { id: 'done',        label: 'Done',        color: '#10b981' }
+    ];
+
+    const AGENT_EMOJI = { scout:'🔍', relay:'📡', ralph:'🔧', main:'🎯', system:'⚙️', unassigned:'❓' };
+
+    // ── Boot ───────────────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
         loadTasks();
-        
-        // Refresh every 30 seconds
-        setInterval(loadTasks, 30000);
-    </script>
+        bindFilters();
+    });
+
+    // ── Data ───────────────────────────────────────────────────────────────────
+    async function loadTasks() {
+        try {
+            const res = await fetch('/api/mission-control/tasks');
+            if (!res.ok) throw new Error(res.status);
+            const data = await res.json();
+            tasks = data.tasks || [];
+            renderStats(data.stats || {});
+            renderBoard();
+        } catch (e) {
+            document.getElementById('kanban-board').innerHTML =
+                '<div class="loading">⚠️ Failed to load tasks. Retry in a moment.</div>';
+        }
+    }
+
+    // ── Render stats ───────────────────────────────────────────────────────────
+    function renderStats(s) {
+        const bar = document.getElementById('stats-bar');
+        const total = s.total || tasks.length;
+        const done  = s.done  || 0;
+        const pct   = total ? Math.round(done / total * 100) : 0;
+        bar.innerHTML = `
+            <div class="stat-card"><div class="stat-value">${s.backlog||0}</div><div class="stat-label">Backlog</div></div>
+            <div class="stat-card"><div class="stat-value">${s.inProgress||0}</div><div class="stat-label">In Progress</div></div>
+            <div class="stat-card"><div class="stat-value">${done}</div><div class="stat-label">Done</div></div>
+            <div class="stat-card"><div class="stat-value">${total}</div><div class="stat-label">Total</div></div>
+            <div class="stat-card"><div class="stat-value">${pct}%</div><div class="stat-label">Completion</div></div>
+        `;
+    }
+
+    // ── Render board ───────────────────────────────────────────────────────────
+    function renderBoard() {
+        const filtered = tasks.filter(t => {
+            const aOk = currentFilters.agent   === 'all' || t.assignedAgent === currentFilters.agent;
+            const pOk = currentFilters.project === 'all' || t.project       === currentFilters.project;
+            return aOk && pOk;
+        });
+
+        const board = document.getElementById('kanban-board');
+        board.innerHTML = COLUMNS.map(col => {
+            const colTasks = filtered.filter(t => t.status === col.id);
+            return `
+                <div class="kanban-column"
+                     data-status="${col.id}"
+                     ondragover="onDragOver(event)"
+                     ondragenter="onDragEnter(event)"
+                     ondragleave="onDragLeave(event)"
+                     ondrop="onDrop(event)">
+                    <div class="column-header">
+                        <span>
+                            <span class="col-dot" style="background:${col.color}"></span>
+                            ${col.label}
+                        </span>
+                        <span class="column-count">${colTasks.length}</span>
+                    </div>
+                    <div class="column-body">
+                        ${colTasks.length
+                            ? colTasks.map(renderCard).join('')
+                            : '<div class="empty-column">Drop here</div>'}
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
+    function renderCard(task) {
+        const agent = task.assignedAgent || 'unassigned';
+        const emoji = AGENT_EMOJI[agent] || '❓';
+        const date  = new Date(task.updatedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+        return `
+            <div class="task-card priority-${task.priority}"
+                 data-task-id="${task.id}"
+                 draggable="true"
+                 ondragstart="onDragStart(event)"
+                 ondragend="onDragEnd(event)"
+                 onclick="editTask('${task.id}')">
+                <div class="task-title">${esc(task.title)}</div>
+                <div class="task-desc">${esc(task.description||'')}</div>
+                <div class="task-meta">
+                    <span class="agent-badge ${agent}">${emoji} ${agent}</span>
+                    <span class="task-date">${date}</span>
+                </div>
+            </div>`;
+    }
+
+    // ── Drag & Drop ────────────────────────────────────────────────────────────
+    function onDragStart(e) {
+        draggedTaskId = e.currentTarget.dataset.taskId;
+        e.currentTarget.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', draggedTaskId);
+        document.getElementById('drag-hint').classList.add('visible');
+    }
+
+    function onDragEnd(e) {
+        e.currentTarget.classList.remove('dragging');
+        document.querySelectorAll('.kanban-column').forEach(c => c.classList.remove('drag-over'));
+        document.getElementById('drag-hint').classList.remove('visible');
+    }
+
+    function onDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    }
+
+    function onDragEnter(e) {
+        e.preventDefault();
+        const col = e.currentTarget.closest('.kanban-column');
+        if (col) col.classList.add('drag-over');
+    }
+
+    function onDragLeave(e) {
+        const col = e.currentTarget.closest('.kanban-column');
+        if (col && !col.contains(e.relatedTarget)) col.classList.remove('drag-over');
+    }
+
+    async function onDrop(e) {
+        e.preventDefault();
+        const col       = e.currentTarget.closest('.kanban-column');
+        if (!col) return;
+        col.classList.remove('drag-over');
+
+        const newStatus = col.dataset.status;
+        const taskId    = draggedTaskId || e.dataTransfer.getData('text/plain');
+        if (!taskId || !newStatus) return;
+
+        const task = tasks.find(t => String(t.id) === String(taskId));
+        if (!task || task.status === newStatus) return;
+
+        // Optimistic UI
+        task.status = newStatus;
+        renderBoard();
+
+        try {
+            await fetch(`/api/mission-control/tasks/${taskId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': 'kande2026' },
+                body: JSON.stringify({ ...task, status: newStatus })
+            });
+            loadTasks(); // refresh stats
+        } catch (err) {
+            console.error('Failed to update task status:', err);
+        }
+    }
+
+    // ── Modal ──────────────────────────────────────────────────────────────────
+    function showNewTaskModal() {
+        editingTaskId = null;
+        document.getElementById('modal-title').textContent  = 'New Task';
+        document.getElementById('task-form').reset();
+        document.getElementById('delete-btn').style.display = 'none';
+        document.getElementById('task-modal').classList.add('open');
+    }
+
+    function editTask(id) {
+        const task = tasks.find(t => String(t.id) === String(id));
+        if (!task) return;
+        editingTaskId = id;
+        document.getElementById('modal-title').textContent  = 'Edit Task';
+        document.getElementById('task-title').value        = task.title       || '';
+        document.getElementById('task-description').value  = task.description || '';
+        document.getElementById('task-agent').value        = task.assignedAgent|| 'unassigned';
+        document.getElementById('task-project').value      = task.project     || 'System';
+        document.getElementById('task-priority').value     = task.priority    || 'medium';
+        document.getElementById('task-status').value       = task.status      || 'backlog';
+        document.getElementById('delete-btn').style.display = 'inline-flex';
+        document.getElementById('task-modal').classList.add('open');
+    }
+
+    function closeModal() {
+        document.getElementById('task-modal').classList.remove('open');
+    }
+
+    async function saveTask(e) {
+        e.preventDefault();
+        const payload = {
+            title:         document.getElementById('task-title').value.trim(),
+            description:   document.getElementById('task-description').value.trim(),
+            assignedAgent: document.getElementById('task-agent').value,
+            project:       document.getElementById('task-project').value,
+            priority:      document.getElementById('task-priority').value,
+            status:        document.getElementById('task-status').value
+        };
+        if (!payload.title) return;
+
+        const saveBtn = document.getElementById('save-btn');
+        saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+
+        try {
+            const url    = editingTaskId ? `/api/mission-control/tasks/${editingTaskId}` : '/api/mission-control/tasks';
+            const method = editingTaskId ? 'PUT' : 'POST';
+            const res    = await fetch(url, {
+                method, headers: { 'Content-Type': 'application/json', 'x-api-key': 'kande2026' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error(res.status);
+            closeModal();
+            await loadTasks();
+        } catch (err) {
+            alert('Failed to save task. Please try again.');
+        } finally {
+            saveBtn.disabled = false; saveBtn.textContent = 'Save Task';
+        }
+    }
+
+    async function deleteTask() {
+        if (!editingTaskId) return;
+        if (!confirm('Delete this task?')) return;
+        try {
+            await fetch(`/api/mission-control/tasks/${editingTaskId}`, {
+                method: 'DELETE', headers: { 'x-api-key': 'kande2026' }
+            });
+            closeModal();
+            await loadTasks();
+        } catch (err) {
+            alert('Failed to delete task.');
+        }
+    }
+
+    // ── Filters ────────────────────────────────────────────────────────────────
+    function bindFilters() {
+        document.querySelectorAll('.filter-tag').forEach(tag => {
+            tag.addEventListener('click', () => {
+                const { filter, value } = tag.dataset;
+                document.querySelectorAll(`.filter-tag[data-filter="${filter}"]`).forEach(t => t.classList.remove('active'));
+                tag.classList.add('active');
+                currentFilters[filter] = value;
+                renderBoard();
+            });
+        });
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+    function esc(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('task-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+
+    // Keyboard: Escape closes modal
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeModal();
+    });
+</script>
 </body>
 </html>

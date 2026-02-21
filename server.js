@@ -73,7 +73,7 @@ function sanitizeObject(obj) {
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
   // Allow these paths without auth
-  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status', '/api/memory/db-list', '/api/memory/db-read', '/api/memory/db-search', '/api/memory/sync', '/digital'];
+  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status', '/api/memory/db-list', '/api/memory/db-read', '/api/memory/db-search', '/api/memory/sync', '/digital', '/api/mission-control/tasks/bulk-sync'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
     return next();
   }
@@ -24015,4 +24015,64 @@ app.get('/api/memory/db-search', (req, res) => {
 // Tool hub for the Blue Collar AI GMB optimization service.
 app.get('/digital', (req, res) => {
   res.sendFile(path.join(__dirname, 'digital.html'));
+});
+
+// ===== TASKS BULK-SYNC API (Ralph 2026-02-20) =====
+// Agents call this to push backlog.md task lists into the Mission Control DB.
+// Upserts by title+project — prevents duplicates on repeated syncs.
+app.post('/api/mission-control/tasks/bulk-sync', express.json({ limit: '1mb' }), (req, res) => {
+  try {
+    const { tasks: incoming, source } = req.body;
+    if (!Array.isArray(incoming) || incoming.length === 0) {
+      return res.status(400).json({ error: 'tasks array required' });
+    }
+
+    if (!db.missionControlTasks) db.missionControlTasks = [];
+
+    let created = 0, updated = 0, skipped = 0;
+
+    incoming.forEach(t => {
+      if (!t.title) { skipped++; return; }
+
+      const key = (t.title + '||' + (t.project || '')).toLowerCase();
+      const idx = db.missionControlTasks.findIndex(existing =>
+        (existing.title + '||' + (existing.project || '')).toLowerCase() === key
+      );
+
+      const now = new Date().toISOString();
+      const entry = {
+        id:            idx >= 0 ? db.missionControlTasks[idx].id : Date.now() + created,
+        title:         t.title,
+        description:   t.description || '',
+        assignedAgent: t.assignedAgent || 'unassigned',
+        project:       t.project || 'System',
+        priority:      t.priority || 'medium',
+        status:        t.status || 'backlog',
+        source:        source || 'bulk-sync',
+        createdAt:     idx >= 0 ? db.missionControlTasks[idx].createdAt : now,
+        updatedAt:     now
+      };
+
+      if (idx >= 0) {
+        // Only update status/description if new data provides them
+        // Keep "done" status — don't regress completed tasks
+        if (db.missionControlTasks[idx].status === 'done') {
+          skipped++; return;
+        }
+        db.missionControlTasks[idx] = entry;
+        updated++;
+      } else {
+        db.missionControlTasks.push(entry);
+        created++;
+      }
+    });
+
+    saveDB(db);
+
+    const stats = { created, updated, skipped, total: db.missionControlTasks.length };
+    console.log(`📋 Tasks bulk-sync: +${created} created, ~${updated} updated, ${skipped} skipped`);
+    res.json({ ok: true, stats, source: source || 'bulk-sync' });
+  } catch (err) {
+    res.status(500).json({ error: 'Bulk sync failed', details: err.message });
+  }
 });
