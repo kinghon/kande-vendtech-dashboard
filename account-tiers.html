@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Account Tiers — Kande VendTech</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f8f9fa;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1a1a1a;
+    --muted: #64748b;
+    --accent: #3b82f6;
+    --green: #10b981;
+    --yellow: #f59e0b;
+    --purple: #8b5cf6;
+    --red: #ef4444;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.10);
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* NAV */
+  nav { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 24px; height: 56px; display: flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow); }
+  .nav-logo { font-weight: 700; font-size: 1rem; color: var(--accent); margin-right: 8px; text-decoration: none; white-space: nowrap; }
+  .nav-div { width: 1px; height: 20px; background: var(--border); margin: 0 8px; }
+  nav a { color: var(--muted); text-decoration: none; font-size: 0.875rem; padding: 6px 10px; border-radius: 6px; transition: all .15s; white-space: nowrap; }
+  nav a:hover, nav a.active { background: #f1f5f9; color: var(--text); }
+
+  /* PAGE */
+  .page { max-width: 1280px; margin: 0 auto; padding: 28px 24px; }
+  .page-header { margin-bottom: 28px; }
+  .page-title { font-size: 1.75rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+  .page-sub { color: var(--muted); margin-top: 4px; font-size: 0.9rem; }
+
+  /* STAT CARDS */
+  .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 28px; }
+  @media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 600px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; box-shadow: var(--shadow); }
+  .stat-label { font-size: 0.75rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+  .stat-value { font-size: 1.8rem; font-weight: 700; line-height: 1; }
+  .stat-sub { font-size: 0.75rem; color: var(--muted); margin-top: 5px; }
+  .stat.total .stat-value { color: var(--accent); }
+  .stat.standard .stat-value { color: #64748b; }
+  .stat.custom .stat-value { color: var(--yellow); }
+  .stat.portfolio .stat-value { color: var(--purple); }
+  .stat.forecast .stat-value { color: var(--green); }
+
+  /* TIER LEGEND */
+  .tier-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+  .tier-badge { display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; box-shadow: var(--shadow); font-size: 0.8rem; }
+  .tier-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .tier-name { font-weight: 600; color: var(--text); }
+  .tier-rev { color: var(--muted); }
+
+  /* MAIN GRID */
+  .main-grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
+  @media (max-width: 1024px) { .main-grid { grid-template-columns: 1fr; } }
+
+  /* SECTION */
+  .section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 20px; }
+  .section-head { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .section-title { font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; }
+  .section-body { padding: 20px; }
+
+  /* FILTER BAR */
+  .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+  .filter-btn { padding: 5px 12px; border-radius: 20px; font-size: 0.775rem; font-weight: 600; border: 1px solid var(--border); background: var(--bg); color: var(--muted); cursor: pointer; transition: all .15s; }
+  .filter-btn:hover, .filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* PROSPECT TABLE */
+  .prospect-table { width: 100%; border-collapse: collapse; }
+  .prospect-table th { text-align: left; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 8px 12px; border-bottom: 2px solid var(--border); }
+  .prospect-table td { padding: 12px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; font-size: 0.85rem; }
+  .prospect-table tr:last-child td { border-bottom: none; }
+  .prospect-table tr:hover td { background: #fafafa; }
+  .prospect-name { font-weight: 600; color: var(--text); }
+  .prospect-units { color: var(--muted); font-size: 0.775rem; }
+  .status-pill { font-size: 0.7rem; font-weight: 600; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+  .s-proposal   { background: #dbeafe; color: #1e40af; }
+  .s-negotiating{ background: #ede9fe; color: #5b21b6; }
+  .s-active     { background: #d1fae5; color: #065f46; }
+  .s-contacted  { background: #fef3c7; color: #92400e; }
+  .s-new        { background: #f1f5f9; color: #475569; }
+  .tier-select { border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; font-size: 0.8rem; color: var(--text); background: var(--bg); cursor: pointer; outline: none; width: 100%; }
+  .tier-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+  .tier-select.t-standard  { border-left: 3px solid #94a3b8; }
+  .tier-select.t-custom    { border-left: 3px solid var(--yellow); }
+  .tier-select.t-portfolio { border-left: 3px solid var(--purple); }
+  .mrr-cell { font-weight: 600; text-align: right; }
+  .mrr-0       { color: var(--muted); }
+  .mrr-low     { color: #64748b; }
+  .mrr-mid     { color: var(--yellow); }
+  .mrr-high    { color: var(--purple); }
+  .save-icon { cursor: pointer; font-size: 0.75rem; color: var(--accent); opacity: 0; transition: opacity .15s; }
+  .prospect-table tr:hover .save-icon { opacity: 1; }
+  .saved-flash { color: var(--green); font-size: 0.7rem; }
+
+  /* SIDEBAR */
+  .forecast-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 20px; margin-bottom: 16px; }
+  .forecast-title { font-weight: 600; font-size: 0.875rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .forecast-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; }
+  .forecast-row:last-child { border-bottom: none; padding-top: 12px; font-weight: 700; font-size: 0.95rem; }
+  .forecast-tier { display: flex; align-items: center; gap: 8px; }
+  .f-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .forecast-mrr { font-weight: 600; }
+  .mrr-bar-wrap { margin-top: 12px; }
+  .mrr-bar-label { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; }
+  .mrr-bar-track { height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+  .mrr-bar-fill  { height: 100%; border-radius: 4px; transition: width .6s ease; }
+
+  /* ALERTS */
+  .alert-box { border-radius: 10px; padding: 14px 16px; display: flex; gap: 10px; margin-bottom: 12px; }
+  .alert-box:last-child { margin-bottom: 0; }
+  .alert-box.info   { background: #eff6ff; border: 1px solid #bfdbfe; }
+  .alert-box.tip    { background: #f0fdf4; border: 1px solid #bbf7d0; }
+  .alert-box.warn   { background: #fffbeb; border: 1px solid #fde68a; }
+  .alert-icon  { font-size: 1rem; flex-shrink: 0; }
+  .alert-text  { font-size: 0.8rem; color: var(--text); line-height: 1.5; }
+  .alert-text strong { font-weight: 600; }
+
+  /* LOADING */
+  .loading { text-align: center; padding: 40px; color: var(--muted); font-size: 0.875rem; }
+  .spin { display: inline-block; width: 18px; height: 18px; border: 2px solid #e2e8f0; border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; margin-right: 6px; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a1a; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 0.85rem; z-index: 1000; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+
+  /* DIFF SECTION */
+  .diff-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.825rem; }
+  .diff-row:last-child { border-bottom: none; }
+  .diff-arrow { color: var(--green); font-weight: 700; }
+  .diff-name { font-weight: 600; flex: 1; }
+  .diff-change { font-size: 0.75rem; }
+  .pill-sm { font-size: 0.65rem; font-weight: 600; padding: 1px 6px; border-radius: 8px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">⚡ Kande VendTech</a>
+  <div class="nav-div"></div>
+  <a href="/pipeline">Pipeline</a>
+  <a href="/account-tiers" class="active">Account Tiers</a>
+  <a href="/scout-intel">Scout Intel</a>
+  <div class="nav-div"></div>
+  <a href="/tasks">Tasks</a>
+  <a href="/team">Team</a>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <div class="page-title">💎 Account Tier Forecasting</div>
+    <div class="page-sub">Tag each prospect with a revenue tier · forecast MRR across the pipeline · identify portfolio plays</div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid" id="stats-row">
+    <div class="stat total"><div class="stat-label">Tracked Accounts</div><div class="stat-value" id="s-total">—</div><div class="stat-sub">Proposal + Negotiating + Active</div></div>
+    <div class="stat standard"><div class="stat-label">Standard</div><div class="stat-value" id="s-standard">—</div><div class="stat-sub">~$400/mo each</div></div>
+    <div class="stat custom"><div class="stat-label">Custom Wrap</div><div class="stat-value" id="s-custom">—</div><div class="stat-sub">~$700/mo each</div></div>
+    <div class="stat portfolio"><div class="stat-label">Portfolio Program</div><div class="stat-value" id="s-portfolio">—</div><div class="stat-sub">~$12K/mo each</div></div>
+    <div class="stat forecast"><div class="stat-label">Forecasted MRR</div><div class="stat-value" id="s-mrr">—</div><div class="stat-sub">If all close</div></div>
+  </div>
+
+  <!-- Tier Legend -->
+  <div class="tier-legend">
+    <div class="tier-badge"><div class="tier-dot" style="background:#94a3b8;"></div><div><div class="tier-name">Standard</div><div class="tier-rev">Single machine · ~$400/mo</div></div></div>
+    <div class="tier-badge"><div class="tier-dot" style="background:#f59e0b;"></div><div><div class="tier-name">Custom Property Wrap</div><div class="tier-rev">Branded single property · ~$700/mo</div></div></div>
+    <div class="tier-badge"><div class="tier-dot" style="background:#8b5cf6;"></div><div><div class="tier-name">Portfolio Brand Program</div><div class="tier-rev">Multi-property branded · ~$12K/mo avg</div></div></div>
+  </div>
+
+  <div class="main-grid">
+
+    <!-- Left: Prospect Table -->
+    <div>
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">📋 Pipeline Accounts</div>
+          <div class="filter-bar" id="filter-bar">
+            <button class="filter-btn active" data-status="all" onclick="setFilter(this,'all')">All</button>
+            <button class="filter-btn" data-status="proposal_sent" onclick="setFilter(this,'proposal_sent')">Proposal Sent</button>
+            <button class="filter-btn" data-status="negotiating" onclick="setFilter(this,'negotiating')">Negotiating</button>
+            <button class="filter-btn" data-status="active" onclick="setFilter(this,'active')">Active</button>
+            <button class="filter-btn" data-status="contacted" onclick="setFilter(this,'contacted')">Contacted</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="prospect-table" id="prospect-table">
+            <thead>
+              <tr>
+                <th>Account</th>
+                <th>Status</th>
+                <th>Units</th>
+                <th>Account Tier</th>
+                <th style="text-align:right;">Est. MRR</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="prospect-tbody">
+              <tr><td colspan="6" class="loading"><span class="spin"></span>Loading accounts…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CRM Status Changes -->
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">🔄 Recent Status Changes</div>
+          <button onclick="runStatusDiff()" style="padding:6px 14px;border-radius:6px;font-size:0.8rem;font-weight:600;border:1px solid var(--accent);background:#eff6ff;color:var(--accent);cursor:pointer;">Run Diff</button>
+        </div>
+        <div class="section-body" id="diff-body">
+          <div style="text-align:center;color:var(--muted);font-size:0.8rem;padding:20px 0;">Click "Run Diff" to check for prospects that changed status recently.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Forecast Sidebar -->
+    <div>
+
+      <!-- Revenue Forecast -->
+      <div class="forecast-card">
+        <div class="forecast-title">📊 Revenue Forecast</div>
+        <div class="forecast-row">
+          <div class="forecast-tier"><div class="f-dot" style="background:#94a3b8;"></div>Standard</div>
+          <div class="forecast-mrr" id="f-standard-mrr" style="color:#64748b;">$0</div>
+        </div>
+        <div class="mrr-bar-wrap"><div class="mrr-bar-track"><div class="mrr-bar-fill" id="b-standard" style="background:#94a3b8;width:0%;"></div></div></div>
+        <div class="forecast-row">
+          <div class="forecast-tier"><div class="f-dot" style="background:#f59e0b;"></div>Custom Wrap</div>
+          <div class="forecast-mrr" id="f-custom-mrr" style="color:#f59e0b;">$0</div>
+        </div>
+        <div class="mrr-bar-wrap"><div class="mrr-bar-track"><div class="mrr-bar-fill" id="b-custom" style="background:#f59e0b;width:0%;"></div></div></div>
+        <div class="forecast-row">
+          <div class="forecast-tier"><div class="f-dot" style="background:#8b5cf6;"></div>Portfolio Program</div>
+          <div class="forecast-mrr" id="f-portfolio-mrr" style="color:#8b5cf6;">$0</div>
+        </div>
+        <div class="mrr-bar-wrap" style="margin-bottom:12px;"><div class="mrr-bar-track"><div class="mrr-bar-fill" id="b-portfolio" style="background:#8b5cf6;width:0%;"></div></div></div>
+        <div class="forecast-row" style="border-top:1px solid var(--border);">
+          <div>Total Pipeline MRR</div>
+          <div class="forecast-mrr" id="f-total-mrr" style="color:var(--green);">$0</div>
+        </div>
+      </div>
+
+      <!-- Portfolio Plays -->
+      <div class="forecast-card">
+        <div class="forecast-title">🏢 Known Portfolio Plays</div>
+        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:10px;">Tag these as "Portfolio Brand Program" — each unlocks multiple properties</div>
+        <div class="diff-row">
+          <div class="diff-name">Aspire / Ovation (116)</div>
+          <div class="diff-change" style="color:var(--purple);font-weight:700;">36 communities · $10-15K/mo</div>
+        </div>
+        <div class="diff-row">
+          <div class="diff-name">Greystar — Ascend Heartland</div>
+          <div class="diff-change" style="color:var(--purple);font-weight:700;">800K+ units global</div>
+        </div>
+        <div class="diff-row">
+          <div class="diff-name">Lyric / RPM Living (531)</div>
+          <div class="diff-change" style="color:var(--purple);font-weight:700;">Lyric + Watermark + more</div>
+        </div>
+        <div class="diff-row">
+          <div class="diff-name">Siegel Select (1)</div>
+          <div class="diff-change" style="color:var(--yellow);font-weight:700;">24+ properties corporate</div>
+        </div>
+        <div class="diff-row">
+          <div class="diff-name">Cushman & Wakefield</div>
+          <div class="diff-change" style="color:var(--yellow);font-weight:700;">Domain + Elysian + Ainsley</div>
+        </div>
+        <div class="diff-row" style="border-bottom:none;">
+          <div class="diff-name">Calida Group</div>
+          <div class="diff-change" style="color:var(--yellow);font-weight:700;">10 properties, 3,000+ units</div>
+        </div>
+      </div>
+
+      <!-- Revenue Tips -->
+      <div class="forecast-card">
+        <div class="forecast-title">💡 Tier Strategy</div>
+        <div class="alert-box info">
+          <div class="alert-icon">📦</div>
+          <div class="alert-text"><strong>Standard ($400/mo):</strong> Single machine, no branding. Default for individual properties, first-time conversations.</div>
+        </div>
+        <div class="alert-box warn">
+          <div class="alert-icon">🎨</div>
+          <div class="alert-text"><strong>Custom Property Wrap ($700/mo):</strong> Machine wrapped with property branding. Upgrade offer after initial placement. Mid-tier properties that want resident experience.</div>
+        </div>
+        <div class="alert-box tip">
+          <div class="alert-icon">🏆</div>
+          <div class="alert-text"><strong>Portfolio Brand Program ($10K-15K/mo):</strong> "Branded resident amenity program" across all properties. One corporate decision = 10-20 placements. Ovation: 36 communities. Pitch: "Your logo, your brand colors, standardized across all your communities."</div>
+        </div>
+        <div style="margin-top:12px;padding:10px 12px;background:#f8f9fa;border-radius:8px;font-size:0.775rem;color:var(--muted);line-height:1.5;">
+          <strong style="color:var(--text);">Cantaloupe stat:</strong> consumers spend 53% more at micro markets. Use to upgrade Standard → Custom Wrap. Revenue: $400 → $600-800/mo.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TIER_MRR = { standard: 400, custom: 700, portfolio: 12000 };
+const TIER_LABELS = { standard: 'Standard', custom: 'Custom Property Wrap', portfolio: 'Portfolio Brand Program', unset: '— Not Set —' };
+let allProspects = [];
+let tiers = {};
+let activeFilter = 'all';
+
+const PIPELINE_STATUSES = ['proposal_sent', 'negotiating', 'active', 'contacted'];
+
+function toast(msg, ms = 2000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), ms);
+}
+
+function fmtMrr(n) {
+  if (n >= 1000) return '$' + (n / 1000).toFixed(n % 1000 === 0 ? 0 : 1) + 'K';
+  return '$' + n.toLocaleString();
+}
+
+function statusClass(s) {
+  const m = { proposal_sent: 's-proposal', negotiating: 's-negotiating', active: 's-active', contacted: 's-contacted', new: 's-new' };
+  return m[s] || 's-new';
+}
+
+function statusLabel(s) {
+  const m = { proposal_sent: 'Proposal Sent', negotiating: 'Negotiating', active: 'Active', contacted: 'Contacted', new: 'New' };
+  return m[s] || s;
+}
+
+function tierClass(t) {
+  return { standard: 't-standard', custom: 't-custom', portfolio: 't-portfolio' }[t] || '';
+}
+
+async function loadData() {
+  try {
+    const [prospectsRes, tiersRes] = await Promise.all([
+      fetch('/api/prospects', { credentials: 'include' }),
+      fetch('/api/pipeline/account-tiers', { headers: { 'x-api-key': 'kande2026' } })
+    ]);
+
+    if (!prospectsRes.ok) throw new Error('Prospects API error: ' + prospectsRes.status);
+    allProspects = await prospectsRes.json();
+
+    if (tiersRes.ok) {
+      const td = await tiersRes.json();
+      tiers = td.tiers || {};
+    }
+
+    filterAndRender(activeFilter);
+    updateForecast();
+  } catch (err) {
+    document.getElementById('prospect-tbody').innerHTML = `<tr><td colspan="6" style="padding:20px;color:var(--red);font-size:0.85rem;">Error loading data: ${err.message}</td></tr>`;
+  }
+}
+
+function setFilter(btn, status) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeFilter = status;
+  filterAndRender(status);
+}
+
+function filterAndRender(status) {
+  let filtered = allProspects.filter(p => PIPELINE_STATUSES.includes(p.status));
+  if (status !== 'all') filtered = filtered.filter(p => p.status === status);
+  renderTable(filtered);
+  updateStats(allProspects.filter(p => PIPELINE_STATUSES.includes(p.status)));
+}
+
+function renderTable(prospects) {
+  const tbody = document.getElementById('prospect-tbody');
+  if (prospects.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--muted);font-size:0.85rem;">No accounts match this filter.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = prospects.map(p => {
+    const tier = tiers[p.id] || 'unset';
+    const mrr  = tier === 'unset' ? 0 : TIER_MRR[tier];
+    const mrrClass = tier === 'unset' ? 'mrr-0' : tier === 'portfolio' ? 'mrr-high' : tier === 'custom' ? 'mrr-mid' : 'mrr-low';
+    const units = p.units ? `${p.units} units` : p.employees ? `${p.employees} emp` : '';
+
+    return `<tr>
+      <td>
+        <div class="prospect-name">${escHtml(p.name)}</div>
+        ${units ? `<div class="prospect-units">${escHtml(units)}</div>` : ''}
+      </td>
+      <td><span class="status-pill ${statusClass(p.status)}">${statusLabel(p.status)}</span></td>
+      <td style="color:var(--muted);font-size:0.8rem;">${escHtml(units)}</td>
+      <td>
+        <select class="tier-select ${tierClass(tier)}" data-id="${p.id}" onchange="saveTier(this)">
+          <option value="unset" ${tier === 'unset' ? 'selected' : ''}>— Not Set —</option>
+          <option value="standard" ${tier === 'standard' ? 'selected' : ''}>Standard ($400/mo)</option>
+          <option value="custom" ${tier === 'custom' ? 'selected' : ''}>Custom Property Wrap ($700/mo)</option>
+          <option value="portfolio" ${tier === 'portfolio' ? 'selected' : ''}>Portfolio Brand Program (~$12K/mo)</option>
+        </select>
+      </td>
+      <td class="mrr-cell ${mrrClass}">${mrr ? fmtMrr(mrr) : '<span style="color:#cbd5e1">—</span>'}</td>
+      <td style="width:24px;"></td>
+    </tr>`;
+  }).join('');
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function saveTier(sel) {
+  const id = sel.dataset.id;
+  const tier = sel.value;
+  tiers[id] = tier;
+
+  // Update class immediately
+  sel.className = 'tier-select ' + tierClass(tier);
+
+  // Persist to server
+  try {
+    await fetch('/api/pipeline/account-tiers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': 'kande2026' },
+      body: JSON.stringify({ id, tier })
+    });
+    toast('Tier saved ✓');
+    filterAndRender(activeFilter);
+    updateForecast();
+  } catch (err) {
+    toast('Save failed: ' + err.message);
+  }
+}
+
+function updateStats(pipelineProspects) {
+  const standard  = pipelineProspects.filter(p => tiers[p.id] === 'standard').length;
+  const custom    = pipelineProspects.filter(p => tiers[p.id] === 'custom').length;
+  const portfolio = pipelineProspects.filter(p => tiers[p.id] === 'portfolio').length;
+  const total = pipelineProspects.length;
+
+  document.getElementById('s-total').textContent     = total;
+  document.getElementById('s-standard').textContent  = standard;
+  document.getElementById('s-custom').textContent    = custom;
+  document.getElementById('s-portfolio').textContent = portfolio;
+
+  const mrr = standard * 400 + custom * 700 + portfolio * 12000;
+  document.getElementById('s-mrr').textContent = fmtMrr(mrr);
+}
+
+function updateForecast() {
+  const pipeline = allProspects.filter(p => PIPELINE_STATUSES.includes(p.status));
+  const standardMrr  = pipeline.filter(p => tiers[p.id] === 'standard').length  * 400;
+  const customMrr    = pipeline.filter(p => tiers[p.id] === 'custom').length    * 700;
+  const portfolioMrr = pipeline.filter(p => tiers[p.id] === 'portfolio').length * 12000;
+  const totalMrr = standardMrr + customMrr + portfolioMrr;
+
+  document.getElementById('f-standard-mrr').textContent  = fmtMrr(standardMrr);
+  document.getElementById('f-custom-mrr').textContent    = fmtMrr(customMrr);
+  document.getElementById('f-portfolio-mrr').textContent = fmtMrr(portfolioMrr);
+  document.getElementById('f-total-mrr').textContent     = fmtMrr(totalMrr);
+
+  // Bars (relative to highest)
+  const maxMrr = Math.max(standardMrr, customMrr, portfolioMrr, 1);
+  document.getElementById('b-standard').style.width  = (standardMrr  / maxMrr * 100) + '%';
+  document.getElementById('b-custom').style.width    = (customMrr    / maxMrr * 100) + '%';
+  document.getElementById('b-portfolio').style.width = (portfolioMrr / maxMrr * 100) + '%';
+}
+
+async function runStatusDiff() {
+  const body = document.getElementById('diff-body');
+  body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:0.85rem;"><span class="spin"></span>Checking for status changes…</div>';
+  try {
+    const res = await fetch('/api/crm/status-diff', { headers: { 'x-api-key': 'kande2026' } });
+    const data = await res.json();
+    const changes = data.changes || [];
+    if (changes.length === 0) {
+      body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:0.85rem;">✓ No status changes since last snapshot. Pipeline is stable.</div>';
+    } else {
+      body.innerHTML = changes.map(c => `
+        <div class="diff-row">
+          <div class="diff-name">${escHtml(c.name)}</div>
+          <div class="diff-change">
+            <span class="status-pill ${statusClass(c.from)} pill-sm">${statusLabel(c.from)}</span>
+            <span class="diff-arrow">→</span>
+            <span class="status-pill ${statusClass(c.to)} pill-sm">${statusLabel(c.to)}</span>
+          </div>
+          ${c.alerted ? '<span style="color:var(--green);font-size:0.75rem;">📡 alerted</span>' : ''}
+        </div>`).join('');
+    }
+    // Update snapshot after diff
+    fetch('/api/crm/status-diff/snapshot', { method: 'POST', headers: { 'x-api-key': 'kande2026' } });
+  } catch (err) {
+    body.innerHTML = `<div style="padding:16px;color:var(--red);font-size:0.85rem;">Error: ${err.message}</div>`;
+  }
+}
+
+// Init
+loadData();
+</script>
+</body>
+</html>

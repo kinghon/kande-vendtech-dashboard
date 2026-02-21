@@ -73,7 +73,7 @@ function sanitizeObject(obj) {
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
   // Allow these paths without auth
-  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status', '/api/memory/db-list', '/api/memory/db-read', '/api/memory/db-search', '/api/memory/sync', '/digital', '/api/mission-control/tasks/bulk-sync', '/onboard', '/api/digital/onboard', '/clients', '/scout-intel', '/api/pipeline/engagement-alerts', '/api/digital/gmb/batch-score'];
+  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status', '/api/memory/db-list', '/api/memory/db-read', '/api/memory/db-search', '/api/memory/sync', '/digital', '/api/mission-control/tasks/bulk-sync', '/onboard', '/api/digital/onboard', '/clients', '/scout-intel', '/api/pipeline/engagement-alerts', '/api/digital/gmb/batch-score', '/account-tiers', '/api/pipeline/account-tiers', '/api/crm/status-diff', '/api/monitoring'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
     return next();
   }
@@ -24398,5 +24398,317 @@ app.post('/api/digital/gmb/batch-score', express.json({ limit: '500kb' }), (req,
 
   } catch (err) {
     res.status(500).json({ error: 'Batch score failed', details: err.message });
+  }
+});
+
+// ===== ACCOUNT TIER FORECASTING (Ralph 2026-02-21 noon) =====
+// Revenue tier classification for pipeline prospects.
+// Tiers: standard ($400/mo), custom ($700/mo), portfolio ($12K/mo).
+// Surfaces the revenue forecasting gap between individual placements and portfolio brand programs.
+
+app.get('/account-tiers', (req, res) => {
+  res.sendFile(path.join(__dirname, 'account-tiers.html'));
+});
+
+// GET /api/pipeline/account-tiers — all tier assignments
+app.get('/api/pipeline/account-tiers', (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+    const tiers = db.accountTiers || {};
+    const TIER_MRR = { standard: 400, custom: 700, portfolio: 12000 };
+
+    // Build summary stats from prospect data
+    const pipeline = (db.prospects || []).filter(p =>
+      ['proposal_sent', 'negotiating', 'active', 'contacted'].includes(p.status)
+    );
+
+    const counts    = { standard: 0, custom: 0, portfolio: 0, unset: 0 };
+    let totalMrr    = 0;
+
+    pipeline.forEach(p => {
+      const tier = tiers[String(p.id)] || 'unset';
+      counts[tier] = (counts[tier] || 0) + 1;
+      if (tier !== 'unset') totalMrr += TIER_MRR[tier] || 0;
+    });
+
+    res.json({
+      tiers,
+      counts,
+      totalMrr,
+      pipelineSize: pipeline.length,
+      updatedAt: db.accountTiersUpdated || null
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load account tiers', details: err.message });
+  }
+});
+
+// POST /api/pipeline/account-tiers — set tier for a single prospect
+app.post('/api/pipeline/account-tiers', express.json(), (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+    const { id, tier } = req.body;
+    if (!id) return res.status(400).json({ error: 'id required' });
+
+    const VALID_TIERS = ['standard', 'custom', 'portfolio', 'unset'];
+    if (!VALID_TIERS.includes(tier)) {
+      return res.status(400).json({ error: `tier must be one of: ${VALID_TIERS.join(', ')}` });
+    }
+
+    if (!db.accountTiers) db.accountTiers = {};
+    if (tier === 'unset') {
+      delete db.accountTiers[String(id)];
+    } else {
+      db.accountTiers[String(id)] = tier;
+    }
+    db.accountTiersUpdated = new Date().toISOString();
+    saveDB(db);
+
+    const TIER_MRR = { standard: 400, custom: 700, portfolio: 12000 };
+    console.log(`💎 Account tier set: prospect ${id} → ${tier} ($${TIER_MRR[tier] || 0}/mo)`);
+    res.json({ ok: true, id, tier, mrr: TIER_MRR[tier] || 0 });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to save tier', details: err.message });
+  }
+});
+
+// POST /api/pipeline/account-tiers/bulk — bulk set tiers (for agents to batch-tag)
+app.post('/api/pipeline/account-tiers/bulk', express.json(), (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+    const { assignments } = req.body; // [{ id, tier }, ...]
+    if (!Array.isArray(assignments)) return res.status(400).json({ error: 'assignments array required' });
+
+    if (!db.accountTiers) db.accountTiers = {};
+    let saved = 0;
+    const VALID = ['standard', 'custom', 'portfolio', 'unset'];
+    assignments.forEach(({ id, tier }) => {
+      if (!id || !VALID.includes(tier)) return;
+      if (tier === 'unset') delete db.accountTiers[String(id)];
+      else db.accountTiers[String(id)] = tier;
+      saved++;
+    });
+    db.accountTiersUpdated = new Date().toISOString();
+    saveDB(db);
+    console.log(`💎 Account tiers bulk-set: ${saved} assignments`);
+    res.json({ ok: true, saved });
+  } catch (err) {
+    res.status(500).json({ error: 'Bulk tier set failed', details: err.message });
+  }
+});
+
+// ===== CRM STATUS DIFF (Ralph 2026-02-21 noon) =====
+// Detects prospect status changes since last snapshot.
+// Auto-pushes opening_soon→active and new→contacted transitions to engagement-alerts.
+// Implements the "Gemma lesson" — Scout caught a status change manually; this makes it automatic.
+
+// GET /api/crm/status-diff — compare current statuses to snapshot, return changes
+app.get('/api/crm/status-diff', (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+    const snapshot = db.crmStatusSnapshot || {};
+    const prospects = db.prospects || [];
+    const changes   = [];
+    const HIGH_VALUE_TRANSITIONS = [
+      'opening_soon→active',
+      'new→contacted',
+      'contacted→proposal_sent',
+      'proposal_sent→negotiating',
+      'negotiating→active'
+    ];
+
+    prospects.forEach(p => {
+      const prev = snapshot[String(p.id)];
+      if (prev && prev !== p.status) {
+        const key = `${prev}→${p.status}`;
+        const isHighValue = HIGH_VALUE_TRANSITIONS.includes(key);
+        changes.push({
+          id:         p.id,
+          name:       p.name,
+          from:       prev,
+          to:         p.status,
+          isHighValue,
+          alerted:    false,
+          detectedAt: new Date().toISOString()
+        });
+      }
+    });
+
+    // Auto-push high-value transitions to engagement-alerts
+    const highValue = changes.filter(c => c.isHighValue);
+    if (highValue.length > 0) {
+      const existing   = (db.pipelineEngagement && db.pipelineEngagement.alerts) ? db.pipelineEngagement.alerts : [];
+      const newAlerts  = highValue.map(c => ({
+        level:    c.from === 'opening_soon' && c.to === 'active' ? 'hot' : 'info',
+        prospect: c.name,
+        title:    `${c.name} — Status changed: ${c.from} → ${c.to}`,
+        message:  c.from === 'opening_soon' && c.to === 'active'
+          ? `NOW LEASING confirmed. 7-day vendor selection window open. Call immediately.`
+          : `Status updated from ${c.from} to ${c.to}. Review and take action.`,
+        tags:     ['Auto-detected', `${c.from} → ${c.to}`],
+        opens:    { internal: 0, external: 0 },
+        autoDetected: true,
+        detectedAt: new Date().toISOString()
+      }));
+
+      // Merge with existing alerts (deduplicate by prospect name)
+      const merged = [...newAlerts];
+      existing.forEach(a => {
+        if (!merged.some(m => m.prospect === a.prospect)) merged.push(a);
+      });
+
+      if (!db.pipelineEngagement) db.pipelineEngagement = {};
+      db.pipelineEngagement.alerts  = merged;
+      db.pipelineEngagement.lastSync = new Date().toISOString();
+      saveDB(db);
+
+      highValue.forEach(c => { c.alerted = true; });
+      console.log(`🔄 CRM Status Diff: ${changes.length} changes, ${highValue.length} auto-alerted`);
+    }
+
+    res.json({
+      changes,
+      summary: {
+        total:     changes.length,
+        highValue: highValue.length,
+        alerted:   highValue.filter(c => c.alerted).length
+      },
+      snapshotAge: db.crmSnapshotUpdated ? `Since ${new Date(db.crmSnapshotUpdated).toLocaleString()}` : 'No snapshot yet',
+      checkedAt:  new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Status diff failed', details: err.message });
+  }
+});
+
+// POST /api/crm/status-diff/snapshot — save current status snapshot as new baseline
+app.post('/api/crm/status-diff/snapshot', express.json(), (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+    const snapshot = {};
+    (db.prospects || []).forEach(p => {
+      snapshot[String(p.id)] = p.status;
+    });
+
+    db.crmStatusSnapshot  = snapshot;
+    db.crmSnapshotUpdated = new Date().toISOString();
+    saveDB(db);
+
+    console.log(`📸 CRM Status snapshot saved: ${Object.keys(snapshot).length} prospects`);
+    res.json({
+      ok:          true,
+      count:       Object.keys(snapshot).length,
+      snapshotAt:  db.crmSnapshotUpdated
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Snapshot failed', details: err.message });
+  }
+});
+
+// ===== MARY REAL-TIME ALERTING (Ralph 2026-02-21 noon) =====
+// Checks if today's PB inbox file was created by Mary.
+// Returns an alert if no file exists by 9 AM — enables immediate notification
+// rather than discovering a blackout days later.
+
+app.get('/api/monitoring/pb-inbox', (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+    const today     = new Date();
+    const dateStr   = today.toISOString().split('T')[0]; // YYYY-MM-DD
+    const hour      = today.getHours(); // Pacific (Railway runs UTC; adjust offset in calculation)
+
+    // Mary writes inbox files to /Users/kurtishon/clawd/agent-output/mary/
+    // File pattern: inbox-YYYY-MM-DD.md
+    const inboxDir  = '/Users/kurtishon/clawd/agent-output/mary';
+    const todayFile = `${inboxDir}/inbox-${dateStr}.md`;
+    const ystrdyFile = `${inboxDir}/inbox-${new Date(Date.now() - 86400000).toISOString().split('T')[0]}.md`;
+
+    let todayExists = false;
+    let ystrdyExists = false;
+    let todayStats   = null;
+    let lastFileDate = null;
+
+    try { todayStats = fs.statSync(todayFile); todayExists = true; } catch (_) {}
+    try { fs.statSync(ystrdyFile); ystrdyExists = true; } catch (_) {}
+
+    // Find most recent inbox file
+    try {
+      const files = fs.readdirSync(inboxDir)
+        .filter(f => f.startsWith('inbox-') && f.endsWith('.md'))
+        .sort()
+        .reverse();
+      if (files.length > 0) lastFileDate = files[0].replace('inbox-', '').replace('.md', '');
+    } catch (_) {}
+
+    const daysSinceLast = lastFileDate
+      ? Math.floor((Date.now() - new Date(lastFileDate).getTime()) / 86400000)
+      : null;
+
+    const isAlert    = !todayExists && (daysSinceLast === null || daysSinceLast >= 1);
+    const isCritical = daysSinceLast !== null && daysSinceLast >= 2;
+
+    // Persist to monitoring record in DB for heartbeat tracking
+    if (!db.maryMonitoring) db.maryMonitoring = {};
+    db.maryMonitoring.lastChecked     = new Date().toISOString();
+    db.maryMonitoring.todayFileExists = todayExists;
+    db.maryMonitoring.lastFileDate    = lastFileDate;
+    db.maryMonitoring.daysSinceLast   = daysSinceLast;
+    db.maryMonitoring.isAlert         = isAlert;
+    saveDB(db);
+
+    res.json({
+      date:            dateStr,
+      todayFileExists: todayExists,
+      todayFileSize:   todayStats ? todayStats.size : null,
+      todayFilePath:   todayFile,
+      yesterdayExists: ystrdyExists,
+      lastFileDate,
+      daysSinceLast,
+      isAlert,
+      isCritical,
+      status:    todayExists ? 'ok' : isCritical ? 'critical' : isAlert ? 'alert' : 'ok',
+      message:   todayExists
+        ? `✅ Mary's inbox file for ${dateStr} exists. System operational.`
+        : isCritical
+        ? `🚨 CRITICAL: Mary has been offline for ${daysSinceLast} days. Last file: ${lastFileDate || 'none'}. March wedding season in 8 days.`
+        : `⚠️ ALERT: No inbox file for today (${dateStr}). Last file was ${lastFileDate || 'never'}. Mary may be offline.`,
+      checkedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'PB inbox check failed', details: err.message });
+  }
+});
+
+// GET /api/monitoring/mary — summary mary status (alias for pb-inbox)
+app.get('/api/monitoring/mary', (req, res) => {
+  // Lightweight status check using cached DB record
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+    const m = db.maryMonitoring || {};
+    res.json({
+      ...m,
+      message: m.daysSinceLast >= 2
+        ? `🚨 CRITICAL: ${m.daysSinceLast} days offline`
+        : m.isAlert
+        ? `⚠️ ALERT: No file today`
+        : '✅ Operating normally',
+      checkedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
