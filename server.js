@@ -73,7 +73,7 @@ function sanitizeObject(obj) {
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
   // Allow these paths without auth
-  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status', '/api/memory/db-list', '/api/memory/db-read', '/api/memory/db-search', '/api/memory/sync', '/digital', '/api/mission-control/tasks/bulk-sync', '/onboard', '/api/digital/onboard'];
+  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status', '/api/memory/db-list', '/api/memory/db-read', '/api/memory/db-search', '/api/memory/sync', '/digital', '/api/mission-control/tasks/bulk-sync', '/onboard', '/api/digital/onboard', '/clients'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
     return next();
   }
@@ -24100,7 +24100,7 @@ app.post('/api/digital/onboard', express.json(), async (req, res) => {
   }
 });
 
-// GET /api/digital/onboard/list — admin view of all submissions (auth required)
+// GET /api/digital/onboard/list — admin view of all submissions
 app.get('/api/digital/onboard/list', (req, res) => {
   try {
     const submissions = (db.digitalOnboarding || []).sort(
@@ -24116,6 +24116,33 @@ app.get('/api/digital/onboard/list', (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Failed to list submissions', details: err.message });
   }
+});
+
+// PATCH /api/digital/onboard/:id/status — update client status (new/contacted/active/churned)
+app.patch('/api/digital/onboard/:id/status', express.json(), (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const VALID = ['new', 'contacted', 'active', 'churned'];
+    if (!VALID.includes(status)) {
+      return res.status(400).json({ error: `status must be one of: ${VALID.join(', ')}` });
+    }
+    const submissions = db.digitalOnboarding || [];
+    const idx = submissions.findIndex(s => String(s.id) === String(id));
+    if (idx < 0) return res.status(404).json({ error: 'Submission not found' });
+    submissions[idx].status    = status;
+    submissions[idx].updatedAt = new Date().toISOString();
+    saveDB(db);
+    console.log(`🏗️ Kande Digital client status: ${submissions[idx].business?.name} → ${status}`);
+    res.json({ ok: true, id, status });
+  } catch (err) {
+    res.status(500).json({ error: 'Status update failed', details: err.message });
+  }
+});
+
+// GET /clients — Kande Digital client pipeline admin view
+app.get('/clients', (req, res) => {
+  res.sendFile(path.join(__dirname, 'clients.html'));
 });
 
 // ===== TASKS BULK-SYNC API (Ralph 2026-02-20) =====
