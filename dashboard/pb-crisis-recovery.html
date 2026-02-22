@@ -548,7 +548,308 @@
                 loadSystemStatus();
                 loadCronStatus();
             }, 30000);
+
+            // Tick restoration timer
+            updateRestorationTimer();
+            setInterval(updateRestorationTimer, 60000);
         });
+
+        function updateRestorationTimer() {
+            const downSince = new Date('2026-02-13T00:00:00');
+            const now = new Date();
+            const days = Math.floor((now - downSince) / 86400000);
+            const el = document.getElementById('days-down-counter');
+            if (el) el.textContent = days;
+            const urgencyEl = document.getElementById('season-urgency');
+            if (urgencyEl) {
+                const marchStart = new Date('2026-03-01');
+                const daysToSeason = Math.max(0, Math.floor((marchStart - now) / 86400000));
+                urgencyEl.textContent = daysToSeason;
+            }
+        }
     </script>
+
+<!-- ============================================================
+     BACKUP COVERAGE PROTOCOL — Static section, always renders.
+     Added 2026-02-21 by Ralph. No API deps.
+     ============================================================ -->
+<style>
+  .proto-wrap { max-width: 1400px; margin: 0 auto; padding: 0 20px 40px; }
+  .proto-section { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 24px; overflow: hidden; }
+  .proto-head { padding: 16px 22px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 10px; }
+  .proto-title { font-size: 1rem; font-weight: 700; color: #1a1a1a; }
+  .proto-body { padding: 20px 22px; }
+  .check-list { list-style: none; }
+  .check-list li { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; }
+  .check-list li:last-child { border-bottom: none; }
+  .cb { width: 20px; height: 20px; border: 2px solid #d1d5db; border-radius: 4px; flex-shrink: 0; margin-top: 1px; cursor: pointer; transition: all .15s; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; }
+  .cb.done { background: #10b981; border-color: #10b981; color: #fff; }
+  .cb.urgent { border-color: #ef4444; }
+  .check-label { flex: 1; }
+  .check-owner { font-size: 0.75rem; color: #64748b; margin-top: 2px; }
+  .check-tag { display: inline-block; font-size: 0.65rem; font-weight: 700; padding: 1px 6px; border-radius: 6px; margin-left: 6px; vertical-align: middle; }
+  .tag-kurtis { background: #fee2e2; color: #991b1b; }
+  .tag-relay { background: #dbeafe; color: #1e40af; }
+  .tag-ralph { background: #ede9fe; color: #5b21b6; }
+  .tag-mary { background: #d1fae5; color: #065f46; }
+  .tag-urgent { background: #fef3c7; color: #92400e; }
+
+  .season-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
+  @media (max-width: 700px) { .season-grid { grid-template-columns: repeat(2,1fr); } }
+  .season-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; }
+  .season-month { font-weight: 700; font-size: 0.9rem; margin-bottom: 4px; }
+  .season-event { font-size: 0.78rem; color: #64748b; line-height: 1.5; }
+  .season-badge { display: inline-block; font-size: 0.65rem; font-weight: 700; padding: 1px 6px; border-radius: 6px; margin-bottom: 6px; }
+  .badge-critical { background: #fee2e2; color: #991b1b; }
+  .badge-hot { background: #fef3c7; color: #92400e; }
+  .badge-warm { background: #dbeafe; color: #1e40af; }
+  .badge-ok { background: #d1fae5; color: #065f46; }
+
+  .prevent-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .prevent-grid { grid-template-columns: 1fr; } }
+  .prevent-card { background: #f8f9fa; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; }
+  .prevent-title { font-weight: 700; font-size: 0.85rem; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .prevent-item { font-size: 0.8rem; color: #475569; padding: 4px 0; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 8px; }
+  .prevent-item:last-child { border-bottom: none; }
+  .status-live { width: 7px; height: 7px; background: #10b981; border-radius: 50%; flex-shrink: 0; }
+  .status-pending { width: 7px; height: 7px; background: #f59e0b; border-radius: 50%; flex-shrink: 0; }
+  .status-blocked { width: 7px; height: 7px; background: #ef4444; border-radius: 50%; flex-shrink: 0; }
+
+  .urgency-banner { background: linear-gradient(90deg, #fef3c7, #fff7ed); border: 1px solid #fde68a; border-radius: 10px; padding: 14px 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; }
+  .urgency-num { font-size: 2.5rem; font-weight: 700; color: #d97706; line-height: 1; }
+  .urgency-label { font-size: 0.8rem; color: #92400e; font-weight: 600; }
+  .urgency-detail { font-size: 0.78rem; color: #78350f; margin-top: 3px; line-height: 1.4; }
+  .proto-divider { height: 1px; background: #f1f5f9; margin: 12px 0; }
+</style>
+
+<div class="proto-wrap">
+
+  <!-- Urgency Banner -->
+  <div class="urgency-banner">
+    <div>
+      <div class="urgency-num" id="days-down-counter">9</div>
+      <div class="urgency-label">Days Mary offline</div>
+    </div>
+    <div style="width:1px;height:50px;background:#fde68a;flex-shrink:0;"></div>
+    <div>
+      <div style="font-weight:700;font-size:0.95rem;color:#92400e;">⚠️ March Wedding Season starts in <span id="season-urgency">8</span> days</div>
+      <div style="font-size:0.8rem;color:#78350f;margin-top:4px;">Every day Mary stays offline is revenue at risk. Photo Booth is highest-margin product in Q1.</div>
+      <div style="font-size:0.8rem;color:#78350f;margin-top:2px;">Action required from Kurtis — see checklist below.</div>
+    </div>
+  </div>
+
+  <!-- Restoration Checklist -->
+  <div class="proto-section">
+    <div class="proto-head">
+      <div style="font-size:1.1rem;">📋</div>
+      <div class="proto-title">Mary Restoration Checklist — When She Comes Back Online</div>
+      <div style="margin-left:auto;font-size:0.75rem;color:#64748b;">Click checkboxes to track progress</div>
+    </div>
+    <div class="proto-body">
+      <div style="font-size:0.8rem;color:#64748b;margin-bottom:16px;">Complete in order. Don't mark done until fully verified. Return to this page to track progress.</div>
+
+      <div style="font-weight:700;font-size:0.8rem;color:#ef4444;margin-bottom:8px;">PHASE 1: Diagnosis (Kurtis — Today)</div>
+      <ul class="check-list" id="phase1-list">
+        <li><div class="cb urgent" onclick="toggleCheck(this)"></div><div><div class="check-label">Identify root cause of Mary blackout (cron failure? Gmail auth? Config drift?)<span class="check-tag tag-kurtis">Kurtis</span><span class="check-tag tag-urgent">URGENT</span></div><div class="check-owner">Check OpenClaw gateway logs + Mary cron schedule config</div></div></li>
+        <li><div class="cb urgent" onclick="toggleCheck(this)"></div><div><div class="check-label">Verify pb-gmail-draft-sync cron is in gateway schedule<span class="check-tag tag-kurtis">Kurtis</span><span class="check-tag tag-urgent">URGENT</span></div><div class="check-owner">Run: openclaw gateway status → check Mary-related jobs</div></div></li>
+        <li><div class="cb urgent" onclick="toggleCheck(this)"></div><div><div class="check-label">Check if Gmail OAuth token expired (most likely cause)<span class="check-tag tag-kurtis">Kurtis</span></div><div class="check-owner">Run: gog gmail search "test" — if error, token needs refresh</div></div></li>
+        <li><div class="cb" onclick="toggleCheck(this)"></div><div><div class="check-label">Manually review Gmail for Photo Booth inquiries Feb 13–21<span class="check-tag tag-kurtis">Kurtis</span></div><div class="check-owner">Estimated 51+ missed inquiries. Some still recoverable with apology response.</div></div></li>
+      </ul>
+
+      <div class="proto-divider"></div>
+      <div style="font-weight:700;font-size:0.8rem;color:#f59e0b;margin:12px 0 8px;">PHASE 2: Restoration (Kurtis + Mary)</div>
+      <ul class="check-list">
+        <li><div class="cb" onclick="toggleCheck(this)"></div><div><div class="check-label">Fix root cause and restart Mary cron<span class="check-tag tag-kurtis">Kurtis</span></div><div class="check-owner">After root cause confirmed in Phase 1</div></div></li>
+        <li><div class="cb" onclick="toggleCheck(this)"></div><div><div class="check-label">Verify Mary produces ONE successful inbox file (inbox-YYYY-MM-DD.md)<span class="check-tag tag-mary">Mary</span></div><div class="check-owner">Check: /Users/kurtishon/clawd/agent-output/mary/inbox-{today}.md exists</div></div></li>
+        <li><div class="cb" onclick="toggleCheck(this)"></div><div><div class="check-label">Run 3 consecutive days clean — no skipped runs, no errors<span class="check-tag tag-mary">Mary</span><span class="check-tag tag-ralph">Ralph</span></div><div class="check-owner">Monitor: GET /api/monitoring/pb-inbox daily for 3 days. All must return status=ok.</div></div></li>
+        <li><div class="cb" onclick="toggleCheck(this)"></div><div><div class="check-label">Mary processes all backlogged Feb 13–21 inquiries<span class="check-tag tag-mary">Mary</span></div><div class="check-owner">Respond to all recoverable inquiries. Log each in her memory file. Flag lost revenue.</div></div></li>
+      </ul>
+
+      <div class="proto-divider"></div>
+      <div style="font-weight:700;font-size:0.8rem;color:#10b981;margin:12px 0 8px;">PHASE 3: March Season Readiness (All Agents)</div>
+      <ul class="check-list">
+        <li><div class="cb" onclick="toggleCheck(this)"></div><div><div class="check-label">March/April calendar review — all known wedding venue events flagged<span class="check-tag tag-relay">Relay</span></div><div class="check-owner">Add to /calendar: NBVA Mar 17-19, NAMA Apr 22-24, spring venue peak weeks</div></div></li>
+        <li><div class="cb" onclick="toggleCheck(this)"></div><div><div class="check-label">PB pricing page review — ensure Valentine's pricing not showing<span class="check-tag tag-mary">Mary</span></div><div class="check-owner">Switch to spring/wedding season pricing and packages</div></div></li>
+        <li><div class="cb" onclick="toggleCheck(this)"></div><div><div class="check-label">Valentine's loss review — document what was lost, what's recoverable<span class="check-tag tag-kurtis">Kurtis</span></div><div class="check-owner">Business impact assessment: How many bookings lost? Revenue impact? Recoverable?</div></div></li>
+        <li><div class="cb" onclick="toggleCheck(this)"></div><div><div class="check-label">Declare Mary "restored and reliable" after 7 clean days<span class="check-tag tag-kurtis">Kurtis</span></div><div class="check-owner">Only after: root cause fixed + 7 consecutive clean runs + backlog cleared</div></div></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Backup Coverage Protocol -->
+  <div class="proto-section">
+    <div class="proto-head">
+      <div style="font-size:1.1rem;">🛡️</div>
+      <div class="proto-title">Backup Coverage Protocol — What to Do When Mary Goes Offline</div>
+      <div style="margin-left:auto;font-size:0.75rem;color:#64748b;font-style:italic;">For future outages</div>
+    </div>
+    <div class="proto-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+        <div>
+          <div style="font-weight:700;font-size:0.85rem;color:#1a1a1a;margin-bottom:10px;">🔴 Day 1 (Immediate)</div>
+          <ul class="check-list" style="font-size:0.82rem;">
+            <li style="border:none;padding:5px 0;"><div style="color:#10b981;margin-right:6px;font-size:0.8rem;">→</div><div><strong>Kurtis:</strong> Check /api/monitoring/pb-inbox — if ALERT, investigate immediately. Don't wait for standup.</div></li>
+            <li style="border:none;padding:5px 0;"><div style="color:#10b981;margin-right:6px;font-size:0.8rem;">→</div><div><strong>Ralph:</strong> Heartbeat polling of /api/monitoring/pb-inbox fires automatic alert if no file by 10 AM PT.</div></li>
+            <li style="border:none;padding:5px 0;"><div style="color:#10b981;margin-right:6px;font-size:0.8rem;">→</div><div><strong>Kurtis:</strong> Forward Gmail → personal email as backup. Takes 2 minutes.</div></li>
+            <li style="border:none;padding:5px 0;"><div style="color:#10b981;margin-right:6px;font-size:0.8rem;">→</div><div><strong>Relay:</strong> Note in daily standup: "Mary offline — manual PB inbox today"</div></li>
+          </ul>
+        </div>
+
+        <div>
+          <div style="font-weight:700;font-size:0.85rem;color:#1a1a1a;margin-bottom:10px;">🟡 Day 2–3 (Escalate)</div>
+          <ul class="check-list" style="font-size:0.82rem;">
+            <li style="border:none;padding:5px 0;"><div style="color:#f59e0b;margin-right:6px;font-size:0.8rem;">→</div><div><strong>Kurtis:</strong> Root cause diagnosis required — not optional. Check: Gmail auth, cron config, OpenClaw logs.</div></li>
+            <li style="border:none;padding:5px 0;"><div style="color:#f59e0b;margin-right:6px;font-size:0.8rem;">→</div><div><strong>Kurtis:</strong> Manually review Gmail for PB leads. Respond to any time-sensitive inquiries directly.</div></li>
+            <li style="border:none;padding:5px 0;"><div style="color:#f59e0b;margin-right:6px;font-size:0.8rem;">→</div><div><strong>Ralph:</strong> Deploy /api/monitoring/pb-inbox alert to Telegram if not already set up.</div></li>
+            <li style="border:none;padding:5px 0;"><div style="color:#f59e0b;margin-right:6px;font-size:0.8rem;">→</div><div><strong>Relay:</strong> Manually check PB inquiry email once daily until Mary restored.</div></li>
+          </ul>
+        </div>
+
+        <div>
+          <div style="font-weight:700;font-size:0.85rem;color:#1a1a1a;margin-bottom:10px;">🔴 Day 4+ (Crisis Mode)</div>
+          <ul class="check-list" style="font-size:0.82rem;">
+            <li style="border:none;padding:5px 0;"><div style="color:#ef4444;margin-right:6px;font-size:0.8rem;">→</div><div><strong>Kurtis:</strong> BLOCK ALL CALENDAR TIME for Mary fix. Revenue is at immediate risk.</div></li>
+            <li style="border:none;padding:5px 0;"><div style="color:#ef4444;margin-right:6px;font-size:0.8rem;">→</div><div><strong>Kurtis:</strong> Consider temporary manual response for all PB Gmail inquiries.</div></li>
+            <li style="border:none;padding:5px 0;"><div style="color:#ef4444;margin-right:6px;font-size:0.8rem;">→</div><div><strong>Ralph:</strong> Open /pb-crisis-recovery as command center. All monitoring live.</div></li>
+          </ul>
+        </div>
+
+        <div>
+          <div style="font-weight:700;font-size:0.85rem;color:#1a1a1a;margin-bottom:10px;">✅ Recovery Criteria</div>
+          <ul class="check-list" style="font-size:0.82rem;">
+            <li style="border:none;padding:5px 0;"><div style="color:#10b981;margin-right:6px;font-size:0.8rem;">✓</div><div>Root cause documented in Mary's memory file</div></li>
+            <li style="border:none;padding:5px 0;"><div style="color:#10b981;margin-right:6px;font-size:0.8rem;">✓</div><div>3 consecutive clean days: /api/monitoring/pb-inbox → status=ok</div></li>
+            <li style="border:none;padding:5px 0;"><div style="color:#10b981;margin-right:6px;font-size:0.8rem;">✓</div><div>Backlog processed — all recoverable leads responded to</div></li>
+            <li style="border:none;padding:5px 0;"><div style="color:#10b981;margin-right:6px;font-size:0.8rem;">✓</div><div>Prevention measures in place (see below)</div></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Peak Season Calendar -->
+  <div class="proto-section">
+    <div class="proto-head">
+      <div style="font-size:1.1rem;">📅</div>
+      <div class="proto-title">PB Peak Season Calendar — Critical Coverage Windows</div>
+    </div>
+    <div class="proto-body">
+      <div style="font-size:0.8rem;color:#ef4444;font-weight:600;margin-bottom:14px;">⚠️ Mary CANNOT be offline during any of these windows. One missed inquiry = $500-2,000 in lost bookings.</div>
+      <div class="season-grid">
+        <div class="season-card" style="border-color:#ef4444;">
+          <div class="season-badge badge-critical">🔴 NOW</div>
+          <div class="season-month">Feb 13 – Mar 1</div>
+          <div class="season-event">Late Valentine's + Early Wedding Season<br><strong>Mary offline 9+ days</strong><br>Estimated 51+ missed leads</div>
+        </div>
+        <div class="season-card" style="border-color:#f59e0b;">
+          <div class="season-badge badge-hot">🟠 IMMINENT</div>
+          <div class="season-month">March 2026</div>
+          <div class="season-event">Spring Wedding Season opens<br>NBVA Mar 17–19 (LV)<br>Booking volume 2–3x baseline</div>
+        </div>
+        <div class="season-card" style="border-color:#f59e0b;">
+          <div class="season-badge badge-hot">🟠 HIGH</div>
+          <div class="season-month">April 2026</div>
+          <div class="season-event">Peak spring weddings<br>NAMA Apr 22–24 (LA)<br>Highest inquiry volume of Q1</div>
+        </div>
+        <div class="season-card" style="border-color:#3b82f6;">
+          <div class="season-badge badge-warm">🔵 PLANNED</div>
+          <div class="season-month">May–June 2026</div>
+          <div class="season-event">Summer wedding season<br>Graduation events<br>Secondary peak volume</div>
+        </div>
+        <div class="season-card" style="border-color:#d1fae5;">
+          <div class="season-badge badge-ok">🟢 LOW</div>
+          <div class="season-month">July–Aug 2026</div>
+          <div class="season-event">Summer slowdown<br>Best time for maintenance<br>Mary updates / cron changes</div>
+        </div>
+        <div class="season-card" style="border-color:#f59e0b;">
+          <div class="season-badge badge-hot">🟠 HIGH</div>
+          <div class="season-month">Sept–Oct 2026</div>
+          <div class="season-event">Fall wedding season<br>Quinceañera season peaks<br>Halloween events</div>
+        </div>
+        <div class="season-card" style="border-color:#f59e0b;">
+          <div class="season-badge badge-hot">🟠 HIGH</div>
+          <div class="season-month">November 2026</div>
+          <div class="season-event">Holiday party season opens<br>Corporate event bookings<br>Dec inquiry volume builds</div>
+        </div>
+        <div class="season-card" style="border-color:#ef4444;">
+          <div class="season-badge badge-critical">🔴 CRITICAL</div>
+          <div class="season-month">Dec–Jan 2027</div>
+          <div class="season-event">Holiday season peak<br>NYE events — highest single-day<br>Valentine's early bookings</div>
+        </div>
+      </div>
+      <div style="font-size:0.78rem;color:#64748b;padding:10px 12px;background:#f8f9fa;border-radius:8px;border:1px solid #e2e8f0;">
+        📌 <strong>Rule:</strong> NO cron changes, gateway restarts, or token refreshes during 🔴 or 🟠 windows without explicit test first. If Mary needs maintenance, do it in July–August 🟢 window.
+      </div>
+    </div>
+  </div>
+
+  <!-- Prevention Framework -->
+  <div class="proto-section">
+    <div class="proto-head">
+      <div style="font-size:1.1rem;">🔒</div>
+      <div class="proto-title">Prevention Framework — What's Live & What's Pending</div>
+    </div>
+    <div class="proto-body">
+      <div class="prevent-grid">
+        <div class="prevent-card">
+          <div class="prevent-title">✅ Live (Built Feb 21)</div>
+          <div class="prevent-item"><div class="status-live"></div><strong>GET /api/monitoring/pb-inbox</strong> — Daily file existence check</div>
+          <div class="prevent-item"><div class="status-live"></div><strong>GET /api/monitoring/mary</strong> — Cached status for heartbeat polling</div>
+          <div class="prevent-item"><div class="status-live"></div><strong>/pb-crisis-recovery</strong> — This page; command center for outages</div>
+          <div class="prevent-item"><div class="status-live"></div><strong>Job Idempotency Sentinel</strong> — Prevents cron double-firing</div>
+          <div class="prevent-item"><div class="status-live"></div><strong>CRM Status Diff</strong> — Auto-alerts on opening_soon→active</div>
+          <div class="prevent-item"><div class="status-live"></div><strong>Pipeline Engagement Alerts</strong> — Phone pivot backlog surfacing</div>
+        </div>
+        <div class="prevent-card">
+          <div class="prevent-title">⏳ Pending (Needs Action)</div>
+          <div class="prevent-item"><div class="status-pending"></div>Heartbeat cron polling /api/monitoring/pb-inbox daily<span style="font-size:0.7rem;color:#92400e;margin-left:6px;">Wire via OpenClaw cron</span></div>
+          <div class="prevent-item"><div class="status-pending"></div>Scout-morning sentinel wired into cron startup command<span style="font-size:0.7rem;color:#92400e;margin-left:6px;">Kurtis action needed</span></div>
+          <div class="prevent-item"><div class="status-pending"></div>Telegram alert when Mary offline &gt;1 day<span style="font-size:0.7rem;color:#92400e;margin-left:6px;">Ralph can wire via heartbeat</span></div>
+          <div class="prevent-item"><div class="status-blocked"></div>Gmail OAuth token auto-refresh<span style="font-size:0.7rem;color:#dc2626;margin-left:6px;">Needs Google OAuth credentials</span></div>
+          <div class="prevent-item"><div class="status-blocked"></div>Mary backup agent (covers during outage)<span style="font-size:0.7rem;color:#dc2626;margin-left:6px;">Design pending root cause</span></div>
+          <div class="prevent-item"><div class="status-blocked"></div>PB inquiry auto-reply when Mary down<span style="font-size:0.7rem;color:#dc2626;margin-left:6px;">Needs Gmail API credentials</span></div>
+        </div>
+      </div>
+      <div style="margin-top:16px;padding:12px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:0.8rem;color:#065f46;">
+        <strong>Monitoring API access:</strong> <code style="background:#d1fae5;padding:2px 6px;border-radius:4px;">curl -H "x-api-key: kande2026" https://vend.kandedash.com/api/monitoring/pb-inbox</code><br>
+        Returns: <code>status=ok|alert|critical</code>, <code>daysSinceLast</code>, <code>message</code> — safe to poll from any cron job or heartbeat.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleCheck(el) {
+  if (el.classList.contains('done')) {
+    el.classList.remove('done');
+    el.textContent = '';
+  } else {
+    el.classList.add('done');
+    el.textContent = '✓';
+  }
+  // Persist via localStorage
+  const list = el.closest('ul');
+  if (list) {
+    const checks = list.querySelectorAll('.cb');
+    const key = 'pb-checklist-' + (list.id || Math.random());
+    localStorage.setItem(key, JSON.stringify([...checks].map(c => c.classList.contains('done'))));
+  }
+}
+
+// Restore checkbox state from localStorage
+document.querySelectorAll('ul.check-list').forEach((list, i) => {
+  const key = 'pb-checklist-' + (list.id || i);
+  const saved = localStorage.getItem(key);
+  if (saved) {
+    const states = JSON.parse(saved);
+    list.querySelectorAll('.cb').forEach((cb, j) => {
+      if (states[j]) { cb.classList.add('done'); cb.textContent = '✓'; }
+    });
+  }
+});
+</script>
+
 </body>
 </html>
