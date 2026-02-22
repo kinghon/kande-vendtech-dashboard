@@ -24832,3 +24832,48 @@ app.get('/api/jobs/sentinel/status', (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ===== DEPLOYMENT DIAGNOSTICS (Ralph 2026-02-21 pm — Railway cache-bust) =====
+// Added to force Railway to rebuild and redeploy with the full server.js.
+// Railway was caching a pre-8AM version missing all routes added today.
+// DEPLOY_VERSION: 2026-02-21-v4 (8AM+12PM+4PM+8PM sessions)
+
+app.get('/api/debug/deploy-version', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+  // Count registered routes to verify full deployment
+  const routeCount = app._router ? app._router.stack.filter(r => r.route).length : 0;
+  const totalLines = 24835; // Expected server.js line count
+  const deployVersion = '2026-02-21-v4';
+  const expectedRoutes = [
+    '/api/pipeline/engagement-alerts',
+    '/api/pipeline/account-tiers',
+    '/api/crm/status-diff',
+    '/api/monitoring/pb-inbox',
+    '/api/jobs/sentinel',
+    '/scout-intel',
+    '/account-tiers',
+    '/briefing'
+  ];
+
+  // Check which expected routes are registered
+  const registeredPaths = app._router
+    ? app._router.stack.filter(r => r.route).map(r => r.route.path)
+    : [];
+  const missingRoutes = expectedRoutes.filter(r => !registeredPaths.includes(r));
+
+  res.json({
+    ok:            true,
+    deployVersion,
+    totalLines,
+    routeCount,
+    expectedNew:   expectedRoutes.length,
+    missingRoutes,
+    allNewRoutesPresent: missingRoutes.length === 0,
+    serverStarted: new Date().toISOString(),
+    message:       missingRoutes.length === 0
+      ? `✅ Full deployment confirmed — ${routeCount} routes registered`
+      : `⚠️ PARTIAL DEPLOYMENT — ${missingRoutes.length} routes missing: ${missingRoutes.join(', ')}`
+  });
+});
