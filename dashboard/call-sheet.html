@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monday Call Sheet — Kande VendTech</title>
+<style>
+:root {
+  --bg: #f8f9fa;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --text: #1a1a1a;
+  --muted: #64748b;
+  --accent: #2563eb;
+  --green: #16a34a;
+  --orange: #ea580c;
+  --red: #dc2626;
+  --yellow: #d97706;
+  --purple: #7c3aed;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+.nav { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; height: 56px; gap: 8px; }
+.nav-brand { font-weight: 700; font-size: 15px; color: var(--text); margin-right: 16px; }
+.nav a { color: var(--muted); text-decoration: none; font-size: 13px; padding: 6px 10px; border-radius: 6px; }
+.nav a:hover, .nav a.active { background: var(--bg); color: var(--text); }
+
+.header { padding: 20px 24px; background: var(--card); border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.header-left h1 { font-size: 22px; font-weight: 700; }
+.header-left p { color: var(--muted); font-size: 13px; margin-top: 4px; }
+.date-badge { font-size: 12px; font-weight: 600; background: #eff6ff; color: var(--accent); padding: 4px 12px; border-radius: 20px; margin-top: 6px; display: inline-block; }
+
+.stats-row { display: flex; gap: 12px; padding: 14px 24px; background: var(--card); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.stat { text-align: center; }
+.stat-n { font-size: 20px; font-weight: 700; }
+.stat-l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.stat-n.red { color: var(--red); }
+.stat-n.orange { color: var(--orange); }
+.stat-n.green { color: var(--green); }
+.stat-divider { width: 1px; background: var(--border); align-self: stretch; }
+
+.content { padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
+
+/* Call card */
+.call-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: opacity 0.2s; }
+.call-card.called-done { opacity: 0.55; }
+.call-card.called-done .card-header { background: #f1f5f9; }
+
+.card-header { padding: 14px 18px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.priority-badge { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.p-urgent { background: #fef2f2; color: var(--red); border: 2px solid var(--red); }
+.p-phone_pivot { background: #fff7ed; color: var(--orange); border: 2px solid var(--orange); }
+.p-hot { background: #eff6ff; color: var(--accent); border: 2px solid var(--accent); }
+.p-warm { background: #f0fdf4; color: var(--green); border: 2px solid var(--green); }
+
+.card-header-info { flex: 1; }
+.card-name { font-size: 15px; font-weight: 700; }
+.card-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.card-header-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+.signal-tag { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+.sig-urgent { background: #fef2f2; color: var(--red); }
+.sig-phone_pivot { background: #fff7ed; color: var(--orange); }
+.sig-hot { background: #eff6ff; color: var(--accent); }
+.sig-warm { background: #f0fdf4; color: var(--green); }
+
+.phone-btn { padding: 6px 14px; background: var(--green); color: #fff; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+.phone-btn:hover { background: #15803d; }
+.phone-btn.no-phone { background: var(--border); color: var(--muted); cursor: default; }
+
+.card-body { padding: 16px 18px; display: none; }
+.card-body.open { display: block; }
+
+.card-sections { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 768px) { .card-sections { grid-template-columns: 1fr; } }
+.card-section { background: var(--bg); border-radius: 8px; padding: 12px 14px; }
+.card-section.full { grid-column: 1/-1; }
+.section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 6px; }
+.section-text { font-size: 13px; line-height: 1.6; }
+
+.engagement-detail { font-size: 13px; color: var(--muted); background: #f8faff; border-left: 3px solid var(--accent); padding: 8px 12px; border-radius: 0 6px 6px 0; margin-bottom: 14px; }
+
+.win-condition { background: #f0fdf4; border-left: 3px solid var(--green); padding: 8px 12px; border-radius: 0 6px 6px 0; }
+.win-condition .section-text { color: #15803d; font-weight: 500; }
+
+.step-down-section { background: #fff7ed; border-left: 3px solid var(--orange); padding: 8px 12px; border-radius: 0 6px 6px 0; }
+.step-down-section .section-text { color: #9a3412; }
+
+.canteen-flag { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; font-size: 12px; color: var(--red); font-weight: 600; }
+
+.card-footer { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.card-footer .left { display: flex; gap: 8px; align-items: center; }
+.card-footer .right { display: flex; gap: 8px; align-items: center; }
+.btn { padding: 7px 14px; border-radius: 7px; border: none; cursor: pointer; font-size: 12px; font-weight: 500; }
+.btn-success { background: var(--green); color: #fff; }
+.btn-success:hover { background: #15803d; }
+.btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--bg); }
+.btn-called { background: #f1f5f9; color: var(--muted); border: 1px solid var(--border); }
+
+.outcome-input { padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; background: var(--bg); color: var(--text); width: 200px; }
+
+.track-badge { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 8px; text-transform: uppercase; }
+.track-residential { background: #eff6ff; color: var(--accent); }
+.track-employer { background: #faf5ff; color: var(--purple); }
+.track-senior_living { background: #f0fdf4; color: var(--green); }
+
+.sort-controls { display: flex; gap: 8px; padding: 10px 24px; background: var(--card); border-bottom: 1px solid var(--border); align-items: center; }
+.sort-btn { padding: 4px 12px; border: 1px solid var(--border); border-radius: 16px; font-size: 12px; cursor: pointer; background: var(--card); color: var(--muted); }
+.sort-btn.active { background: #eff6ff; color: var(--accent); border-color: var(--accent); }
+
+.expand-all { font-size: 12px; color: var(--accent); cursor: pointer; margin-left: auto; }
+.all-called-banner { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 24px; text-align: center; color: var(--green); }
+.all-called-banner h3 { font-size: 18px; margin-bottom: 6px; }
+.loading { text-align: center; padding: 60px; color: var(--muted); }
+</style>
+</head>
+<body>
+<nav class="nav">
+  <span class="nav-brand">Kande VendTech</span>
+  <a href="/briefing">Briefing</a>
+  <a href="/call-sheet" class="active">Call Sheet</a>
+  <a href="/account-tiers">Revenue Tiers</a>
+  <a href="/scout-intel">Scout Intel</a>
+  <a href="/team">Team</a>
+</nav>
+
+<div class="header">
+  <div class="header-left">
+    <h1>📞 Monday Call Sheet</h1>
+    <p>Prepared conversations — opener, objection, step-down, win condition — for every call.</p>
+    <span class="date-badge" id="today-date">Loading date...</span>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button class="btn btn-secondary" onclick="resetAll()">Reset Called Status</button>
+    <button class="btn btn-success" onclick="location.href='/briefing'">→ Morning Briefing</button>
+  </div>
+</div>
+
+<div class="stats-row">
+  <div class="stat"><div class="stat-n" id="s-total">—</div><div class="stat-l">Total Calls</div></div>
+  <div class="stat-divider"></div>
+  <div class="stat"><div class="stat-n orange" id="s-pending">—</div><div class="stat-l">Pending</div></div>
+  <div class="stat-divider"></div>
+  <div class="stat"><div class="stat-n green" id="s-called">—</div><div class="stat-l">Called</div></div>
+  <div class="stat-divider"></div>
+  <div class="stat"><div class="stat-n red" id="s-pivots">—</div><div class="stat-l">Must-Call Today</div></div>
+</div>
+
+<div class="sort-controls">
+  <span style="font-size:12px;color:var(--muted)">Show:</span>
+  <button class="sort-btn active" id="filter-all" onclick="setView('all', this)">All</button>
+  <button class="sort-btn" id="filter-pending" onclick="setView('pending', this)">Pending</button>
+  <button class="sort-btn" id="filter-urgent" onclick="setView('urgent', this)">Must-Call</button>
+  <span class="expand-all" onclick="toggleExpandAll()">Expand All ▾</span>
+</div>
+
+<div class="content" id="call-list">
+  <div class="loading">Loading call sheet...</div>
+</div>
+
+<script>
+const API = '/api/pipeline/call-sheet';
+const KEY = 'kande2026';
+let callSheet = [];
+let viewFilter = 'all';
+let allExpanded = false;
+
+async function load() {
+  const now = new Date();
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('today-date').textContent = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+
+  try {
+    const res = await fetch(API, { headers: { 'x-api-key': KEY } });
+    const data = await res.json();
+    callSheet = data.callSheet || [];
+    updateStats(data.stats || {});
+    renderList();
+  } catch(e) {
+    document.getElementById('call-list').innerHTML = '<div class="loading">Error loading call sheet: ' + e.message + '</div>';
+  }
+}
+
+function updateStats(s) {
+  document.getElementById('s-total').textContent = s.total || 0;
+  document.getElementById('s-pending').textContent = s.pending || 0;
+  document.getElementById('s-called').textContent = s.called || 0;
+  document.getElementById('s-pivots').textContent = s.hotPivots || 0;
+}
+
+function setView(v, el) {
+  viewFilter = v;
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderList();
+}
+
+function toggleExpandAll() {
+  allExpanded = !allExpanded;
+  document.querySelectorAll('.card-body').forEach(b => {
+    if (allExpanded) b.classList.add('open');
+    else b.classList.remove('open');
+  });
+  document.querySelector('.expand-all').textContent = allExpanded ? 'Collapse All ▴' : 'Expand All ▾';
+}
+
+function renderList() {
+  let items = [...callSheet];
+  if (viewFilter === 'pending') items = items.filter(c => !c.called);
+  if (viewFilter === 'urgent') items = items.filter(c => c.engagement_signal === 'urgent' || c.engagement_signal === 'phone_pivot');
+
+  if (items.length === 0) {
+    if (viewFilter === 'pending' && callSheet.length > 0) {
+      document.getElementById('call-list').innerHTML = `
+        <div class="all-called-banner">
+          <h3>🎉 All calls done!</h3>
+          <p>Every call on today's list has been marked as called. Great work.</p>
+        </div>`;
+    } else {
+      document.getElementById('call-list').innerHTML = '<div class="loading">No calls match this filter.</div>';
+    }
+    return;
+  }
+
+  const sigClass = { urgent: 'p-urgent', phone_pivot: 'p-phone_pivot', hot: 'p-hot', warm: 'p-warm' };
+  const sigTag = { urgent: 'sig-urgent', phone_pivot: 'sig-phone_pivot', hot: 'sig-hot', warm: 'sig-warm' };
+  const sigLabel = { urgent: '🚨 URGENT', phone_pivot: '📞 PHONE PIVOT', hot: '🔥 HOT', warm: '🟡 WARM' };
+  const trackBadge = { residential: 'track-residential', employer: 'track-employer', senior_living: 'track-senior_living' };
+  const trackLabel = { residential: '🏠 Residential', employer: '🏢 Employer', senior_living: '🏥 Senior Living' };
+
+  const html = items.map((c, i) => {
+    const isOpen = allExpanded || c.engagement_signal === 'urgent' || c.engagement_signal === 'phone_pivot';
+    const pClass = sigClass[c.engagement_signal] || 'p-warm';
+    const sTag = sigTag[c.engagement_signal] || 'sig-warm';
+    const sLabel = sigLabel[c.engagement_signal] || c.engagement_signal;
+    const tBadge = trackBadge[c.pitch_track] || 'track-residential';
+    const tLabel = trackLabel[c.pitch_track] || c.pitch_track;
+
+    const lastContact = c.last_contact
+      ? `Last contact: ${c.last_contact}${c.days_since_contact ? ` (${c.days_since_contact}d ago)` : ''}`
+      : 'First contact';
+
+    const phonePart = c.phone
+      ? `<a href="tel:${c.phone}" class="phone-btn">📞 ${esc(c.phone)}</a>`
+      : `<span class="phone-btn no-phone">No phone on file</span>`;
+
+    const canteenHtml = c.canteen_flag
+      ? `<div class="canteen-flag">⚠️ CANTEEN ACCOUNT — Use settlement opener: "Canteen settled a $6.94M class action lawsuit for hidden card surcharges in January 2026."</div>`
+      : '';
+
+    const outcomeValue = c.outcome ? ` value="${esc(c.outcome)}"` : '';
+    const calledFooter = c.called
+      ? `<div class="card-footer">
+          <div class="left" style="color:var(--green);font-size:13px;font-weight:600">✅ Called${c.calledAt ? ' at ' + new Date(c.calledAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : ''}</div>
+          <div class="right">
+            <input class="outcome-input" id="outcome-${c.id}" placeholder="Call outcome / notes"${outcomeValue}>
+            <button class="btn btn-secondary" onclick="saveOutcome(${c.id})">Save Notes</button>
+            <button class="btn btn-called" onclick="markCalled(${c.id}, false)">Undo</button>
+          </div>
+        </div>`
+      : `<div class="card-footer">
+          <div class="left">
+            <input class="outcome-input" id="outcome-${c.id}" placeholder="Quick notes before calling...">
+          </div>
+          <div class="right">
+            ${phonePart}
+            <button class="btn btn-success" onclick="markCalled(${c.id}, true)">✅ Mark Called</button>
+          </div>
+        </div>`;
+
+    return `
+    <div class="call-card ${c.called ? 'called-done' : ''}" id="card-${c.id}">
+      <div class="card-header" onclick="toggleCard(${c.id})">
+        <div class="priority-badge ${pClass}">${c.priority}</div>
+        <div class="card-header-info">
+          <div class="card-name">${esc(c.prospect_name)}</div>
+          <div class="card-meta">${esc(c.contact || '—')} · ${esc(c.units || '')} · ${lastContact}</div>
+        </div>
+        <div class="card-header-right">
+          <span class="signal-tag ${sTag}">${sLabel}</span>
+          <span class="track-badge ${tBadge}">${tLabel}</span>
+          <span style="color:var(--muted);font-size:18px">${isOpen ? '▴' : '▾'}</span>
+        </div>
+      </div>
+      <div class="card-body ${isOpen ? 'open' : ''}" id="body-${c.id}">
+        ${canteenHtml}
+        <div class="engagement-detail">📊 ${esc(c.engagement_detail || '')}</div>
+        <div class="card-sections">
+          <div class="card-section">
+            <div class="section-label">💬 Recommended Opener</div>
+            <div class="section-text">"${esc(c.recommended_opener || '')}"</div>
+          </div>
+          <div class="card-section">
+            <div class="section-label">🛡 Anticipated Objection</div>
+            <div class="section-text">${esc(c.anticipated_objection || '—')}</div>
+          </div>
+          <div class="card-section step-down-section">
+            <div class="section-label">⬇️ Step-Down Offer (if they hesitate)</div>
+            <div class="section-text">${esc(c.step_down_offer || '—')}</div>
+          </div>
+          <div class="card-section win-condition">
+            <div class="section-label">🏆 Win Condition</div>
+            <div class="section-text">${esc(c.win_condition || '—')}</div>
+          </div>
+          ${c.current_vendor && c.current_vendor !== 'Unknown' ? `
+          <div class="card-section full">
+            <div class="section-label">🏷 Current Vendor</div>
+            <div class="section-text">${esc(c.current_vendor)}</div>
+          </div>` : ''}
+          ${c.call_notes ? `
+          <div class="card-section full">
+            <div class="section-label">📝 Previous Call Notes</div>
+            <div class="section-text">${esc(c.call_notes)}</div>
+          </div>` : ''}
+        </div>
+      </div>
+      ${calledFooter}
+    </div>`;
+  }).join('');
+
+  document.getElementById('call-list').innerHTML = html;
+}
+
+function toggleCard(id) {
+  const body = document.getElementById(`body-${id}`);
+  const card = document.getElementById(`card-${id}`);
+  const arrow = card.querySelector('.card-header-right span:last-child');
+  if (body.classList.contains('open')) {
+    body.classList.remove('open');
+    if (arrow) arrow.textContent = '▾';
+  } else {
+    body.classList.add('open');
+    if (arrow) arrow.textContent = '▴';
+  }
+}
+
+async function markCalled(id, called) {
+  const outcomeEl = document.getElementById(`outcome-${id}`);
+  const notes = outcomeEl ? outcomeEl.value : '';
+  try {
+    const res = await fetch(`${API}/${id}/called`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': KEY },
+      body: JSON.stringify({ called, notes })
+    });
+    const data = await res.json();
+    const entry = callSheet.find(c => c.id === id);
+    if (entry) Object.assign(entry, data.entry);
+    updateStats({ total: callSheet.length, pending: callSheet.filter(c=>!c.called).length, called: callSheet.filter(c=>c.called).length, hotPivots: callSheet.filter(c=>c.engagement_signal==='phone_pivot'||c.engagement_signal==='urgent').length });
+    renderList();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function saveOutcome(id) {
+  const outcomeEl = document.getElementById(`outcome-${id}`);
+  if (!outcomeEl) return;
+  try {
+    await fetch(`${API}/${id}/called`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': KEY },
+      body: JSON.stringify({ called: true, outcome: outcomeEl.value, notes: outcomeEl.value })
+    });
+    const entry = callSheet.find(c => c.id === id);
+    if (entry) entry.call_notes = outcomeEl.value;
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function resetAll() {
+  if (!confirm('Reset all called statuses to uncalled? (Clears your progress for the day)')) return;
+  for (const c of callSheet) {
+    if (c.called) {
+      try {
+        await fetch(`${API}/${c.id}/called`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': KEY },
+          body: JSON.stringify({ called: false })
+        });
+        c.called = false;
+      } catch(e) { console.error(e); }
+    }
+  }
+  updateStats({ total: callSheet.length, pending: callSheet.length, called: 0, hotPivots: callSheet.filter(c=>c.engagement_signal==='phone_pivot'||c.engagement_signal==='urgent').length });
+  renderList();
+}
+
+function esc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+load();
+</script>
+</body>
+</html>

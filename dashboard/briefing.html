@@ -283,6 +283,17 @@
         </div>
       </div>
 
+      <!-- Monday Call Sheet Panel -->
+      <div class="section">
+        <div class="sec-head">
+          <div class="sec-title">📞 Prepared Call Sheet</div>
+          <a href="/call-sheet" style="font-size:0.78rem;color:var(--accent);text-decoration:none;font-weight:600;">Open Full Sheet →</a>
+        </div>
+        <div class="sec-body" id="call-sheet-body">
+          <div class="loading"><span class="spin"></span>Loading...</div>
+        </div>
+      </div>
+
       <!-- Employer Segment Activation -->
       <div class="section">
         <div class="sec-head">
@@ -668,8 +679,47 @@ async function loadAgents() {
   }
 }
 
+async function loadCallSheet() {
+  const el = document.getElementById('call-sheet-body');
+  try {
+    const r = await fetch('/api/pipeline/call-sheet', { headers: { 'x-api-key': KEY } });
+    const data = await r.json();
+    const sheet = (data.callSheet || []).slice(0, 5); // top 5
+    const stats = data.stats || {};
+    if (sheet.length === 0) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:0.82rem;padding:8px">No calls prepared yet. <a href="/call-sheet" style="color:var(--accent)">Open Call Sheet →</a></div>';
+      return;
+    }
+    const sigColor = { urgent: 'var(--red)', phone_pivot: 'var(--orange)', hot: 'var(--accent)', warm: 'var(--green)' };
+    const sigLabel = { urgent: '🚨', phone_pivot: '📞', hot: '🔥', warm: '🟡' };
+    const rows = sheet.map(c => {
+      const color = sigColor[c.engagement_signal] || 'var(--muted)';
+      const sig = sigLabel[c.engagement_signal] || '';
+      const checked = c.called ? '✅' : `<span style="color:${color};font-weight:700">${c.priority}</span>`;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);${c.called?'opacity:0.5':''}">
+        <div style="width:24px;text-align:center;flex-shrink:0;">${checked}</div>
+        <div style="flex:1;">
+          <div style="font-size:0.82rem;font-weight:600;">${sig} ${c.prospect_name}</div>
+          <div style="font-size:0.75rem;color:var(--muted);">${c.engagement_detail||''}</div>
+        </div>
+        ${c.phone ? `<a href="tel:${c.phone}" style="font-size:0.75rem;color:var(--green);text-decoration:none;flex-shrink:0;">📞</a>` : ''}
+      </div>`;
+    }).join('');
+    el.innerHTML = `
+      <div style="display:flex;gap:16px;margin-bottom:10px;">
+        <span style="font-size:0.82rem"><strong style="color:var(--orange)">${stats.pending||0}</strong> pending</span>
+        <span style="font-size:0.82rem"><strong style="color:var(--green)">${stats.called||0}</strong> called</span>
+        <span style="font-size:0.82rem"><strong style="color:var(--red)">${stats.hotPivots||0}</strong> must-call today</span>
+      </div>
+      ${rows}
+      <div style="margin-top:8px;text-align:right"><a href="/call-sheet" style="font-size:0.78rem;color:var(--accent);font-weight:600;">Full prepared call sheet with openers & objections →</a></div>`;
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--muted);font-size:0.82rem">Error: ${e.message}</div>`;
+  }
+}
+
 async function loadAll() {
-  await Promise.all([loadMary(), loadAlerts(), loadTiers(), loadBriefing(), loadDiff(), loadAgents()]);
+  await Promise.all([loadMary(), loadAlerts(), loadTiers(), loadBriefing(), loadDiff(), loadAgents(), loadCallSheet()]);
   document.getElementById('last-refresh').textContent = new Date().toLocaleTimeString('en-US', { timeZone: 'America/Los_Angeles', hour:'numeric', minute:'2-digit', hour12:true }) + ' PT';
 }
 

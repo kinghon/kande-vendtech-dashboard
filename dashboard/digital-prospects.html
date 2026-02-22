@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kande Digital — Prospect Tracker</title>
+<style>
+:root {
+  --bg: #f8f9fa;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --text: #1a1a1a;
+  --muted: #64748b;
+  --accent: #2563eb;
+  --green: #16a34a;
+  --orange: #ea580c;
+  --red: #dc2626;
+  --yellow: #d97706;
+  --purple: #7c3aed;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* Nav */
+.nav { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; height: 56px; gap: 8px; }
+.nav-brand { font-weight: 700; font-size: 15px; color: var(--text); margin-right: 16px; }
+.nav a { color: var(--muted); text-decoration: none; font-size: 13px; padding: 6px 10px; border-radius: 6px; }
+.nav a:hover, .nav a.active { background: var(--bg); color: var(--text); }
+
+/* Header */
+.header { padding: 24px; border-bottom: 1px solid var(--border); background: var(--card); display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+.header-left h1 { font-size: 22px; font-weight: 700; }
+.header-left p { color: var(--muted); font-size: 13px; margin-top: 4px; }
+.header-right { display: flex; gap: 8px; align-items: center; }
+.btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-outline { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+.btn-outline:hover { background: var(--bg); }
+
+/* Stats row */
+.stats { display: flex; gap: 12px; padding: 16px 24px; flex-wrap: wrap; background: var(--card); border-bottom: 1px solid var(--border); }
+.stat-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; min-width: 110px; }
+.stat-value { font-size: 22px; font-weight: 700; }
+.stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+.stat-value.green { color: var(--green); }
+.stat-value.orange { color: var(--orange); }
+.stat-value.red { color: var(--red); }
+.stat-value.purple { color: var(--purple); }
+
+/* Filters */
+.filters { padding: 12px 24px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--border); background: var(--card); }
+.filter-label { font-size: 12px; color: var(--muted); }
+.filter-chip { padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--card); font-size: 12px; cursor: pointer; color: var(--muted); }
+.filter-chip:hover, .filter-chip.active { border-color: var(--accent); color: var(--accent); background: #eff6ff; }
+.filter-search { padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; color: var(--text); background: var(--bg); width: 200px; }
+.filter-search:focus { outline: none; border-color: var(--accent); }
+
+/* Main content */
+.content { padding: 24px; }
+
+/* Prospect table */
+.table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+table { width: 100%; border-collapse: collapse; }
+th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); background: var(--bg); }
+td { padding: 12px 14px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #f8faff; }
+
+.badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+.badge-hvac { background: #eff6ff; color: #2563eb; }
+.badge-pest { background: #f0fdf4; color: #16a34a; }
+.badge-roofing { background: #fff7ed; color: #ea580c; }
+.badge-auto { background: #fefce8; color: #ca8a04; }
+.badge-electrical { background: #faf5ff; color: #7c3aed; }
+.badge-other { background: #f1f5f9; color: #64748b; }
+
+.pain-dot { display: inline-flex; align-items: center; gap: 4px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot-1 { background: var(--yellow); }
+.dot-2 { background: var(--orange); }
+.dot-3 { background: var(--red); }
+
+.stars { color: #f59e0b; font-size: 12px; }
+.stars-bad { color: var(--red); }
+.status-select { padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); font-size: 12px; background: var(--bg); color: var(--text); cursor: pointer; }
+
+.empty-state { text-align: center; padding: 60px; color: var(--muted); }
+.empty-state h3 { font-size: 18px; margin-bottom: 8px; }
+.empty-state p { font-size: 13px; margin-bottom: 20px; }
+
+/* Add/Edit modal */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--card); border-radius: 12px; padding: 24px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; }
+.modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+.modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.modal-grid .full { grid-column: 1/-1; }
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group label { font-size: 12px; font-weight: 600; color: var(--muted); }
+.form-group input, .form-group select, .form-group textarea { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; background: var(--bg); color: var(--text); }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--accent); }
+.form-group textarea { resize: vertical; min-height: 60px; }
+.pain-row { display: flex; gap: 8px; }
+.pain-btn { flex: 1; padding: 8px; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; background: var(--card); font-size: 13px; font-weight: 500; text-align: center; }
+.pain-btn.selected-1 { border-color: var(--yellow); background: #fefce8; color: #ca8a04; }
+.pain-btn.selected-2 { border-color: var(--orange); background: #fff7ed; color: #ea580c; }
+.pain-btn.selected-3 { border-color: var(--red); background: #fef2f2; color: var(--red); }
+.modal-footer { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; }
+
+.loading { text-align: center; padding: 60px; color: var(--muted); }
+
+.action-btns { display: flex; gap: 4px; }
+.icon-btn { padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); cursor: pointer; font-size: 12px; color: var(--muted); }
+.icon-btn:hover { background: var(--bg); color: var(--text); }
+.icon-btn.danger:hover { background: #fef2f2; color: var(--red); border-color: var(--red); }
+
+.category-header { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 8px 14px; background: var(--bg); border-bottom: 1px solid var(--border); }
+
+.count-badge { background: var(--accent); color: #fff; font-size: 11px; border-radius: 10px; padding: 2px 7px; margin-left: 6px; }
+</style>
+</head>
+<body>
+<nav class="nav">
+  <span class="nav-brand">Kande Digital</span>
+  <a href="/digital">Tools Hub</a>
+  <a href="/digital/prospects" class="active">Prospects</a>
+  <a href="/clients">VT Clients</a>
+  <a href="/scout-intel">Scout Intel</a>
+  <a href="/briefing">Briefing</a>
+</nav>
+
+<div class="header">
+  <div class="header-left">
+    <h1>📋 Kande Digital Prospect Tracker</h1>
+    <p>Scout's research container. Add GMB leads here — Relay picks them up when pain score ≥ 2.</p>
+  </div>
+  <div class="header-right">
+    <button class="btn btn-outline" onclick="exportCSV()">Export CSV</button>
+    <button class="btn btn-primary" onclick="openAddModal()">+ Add Prospect</button>
+  </div>
+</div>
+
+<div class="stats" id="stats-row">
+  <div class="stat-card"><div class="stat-value" id="stat-total">—</div><div class="stat-label">Total</div></div>
+  <div class="stat-card"><div class="stat-value orange" id="stat-new">—</div><div class="stat-label">New</div></div>
+  <div class="stat-card"><div class="stat-value green" id="stat-contacted">—</div><div class="stat-label">Contacted</div></div>
+  <div class="stat-card"><div class="stat-value red" id="stat-high-pain">—</div><div class="stat-label">High Pain (3)</div></div>
+  <div class="stat-card"><div class="stat-value" id="stat-hvac">—</div><div class="stat-label">HVAC</div></div>
+  <div class="stat-card"><div class="stat-value" id="stat-pest">—</div><div class="stat-label">Pest Control</div></div>
+  <div class="stat-card"><div class="stat-value" id="stat-roofing">—</div><div class="stat-label">Roofing</div></div>
+  <div class="stat-card"><div class="stat-value purple" id="stat-avg-pain">—</div><div class="stat-label">Avg Pain</div></div>
+</div>
+
+<div class="filters">
+  <span class="filter-label">Filter:</span>
+  <span class="filter-chip active" data-filter="all" onclick="setFilter('all', this)">All</span>
+  <span class="filter-chip" data-filter="hvac" onclick="setFilter('hvac', this)">🔵 HVAC</span>
+  <span class="filter-chip" data-filter="pest_control" onclick="setFilter('pest_control', this)">🟢 Pest Control</span>
+  <span class="filter-chip" data-filter="roofing" onclick="setFilter('roofing', this)">🟠 Roofing</span>
+  <span class="filter-chip" data-filter="new" onclick="setStatusFilter('new', this)">New</span>
+  <span class="filter-chip" data-filter="contacted" onclick="setStatusFilter('contacted', this)">Contacted</span>
+  <span class="filter-chip" data-filter="high-pain" onclick="setFilter('high-pain', this)">🔴 High Pain</span>
+  <input class="filter-search" type="text" placeholder="Search businesses..." oninput="onSearch(this.value)">
+</div>
+
+<div class="content">
+  <div id="table-container" class="loading">Loading prospects...</div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2 id="modal-title">Add Prospect</h2>
+    <div class="modal-grid">
+      <div class="form-group full">
+        <label>Business Name *</label>
+        <input type="text" id="f-name" placeholder="e.g. Desert Air HVAC">
+      </div>
+      <div class="form-group">
+        <label>City</label>
+        <input type="text" id="f-city" value="Las Vegas" placeholder="Las Vegas">
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="f-category">
+          <option value="hvac">HVAC</option>
+          <option value="pest_control">Pest Control</option>
+          <option value="roofing">Roofing</option>
+          <option value="auto_repair">Auto Repair</option>
+          <option value="electrical">Electrical</option>
+          <option value="landscaping">Landscaping</option>
+          <option value="plumbing">Plumbing</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="text" id="f-phone" placeholder="(702) 555-0123">
+      </div>
+      <div class="form-group">
+        <label>Owner / Manager</label>
+        <input type="text" id="f-owner" placeholder="Name if known">
+      </div>
+      <div class="form-group">
+        <label>GMB URL</label>
+        <input type="text" id="f-gmb" placeholder="google.com/maps/...">
+      </div>
+      <div class="form-group">
+        <label>Star Rating</label>
+        <input type="number" id="f-stars" placeholder="3.8" min="1" max="5" step="0.1">
+      </div>
+      <div class="form-group">
+        <label>Review Count</label>
+        <input type="number" id="f-reviews" placeholder="12">
+      </div>
+      <div class="form-group">
+        <label>Last GMB Post</label>
+        <input type="text" id="f-lastpost" placeholder="e.g. 8 months ago">
+      </div>
+      <div class="form-group">
+        <label>Response Rate (%)</label>
+        <input type="number" id="f-response" placeholder="0" min="0" max="100">
+      </div>
+      <div class="form-group full">
+        <label>Pain Score (1=mild, 2=moderate, 3=high)</label>
+        <div class="pain-row">
+          <button class="pain-btn" data-pain="1" onclick="selectPain(1)">1 — Mild</button>
+          <button class="pain-btn" data-pain="2" onclick="selectPain(2)">2 — Moderate</button>
+          <button class="pain-btn" data-pain="3" onclick="selectPain(3)">3 — High 🔴</button>
+        </div>
+      </div>
+      <div class="form-group full">
+        <label>Estimated Monthly Revenue Lost</label>
+        <input type="text" id="f-revenue" placeholder="e.g. $2,000–$5,000/mo in missed calls">
+      </div>
+      <div class="form-group full">
+        <label>Notes</label>
+        <textarea id="f-notes" placeholder="Any additional context..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="f-status">
+          <option value="new">New</option>
+          <option value="contacted">Contacted</option>
+          <option value="pitched">Pitched</option>
+          <option value="active">Active Client</option>
+          <option value="passed">Passed</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProspect()">Save Prospect</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/api/digital/prospects';
+const KEY = 'kande2026';
+let allProspects = [];
+let filterCategory = null;
+let filterStatus = null;
+let searchQuery = '';
+let selectedPain = 1;
+let editId = null;
+
+async function load() {
+  try {
+    const res = await fetch(API, { headers: { 'x-api-key': KEY } });
+    const data = await res.json();
+    allProspects = data.prospects || [];
+    updateStats(data.stats || {});
+    renderTable();
+  } catch(e) {
+    document.getElementById('table-container').innerHTML = '<div class="empty-state"><h3>Error loading prospects</h3><p>' + e.message + '</p></div>';
+  }
+}
+
+function updateStats(s) {
+  document.getElementById('stat-total').textContent = s.total || 0;
+  document.getElementById('stat-new').textContent = (s.byStatus || {}).new || 0;
+  document.getElementById('stat-contacted').textContent = (s.byStatus || {}).contacted || 0;
+  document.getElementById('stat-high-pain').textContent = s.highPainCount || 0;
+  document.getElementById('stat-hvac').textContent = (s.byCategory || {}).hvac || 0;
+  document.getElementById('stat-pest').textContent = (s.byCategory || {}).pest_control || 0;
+  document.getElementById('stat-roofing').textContent = (s.byCategory || {}).roofing || 0;
+  document.getElementById('stat-avg-pain').textContent = s.avgPainScore || '—';
+}
+
+function renderTable() {
+  let filtered = allProspects.filter(p => {
+    if (filterCategory === 'high-pain') return (p.pain_score || 0) >= 3;
+    if (filterCategory && !['hvac','pest_control','roofing','auto_repair','electrical'].includes(filterCategory)) { /* status filter */ }
+    if (filterCategory && ['hvac','pest_control','roofing','auto_repair','electrical'].includes(filterCategory)) {
+      if (p.category !== filterCategory) return false;
+    }
+    if (filterStatus && p.status !== filterStatus) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      return (p.businessName||'').toLowerCase().includes(q) || (p.city||'').toLowerCase().includes(q) || (p.owner_name||'').toLowerCase().includes(q);
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    document.getElementById('table-container').innerHTML = `
+      <div class="table-wrap">
+        <div class="empty-state">
+          <h3>No prospects yet</h3>
+          <p>Scout: Add HVAC leads here with GMB URL, star rating, review count, last post date, and pain score.</p>
+          <button class="btn btn-primary" onclick="openAddModal()">+ Add First Prospect</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const catBadge = {
+    hvac: '<span class="badge badge-hvac">HVAC</span>',
+    pest_control: '<span class="badge badge-pest">Pest</span>',
+    roofing: '<span class="badge badge-roofing">Roofing</span>',
+    auto_repair: '<span class="badge" style="background:#fefce8;color:#ca8a04">Auto</span>',
+    electrical: '<span class="badge badge-electrical">Electrical</span>',
+  };
+
+  const signalColor = { 'new': '#64748b', 'contacted': '#2563eb', 'pitched': '#7c3aed', 'active': '#16a34a', 'passed': '#dc2626' };
+
+  const rows = filtered.map(p => {
+    const stars = p.star_rating ? `<span class="${p.star_rating < 3.5 ? 'stars-bad' : 'stars'}">★${p.star_rating}</span>` : '—';
+    const reviews = p.review_count !== null ? p.review_count : '—';
+    const pain = p.pain_score || 1;
+    const painDot = `<span class="pain-dot"><span class="dot dot-${pain}"></span>${pain}</span>`;
+    const cat = catBadge[p.category] || `<span class="badge badge-other">${p.category||'other'}</span>`;
+    const statusColor = signalColor[p.status] || '#64748b';
+    return `
+    <tr>
+      <td><strong>${escHtml(p.businessName)}</strong><br><span style="color:var(--muted);font-size:11px">${escHtml(p.city||'Las Vegas')}</span></td>
+      <td>${cat}</td>
+      <td>${stars} <span style="color:var(--muted);font-size:11px">(${reviews})</span></td>
+      <td><span style="color:var(--muted);font-size:12px">${escHtml(p.last_gmb_post||'—')}</span></td>
+      <td>${painDot}</td>
+      <td>${p.phone ? `<a href="tel:${p.phone}" style="color:var(--accent);font-size:12px">${escHtml(p.phone)}</a>` : '<span style="color:var(--muted)">—</span>'}</td>
+      <td>
+        <select class="status-select" onchange="updateStatus(${p.id}, this.value)" style="border-color:${statusColor}">
+          <option ${p.status==='new'?'selected':''} value="new">New</option>
+          <option ${p.status==='contacted'?'selected':''} value="contacted">Contacted</option>
+          <option ${p.status==='pitched'?'selected':''} value="pitched">Pitched</option>
+          <option ${p.status==='active'?'selected':''} value="active">Active</option>
+          <option ${p.status==='passed'?'selected':''} value="passed">Passed</option>
+        </select>
+      </td>
+      <td>
+        <div class="action-btns">
+          <button class="icon-btn" onclick="editProspect(${p.id})" title="Edit">✏️</button>
+          <button class="icon-btn danger" onclick="deleteProspect(${p.id})" title="Delete">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('table-container').innerHTML = `
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Business</th>
+          <th>Category</th>
+          <th>Stars / Reviews</th>
+          <th>Last GMB Post</th>
+          <th>Pain</th>
+          <th>Phone</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+function setFilter(cat, el) {
+  filterCategory = cat === 'all' ? null : cat;
+  filterStatus = null;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderTable();
+}
+
+function setStatusFilter(status, el) {
+  filterStatus = status;
+  filterCategory = null;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderTable();
+}
+
+function onSearch(q) {
+  searchQuery = q;
+  renderTable();
+}
+
+function selectPain(n) {
+  selectedPain = n;
+  document.querySelectorAll('.pain-btn').forEach(b => {
+    b.className = 'pain-btn';
+    if (parseInt(b.dataset.pain) === n) b.classList.add(`selected-${n}`);
+  });
+}
+
+function openAddModal() {
+  editId = null;
+  document.getElementById('modal-title').textContent = 'Add Prospect';
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-city').value = 'Las Vegas';
+  document.getElementById('f-category').value = 'hvac';
+  document.getElementById('f-phone').value = '';
+  document.getElementById('f-owner').value = '';
+  document.getElementById('f-gmb').value = '';
+  document.getElementById('f-stars').value = '';
+  document.getElementById('f-reviews').value = '';
+  document.getElementById('f-lastpost').value = '';
+  document.getElementById('f-response').value = '';
+  document.getElementById('f-revenue').value = '';
+  document.getElementById('f-notes').value = '';
+  document.getElementById('f-status').value = 'new';
+  selectPain(1);
+  document.getElementById('modal').classList.add('open');
+}
+
+function editProspect(id) {
+  const p = allProspects.find(x => x.id === id);
+  if (!p) return;
+  editId = id;
+  document.getElementById('modal-title').textContent = 'Edit Prospect';
+  document.getElementById('f-name').value = p.businessName || '';
+  document.getElementById('f-city').value = p.city || 'Las Vegas';
+  document.getElementById('f-category').value = p.category || 'hvac';
+  document.getElementById('f-phone').value = p.phone || '';
+  document.getElementById('f-owner').value = p.owner_name || '';
+  document.getElementById('f-gmb').value = p.gmb_url || '';
+  document.getElementById('f-stars').value = p.star_rating || '';
+  document.getElementById('f-reviews').value = p.review_count || '';
+  document.getElementById('f-lastpost').value = p.last_gmb_post || '';
+  document.getElementById('f-response').value = p.response_rate || '';
+  document.getElementById('f-revenue').value = p.estimated_lost_revenue || '';
+  document.getElementById('f-notes').value = p.notes || '';
+  document.getElementById('f-status').value = p.status || 'new';
+  selectPain(p.pain_score || 1);
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+
+async function saveProspect() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { alert('Business name required'); return; }
+
+  const payload = {
+    businessName: name,
+    city: document.getElementById('f-city').value || 'Las Vegas',
+    category: document.getElementById('f-category').value,
+    phone: document.getElementById('f-phone').value,
+    owner_name: document.getElementById('f-owner').value,
+    gmb_url: document.getElementById('f-gmb').value,
+    star_rating: document.getElementById('f-stars').value || null,
+    review_count: document.getElementById('f-reviews').value || null,
+    last_gmb_post: document.getElementById('f-lastpost').value,
+    response_rate: document.getElementById('f-response').value || null,
+    pain_score: selectedPain,
+    estimated_lost_revenue: document.getElementById('f-revenue').value,
+    notes: document.getElementById('f-notes').value,
+    status: document.getElementById('f-status').value
+  };
+
+  try {
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': KEY },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Save failed');
+    closeModal();
+    await load();
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+async function updateStatus(id, status) {
+  try {
+    await fetch(`${API}/${id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': KEY },
+      body: JSON.stringify({ status })
+    });
+    const p = allProspects.find(x => x.id === id);
+    if (p) p.status = status;
+  } catch(e) { console.error(e); }
+}
+
+async function deleteProspect(id) {
+  if (!confirm('Delete this prospect?')) return;
+  try {
+    await fetch(`${API}/${id}`, { method: 'DELETE', headers: { 'x-api-key': KEY } });
+    await load();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+function exportCSV() {
+  const headers = ['Business','City','Category','Stars','Reviews','Last Post','Pain Score','Phone','Owner','Status','GMB URL','Est Revenue Lost','Notes'];
+  const rows = allProspects.map(p => [
+    p.businessName, p.city, p.category, p.star_rating, p.review_count,
+    p.last_gmb_post, p.pain_score, p.phone, p.owner_name, p.status,
+    p.gmb_url, p.estimated_lost_revenue, p.notes
+  ].map(v => `"${(v||'').toString().replace(/"/g,'""')}"`));
+  const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = `kande-digital-prospects-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Close modal on overlay click
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+load();
+</script>
+</body>
+</html>

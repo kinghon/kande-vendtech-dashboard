@@ -24833,10 +24833,414 @@ app.get('/api/jobs/sentinel/status', (req, res) => {
   }
 });
 
+// ===== KANDE DIGITAL PROSPECT TRACKER (Ralph 2026-02-22) =====
+// Scout's research container for Kande Digital (GMB optimization) leads.
+// GET /api/digital/prospects — list all prospects with optional filters
+// POST /api/digital/prospects — add or update a prospect (upsert by businessName+city)
+// DELETE /api/digital/prospects/:id — remove a prospect
+// Scout's research sprint cannot start without this tracker.
+
+app.get('/digital/prospects', (req, res) => {
+  res.sendFile(path.join(__dirname, 'digital-prospects.html'));
+});
+
+app.get('/api/digital/prospects', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+  const prospects = db.digitalProspects || [];
+  const { status, category, pain_min } = req.query;
+
+  let filtered = [...prospects];
+  if (status) filtered = filtered.filter(p => p.status === status);
+  if (category) filtered = filtered.filter(p => p.category === category);
+  if (pain_min) filtered = filtered.filter(p => (p.pain_score || 0) >= parseInt(pain_min));
+
+  // Sort: pain_score desc, then by addedAt desc
+  filtered.sort((a, b) => (b.pain_score || 0) - (a.pain_score || 0) || new Date(b.addedAt) - new Date(a.addedAt));
+
+  const stats = {
+    total: prospects.length,
+    byStatus: {
+      new: prospects.filter(p => p.status === 'new').length,
+      contacted: prospects.filter(p => p.status === 'contacted').length,
+      pitched: prospects.filter(p => p.status === 'pitched').length,
+      active: prospects.filter(p => p.status === 'active').length,
+      passed: prospects.filter(p => p.status === 'passed').length
+    },
+    byCategory: {
+      hvac: prospects.filter(p => p.category === 'hvac').length,
+      pest_control: prospects.filter(p => p.category === 'pest_control').length,
+      roofing: prospects.filter(p => p.category === 'roofing').length,
+      auto_repair: prospects.filter(p => p.category === 'auto_repair').length,
+      electrical: prospects.filter(p => p.category === 'electrical').length,
+      other: prospects.filter(p => !['hvac','pest_control','roofing','auto_repair','electrical'].includes(p.category)).length
+    },
+    avgPainScore: prospects.length ? (prospects.reduce((s, p) => s + (p.pain_score || 0), 0) / prospects.length).toFixed(1) : 0,
+    highPainCount: prospects.filter(p => (p.pain_score || 0) >= 3).length
+  };
+
+  res.json({ ok: true, prospects: filtered, stats, count: filtered.length });
+});
+
+app.post('/api/digital/prospects', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+  const {
+    businessName, city, category, gmb_url, phone, owner_name,
+    star_rating, review_count, last_gmb_post, response_rate,
+    pain_score, estimated_lost_revenue, status, notes
+  } = req.body;
+
+  if (!businessName) return res.status(400).json({ error: 'businessName required' });
+
+  if (!db.digitalProspects) db.digitalProspects = [];
+
+  // Upsert by businessName + city
+  const key = `${(businessName || '').toLowerCase().trim()}|${(city || 'las vegas').toLowerCase().trim()}`;
+  const existing = db.digitalProspects.find(p => `${(p.businessName||'').toLowerCase().trim()}|${(p.city||'las vegas').toLowerCase().trim()}` === key);
+
+  const now = new Date().toISOString();
+  if (existing) {
+    // Update existing
+    if (category !== undefined) existing.category = category;
+    if (gmb_url !== undefined) existing.gmb_url = gmb_url;
+    if (phone !== undefined) existing.phone = phone;
+    if (owner_name !== undefined) existing.owner_name = owner_name;
+    if (star_rating !== undefined) existing.star_rating = parseFloat(star_rating);
+    if (review_count !== undefined) existing.review_count = parseInt(review_count);
+    if (last_gmb_post !== undefined) existing.last_gmb_post = last_gmb_post;
+    if (response_rate !== undefined) existing.response_rate = parseFloat(response_rate);
+    if (pain_score !== undefined) existing.pain_score = parseInt(pain_score);
+    if (estimated_lost_revenue !== undefined) existing.estimated_lost_revenue = estimated_lost_revenue;
+    if (status !== undefined) existing.status = status;
+    if (notes !== undefined) existing.notes = notes;
+    existing.updatedAt = now;
+    db.save();
+    return res.json({ ok: true, action: 'updated', prospect: existing });
+  }
+
+  // Create new
+  const newProspect = {
+    id: Date.now(),
+    businessName,
+    city: city || 'Las Vegas',
+    category: category || 'hvac',
+    gmb_url: gmb_url || '',
+    phone: phone || '',
+    owner_name: owner_name || '',
+    star_rating: star_rating ? parseFloat(star_rating) : null,
+    review_count: review_count ? parseInt(review_count) : null,
+    last_gmb_post: last_gmb_post || '',
+    response_rate: response_rate ? parseFloat(response_rate) : null,
+    pain_score: pain_score ? parseInt(pain_score) : 1,
+    estimated_lost_revenue: estimated_lost_revenue || '',
+    status: status || 'new',
+    notes: notes || '',
+    addedAt: now,
+    updatedAt: now
+  };
+
+  db.digitalProspects.push(newProspect);
+  db.save();
+  res.json({ ok: true, action: 'created', prospect: newProspect });
+});
+
+app.delete('/api/digital/prospects/:id', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+  if (!db.digitalProspects) return res.json({ ok: true, removed: false });
+
+  const id = parseInt(req.params.id);
+  const before = db.digitalProspects.length;
+  db.digitalProspects = db.digitalProspects.filter(p => p.id !== id);
+  db.save();
+  res.json({ ok: true, removed: db.digitalProspects.length < before });
+});
+
+app.patch('/api/digital/prospects/:id/status', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+  if (!db.digitalProspects) return res.status(404).json({ error: 'Not found' });
+
+  const id = parseInt(req.params.id);
+  const prospect = db.digitalProspects.find(p => p.id === id);
+  if (!prospect) return res.status(404).json({ error: 'Prospect not found' });
+
+  const { status, notes } = req.body;
+  if (status) prospect.status = status;
+  if (notes !== undefined) prospect.notes = notes;
+  prospect.updatedAt = new Date().toISOString();
+  db.save();
+  res.json({ ok: true, prospect });
+});
+
+// ===== CALL SHEET GENERATOR (Ralph 2026-02-22) =====
+// The bridge from intelligence infrastructure to execution quality.
+// Per Feb 21 EOD: "Call Sheet Generator = The Last Engineering Priority"
+// GET /api/pipeline/call-sheet?date=monday — ordered call list with per-lead coaching
+// POST /api/pipeline/call-sheet — upsert a prepared call card
+// DELETE /api/pipeline/call-sheet/:id — remove
+
+app.get('/call-sheet', (req, res) => {
+  res.sendFile(path.join(__dirname, 'call-sheet.html'));
+});
+
+// Seed default call sheet data (Monday Feb 24 — from action-items.md)
+const DEFAULT_CALL_SHEET = [
+  {
+    id: 1,
+    prospect_name: 'Carnegie Heights / BWLiving',
+    crm_id: '5050',
+    phone: '',
+    contact: 'Makenna Simmons / Jeannie',
+    units: '300+',
+    last_contact: '2026-02-19',
+    days_since_contact: 5,
+    engagement_signal: 'hot',
+    engagement_detail: 'ED "loves it", contract stage',
+    priority: 1,
+    pitch_track: 'residential',
+    recommended_opener: 'Happy to answer any logistics questions before you finalize everything. Wanted to make sure the process is smooth on your end.',
+    anticipated_objection: 'Needs to check with the approver above her',
+    step_down_offer: '90-day single-machine pilot — no long-term commitment, we remove it at no cost if residents don\'t use it.',
+    win_condition: 'Map the full approver chain (who signs above Makenna?). Do NOT send contract until approval path is clear.',
+    current_vendor: 'Unknown',
+    canteen_flag: false,
+    called: false
+  },
+  {
+    id: 2,
+    prospect_name: 'Lyric / RPM Living',
+    crm_id: '531',
+    phone: '',
+    contact: 'Mirtha Valenzuela',
+    units: '250+',
+    last_contact: '2026-02-14',
+    days_since_contact: 10,
+    engagement_signal: 'hot',
+    engagement_detail: '8 external opens — proven interest. RPM also manages The Watermark (portfolio play).',
+    priority: 2,
+    pitch_track: 'residential',
+    recommended_opener: 'I noticed you\'ve had a chance to look over the information a few times — wanted to check in and see if you had any questions or if timing works now.',
+    anticipated_objection: 'Not in budget / need corporate approval',
+    step_down_offer: '90-day single-machine pilot with zero commitment — costs you nothing if your residents don\'t use it.',
+    win_condition: 'Mention The Watermark — position as portfolio play. One corporate relationship unlocks both properties.',
+    current_vendor: 'Unknown',
+    canteen_flag: false,
+    called: false
+  },
+  {
+    id: 3,
+    prospect_name: 'Ilumina',
+    crm_id: '67',
+    phone: '',
+    contact: 'Property Manager',
+    units: '200+',
+    last_contact: '2025-12-28',
+    days_since_contact: 56,
+    engagement_signal: 'phone_pivot',
+    engagement_detail: '6 external opens over 28+ days — proven interest, email approach exhausted. OVERDUE by 28+ days.',
+    priority: 3,
+    pitch_track: 'residential',
+    recommended_opener: 'I wanted to follow up — and I also saw some interesting news this week about AI in the vending industry that made me think of your building. Wanted to connect since the timing feels relevant to what we\'ve been discussing.',
+    anticipated_objection: 'Timing / budget / already have a vendor',
+    step_down_offer: '90-day single-machine pilot. No commitment. We remove it free if residents don\'t use it.',
+    win_condition: '6 external opens = proven interest. CLOSE ON THIS CALL. Ask directly: "What would need to happen for us to get started?"',
+    current_vendor: 'Unknown',
+    canteen_flag: false,
+    called: false
+  },
+  {
+    id: 4,
+    prospect_name: 'High Line at Hughes',
+    crm_id: '11',
+    phone: '',
+    contact: 'Peter / Jose',
+    units: '200+',
+    last_contact: '2026-02-15',
+    days_since_contact: 9,
+    engagement_signal: 'warm',
+    engagement_detail: '9 days stale after HOT pop-in with full property walk. High engagement from visit.',
+    priority: 4,
+    pitch_track: 'residential',
+    recommended_opener: 'I stopped by last week and had a great conversation with the team — wanted to follow up now that you\'ve had a few days to think about it.',
+    anticipated_objection: 'Still evaluating / need to check contract terms',
+    step_down_offer: '90-day pilot removes the risk entirely. One machine, your lobby, no paperwork beyond a simple one-pager.',
+    win_condition: 'They did the property walk — they\'re interested. Push for a decision. Ask: "What\'s the one thing holding you back?"',
+    current_vendor: 'Unknown',
+    canteen_flag: false,
+    called: false
+  },
+  {
+    id: 5,
+    prospect_name: 'Oakmont of The Lakes',
+    crm_id: '540',
+    phone: '',
+    contact: 'daalgaard@oakmontmg.com',
+    units: 'Senior Living',
+    last_contact: '2026-02-14',
+    days_since_contact: 10,
+    engagement_signal: 'warm',
+    engagement_detail: '10 days, no engagement yet. Senior living — families visiting = high vending usage.',
+    priority: 5,
+    pitch_track: 'senior_living',
+    recommended_opener: 'Hi, I\'m calling about vending solutions for senior living communities — we\'ve placed machines at several Heirloom properties and wanted to reach out about The Lakes specifically.',
+    anticipated_objection: 'Already have a vendor / not a priority right now',
+    step_down_offer: 'No long-term commitment — 90-day pilot. Families visiting residents are the primary users. No cost to your facility.',
+    win_condition: 'Senior living decision = ED approval. Ask who to copy on next steps.',
+    current_vendor: 'Unknown',
+    canteen_flag: false,
+    called: false
+  },
+  {
+    id: 6,
+    prospect_name: 'Jade Apartments',
+    crm_id: '29',
+    phone: '',
+    contact: 'External PM',
+    units: '150+',
+    last_contact: '2026-02-19',
+    days_since_contact: 3,
+    engagement_signal: 'warm',
+    engagement_detail: 'External PM re-engagement Feb 19 — possible contract re-open or renewal signal.',
+    priority: 6,
+    pitch_track: 'residential',
+    recommended_opener: 'I noticed some renewed activity on your end — wanted to check in and see if there\'s anything we can do to get the contract finalized.',
+    anticipated_objection: 'Waiting on management / previous contract lapsed',
+    step_down_offer: 'Simplified one-page agreement — we can get a machine in within 72 hours of signing.',
+    win_condition: 'They engaged again — verify contract status first. If lapsed, use simplified one-page agreement to reclose.',
+    current_vendor: 'Unknown',
+    canteen_flag: false,
+    called: false
+  },
+  {
+    id: 7,
+    prospect_name: 'Gemma Las Vegas',
+    crm_id: '4907',
+    phone: '(725) 258-2560',
+    contact: 'Leasing Office',
+    units: '337',
+    last_contact: null,
+    days_since_contact: null,
+    engagement_signal: 'urgent',
+    engagement_detail: 'Status changed opening_soon → active TODAY. 337 units NOW LEASING. 7-day vendor selection window open — competitors are calling.',
+    priority: 7,
+    pitch_track: 'residential',
+    recommended_opener: 'Congratulations on opening — I saw you\'re now leasing at Gemma. We work with several Henderson communities and wanted to reach out while you\'re still setting up your amenities.',
+    anticipated_objection: 'Too early / haven\'t thought about vending yet',
+    step_down_offer: 'No commitment needed right now — let\'s set up a quick visit so you can see what we\'d recommend for your common areas.',
+    win_condition: 'Vendor selection window is OPEN. Get a site visit scheduled THIS WEEK before competitors do.',
+    current_vendor: 'None (new property)',
+    canteen_flag: false,
+    called: false
+  },
+  {
+    id: 8,
+    prospect_name: 'Paysign Inc',
+    crm_id: '5571',
+    phone: '(702) 706-9901',
+    contact: 'Facilities Manager',
+    units: '345 employees',
+    last_contact: null,
+    days_since_contact: null,
+    engagement_signal: 'warm',
+    engagement_detail: 'Never activated despite being in CRM. 2 Henderson locations. FinTech company — tech-forward employer.',
+    priority: 8,
+    pitch_track: 'employer',
+    recommended_opener: 'Hi, I\'m calling about break room vending for your Henderson office — we serve several employer accounts in the area and wanted to reach out about your team\'s snack and drink options.',
+    anticipated_objection: 'We have a vendor / not in budget',
+    step_down_offer: '30-day pilot for one location — zero commitment, we handle restocking entirely.',
+    win_condition: 'Pitch BOTH Henderson locations simultaneously. Ask: "Do you handle vendor decisions for both your locations?" Then bundle both in one agreement.',
+    current_vendor: 'Unknown',
+    canteen_flag: false,
+    called: false
+  }
+];
+
+app.get('/api/pipeline/call-sheet', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+  // Use saved call sheet if available, otherwise return default seeded data
+  if (!db.callSheet || db.callSheet.length === 0) {
+    db.callSheet = DEFAULT_CALL_SHEET.map(c => ({ ...c }));
+    db.save();
+  }
+
+  const { status } = req.query;
+  let sheet = db.callSheet;
+  if (status === 'pending') sheet = sheet.filter(c => !c.called);
+  if (status === 'called') sheet = sheet.filter(c => c.called);
+
+  const stats = {
+    total: db.callSheet.length,
+    pending: db.callSheet.filter(c => !c.called).length,
+    called: db.callSheet.filter(c => c.called).length,
+    hotPivots: db.callSheet.filter(c => c.engagement_signal === 'phone_pivot' || c.engagement_signal === 'urgent').length
+  };
+
+  res.json({ ok: true, callSheet: sheet, stats, generatedAt: new Date().toISOString() });
+});
+
+app.post('/api/pipeline/call-sheet', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+  if (!db.callSheet) db.callSheet = DEFAULT_CALL_SHEET.map(c => ({ ...c }));
+
+  const entry = req.body;
+  if (!entry.prospect_name) return res.status(400).json({ error: 'prospect_name required' });
+
+  const existing = db.callSheet.find(c => c.id === entry.id || c.prospect_name === entry.prospect_name);
+  if (existing) {
+    Object.assign(existing, entry, { updatedAt: new Date().toISOString() });
+    db.save();
+    return res.json({ ok: true, action: 'updated', entry: existing });
+  }
+
+  const newEntry = { ...entry, id: Date.now(), addedAt: new Date().toISOString() };
+  db.callSheet.push(newEntry);
+  db.save();
+  res.json({ ok: true, action: 'created', entry: newEntry });
+});
+
+app.patch('/api/pipeline/call-sheet/:id/called', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+  if (!db.callSheet) db.callSheet = DEFAULT_CALL_SHEET.map(c => ({ ...c }));
+
+  const id = parseInt(req.params.id);
+  const entry = db.callSheet.find(c => c.id === id);
+  if (!entry) return res.status(404).json({ error: 'Not found' });
+
+  const { called, outcome, notes } = req.body;
+  entry.called = called !== undefined ? called : true;
+  if (outcome) entry.outcome = outcome;
+  if (notes) entry.call_notes = notes;
+  entry.calledAt = new Date().toISOString();
+  db.save();
+  res.json({ ok: true, entry });
+});
+
+app.delete('/api/pipeline/call-sheet/:id', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+  if (!db.callSheet) return res.json({ ok: true, removed: false });
+
+  const id = parseInt(req.params.id);
+  const before = db.callSheet.length;
+  db.callSheet = db.callSheet.filter(c => c.id !== id);
+  db.save();
+  res.json({ ok: true, removed: db.callSheet.length < before });
+});
+
 // ===== DEPLOYMENT DIAGNOSTICS (Ralph 2026-02-21 pm — Railway cache-bust) =====
 // Added to force Railway to rebuild and redeploy with the full server.js.
 // Railway was caching a pre-8AM version missing all routes added today.
-// DEPLOY_VERSION: 2026-02-21-v4 (8AM+12PM+4PM+8PM sessions)
+// DEPLOY_VERSION: 2026-02-22-v1 (overnight — cache bust + call sheet + kande digital prospects)
 
 app.get('/api/debug/deploy-version', (req, res) => {
   const apiKey = req.headers['x-api-key'];
@@ -24854,7 +25258,11 @@ app.get('/api/debug/deploy-version', (req, res) => {
     '/api/jobs/sentinel',
     '/scout-intel',
     '/account-tiers',
-    '/briefing'
+    '/briefing',
+    '/api/digital/prospects',
+    '/digital/prospects',
+    '/api/pipeline/call-sheet',
+    '/call-sheet'
   ];
 
   // Check which expected routes are registered
