@@ -73,7 +73,7 @@ function sanitizeObject(obj) {
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
   // Allow these paths without auth
-  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status', '/api/memory/db-list', '/api/memory/db-read', '/api/memory/db-search', '/api/memory/sync', '/digital', '/api/mission-control/tasks/bulk-sync', '/onboard', '/api/digital/onboard', '/clients', '/scout-intel', '/api/pipeline/engagement-alerts', '/api/digital/gmb/batch-score', '/account-tiers', '/api/pipeline/account-tiers', '/api/crm/status-diff', '/api/monitoring'];
+  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status', '/api/memory/db-list', '/api/memory/db-read', '/api/memory/db-search', '/api/memory/sync', '/digital', '/api/mission-control/tasks/bulk-sync', '/onboard', '/api/digital/onboard', '/clients', '/scout-intel', '/api/pipeline/engagement-alerts', '/api/digital/gmb/batch-score', '/account-tiers', '/api/pipeline/account-tiers', '/api/crm/status-diff', '/api/monitoring', '/api/jobs/sentinel', '/api/briefing'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
     return next();
   }
@@ -24707,6 +24707,126 @@ app.get('/api/monitoring/mary', (req, res) => {
         ? `⚠️ ALERT: No file today`
         : '✅ Operating normally',
       checkedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ===== JOB IDEMPOTENCY SENTINEL (Ralph 2026-02-21 pm) =====
+// Prevents cron jobs from firing multiple times per day.
+// Implements the scout-morning fix: fired 11x during CRM DNS outage (Feb 20).
+// Agents call GET /api/jobs/sentinel?job=scout-morning before running.
+// If already ran today → 409 Conflict. If safe → 200 OK.
+// After successful run: POST /api/jobs/sentinel { job, result } to mark done.
+
+app.get('/api/jobs/sentinel', (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+    const { job } = req.query;
+    if (!job) return res.status(400).json({ error: 'job query parameter required', example: '?job=scout-morning' });
+
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD (UTC)
+    const sentinels = db.jobSentinels || {};
+    const entry = sentinels[job];
+
+    if (entry && entry.date === today) {
+      const ranAt = new Date(entry.ranAt).toLocaleTimeString('en-US', { timeZone: 'America/Los_Angeles', hour:'numeric', minute:'2-digit', hour12:true });
+      return res.status(409).json({
+        ok:          false,
+        alreadyRan:  true,
+        job,
+        date:        today,
+        ranAt:       entry.ranAt,
+        ranAtPT:     ranAt,
+        result:      entry.result || 'completed',
+        message:     `Job "${job}" already ran today at ${ranAt} PT. Skipping.`
+      });
+    }
+
+    res.json({
+      ok:         true,
+      alreadyRan: false,
+      job,
+      date:       today,
+      message:    `Job "${job}" has not run today. Safe to proceed.`
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Sentinel check failed', details: err.message });
+  }
+});
+
+// POST /api/jobs/sentinel — mark a job as completed for today
+app.post('/api/jobs/sentinel', express.json(), (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+    const { job, result } = req.body;
+    if (!job) return res.status(400).json({ error: 'job is required' });
+
+    const today = new Date().toISOString().split('T')[0];
+    if (!db.jobSentinels) db.jobSentinels = {};
+    db.jobSentinels[job] = {
+      date:   today,
+      ranAt:  new Date().toISOString(),
+      result: result || 'completed'
+    };
+    saveDB(db);
+    console.log(`🛡️ Job sentinel set: ${job} → done for ${today}`);
+    res.json({ ok: true, job, date: today, ranAt: db.jobSentinels[job].ranAt });
+  } catch (err) {
+    res.status(500).json({ error: 'Sentinel set failed', details: err.message });
+  }
+});
+
+// DELETE /api/jobs/sentinel — clear sentinel (for testing / force re-run)
+app.delete('/api/jobs/sentinel', (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+    const { job } = req.query;
+    if (!job) return res.status(400).json({ error: 'job query parameter required' });
+
+    if (db.jobSentinels && db.jobSentinels[job]) {
+      delete db.jobSentinels[job];
+      saveDB(db);
+      console.log(`🛡️ Job sentinel cleared: ${job}`);
+      res.json({ ok: true, job, message: `Sentinel cleared — ${job} will run on next invocation.` });
+    } else {
+      res.json({ ok: true, job, message: `No sentinel found for ${job}.` });
+    }
+  } catch (err) {
+    res.status(500).json({ error: 'Sentinel clear failed', details: err.message });
+  }
+});
+
+// GET /api/jobs/sentinel/status — list all active sentinels (admin view)
+app.get('/api/jobs/sentinel/status', (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+    const today = new Date().toISOString().split('T')[0];
+    const sentinels = db.jobSentinels || {};
+    const statuses = Object.entries(sentinels).map(([job, entry]) => ({
+      job,
+      date:       entry.date,
+      ranAt:      entry.ranAt,
+      result:     entry.result,
+      isToday:    entry.date === today,
+      stale:      entry.date !== today
+    }));
+
+    res.json({
+      today,
+      count:      statuses.length,
+      todayCount: statuses.filter(s => s.isToday).length,
+      sentinels:  statuses,
+      checkedAt:  new Date().toISOString()
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
