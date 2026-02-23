@@ -54,7 +54,8 @@
         { label: 'Apollo Contacts', href: '/apollo' },
         { label: 'Site Surveys',  href: '/property-analysis' },
         { label: 'Win/Loss Analysis', href: '/win-loss' },
-        { label: 'Analytics',     href: '/analytics' }
+        { label: 'Analytics',     href: '/analytics' },
+        { label: 'API Usage',     href: '/usage' }
       ]
     },
     {
