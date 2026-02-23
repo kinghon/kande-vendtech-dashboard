@@ -24917,7 +24917,7 @@ app.post('/api/digital/prospects', (req, res) => {
     if (status !== undefined) existing.status = status;
     if (notes !== undefined) existing.notes = notes;
     existing.updatedAt = now;
-    db.save();
+    saveDB(db);
     return res.json({ ok: true, action: 'updated', prospect: existing });
   }
 
@@ -24943,7 +24943,7 @@ app.post('/api/digital/prospects', (req, res) => {
   };
 
   db.digitalProspects.push(newProspect);
-  db.save();
+  saveDB(db);
   res.json({ ok: true, action: 'created', prospect: newProspect });
 });
 
@@ -24955,7 +24955,7 @@ app.delete('/api/digital/prospects/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const before = db.digitalProspects.length;
   db.digitalProspects = db.digitalProspects.filter(p => p.id !== id);
-  db.save();
+  saveDB(db);
   res.json({ ok: true, removed: db.digitalProspects.length < before });
 });
 
@@ -24972,7 +24972,7 @@ app.patch('/api/digital/prospects/:id/status', (req, res) => {
   if (status) prospect.status = status;
   if (notes !== undefined) prospect.notes = notes;
   prospect.updatedAt = new Date().toISOString();
-  db.save();
+  saveDB(db);
   res.json({ ok: true, prospect });
 });
 
@@ -25166,7 +25166,7 @@ app.get('/api/pipeline/call-sheet', (req, res) => {
   // Use saved call sheet if available, otherwise return default seeded data
   if (!db.callSheet || db.callSheet.length === 0) {
     db.callSheet = DEFAULT_CALL_SHEET.map(c => ({ ...c }));
-    db.save();
+    saveDB(db);
   }
 
   const { status } = req.query;
@@ -25196,13 +25196,13 @@ app.post('/api/pipeline/call-sheet', (req, res) => {
   const existing = db.callSheet.find(c => c.id === entry.id || c.prospect_name === entry.prospect_name);
   if (existing) {
     Object.assign(existing, entry, { updatedAt: new Date().toISOString() });
-    db.save();
+    saveDB(db);
     return res.json({ ok: true, action: 'updated', entry: existing });
   }
 
   const newEntry = { ...entry, id: Date.now(), addedAt: new Date().toISOString() };
   db.callSheet.push(newEntry);
-  db.save();
+  saveDB(db);
   res.json({ ok: true, action: 'created', entry: newEntry });
 });
 
@@ -25221,7 +25221,7 @@ app.patch('/api/pipeline/call-sheet/:id/called', (req, res) => {
   if (outcome) entry.outcome = outcome;
   if (notes) entry.call_notes = notes;
   entry.calledAt = new Date().toISOString();
-  db.save();
+  saveDB(db);
   res.json({ ok: true, entry });
 });
 
@@ -25233,14 +25233,14 @@ app.delete('/api/pipeline/call-sheet/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const before = db.callSheet.length;
   db.callSheet = db.callSheet.filter(c => c.id !== id);
-  db.save();
+  saveDB(db);
   res.json({ ok: true, removed: db.callSheet.length < before });
 });
 
 // ===== DEPLOYMENT DIAGNOSTICS (Ralph 2026-02-21 pm — Railway cache-bust) =====
 // Added to force Railway to rebuild and redeploy with the full server.js.
 // Railway was caching a pre-8AM version missing all routes added today.
-// DEPLOY_VERSION: 2026-02-22-v1 (overnight — cache bust + call sheet + kande digital prospects)
+// DEPLOY_VERSION: 2026-02-22-v2 (8pm — fix db.save bug in POST routes)
 
 app.get('/api/debug/deploy-version', (req, res) => {
   const apiKey = req.headers['x-api-key'];
