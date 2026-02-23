@@ -25375,7 +25375,7 @@ app.get('/api/crm/bulk-import/status', (req, res) => {
   });
 });
 
-// DEPLOY_VERSION: 2026-02-22-v3 (8pm session 2 — TAM batch import + call sheet sync)
+// DEPLOY_VERSION: 2026-02-23-v1 (overnight — call sheet enhancements: sync-alerts, stale coaching, portfolio track)
 
 app.get('/api/debug/deploy-version', (req, res) => {
   const apiKey = req.headers['x-api-key'];
@@ -25383,8 +25383,8 @@ app.get('/api/debug/deploy-version', (req, res) => {
 
   // Count registered routes to verify full deployment
   const routeCount = app._router ? app._router.stack.filter(r => r.route).length : 0;
-  const totalLines = 24835; // Expected server.js line count
-  const deployVersion = '2026-02-21-v4';
+  const totalLines = 25600; // Expected server.js line count (updated 2026-02-23 overnight)
+  const deployVersion = '2026-02-23-v1';
   const expectedRoutes = [
     '/api/pipeline/engagement-alerts',
     '/api/pipeline/account-tiers',
@@ -25399,7 +25399,9 @@ app.get('/api/debug/deploy-version', (req, res) => {
     '/api/pipeline/call-sheet',
     '/call-sheet',
     '/api/crm/bulk-import',
-    '/api/crm/bulk-import/status'
+    '/api/crm/bulk-import/status',
+    '/api/pipeline/call-sheet/sync-alerts',
+    '/api/pipeline/call-sheet/outcomes'
   ];
 
   // Check which expected routes are registered
@@ -25422,3 +25424,178 @@ app.get('/api/debug/deploy-version', (req, res) => {
       : `⚠️ PARTIAL DEPLOYMENT — ${missingRoutes.length} routes missing: ${missingRoutes.join(', ')}`
   });
 });
+
+// ===== CALL SHEET ENHANCEMENTS (Ralph 2026-02-23 overnight) =====
+// 1. PATCH /api/pipeline/call-sheet/:id — edit any call card fields (not just "called" status)
+// 2. POST /api/pipeline/call-sheet/sync-alerts — auto-merge engagement-alerts → call sheet
+//    Water cooler consensus: parallel pipelines lose leads. Hot signals must auto-create/update cards.
+// 3. GET /api/pipeline/call-sheet/outcomes — aggregate outcomes by pitch track for feedback loop
+
+// PATCH /api/pipeline/call-sheet/:id — general field update
+app.patch('/api/pipeline/call-sheet/:id', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+  if (!db.callSheet) db.callSheet = [];
+
+  const id = parseInt(req.params.id);
+  const entry = db.callSheet.find(c => c.id === id);
+  if (!entry) return res.status(404).json({ error: 'Not found' });
+
+  const allowed = [
+    'phone','contact','units','priority','pitch_track','engagement_signal','engagement_detail',
+    'recommended_opener','anticipated_objection','step_down_offer','win_condition',
+    'current_vendor','canteen_flag','last_engagement_at','coaching_written_at','last_contact'
+  ];
+  for (const key of allowed) {
+    if (req.body[key] !== undefined) entry[key] = req.body[key];
+  }
+  entry.updatedAt = new Date().toISOString();
+  saveDB(db);
+  res.json({ ok: true, entry });
+});
+
+// POST /api/pipeline/call-sheet/sync-alerts — pull hot/urgent engagement alerts → auto-upsert call cards
+// Reads current engagement-alerts, checks for prospects missing from call sheet, creates/updates them.
+// Called nightly by ralph-overnight to ensure call sheet reflects latest intelligence.
+app.post('/api/pipeline/call-sheet/sync-alerts', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+  if (!db.callSheet) db.callSheet = [];
+  if (!db.engagementAlerts) db.engagementAlerts = [];
+
+  const now = new Date().toISOString();
+  const actionable = (db.engagementAlerts || []).filter(a => a.level === 'urgent' || a.level === 'hot');
+
+  const results = { created: [], updated: [], skipped: [] };
+
+  for (const alert of actionable) {
+    const prospectName = alert.prospect;
+    if (!prospectName) continue;
+
+    // Check if call sheet already has this prospect (fuzzy match)
+    const existing = db.callSheet.find(c =>
+      c.prospect_name && c.prospect_name.toLowerCase().includes(prospectName.toLowerCase())
+    );
+
+    if (existing) {
+      // Update engagement fields + flag stale coaching
+      const prevSignal = existing.engagement_signal;
+      existing.engagement_signal = alert.level;
+      existing.engagement_detail = alert.message;
+      existing.last_engagement_at = now;
+      existing.tags = alert.tags || [];
+      existing.alert_title = alert.title;
+
+      // Mark coaching stale if engagement is newer than last coaching update
+      const coachingTs = existing.coaching_written_at || existing.addedAt || '2000-01-01T00:00:00Z';
+      existing.coaching_stale = new Date(now) > new Date(coachingTs);
+
+      existing.updatedAt = now;
+      results.updated.push(prospectName);
+    } else {
+      // Auto-create a call card for this prospect
+      const pitchMap = {
+        'Carnegie Heights': 'senior_living',
+        'Society': 'residential',
+        'Ilumina': 'residential',
+        'BWLiving': 'senior_living'
+      };
+      const pitchTrack = Object.entries(pitchMap).find(([k]) =>
+        prospectName.toLowerCase().includes(k.toLowerCase())
+      )?.[1] || 'residential';
+
+      const isPhonePivot = alert.tags && alert.tags.some(t => t.toLowerCase().includes('phone pivot'));
+      const opener = isPhonePivot
+        ? `Hi, this is Jordan from Kande VendTech. We've emailed a few times — wanted to try reaching you directly. Quick question: is vending still something you're evaluating?`
+        : `Hi, this is Jordan from Kande VendTech. ${alert.message}. I wanted to connect while this is fresh on our end.`;
+
+      const newCard = {
+        id: Date.now() + Math.floor(Math.random() * 100),
+        prospect_name: prospectName,
+        phone: '',
+        contact: 'Property Manager',
+        engagement_signal: alert.level,
+        engagement_detail: alert.message,
+        tags: alert.tags || [],
+        alert_title: alert.title,
+        last_engagement_at: now,
+        coaching_written_at: now,
+        coaching_stale: false,
+        priority: alert.level === 'urgent' ? 1 : 3,
+        pitch_track: pitchTrack,
+        recommended_opener: opener,
+        anticipated_objection: 'Not sure yet / needs approval',
+        step_down_offer: '90-day single-machine pilot — no long-term commitment, we remove it at no cost if residents don\'t use it.',
+        win_condition: alert.level === 'urgent' ? 'Make the call. Any response is better than continued silence.' : 'Confirm interest level and set a next step.',
+        called: false,
+        addedAt: now,
+        addedBy: 'sync-alerts'
+      };
+
+      db.callSheet.push(newCard);
+      results.created.push(prospectName);
+    }
+  }
+
+  saveDB(db);
+
+  res.json({
+    ok: true,
+    synced: results.created.length + results.updated.length,
+    created: results.created,
+    updated: results.updated,
+    skipped: results.skipped,
+    totalAlerts: actionable.length,
+    message: `Synced ${results.created.length + results.updated.length} call cards from engagement alerts.`
+  });
+});
+
+// GET /api/pipeline/call-sheet/outcomes — aggregate call outcomes by pitch track + opener type
+// Feeds the feedback loop: which openers and pitch tracks are actually converting?
+app.get('/api/pipeline/call-sheet/outcomes', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+  if (!db.callSheet) db.callSheet = [];
+
+  const called = db.callSheet.filter(c => c.called);
+
+  // Group by pitch track
+  const byTrack = {};
+  for (const card of called) {
+    const track = card.pitch_track || 'unknown';
+    if (!byTrack[track]) byTrack[track] = { total: 0, outcomes: {} };
+    byTrack[track].total++;
+    const outcome = card.outcome || 'no_outcome';
+    byTrack[track].outcomes[outcome] = (byTrack[track].outcomes[outcome] || 0) + 1;
+  }
+
+  // Stale coaching cards (engagement after coaching written)
+  const staleCards = db.callSheet.filter(c => c.coaching_stale && !c.called);
+
+  // Engagement signal breakdown
+  const bySignal = {};
+  for (const card of db.callSheet) {
+    const sig = card.engagement_signal || 'unknown';
+    bySignal[sig] = (bySignal[sig] || 0) + 1;
+  }
+
+  res.json({
+    ok: true,
+    totalCards: db.callSheet.length,
+    totalCalled: called.length,
+    callRate: db.callSheet.length ? Math.round((called.length / db.callSheet.length) * 100) + '%' : '0%',
+    byPitchTrack: byTrack,
+    byEngagementSignal: bySignal,
+    staleCoachingCount: staleCards.length,
+    staleCards: staleCards.map(c => ({
+      prospect_name: c.prospect_name,
+      last_engagement_at: c.last_engagement_at,
+      coaching_written_at: c.coaching_written_at,
+      engagement_signal: c.engagement_signal
+    }))
+  });
+});
+
