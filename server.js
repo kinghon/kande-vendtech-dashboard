@@ -25400,7 +25400,7 @@ app.get('/api/crm/bulk-import/status', (req, res) => {
   });
 });
 
-// DEPLOY_VERSION: 2026-02-23-v1 (overnight — call sheet enhancements: sync-alerts, stale coaching, portfolio track)
+// DEPLOY_VERSION: 2026-02-23-v2 (overnight — call sheet sync-alerts fixed to read from pipelineEngagement)
 
 app.get('/api/debug/deploy-version', (req, res) => {
   const apiKey = req.headers['x-api-key'];
@@ -25408,8 +25408,8 @@ app.get('/api/debug/deploy-version', (req, res) => {
 
   // Count registered routes to verify full deployment
   const routeCount = app._router ? app._router.stack.filter(r => r.route).length : 0;
-  const totalLines = 25600; // Expected server.js line count (updated 2026-02-23 overnight)
-  const deployVersion = '2026-02-23-v1';
+  const totalLines = 25635; // Expected server.js line count (updated 2026-02-23 overnight v2)
+  const deployVersion = '2026-02-23-v2';
   const expectedRoutes = [
     '/api/pipeline/engagement-alerts',
     '/api/pipeline/account-tiers',
@@ -25488,10 +25488,19 @@ app.post('/api/pipeline/call-sheet/sync-alerts', (req, res) => {
   if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
 
   if (!db.callSheet) db.callSheet = [];
-  if (!db.engagementAlerts) db.engagementAlerts = [];
 
   const now = new Date().toISOString();
-  const actionable = (db.engagementAlerts || []).filter(a => a.level === 'urgent' || a.level === 'hot');
+
+  // Pull from the same source as GET /api/pipeline/engagement-alerts
+  const storedAlerts = (db.pipelineEngagement && db.pipelineEngagement.alerts) || [];
+  const defaultAlerts = [
+    { level: 'urgent', prospect: 'Ilumina', title: 'Ilumina — Phone Pivot OVERDUE', message: '6 external opens over 25+ days. Email exhausted. Call mandatory.', tags: ['Phone Pivot Required'] },
+    { level: 'urgent', prospect: 'Society', title: 'Society — Phone Pivot OVERDUE', message: '5 internal opens, 0 external over 22+ days. Email exhausted.', tags: ['Phone Pivot Required'] },
+    { level: 'hot', prospect: 'Carnegie Heights', title: 'Carnegie Heights — External Click', message: 'External click received. Same-day response required.', tags: ['HOT', 'Immediate Action'] },
+    { level: 'hot', prospect: 'BWLiving at The Villages', title: 'BWLiving — Pending Contract', message: 'ED "loves the idea," reviewing logistics. Contract ready.', tags: ['Contract Stage'] }
+  ];
+  const allAlerts = storedAlerts.length > 0 ? storedAlerts : defaultAlerts;
+  const actionable = allAlerts.filter(a => a.level === 'urgent' || a.level === 'hot');
 
   const results = { created: [], updated: [], skipped: [] };
 
