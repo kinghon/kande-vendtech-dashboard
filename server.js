@@ -23420,6 +23420,31 @@ app.delete('/api/content/:id', (req, res) => {
 
 // ===== END MISSION CONTROL =====
 
+// ===== USAGE TURNS API =====
+// Serve usage page
+app.get('/usage', (req, res) => res.sendFile(path.join(__dirname, 'usage.html')));
+
+// GET /api/usage/turns — return stored daily turn data
+app.get('/api/usage/turns', (req, res) => {
+  const data = db.usageTurns || null;
+  if (!data) {
+    return res.json({ sessions: [], updatedAt: null });
+  }
+  res.json(data);
+});
+
+// POST /api/usage/turns — receive pushed data from Mac extraction script
+app.post('/api/usage/turns', (req, res) => {
+  const { sessions, updatedAt } = req.body;
+  if (!Array.isArray(sessions)) {
+    return res.status(400).json({ error: 'sessions must be an array' });
+  }
+  db.usageTurns = { sessions, updatedAt: updatedAt || new Date().toISOString() };
+  saveDB(db);
+  res.json({ ok: true, groups: sessions.length, updatedAt: db.usageTurns.updatedAt });
+});
+// ===== END USAGE TURNS API =====
+
 app.listen(PORT, () => {
   console.log(`🤖 Kande VendTech Dashboard running at http://localhost:${PORT}`);
 

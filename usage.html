@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Usage — Kande Mission Control</title>
+  <link rel="icon" href="apple-touch-icon-vend.png" type="image/png">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/nav.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8f9fa;
+      color: #1a1a1a;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1.25rem;
+    }
+
+    .page-header {
+      margin-bottom: 2rem;
+    }
+    .page-header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #111;
+    }
+    .page-header p {
+      color: #6b7280;
+      margin-top: 0.25rem;
+      font-size: 0.95rem;
+    }
+    .updated-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: #e9f5e9;
+      color: #2d7a2d;
+      font-size: 0.78rem;
+      font-weight: 500;
+      padding: 0.2rem 0.7rem;
+      border-radius: 999px;
+      margin-top: 0.6rem;
+    }
+    .updated-badge.stale { background: #fff3cd; color: #856404; }
+    .updated-badge.none  { background: #f3f4f6; color: #6b7280; }
+
+    /* ── Stat cards ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+    }
+    .stat-card .label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #6b7280;
+      margin-bottom: 0.4rem;
+    }
+    .stat-card .value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #111;
+      line-height: 1.1;
+    }
+    .stat-card .sub {
+      font-size: 0.82rem;
+      color: #9ca3af;
+      margin-top: 0.25rem;
+    }
+
+    /* ── Chart card ── */
+    .chart-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 1.75rem;
+      margin-bottom: 2rem;
+    }
+    .chart-card h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #111;
+      margin-bottom: 1.25rem;
+    }
+    .chart-wrap {
+      position: relative;
+      height: 340px;
+    }
+
+    /* ── Breakdown table ── */
+    .breakdown-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 1.75rem;
+      margin-bottom: 2rem;
+    }
+    .breakdown-card h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #111;
+      margin-bottom: 1.25rem;
+    }
+    .breakdown-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .breakdown-table th {
+      text-align: left;
+      padding: 0.6rem 0.75rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #6b7280;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .breakdown-table td {
+      padding: 0.75rem 0.75rem;
+      font-size: 0.9rem;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .breakdown-table tr:last-child td { border-bottom: none; }
+    .breakdown-table tr:hover td { background: #f9fafb; }
+
+    .group-dot {
+      display: inline-block;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      margin-right: 0.5rem;
+      vertical-align: middle;
+    }
+
+    /* ── Cost note ── */
+    .cost-note {
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      font-size: 0.83rem;
+      color: #075985;
+      margin-bottom: 2rem;
+    }
+    .cost-note strong { font-weight: 600; }
+
+    .no-data {
+      text-align: center;
+      padding: 3rem;
+      color: #9ca3af;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="page-header">
+    <h1>📊 API Usage &amp; Turn Tracker</h1>
+    <p>Daily assistant turn counts across all session groups — last 30 days</p>
+    <span class="updated-badge none" id="updated-badge">⏳ Loading...</span>
+  </div>
+
+  <!-- Summary stats -->
+  <div class="stats-grid" id="stats-grid">
+    <div class="stat-card"><div class="label">Turns Today</div><div class="value" id="stat-today">—</div><div class="sub">all groups</div></div>
+    <div class="stat-card"><div class="label">7-Day Avg</div><div class="value" id="stat-7day">—</div><div class="sub">per day</div></div>
+    <div class="stat-card"><div class="label">30-Day Total</div><div class="value" id="stat-30day">—</div><div class="sub">all groups</div></div>
+    <div class="stat-card"><div class="label">Est. Daily Cost</div><div class="value" id="stat-cost">—</div><div class="sub">blended Opus+Sonnet</div></div>
+  </div>
+
+  <!-- Line chart -->
+  <div class="chart-card">
+    <h2>Daily Turns by Group</h2>
+    <div class="chart-wrap">
+      <canvas id="turnsChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Per-group breakdown table -->
+  <div class="breakdown-card">
+    <h2>Group Breakdown</h2>
+    <div id="breakdown-wrap">
+      <p class="no-data">Loading data...</p>
+    </div>
+  </div>
+
+  <!-- Cost methodology note -->
+  <div class="cost-note">
+    <strong>Cost estimation methodology:</strong>
+    Opus 4 = $15/M input + $75/M output (avg 100K context/turn) → ~$9.00/turn.
+    Sonnet 4 = $3/M input + $15/M output (avg 80K context/turn) → ~$1.44/turn.
+    Main DM &amp; VendTech Group estimated as 60% Opus / 40% Sonnet. Cron Jobs &amp; Photo Booths as 100% Sonnet.
+    Actual costs vary by context length.
+  </div>
+</div>
+
+<script>
+// ── Config ──────────────────────────────────────────────
+const COLORS = {
+  'VendTech Group':   '#3b82f6',  // blue
+  'Photo Booths Group': '#f59e0b', // amber
+  'Main (DM)':        '#10b981',  // emerald
+  'Cron Jobs':        '#8b5cf6',  // violet
+};
+const DEFAULT_COLOR = '#6b7280';
+
+// Cost per turn (blended): Opus avg 100K ctx/turn, Sonnet 80K
+// Opus: ($15 * 0.06 + $75 * 0.04) per turn = $0.90 + $3.00 = $3.90 avg ... 
+// Actually: $15/M input * 100K = $1.50 input + $75/M output * 40K out ≈ $3.00 → $4.50 per turn Opus
+// Sonnet: $3/M * 80K = $0.24 + $15/M * 32K out = $0.48 → $0.72 per turn Sonnet
+// Blended 60/40 for main sessions: 0.6*4.50 + 0.4*0.72 = $2.70 + $0.29 = $2.99
+// Cron+PB (100% Sonnet): $0.72/turn
+const COST_PER_TURN = {
+  'VendTech Group':     2.99,
+  'Photo Booths Group': 0.72,
+  'Main (DM)':          2.99,
+  'Cron Jobs':          0.72,
+};
+const DEFAULT_COST = 1.50;
+
+// ── Helpers ─────────────────────────────────────────────
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function last30Days() {
+  const days = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    days.push(d.toISOString().slice(0, 10));
+  }
+  return days;
+}
+
+function shortDate(iso) {
+  const [, mm, dd] = iso.split('-');
+  return `${parseInt(mm)}/${parseInt(dd)}`;
+}
+
+function color(name) { return COLORS[name] || DEFAULT_COLOR; }
+
+// ── Render ───────────────────────────────────────────────
+let chartInstance = null;
+
+function render(data) {
+  const sessions = data.sessions || [];
+  const days = last30Days();
+  const today = todayStr();
+
+  // Build lookup: group → date → turns
+  const lookup = {};
+  sessions.forEach(s => {
+    lookup[s.name] = {};
+    (s.data || []).forEach(d => { lookup[s.name][d.date] = d.turns; });
+  });
+
+  // Stats
+  let turnsToday = 0, total30 = 0;
+  const daily7 = {};
+  sessions.forEach(s => {
+    (s.data || []).forEach(d => {
+      if (d.date === today) turnsToday += d.turns;
+      total30 += d.turns;
+      if (d.date >= days[23]) { // last 7 days
+        daily7[d.date] = (daily7[d.date] || 0) + d.turns;
+      }
+    });
+  });
+  const avg7 = Object.keys(daily7).length > 0
+    ? Math.round(Object.values(daily7).reduce((a, b) => a + b, 0) / Object.keys(daily7).length)
+    : 0;
+
+  // Cost estimate (today)
+  let costToday = 0;
+  sessions.forEach(s => {
+    const t = (lookup[s.name] && lookup[s.name][today]) || 0;
+    costToday += t * (COST_PER_TURN[s.name] || DEFAULT_COST);
+  });
+
+  document.getElementById('stat-today').textContent = turnsToday.toLocaleString();
+  document.getElementById('stat-7day').textContent = avg7.toLocaleString();
+  document.getElementById('stat-30day').textContent = total30.toLocaleString();
+  document.getElementById('stat-cost').textContent = `$${costToday.toFixed(2)}`;
+
+  // Updated badge
+  const badge = document.getElementById('updated-badge');
+  if (data.updatedAt) {
+    const ago = Math.round((Date.now() - new Date(data.updatedAt)) / 60000);
+    const stale = ago > 60 * 24;
+    badge.className = 'updated-badge' + (stale ? ' stale' : '');
+    badge.textContent = `✓ Updated ${ago < 60 ? ago + 'm ago' : Math.round(ago/60) + 'h ago'}`;
+  } else {
+    badge.className = 'updated-badge none';
+    badge.textContent = 'No data yet — run the extraction script';
+  }
+
+  // Chart datasets
+  const datasets = sessions.map(s => ({
+    label: s.name,
+    data: days.map(d => lookup[s.name]?.[d] || 0),
+    borderColor: color(s.name),
+    backgroundColor: color(s.name) + '18',
+    borderWidth: 2.5,
+    pointRadius: 3,
+    pointHoverRadius: 5,
+    tension: 0.35,
+    fill: false,
+  }));
+
+  const ctx = document.getElementById('turnsChart').getContext('2d');
+  if (chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: days.map(shortDate),
+      datasets,
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: { usePointStyle: true, pointStyleWidth: 10, padding: 18, font: { size: 12 } }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y} turns`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: '#f1f5f9' },
+          ticks: { color: '#9ca3af', font: { size: 11 }, maxRotation: 45 }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: '#f1f5f9' },
+          ticks: { color: '#9ca3af', font: { size: 11 } },
+          title: { display: true, text: 'Turns', color: '#9ca3af', font: { size: 11 } }
+        }
+      }
+    }
+  });
+
+  // Breakdown table
+  const wrap = document.getElementById('breakdown-wrap');
+  if (!sessions.length) {
+    wrap.innerHTML = '<p class="no-data">No data. Run the extraction script to populate.</p>';
+    return;
+  }
+
+  const rows = sessions.map(s => {
+    const data30 = days.map(d => lookup[s.name]?.[d] || 0);
+    const sum30  = data30.reduce((a, b) => a + b, 0);
+    const todayT = lookup[s.name]?.[today] || 0;
+    const active = data30.filter(v => v > 0).length;
+    const peak   = Math.max(...data30);
+    const cost30 = sum30 * (COST_PER_TURN[s.name] || DEFAULT_COST);
+    return `
+      <tr>
+        <td><span class="group-dot" style="background:${color(s.name)}"></span>${s.name}</td>
+        <td>${todayT}</td>
+        <td>${sum30.toLocaleString()}</td>
+        <td>${active}</td>
+        <td>${peak}</td>
+        <td>$${cost30.toFixed(2)}</td>
+      </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <table class="breakdown-table">
+      <thead>
+        <tr>
+          <th>Group</th>
+          <th>Today</th>
+          <th>30-Day Total</th>
+          <th>Active Days</th>
+          <th>Peak Day</th>
+          <th>Est. 30-Day Cost</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// ── Fetch & go ───────────────────────────────────────────
+async function load() {
+  try {
+    const res = await fetch('/api/usage/turns');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    render(data);
+  } catch (err) {
+    console.error('Failed to load usage data:', err);
+    document.getElementById('breakdown-wrap').innerHTML =
+      `<p class="no-data">Failed to load data: ${err.message}</p>`;
+    document.getElementById('updated-badge').textContent = '⚠ Error loading data';
+    document.getElementById('updated-badge').className = 'updated-badge stale';
+  }
+}
+
+load();
+// Auto-refresh every 5 min
+setInterval(load, 5 * 60 * 1000);
+</script>
+</body>
+</html>
