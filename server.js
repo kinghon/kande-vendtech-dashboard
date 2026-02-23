@@ -25240,7 +25240,142 @@ app.delete('/api/pipeline/call-sheet/:id', (req, res) => {
 // ===== DEPLOYMENT DIAGNOSTICS (Ralph 2026-02-21 pm — Railway cache-bust) =====
 // Added to force Railway to rebuild and redeploy with the full server.js.
 // Railway was caching a pre-8AM version missing all routes added today.
-// DEPLOY_VERSION: 2026-02-22-v2 (8pm — fix db.save bug in POST routes)
+// ===== TAM BATCH IMPORT (Ralph 2026-02-22 pm) =====
+// Lets Scout bulk-add the 277 TAM gap prospects without 277 individual API calls.
+// POST /api/crm/bulk-import — accepts array of prospect objects, skips duplicates
+// GET /api/crm/bulk-import/status — shows current CRM stats + last batch summary
+
+app.post('/api/crm/bulk-import', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+  const { prospects: incoming, dryRun = false } = req.body;
+  if (!Array.isArray(incoming) || incoming.length === 0) {
+    return res.status(400).json({ error: 'prospects array required (array of prospect objects)' });
+  }
+  if (incoming.length > 300) {
+    return res.status(400).json({ error: 'Max 300 prospects per batch' });
+  }
+
+  // Build dedup index: normalized name → id
+  const existingNames = new Set(
+    db.prospects.map(p => (p.name || '').toLowerCase().trim().replace(/[^a-z0-9 ]/g, ''))
+  );
+
+  const results = { added: 0, skipped: 0, errors: [], dryRun, addedNames: [], skippedNames: [] };
+  const toAdd = [];
+
+  for (const raw of incoming) {
+    if (!raw.name || !raw.name.trim()) {
+      results.errors.push({ prospect: raw, error: 'name is required' });
+      continue;
+    }
+
+    const normName = raw.name.toLowerCase().trim().replace(/[^a-z0-9 ]/g, '');
+
+    // Check for duplicate
+    if (existingNames.has(normName)) {
+      results.skipped++;
+      results.skippedNames.push(raw.name);
+      continue;
+    }
+
+    const prospect = {
+      id: nextId(),
+      name: raw.name.trim(),
+      property_type: raw.property_type || raw.type || 'residential',
+      units: raw.units || null,
+      address: raw.address || '',
+      phone: raw.phone || '',
+      hours: raw.hours || '',
+      kurtis_notes: raw.kurtis_notes || '',
+      notes: raw.notes || '',
+      status: raw.status || 'new',
+      priority: raw.priority || 'normal',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      lat: raw.lat || null,
+      lng: raw.lng || null,
+      needs_action: raw.needs_action || null,
+      next_action: raw.next_action || '',
+      source: raw.source || 'tam_import'
+    };
+
+    toAdd.push(prospect);
+    existingNames.add(normName); // prevent dupes within this batch
+    results.added++;
+    results.addedNames.push(raw.name);
+  }
+
+  if (!dryRun && toAdd.length > 0) {
+    for (const p of toAdd) {
+      db.prospects.push(p);
+      ensurePipelineCard(p.id);
+    }
+    saveDB(db);
+
+    // Log batch import as activity
+    db.activities.push({
+      id: nextId(),
+      prospect_id: null,
+      type: 'bulk-import',
+      description: `TAM batch import: ${results.added} prospects added, ${results.skipped} skipped as duplicates`,
+      created_at: new Date().toISOString()
+    });
+    saveDB(db);
+
+    // Save summary to DB for status endpoint
+    db.lastBulkImport = {
+      timestamp: new Date().toISOString(),
+      added: results.added,
+      skipped: results.skipped,
+      errors: results.errors.length,
+      totalCRM: db.prospects.length
+    };
+    saveDB(db);
+  }
+
+  res.json({
+    ok: true,
+    ...results,
+    totalCRM: db.prospects.length,
+    message: dryRun
+      ? `DRY RUN: Would add ${results.added} prospects, skip ${results.skipped} duplicates.`
+      : `✅ Imported ${results.added} prospects. Skipped ${results.skipped} duplicates. CRM total: ${db.prospects.length}.`
+  });
+});
+
+app.get('/api/crm/bulk-import/status', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+  const statusCounts = {};
+  for (const p of db.prospects) {
+    statusCounts[p.status || 'unknown'] = (statusCounts[p.status || 'unknown'] || 0) + 1;
+  }
+
+  const priorityCounts = {};
+  for (const p of db.prospects) {
+    priorityCounts[p.priority || 'normal'] = (priorityCounts[p.priority || 'normal'] || 0) + 1;
+  }
+
+  const sourceCounts = {};
+  for (const p of db.prospects) {
+    const src = p.source || 'manual';
+    sourceCounts[src] = (sourceCounts[src] || 0) + 1;
+  }
+
+  res.json({
+    ok: true,
+    totalProspects: db.prospects.length,
+    byStatus: statusCounts,
+    byPriority: priorityCounts,
+    bySource: sourceCounts,
+    lastImport: db.lastBulkImport || null
+  });
+});
+
+// DEPLOY_VERSION: 2026-02-22-v3 (8pm session 2 — TAM batch import + call sheet sync)
 
 app.get('/api/debug/deploy-version', (req, res) => {
   const apiKey = req.headers['x-api-key'];
@@ -25262,7 +25397,9 @@ app.get('/api/debug/deploy-version', (req, res) => {
     '/api/digital/prospects',
     '/digital/prospects',
     '/api/pipeline/call-sheet',
-    '/call-sheet'
+    '/call-sheet',
+    '/api/crm/bulk-import',
+    '/api/crm/bulk-import/status'
   ];
 
   // Check which expected routes are registered
