@@ -596,6 +596,21 @@ app.post('/api/prospects', (req, res) => {
   geocodeProspect(prospect).then(updated => { if (updated) saveDB(db); });
 });
 
+app.post('/api/prospects/bulk-update', (req, res) => {
+  const { ids, patch } = req.body;
+  if (!Array.isArray(ids) || !patch) return res.status(400).json({ error: 'ids (array) and patch (object) required' });
+  let updated = 0;
+  ids.forEach(id => {
+    const idx = db.prospects.findIndex(p => p.id === parseInt(id));
+    if (idx !== -1) {
+      db.prospects[idx] = { ...db.prospects[idx], ...patch, updated_at: new Date().toISOString() };
+      updated++;
+    }
+  });
+  saveDb();
+  res.json({ updated });
+});
+
 app.put('/api/prospects/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const index = db.prospects.findIndex(p => p.id === id);
