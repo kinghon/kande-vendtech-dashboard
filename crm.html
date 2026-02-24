@@ -1711,7 +1711,7 @@
       });
     });
     document.getElementById('search').addEventListener('input', renderProspects);
-    document.getElementById('typeFilter').addEventListener('change', renderProspects);
+    document.getElementById('typeFilter').addEventListener('change', () => { renderProspects(); geocodeAndPlot(); });
 
     // Add new prospect
     async function syncToPipeline() {
@@ -2187,10 +2187,23 @@
       return markerColors.new;
     }
 
+    function normalizeTypeGlobal(type) {
+      const t = (type || '').toLowerCase();
+      if (t.includes('apartment') || t.includes('condo') || t.includes('high-rise') || t.includes('multifamily') || t.includes('residential')) return 'apartments_condos';
+      if (t.includes('senior') || t.includes('assisted') || t.includes('nursing') || t.includes('retirement') || t.includes('memory') || t.includes('elder') || t.includes('55+')) return 'senior_living';
+      if (t.includes('health') || t.includes('medical') || t.includes('clinic') || t.includes('hospital') || t.includes('dental') || t.includes('urgent') || t.includes('dialysis')) return 'healthcare';
+      if (t.includes('warehouse') || t.includes('industrial') || t.includes('logistics') || t.includes('manufacturing') || t.includes('distribution')) return 'industrial';
+      if (t.includes('office') || t.includes('corporate') || t.includes('business') || t.includes('cowork') || t.includes('call center')) return 'office';
+      return 'other';
+    }
+
     function geocodeAndPlot() {
       markers.clearLayers();
-      // Server pre-geocodes all addresses — just plot what's available
-      prospects.filter(p => p.lat && p.lng).forEach(p => addMarker(p));
+      const typeFilter = document.getElementById('typeFilter')?.value || 'all';
+      prospects
+        .filter(p => p.lat && p.lng)
+        .filter(p => typeFilter === 'all' || normalizeTypeGlobal(p.property_type) === typeFilter)
+        .forEach(p => addMarker(p));
     }
 
     function addMarker(p) {
