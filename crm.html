@@ -1185,7 +1185,7 @@
                     {v: 'Office/Business', l: '🏢 Office/Business'},
                     {v: 'Other', l: '📦 Other'}
                   ].map(t =>
-                    `<option value="${t.v}" ${p.property_type === t.v ? 'selected' : ''}>${t.l}</option>`
+                    `<option value="${t.v}" ${toCanonicalType(p.property_type) === t.v ? 'selected' : ''}>${t.l}</option>`
                   ).join('')}
                 </select>
               </div>
@@ -2197,6 +2197,18 @@
       if (t.includes('warehouse') || t.includes('industrial') || t.includes('logistics') || t.includes('manufacturing') || t.includes('distribution')) return 'industrial';
       if (t.includes('office') || t.includes('corporate') || t.includes('business') || t.includes('cowork') || t.includes('call center')) return 'office';
       return 'other';
+    }
+
+    // Maps raw stored property_type values → canonical 6-category values
+    function toCanonicalType(raw) {
+      const t = (raw || '').toLowerCase();
+      if (/apartment|condo|multifamily|multi.family|residential|high.rise|loft|townhome|townhouse/.test(t)) return 'Apartments/Condos';
+      if (/senior|assisted|retirement|memory care|skilled nursing|elder|aging|55\+|ccrc/.test(t)) return 'Senior Living';
+      if (/health|medical|clinic|hospital|dental|urgent care|dialysis|rehab|behavioral|trauma|va med/.test(t)) return 'Healthcare';
+      if (/industrial|warehouse|distribution|manufacturing|logistics|fulfillment|sorting|mail process|package/.test(t)) return 'Industrial/Warehouse';
+      if (/office|corporate|business|cowork|call center|high.traffic/.test(t)) return 'Office/Business';
+      if (!t) return '';
+      return 'Other';
     }
 
     function showOnMap(id) {
