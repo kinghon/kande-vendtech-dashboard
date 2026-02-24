@@ -192,6 +192,22 @@
           if (a.outcome) text += (text ? ' → ' : '') + outcomeLabel(a.outcome);
           if (a.next_action) text += (text ? ' · ' : '') + 'Next: ' + a.next_action;
 
+          const desc = (a.description || '').trim();
+          const isTodoComplete = desc.includes('Completed from to-do list');
+
+          // ONLY show manually-entered activity types — skip all agent/auto-generated ones
+          const MANUAL_TYPES = ['call', 'pop-in', 'pop_in', 'email', 'note', 'other', 'meeting', 'visit'];
+          if (!MANUAL_TYPES.includes((a.type || '').toLowerCase()) && !isTodoComplete) return;
+
+          // Skip Scout-generated activities
+          if (/^Scout\b/i.test(desc) || a.source === 'scout' || a.source === 'agent') return;
+
+          // Skip auto-generated patterns
+          if (/^Email \d+ (sent|drafted)/i.test(desc) || /Follow-up email drafted/i.test(desc)) return;
+
+          // Skip empty activities (no description, outcome, or next action)
+          if (!desc && !a.outcome && !a.next_action) return;
+
           allEvents.push({
             id: a.id,
             type: a.type,
@@ -224,7 +240,7 @@
         const ts = parseNoteTimestamp(line);
         if (ts) {
           const content = line.replace(/^\[[^\]]+\]\s*/, '').substring(0, 120);
-          if (content.trim()) {
+          if (content.trim() && !/^Scout\b/i.test(content)) {
             allEvents.push({
               prospectId,
               prospectName,
