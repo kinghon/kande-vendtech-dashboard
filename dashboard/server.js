@@ -25422,3 +25422,226 @@ app.get('/api/debug/deploy-version', (req, res) => {
       : `⚠️ PARTIAL DEPLOYMENT — ${missingRoutes.length} routes missing: ${missingRoutes.join(', ')}`
   });
 });
+
+// ===== CALL OUTCOME FEEDBACK LOOP (Ralph 2026-02-23 evening) =====
+// Validates that PATCH /call-sheet/:id/called data is flowing correctly.
+// GET  /api/pipeline/call-outcomes — aggregate view of today's call results
+// POST /api/pipeline/call-outcomes/sync — push call results back to CRM prospects
+
+app.get('/api/pipeline/call-outcomes', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+  const sheet = db.callSheet || [];
+  const called = sheet.filter(c => c.called);
+  const pending = sheet.filter(c => !c.called);
+
+  // Outcome breakdown
+  const outcomeCounts = {};
+  called.forEach(c => {
+    const o = c.outcome || 'no_outcome_logged';
+    outcomeCounts[o] = (outcomeCounts[o] || 0) + 1;
+  });
+
+  // Build per-call detail
+  const callDetails = called.map(c => ({
+    id: c.id,
+    prospect: c.prospect_name,
+    crm_id: c.crm_id,
+    contact: c.contact,
+    phone: c.phone,
+    outcome: c.outcome || null,
+    notes: c.call_notes || null,
+    calledAt: c.calledAt || null,
+    priority: c.priority,
+    engagement_signal: c.engagement_signal
+  }));
+
+  // Check CRM sync status — are call outcomes reflected on CRM prospects?
+  const syncStatus = called.map(c => {
+    if (!c.crm_id) return { id: c.id, prospect: c.prospect_name, synced: false, reason: 'no_crm_id' };
+    const crmId = parseInt(c.crm_id);
+    const prospect = (db.prospects || []).find(p => p.id === crmId);
+    if (!prospect) return { id: c.id, prospect: c.prospect_name, synced: false, reason: 'prospect_not_found' };
+    const synced = prospect.last_contacted && prospect.last_contacted === c.calledAt;
+    return { id: c.id, prospect: c.prospect_name, crm_id: crmId, synced, last_contacted: prospect.last_contacted };
+  });
+
+  res.json({
+    ok: true,
+    summary: {
+      total: sheet.length,
+      called: called.length,
+      pending: pending.length,
+      callRate: sheet.length > 0 ? `${Math.round((called.length / sheet.length) * 100)}%` : '0%',
+      outcomeCounts
+    },
+    callDetails,
+    syncStatus,
+    pendingCalls: pending.map(c => ({ id: c.id, prospect: c.prospect_name, priority: c.priority, phone: c.phone })),
+    generatedAt: new Date().toISOString()
+  });
+});
+
+// POST /api/pipeline/call-outcomes/sync — push logged call outcomes back to CRM prospect records
+// Updates last_contacted, next_action, and kurtis_notes on the CRM prospect
+app.post('/api/pipeline/call-outcomes/sync', express.json(), (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+  const sheet = db.callSheet || [];
+  const called = sheet.filter(c => c.called && c.crm_id);
+  const results = { synced: 0, skipped: 0, errors: [] };
+
+  called.forEach(c => {
+    try {
+      const crmId = parseInt(c.crm_id);
+      const prospect = (db.prospects || []).find(p => p.id === crmId);
+      if (!prospect) {
+        results.skipped++;
+        results.errors.push({ prospect: c.prospect_name, reason: 'not found in CRM' });
+        return;
+      }
+
+      prospect.last_contacted = c.calledAt || new Date().toISOString();
+      if (c.call_notes) {
+        const note = `[Call ${new Date(prospect.last_contacted).toLocaleDateString()}] ${c.call_notes}`;
+        prospect.kurtis_notes = prospect.kurtis_notes
+          ? `${note}\n${prospect.kurtis_notes}`
+          : note;
+      }
+      if (c.outcome) {
+        const outcomeMap = {
+          'voicemail': 'Left voicemail — follow up in 2 days',
+          'no_answer': 'No answer — try again tomorrow',
+          'not_interested': 'Not interested — archive',
+          'callback_requested': 'Requested callback — schedule within 24h',
+          'contract_sent': 'Contract sent — follow up in 48h',
+          'meeting_scheduled': 'Meeting scheduled — prep pitch deck',
+          'interested': 'Expressed interest — send proposal',
+          'moved_forward': 'Moving forward — follow up this week'
+        };
+        prospect.next_action = outcomeMap[c.outcome] || c.outcome;
+      }
+      prospect.updated_at = new Date().toISOString();
+      results.synced++;
+    } catch (err) {
+      results.errors.push({ prospect: c.prospect_name, reason: err.message });
+    }
+  });
+
+  if (results.synced > 0) saveDB(db);
+  console.log(`📞 Call outcomes synced to CRM: ${results.synced} updated, ${results.skipped} skipped`);
+  res.json({ ok: true, results, syncedAt: new Date().toISOString() });
+});
+
+// ===== NIGHTLY CRM STATUS DIFF AUTOMATION (Ralph 2026-02-23 evening) =====
+// Runs the status diff logic automatically every 4 hours server-side.
+// Eliminates the need to manually call /api/crm/status-diff to detect transitions.
+// opening_soon→active transitions auto-alert without any human trigger.
+// Lesson from Gemma Las Vegas: NOW LEASING signal was missed for 2 days.
+
+function runCrmStatusDiffAuto() {
+  try {
+    const snapshot = db.crmStatusSnapshot || {};
+    const prospects = db.prospects || [];
+    const changes = [];
+    const HIGH_VALUE_TRANSITIONS = [
+      'opening_soon→active',
+      'new→contacted',
+      'contacted→proposal_sent',
+      'proposal_sent→negotiating',
+      'negotiating→active'
+    ];
+
+    prospects.forEach(p => {
+      const prev = snapshot[String(p.id)];
+      if (prev && prev !== p.status) {
+        const key = `${prev}→${p.status}`;
+        const isHighValue = HIGH_VALUE_TRANSITIONS.includes(key);
+        changes.push({ id: p.id, name: p.name, from: prev, to: p.status, isHighValue, key });
+      }
+    });
+
+    const highValue = changes.filter(c => c.isHighValue);
+    if (highValue.length > 0) {
+      const existing = (db.pipelineEngagement && db.pipelineEngagement.alerts) ? db.pipelineEngagement.alerts : [];
+      const newAlerts = highValue.map(c => ({
+        level: c.from === 'opening_soon' && c.to === 'active' ? 'hot' : 'info',
+        prospect: c.name,
+        title: `${c.name} — Auto-detected: ${c.from} → ${c.to}`,
+        message: c.from === 'opening_soon' && c.to === 'active'
+          ? `NOW LEASING confirmed (auto-detected). 7-day vendor selection window open. Call immediately.`
+          : `Status changed from ${c.from} to ${c.to} (auto-detected nightly diff). Review and take action.`,
+        tags: ['Auto-Nightly', `${c.from} → ${c.to}`],
+        opens: { internal: 0, external: 0 },
+        autoDetected: true,
+        source: 'nightly-diff',
+        detectedAt: new Date().toISOString()
+      }));
+
+      // Merge (deduplicate by prospect name + transition key to avoid repeat alerts)
+      const merged = [...newAlerts];
+      existing.forEach(a => {
+        const alreadyIn = merged.some(m => m.prospect === a.prospect && m.title === a.title);
+        if (!alreadyIn) merged.push(a);
+      });
+
+      if (!db.pipelineEngagement) db.pipelineEngagement = {};
+      db.pipelineEngagement.alerts = merged;
+      db.pipelineEngagement.lastSync = new Date().toISOString();
+      saveDB(db);
+      console.log(`🔄 [Auto-Diff] ${changes.length} status changes, ${highValue.length} auto-alerted to engagement alerts`);
+    }
+
+    // Advance snapshot after every auto-run (Scout still calls POST /snapshot manually)
+    if (changes.length > 0) {
+      const newSnapshot = {};
+      prospects.forEach(p => { newSnapshot[String(p.id)] = p.status; });
+      db.crmStatusSnapshot = newSnapshot;
+      db.crmSnapshotUpdated = new Date().toISOString();
+      saveDB(db);
+      console.log(`📸 [Auto-Diff] Snapshot advanced after ${changes.length} detected transitions`);
+    } else if (changes.length === 0 && prospects.length > 0) {
+      console.log(`✅ [Auto-Diff] No status transitions detected (${prospects.length} prospects checked)`);
+    }
+
+    if (!db.crmAutoDiffLog) db.crmAutoDiffLog = [];
+    db.crmAutoDiffLog.unshift({
+      ranAt: new Date().toISOString(),
+      prospectsChecked: prospects.length,
+      changes: changes.length,
+      highValueAlerts: highValue.length
+    });
+    // Keep last 48 runs (8 days at every 4h)
+    if (db.crmAutoDiffLog.length > 48) db.crmAutoDiffLog = db.crmAutoDiffLog.slice(0, 48);
+    saveDB(db);
+
+  } catch (err) {
+    console.error(`❌ [Auto-Diff] Error: ${err.message}`);
+  }
+}
+
+// Run immediately on server start (catches any missed transitions from downtime)
+setTimeout(runCrmStatusDiffAuto, 30000); // 30s after boot to let DB settle
+
+// Then run every 4 hours
+const CRM_DIFF_INTERVAL_MS = 4 * 60 * 60 * 1000; // 4 hours
+setInterval(runCrmStatusDiffAuto, CRM_DIFF_INTERVAL_MS);
+console.log('🔄 CRM status diff automation: running every 4h (Gemma lesson applied)');
+
+// GET /api/crm/status-diff/log — view recent auto-diff run history
+app.get('/api/crm/status-diff/log', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+  const log = db.crmAutoDiffLog || [];
+  res.json({
+    ok: true,
+    totalRuns: log.length,
+    nextRunIn: `${Math.round(CRM_DIFF_INTERVAL_MS / 60000)} minutes (every 4h)`,
+    recentRuns: log.slice(0, 10),
+    snapshotAge: db.crmSnapshotUpdated ? `Since ${new Date(db.crmSnapshotUpdated).toLocaleString()}` : 'No snapshot'
+  });
+});
+
