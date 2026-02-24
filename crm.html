@@ -2268,8 +2268,11 @@
           headers: { 'Content-Type': 'application/json', 'x-api-key': 'kande2026' },
           body: JSON.stringify({ needs_action: true, next_action: 'Pop In' })
         });
+        // Update in-memory only — avoids full reload which resets the type filter
+        const p = prospects.find(pr => pr.id === id);
+        if (p) { p.needs_action = true; p.next_action = 'Pop In'; }
         map.closePopup();
-        await loadData();
+        geocodeAndPlot(); // re-render markers only, typeFilter dropdown stays as-is
       } catch(e) { alert('Failed to set pop-in action'); }
     }
 
