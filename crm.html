@@ -745,9 +745,20 @@
     function renderTodoList() {
       const today = new Date().toISOString().split('T')[0];
       
+      // Only show manually-worked prospects (has at least one manual activity logged)
+      const MANUAL_ACT_TYPES = new Set(['call','pop-in','pop_in','email','note','other','meeting','visit']);
+      function hasManualActivity(p) {
+        return (p.activities || []).some(a =>
+          MANUAL_ACT_TYPES.has((a.type||'').toLowerCase()) &&
+          a.source !== 'agent' &&
+          !/^Scout\b/i.test(a.description||'')
+        );
+      }
+
       // Include prospects with next_action OR where follow_up_date has passed (excluding stale/signed)
       const withActions = prospects.filter(p => {
         if (p.status === 'closed' || p.status === 'signed') return false;
+        if (!hasManualActivity(p)) return false; // skip agent-added prospects
         if (p.next_action) return true;
         // Check if follow-up is due
         if (p.follow_up_date && p.follow_up_date <= today) return true;
