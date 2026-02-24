@@ -199,6 +199,19 @@
       .service-area-section { padding: 8px 12px; }
       .route-section { padding: 10px 12px; }
     }
+    .type-btn {
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #475569;
+      font-size: 11px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .type-btn:hover { background: #f1f5f9; }
+    .type-btn.active { background: #3182ce; color: #fff; border-color: #3182ce; }
   </style>
 </head>
 <body>
@@ -207,6 +220,20 @@
       <div class="sidebar-header">
         <h2>📍 Sales Map & Route Planner</h2>
         <a href="/crm" class="back-to-crm">← Back to CRM</a>
+      </div>
+
+      <!-- Type filter — always visible at top of sidebar -->
+      <div style="padding:10px 12px;border-bottom:1px solid #e2e8f0;background:#f8fafc;">
+        <div style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Filter by Type</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;" id="typeFilterBtns">
+          <button onclick="setTypeFilter('all',this)" class="type-btn active" data-type="all">All</button>
+          <button onclick="setTypeFilter('Apartments/Condos',this)" class="type-btn" data-type="Apartments/Condos">🏠 Apts</button>
+          <button onclick="setTypeFilter('Senior Living',this)" class="type-btn" data-type="Senior Living">👴 Senior</button>
+          <button onclick="setTypeFilter('Healthcare',this)" class="type-btn" data-type="Healthcare">🩺 Health</button>
+          <button onclick="setTypeFilter('Industrial/Warehouse',this)" class="type-btn" data-type="Industrial/Warehouse">🏭 Industrial</button>
+          <button onclick="setTypeFilter('Office/Business',this)" class="type-btn" data-type="Office/Business">🏢 Office</button>
+          <button onclick="setTypeFilter('Other',this)" class="type-btn" data-type="Other">📦 Other</button>
+        </div>
       </div>
 
       <div id="routeView" class="sidebar-content">
@@ -263,15 +290,7 @@
                 <option value="low">🔴 Low Rev</option>
                 <option value="none">⚪ No Data</option>
               </select>
-              <select id="typeFilter" onchange="filterRouteLeads();renderMarkers();" style="padding:6px 8px;border-radius:6px;border:1px solid #e2e8f0;background:#f0f4f8;font-size:11px;color:#1a202c;">
-                <option value="all">All Types</option>
-                <option value="Apartments/Condos">🏠 Apartments/Condos</option>
-                <option value="Senior Living">🏥 Senior Living</option>
-                <option value="Healthcare">🩺 Healthcare</option>
-                <option value="Industrial/Warehouse">🏭 Industrial/Warehouse</option>
-                <option value="Office/Business">🏢 Office/Business</option>
-                <option value="Other">📦 Other</option>
-              </select>
+<!-- type filter moved to sidebar top -->
             </div>
             <div id="routeLeadsList" style="max-height: 300px; overflow-y: auto; -webkit-overflow-scrolling: touch;"></div>
           </div>
@@ -433,6 +452,17 @@
       }
     }
 
+    /* ── Type filter state ───────────────────────────── */
+    var activeTypeFilter = 'all';
+
+    function setTypeFilter(type, btn) {
+      activeTypeFilter = type;
+      document.querySelectorAll('.type-btn').forEach(function(b) { b.classList.remove('active'); });
+      if (btn) btn.classList.add('active');
+      renderMarkers();
+      renderRouteLeadsList();
+    }
+
     /* ── Location type categorizer ───────────────────── */
     function getTypeCategory(p) {
       var t = (p.property_type || '').toLowerCase();
@@ -449,8 +479,6 @@
       Object.values(markers).forEach(function(m) { map.removeLayer(m); });
       markers = {};
       var bounds = [];
-
-      var activeTypeFilter = document.getElementById('typeFilter')?.value || 'all';
 
       for (var i = 0; i < prospects.length; i++) {
         var p = prospects[i];
@@ -537,8 +565,6 @@
       var container = document.getElementById('routeLeadsList');
       var search = (document.getElementById('routeSearch')?.value || '').toLowerCase();
       var revFilter = document.getElementById('revFilter')?.value || 'all';
-      var typeFilter = document.getElementById('typeFilter')?.value || 'all';
-
       var geocoded = sortByProximity(prospects.filter(function(p) {
         return p.lat && p.lng && p.status !== 'closed';
       }));
@@ -549,7 +575,7 @@
           var tier = getRevenueTier(p.id);
           if (revFilter !== tier) return false;
         }
-        if (typeFilter !== 'all' && getTypeCategory(p) !== typeFilter) return false;
+        if (activeTypeFilter !== 'all' && getTypeCategory(p) !== activeTypeFilter) return false;
         return true;
       });
 
