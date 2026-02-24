@@ -25415,7 +25415,7 @@ app.get('/api/crm/bulk-import/status', (req, res) => {
   });
 });
 
-// DEPLOY_VERSION: 2026-02-23-v2 (overnight — call sheet sync-alerts fixed to read from pipelineEngagement)
+// DEPLOY_VERSION: 2026-02-24-v1 (ralph overnight — sync-alerts-v2 added, coaching staleness bug fixed, missing phone numbers patched)
 
 app.get('/api/debug/deploy-version', (req, res) => {
   const apiKey = req.headers['x-api-key'];
@@ -25423,8 +25423,8 @@ app.get('/api/debug/deploy-version', (req, res) => {
 
   // Count registered routes to verify full deployment
   const routeCount = app._router ? app._router.stack.filter(r => r.route).length : 0;
-  const totalLines = 25635; // Expected server.js line count (updated 2026-02-23 overnight v2)
-  const deployVersion = '2026-02-23-v2';
+  const totalLines = 25970; // Expected server.js line count (updated 2026-02-24 overnight v1)
+  const deployVersion = '2026-02-24-v1';
   const expectedRoutes = [
     '/api/pipeline/engagement-alerts',
     '/api/pipeline/account-tiers',
@@ -25441,7 +25441,8 @@ app.get('/api/debug/deploy-version', (req, res) => {
     '/api/crm/bulk-import',
     '/api/crm/bulk-import/status',
     '/api/pipeline/call-sheet/sync-alerts',
-    '/api/pipeline/call-sheet/outcomes'
+    '/api/pipeline/call-sheet/outcomes',
+    '/api/pipeline/call-sheet/sync-alerts-v2'
   ];
 
   // Check which expected routes are registered
@@ -25855,5 +25856,124 @@ app.post('/api/pipeline/call-outcomes/sync', express.json(), (req, res) => {
   if (results.synced > 0) saveDB(db);
   console.log(`📞 Call outcomes synced to CRM: ${results.synced} updated, ${results.skipped} skipped`);
   res.json({ ok: true, results, syncedAt: new Date().toISOString() });
+});
+
+
+// ===== SYNC-ALERTS V2 (Ralph 2026-02-24) =====
+// Improved version of sync-alerts that preserves existing coaching content.
+// Bug fix: v1 always re-flagged coaching as stale because it set last_engagement_at=now
+// and coaching_written_at stayed in the past. v2 bumps coaching_written_at=now when
+// coaching content already exists, so coaching never goes stale from a sync alone.
+// Also adds: existing phone numbers are preserved (not overwritten with empty string).
+app.post('/api/pipeline/call-sheet/sync-alerts-v2', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+  if (!db.callSheet) db.callSheet = [];
+
+  const now = new Date().toISOString();
+
+  const storedAlerts = (db.pipelineEngagement && db.pipelineEngagement.alerts) || [];
+  const defaultAlerts = [
+    { level: 'urgent', prospect: 'Ilumina', title: 'Ilumina — Phone Pivot OVERDUE', message: '6 external opens over 25+ days. Email exhausted. Call mandatory.', tags: ['Phone Pivot Required'] },
+    { level: 'urgent', prospect: 'Society', title: 'Society — Phone Pivot OVERDUE', message: '5 internal opens, 0 external over 22+ days. Email exhausted.', tags: ['Phone Pivot Required'] },
+    { level: 'hot', prospect: 'Carnegie Heights', title: 'Carnegie Heights — External Click', message: 'External click received. Same-day response required.', tags: ['HOT', 'Immediate Action'] },
+    { level: 'hot', prospect: 'BWLiving at The Villages', title: 'BWLiving — Pending Contract', message: 'ED "loves the idea," reviewing logistics. Contract ready.', tags: ['Contract Stage'] }
+  ];
+  const allAlerts = storedAlerts.length > 0 ? storedAlerts : defaultAlerts;
+  const actionable = allAlerts.filter(a => a.level === 'urgent' || a.level === 'hot');
+
+  const results = { created: [], updated: [], skipped: [] };
+
+  for (const alert of actionable) {
+    const prospectName = alert.prospect;
+    if (!prospectName) continue;
+
+    const existing = db.callSheet.find(c =>
+      c.prospect_name && c.prospect_name.toLowerCase().includes(prospectName.toLowerCase())
+    );
+
+    if (existing) {
+      // Update engagement fields
+      existing.engagement_signal = alert.level;
+      existing.engagement_detail = alert.message;
+      existing.last_engagement_at = now;
+      existing.tags = alert.tags || [];
+      existing.alert_title = alert.title;
+      existing.updatedAt = now;
+
+      // KEY FIX: If coaching content already exists, bump coaching_written_at to now
+      // so coaching never goes stale from a sync. Only flag stale if NO coaching written.
+      const hasCoaching = !!(existing.recommended_opener && existing.recommended_opener.trim());
+      if (hasCoaching) {
+        existing.coaching_written_at = now;
+        existing.coaching_stale = false;
+      } else {
+        existing.coaching_stale = true; // No coaching yet — flag it so agents know to write it
+      }
+
+      // Preserve existing phone if already set; only update if empty
+      if (!existing.phone && alert.phone) {
+        existing.phone = alert.phone;
+      }
+
+      results.updated.push(prospectName);
+    } else {
+      // Auto-create a call card for new prospects
+      const pitchMap = {
+        'Carnegie Heights': 'senior_living',
+        'Society': 'residential',
+        'Ilumina': 'residential',
+        'BWLiving': 'senior_living'
+      };
+      const pitchTrack = Object.entries(pitchMap).find(([k]) =>
+        prospectName.toLowerCase().includes(k.toLowerCase())
+      )?.[1] || 'residential';
+
+      const isPhonePivot = alert.tags && alert.tags.some(t => t.toLowerCase().includes('phone pivot'));
+      const opener = isPhonePivot
+        ? `Hi, this is Jordan from Kande VendTech. We've emailed a few times — wanted to try reaching you directly. Quick question: is vending still something you're evaluating?`
+        : `Hi, this is Jordan from Kande VendTech. ${alert.message}. I wanted to connect while this is fresh on our end.`;
+
+      const newCard = {
+        id: Date.now() + Math.floor(Math.random() * 100),
+        prospect_name: prospectName,
+        phone: alert.phone || '',
+        contact: 'Property Manager',
+        engagement_signal: alert.level,
+        engagement_detail: alert.message,
+        tags: alert.tags || [],
+        alert_title: alert.title,
+        last_engagement_at: now,
+        coaching_written_at: now,
+        coaching_stale: false,
+        priority: alert.level === 'urgent' ? 1 : 3,
+        pitch_track: pitchTrack,
+        recommended_opener: opener,
+        anticipated_objection: 'Not sure yet / needs approval',
+        step_down_offer: '90-day single-machine pilot — no long-term commitment, we remove it at no cost if residents don\'t use it.',
+        win_condition: alert.level === 'urgent' ? 'Make the call. Any response is better than continued silence.' : 'Confirm interest level and set a next step.',
+        called: false,
+        addedAt: now,
+        addedBy: 'sync-alerts-v2'
+      };
+
+      db.callSheet.push(newCard);
+      results.created.push(prospectName);
+    }
+  }
+
+  saveDB(db);
+
+  res.json({
+    ok: true,
+    version: 'v2',
+    synced: results.created.length + results.updated.length,
+    created: results.created,
+    updated: results.updated,
+    skipped: results.skipped,
+    totalAlerts: actionable.length,
+    message: `Synced ${results.created.length + results.updated.length} call cards from engagement alerts (coaching-preserving).`
+  });
 });
 
