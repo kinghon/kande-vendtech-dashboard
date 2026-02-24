@@ -263,6 +263,15 @@
                 <option value="low">🔴 Low Rev</option>
                 <option value="none">⚪ No Data</option>
               </select>
+              <select id="typeFilter" onchange="filterRouteLeads();renderMarkers();" style="padding:6px 8px;border-radius:6px;border:1px solid #e2e8f0;background:#f0f4f8;font-size:11px;color:#1a202c;">
+                <option value="all">All Types</option>
+                <option value="Apartments/Condos">🏠 Apartments/Condos</option>
+                <option value="Senior Living">🏥 Senior Living</option>
+                <option value="Healthcare">🩺 Healthcare</option>
+                <option value="Industrial/Warehouse">🏭 Industrial/Warehouse</option>
+                <option value="Office/Business">🏢 Office/Business</option>
+                <option value="Other">📦 Other</option>
+              </select>
             </div>
             <div id="routeLeadsList" style="max-height: 300px; overflow-y: auto; -webkit-overflow-scrolling: touch;"></div>
           </div>
@@ -424,15 +433,29 @@
       }
     }
 
+    /* ── Location type categorizer ───────────────────── */
+    function getTypeCategory(p) {
+      var t = (p.property_type || '').toLowerCase();
+      if (/apartment|condo|residential|multifamily|multi.family|loft|flat|townhome|townhouse/.test(t)) return 'Apartments/Condos';
+      if (/senior|assisted|retirement|memory care|skilled nursing|elder|aging|55\+/.test(t)) return 'Senior Living';
+      if (/health|medical|clinic|hospital|dental|urgent care|dialysis|rehab|pharmacy/.test(t)) return 'Healthcare';
+      if (/industrial|warehouse|distribution|manufacturing|logistics|fulfillment|storage/.test(t)) return 'Industrial/Warehouse';
+      if (/office|corporate|business park|cowork|tech|headquarters|hq|call center/.test(t)) return 'Office/Business';
+      return 'Other';
+    }
+
     /* ── Render markers ──────────────────────────────── */
     function renderMarkers() {
       Object.values(markers).forEach(function(m) { map.removeLayer(m); });
       markers = {};
       var bounds = [];
 
+      var activeTypeFilter = document.getElementById('typeFilter')?.value || 'all';
+
       for (var i = 0; i < prospects.length; i++) {
         var p = prospects[i];
         if (!p.lat || !p.lng) continue;
+        if (activeTypeFilter !== 'all' && getTypeCategory(p) !== activeTypeFilter) continue;
 
         var color = getMarkerColor(p);
         var revTier = getRevenueTier(p.id);
@@ -514,6 +537,7 @@
       var container = document.getElementById('routeLeadsList');
       var search = (document.getElementById('routeSearch')?.value || '').toLowerCase();
       var revFilter = document.getElementById('revFilter')?.value || 'all';
+      var typeFilter = document.getElementById('typeFilter')?.value || 'all';
 
       var geocoded = sortByProximity(prospects.filter(function(p) {
         return p.lat && p.lng && p.status !== 'closed';
@@ -525,6 +549,7 @@
           var tier = getRevenueTier(p.id);
           if (revFilter !== tier) return false;
         }
+        if (typeFilter !== 'all' && getTypeCategory(p) !== typeFilter) return false;
         return true;
       });
 
