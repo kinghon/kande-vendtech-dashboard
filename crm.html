@@ -758,7 +758,9 @@
       // Include prospects with next_action OR where follow_up_date has passed (excluding stale/signed)
       const withActions = prospects.filter(p => {
         if (p.status === 'closed' || p.status === 'signed') return false;
-        if (!hasManualActivity(p)) return false; // skip agent-added prospects
+        // Allow if manually flagged OR has a real logged activity
+        const isManual = p.next_action_source === 'manual' || hasManualActivity(p);
+        if (!isManual) return false;
         if (p.next_action) return true;
         // Check if follow-up is due
         if (p.follow_up_date && p.follow_up_date <= today) return true;
@@ -2277,7 +2279,7 @@
         await fetch(`/api/prospects/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'x-api-key': 'kande2026' },
-          body: JSON.stringify({ needs_action: true, next_action: 'Pop In' })
+          body: JSON.stringify({ needs_action: true, next_action: 'Pop In', next_action_source: 'manual' })
         });
         // Update in-memory only — avoids full reload which resets the type filter
         const p = prospects.find(pr => pr.id === id);
