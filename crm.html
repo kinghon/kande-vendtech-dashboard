@@ -1162,6 +1162,7 @@
             <button class="action-btn" onclick="logActivity(${p.id},'pop-in')" style="background:rgba(56,161,105,0.15);border-color:var(--success);color:var(--success);">🚶 Log Pop-in</button>
             <button class="action-btn" onclick="logActivity(${p.id},'email')" style="background:rgba(221,107,32,0.15);border-color:var(--warm);color:var(--warm);">📧 Log Email</button>
             <button class="action-btn" onclick="logActivity(${p.id},'other')" style="background:rgba(128,90,213,0.15);border-color:#805ad5;color:#805ad5;">📋 Log Other</button>
+            ${p.lat && p.lng ? `<button class="action-btn" onclick="showOnMap(${p.id})" style="background:rgba(0,0,0,0.06);border-color:#4a5568;color:#4a5568;">🗺️ Show On Map</button>` : ''}
           </div>
 
           <!-- Editable Fields -->
@@ -2196,6 +2197,23 @@
       if (t.includes('warehouse') || t.includes('industrial') || t.includes('logistics') || t.includes('manufacturing') || t.includes('distribution')) return 'industrial';
       if (t.includes('office') || t.includes('corporate') || t.includes('business') || t.includes('cowork') || t.includes('call center')) return 'office';
       return 'other';
+    }
+
+    function showOnMap(id) {
+      const p = prospects.find(pr => pr.id === id);
+      if (!p || !p.lat || !p.lng) return;
+      // Scroll map into view
+      document.getElementById('miniMap').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Fly to location and open popup
+      setTimeout(() => {
+        map.flyTo([p.lat, p.lng], 16, { duration: 1 });
+        // Find and open the marker for this prospect
+        markers.eachLayer(m => {
+          if (m.getLatLng().lat === p.lat && m.getLatLng().lng === p.lng) {
+            setTimeout(() => m.openPopup(), 900);
+          }
+        });
+      }, 400);
     }
 
     function geocodeAndPlot() {
