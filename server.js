@@ -607,7 +607,7 @@ app.post('/api/prospects/bulk-update', (req, res) => {
       updated++;
     }
   });
-  saveDb();
+  saveDB(db);
   res.json({ updated });
 });
 
