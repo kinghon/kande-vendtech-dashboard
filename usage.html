@@ -172,7 +172,7 @@
 <div class="container">
   <div class="page-header">
     <h1>📊 API Usage &amp; Turn Tracker</h1>
-    <p>Daily assistant turn counts across all session groups — last 30 days</p>
+    <p>Assistant turn counts across all session groups — last 7 days (2-hour intervals)</p>
     <span class="updated-badge none" id="updated-badge">⏳ Loading...</span>
   </div>
 
@@ -180,13 +180,13 @@
   <div class="stats-grid" id="stats-grid">
     <div class="stat-card"><div class="label">Turns Today</div><div class="value" id="stat-today">—</div><div class="sub">all groups</div></div>
     <div class="stat-card"><div class="label">7-Day Avg</div><div class="value" id="stat-7day">—</div><div class="sub">per day</div></div>
-    <div class="stat-card"><div class="label">30-Day Total</div><div class="value" id="stat-30day">—</div><div class="sub">all groups</div></div>
+    <div class="stat-card"><div class="label">7-Day Total</div><div class="value" id="stat-30day">—</div><div class="sub">all groups</div></div>
     <div class="stat-card"><div class="label">Est. Daily Cost</div><div class="value" id="stat-cost">—</div><div class="sub">blended Opus+Sonnet</div></div>
   </div>
 
   <!-- Line chart -->
   <div class="chart-card">
-    <h2>Daily Turns by Group</h2>
+    <h2>Turns by Group — 2-Hour Intervals</h2>
     <div class="chart-wrap">
       <canvas id="turnsChart"></canvas>
     </div>
@@ -239,19 +239,31 @@ function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function last30Days() {
-  const days = [];
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date();
+// Generate all 2-hour slot keys for the last 7 days (in local/LA time)
+function last7DaySlots() {
+  const slots = [];
+  const now = new Date();
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
     d.setDate(d.getDate() - i);
-    days.push(d.toISOString().slice(0, 10));
+    const dateStr = d.toISOString().slice(0, 10);
+    for (let h = 0; h < 24; h += 2) {
+      slots.push(`${dateStr}T${String(h).padStart(2, '0')}`);
+    }
   }
-  return days;
+  return slots;
 }
 
-function shortDate(iso) {
-  const [, mm, dd] = iso.split('-');
-  return `${parseInt(mm)}/${parseInt(dd)}`;
+// Format a slot key as a human-readable label for major ticks
+function slotLabel(slot) {
+  const [datePart, hourPart] = slot.split('T');
+  const h = parseInt(hourPart);
+  if (h === 0) {
+    const [, mm, dd] = datePart.split('-');
+    return `${parseInt(mm)}/${parseInt(dd)}`;
+  }
+  if (h === 12) return '12p';
+  return '';
 }
 
 function color(name) { return COLORS[name] || DEFAULT_COLOR; }
@@ -261,42 +273,63 @@ let chartInstance = null;
 
 function render(data) {
   const sessions = data.sessions || [];
-  const days = last30Days();
-  const today = todayStr();
+  const slots    = last7DaySlots();      // 84 slots
+  const today    = todayStr();
 
-  // Build lookup: group → date → turns
+  // Build lookup: group → slot → turns (supports both {slot:} and {date:} formats)
   const lookup = {};
   sessions.forEach(s => {
     lookup[s.name] = {};
-    (s.data || []).forEach(d => { lookup[s.name][d.date] = d.turns; });
-  });
-
-  // Stats
-  let turnsToday = 0, total30 = 0;
-  const daily7 = {};
-  sessions.forEach(s => {
     (s.data || []).forEach(d => {
-      if (d.date === today) turnsToday += d.turns;
-      total30 += d.turns;
-      if (d.date >= days[23]) { // last 7 days
-        daily7[d.date] = (daily7[d.date] || 0) + d.turns;
-      }
+      const key = d.slot || d.date;
+      if (key) lookup[s.name][key] = d.turns;
     });
   });
-  const avg7 = Object.keys(daily7).length > 0
-    ? Math.round(Object.values(daily7).reduce((a, b) => a + b, 0) / Object.keys(daily7).length)
-    : 0;
+
+  // Detect if data uses 2h slots or legacy daily format
+  let isLegacy = true;
+  for (const s of sessions) {
+    const first = (s.data || [])[0];
+    if (first && first.slot) { isLegacy = false; break; }
+  }
+
+  // Stats
+  let turnsToday = 0, total7 = 0;
+  sessions.forEach(s => {
+    (s.data || []).forEach(d => {
+      const key  = d.slot || d.date;
+      total7 += d.turns;
+      // For 2h slots: sum all slots that start with today
+      if (key && key.startsWith(today)) turnsToday += d.turns;
+    });
+  });
+
+  // 7-day average (per day)
+  const dailyTotals = {};
+  sessions.forEach(s => {
+    (s.data || []).forEach(d => {
+      const key = d.slot || d.date;
+      const dayKey = key ? key.slice(0, 10) : null;
+      if (dayKey) dailyTotals[dayKey] = (dailyTotals[dayKey] || 0) + d.turns;
+    });
+  });
+  const numDays = Object.keys(dailyTotals).length || 1;
+  const avg7 = Math.round(total7 / numDays);
 
   // Cost estimate (today)
   let costToday = 0;
   sessions.forEach(s => {
-    const t = (lookup[s.name] && lookup[s.name][today]) || 0;
+    let t = 0;
+    (s.data || []).forEach(d => {
+      const key = d.slot || d.date;
+      if (key && key.startsWith(today)) t += d.turns;
+    });
     costToday += t * (COST_PER_TURN[s.name] || DEFAULT_COST);
   });
 
   document.getElementById('stat-today').textContent = turnsToday.toLocaleString();
   document.getElementById('stat-7day').textContent = avg7.toLocaleString();
-  document.getElementById('stat-30day').textContent = total30.toLocaleString();
+  document.getElementById('stat-30day').textContent = total7.toLocaleString();
   document.getElementById('stat-cost').textContent = `$${costToday.toFixed(2)}`;
 
   // Updated badge
@@ -311,16 +344,20 @@ function render(data) {
     badge.textContent = 'No data yet — run the extraction script';
   }
 
-  // Chart datasets
+  // Chart datasets — use 2h slots if available, fallback to legacy daily
+  const xKeys = isLegacy ? [...new Set(sessions.flatMap(s => (s.data||[]).map(d => d.date)))].sort() : slots;
   const datasets = sessions.map(s => ({
     label: s.name,
-    data: days.map(d => lookup[s.name]?.[d] || 0),
+    data: xKeys.map(slot => {
+      if (isLegacy) return lookup[s.name]?.[slot] || 0;
+      return lookup[s.name]?.[slot] || 0;
+    }),
     borderColor: color(s.name),
     backgroundColor: color(s.name) + '18',
-    borderWidth: 2.5,
-    pointRadius: 3,
-    pointHoverRadius: 5,
-    tension: 0.35,
+    borderWidth: 2,
+    pointRadius: 0,
+    pointHoverRadius: 4,
+    tension: 0.3,
     fill: false,
   }));
 
@@ -329,7 +366,7 @@ function render(data) {
   chartInstance = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: days.map(shortDate),
+      labels: xKeys.map(k => isLegacy ? k.slice(5) : slotLabel(k)),
       datasets,
     },
     options: {
@@ -343,6 +380,17 @@ function render(data) {
         },
         tooltip: {
           callbacks: {
+            title: items => {
+              const idx = items[0]?.dataIndex;
+              if (idx == null) return '';
+              const slot = xKeys[idx];
+              if (isLegacy) return slot;
+              const [d, h] = slot.split('T');
+              const hr = parseInt(h);
+              const ampm = hr >= 12 ? 'pm' : 'am';
+              const h12 = hr === 0 ? 12 : hr > 12 ? hr - 12 : hr;
+              return `${d} ${h12}${ampm}-${h12+2 > 12 ? h12+2-12 : h12+2}${hr+2 >= 12 ? 'pm' : 'am'}`;
+            },
             label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y} turns`
           }
         }
@@ -350,7 +398,14 @@ function render(data) {
       scales: {
         x: {
           grid: { color: '#f1f5f9' },
-          ticks: { color: '#9ca3af', font: { size: 11 }, maxRotation: 45 }
+          ticks: {
+            color: '#9ca3af', font: { size: 10 }, maxRotation: 0,
+            autoSkip: false,
+            callback: function(val, idx) {
+              const label = this.getLabelForValue(idx);
+              return label || null; // only show date boundaries and noon
+            }
+          }
         },
         y: {
           beginAtZero: true,
@@ -370,20 +425,24 @@ function render(data) {
   }
 
   const rows = sessions.map(s => {
-    const data30 = days.map(d => lookup[s.name]?.[d] || 0);
-    const sum30  = data30.reduce((a, b) => a + b, 0);
-    const todayT = lookup[s.name]?.[today] || 0;
-    const active = data30.filter(v => v > 0).length;
-    const peak   = Math.max(...data30);
-    const cost30 = sum30 * (COST_PER_TURN[s.name] || DEFAULT_COST);
+    const vals = xKeys.map(k => lookup[s.name]?.[k] || 0);
+    const sum7   = vals.reduce((a, b) => a + b, 0);
+    let todayT = 0;
+    (s.data || []).forEach(d => {
+      const key = d.slot || d.date;
+      if (key && key.startsWith(today)) todayT += d.turns;
+    });
+    const activeSlots = vals.filter(v => v > 0).length;
+    const peak  = Math.max(...vals);
+    const cost7 = sum7 * (COST_PER_TURN[s.name] || DEFAULT_COST);
     return `
       <tr>
         <td><span class="group-dot" style="background:${color(s.name)}"></span>${s.name}</td>
         <td>${todayT}</td>
-        <td>${sum30.toLocaleString()}</td>
-        <td>${active}</td>
+        <td>${sum7.toLocaleString()}</td>
+        <td>${activeSlots}</td>
         <td>${peak}</td>
-        <td>$${cost30.toFixed(2)}</td>
+        <td>$${cost7.toFixed(2)}</td>
       </tr>`;
   }).join('');
 
@@ -393,10 +452,10 @@ function render(data) {
         <tr>
           <th>Group</th>
           <th>Today</th>
-          <th>30-Day Total</th>
-          <th>Active Days</th>
-          <th>Peak Day</th>
-          <th>Est. 30-Day Cost</th>
+          <th>7-Day Total</th>
+          <th>Active Slots</th>
+          <th>Peak 2h</th>
+          <th>Est. 7-Day Cost</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
