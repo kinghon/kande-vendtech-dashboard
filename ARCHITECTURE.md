@@ -4,6 +4,24 @@
 
 ---
 
+## ⚠️ RULE #0 — VERIFY FILE PATH BEFORE EDITING
+
+**Before editing any file, run `find` to confirm it exists at that exact path.**
+
+```bash
+find ~/clawd/kande-vendtech -name "activities.html"
+# → /Users/kurtishon/clawd/kande-vendtech/activities.html  ✅ repo root
+# NOT dashboard/activities.html — that path does not exist
+```
+
+After editing, run `git status`. If it shows an **untracked** file instead of a **modified** file, you created a new file at the wrong path. Undo it immediately.
+
+**ALL HTML files are flat in the repo root** (`~/clawd/kande-vendtech/*.html`). There is no `dashboard/` subdirectory with HTML files. `dashboard/` is the deploy working directory, not a file location.
+
+This rule exists because agents repeatedly edited `dashboard/activities.html` (nonexistent) instead of `activities.html` (repo root), then deployed and wondered why nothing changed.
+
+---
+
 ## ⚠️ THE BIG GOTCHA
 
 **mc.kandedash.com and vend.kandedash.com are DIFFERENT Railway projects.**
