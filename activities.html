@@ -199,8 +199,8 @@
           const MANUAL_TYPES = ['call', 'pop-in', 'pop_in', 'email', 'note', 'other', 'meeting', 'visit'];
           if (!MANUAL_TYPES.includes((a.type || '').toLowerCase()) && !isTodoComplete) return;
 
-          // Skip Scout-generated activities
-          if (/^Scout\b/i.test(desc) || a.source === 'scout' || a.source === 'agent') return;
+          // Skip all agent-generated activities (Scout, Relay, Ralph, any bot)
+          if (/^(Scout|Relay|Ralph|Clawd|Agent)\b/i.test(desc) || a.source === 'scout' || a.source === 'agent' || a.source === 'relay' || a.source === 'bot') return;
 
           // Skip auto-generated patterns
           if (/^Email \d+ (sent|drafted)/i.test(desc) || /Follow-up email drafted/i.test(desc)) return;
@@ -240,7 +240,7 @@
         const ts = parseNoteTimestamp(line);
         if (ts) {
           const content = line.replace(/^\[[^\]]+\]\s*/, '').substring(0, 120);
-          if (content.trim() && !/^Scout\b/i.test(content)) {
+          if (content.trim() && !/^(Scout|Relay|Ralph|Clawd|Agent)\b/i.test(content)) {
             allEvents.push({
               prospectId,
               prospectName,
