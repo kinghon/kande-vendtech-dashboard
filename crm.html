@@ -601,6 +601,10 @@
             </div>
           </div>
           <div class="form-group">
+            <label class="form-label">Favorite snack</label>
+            <input type="text" class="form-input" id="contactFavoriteSnack" placeholder="e.g. Doritos">
+          </div>
+          <div class="form-group">
             <label><input type="checkbox" id="contactPrimary"> Primary contact</label>
           </div>
         </form>
@@ -1253,11 +1257,12 @@
               <span></span>
             </div>` : ''}
             ${contacts.map((c, ci) => `
-              <div class="contact-card contact-grid-row" style="display:grid;grid-template-columns:2fr 2fr 1.5fr 3fr auto;gap:8px;align-items:center;">
+              <div class="contact-card contact-grid-row" style="display:grid;grid-template-columns:2fr 2fr 1.5fr 3fr 2fr auto;gap:8px;align-items:center;">
                 <div class="field-group contact-field"><label class="field-label contact-field-label">Name</label><input class="field-input" value="${esc(c.name)}" placeholder="Name" style="font-weight:600;width:100%;" onchange="updateContact(${p.id},${c.id},'name',this.value)"></div>
                 <div class="field-group contact-field"><label class="field-label contact-field-label">Role</label><input class="field-input" value="${esc(c.role || '')}" placeholder="Role" style="font-size:0.8rem;width:100%;" onchange="updateContact(${p.id},${c.id},'role',this.value)"></div>
                 <div class="field-group contact-field"><label class="field-label contact-field-label">Phone</label><input class="field-input" value="${esc(c.phone || '')}" placeholder="Phone" style="width:100%;" onchange="updateContact(${p.id},${c.id},'phone',this.value)"></div>
                 <div class="field-group contact-field"><label class="field-label contact-field-label">Email</label><input class="field-input" value="${esc(c.email || '')}" placeholder="Email" style="width:100%;" onchange="updateContact(${p.id},${c.id},'email',this.value)"></div>
+                <div class="field-group contact-field"><label class="field-label contact-field-label">Favorite snack</label><input class="field-input" value="${esc(c.favorite_snack || '')}" placeholder="e.g. Doritos" style="width:100%;" onchange="updateContact(${p.id},${c.id},'favorite_snack',this.value)"></div>
                 <button class="contact-delete" style="background:none;border:none;color:var(--hot);cursor:pointer;font-size:14px;" onclick="deleteContact(${p.id},${c.id})" title="Remove contact">✕</button>
               </div>
             `).join('')}
@@ -1879,6 +1884,7 @@
         role: document.getElementById('contactRole').value,
         email: document.getElementById('contactEmail').value,
         phone: document.getElementById('contactPhone').value,
+        favorite_snack: document.getElementById('contactFavoriteSnack').value,
         is_primary: document.getElementById('contactPrimary').checked
       };
       await fetch(`/api/prospects/${pid}/contacts`, {
