@@ -1209,3 +1209,32 @@ Use the 🌿 **Wellness Program** toggle on each prospect card to:
 - High-volume fitness centers doing $5K/machine/month
 - If business owner already has vending but doing it poorly = opportunity to take over
 - Ask property managers for existing revenue data when possible
+
+---
+
+## Appendix: Michael's Route — $650K/yr with 18 Machines (added 2026-02-25)
+> Source: Vendingpreneurs YouTube, published 2026-02-24
+
+### Key Numbers
+- **18 machines → $650K/year gross** (~20 months in)
+- On track for **$1M annual by April 2026**
+- One single Stockwell location: **$70,000/year** — placed at mailroom + main elevator + parking garage entrance intersection
+- 15-20 unsigned contracts in pipeline at any given time
+
+### Strategy Insights
+- **Efficiency over volume:** Fewer high-value locations beats many low-value ones (reduces employee/insurance/van costs)
+- **Sales cycle: 6-8 months** from first handshake to signed contract (confirms our existing 10-12 week average skews optimistic for larger deals)
+- **30 pop-ins/week** during aggressive growth phase
+- Contracts come in "bunches" — persistent follow-up triggers floodgates opening
+
+### Product Intelligence
+- **Smart Water at $4 outsells Aquafina consistently** — branding > price for water
+- Pure Life at $1.99 vs Smart Water at $4.99: both sell well, margin on Smart Water is insane
+- Voss and San Pellegrino (carbonated water) = "phenomenal" performers
+- South Bend Chocolate dark salty chocolate pretzels = high throughput snack
+- Upgraded $70K location from Stockwell → PicoV Plus + ambient (8-deep vs 6-deep = fewer restocks)
+
+### Stocking Discipline
+- High-volume locations: full restock Mon/Fri, mid-week drink top-up on Wednesday
+- "Never leave any row empty" — restock philosophy drives revenue
+- Sort pick list by zero-stock/inventory to prioritize mid-week runs
