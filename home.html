@@ -1159,7 +1159,12 @@
     var prospects = results[1] || [];
     var activities = results[2] || [];
     var tasks = Array.isArray(results[3]) ? results[3] : (results[3].tasks || []);
-    var pipelineCards = results[4] || [];
+    var _pipelineRaw = results[4] || {};
+    // API returns {cards: {stage: [...]}, stages: [...], total: N} — flatten to array
+    var pipelineCards = Array.isArray(_pipelineRaw) ? _pipelineRaw :
+      (Array.isArray(_pipelineRaw.cards) ? _pipelineRaw.cards :
+        (typeof _pipelineRaw.cards === 'object' && _pipelineRaw.cards ?
+          Object.values(_pipelineRaw.cards).reduce(function(a, v) { return a.concat(Array.isArray(v) ? v : []); }, []) : []));
     var pipelineStages = results[5] || [];
     var finances = results[6] || {};
 
