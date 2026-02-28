@@ -1238,3 +1238,14 @@ Use the 🌿 **Wellness Program** toggle on each prospect card to:
 - High-volume locations: full restock Mon/Fri, mid-week drink top-up on Wednesday
 - "Never leave any row empty" — restock philosophy drives revenue
 - Sort pick list by zero-stock/inventory to prioritize mid-week runs
+
+---
+
+## Appendix: Route Valuation & Exit Strategy (Added 2026-02-28)
+> Source: Vendingpreneurs YouTube — "If You Have $10,000 Saved, Watch This Video" (2026-02-27)
+
+- **Routes sell for 1–1.5x annual revenue.** A $1M/year revenue operation could sell for $1M+.
+- **Path to passive timeline:** Months 1–6 DIY (learning + stocking yourself), months 6–12 hire first stocker and start removing yourself, month 12+ working ON the business not IN it.
+- **Stocker capacity:** One stocker at $20–25/hr can handle 10–15 locations.
+- **Anthony's current state:** 45 locations, ~30 min/day involvement (strategic review + 5-day/week check-ins with stocker Colin).
+- **Machine financing:** 5–10% down, ~$150/month payment per machine. Keep $10K reserve for inventory + operational capital.
