@@ -25977,3 +25977,7 @@ app.post('/api/pipeline/call-sheet/sync-alerts-v2', (req, res) => {
   });
 });
 
+
+// [ralph] Fix /dashboard and /dashboard/ 404 — redirect to briefing
+app.get('/dashboard', (req, res) => res.redirect('/briefing.html'));
+app.get('/dashboard/', (req, res) => res.redirect('/briefing.html'));
