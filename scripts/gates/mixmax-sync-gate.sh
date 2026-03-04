@@ -35,11 +35,36 @@ except Exception as e:
     print(f'PARSE_ERROR: {e}')
 " 2>/dev/null)
 
-echo "$NOTABLE"
+STATE_FILE="/tmp/mixmax-last-replies.txt"
 
-# Only escalate to LLM if there are new REPLIES (not just opens)
-if echo "$NOTABLE" | grep -q "New replies"; then
-  exit 0  # Pass to LLM for Kurtis notification
+# Extract current reply set
+CURRENT_REPLIES=$(echo "$RESULT" | python3 -c "
+import json, sys
+try:
+    data = json.load(sys.stdin)
+    replies = sorted(set(r['prospect_name'] for r in data.get('results', []) if r.get('was_replied') and not r.get('last_event_is_internal', True)))
+    print('\n'.join(replies))
+except:
+    pass
+" 2>/dev/null)
+
+# Compare to last known state
+PREV_REPLIES=""
+if [ -f "$STATE_FILE" ]; then
+  PREV_REPLIES=$(cat "$STATE_FILE")
+fi
+
+# Save current state
+echo "$CURRENT_REPLIES" > "$STATE_FILE"
+
+# Find truly NEW replies (in current but not in previous)
+NEW_REPLIES=$(comm -23 <(echo "$CURRENT_REPLIES" | sort) <(echo "$PREV_REPLIES" | sort) 2>/dev/null | grep -v '^$')
+
+if [ -n "$NEW_REPLIES" ]; then
+  echo "NEW_REPLIES_FOUND: $NEW_REPLIES"
+  echo "$NOTABLE"
+  exit 0  # Pass to LLM — genuinely new replies
 else
-  exit 1  # Done, no LLM needed
+  echo "$NOTABLE"
+  exit 1  # Known replies, no LLM needed
 fi
