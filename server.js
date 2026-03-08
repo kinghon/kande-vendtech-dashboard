@@ -25981,3 +25981,83 @@ app.post('/api/pipeline/call-sheet/sync-alerts-v2', (req, res) => {
 // [ralph] Fix /dashboard and /dashboard/ 404 — redirect to briefing
 app.get('/dashboard', (req, res) => res.redirect('/briefing.html'));
 app.get('/dashboard/', (req, res) => res.redirect('/briefing.html'));
+
+
+// [ralph] Address-level dedup check — prevents split records on health system leads
+// GET /api/prospects/dedup-check?address=5118+W+Sahara
+app.get('/api/prospects/dedup-check', requireApiKey, (req, res) => {
+  const { address } = req.query;
+  if (!address) return res.status(400).json({ error: 'address query param required' });
+
+  const db = loadDB();
+  const normalized = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const needle = normalized(address);
+
+  const matches = (db.prospects || []).filter(p => {
+    const addr = normalized(p.address || p.location || '');
+    return addr && addr.includes(needle.slice(0, 10));
+  });
+
+  const duplicates = matches.length > 1;
+
+  res.json({
+    ok: true,
+    address,
+    matchCount: matches.length,
+    duplicates,
+    records: matches.map(p => ({
+      id: p.id,
+      name: p.name,
+      address: p.address || p.location || '',
+      status: p.status,
+      createdAt: p.createdAt || null
+    })),
+    message: duplicates
+      ? `⚠️ ${matches.length} records found at this address — potential duplicate`
+      : matches.length === 1
+        ? `✅ 1 record found — no duplicate`
+        : `✅ No existing records at this address — safe to add`
+  });
+});
+
+// [ralph] Healthcare vendor window rule — express priority flag for new healthcare facilities
+// GET /api/pipeline/healthcare-express
+app.get('/api/pipeline/healthcare-express', requireApiKey, (req, res) => {
+  const db = loadDB();
+  const now = new Date();
+  const ninetyDaysAgo = new Date(now - 90 * 24 * 60 * 60 * 1000);
+
+  const healthcareTypes = ['healthcare', 'medical', 'clinic', 'hospital', 'dialysis', 'dental', 'urgent care', 'pharmacy'];
+
+  const prospects = (db.prospects || []).filter(p => {
+    const type = (p.type || p.vertical || p.property_type || '').toLowerCase();
+    const isHealthcare = healthcareTypes.some(t => type.includes(t));
+    if (!isHealthcare) return false;
+
+    // Check if opened within 90 days
+    if (p.openingDate || p.opening_date) {
+      const opened = new Date(p.openingDate || p.opening_date);
+      return opened >= ninetyDaysAgo;
+    }
+    // If opening_soon status, include
+    return p.status === 'opening_soon' || (p.tags || []).includes('opening_soon');
+  });
+
+  res.json({
+    ok: true,
+    expressCount: prospects.length,
+    rule: 'Healthcare facilities opened within 90 days = EXPRESS priority (vendor selection window open)',
+    prospects: prospects.map(p => ({
+      id: p.id,
+      name: p.name,
+      type: p.type || p.vertical || '',
+      status: p.status,
+      openingDate: p.openingDate || p.opening_date || null,
+      address: p.address || p.location || '',
+      contact: p.contact || p.contacts?.[0] || null
+    })),
+    message: prospects.length > 0
+      ? `🏥 ${prospects.length} healthcare prospect(s) in vendor selection window — EXPRESS PRIORITY`
+      : '✅ No new healthcare facilities in 90-day vendor window currently'
+  });
+});
