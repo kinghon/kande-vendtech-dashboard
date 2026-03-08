@@ -25415,7 +25415,7 @@ app.get('/api/crm/bulk-import/status', (req, res) => {
   });
 });
 
-// DEPLOY_VERSION: 2026-02-24-v1 (ralph overnight — sync-alerts-v2 added, coaching staleness bug fixed, missing phone numbers patched)
+// DEPLOY_VERSION: 2026-03-08-v1 (ralph overnight — address dedup-check + healthcare express endpoints added)
 
 app.get('/api/debug/deploy-version', (req, res) => {
   const apiKey = req.headers['x-api-key'];
@@ -25424,7 +25424,7 @@ app.get('/api/debug/deploy-version', (req, res) => {
   // Count registered routes to verify full deployment
   const routeCount = app._router ? app._router.stack.filter(r => r.route).length : 0;
   const totalLines = 25970; // Expected server.js line count (updated 2026-02-24 overnight v1)
-  const deployVersion = '2026-02-24-v1';
+  const deployVersion = '2026-03-08-v1';
   const expectedRoutes = [
     '/api/pipeline/engagement-alerts',
     '/api/pipeline/account-tiers',
