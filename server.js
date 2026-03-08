@@ -574,6 +574,25 @@ app.get('/api/prospects', (req, res) => {
   res.json(prospects);
 });
 
+// [ralph] Address-level dedup check — must be BEFORE /:id wildcard route
+app.get('/api/prospects/dedup-check', (req, res) => {
+  const { address } = req.query;
+  if (!address) return res.status(400).json({ error: 'address query param required' });
+  const db = loadDB();
+  const normalized = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const needle = normalized(address);
+  const matches = (db.prospects || []).filter(p => {
+    const addr = normalized(p.address || p.location || '');
+    return addr && addr.includes(needle.slice(0, 10));
+  });
+  const duplicates = matches.length > 1;
+  res.json({
+    ok: true, address, matchCount: matches.length, duplicates,
+    records: matches.map(p => ({ id: p.id, name: p.name, address: p.address || p.location || '', status: p.status, createdAt: p.createdAt || null })),
+    message: duplicates ? `⚠️ ${matches.length} records found at this address — potential duplicate` : matches.length === 1 ? `✅ 1 record found — no duplicate` : `✅ No existing records at this address — safe to add`
+  });
+});
+
 app.get('/api/prospects/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const prospect = db.prospects.find(p => p.id === id);
