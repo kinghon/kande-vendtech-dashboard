@@ -25985,7 +25985,7 @@ app.get('/dashboard/', (req, res) => res.redirect('/briefing.html'));
 
 // [ralph] Address-level dedup check — prevents split records on health system leads
 // GET /api/prospects/dedup-check?address=5118+W+Sahara
-app.get('/api/prospects/dedup-check', requireApiKey, (req, res) => {
+app.get('/api/prospects/dedup-check', requireAuth, (req, res) => {
   const { address } = req.query;
   if (!address) return res.status(400).json({ error: 'address query param required' });
 
@@ -26022,7 +26022,7 @@ app.get('/api/prospects/dedup-check', requireApiKey, (req, res) => {
 
 // [ralph] Healthcare vendor window rule — express priority flag for new healthcare facilities
 // GET /api/pipeline/healthcare-express
-app.get('/api/pipeline/healthcare-express', requireApiKey, (req, res) => {
+app.get('/api/pipeline/healthcare-express', requireAuth, (req, res) => {
   const db = loadDB();
   const now = new Date();
   const ninetyDaysAgo = new Date(now - 90 * 24 * 60 * 60 * 1000);
