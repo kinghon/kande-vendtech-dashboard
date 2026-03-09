@@ -26080,3 +26080,14 @@ app.get('/api/pipeline/healthcare-express', requireAuth, (req, res) => {
       : '✅ No new healthcare facilities in 90-day vendor window currently'
   });
 });
+
+// [ralph] Enriched activities endpoint — includes prospect_name joined from prospects
+app.get('/api/activities/enriched', (req, res) => {
+  const limit = parseInt(req.query.limit) || 50;
+  const activities = (db.activities || []).slice(-500).reverse().slice(0, limit);
+  const enriched = activities.map(a => {
+    const prospect = db.prospects.find(p => p.id === a.prospect_id);
+    return { ...a, prospect_name: prospect ? prospect.name : null };
+  });
+  res.json(enriched);
+});
