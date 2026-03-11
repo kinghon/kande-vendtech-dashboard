@@ -26091,3 +26091,27 @@ app.get('/api/activities/enriched', (req, res) => {
   });
   res.json(enriched);
 });
+
+// [ralph] Fix contract-generator/templates 500: patch route to use local contracts/ dir
+// The original route used ../contracts which doesn't exist on Railway (no parent dir).
+// This override removes the broken handler and registers a new one pointing to local contracts/.
+(function patchContractRoute() {
+  const localContractsDir = path.join(__dirname, 'contracts');
+  const stack = app._router && app._router.stack;
+  if (stack) {
+    const idx = stack.findIndex(l => l.route && l.route.path === '/api/contract-generator/templates');
+    if (idx !== -1) stack.splice(idx, 1);
+  }
+  app.get('/api/contract-generator/templates', requireAuth, (req, res) => {
+    try {
+      const files = fs.readdirSync(localContractsDir).filter(f => f.endsWith('.md') && f !== 'README.md');
+      const templates = files.map(f => {
+        const content = fs.readFileSync(path.join(localContractsDir, f), 'utf8');
+        return { filename: f, content };
+      });
+      res.json(templates);
+    } catch (e) {
+      res.status(500).json({ error: 'Could not read contract templates', detail: e.message });
+    }
+  });
+})();
