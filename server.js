@@ -14700,6 +14700,26 @@ app.get('/api/goals', (req, res) => {
   res.json(goals.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
 });
 
+// [ralph] Specific sub-routes must be BEFORE /:id wildcard to prevent route shadowing
+app.get('/api/goals/achievements', (req, res) => {
+  res.json(db.goalsAchievements || { streaks: { current: 0, best: 0 }, badges: [], personal_bests: {} });
+});
+
+app.get('/api/goals/summary', (req, res) => {
+  const goals = db.goals || [];
+  const active = goals.filter(g => g.status === 'active');
+  const achieved = goals.filter(g => g.status === 'achieved');
+  const missed = goals.filter(g => g.status === 'missed');
+  const totalProgress = active.reduce((sum, g) => sum + (g.target > 0 ? Math.min(100, (g.current / g.target) * 100) : 0), 0);
+  const avgProgress = active.length > 0 ? Math.round(totalProgress / active.length) : 0;
+  res.json({
+    total: goals.length, active: active.length, achieved: achieved.length, missed: missed.length,
+    avgProgress,
+    successRate: goals.length > 0 ? Math.round((achieved.length / (achieved.length + missed.length || 1)) * 100) : 0,
+    streaks: db.goalsAchievements?.streaks || { current: 0, best: 0 }
+  });
+});
+
 // Get single goal
 app.get('/api/goals/:id', (req, res) => {
   const id = parseInt(req.params.id);
