@@ -422,6 +422,10 @@
           <div style="font-size:0.85rem;font-weight:600;color:var(--success);margin-bottom:8px;">✅ Tasks Completed Today</div>
           <div id="completedTodayList" style="display:flex;flex-direction:column;gap:6px;"></div>
         </div>
+        <!-- To-Do Search -->
+        <div style="margin-bottom:12px;">
+          <input type="text" id="todoSearch" placeholder="Search tasks..." oninput="renderTodoList()" style="width:100%;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:0.85rem;font-family:inherit;">
+        </div>
         <!-- To-Do List -->
         <div style="font-size:0.85rem;font-weight:600;color:var(--muted);margin-bottom:8px;">📋 Pending Tasks</div>
         <div id="todoList" style="display:flex;flex-direction:column;gap:8px;">
@@ -781,17 +785,26 @@
       
       // Update count badge
       document.getElementById('todoCount').textContent = withActions.length > 0 ? `(${withActions.length})` : '';
+
+      // Apply search filter
+      const todoSearchEl = document.getElementById('todoSearch');
+      const todoQuery = todoSearchEl ? todoSearchEl.value.toLowerCase().trim() : '';
+      const displayActions = todoQuery
+        ? withActions.filter(p => (p.name || '').toLowerCase().includes(todoQuery) || (p.next_action || '').toLowerCase().includes(todoQuery) || (p.property_type || '').toLowerCase().includes(todoQuery))
+        : withActions;
       
       // Sort by action type: Pop In first, then Call, then Email, then Follow Up, then Other
       const actionOrder = {'Pop In': 1, 'Call': 2, 'Email': 3};
-      withActions.sort((a, b) => {
+      displayActions.sort((a, b) => {
         if (a._isFollowUp && !b._isFollowUp) return 1;
         if (!a._isFollowUp && b._isFollowUp) return -1;
         return (actionOrder[a.next_action] || 99) - (actionOrder[b.next_action] || 99);
       });
       
-      if (withActions.length === 0) {
-        document.getElementById('todoList').innerHTML = '<div style="color:var(--muted);font-size:0.9rem;">✅ No pending actions</div>';
+      if (displayActions.length === 0) {
+        document.getElementById('todoList').innerHTML = todoQuery
+          ? '<div style="color:var(--muted);font-size:0.9rem;">🔍 No matching tasks</div>'
+          : '<div style="color:var(--muted);font-size:0.9rem;">✅ No pending actions</div>';
         return;
       }
       
@@ -808,7 +821,7 @@
         return 'background:rgba(128,90,213,0.15);color:#805ad5;border:1px solid rgba(128,90,213,0.3);';
       };
       
-      document.getElementById('todoList').innerHTML = withActions.map(p => {
+      document.getElementById('todoList').innerHTML = displayActions.map(p => {
         const isFollowUp = p._isFollowUp;
         const displayAction = isFollowUp ? 'Follow up?' : p.next_action;
         return `
