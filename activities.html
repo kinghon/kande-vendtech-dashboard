@@ -77,6 +77,18 @@
     }
     .location-events { display: none; border-top: 1px solid var(--border); }
     .location-group.open .location-events { display: block; }
+    .contact-row {
+      display: flex; align-items: center; gap: 8px; padding: 4px 16px;
+      font-size: 0.78rem; color: var(--muted); background: rgba(49,130,206,0.03);
+    }
+    .contact-row:first-child { padding-top: 8px; }
+    .contact-row:last-of-type { padding-bottom: 8px; }
+    .contact-name { font-weight: 600; color: var(--text); }
+    .contact-role { font-style: italic; }
+    .contact-email a { color: var(--accent); text-decoration: none; }
+    .contact-email a:hover { text-decoration: underline; }
+    .contact-phone a { color: var(--muted); text-decoration: none; }
+    .contact-phone a:hover { text-decoration: underline; }
 
     .event-row {
       display: flex; align-items: flex-start; gap: 10px; padding: 10px 16px;
@@ -346,6 +358,21 @@
       document.getElementById('activityList').innerHTML = html;
     }
 
+    function renderContacts(prospectId) {
+      const p = prospects[prospectId];
+      if (!p || !p.contacts || p.contacts.length === 0) return '';
+      let html = '';
+      p.contacts.forEach(c => {
+        const name = esc(c.name || 'Unknown');
+        const role = c.role ? ` <span class="contact-role">(${esc(c.role)})</span>` : '';
+        const email = c.email ? ` · <span class="contact-email"><a href="mailto:${esc(c.email)}">${esc(c.email)}</a></span>` : '';
+        const phone = c.phone ? ` · <span class="contact-phone"><a href="tel:${esc(c.phone)}">${esc(c.phone)}</a></span>` : '';
+        const primary = c.is_primary ? ' ⭐' : '';
+        html += `<div class="contact-row">👤 <span class="contact-name">${name}</span>${primary}${role}${email}${phone}</div>`;
+      });
+      return html;
+    }
+
     function renderLocationGroups(events, autoExpand) {
       const byLocation = {};
       events.forEach(e => {
@@ -377,6 +404,7 @@
             </div>
           </div>
           <div class="location-events">
+            ${renderContacts(pid)}
             ${renderEvents(group.events)}
           </div>
         </div>`;
