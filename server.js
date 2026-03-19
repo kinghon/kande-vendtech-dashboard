@@ -21292,7 +21292,7 @@ app.post('/api/activities', (req, res) => {
   const activity = {
     id: nextId(),
     ...req.body,
-    created_at: new Date().toISOString()
+    created_at: req.body.activity_date || new Date().toISOString()
   };
   db.activities.push(activity);
 
