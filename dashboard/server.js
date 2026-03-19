@@ -25,10 +25,10 @@ const VALID_PASSWORDS = [ADMIN_PASSWORD, process.env.SALES_PASSWORD || 'jvending
 // Sessions persisted to DB so they survive deploys
 function getActiveSessions() {
   if (!db.sessions) db.sessions = {};
-  // Clean expired sessions (older than 24h)
+  // Clean expired sessions (older than 14 days)
   const now = Date.now();
   for (const [token, created] of Object.entries(db.sessions)) {
-    if (now - created > 24 * 60 * 60 * 1000) delete db.sessions[token];
+    if (now - created > 14 * 24 * 60 * 60 * 1000) delete db.sessions[token];
   }
   return db.sessions;
 }
@@ -145,8 +145,8 @@ app.post('/api/auth/login', (req, res) => {
     sessions[token] = Date.now();
     saveDB(db);
     
-    // Set cookie (24 hours)
-    res.setHeader('Set-Cookie', `vendtech_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${24 * 60 * 60}`);
+    // Set cookie (14 days)
+    res.setHeader('Set-Cookie', `vendtech_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${14 * 24 * 60 * 60}`);
     loginAttempts.delete(ip); // Clear attempts on success
     res.json({ success: true });
   } else {
