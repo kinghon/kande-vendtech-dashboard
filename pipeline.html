@@ -279,6 +279,7 @@
     <div class="filters">
       <button class="filter-btn active" data-filter="all">All</button>
       <button class="filter-btn" data-filter="hot">🔥 Hot Leads</button>
+      <button class="filter-btn" data-filter="seasonal">🌊 Seasonal</button>
       <button class="filter-btn" data-filter="apartments">Apartments</button>
       <button class="filter-btn" data-filter="condos">Condos</button>
       <button class="filter-btn" data-filter="needsAction">Needs Action</button>
@@ -450,6 +451,7 @@
             <div class="prospect-name">
               ${prospect['Prospect']}
               ${isHot ? '<span class="hot-lead-indicator">🔥</span>' : ''}
+              ${prospect.seasonal_vendor_window ? '<span title="Seasonal employer — vendor window">🌊</span>' : ''}
             </div>
             <div class="prospect-type">${prospect['Property Type'] || 'Unknown'}</div>
             <div class="address">${prospect['Address'] || ''}</div>
@@ -513,6 +515,9 @@
           filtered = allProspects.filter(p => 
             (p['Property Type'] || '').toLowerCase().includes('condo')
           );
+          break;
+        case 'seasonal':
+          filtered = allProspects.filter(p => p.seasonal_vendor_window);
           break;
         case 'needsAction':
           filtered = allProspects.filter(p => 
