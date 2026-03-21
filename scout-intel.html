@@ -40,7 +40,7 @@
   .page-subtitle { color: var(--text-muted); margin-top: 4px; font-size: 0.925rem; }
 
   /* STAT CARDS */
-  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 28px; }
   .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: var(--shadow); }
   .stat-label { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
   .stat-value { font-size: 2rem; font-weight: 700; color: var(--text); line-height: 1; }
@@ -53,7 +53,7 @@
   /* GRID */
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
   .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-  @media (max-width: 1024px) { .grid-3 { grid-template-columns: 1fr 1fr; } .stats-row { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 1024px) { .grid-3 { grid-template-columns: 1fr 1fr; } .stats-row { grid-template-columns: repeat(3, 1fr); } }
   @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } .stats-row { grid-template-columns: 1fr 1fr; } }
 
   /* SECTION CARD */
@@ -147,6 +147,61 @@
   .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #e2e8f0; border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; margin-right: 8px; vertical-align: middle; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* MAPS LEAD SCORE */
+  .dist-bar-wrap { margin-bottom: 20px; }
+  .dist-bar { display: flex; height: 18px; border-radius: 9px; overflow: hidden; margin-bottom: 8px; }
+  .dist-bar-hot  { background: #ef4444; transition: width .5s ease; }
+  .dist-bar-warm { background: #f59e0b; transition: width .5s ease; }
+  .dist-bar-cold { background: #3b82f6; transition: width .5s ease; }
+  .dist-labels { display: flex; gap: 16px; font-size: 0.8rem; font-weight: 600; }
+  .dist-lbl-hot  { color: #ef4444; }
+  .dist-lbl-warm { color: #f59e0b; }
+  .dist-lbl-cold { color: #3b82f6; }
+
+  .tier-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .tier-btn { padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: #fff; color: var(--text-muted); transition: all .15s; }
+  .tier-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .tier-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .leads-table { width: 100%; border-collapse: collapse; font-size: 0.825rem; }
+  .leads-table th { text-align: left; padding: 8px 10px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); border-bottom: 2px solid var(--border); white-space: nowrap; }
+  .leads-table td { padding: 10px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+  .leads-table tr:last-child td { border-bottom: none; }
+  .leads-table tr.lead-link { cursor: pointer; transition: background .1s; }
+  .leads-table tr.lead-link:hover { background: #f8fafc; }
+
+  .score-badge { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 24px; border-radius: 6px; font-size: 0.8rem; font-weight: 700; color: #fff; cursor: pointer; position: relative; }
+  .score-badge.hot  { background: #10b981; }
+  .score-badge.warm { background: #f59e0b; }
+  .score-badge.cold { background: #ef4444; }
+
+  .score-tooltip { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; border-radius: 8px; padding: 10px 12px; font-size: 0.75rem; width: 200px; z-index: 200; pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+  .score-tooltip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: #1e293b; }
+  .score-badge:hover .score-tooltip,
+  .score-badge.tooltip-open .score-tooltip { display: block; }
+  .tooltip-row { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .tooltip-row:last-child { border-bottom: none; }
+  .tooltip-label { color: #94a3b8; }
+  .tooltip-val   { color: #10b981; font-weight: 600; white-space: nowrap; }
+
+  .rank-num { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; font-size: 0.75rem; font-weight: 700; background: #f1f5f9; color: var(--text-muted); }
+  .rank-num.top3 { background: #fef3c7; color: #92400e; }
+
+  .stars { color: #f59e0b; font-size: 0.8rem; letter-spacing: -1px; }
+  .type-badge { font-size: 0.68rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: #ede9fe; color: #5b21b6; white-space: nowrap; }
+  .status-op   { font-size: 0.68rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: #d1fae5; color: #065f46; }
+  .status-perm { font-size: 0.68rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: #fee2e2; color: #991b1b; }
+  .status-unkn { font-size: 0.68rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: #f1f5f9; color: #64748b; }
+  .addr-cell { color: var(--text-muted); font-size: 0.775rem; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  @media (max-width: 768px) {
+    .leads-table thead { display: none; }
+    .leads-table tr.lead-link { display: block; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .leads-table td { display: block; padding: 2px 10px; border: none; }
+    .leads-table td::before { content: attr(data-label) ': '; font-weight: 600; color: var(--text-muted); font-size: 0.72rem; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+  }
+
   /* FOOTER */
   .footer-note { text-align: center; color: var(--text-muted); font-size: 0.775rem; padding: 24px 0; }
 </style>
@@ -177,13 +232,13 @@
   <div class="stats-row">
     <div class="stat-card green">
       <div class="stat-label">Total Prospects</div>
-      <div class="stat-value">463</div>
+      <div class="stat-value" id="stat-total">—</div>
       <div class="stat-sub">Las Vegas / Henderson</div>
     </div>
     <div class="stat-card blue">
-      <div class="stat-label">Saturated Verticals</div>
-      <div class="stat-value">7</div>
-      <div class="stat-sub">Quarterly sweeps only</div>
+      <div class="stat-label">Maps Verified</div>
+      <div class="stat-value" id="stat-verified">—</div>
+      <div class="stat-sub" id="stat-verified-sub">Loading…</div>
     </div>
     <div class="stat-card yellow">
       <div class="stat-label" id="unclaimed-label">Unclaimed Verticals</div>
@@ -191,9 +246,28 @@
       <div class="stat-sub">No email sequence yet</div>
     </div>
     <div class="stat-card red">
-      <div class="stat-label">Express Priority Leads</div>
-      <div class="stat-value">2</div>
-      <div class="stat-sub">Call today — &lt;90 days old</div>
+      <div class="stat-label">Hot Leads (Maps Score)</div>
+      <div class="stat-value" id="stat-hot">—</div>
+      <div class="stat-sub">Score ≥ 70 · Call today</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-label">Saturated Verticals</div>
+      <div class="stat-value">7</div>
+      <div class="stat-sub">Quarterly sweeps only</div>
+    </div>
+  </div>
+
+  <!-- Maps Lead Scores Section -->
+  <div class="section" style="margin-bottom:28px;" id="maps-lead-section">
+    <div class="section-header">
+      <div class="section-title">🎯 Maps Lead Scores</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:0.775rem;color:var(--text-muted);" id="maps-score-meta">Loading…</span>
+        <button class="btn btn-sm btn-primary" id="rescore-btn" onclick="rescoreAll()">Rescore All</button>
+      </div>
+    </div>
+    <div class="section-body" id="maps-score-body">
+      <div class="loading"><span class="spinner"></span> Loading lead scores…</div>
     </div>
   </div>
 
@@ -746,7 +820,216 @@
     `;
   }
 
+  // ── Maps Lead Scores ───────────────────────────────────────────────────
+  let mapsLeads = [];
+  let mapsActiveTier = 'all';
+
+  function scoreTier(score) {
+    if (score >= 70) return 'hot';
+    if (score >= 45) return 'warm';
+    return 'cold';
+  }
+
+  function scoreClass(score) {
+    if (score >= 70) return 'hot';
+    if (score >= 45) return 'warm';
+    return 'cold';
+  }
+
+  function starStr(rating) {
+    if (!rating) return '—';
+    const full  = Math.floor(rating);
+    const half  = rating - full >= 0.5 ? 1 : 0;
+    const empty = 5 - full - half;
+    return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(empty);
+  }
+
+  function statusBadge(status) {
+    if (!status) return '<span class="status-unkn">Unknown</span>';
+    const s = status.toLowerCase();
+    if (s.includes('operational') || s.includes('open')) return `<span class="status-op">${status}</span>`;
+    if (s.includes('closed') || s.includes('perm')) return `<span class="status-perm">${status}</span>`;
+    return `<span class="status-unkn">${status}</span>`;
+  }
+
+  function buildTooltip(details) {
+    if (!details || typeof details !== 'object') return '';
+    const rows = [];
+    const labels = {
+      reviews: 'Reviews',
+      type:    'Type',
+      rating:  'Rating',
+      contact: 'Contact',
+      status:  'Status'
+    };
+    for (const [key, label] of Object.entries(labels)) {
+      const d = details[key];
+      if (!d) continue;
+      const pts  = d.points  !== undefined ? (d.points >= 0 ? `+${d.points}` : `${d.points}`) : '';
+      const note = d.reason  || d.note || d.detail || '';
+      rows.push(`<div class="tooltip-row"><span class="tooltip-label">${label}</span><span class="tooltip-val">${pts}${note ? ' <span style="color:#94a3b8;font-weight:400;">(' + note + ')</span>' : ''}</span></div>`);
+    }
+    return rows.join('');
+  }
+
+  function renderMapsTable(leads) {
+    if (!leads.length) {
+      return '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:0.875rem;">No leads found for this tier.</div>';
+    }
+
+    const rows = leads.slice(0, 20).map((p, i) => {
+      const rank    = i + 1;
+      const tier    = scoreClass(p.score);
+      const tooltip = buildTooltip(p.details);
+      const detailUrl = `/prospect-detail.html?id=${p.id}`;
+      return `<tr class="lead-link" onclick="window.location='${detailUrl}'">
+        <td data-label="Rank"><span class="rank-num ${rank <= 3 ? 'top3' : ''}">${rank}</span></td>
+        <td data-label="Name" style="font-weight:600;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name || '—'}</td>
+        <td data-label="Score" onclick="event.stopPropagation()">
+          <span class="score-badge ${tier}" onclick="this.classList.toggle('tooltip-open')">
+            ${p.score}
+            <div class="score-tooltip">${tooltip || '<div style="color:#94a3b8;font-size:0.75rem;">No breakdown available</div>'}</div>
+          </span>
+        </td>
+        <td data-label="Rating"><span class="stars">${starStr(p.rating)}</span>${p.rating ? ` <span style="font-size:0.7rem;color:var(--text-muted);">${p.rating}★</span>` : ''}</td>
+        <td data-label="Reviews">${p.reviews != null ? p.reviews.toLocaleString() : '—'}</td>
+        <td data-label="Type">${p.type ? `<span class="type-badge">${p.type}</span>` : '—'}</td>
+        <td data-label="Status">${statusBadge(p.status)}</td>
+        <td data-label="Address" class="addr-cell">${p.address || '—'}</td>
+      </tr>`;
+    });
+
+    return `<table class="leads-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Score</th>
+          <th>Rating</th>
+          <th>Reviews</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Address</th>
+        </tr>
+      </thead>
+      <tbody>${rows.join('')}</tbody>
+    </table>`;
+  }
+
+  function applyTierFilter(tier) {
+    mapsActiveTier = tier;
+    document.querySelectorAll('.tier-btn').forEach(b => b.classList.toggle('active', b.dataset.tier === tier));
+    const filtered = tier === 'all' ? mapsLeads : mapsLeads.filter(p => scoreTier(p.score) === tier);
+    const tableWrap = document.getElementById('maps-table-wrap');
+    if (tableWrap) tableWrap.innerHTML = renderMapsTable(filtered);
+  }
+
+  function renderMapsSection(leads, status) {
+    const hot  = leads.filter(p => p.score >= 70).length;
+    const warm = leads.filter(p => p.score >= 45 && p.score < 70).length;
+    const cold = leads.filter(p => p.score < 45).length;
+    const total = hot + warm + cold || 1;
+
+    const hotPct  = Math.round(hot  / total * 100);
+    const warmPct = Math.round(warm / total * 100);
+    const coldPct = 100 - hotPct - warmPct;
+
+    const body = document.getElementById('maps-score-body');
+    body.innerHTML = `
+      <div class="dist-bar-wrap">
+        <div class="dist-bar">
+          <div class="dist-bar-hot"  style="width:${hotPct}%"></div>
+          <div class="dist-bar-warm" style="width:${warmPct}%"></div>
+          <div class="dist-bar-cold" style="width:${coldPct}%"></div>
+        </div>
+        <div class="dist-labels">
+          <span class="dist-lbl-hot">🔥 ${hot} Hot</span>
+          <span class="dist-lbl-warm">🟠 ${warm} Warm</span>
+          <span class="dist-lbl-cold">🔵 ${cold} Cold</span>
+        </div>
+      </div>
+      <div class="tier-filters">
+        <button class="tier-btn active" data-tier="all"  onclick="applyTierFilter('all')">All</button>
+        <button class="tier-btn"        data-tier="hot"  onclick="applyTierFilter('hot')">🔥 Hot</button>
+        <button class="tier-btn"        data-tier="warm" onclick="applyTierFilter('warm')">🟠 Warm</button>
+        <button class="tier-btn"        data-tier="cold" onclick="applyTierFilter('cold')">🔵 Cold</button>
+      </div>
+      <div id="maps-table-wrap">${renderMapsTable(leads)}</div>
+    `;
+
+    // Update meta label
+    const meta = document.getElementById('maps-score-meta');
+    if (meta) meta.textContent = `${leads.length} scored · Top 20 shown`;
+  }
+
+  async function loadMapsLeads() {
+    try {
+      const [statusRes, leaderRes] = await Promise.all([
+        fetch('/api/maps/status',            { headers: { 'x-api-key': 'kande2026' } }),
+        fetch('/api/maps/leaderboard?limit=100', { headers: { 'x-api-key': 'kande2026' } })
+      ]);
+
+      // Status card updates
+      if (statusRes.ok) {
+        const s = await statusRes.json();
+        const prospects = s.prospects || s;
+        const totalEl    = document.getElementById('stat-total');
+        const verifiedEl = document.getElementById('stat-verified');
+        const verSubEl   = document.getElementById('stat-verified-sub');
+        if (totalEl    && prospects.total    != null) totalEl.textContent    = prospects.total.toLocaleString();
+        if (verifiedEl && prospects.verified != null) verifiedEl.textContent = prospects.verified.toLocaleString();
+        if (verSubEl   && prospects.total    != null && prospects.verified != null) {
+          const pct = Math.round(prospects.verified / prospects.total * 100);
+          verSubEl.textContent = `${pct}% of prospects`;
+        }
+      }
+
+      // Leaderboard
+      if (leaderRes.ok) {
+        const data = await leaderRes.json();
+        mapsLeads = (Array.isArray(data) ? data : (data.prospects || data.leads || []));
+        mapsLeads.sort((a, b) => (b.score || 0) - (a.score || 0));
+
+        // Hot leads stat
+        const hotCount = mapsLeads.filter(p => p.score >= 70).length;
+        const hotEl    = document.getElementById('stat-hot');
+        if (hotEl) hotEl.textContent = hotCount;
+
+        renderMapsSection(mapsLeads);
+      } else {
+        document.getElementById('maps-score-body').innerHTML =
+          '<div style="color:var(--text-muted);text-align:center;padding:20px;font-size:0.875rem;">No scored leads yet — click "Rescore All" to generate scores.</div>';
+        document.getElementById('maps-score-meta').textContent = 'Not scored yet';
+      }
+    } catch (err) {
+      document.getElementById('maps-score-body').innerHTML =
+        `<div style="color:#ef4444;text-align:center;padding:20px;font-size:0.875rem;">Error loading scores: ${err.message}</div>`;
+    }
+  }
+
+  async function rescoreAll() {
+    const btn  = document.getElementById('rescore-btn');
+    const meta = document.getElementById('maps-score-meta');
+    btn.disabled   = true;
+    btn.textContent = 'Scoring…';
+    if (meta) meta.textContent = 'Running rescore…';
+    try {
+      await fetch('/api/maps/score-all', {
+        method:  'POST',
+        headers: { 'x-api-key': 'kande2026' }
+      });
+      await loadMapsLeads();
+    } catch (err) {
+      if (meta) meta.textContent = `Error: ${err.message}`;
+    } finally {
+      btn.disabled    = false;
+      btn.textContent = 'Rescore All';
+    }
+  }
+
+  // ── Engagement + init ───────────────────────────────────────────────────
   // Load engagement on page load
+  loadMapsLeads();
   refreshEngagement();
 </script>
 </body>
