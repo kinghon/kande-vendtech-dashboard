@@ -1898,6 +1898,8 @@ app.get('/api/analytics/funnel', (req, res) => {
     if (t === 'call' || t === 'phone') callIds.add(a.prospect_id);
     if (t === 'proposal' || t === 'quote') proposalIds.add(a.prospect_id);
   });
+  // Also count prospects with proposal_sent status (status-based fallback)
+  prospects.filter(p => p.status === 'proposal_sent' || p.status === 'negotiating').forEach(p => proposalIds.add(p.id));
   const signedIds = new Set(prospects.filter(p => p.status === 'signed').map(p => p.id));
 
   const total = prospects.length;
