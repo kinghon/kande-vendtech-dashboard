@@ -204,6 +204,23 @@
     .phase-kpi-label { color: var(--muted); }
     .phase-kpi-value { font-weight: 600; color: var(--text); }
 
+    /* Maps Intelligence */
+    .maps-intel-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+    .maps-intel-table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 8px; }
+    .maps-intel-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    .maps-intel-table th { background: #f7fafc; padding: 8px 12px; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 1px solid var(--border); }
+    .maps-intel-table td { padding: 8px 12px; border-bottom: 1px solid #f0f4f8; vertical-align: middle; }
+    .maps-intel-table tr:last-child td { border-bottom: none; }
+    .maps-intel-table tr:nth-child(odd) { background: #f8f9fa; }
+    .maps-intel-table tr:hover { background: rgba(49,130,206,0.04); cursor: pointer; }
+    .score-badge { display: inline-block; font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; font-weight: 700; white-space: nowrap; }
+    .score-badge.hot { background: #c6f6d5; color: #22543d; }
+    .score-badge.warm { background: #fefcbf; color: #744210; }
+    .score-badge.cold { background: #fed7d7; color: #9b2c2c; }
+    .maps-footer-link { display: block; text-align: right; padding: 10px 14px; font-size: 0.8rem; color: var(--accent); text-decoration: none; font-weight: 600; border-top: 1px solid var(--border); }
+    .maps-footer-link:hover { background: rgba(49,130,206,0.04); }
+    .maps-empty { text-align: center; padding: 20px; color: var(--muted); font-style: italic; font-size: 0.85rem; }
+
     footer { text-align: center; padding: 30px; color: var(--muted); font-size: 0.85rem; }
     footer a { color: var(--accent); text-decoration: none; }
 
@@ -292,6 +309,17 @@
       <div class="health-card"><div class="value accent">—</div><div class="label">Locations</div></div>
       <div class="health-card"><div class="value success">—</div><div class="label">Products</div></div>
       <div class="health-card"><div class="value accent">—</div><div class="label">Month Revenue</div></div>
+    </div>
+
+    <!-- Maps Intelligence -->
+    <h2 class="section-title">🎯 Maps Intelligence</h2>
+    <div class="maps-intel-grid" id="maps-intel-cards">
+      <div class="health-card"><div class="value hot" id="maps-hot">—</div><div class="label">🔥 Hot Leads</div></div>
+      <div class="health-card"><div class="value warn" id="maps-warm">—</div><div class="label">🟠 Warm Leads</div></div>
+      <div class="health-card"><div class="value success" id="maps-verified">—</div><div class="label">✅ Verified</div></div>
+    </div>
+    <div class="maps-intel-table-wrap" id="maps-intel-table-wrap">
+      <div class="maps-empty" id="maps-intel-placeholder">Loading Maps Intelligence…</div>
     </div>
 
     <!-- Organization Summary -->
@@ -704,9 +732,87 @@
       }
     }
 
+    // ===== Maps Intelligence =====
+    async function loadMapsIntel() {
+      try {
+        const [statusRes, leaderRes] = await Promise.all([
+          fetch('/api/maps/status', { headers: { 'x-api-key': 'kande2026' } }),
+          fetch('/api/maps/leaderboard?limit=10', { headers: { 'x-api-key': 'kande2026' } })
+        ]);
+
+        let statusData = null, leaderData = null;
+        if (statusRes.ok) statusData = await statusRes.json();
+        if (leaderRes.ok) leaderData = await leaderRes.json();
+
+        const results = leaderData && leaderData.results ? leaderData.results : [];
+
+        if (!statusData && results.length === 0) {
+          document.getElementById('maps-intel-placeholder').textContent = 'Maps scoring not configured';
+          document.getElementById('maps-hot').textContent = '—';
+          document.getElementById('maps-warm').textContent = '—';
+          document.getElementById('maps-verified').textContent = '—';
+          return;
+        }
+
+        // Summary counts from leaderboard results
+        const hot = results.filter(r => r.score >= 70).length;
+        const warm = results.filter(r => r.score >= 45 && r.score < 70).length;
+        const verified = results.filter(r => r.status === 'verified').length;
+        const total = leaderData && leaderData.total ? leaderData.total : results.length;
+
+        document.getElementById('maps-hot').textContent = hot;
+        document.getElementById('maps-warm').textContent = warm;
+        document.getElementById('maps-verified').textContent = `${verified}/${results.length}`;
+
+        // Render table
+        const wrap = document.getElementById('maps-intel-table-wrap');
+        if (results.length === 0) {
+          wrap.innerHTML = '<div class="maps-empty">No scored prospects yet</div>';
+          return;
+        }
+
+        let rows = '';
+        results.forEach((r, i) => {
+          const badgeCls = r.score >= 70 ? 'hot' : r.score >= 45 ? 'warm' : 'cold';
+          const rating = r.rating ? r.rating.toFixed(1) : '—';
+          const reviews = r.reviews != null ? r.reviews.toLocaleString() : '—';
+          const type = r.type ? r.type.replace(/_/g, ' ') : '—';
+          const name = r.name ? r.name.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '—';
+          rows += `<tr onclick="window.location='/prospect-detail.html?id=${r.id}'">
+            <td style="color:var(--muted);font-weight:600;">#${i + 1}</td>
+            <td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${name}">${name}</td>
+            <td><span class="score-badge ${badgeCls}">${r.score != null ? r.score : '—'}</span></td>
+            <td>⭐ ${rating}</td>
+            <td>${reviews}</td>
+            <td style="color:var(--muted);text-transform:capitalize;font-size:0.75rem;">${type}</td>
+          </tr>`;
+        });
+
+        wrap.innerHTML = `
+          <table class="maps-intel-table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Name</th>
+                <th>Score</th>
+                <th>Rating</th>
+                <th>Reviews</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <a class="maps-footer-link" href="/scout-intel">View Full Leaderboard →</a>`;
+      } catch(e) {
+        console.error('Maps intel load failed:', e);
+        document.getElementById('maps-intel-placeholder').textContent = 'Maps scoring not configured';
+      }
+    }
+
     // ===== Boot =====
     loadStats();
     loadDivisions();
+    loadMapsIntel();
     setInterval(loadStats, 60000);
     setInterval(loadDivisions, 15000);
   </script>
