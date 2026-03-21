@@ -6639,6 +6639,7 @@ app.get('/api/reports/weekly', (req, res) => {
 
 // ===== APOLLO.IO PROSPECTING INTEGRATION =====
 const APOLLO_API_KEY = process.env.APOLLO_API_KEY || '';
+const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY || '';
 const APOLLO_BASE = 'https://api.apollo.io/v1';
 
 // Generic Apollo proxy helper
@@ -26135,3 +26136,367 @@ app.get('/api/activities/enriched', (req, res) => {
     }
   });
 })();
+
+
+// ===== GOOGLE MAPS PLACES API INTEGRATION =====
+// Lead discovery, prospect verification, and CRM enrichment via Google Places API (New).
+// Uses GOOGLE_PLACES_API_KEY env var (set in Railway).
+
+const PLACES_BASE = 'https://places.googleapis.com/v1';
+const PLACES_FIELD_MASK = 'places.displayName,places.formattedAddress,places.location,places.nationalPhoneNumber,places.rating,places.userRatingCount,places.id,places.types,places.websiteUri,places.businessStatus,places.regularOpeningHours';
+const LV_CENTER = { latitude: 36.1699, longitude: -115.1398 };
+const LV_RADIUS_M = 50000;
+
+// Rate limiter: max 50 Places API calls per minute
+const placesCallLog = [];
+function checkPlacesRateLimit() {
+  const now = Date.now();
+  // Remove calls older than 60 seconds
+  while (placesCallLog.length > 0 && now - placesCallLog[0] > 60000) placesCallLog.shift();
+  if (placesCallLog.length >= 50) {
+    throw new Error('Rate limit exceeded: max 50 Google Places API calls per minute');
+  }
+  placesCallLog.push(now);
+}
+
+// Helper: search Places API (New) by text query
+async function searchPlaces(query, options = {}) {
+  if (!GOOGLE_PLACES_API_KEY) throw new Error('GOOGLE_PLACES_API_KEY not configured');
+  checkPlacesRateLimit();
+
+  const body = {
+    textQuery: query,
+    maxResultCount: Math.min(options.maxResults || 20, 20),
+    locationBias: {
+      circle: {
+        center: options.center || LV_CENTER,
+        radiusMeters: options.radiusMeters || LV_RADIUS_M
+      }
+    }
+  };
+
+  const res = await fetch(`${PLACES_BASE}/places:searchText`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+      'X-Goog-FieldMask': options.fieldMask || PLACES_FIELD_MASK
+    },
+    body: JSON.stringify(body)
+  });
+
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = { error: text }; }
+  if (!res.ok) throw new Error(`Places API ${res.status}: ${JSON.stringify(data)}`);
+  return data.places || [];
+}
+
+// Helper: get place details by placeId
+async function getPlaceDetails(placeId) {
+  if (!GOOGLE_PLACES_API_KEY) throw new Error('GOOGLE_PLACES_API_KEY not configured');
+  checkPlacesRateLimit();
+
+  const res = await fetch(`${PLACES_BASE}/places/${placeId}`, {
+    method: 'GET',
+    headers: {
+      'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+      'X-Goog-FieldMask': PLACES_FIELD_MASK
+    }
+  });
+
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = { error: text }; }
+  if (!res.ok) throw new Error(`Places API ${res.status}: ${JSON.stringify(data)}`);
+  return data;
+}
+
+// Helper: normalize a place API result into a flat object
+function normalizePlace(place) {
+  return {
+    name: place.displayName?.text || '',
+    address: place.formattedAddress || '',
+    lat: place.location?.latitude || null,
+    lng: place.location?.longitude || null,
+    phone: place.nationalPhoneNumber || '',
+    rating: place.rating || null,
+    reviewCount: place.userRatingCount || 0,
+    placeId: place.id || '',
+    types: place.types || [],
+    websiteUrl: place.websiteUri || '',
+    businessStatus: place.businessStatus || '',
+    openNow: place.regularOpeningHours?.openNow ?? null
+  };
+}
+
+// Helper: fuzzy address match — normalize and compare first 30 chars
+function normalizeAddr(addr) {
+  return (addr || '')
+    .toLowerCase()
+    .replace(/\b(suite|ste|apt|unit|#)\s*[\w-]+/gi, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 30);
+}
+
+function addressSimilarity(a, b) {
+  const na = normalizeAddr(a);
+  const nb = normalizeAddr(b);
+  if (!na || !nb) return 0;
+  if (na === nb) return 100;
+  // Count matching words
+  const wa = new Set(na.split(' '));
+  const wb = new Set(nb.split(' '));
+  let matches = 0;
+  for (const w of wa) { if (wb.has(w)) matches++; }
+  const score = Math.round((matches * 2 / (wa.size + wb.size)) * 100);
+  return score;
+}
+
+// Helper: check if a place matches any existing prospect
+function matchesExistingProspect(place, prospects) {
+  const norm = normalizePlace(place);
+  for (const p of prospects) {
+    if (p.google_place_id && p.google_place_id === norm.placeId) return true;
+    const nameSim = norm.name.toLowerCase().includes(p.name.toLowerCase().slice(0, 10)) ||
+                    p.name.toLowerCase().includes(norm.name.toLowerCase().slice(0, 10));
+    const addrSim = addressSimilarity(norm.address, p.address) >= 60;
+    if (nameSim && addrSim) return true;
+  }
+  return false;
+}
+
+// -- GET /api/maps/status — Maps integration health check --
+app.get('/api/maps/status', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+  const prospects = db.prospects || [];
+  const verified = prospects.filter(p => p.google_place_id).length;
+  const unverified = prospects.length - verified;
+  res.json({
+    configured: !!GOOGLE_PLACES_API_KEY,
+    keyPreview: GOOGLE_PLACES_API_KEY ? GOOGLE_PLACES_API_KEY.slice(0, 8) + '...' : null,
+    prospects: { total: prospects.length, verified, unverified },
+    rateLimit: { callsLastMinute: placesCallLog.filter(t => Date.now() - t < 60000).length, maxPerMinute: 50 },
+    endpoints: ['/api/maps/search', '/api/maps/verify/:id', '/api/maps/bulk-verify', '/api/maps/discover', '/api/maps/status']
+  });
+});
+
+// -- POST /api/maps/search — Search Google Maps for businesses --
+app.post('/api/maps/search', express.json(), async (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+    const { query, maxResults = 20 } = req.body;
+    if (!query) return res.status(400).json({ error: 'query is required' });
+    if (!GOOGLE_PLACES_API_KEY) return res.status(503).json({ error: 'GOOGLE_PLACES_API_KEY not configured' });
+
+    const places = await searchPlaces(query, { maxResults });
+    const results = places.map(normalizePlace);
+
+    console.log(`🗺️ Maps search "${query}" → ${results.length} results`);
+    res.json({ ok: true, query, count: results.length, results });
+
+  } catch (err) {
+    console.error('Maps search error:', err.message);
+    res.status(500).json({ error: 'Maps search failed', details: err.message });
+  }
+});
+
+// -- POST /api/maps/verify/:id — Verify a single prospect against Google Maps --
+app.post('/api/maps/verify/:id', express.json(), async (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+    if (!GOOGLE_PLACES_API_KEY) return res.status(503).json({ error: 'GOOGLE_PLACES_API_KEY not configured' });
+
+    const prospect = (db.prospects || []).find(p => p.id === req.params.id);
+    if (!prospect) return res.status(404).json({ error: 'Prospect not found' });
+
+    const { apply = false, dryRun = false } = req.body || {};
+
+    // Search for the prospect by name + address
+    const searchQuery = `${prospect.name} ${prospect.address}`;
+    const places = await searchPlaces(searchQuery, { maxResults: 5 });
+
+    if (!places.length) {
+      return res.json({ matched: false, confidence: 0, place: null, changes: {}, message: 'No results found on Google Maps' });
+    }
+
+    // Best match = first result; score by address similarity
+    const bestPlace = normalizePlace(places[0]);
+    const addrScore = addressSimilarity(bestPlace.address, prospect.address);
+    const nameMatch = bestPlace.name.toLowerCase().includes(prospect.name.toLowerCase().slice(0, 8)) ||
+                      prospect.name.toLowerCase().includes(bestPlace.name.toLowerCase().slice(0, 8));
+    let confidence = addrScore;
+    if (nameMatch) confidence = Math.min(100, confidence + 20);
+
+    const matched = confidence >= 50;
+
+    // Build changes object (what would be updated)
+    const changes = {};
+    if (!prospect.google_place_id && bestPlace.placeId) changes.google_place_id = bestPlace.placeId;
+    if (bestPlace.rating && prospect.google_rating !== bestPlace.rating) changes.google_rating = bestPlace.rating;
+    if (bestPlace.reviewCount && prospect.google_review_count !== bestPlace.reviewCount) changes.google_review_count = bestPlace.reviewCount;
+    if (bestPlace.businessStatus && prospect.maps_business_status !== bestPlace.businessStatus) changes.maps_business_status = bestPlace.businessStatus;
+    changes.google_verified_at = new Date().toISOString();
+
+    // Apply changes if requested and matched
+    if (apply && matched && !dryRun) {
+      Object.assign(prospect, changes);
+      saveDB(db);
+      console.log(`✅ Maps verify applied to prospect ${prospect.id} (${prospect.name}) — confidence ${confidence}%`);
+    }
+
+    res.json({ matched, confidence, place: bestPlace, changes, applied: apply && matched && !dryRun });
+
+  } catch (err) {
+    console.error('Maps verify error:', err.message);
+    res.status(500).json({ error: 'Maps verify failed', details: err.message });
+  }
+});
+
+// -- POST /api/maps/bulk-verify — Verify all unverified prospects --
+app.post('/api/maps/bulk-verify', express.json(), async (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+    if (!GOOGLE_PLACES_API_KEY) return res.status(503).json({ error: 'GOOGLE_PLACES_API_KEY not configured' });
+
+    const { limit = 50, dryRun = false } = req.body || {};
+    const unverified = (db.prospects || []).filter(p => !p.google_place_id).slice(0, Math.min(limit, 50));
+
+    if (!unverified.length) {
+      return res.json({ ok: true, verified: 0, failed: 0, skipped: 0, results: [], message: 'All prospects already verified' });
+    }
+
+    const results = [];
+    let verified = 0, failed = 0, skipped = 0;
+
+    for (const prospect of unverified) {
+      try {
+        // 200ms delay between calls to avoid rate limits
+        if (results.length > 0) await new Promise(r => setTimeout(r, 200));
+
+        const searchQuery = `${prospect.name} ${prospect.address}`;
+        const places = await searchPlaces(searchQuery, { maxResults: 3 });
+
+        if (!places.length) {
+          skipped++;
+          results.push({ id: prospect.id, name: prospect.name, status: 'no_results' });
+          continue;
+        }
+
+        const bestPlace = normalizePlace(places[0]);
+        const addrScore = addressSimilarity(bestPlace.address, prospect.address);
+        const nameMatch = bestPlace.name.toLowerCase().includes(prospect.name.toLowerCase().slice(0, 8)) ||
+                          prospect.name.toLowerCase().includes(bestPlace.name.toLowerCase().slice(0, 8));
+        let confidence = addrScore;
+        if (nameMatch) confidence = Math.min(100, confidence + 20);
+        const matched = confidence >= 50;
+
+        if (matched && !dryRun) {
+          prospect.google_place_id = bestPlace.placeId;
+          if (bestPlace.rating) prospect.google_rating = bestPlace.rating;
+          if (bestPlace.reviewCount) prospect.google_review_count = bestPlace.reviewCount;
+          if (bestPlace.businessStatus) prospect.maps_business_status = bestPlace.businessStatus;
+          prospect.google_verified_at = new Date().toISOString();
+          verified++;
+          results.push({ id: prospect.id, name: prospect.name, status: 'verified', confidence, placeId: bestPlace.placeId });
+        } else if (matched && dryRun) {
+          verified++;
+          results.push({ id: prospect.id, name: prospect.name, status: 'would_verify', confidence, placeId: bestPlace.placeId, dryRun: true });
+        } else {
+          skipped++;
+          results.push({ id: prospect.id, name: prospect.name, status: 'low_confidence', confidence });
+        }
+
+      } catch (err) {
+        failed++;
+        results.push({ id: prospect.id, name: prospect.name, status: 'error', error: err.message });
+        if (err.message.includes('Rate limit')) break; // Stop on rate limit
+      }
+    }
+
+    if (verified > 0 && !dryRun) saveDB(db);
+
+    console.log(`🗺️ Maps bulk-verify: ${verified} verified, ${failed} failed, ${skipped} skipped (dryRun=${dryRun})`);
+    res.json({ ok: true, verified, failed, skipped, total: unverified.length, dryRun, results });
+
+  } catch (err) {
+    console.error('Maps bulk-verify error:', err.message);
+    res.status(500).json({ error: 'Bulk verify failed', details: err.message });
+  }
+});
+
+// -- POST /api/maps/discover — Discover new leads from Google Maps --
+app.post('/api/maps/discover', express.json(), async (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+    if (!GOOGLE_PLACES_API_KEY) return res.status(503).json({ error: 'GOOGLE_PLACES_API_KEY not configured' });
+
+    const {
+      categories = ['apartment complex', 'office building'],
+      city = 'Las Vegas',
+      maxPerCategory = 20
+    } = req.body || {};
+
+    if (!Array.isArray(categories) || categories.length === 0) {
+      return res.status(400).json({ error: 'categories array required' });
+    }
+    if (categories.length > 10) return res.status(400).json({ error: 'Max 10 categories per request' });
+
+    const prospects = db.prospects || [];
+    const newLeads = [];
+    let existingMatches = 0;
+    let total = 0;
+
+    for (const category of categories) {
+      try {
+        if (newLeads.length > 0 || existingMatches > 0) await new Promise(r => setTimeout(r, 200));
+
+        const query = `${category} ${city} NV`;
+        const places = await searchPlaces(query, { maxResults: Math.min(maxPerCategory, 20) });
+        total += places.length;
+
+        for (const place of places) {
+          const norm = normalizePlace(place);
+          if (matchesExistingProspect(place, prospects)) {
+            existingMatches++;
+          } else {
+            newLeads.push({ ...norm, category, discoveredAt: new Date().toISOString() });
+          }
+        }
+
+      } catch (err) {
+        if (err.message.includes('Rate limit')) break;
+        console.error(`Maps discover error for category "${category}":`, err.message);
+      }
+    }
+
+    // Deduplicate newLeads by placeId
+    const seen = new Set();
+    const dedupedLeads = newLeads.filter(l => {
+      if (!l.placeId || seen.has(l.placeId)) return false;
+      seen.add(l.placeId);
+      return true;
+    });
+
+    console.log(`🗺️ Maps discover: ${dedupedLeads.length} new leads, ${existingMatches} existing matches (${total} total found)`);
+    res.json({ ok: true, newLeads: dedupedLeads, newLeadCount: dedupedLeads.length, existingMatches, total, categories });
+
+  } catch (err) {
+    console.error('Maps discover error:', err.message);
+    res.status(500).json({ error: 'Maps discover failed', details: err.message });
+  }
+});
+
+// ===== END GOOGLE MAPS PLACES API INTEGRATION =====
