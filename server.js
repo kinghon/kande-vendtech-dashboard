@@ -26170,7 +26170,7 @@ async function searchPlaces(query, options = {}) {
     locationBias: {
       circle: {
         center: options.center || LV_CENTER,
-        radiusMeters: options.radiusMeters || LV_RADIUS_M
+        radius: options.radiusMeters || LV_RADIUS_M
       }
     }
   };
