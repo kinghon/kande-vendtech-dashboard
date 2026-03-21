@@ -26235,10 +26235,10 @@ function normalizeAddr(addr) {
   return (addr || '')
     .toLowerCase()
     .replace(/\b(suite|ste|apt|unit|#)\s*[\w-]+/gi, '')
+    .replace(/\b(usa|nv|nevada|las vegas|henderson)\b/gi, '')
     .replace(/[^a-z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 30);
+    .trim();
 }
 
 function addressSimilarity(a, b) {
@@ -26246,6 +26246,10 @@ function addressSimilarity(a, b) {
   const nb = normalizeAddr(b);
   if (!na || !nb) return 0;
   if (na === nb) return 100;
+  // Check if street number + street name match (most important part)
+  const streetA = na.split(' ').slice(0, 3).join(' ');
+  const streetB = nb.split(' ').slice(0, 3).join(' ');
+  if (streetA.length >= 5 && streetA === streetB) return 90;
   // Count matching words
   const wa = new Set(na.split(' '));
   const wb = new Set(nb.split(' '));
@@ -26399,7 +26403,7 @@ app.post('/api/maps/bulk-verify', express.json(), async (req, res) => {
                           prospect.name.toLowerCase().includes(bestPlace.name.toLowerCase().slice(0, 8));
         let confidence = addrScore;
         if (nameMatch) confidence = Math.min(100, confidence + 20);
-        const matched = confidence >= 50;
+        const matched = confidence >= 35;
 
         if (matched && !dryRun) {
           prospect.google_place_id = bestPlace.placeId;
@@ -26408,10 +26412,10 @@ app.post('/api/maps/bulk-verify', express.json(), async (req, res) => {
           if (bestPlace.businessStatus) prospect.maps_business_status = bestPlace.businessStatus;
           prospect.google_verified_at = new Date().toISOString();
           verified++;
-          results.push({ id: prospect.id, name: prospect.name, status: 'verified', confidence, placeId: bestPlace.placeId });
+          results.push({ id: prospect.id, name: prospect.name, status: 'verified', confidence, placeId: bestPlace.placeId, mapsName: bestPlace.name });
         } else if (matched && dryRun) {
           verified++;
-          results.push({ id: prospect.id, name: prospect.name, status: 'would_verify', confidence, placeId: bestPlace.placeId, dryRun: true });
+          results.push({ id: prospect.id, name: prospect.name, status: 'would_verify', confidence, placeId: bestPlace.placeId, mapsName: bestPlace.name, dryRun: true });
         } else {
           skipped++;
           results.push({ id: prospect.id, name: prospect.name, status: 'low_confidence', confidence });
