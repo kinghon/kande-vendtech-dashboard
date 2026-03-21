@@ -26246,17 +26246,57 @@ function addressSimilarity(a, b) {
   const nb = normalizeAddr(b);
   if (!na || !nb) return 0;
   if (na === nb) return 100;
-  // Check if street number + street name match (most important part)
   const streetA = na.split(' ').slice(0, 3).join(' ');
   const streetB = nb.split(' ').slice(0, 3).join(' ');
   if (streetA.length >= 5 && streetA === streetB) return 90;
-  // Count matching words
   const wa = new Set(na.split(' '));
   const wb = new Set(nb.split(' '));
   let matches = 0;
   for (const w of wa) { if (wb.has(w)) matches++; }
-  const score = Math.round((matches * 2 / (wa.size + wb.size)) * 100);
-  return score;
+  return Math.round((matches * 2 / (wa.size + wb.size)) * 100);
+}
+
+// Helper: haversine distance in meters between two lat/lng points
+function geoDistanceMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Smart match: uses geo distance (primary) + name/address (fallback)
+// Returns confidence 0-100
+function smartMatchConfidence(prospect, mapsPlace) {
+  const norm = normalizePlace(mapsPlace);
+  let score = 0;
+  let method = 'none';
+
+  // 1. Geo distance (strongest signal — if within 200m, it's the same place)
+  if (prospect.lat && prospect.lng && norm.lat && norm.lng) {
+    const dist = geoDistanceMeters(prospect.lat, prospect.lng, norm.lat, norm.lng);
+    if (dist <= 100) { score = 95; method = 'geo-exact'; }
+    else if (dist <= 200) { score = 85; method = 'geo-close'; }
+    else if (dist <= 500) { score = 60; method = 'geo-nearby'; }
+    else if (dist <= 1000) { score = 30; method = 'geo-far'; }
+    // Boost if name also matches
+    const nameMatch = norm.name.toLowerCase().includes(prospect.name.toLowerCase().slice(0, 8)) ||
+                      prospect.name.toLowerCase().includes(norm.name.toLowerCase().slice(0, 8));
+    if (nameMatch && score >= 30) score = Math.min(100, score + 15);
+  }
+
+  // 2. Fallback: address + name matching (for prospects without coords)
+  if (score < 50) {
+    const addrScore = addressSimilarity(norm.address, prospect.address);
+    const nameMatch = norm.name.toLowerCase().includes(prospect.name.toLowerCase().slice(0, 8)) ||
+                      prospect.name.toLowerCase().includes(norm.name.toLowerCase().slice(0, 8));
+    let fallbackScore = addrScore;
+    if (nameMatch) fallbackScore = Math.min(100, fallbackScore + 25);
+    if (fallbackScore > score) { score = fallbackScore; method = 'name-addr'; }
+  }
+
+  return { confidence: score, method };
 }
 
 // Helper: check if a place matches any existing prospect
@@ -26264,10 +26304,8 @@ function matchesExistingProspect(place, prospects) {
   const norm = normalizePlace(place);
   for (const p of prospects) {
     if (p.google_place_id && p.google_place_id === norm.placeId) return true;
-    const nameSim = norm.name.toLowerCase().includes(p.name.toLowerCase().slice(0, 10)) ||
-                    p.name.toLowerCase().includes(norm.name.toLowerCase().slice(0, 10));
-    const addrSim = addressSimilarity(norm.address, p.address) >= 60;
-    if (nameSim && addrSim) return true;
+    const { confidence } = smartMatchConfidence(p, place);
+    if (confidence >= 50) return true;
   }
   return false;
 }
@@ -26332,14 +26370,9 @@ app.post('/api/maps/verify/:id', express.json(), async (req, res) => {
       return res.json({ matched: false, confidence: 0, place: null, changes: {}, message: 'No results found on Google Maps' });
     }
 
-    // Best match = first result; score by address similarity
+    // Best match = first result; use smart matching (geo + name + address)
     const bestPlace = normalizePlace(places[0]);
-    const addrScore = addressSimilarity(bestPlace.address, prospect.address);
-    const nameMatch = bestPlace.name.toLowerCase().includes(prospect.name.toLowerCase().slice(0, 8)) ||
-                      prospect.name.toLowerCase().includes(bestPlace.name.toLowerCase().slice(0, 8));
-    let confidence = addrScore;
-    if (nameMatch) confidence = Math.min(100, confidence + 20);
-
+    const { confidence, method } = smartMatchConfidence(prospect, places[0]);
     const matched = confidence >= 50;
 
     // Build changes object (what would be updated)
@@ -26357,7 +26390,7 @@ app.post('/api/maps/verify/:id', express.json(), async (req, res) => {
       console.log(`✅ Maps verify applied to prospect ${prospect.id} (${prospect.name}) — confidence ${confidence}%`);
     }
 
-    res.json({ matched, confidence, place: bestPlace, changes, applied: apply && matched && !dryRun });
+    res.json({ matched, confidence, method, place: bestPlace, changes, applied: apply && matched && !dryRun });
 
   } catch (err) {
     console.error('Maps verify error:', err.message);
@@ -26398,12 +26431,8 @@ app.post('/api/maps/bulk-verify', express.json(), async (req, res) => {
         }
 
         const bestPlace = normalizePlace(places[0]);
-        const addrScore = addressSimilarity(bestPlace.address, prospect.address);
-        const nameMatch = bestPlace.name.toLowerCase().includes(prospect.name.toLowerCase().slice(0, 8)) ||
-                          prospect.name.toLowerCase().includes(bestPlace.name.toLowerCase().slice(0, 8));
-        let confidence = addrScore;
-        if (nameMatch) confidence = Math.min(100, confidence + 20);
-        const matched = confidence >= 35;
+        const { confidence, method } = smartMatchConfidence(prospect, places[0]);
+        const matched = confidence >= 50;
 
         if (matched && !dryRun) {
           prospect.google_place_id = bestPlace.placeId;
@@ -26412,13 +26441,13 @@ app.post('/api/maps/bulk-verify', express.json(), async (req, res) => {
           if (bestPlace.businessStatus) prospect.maps_business_status = bestPlace.businessStatus;
           prospect.google_verified_at = new Date().toISOString();
           verified++;
-          results.push({ id: prospect.id, name: prospect.name, status: 'verified', confidence, placeId: bestPlace.placeId, mapsName: bestPlace.name });
+          results.push({ id: prospect.id, name: prospect.name, status: 'verified', confidence, method, placeId: bestPlace.placeId, mapsName: bestPlace.name });
         } else if (matched && dryRun) {
           verified++;
-          results.push({ id: prospect.id, name: prospect.name, status: 'would_verify', confidence, placeId: bestPlace.placeId, mapsName: bestPlace.name, dryRun: true });
+          results.push({ id: prospect.id, name: prospect.name, status: 'would_verify', confidence, method, placeId: bestPlace.placeId, mapsName: bestPlace.name, dryRun: true });
         } else {
           skipped++;
-          results.push({ id: prospect.id, name: prospect.name, status: 'low_confidence', confidence });
+          results.push({ id: prospect.id, name: prospect.name, status: 'low_confidence', confidence, method });
         }
 
       } catch (err) {
