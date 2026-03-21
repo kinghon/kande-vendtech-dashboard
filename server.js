@@ -26315,7 +26315,7 @@ app.post('/api/maps/verify/:id', express.json(), async (req, res) => {
 
     if (!GOOGLE_PLACES_API_KEY) return res.status(503).json({ error: 'GOOGLE_PLACES_API_KEY not configured' });
 
-    const prospect = (db.prospects || []).find(p => p.id === req.params.id);
+    const prospect = (db.prospects || []).find(p => p.id === parseInt(req.params.id));
     if (!prospect) return res.status(404).json({ error: 'Prospect not found' });
 
     const { apply = false, dryRun = false } = req.body || {};
