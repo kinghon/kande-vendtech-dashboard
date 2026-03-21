@@ -191,6 +191,33 @@
       font-size: 0.72rem; font-weight: 700; color: #fff;
     }
 
+    /* Maps Intelligence */
+    .maps-intel { margin-bottom: 24px; }
+    .maps-intel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .maps-intel-title { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .maps-intel-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
+    .maps-stat { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; text-align: center; }
+    .maps-stat .maps-stat-value { font-size: 1.5rem; font-weight: 800; line-height: 1; }
+    .maps-stat .maps-stat-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-top: 4px; }
+    .maps-stat-value.hot { color: var(--red); }
+    .maps-stat-value.warm { color: var(--amber); }
+    .maps-stat-value.green { color: var(--green); }
+    .maps-table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .maps-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    .maps-table th { background: #f7fafc; padding: 8px 12px; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 1px solid var(--border); }
+    .maps-table td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; }
+    .maps-table tr:hover { background: #f8fafc; }
+    .maps-table tr { cursor: pointer; }
+    .score-pill { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+    .score-pill.hot { background: #fed7d7; color: #9b2c2c; }
+    .score-pill.warm { background: #fefcbf; color: #744210; }
+    .score-pill.cold { background: #e2e8f0; color: #475569; }
+    .maps-footer { padding: 10px 16px; text-align: center; border-top: 1px solid var(--border); }
+    .maps-footer a { color: var(--blue); font-size: 0.8rem; font-weight: 600; text-decoration: none; }
+    .maps-footer a:hover { text-decoration: underline; }
+    .maps-empty { text-align: center; padding: 20px; color: var(--muted); font-size: 0.85rem; }
+    @media (max-width: 700px) { .maps-intel-cards { grid-template-columns: 1fr; } }
+
     /* Loading */
     .skeleton { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
@@ -589,6 +616,26 @@
       <div class="kpi-value" id="kpi-pipeline">—</div>
       <div class="kpi-label">Pipeline Value</div>
       <div class="kpi-trend neutral" id="kpi-pipeline-trend">Potential revenue</div>
+    </div>
+  </div>
+
+  <!-- Maps Intelligence -->
+  <div class="maps-intel" id="maps-intel-section">
+    <div class="maps-intel-header">
+      <div class="maps-intel-title">🎯 Maps Intelligence</div>
+      <a href="/scout-intel" style="font-size:0.8rem;color:var(--blue);font-weight:600;text-decoration:none;">View Full Leaderboard →</a>
+    </div>
+    <div class="maps-intel-cards">
+      <div class="maps-stat"><div class="maps-stat-value hot" id="mi-hot">—</div><div class="maps-stat-label">🔥 Hot Leads</div></div>
+      <div class="maps-stat"><div class="maps-stat-value warm" id="mi-warm">—</div><div class="maps-stat-label">🟠 Warm Leads</div></div>
+      <div class="maps-stat"><div class="maps-stat-value green" id="mi-verified">—</div><div class="maps-stat-label">✅ Verified</div></div>
+    </div>
+    <div class="maps-table-wrap">
+      <table class="maps-table">
+        <thead><tr><th>#</th><th>Name</th><th>Score</th><th>Rating</th><th>Reviews</th><th>Type</th></tr></thead>
+        <tbody id="mi-table-body"><tr><td colspan="6" class="maps-empty">Loading...</td></tr></tbody>
+      </table>
+      <div class="maps-footer"><a href="/scout-intel">View Full Leaderboard →</a></div>
     </div>
   </div>
 
@@ -1439,6 +1486,64 @@
 
   }).catch(function(err) {
     console.error('Dashboard load error:', err);
+  });
+
+  // --- Maps Intelligence ---
+  Promise.all([
+    fetch('/api/maps/status', { headers: { 'x-api-key': 'kande2026' } }).then(r => r.ok ? r.json() : null),
+    fetch('/api/maps/leaderboard?limit=10', { headers: { 'x-api-key': 'kande2026' } }).then(r => r.ok ? r.json() : null)
+  ]).then(function(res) {
+    var status = res[0];
+    var leader = res[1];
+    if (!status && !leader) {
+      document.getElementById('mi-table-body').innerHTML = '<tr><td colspan="6" class="maps-empty">Maps scoring not configured</td></tr>';
+      return;
+    }
+    // Update stat cards
+    if (status && status.prospects) {
+      var p = status.prospects;
+      document.getElementById('mi-verified').textContent = p.verified + '/' + p.total;
+    }
+    if (leader && leader.results) {
+      var leads = leader.results;
+      var hot = leads.filter(function(l) { return l.score >= 70; }).length;
+      var warm = leads.filter(function(l) { return l.score >= 45 && l.score < 70; }).length;
+      // Use full totals from leaderboard
+      document.getElementById('mi-hot').textContent = leader.total > 0 ? leads.filter(function(l) { return l.score >= 70; }).length : '0';
+      document.getElementById('mi-warm').textContent = leader.total > 0 ? leads.filter(function(l) { return l.score >= 45 && l.score < 70; }).length : '0';
+
+      // Fetch full count for hot/warm
+      fetch('/api/maps/leaderboard?limit=200', { headers: { 'x-api-key': 'kande2026' } }).then(r => r.ok ? r.json() : null).then(function(full) {
+        if (full && full.results) {
+          document.getElementById('mi-hot').textContent = full.results.filter(function(l) { return l.score >= 70; }).length;
+          document.getElementById('mi-warm').textContent = full.results.filter(function(l) { return l.score >= 45 && l.score < 70; }).length;
+        }
+      });
+
+      // Render table (top 10)
+      if (leads.length === 0) {
+        document.getElementById('mi-table-body').innerHTML = '<tr><td colspan="6" class="maps-empty">No scored leads yet — run rescore from Scout Intel</td></tr>';
+        return;
+      }
+      var rows = '';
+      leads.slice(0, 10).forEach(function(r, i) {
+        var tier = r.score >= 70 ? 'hot' : r.score >= 45 ? 'warm' : 'cold';
+        var stars = r.rating ? '⭐ ' + r.rating.toFixed(1) : '—';
+        var reviews = r.reviews ? r.reviews.toLocaleString() : '—';
+        rows += '<tr onclick="window.location=\'/prospect/' + r.id + '\'">' +
+          '<td>' + (i + 1) + '</td>' +
+          '<td style="font-weight:600;">' + (r.name || '—') + '</td>' +
+          '<td><span class="score-pill ' + tier + '">' + r.score + '</span></td>' +
+          '<td>' + stars + '</td>' +
+          '<td>' + reviews + '</td>' +
+          '<td>' + (r.type || '—') + '</td>' +
+          '</tr>';
+      });
+      document.getElementById('mi-table-body').innerHTML = rows;
+    }
+  }).catch(function(err) {
+    console.error('Maps intel error:', err);
+    document.getElementById('mi-table-body').innerHTML = '<tr><td colspan="6" class="maps-empty">Failed to load Maps data</td></tr>';
   });
 
 })();
