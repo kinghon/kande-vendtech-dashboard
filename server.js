@@ -26532,4 +26532,156 @@ app.post('/api/maps/discover', express.json(), async (req, res) => {
   }
 });
 
+// -- Maps Lead Scoring --
+
+// Score a prospect/place based on Maps signals (0-100)
+function calculateMapsLeadScore(prospect) {
+  let score = 0;
+  const details = {};
+
+  // 1. Review count — proxy for size/traffic (max 30 pts)
+  const reviews = prospect.google_review_count || 0;
+  if (reviews >= 500) { score += 30; details.reviews = '500+ reviews (+30)'; }
+  else if (reviews >= 200) { score += 20; details.reviews = '200-499 reviews (+20)'; }
+  else if (reviews >= 50) { score += 10; details.reviews = '50-199 reviews (+10)'; }
+  else if (reviews > 0) { score += 5; details.reviews = `${reviews} reviews (+5)`; }
+  else { details.reviews = 'No reviews (+0)'; }
+
+  // 2. Property type match (max 25 pts)
+  const ptype = (prospect.property_type || '').toLowerCase();
+  const name = (prospect.name || '').toLowerCase();
+  const types = prospect.google_types || [];
+  const typeStr = types.join(' ').toLowerCase();
+
+  const tier1 = ['apartment', 'senior', 'assisted', 'nursing', 'retirement', 'hospital', 'medical center', 'healthcare', 'dialysis'];
+  const tier2 = ['industrial', 'warehouse', 'distribution', 'manufacturing', 'corporate', 'office', 'call center', 'data center'];
+  const tier3 = ['hotel', 'extended stay', 'convention', 'education', 'school', 'university', 'government'];
+  const combined = ptype + ' ' + name + ' ' + typeStr;
+
+  if (tier1.some(t => combined.includes(t))) { score += 25; details.type = 'Tier 1 property (+25)'; }
+  else if (tier2.some(t => combined.includes(t))) { score += 20; details.type = 'Tier 2 property (+20)'; }
+  else if (tier3.some(t => combined.includes(t))) { score += 15; details.type = 'Tier 3 property (+15)'; }
+  else { score += 5; details.type = 'Other property (+5)'; }
+
+  // 3. Rating sweet spot (max 20 pts)
+  const rating = prospect.google_rating || 0;
+  if (rating >= 3.5 && rating <= 4.5) { score += 20; details.rating = `${rating}★ sweet spot (+20)`; }
+  else if (rating > 4.5) { score += 15; details.rating = `${rating}★ premium (+15)`; }
+  else if (rating >= 3.0) { score += 10; details.rating = `${rating}★ fair (+10)`; }
+  else if (rating > 0) { score += 5; details.rating = `${rating}★ low (+5)`; }
+  else { details.rating = 'No rating (+0)'; }
+
+  // 4. Contactability (max 15 pts)
+  const hasPhone = !!(prospect.phone);
+  const hasWebsite = !!(prospect.website || prospect.websiteUrl);
+  const hasEmail = !!(prospect.contacts && prospect.contacts.length && prospect.contacts.some(c => c.email));
+  if (hasPhone && hasWebsite) { score += 15; details.contact = 'Phone + website (+15)'; }
+  else if (hasPhone || hasEmail) { score += 10; details.contact = 'Phone or email (+10)'; }
+  else if (hasWebsite) { score += 8; details.contact = 'Website only (+8)'; }
+  else { details.contact = 'No contact info (+0)'; }
+
+  // 5. Operational signals (max 10 pts)
+  const status = (prospect.maps_business_status || '').toUpperCase();
+  if (status === 'OPERATIONAL') { score += 5; details.status = 'Operational (+5)'; }
+  else if (status && status !== 'OPERATIONAL') { score -= 10; details.status = `${status} (-10)`; }
+
+  // Bonus: units/employee count if available
+  const units = parseInt(prospect.units) || 0;
+  if (units >= 200) { score += 5; details.units = `${units} units (+5)`; }
+
+  return { score: Math.max(0, Math.min(100, score)), details };
+}
+
+// POST /api/maps/score/:id — Score a single prospect
+app.post('/api/maps/score/:id', express.json(), (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+  const prospect = (db.prospects || []).find(p => p.id === parseInt(req.params.id));
+  if (!prospect) return res.status(404).json({ error: 'Prospect not found' });
+
+  const { score, details } = calculateMapsLeadScore(prospect);
+  const apply = req.body?.apply !== false; // default true
+
+  if (apply && prospect.maps_lead_score !== score) {
+    prospect.maps_lead_score = score;
+    prospect.maps_score_details = details;
+    prospect.maps_scored_at = new Date().toISOString();
+    saveDB(db);
+  }
+
+  res.json({ id: prospect.id, name: prospect.name, score, details, applied: apply });
+});
+
+// POST /api/maps/score-all — Score all verified prospects
+app.post('/api/maps/score-all', express.json(), (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+  const prospects = db.prospects || [];
+  const verified = prospects.filter(p => p.google_place_id || p.google_verified_at);
+  let scored = 0;
+  const results = [];
+  const tiers = { hot: [], warm: [], cold: [] };
+
+  for (const p of verified) {
+    const { score, details } = calculateMapsLeadScore(p);
+    p.maps_lead_score = score;
+    p.maps_score_details = details;
+    p.maps_scored_at = new Date().toISOString();
+    scored++;
+
+    const tier = score >= 70 ? 'hot' : score >= 45 ? 'warm' : 'cold';
+    tiers[tier].push({ id: p.id, name: p.name, score, tier });
+    results.push({ id: p.id, name: p.name, score, tier });
+  }
+
+  if (scored > 0) saveDB(db);
+
+  // Sort each tier by score descending
+  results.sort((a, b) => b.score - a.score);
+
+  console.log(`🎯 Maps scoring: ${scored} prospects scored — ${tiers.hot.length} hot, ${tiers.warm.length} warm, ${tiers.cold.length} cold`);
+  res.json({
+    ok: true,
+    scored,
+    tiers: { hot: tiers.hot.length, warm: tiers.warm.length, cold: tiers.cold.length },
+    topLeads: results.filter(r => r.score >= 70).slice(0, 20),
+    results
+  });
+});
+
+// GET /api/maps/leaderboard — Top-scored prospects
+app.get('/api/maps/leaderboard', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+  const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+  const minScore = parseInt(req.query.min) || 0;
+  const tier = req.query.tier; // 'hot', 'warm', 'cold'
+
+  let prospects = (db.prospects || [])
+    .filter(p => p.maps_lead_score !== undefined && p.maps_lead_score >= minScore)
+    .sort((a, b) => (b.maps_lead_score || 0) - (a.maps_lead_score || 0));
+
+  if (tier === 'hot') prospects = prospects.filter(p => p.maps_lead_score >= 70);
+  else if (tier === 'warm') prospects = prospects.filter(p => p.maps_lead_score >= 45 && p.maps_lead_score < 70);
+  else if (tier === 'cold') prospects = prospects.filter(p => p.maps_lead_score < 45);
+
+  const results = prospects.slice(0, limit).map(p => ({
+    id: p.id,
+    name: p.name,
+    address: p.address,
+    score: p.maps_lead_score,
+    rating: p.google_rating,
+    reviews: p.google_review_count,
+    type: p.property_type,
+    status: p.status,
+    phone: p.phone,
+    details: p.maps_score_details
+  }));
+
+  res.json({ total: prospects.length, showing: results.length, results });
+});
+
 // ===== END GOOGLE MAPS PLACES API INTEGRATION =====
