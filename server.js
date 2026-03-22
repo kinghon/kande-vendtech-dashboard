@@ -26320,10 +26320,15 @@ app.get('/api/maps/status', (req, res) => {
   const prospects = db.prospects || [];
   const verified = prospects.filter(p => p.google_place_id).length;
   const unverified = prospects.length - verified;
+  const scored = prospects.filter(p => p.maps_lead_score !== undefined);
+  const hotCount = scored.filter(p => p.maps_lead_score >= 70).length;
+  const warmCount = scored.filter(p => p.maps_lead_score >= 45 && p.maps_lead_score < 70).length;
+  const coldCount = scored.filter(p => p.maps_lead_score < 45).length;
   res.json({
     configured: !!GOOGLE_PLACES_API_KEY,
     keyPreview: GOOGLE_PLACES_API_KEY ? GOOGLE_PLACES_API_KEY.slice(0, 8) + '...' : null,
     prospects: { total: prospects.length, verified, unverified },
+    leadTiers: { total: scored.length, hot: hotCount, warm: warmCount, cold: coldCount },
     rateLimit: { callsLastMinute: placesCallLog.filter(t => Date.now() - t < 60000).length, maxPerMinute: 50 },
     endpoints: ['/api/maps/search', '/api/maps/verify/:id', '/api/maps/bulk-verify', '/api/maps/discover', '/api/maps/status']
   });

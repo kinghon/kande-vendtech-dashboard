@@ -1504,21 +1504,13 @@
       var p = status.prospects;
       document.getElementById('mi-verified').textContent = p.verified + '/' + p.total;
     }
+    // Use accurate tier counts from /api/maps/status leadTiers (covers all scored prospects)
+    if (status && status.leadTiers) {
+      document.getElementById('mi-hot').textContent = status.leadTiers.hot || '0';
+      document.getElementById('mi-warm').textContent = status.leadTiers.warm || '0';
+    }
     if (leader && leader.results) {
       var leads = leader.results;
-      var hot = leads.filter(function(l) { return l.score >= 70; }).length;
-      var warm = leads.filter(function(l) { return l.score >= 45 && l.score < 70; }).length;
-      // Use full totals from leaderboard
-      document.getElementById('mi-hot').textContent = leader.total > 0 ? leads.filter(function(l) { return l.score >= 70; }).length : '0';
-      document.getElementById('mi-warm').textContent = leader.total > 0 ? leads.filter(function(l) { return l.score >= 45 && l.score < 70; }).length : '0';
-
-      // Fetch full count for hot/warm
-      fetch('/api/maps/leaderboard?limit=200', { headers: { 'x-api-key': 'kande2026' } }).then(r => r.ok ? r.json() : null).then(function(full) {
-        if (full && full.results) {
-          document.getElementById('mi-hot').textContent = full.results.filter(function(l) { return l.score >= 70; }).length;
-          document.getElementById('mi-warm').textContent = full.results.filter(function(l) { return l.score >= 45 && l.score < 70; }).length;
-        }
-      });
 
       // Render table (top 10)
       if (leads.length === 0) {
