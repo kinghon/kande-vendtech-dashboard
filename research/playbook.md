@@ -1,4 +1,11 @@
 
+## Vendingpreneurs: $6K/Month Just From Water? (2026-03-25)
+- **Water is king in residential** — $6K/month from water alone. Smart Water is #1 seller. Operator dedicates 10 slots (1.5 rows) to water.
+- **Room temperature water** — residential customers specifically request it. Stock both cold and room temp.
+- **Non-traditional items in residential:** Toilet paper 6-packs sell surprisingly well near condos/apartments (15 packs in one month). Convenience/incidentals outperform expectations.
+- **Residential = marketplace** — condos + apartments create demand beyond snacks/drinks. Think toiletries, paper goods, household basics.
+- **Kande takeaway:** When pitching residential properties, emphasize product flexibility and marketplace positioning — not just traditional vending.
+
 ## Vendingpreneurs: 5 Mistakes That Cost Beginners Thousands (2026-03-21)
 - **Location before equipment** — professionals reverse the order: measure space → match machine → signed agreement → select product → buy. Equipment never dictates location.
 - **Concentrated traffic > raw unit count** — 300-unit high-rise with single lobby beats 700-unit garden complex with scattered buildings. Look for: choke points, waiting areas, line-of-sight visibility, habitual traffic.
