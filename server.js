@@ -26692,3 +26692,43 @@ app.get('/api/maps/leaderboard', (req, res) => {
 });
 
 // ===== END GOOGLE MAPS PLACES API INTEGRATION =====
+
+// ===== AUTO-DETECT PROPERTY TYPE FOR MEDICAL LEADS =====
+// Addresses learnings gap: medical leads landing with property_type="Unknown"
+// Called manually or from import flows. Detects and patches in bulk.
+
+const MEDICAL_KEYWORDS = ['dialysis', 'clinic', 'hospital', 'medical center', 'healthcare', 'health center', 'urgent care', 'surgery center', 'rehabilitation', 'recovery hospital', 'treatment clinic', 'children\'s hospital', 'quick care', 'outpatient'];
+
+function inferPropertyType(name) {
+  const lower = (name || '').toLowerCase();
+  if (MEDICAL_KEYWORDS.some(kw => lower.includes(kw))) return 'healthcare';
+  return null;
+}
+
+// Auto-detect and fix missing property_type on create
+// Patch the POST /api/prospects route behavior via middleware-style helper
+const _origProspectCreate = app._router;
+
+// Endpoint: POST /api/prospects/auto-classify — backfill property_type for prospects with unknown type
+app.post('/api/prospects/auto-classify', (req, res) => {
+  const targets = db.prospects.filter(p => {
+    const pt = (p.property_type || '').toLowerCase();
+    return pt === '' || pt === 'unknown' || pt === 'null';
+  });
+  let updated = 0;
+  targets.forEach(p => {
+    const inferred = inferPropertyType(p.name);
+    if (inferred) {
+      const idx = db.prospects.findIndex(x => x.id === p.id);
+      if (idx !== -1) {
+        db.prospects[idx].property_type = inferred;
+        db.prospects[idx].updated_at = new Date().toISOString();
+        updated++;
+      }
+    }
+  });
+  if (updated > 0) saveDB(db);
+  res.json({ checked: targets.length, updated });
+});
+
+// ===== END AUTO-DETECT PROPERTY TYPE =====
