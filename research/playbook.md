@@ -1,4 +1,21 @@
 
+## Vendingpreneurs: From Zero to $18K/Month at ONE Hotel Location (2026-03-26)
+- **Hotels are goldmine locations** — Tom Canarino landed a 400-bed franchise hotel doing $18K+/month from 4 machines in slow season. Weekends $1,000+/day.
+- **Replace micro markets pitch** — hotel was self-managing an open-air micro market with theft + staff time-suck. Framing as "we eliminate your problem" was the closer.
+- **Revenue share benchmark:** 15% of gross to hotel. All products marked up for hotel environment — guests accept premium pricing.
+- **Long sales cycles pay off** — took ~1 year of professional persistence. Direct mail got the initial meeting. Owner visit was the final catalyst.
+- **On-premise storage** — negotiate for locked storage at the location. Makes restocking dramatically more efficient.
+- **"Partnership, not sales"** — frame every pop-in as looking for partnership opportunities, not selling. Tom got first locations within 60 days via pop-ins.
+- **Smart machines > traditional** — Tom transitioned quickly from traditional to smart. More product flexibility, better data.
+- **Kande takeaway:** Validate hotel/hospitality vertical. Pitch micro market replacement to hotels managing their own food service. 15% rev share is competitive. Patience on enterprise deals = potential $250K+/year locations.
+
+## Vendingpreneurs: Vending Isn't Passive (2026-03-26)
+- **Buy back your time** — pay someone $20/hr to stock rather than doing it yourself. If you're doing labor, it's not passive.
+- **<1 hour/week rule** — Mike's non-negotiable: spend no more than 1 hour/week on a route doing $80K+/month.
+- **High-lever tasks only** — your time should go to relationship building (e.g., getting meetings for 20+ properties via regional contacts), not stocking.
+- **Systemize to scale** — hire stockers, pickers, build systems to remove yourself from operations.
+- **Kande takeaway:** Aligns with Kande's model — full-service operation means clients don't lift a finger. Use this messaging in pitches: "We handle everything so you don't have to."
+
 ## Vendingpreneurs: $6K/Month Just From Water? (2026-03-25)
 - **Water is king in residential** — $6K/month from water alone. Smart Water is #1 seller. Operator dedicates 10 slots (1.5 rows) to water.
 - **Room temperature water** — residential customers specifically request it. Stock both cold and room temp.
