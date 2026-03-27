@@ -9,3 +9,7 @@
 - Gate: 2 new videos found
 - H-munETh9HM: "Vending Isn't Passive… Here's Why" — transcribed, key takeaways added to playbook
 - 8ih4aTXaot8: "From Zero to $18,000/Month at ONE Hotel Location" — transcribed, hotel strategy insights added to playbook
+
+## 2026-03-27
+- Gate: 1 new video found
+- 5pAgLvMPbLA: "$10K–$12K to Start… Worth It?" — partial transcript only (summarize CLI got 149 words, captions incomplete). Key insight: premium micro-market setups ($10-12K) in converted spaces (yoga studio → marketplace) with branding pay off quickly.

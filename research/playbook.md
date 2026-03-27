@@ -30,3 +30,9 @@
 - **Data decides product mix** — test, track sales, cut losers, increase winners, adjust pricing. Personal preference costs money.
 - **Systems before scale** — stocking = $20-25/hr task. Location acquisition = $1,000/hr task. If you do the $25/hr work, you cap growth. Scale requires delegation.
 - **90-day rule** — not married to locations. Analyze, adjust, or relocate after 90 days. These are movable assets. Operate like an investor.
+
+## Vendingpreneurs: $10K–$12K to Start… Worth It? (2026-03-27)
+- **Premium micro-market setup: $10-12K** — includes double cooler, pool system, 4 shelving units. Higher upfront cost but fast ROI.
+- **Location vision matters** — operator converted an old yoga studio into a branded "marketplace." When the location has a vision and brand identity, customers engage more.
+- **Quick payoff** — operator reports paying off $10-12K investment "pretty quickly." Validates premium installs over minimum-viable setups.
+- **Kande takeaway:** Premium, custom-brandable machines are the right pitch for locations that want a curated experience. Use this data point in proposals: "$10-12K setups can pay for themselves quickly when the location is right."
