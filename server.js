@@ -26732,3 +26732,54 @@ app.post('/api/prospects/auto-classify', (req, res) => {
 });
 
 // ===== END AUTO-DETECT PROPERTY TYPE =====
+
+// ===== [ralph] BROAD PROPERTY TYPE CLASSIFIER =====
+// Extends MEDICAL_KEYWORDS-based inferPropertyType with full keyword matrix.
+// Covers apartments, senior living, hotel/casino, industrial, office, retail, etc.
+// Appended 2026-03-27 (ralph-overnight QA sweep)
+
+const BROAD_TYPE_RULES = [
+  { type: 'apartment', keywords: ['apartment', 'apartments', 'apt ', 'flats', 'residences', 'lofts', 'condos', 'condo', 'townhome', 'townhomes', 'homes at', 'community apartments', 'student housing', 'campus crossing'] },
+  { type: 'senior living', keywords: ['senior', '55+', 'active adult', 'retirement', 'memory care', 'assisted living', 'independent living', 'senior village', 'senior housing', 'supportive housing'] },
+  { type: 'hotel', keywords: ['hotel', 'resort', 'casino', 'inn ', 'suites hotel', 'ahern', 'bellagio', 'caesars', 'venetian', 'palazzo', 'wynn', 'encore', 'orleans', 'station casino', 'sunset station'] },
+  { type: 'industrial', keywords: ['industrial', 'logistics', 'distribution center', 'manufacturing', 'warehouse', 'data center', 'fulfillment', 'production facility', 'depot', 'commerce park', 'business park', 'tech campus'] },
+  { type: 'office', keywords: ['office', 'corporate office', 'coworking', 'co-working', 'executive suite', 'virtual office', 'workspaces', 'workspace', 'llc', 'inc.', 'corp', 'company'] },
+  { type: 'retail', keywords: ['retail', 'shopping', 'store', 'market', 'walmart', 'home depot', 'sprouts', "smith's", 'food & drug'] },
+  { type: 'healthcare', keywords: ['dialysis', 'clinic', 'hospital', 'medical center', 'healthcare', 'health center', 'urgent care', 'surgery center', 'rehabilitation', 'recovery hospital', 'treatment clinic', "children's hospital", 'quick care', 'outpatient', 'physical therapy', 'imaging', 'surgical', 'er ', 'freestanding er', 'medical office', 'medical pavilion', 'medical building', 'medical district', 'health and rehab', 'behavioral health', 'virtue recovery'] },
+  { type: 'recreation', keywords: ['recreation center', 'community center', 'fieldhouse', 'gym ', 'fitness', 'sport', 'arena', 'arts district', 'arts campus', 'library'] },
+  { type: 'education', keywords: ['university', 'college', 'school', 'academy', 'touro', 'unlv'] },
+];
+
+function inferPropertyTypeBroad(name) {
+  const lower = (name || '').toLowerCase();
+  // Apartment check first (most common)
+  for (const rule of BROAD_TYPE_RULES) {
+    if (rule.keywords.some(kw => lower.includes(kw))) return rule.type;
+  }
+  return null;
+}
+
+// POST /api/prospects/bulk-classify — Broader auto-classify for all untyped prospects
+app.post('/api/prospects/bulk-classify', (req, res) => {
+  const targets = db.prospects.filter(p => {
+    const pt = (p.property_type || '').toLowerCase();
+    return pt === '' || pt === 'unknown' || pt === 'null';
+  });
+  const results = { checked: targets.length, updated: 0, byType: {} };
+  targets.forEach(p => {
+    const inferred = inferPropertyTypeBroad(p.name);
+    if (inferred) {
+      const idx = db.prospects.findIndex(x => x.id === p.id);
+      if (idx !== -1) {
+        db.prospects[idx].property_type = inferred;
+        db.prospects[idx].updated_at = new Date().toISOString();
+        results.updated++;
+        results.byType[inferred] = (results.byType[inferred] || 0) + 1;
+      }
+    }
+  });
+  if (results.updated > 0) saveDB(db);
+  res.json(results);
+});
+
+// ===== END BROAD PROPERTY TYPE CLASSIFIER =====
