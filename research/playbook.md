@@ -1,4 +1,16 @@
 
+## Vendingpreneurs: Top 3 Profitable Vending Location Categories (2026-03-28)
+- **#1 Multi-shift warehouses** — 150+ employees, 2-3 shifts, controlled breaks. Revenue: $1.5K weak, $3K solid, $5K+ high volume. Decision makers: ops/plant/facilities manager. One placement can turn into three if they oversee multiple sites.
+- **#2 Centralized residential** — 250+ units, single building/clubhouse, elevator funnel. Revenue: $1.2K under, $2-3K avg, $3.5-5K strong. Garden-style with scattered entrances = avoid. Impulse + convenience always wins.
+- **#3 Outpatient medical** — Stress + wait time = sales. Revenue: $1.2K conservative, $1.8K solid, $2K high specialty. OTC meds convert: doctor says "Take Advil" → your machine is in the lobby.
+- **Scoring framework:** Rate each location on 4 traits (high daily traffic, captive audience, central visibility, limited alternatives) out of 10. Under 30 = pass. Over 32 = investigate aggressively.
+- **Kande takeaway:** All 3 categories align with Kande's current targets. Residential already validated. Medical is underexplored — stress + wait time pitch could be compelling. Warehouse/industrial should be added to prospecting if not already there. The scoring framework is immediately usable for qualifying leads.
+
+## Vendingpreneurs: 16 Machines → $36K/Month Scaling Story (2026-03-28)
+- **$2,250/machine average** — 16 machines at $36K/month. Scaling to 27 machines, projecting $58-60K/month.
+- **Operators underestimate their own success** — one partner thought they were doing $5K/month when it was actually $20K. Focus on logistics can blind you to growth.
+- **Kande takeaway:** Good benchmark data point. $2,250/machine avg is achievable. Each milestone builds momentum.
+
 ## Vendingpreneurs: From Zero to $18K/Month at ONE Hotel Location (2026-03-26)
 - **Hotels are goldmine locations** — Tom Canarino landed a 400-bed franchise hotel doing $18K+/month from 4 machines in slow season. Weekends $1,000+/day.
 - **Replace micro markets pitch** — hotel was self-managing an open-air micro market with theft + staff time-suck. Framing as "we eliminate your problem" was the closer.
