@@ -2173,6 +2173,16 @@ app.get('/api/analytics/property-types', (req, res) => {
       const signedLabel = topSigned.property_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
       recommendation += `. ${signedLabel} leads in total signed (${topSigned.signed}).`;
     }
+  } else if (topOverall && topOverall.hot_leads > 0) {
+    const label = topOverall.property_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const hotLabel = types.reduce((best, t) => t.hot_leads > best.hot_leads ? t : best, types[0]);
+    const hotType = hotLabel.property_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    recommendation = `No signed deals yet — focus energy on ${hotType} (${hotLabel.hot_leads} hot leads, highest urgency). ${label} has the largest pipeline (${topOverall.pipeline} active prospects).`;
+  } else if (topOverall) {
+    const label = topOverall.property_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const activityChamp = [...types].sort((a,b) => b.avg_activities - a.avg_activities)[0];
+    const actLabel = activityChamp.property_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    recommendation = `Pipeline building phase — ${label} leads by volume (${topOverall.pipeline} prospects). ${actLabel} has the most engagement avg (${activityChamp.avg_activities.toFixed(1)} activities/prospect). Keep following up to generate first signed deal.`;
   } else {
     recommendation = 'Not enough data yet. Keep adding prospects to see trends.';
   }
