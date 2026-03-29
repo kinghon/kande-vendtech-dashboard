@@ -26794,3 +26794,78 @@ app.post('/api/prospects/bulk-classify', (req, res) => {
 });
 
 // ===== END BROAD PROPERTY TYPE CLASSIFIER =====
+
+// ===== [ralph] PROPERTY TYPE NORMALIZATION =====
+// Normalizes all property_type values to canonical lowercase snake_case.
+// Fixes data inconsistency from mixed-case imports (e.g. "Office" → "office", "Apartment" → "apartment").
+// Appended 2026-03-29 (ralph-overnight QA sweep)
+
+const PROPERTY_TYPE_CANONICAL = {
+  // apartment variants
+  'apartment': 'apartment',
+  'apartments': 'apartment',
+  'apartments/condos': 'apartment',
+  'residential': 'apartment',
+  // office variants
+  'office': 'office',
+  'office/business': 'office',
+  // industrial variants
+  'industrial': 'industrial',
+  'industrial/warehouse': 'industrial',
+  'warehouse': 'industrial',
+  'manufacturing': 'industrial',
+  // healthcare variants
+  'healthcare': 'healthcare',
+  'medical': 'healthcare',
+  'acute care hospital': 'healthcare',
+  'behavioral health hospital': 'healthcare',
+  'skilled nursing / rehab': 'healthcare',
+  'assisted living, memory care': 'healthcare',
+  'va medical center': 'healthcare',
+  // senior living variants
+  'senior living': 'senior_living',
+  'senior_living': 'senior_living',
+  'assisted living / memory care': 'senior_living',
+  'assisted living, independent living, memory care': 'senior_living',
+  'skilled nursing facility': 'senior_living',
+  // hotel variants
+  'hotel': 'hotel',
+  'extended_stay_hotel': 'hotel',
+  // recreation variants
+  'recreation': 'recreation',
+  'recreation_center': 'recreation',
+  // other
+  'retail': 'retail',
+  'education': 'education',
+  'automotive': 'automotive',
+  'government': 'government',
+  'military': 'military',
+  'high-traffic': 'high_traffic',
+  'new construction': 'other',
+  'other': 'other',
+};
+
+// POST /api/prospects/normalize-types — normalize all property_type values to canonical form
+app.post('/api/prospects/normalize-types', (req, res) => {
+  const dryRun = req.body && req.body.dry_run;
+  let updated = 0;
+  const changes = [];
+  db.prospects.forEach((p, idx) => {
+    const raw = (p.property_type || '').trim();
+    if (!raw) return;
+    const key = raw.toLowerCase();
+    const canonical = PROPERTY_TYPE_CANONICAL[key];
+    if (canonical && canonical !== raw) {
+      changes.push({ id: p.id, from: raw, to: canonical });
+      if (!dryRun) {
+        db.prospects[idx].property_type = canonical;
+        db.prospects[idx].updated_at = new Date().toISOString();
+        updated++;
+      }
+    }
+  });
+  if (!dryRun && updated > 0) saveDB(db);
+  res.json({ checked: db.prospects.length, updated: dryRun ? changes.length : updated, changes: changes.slice(0, 20), dry_run: !!dryRun });
+});
+
+// ===== END PROPERTY TYPE NORMALIZATION =====
