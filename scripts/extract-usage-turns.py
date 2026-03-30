@@ -1,3 +1,4 @@
+from __future__ import annotations
 #!/usr/bin/env python3
 """
 extract-usage-turns.py — Count OpenClaw session turns per Telegram group and push to VendTech dashboard.
