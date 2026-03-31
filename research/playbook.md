@@ -48,3 +48,16 @@
 - **Location vision matters** — operator converted an old yoga studio into a branded "marketplace." When the location has a vision and brand identity, customers engage more.
 - **Quick payoff** — operator reports paying off $10-12K investment "pretty quickly." Validates premium installs over minimum-viable setups.
 - **Kande takeaway:** Premium, custom-brandable machines are the right pitch for locations that want a curated experience. Use this data point in proposals: "$10-12K setups can pay for themselves quickly when the location is right."
+
+## Vendingpreneurs: From AI Layoff Fears to $43K/Month in Vending (2026-03-31)
+- **Matt Morrison — $43K/month, ~40 machines, 20 locations** — Built while working a W2 software sales job. Joined Vendingpreneurs April 2024, first install June 2024. Approaching 2-year anniversary.
+- **Top location does $6,500-$7,000/month** — His 3rd ever location. Forced him to hire his first stocker because he couldn't keep up with just 3 locations. Proves banger locations come early if you keep prospecting.
+- **Targets apartment communities** — Prospected on Fridays and some Saturdays. Built targeted lists in evening prep sessions (6-9pm), then executed in 2-hour blocks. Highly intentional with time.
+- **Top sellers:** Red Bull (category leader), Cool Blue Gatorade (20oz regular), Dubai chocolate ($1.99 cost → $11.99 sell = $10 spread per bar, sourced from Fair with promo pricing near expiration).
+- **Dubai chocolate margin play** — Fair runs promos based on expiration date. $1.99/bar when expiring in ~2 months, $2.99 otherwise. 500%+ margin. Sells well as impulse/premium item.
+- **Mindset shift:** Treats vending like SaaS recurring revenue — predictable monthly income. Each machine is a revenue unit with known floor. "Revenue is my equivalent of Salesforce's monthly subscriptions."
+- **Kande takeaway:** Dubai chocolate is a high-margin impulse item worth testing in premium locations (apartments, hotels). The $10 spread per bar is exceptional. Also validates apartment community targeting and the "hedge against AI/layoff uncertainty" pitch angle for location decision-makers who might be sympathetic to local entrepreneurs.
+
+## Vendingpreneurs: Their Top Seller Isn't What You Think… (2026-03-31)
+- **Top sellers across operators:** Dr. Pepper, Celsius Strawberry Passion Fruit, Bold Spicy Carbonara ramen ($1.50 cost → $4.00 sell, 65%+ margin). Spicy ramen "can't keep it on the shelf."
+- **Kande takeaway:** Spicy instant ramen is a sleeper product — high margin, high velocity, especially in residential/workforce locations. Stock bold/unique flavors that create repeat purchases.
