@@ -61,3 +61,98 @@
 ## Vendingpreneurs: Their Top Seller Isn't What You Think… (2026-03-31)
 - **Top sellers across operators:** Dr. Pepper, Celsius Strawberry Passion Fruit, Bold Spicy Carbonara ramen ($1.50 cost → $4.00 sell, 65%+ margin). Spicy ramen "can't keep it on the shelf."
 - **Kande takeaway:** Spicy instant ramen is a sleeper product — high margin, high velocity, especially in residential/workforce locations. Stock bold/unique flavors that create repeat purchases.
+## Vendingpreneurs: NSF Certification Gap — HAHA & SandStar (2026-03-30)
+- **Neither HAHA nor SandStar machines appear NSF-certified** — community flagged that no HAHA or SandStar machines are directly listed as NSF compliant. This matters for locations (hospitals, corporate offices, some apartments) that require NSF-certified food service equipment.
+- **Kande takeaway:** Before pitching food-focused locations with strict compliance requirements, verify NSF status. Could be a differentiator if we can source NSF-certified machines OR a blocker if the location requires it.
+
+## Vendingpreneurs: Luxury Apartment Aesthetics Objection (2026-03-30)
+- **Property owners at upscale locations push back on machine appearance** — even when the deal is almost closed, owners who are "super particular" about aesthetics can stall or kill deals.
+- **Kande takeaway:** Prepare custom branding mockups showing how Kande machines will look in their space BEFORE the pitch. Show the exterior customization capability upfront. Lead with design, not specs.
+
+## Vendingpreneurs: VendHub/VendMarket Marketplace Launch (2026-03-30)
+- **VendMarket is now live** — Amazon-like marketplace for vending operators. Red Bull + Vistar products in one checkout. Goal: add Pepsi, Coke, 10-15 suppliers total.
+- **Red Bull ordering** — requires USG enrollment (quarterly). VendHub auto-enrolls eligible operators. Need USG ID + commercial address.
+- **Kande takeaway:** Enroll in VendHub/VendMarket to access bulk supplier pricing. Red Bull enrollment via USG should be priority — high-margin energy drinks are top sellers.
+
+## Vendingpreneurs: Coke 20% Layoff & AI Restructuring (2026-03-30)
+- **Coca-Cola cut 20% of workforce** — some roles eliminated entirely due to AI. Account contacts being reshuffled. 4-6 week transition periods when contacts change.
+- **Kande takeaway:** Expect potential delays/disruptions if working with Coke directly. The AI panel VP is hosting could reveal operator-level impacts. Monitor.
+
+## Vendingpreneurs: Chain Location Strategy — Willow Bridge (2026-03-30)
+- **Operator landed 3rd Willow Bridge apartment, 2 more in proposal stage** — proves that once you get one location in a property management chain, the next ones come easier.
+- **Kande takeaway:** When we land a location, immediately identify sister properties under the same management group. Pitch them as a package deal referencing success at the first property.
+
+## Vendingpreneurs: SandStar New Products at NAMA Summer 2026 (2026-03-30)
+- **SandStar rep (Microboxtech) sharing new product lineup for NAMA** — includes a smaller smart cooler designed for garden-style apartments (where full-size machines don't fit).
+- **Kande takeaway:** Watch NAMA announcements for the smaller smart cooler. If garden-style apartments are a target vertical, this could unlock locations previously too small for standard machines.
+
+## Mighty Networks Deep Scrape — New Insights (2026-03-30)
+
+### Vistar Ordering Optimization (from Jeff Scherdin guest session)
+- **$1,500 order threshold = 2% off-invoice discount** (Modern Amenities exclusive). Cluster orders to hit it.
+- **Double dip**: Stack pre-buy deals + off-invoice discounts on same order
+- **Demand forecasting**: Call opco, declare weekly volumes per SKU → they load into "Clarity" system → priority fill, no more getting cut
+- **Check Las Vegas bottler lockout zones** for Coke/Pepsi before assuming Vistar can supply them
+- **Pepsi enrollment opening April 2026** — requires commercial address (use 5725 S Valley View)
+
+### SandStar = True AI Differentiator
+- Only machine with REAL active AI (no human review). 365/MicroMart/HaHa all use overseas human review teams.
+- **Pitch angle**: "Most 'smart' machines still use humans to approve every transaction. Ours use real AI."
+- HaHa testing true AI later in 2026
+
+### Multi-Location Deal Negotiation
+- Counter 15% rev share demands with tiered structure maxing at 10%
+- For 5+ location portfolio deals, anchor at 5%, cap at 10%
+- One successful location → pitch entire management company portfolio within 2 weeks
+
+### Machine Ecosystem Rule
+- Pick ONE ecosystem for first 5 locations (don't mix HaHa/SandStar/365 early)
+- Evaluate property FIRST, then match hardware
+- Don't oversize before location earns it — easier to add capacity than shrink
+
+### Inventory Discipline
+- Protect bestsellers first (prevent repeat stockouts)
+- Cut bottom 3 sellers monthly, double down on top sellers
+- Separate "feeding the machine" from "testing" — core products ≠ test products
+- Single weeks mislead — look for repeated patterns before acting
+
+### Scaling Transitions
+- Stage 1: Remove yourself as bottleneck → first hire = stocker
+- Document restocking process BEFORE hiring (system > person)
+- Systems vs Heroics: Build processes that work without you
+- Target: <1 hour/week on operations once route hits $80K+/month
+
+### Equipment Fixes
+- SandStar skinny can pushers: Display Technologies Visi-Fast (Amazon: a.co/d/08xsqnOk)
+- Alternative: Use SandStar candy pushers for hybrid shelves with 12oz cans
+
+## Vendingpreneurs: March 2026 Top Sellers (2026-03-31)
+- **Top reported products across operators:** Smuckers Uncrustables (Grape/Wheat) #1 again, Coca-Cola 20oz, Monster Zero, Starbucks Mocha Frap, Hershey's Cookies & Cream Dipped Pretzels
+- **Emerging hit:** Hershey's Dipped Pretzels confirmed by multiple operators as strong performer
+- **Kande takeaway:** Ensure Uncrustables and Monster Zero are always stocked. Add Hershey's Dipped Pretzels to standard planogram. Consider Lenny & Larry's cookies for variety.
+
+## Vendingpreneurs: Staffing Benchmark (2026-03-31)
+- **$20/location via Zelle** is the community benchmark for restocking labor with own-van operators
+- Insurance/liability for operators using personal vehicles is a key concern — Michael Bonk (insurance specialist) covered this on Jan 14 VP Weekly
+- **Kande takeaway:** Budget $20-25/location when we hire a stocker. Address vehicle insurance BEFORE hiring. Get W-2 vs 1099 guidance.
+
+## Vendingpreneurs: Contract Flexibility Lesson (2026-03-31)
+- **Operator lost 200+ unit mid-rise deal because contract spooked the PM**
+- Community recommendation: have a "light" 1-page agreement option for contract-averse prospects
+- Properties asking operators to cover $2K+ renovation costs — consensus is to decline
+- Auto-renewal clauses gaining traction in operator contracts
+- **Kande takeaway:** Prepare a simplified 1-page agreement as backup when full contract meets resistance. Never pay renovation costs for locations. Include auto-renewal clause.
+
+## Vendingpreneurs: Profit Margin Warning (2026-03-31)
+- **Revenue growing but profit not growing** is a common scaling trap reported by Q1 operators
+- COGS + labor + equipment costs can outpace revenue growth
+- **Kande takeaway:** Track margins per location from day one. Don't just celebrate revenue growth — watch net profit per unit.
+
+## Vendingpreneurs: Financing Red Flag (2026-03-31)
+- **3% monthly interest = 36% APR** — predatory financing targeting vending operators
+- **Kande takeaway:** If financing equipment, never accept monthly interest quotes without calculating APR. Stay under 15% APR.
+
+## Vendingpreneurs: Equipment Pricing Delta (2026-03-31)
+- **Sandstar Taste CVM27 7-shelf vs VRK/EZEgo = ~$1K difference**
+- Extra shelf means more SKU capacity at premium price
+- **Kande takeaway:** Evaluate whether extra shelf justifies $1K premium based on location product mix needs.
