@@ -156,3 +156,17 @@
 - **Sandstar Taste CVM27 7-shelf vs VRK/EZEgo = ~$1K difference**
 - Extra shelf means more SKU capacity at premium price
 - **Kande takeaway:** Evaluate whether extra shelf justifies $1K premium based on location product mix needs.
+
+## Vendingpreneurs: $8K/Month From ONE Location (2026-04-02)
+- **Single location doing $8K/month** — operator's highest-revenue location. Total portfolio doing $10.5-$11K/month across all locations.
+- **Kande takeaway:** Reinforces that one stellar location can carry a portfolio. Focus prospecting energy on high-potential sites rather than spreading thin across mediocre ones.
+
+## Vendingpreneurs: $6K Machine… $0 Down? Here's How (2026-04-02)
+- **Financing eliminates the capital barrier** — evending.com offers $0 down, first payment deferred 90 days. $6K machine → $117/month over 60 months.
+- **90 days of revenue before first payment** — operator generated sales for 3 months before owing anything on the machine.
+- **Kande takeaway:** Financing pitch is powerful for operators worried about upfront costs. For Kande's B2B pitch, this reinforces the "no cost to you" messaging — locations get machines installed at zero cost. The financing model validates that machines pay for themselves quickly.
+
+## Vendingpreneurs: 18 Months In… First Location Does $22-25K/Month (2026-04-02)
+- **Unicorn location: $22-25K/month** — operator's very first location, 18 months in. 4 total locations.
+- **First location was the unicorn** — proves that beginners can land exceptional locations. Don't need years of experience to find a winner.
+- **Kande takeaway:** Another data point for the pitch deck — single locations can generate $250K+/year. Use this in proposals to show the revenue potential landlords are leaving on the table without premium vending.
