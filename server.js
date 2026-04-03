@@ -21791,21 +21791,23 @@ app.get('/api/team/status', async (req, res) => {
       const { exec } = require('child_process');
       const util = require('util');
       const execAsync = util.promisify(exec);
-      const { stdout } = await execAsync('openclaw cron list');
-      const lines = stdout.split('\n').filter(line => line.trim());
-      
-      cronJobs = lines.slice(1).map(line => {
-        const parts = line.split(/\s+/);
-        if (parts.length < 8) return null;
+      const { stdout } = await execAsync('openclaw cron list --json');
+      const parsed = JSON.parse(stdout);
+      const now = Date.now();
+      cronJobs = (parsed.jobs || []).map(job => {
+        const lastRunAtMs = job.state?.lastRunAtMs || 0;
+        const minutesAgo = lastRunAtMs ? Math.floor((now - lastRunAtMs) / 60000) : Infinity;
+        const lastStr = lastRunAtMs ? (minutesAgo < 60 ? `${minutesAgo}m` : `${Math.floor(minutesAgo/60)}h`) : 'never';
         return {
-          id: parts[0],
-          name: parts[1],
-          status: parts[parts.length - 3],
-          next: parts[parts.length - 5],
-          last: parts[parts.length - 4],
-          agent: parts[parts.length - 1]
+          id: job.id,
+          name: job.name,
+          status: job.state?.lastStatus || 'unknown',
+          last: lastStr,
+          lastRunAtMs,
+          minutesAgo,
+          enabled: job.enabled
         };
-      }).filter(Boolean);
+      }).filter(j => j.enabled !== false);
     } catch (error) {
       console.error('Error fetching cron status:', error);
     }
@@ -22170,17 +22172,8 @@ function getLastActivity(agentType, cronJobs) {
 function getAgentStatus(agentType, cronJobs) {
   const jobs = cronJobs.filter(job => job.name.includes(agentType));
   if (jobs.length === 0) return 'idle';
-  
-  // If any job has errors, agent status is error
-  if (jobs.some(job => job.status === 'error')) return 'error';
-  
-  // If any job ran recently (within last hour), agent is active
-  const recentlyActive = jobs.some(job => {
-    if (!job.last || job.last === 'never') return false;
-    const timeValue = parseRelativeTime(job.last);
-    return timeValue < 60; // less than 60 minutes ago
-  });
-  
+  if (jobs.some(job => job.status === 'error' && job.minutesAgo < 30)) return 'error';
+  const recentlyActive = jobs.some(job => job.minutesAgo < 90);
   return recentlyActive ? 'active' : 'idle';
 }
 
@@ -22192,29 +22185,18 @@ function getJobLastRun(jobName, cronJobs) {
 function getJobStatus(jobName, cronJobs) {
   const job = cronJobs.find(j => j.name === jobName);
   if (!job) return 'idle';
-  
-  if (job.status === 'error') return 'error';
-  
-  // Check if job ran recently
-  if (job.last && job.last !== 'never') {
-    const timeValue = parseRelativeTime(job.last);
-    return timeValue < 60 ? 'active' : 'idle';
-  }
-  
-  return 'idle';
+  if (job.status === 'error' && job.minutesAgo < 30) return 'error';
+  return job.minutesAgo < 90 ? 'active' : 'idle';
 }
 
 function parseRelativeTime(timeStr) {
   if (!timeStr || timeStr === 'never') return Infinity;
-  
   const match = timeStr.match(/(\d+)([smhd])/);
   if (!match) return Infinity;
-  
   const value = parseInt(match[1]);
   const unit = match[2];
-  
   switch (unit) {
-    case 's': return value / 60; // convert to minutes
+    case 's': return value / 60;
     case 'm': return value;
     case 'h': return value * 60;
     case 'd': return value * 24 * 60;
