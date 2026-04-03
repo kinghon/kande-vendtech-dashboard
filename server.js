@@ -23513,17 +23513,17 @@ app.post('/api/usage/turns', (req, res) => {
 // ===== END USAGE TURNS API =====
 
 // ===== API COSTS ENDPOINT =====
+app.post('/api/costs/sync', express.json({ limit: '500kb' }), (req, res) => {
+  const { history } = req.body;
+  if (!history || !Array.isArray(history)) return res.status(400).json({ error: 'history array required' });
+  db.costHistory = history;
+  saveDB(db);
+  res.json({ ok: true, days: history.length });
+});
+
 app.get('/api/costs/weekly', (req, res) => {
   try {
-    const fs = require('fs');
-    const path = require('path');
-    const costsDir = '/Users/kurtishon/clawd/agent-output/costs';
-    const historyFile = path.join(costsDir, 'cost-history.json');
-    
-    let history = [];
-    if (fs.existsSync(historyFile)) {
-      history = JSON.parse(fs.readFileSync(historyFile, 'utf8'));
-    }
+    let history = db.costHistory || [];
     
     // Get last 7 days
     const now = new Date();
