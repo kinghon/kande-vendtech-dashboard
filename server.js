@@ -23512,6 +23512,69 @@ app.post('/api/usage/turns', (req, res) => {
 });
 // ===== END USAGE TURNS API =====
 
+// ===== API COSTS ENDPOINT =====
+app.get('/api/costs/weekly', (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const costsDir = '/Users/kurtishon/clawd/agent-output/costs';
+    const historyFile = path.join(costsDir, 'cost-history.json');
+    
+    let history = [];
+    if (fs.existsSync(historyFile)) {
+      history = JSON.parse(fs.readFileSync(historyFile, 'utf8'));
+    }
+    
+    // Get last 7 days
+    const now = new Date();
+    const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    const weekStr = weekAgo.toISOString().slice(0, 10);
+    const recent = history.filter(h => h.date >= weekStr);
+    
+    const weekTotal = recent.reduce((sum, h) => sum + (h.total || 0), 0);
+    const todayStr = now.toISOString().slice(0, 10);
+    const today = recent.find(h => h.date === todayStr);
+    const todayTotal = today ? today.total : 0;
+    
+    // Calculate Kimi savings
+    let kimiTurns = 0;
+    recent.forEach(h => { kimiTurns += (h.turns?.exo || 0); });
+    const kimiSavings = kimiTurns * 0.25; // ~$0.25 per turn saved
+    
+    // By provider
+    const byProvider = {};
+    recent.forEach(h => {
+      Object.entries(h.providers || {}).forEach(([p, cost]) => {
+        byProvider[p] = (byProvider[p] || 0) + cost;
+      });
+    });
+    
+    // By model
+    const byModel = {};
+    recent.forEach(h => {
+      Object.entries(h.models || {}).forEach(([m, d]) => {
+        if (!byModel[m]) byModel[m] = { cost: 0, turns: 0 };
+        byModel[m].cost += d.cost || 0;
+        byModel[m].turns += d.turns || 0;
+      });
+    });
+    
+    res.json({
+      weekTotal: Math.round(weekTotal * 100) / 100,
+      todayTotal: Math.round(todayTotal * 100) / 100,
+      kimiTurns,
+      kimiSavings: Math.round(kimiSavings * 100) / 100,
+      byProvider,
+      byModel,
+      daily: recent.map(h => ({ date: h.date, total: h.total })),
+      daysTracked: recent.length
+    });
+  } catch (error) {
+    res.json({ weekTotal: 0, todayTotal: 0, kimiTurns: 0, kimiSavings: 0, byProvider: {}, byModel: {}, daily: [], daysTracked: 0, error: error.message });
+  }
+});
+// ===== END API COSTS =====
+
 app.listen(PORT, () => {
   console.log(`🤖 Kande VendTech Dashboard running at http://localhost:${PORT}`);
 
