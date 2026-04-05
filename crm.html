@@ -7,7 +7,10 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-sales.png">
   <title>Sales CRM — Kande VendTech</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { overflow-x: hidden; width: 100%; }
@@ -625,6 +628,9 @@
     let prospects = [];
     let expandedId = null;
     let currentFilter = 'all';
+    let currentPage = 1;
+    const PAGE_SIZE = 25;
+    let searchTimeout;
     let saveTimers = {};
 
     async function loadData() {
@@ -1021,12 +1027,15 @@
     function openFromTodo(id) {
       // Reset filters to show all
       currentFilter = 'all';
+      currentPage = 1;
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       document.querySelector('[data-filter="all"]').classList.add('active');
       document.getElementById('typeFilter').value = 'all';
       document.getElementById('search').value = '';
       
-      // Expand and scroll to the prospect
+      // Ensure prospect is visible by expanding page far enough
+      const idx = prospects.findIndex(p => p.id === id);
+      if (idx >= 0) { currentPage = Math.max(currentPage, Math.ceil((idx + 1) / PAGE_SIZE)); }
       toggleExpand(id);
     }
 
@@ -1105,7 +1114,11 @@
         return;
       }
 
-      document.getElementById('prospectList').innerHTML = filtered.map(p => `
+      const totalCount = filtered.length;
+      const paged = filtered.slice(0, currentPage * PAGE_SIZE);
+      const hasMore = paged.length < totalCount;
+
+      document.getElementById('prospectList').innerHTML = paged.map(p => `
         <div class="prospect-card ${p.priority} ${p.status === 'closed' ? 'stale' : ''} ${p.status === 'opening_soon' ? 'opening-soon' : ''} ${expandedId === p.id ? 'expanded' : ''}" id="card-${p.id}">
           <div class="prospect-summary" onclick="toggleExpand(${p.id})">
             <div class="prospect-header">
@@ -1148,7 +1161,14 @@
           </div>
           ${expandedId === p.id ? renderDetail(p) : ''}
         </div>
-      `).join('');
+      `).join('') + (hasMore ? `
+        <div style="text-align:center;padding:20px;">
+          <button onclick="currentPage++; renderProspects();" style="padding:12px 32px;border-radius:8px;font-size:0.9rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--text);transition:all 0.15s;">
+            Load More
+          </button>
+          <div style="margin-top:8px;font-size:0.8rem;color:var(--muted);">Showing ${paged.length} of ${totalCount}</div>
+        </div>` : `
+        <div style="text-align:center;padding:12px;font-size:0.8rem;color:var(--muted);">Showing all ${totalCount} prospects</div>`);
     }
 
     const AUTOMATED_TYPES = ['status-change','status_change','pipeline_move','campaign_started','campaign_step'];
@@ -1741,11 +1761,15 @@
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         currentFilter = btn.dataset.filter;
+        currentPage = 1;
         renderProspects();
       });
     });
-    document.getElementById('search').addEventListener('input', renderProspects);
-    document.getElementById('typeFilter').addEventListener('change', () => { renderProspects(); geocodeAndPlot(); });
+    document.getElementById('search').addEventListener('input', () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => { currentPage = 1; renderProspects(); }, 300);
+    });
+    document.getElementById('typeFilter').addEventListener('change', () => { currentPage = 1; renderProspects(); geocodeAndPlot(); });
 
     // Add new prospect
     async function syncToPipeline() {
@@ -1930,7 +1954,7 @@
       maxZoom: 18
     }).addTo(map);
 
-    const markers = L.layerGroup().addTo(map);
+    const markers = L.markerClusterGroup({ maxClusterRadius: 50, spiderfyOnMaxZoom: true, showCoverageOnHover: false }).addTo(map);
     const markerColors = { hot: '#e53e3e', intalks: '#8b5cf6', warm: '#eab308', signed: '#ffffff', new: '#3182ce', closed: '#a0aec0', popIn: '#38a169', inRoute: '#22c55e' };
     startLocationTracking();
     let routeLayer = null;
