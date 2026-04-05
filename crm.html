@@ -7,10 +7,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-sales.png">
   <title>Sales CRM — Kande VendTech</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { overflow-x: hidden; width: 100%; }
@@ -1948,13 +1945,14 @@
     }
 
     // Mini Map
-    const map = L.map('miniMap').setView([36.10, -115.18], 11);
+    const mapRenderer = L.canvas({ padding: 0.5 });
+    const map = L.map('miniMap', { preferCanvas: true }).setView([36.10, -115.18], 11);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap',
       maxZoom: 18
     }).addTo(map);
 
-    const markers = L.markerClusterGroup({ maxClusterRadius: 50, spiderfyOnMaxZoom: true, showCoverageOnHover: false }).addTo(map);
+    const markers = L.layerGroup().addTo(map);
     const markerColors = { hot: '#e53e3e', intalks: '#8b5cf6', warm: '#eab308', signed: '#ffffff', new: '#3182ce', closed: '#a0aec0', popIn: '#38a169', inRoute: '#22c55e' };
     startLocationTracking();
     let routeLayer = null;
@@ -2338,32 +2336,36 @@
     function addMarker(p) {
       const color = getMarkerColor(p);
       const inRoute = isInRoute(p.id);
-      const hasPopIn = p.next_action && p.next_action.toLowerCase().includes('pop in');
-      const borderColor = inRoute ? '#fff' : (p.status === 'signed' ? '#38a169' : '#fff');
-      const glow = inRoute ? 'box-shadow:0 0 8px 2px #22c55e;' : 'box-shadow:0 2px 4px rgba(0,0,0,0.3);';
-      const icon = L.divIcon({
-        className: '',
-        html: `<div style="width:20px;height:20px;border-radius:50%;background:${color};border:3px solid ${borderColor};${glow}"></div>`,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
+      const m = L.circleMarker([p.lat, p.lng], {
+        renderer: mapRenderer,
+        radius: inRoute ? 10 : 8,
+        fillColor: color,
+        color: inRoute ? '#fff' : (p.status === 'signed' ? '#38a169' : '#fff'),
+        weight: inRoute ? 3 : 2,
+        opacity: 1,
+        fillOpacity: 0.9
+      }).addTo(markers);
+      // Lazy popup — only generate HTML when clicked
+      m.on('click', function() {
+        const ir = isInRoute(p.id);
+        const hasPopIn = p.next_action && p.next_action.toLowerCase().includes('pop in');
+        const routeBtn = ir 
+          ? `<button onclick="event.preventDefault();toggleRouteFromMap(${p.id});" style="padding:4px 10px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;font-size:11px;cursor:pointer;">✓ In Route</button>`
+          : `<button onclick="event.preventDefault();toggleRouteFromMap(${p.id});" style="padding:4px 10px;background:#dcfce7;color:#16a34a;border:1px solid #86efac;border-radius:6px;font-size:11px;cursor:pointer;">🗺️ Add to Route</button>`;
+        const popInBtn = hasPopIn
+          ? `<span style="padding:4px 10px;background:#fef3c7;color:#d97706;border:1px solid #fcd34d;border-radius:6px;font-size:11px;">🚶 Pop In Set</span>`
+          : `<button onclick="event.preventDefault();setPopIn(${p.id});" style="padding:4px 10px;background:#f59e0b;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;">🚶 Pop In Needed</button>`;
+        m.bindPopup(`
+          <strong style="font-size:14px;">${p.name}</strong><br>
+          <span style="color:#3182ce;font-size:12px;">${p.property_type || ''}</span><br>
+          <span style="color:#718096;font-size:12px;">📍 ${p.address || ''}</span><br>
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+            <a href="#" onclick="event.preventDefault();openFromTodo(${p.id});return false;" style="padding:4px 10px;background:#3182ce;color:#fff;border-radius:6px;font-size:11px;text-decoration:none;">View Details</a>
+            ${routeBtn}
+            ${popInBtn}
+          </div>
+        `).openPopup();
       });
-      const m = L.marker([p.lat, p.lng], { icon }).addTo(markers);
-      const routeBtn = inRoute 
-        ? `<button onclick="event.preventDefault();toggleRouteFromMap(${p.id});" style="padding:4px 10px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;font-size:11px;cursor:pointer;">✓ In Route</button>`
-        : `<button onclick="event.preventDefault();toggleRouteFromMap(${p.id});" style="padding:4px 10px;background:#dcfce7;color:#16a34a;border:1px solid #86efac;border-radius:6px;font-size:11px;cursor:pointer;">🗺️ Add to Route</button>`;
-      const popInBtn = hasPopIn
-        ? `<span style="padding:4px 10px;background:#fef3c7;color:#d97706;border:1px solid #fcd34d;border-radius:6px;font-size:11px;">🚶 Pop In Set</span>`
-        : `<button onclick="event.preventDefault();setPopIn(${p.id});" style="padding:4px 10px;background:#f59e0b;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;">🚶 Pop In Needed</button>`;
-      m.bindPopup(`
-        <strong style="font-size:14px;">${p.name}</strong><br>
-        <span style="color:#3182ce;font-size:12px;">${p.property_type || ''}</span><br>
-        <span style="color:#718096;font-size:12px;">📍 ${p.address || ''}</span><br>
-        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
-          <a href="#" onclick="event.preventDefault();openFromTodo(${p.id});return false;" style="padding:4px 10px;background:#3182ce;color:#fff;border-radius:6px;font-size:11px;text-decoration:none;">View Details</a>
-          ${routeBtn}
-          ${popInBtn}
-        </div>
-      `);
     }
 
     function toggleRouteFromMap(id) {
