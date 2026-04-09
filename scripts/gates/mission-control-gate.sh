@@ -1,4 +1,5 @@
 #!/bin/bash
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 # Gate + Execute: mission-control-sync
 # Does the full job in bash — no LLM needed unless it fails
 

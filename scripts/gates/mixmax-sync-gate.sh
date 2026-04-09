@@ -1,4 +1,5 @@
 #!/bin/bash
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 # Gate + Execute: mixmax-tracking-sync
 # This does the FULL job in bash — no LLM needed
 # Runs the curl, checks for hot leads/new replies, outputs only if notable

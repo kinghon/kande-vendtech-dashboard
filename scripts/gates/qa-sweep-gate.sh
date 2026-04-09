@@ -1,4 +1,5 @@
 #!/bin/bash
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 # Gate + Execute: vendtech-qa-sweep
 # Curls all pages, only escalates to LLM if something is broken
 

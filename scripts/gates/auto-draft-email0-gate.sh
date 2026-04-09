@@ -1,4 +1,5 @@
 #!/bin/bash
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 # Gate + Execute: auto-draft-email0
 # Runs the Python script directly — it already has its own "no work" detection
 # Only escalate to LLM if drafts were actually created

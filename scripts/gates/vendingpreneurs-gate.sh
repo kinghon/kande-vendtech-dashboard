@@ -1,4 +1,5 @@
 #!/bin/bash
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 # Gate: vendingpreneurs YouTube check
 # Only wake LLM if there are new videos
 

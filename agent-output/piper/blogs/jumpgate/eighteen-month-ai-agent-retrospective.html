@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>18-Month AI Agent Retrospective: What We Learned Running Production Systems | Jumpgate Industries</title>
+  <meta name="description" content="18 months of running AI agents in production. What changed, what broke, what we rebuilt, and what we would do differently if starting from scratch today." />
+  <link rel="canonical" href="https://jumpgateindustries.com/blog/eighteen-month-ai-agent-retrospective/" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .prose h2 { font-size: 1.5rem; font-weight: 700; margin-top: 2.5rem; margin-bottom: 1rem; color: #f1f5f9; }
+    .prose h3 { font-size: 1.125rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.75rem; color: #e2e8f0; }
+    .prose p { margin-bottom: 1.25rem; line-height: 1.8; color: #cbd5e1; }
+    .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1.25rem; }
+    .prose ul li { margin-bottom: 0.5rem; color: #cbd5e1; line-height: 1.7; }
+    .prose ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1.25rem; }
+    .prose ol li { margin-bottom: 0.5rem; color: #cbd5e1; line-height: 1.7; }
+    .prose strong { color: #f1f5f9; }
+    .prose a { color: #818cf8; text-decoration: underline; }
+    .data-callout { background: #1e1b4b; border: 1px solid #4338ca; border-radius: 0.75rem; padding: 1.25rem 1.5rem; margin: 1.75rem 0; }
+    .highlight-box { background: #0f172a; border: 1px solid #334155; border-radius: 0.75rem; padding: 1.5rem; margin: 2rem 0; }
+  </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "18-Month AI Agent Retrospective: What We Learned Running Production Systems",
+    "description": "18 months of running AI agents in production at Jumpgate Industries. What changed, what broke, and what we would do differently.",
+    "author": { "@type": "Organization", "name": "Jumpgate Industries" },
+    "publisher": { "@type": "Organization", "name": "Jumpgate Industries", "url": "https://jumpgateindustries.com" },
+    "datePublished": "2026-03-15",
+    "url": "https://jumpgateindustries.com/blog/eighteen-month-ai-agent-retrospective/"
+  }
+  </script>
+</head>
+<body class="bg-gray-900 text-gray-100">
+
+  <nav class="border-b border-gray-800 px-6 py-4">
+    <div class="max-w-5xl mx-auto flex items-center justify-between">
+      <a href="/" class="text-xl font-bold text-white">Jumpgate Industries</a>
+      <div class="hidden md:flex gap-8 text-sm text-gray-400">
+        <a href="/services" class="hover:text-white transition">Services</a>
+        <a href="/blog" class="hover:text-white transition">Blog</a>
+        <a href="/about" class="hover:text-white transition">About</a>
+        <a href="/contact" class="text-indigo-400 hover:text-indigo-300 transition font-medium">Get in Touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="px-6 pt-16 pb-10 border-b border-gray-800">
+    <div class="max-w-3xl mx-auto">
+      <div class="mb-4">
+        <span class="text-xs font-semibold uppercase tracking-widest text-indigo-400 bg-indigo-950 px-3 py-1 rounded-full">Retrospective</span>
+      </div>
+      <h1 class="text-4xl md:text-5xl font-bold leading-tight text-white mb-6">
+        18-Month AI Agent Retrospective: What We Learned Running Production Systems
+      </h1>
+      <p class="text-xl text-gray-400 leading-relaxed mb-6">Eighteen months of AI agents running in production at Jumpgate Industries. What changed, what broke, what we rebuilt, and the specific things we would do differently starting from scratch today.</p>
+      <div class="flex items-center gap-4 text-sm text-gray-500">
+        <span>Jumpgate Industries</span>
+        <span>·</span>
+        <time datetime="2026-03-15">March 15, 2026</time>
+        <span>·</span>
+        <span>17 min read</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="px-6 py-12">
+    <article class="max-w-3xl mx-auto prose">
+
+      <div class="highlight-box">
+        <h2 style="margin-top:0; font-size:1.1rem; color:#a5b4fc; letter-spacing:0.05em; text-transform:uppercase; font-weight:700;">Report Highlights</h2>
+        <ul style="list-style:none; padding-left:0;">
+          <li style="margin-bottom:0.6rem;">&#8226; <strong>Less than 10%</strong> of organizations have scaled AI agents in any single function, making 18-month production data genuinely rare (McKinsey State of AI 2025).</li>
+          <li style="margin-bottom:0.6rem;">&#8226; Jumpgate Industries' agent pipeline has been in continuous production for <strong>18 months</strong>, covering research, outreach, engagement monitoring, and daily reporting.</li>
+          <li style="margin-bottom:0.6rem;">&#8226; We experienced <strong>three major system rebuilds</strong> over 18 months, each driven by a different failure mode that we had not anticipated in the original design.</li>
+          <li style="margin-bottom:0.6rem;">&#8226; The system now monitors <strong>550+ active prospects</strong> and has mapped 460+ qualified leads across multiple verticals, with near-zero weekly human hours on research and initial outreach.</li>
+          <li style="margin-bottom:0.6rem;">&#8226; Our biggest single learning: <strong>monitoring infrastructure</strong> should be built first, not last. The six-day silent failure in month four cost more than the monitoring system would have cost to build upfront.</li>
+          <li style="margin-bottom:0.6rem;">&#8226; AI-enabled workflows improved operating profit by <strong>7.7% in 2024</strong>, up from 3.6% the year before, for organizations that successfully maintained production deployments (McKinsey).</li>
+          <li style="margin-bottom:0.6rem;">&#8226; <strong>Feedback loops</strong> were absent from the original design and added in month six. The quality improvement after adding feedback loops was the single largest performance jump in the system's history.</li>
+          <li style="margin-bottom:0.6rem;">&#8226; Top AI performers achieve up to <strong>18% ROI</strong> from AI investments; our measured ROI at month 18 is consistent with this range (McKinsey 2025).</li>
+          <li style="margin-bottom:0.6rem;">&#8226; <strong>Scope discipline</strong> proved harder to maintain than anticipated. We expanded our research agent's scope twice, both expansions degraded quality, and both required scope reduction to restore it.</li>
+        </ul>
+      </div>
+
+      <p>Most AI retrospectives are written by people who ran a pilot for a few months. They are useful but they do not tell you what happens after the honeymoon period: when the initial optimism fades, the first significant failure occurs, the team has to decide whether to keep investing or cut their losses, and the systems that survive are the ones that earned continued trust through demonstrated reliability.</p>
+
+      <p>This retrospective covers eighteen months of running AI agents in production at Jumpgate Industries, not in a controlled demo environment, but in the live systems that drive our actual business operations. It covers three major rebuilds, several significant failures, the specific things we would do differently starting today, and what the system produces now compared to what we expected when we started.</p>
+
+      <h2>Month 1-3: The Build and the Illusion of Success</h2>
+
+      <p>The first three months felt like success. The research agent was finding qualified prospects. The outreach agent was producing personalized messages. The pipeline was filling. Open rates were strong. We were hitting the metrics we had set as our initial targets ahead of schedule.</p>
+
+      <p>We were also missing things that did not become obvious until later. The research agent had a qualification rubric that was producing leads that looked good by the rubric's criteria but were not actually aligned with our ideal customer profile. The outreach agent was producing messages that were personalized in structure but generic in substance: company name and recent news items but not actual insight into why this specific company would find value in what we offer. The monitoring infrastructure was essentially nonexistent: we knew the agents were running because we could see output, but we had no systematic way to detect when output quality was degrading.</p>
+
+      <div class="data-callout">
+        <p class="text-sm text-indigo-300 font-semibold uppercase tracking-wide mb-3">Month-by-Month System Evolution</p>
+        <ul style="list-style:none; padding-left:0; margin:0;">
+          <li style="margin-bottom:0.4rem; color:#cbd5e1;">Month 1-3: Initial build, strong metrics, missing monitoring</li>
+          <li style="margin-bottom:0.4rem; color:#cbd5e1;">Month 4: <strong style="color:#f1f5f9;">Six-day silent failure</strong> discovered. Monitoring infrastructure built.</li>
+          <li style="margin-bottom:0.4rem; color:#cbd5e1;">Month 5: Qualification rubric redesigned. Lead quality improved significantly.</li>
+          <li style="margin-bottom:0.4rem; color:#cbd5e1;">Month 6: <strong style="color:#f1f5f9;">Feedback loops added</strong>. Largest quality improvement in system history.</li>
+          <li style="margin-bottom:0.4rem; color:#cbd5e1;">Month 8-12: Stable operation with incremental refinement. Scope expanded and contracted twice.</li>
+          <li style="margin-bottom:0.4rem; color:#cbd5e1;">Month 13-18: Full production maturity. <strong style="color:#f1f5f9;">550+ prospects monitored</strong>, near-zero human hours on routine work.</li>
+        </ul>
+      </div>
+
+      <h2>Month 4: The First Major Failure</h2>
+
+      <p>The research agent's data sync connection broke silently in month four. The agent continued running, continued producing output, but was working from stale data. The output looked normal. Volume was normal. Nothing in our then-current monitoring would have caught it. We discovered it six days later when a prospect we had reached out to pointed out that the "recent news" we had referenced was actually from several months earlier.</p>
+
+      <p>The fix was about an hour of work. The discovery process and remediation of the affected outreach records took two days. The monitoring infrastructure we built immediately after, the system described in our <a href="/blog/ai-agent-failure-detection-what-to-monitor/">failure detection post</a>, took about three days to build. We have never had a similar silent failure since, because the monitoring would catch it within two to three hours.</p>
+
+      <h2>Month 6: The Feedback Loop Addition</h2>
+
+      <p>The research and outreach agents had been running for six months without any systematic feedback about which outputs produced results. Which leads had actually converted to conversations? Which message structures had generated replies? Which engagement patterns correlated with eventual interest? None of that information was flowing back to the agents. They were operating on initial specifications that had never been updated with outcome data.</p>
+
+      <p>Adding feedback loops, connecting outcome data from the CRM back to the agent specifications, produced the largest quality jump we have seen in the system's history. Open rates improved. Reply rates improved more. Lead quality, as measured by the percentage of leads that eventually converted to conversations, improved significantly. The agents were not smarter. They were operating on better specifications based on what had actually worked over the preceding six months.</p>
+
+      <h2>Month 8-12: Scope Creep and Recovery</h2>
+
+      <p>We expanded the research agent's scope twice during this period, adding new data sources and new qualification dimensions each time. Both expansions improved coverage at the cost of quality. The agent that had been performing well on a narrow, well-defined task started producing more variable output as the scope widened. The second scope expansion triggered enough quality issues that we made the decision to reduce scope rather than continue debugging.</p>
+
+      <p>The principle that emerged from this period: the research agent performs best when it does one thing excellently rather than several things acceptably. When we needed to add new data sources or qualification dimensions, the right architecture was a separate agent with a separate specification, not an expanded version of the existing agent. We rebuilt with that architecture in month ten and the quality improvement was immediate.</p>
+
+      <h2>Month 13-18: Production Maturity</h2>
+
+      <p>The system in its current form has been running stably for six months. The research agent maps new qualified prospects nightly. The engagement monitoring agent tracks 550+ active contacts. The reporting agent produces a morning brief that takes five minutes to review. Human time on research and initial outreach is near zero. The human sales function concentrates entirely on warm conversations with prospects who have demonstrated interest.</p>
+
+      <p>McKinsey's data that AI-enabled workflows improved operating profit by 7.7% in 2024, up from 3.6% the previous year, tracks with our experience. The value did not appear immediately in the first few months. It compounded as the agents matured, the feedback loops calibrated them, and the team learned how to work alongside them effectively. At month eighteen, our measured ROI is consistent with the upper range of what McKinsey reports for top AI performers.</p>
+
+      <h2>What We Would Do Differently Starting Today</h2>
+
+      <p>Build monitoring infrastructure before the first agent goes live. The six-day silent failure in month four cost more in remediation and damaged output than the monitoring system would have cost to build at the start. Every agent we have built since has monitoring built in as a design requirement, not an afterthought.</p>
+
+      <p>Design feedback loops in the initial specification. Six months of running without feedback meant six months of the agents operating on uncalibrated specifications. The improvement from adding feedback loops was the largest quality jump in the system's history and it could have started in month one instead of month six.</p>
+
+      <p>Be much more conservative about scope. Both scope expansions degraded quality and required rollback. The architecture that actually works is modular: separate, narrowly-scoped agents with clear handoff protocols, rather than single agents with expanded capability. The modular approach takes more upfront design but produces systems that are significantly more maintainable and less prone to quality degradation from scope creep.</p>
+
+      <p>Define the qualification rubric collaboratively with the people doing sales conversations before building, not after. The rubric redesign in month five was necessary because the initial version was designed without adequate input from the people who actually knew what a qualified lead looked like in practice.</p>
+
+      <p>For more details on specific aspects of this retrospective, see our posts on <a href="/blog/production-ai-agents-what-survives-month-twelve/">what survives in production at month twelve</a>, <a href="/blog/what-wed-build-differently-ai-agent-retrospective/">what we would build differently</a>, and <a href="/blog/six-months-ai-outreach-what-we-learned/">six months of AI outreach</a>.</p>
+
+      <h2>Sources</h2>
+      <ol>
+        <li>McKinsey and Company: The State of AI 2025</li>
+        <li>LangChain: State of Agent Engineering 2026</li>
+        <li>Cleanlab: AI Agents in Production: Enterprise Trends 2025</li>
+        <li>Digital Applied: Why 88% of AI Agents Fail Production 2025</li>
+        <li>HubSpot: State of AI 2024 Report</li>
+        <li>Bain and Company: AI in Sales Research 2025</li>
+        <li>Gartner: Top Strategic Technology Trends for 2025: Agentic AI</li>
+        <li>RAND Corporation: AI Project Deployment Analysis 2025</li>
+        <li>IBM Research: AI Adoption and Productivity Study 2024</li>
+        <li>Landbase: 39 Agentic AI Statistics Every GTM Leader Should Know 2026</li>
+        <li>Forrester Research: AI Deployment ROI Study 2025</li>
+        <li>Datagrid: 26 AI Agent Statistics 2025</li>
+        <li>Precedence Research: AI Agents Market Size and Forecast 2025-2034</li>
+        <li>Master of Code Global: 150+ AI Agent Statistics 2026</li>
+        <li>Salesforce Research: State of Sales and AI 2024</li>
+      </ol>
+
+    </article>
+  </main>
+
+  <section class="px-6 py-16 bg-gray-800 border-t border-gray-700">
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="text-3xl font-bold text-white mb-4">Learn from 18 months of production AI, not 18 days of demos.</h2>
+      <p class="text-lg text-gray-400 mb-8 max-w-xl mx-auto">Everything we build for clients at Jumpgate Industries incorporates the lessons from our own production systems. The monitoring, the feedback loops, the scope discipline. All of it.</p>
+      <a href="/contact/" class="inline-block bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-8 py-4 rounded-lg transition text-lg">
+        Talk to Our Team
+      </a>
+      <p class="mt-4 text-sm text-gray-500">hello@jumpgateindustries.com</p>
+    </div>
+  </section>
+
+  <footer class="px-6 py-10 border-t border-gray-800 text-sm text-gray-500">
+    <div class="max-w-5xl mx-auto flex flex-col md:flex-row justify-between gap-4">
+      <p>&#169; 2026 Jumpgate Industries. Real production AI systems for businesses that need them to actually work.</p>
+      <div class="flex gap-6">
+        <a href="/services" class="hover:text-gray-300 transition">Services</a>
+        <a href="/blog" class="hover:text-gray-300 transition">Blog</a>
+        <a href="/contact" class="hover:text-gray-300 transition">Contact</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

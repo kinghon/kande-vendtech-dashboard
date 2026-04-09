@@ -1,4 +1,5 @@
 #!/bin/bash
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 # Gate: pb-gmail-draft-sync
 # Check if ANY inbox emails have approved=true before spinning up Sonnet
 # Exit 0 (with output) = work to do, Exit 0 (no output) = skip

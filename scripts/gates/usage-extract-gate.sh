@@ -1,4 +1,5 @@
 #!/bin/bash
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 # Gate + Execute: usage-data-extract
 # Runs the script directly — no LLM needed unless it fails
 

@@ -6346,6 +6346,54 @@ app.get('/api/briefing', (req, res) => {
   metrics.reopenedCount = reopenedThisWeek.length;
   metrics.callTodayCount = reopenedThisWeek.filter(r => r.call_today).length;
 
+  // 6. Hot Lead Priority — dynamic ranking of top prospects to focus on
+  const hotLeadPriority = [];
+  const statusWeight = { contract_stage: 50, negotiating: 40, proposal_sent: 30, contacted: 15, active: 10, new: 5 };
+  const priorityWeight = { hot: 40, high: 25, normal: 10, low: 0 };
+  allProspects.forEach(p => {
+    if (['closed', 'stale', 'lost', 'not_interested'].includes(p.status)) return;
+    let score = 0;
+    score += statusWeight[p.status] || 5;
+    score += priorityWeight[p.priority] || 10;
+    // Unit count bonus (bigger deals)
+    const units = parseInt(p.units) || 0;
+    if (units > 100) score += 20;
+    else if (units > 20) score += 10;
+    else if (units > 0) score += 5;
+    // Recent activity bonus
+    if (p.last_activity_date) {
+      const daysSince = (now - new Date(p.last_activity_date)) / 86400000;
+      if (daysSince < 3) score += 25;
+      else if (daysSince < 7) score += 15;
+      else if (daysSince < 14) score += 5;
+    }
+    // Email engagement bonus
+    const reopened = reopenedThisWeek.find(r => r.prospect_id === p.id);
+    if (reopened) {
+      score += reopened.call_today ? 30 : 15;
+      score += Math.min(reopened.total_opens * 3, 20);
+    }
+    // Google rating bonus for high-traffic locations
+    if (p.google_rating >= 4 && p.google_review_count > 100) score += 10;
+    hotLeadPriority.push({
+      prospect_id: p.id,
+      name: p.name,
+      status: p.status,
+      priority: p.priority,
+      units: units,
+      property_type: p.property_type || 'Unknown',
+      score,
+      last_activity: p.last_activity ? p.last_activity.slice(0, 80) : null,
+      last_activity_date: p.last_activity_date || null,
+      email_opens: reopened ? reopened.total_opens : 0,
+      call_today: reopened ? reopened.call_today : false,
+      kurtis_notes: p.kurtis_notes || null,
+      address: p.address || null
+    });
+  });
+  hotLeadPriority.sort((a, b) => b.score - a.score);
+  const topHotLeads = hotLeadPriority.slice(0, 10);
+
   res.json({
     period,
     generatedAt: now.toISOString(),
@@ -6353,6 +6401,7 @@ app.get('/api/briefing', (req, res) => {
     stageChanges,
     followUps,
     reopenedThisWeek,
+    hotLeadPriority: topHotLeads,
     metrics
   });
 });

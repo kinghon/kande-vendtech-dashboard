@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>We Built an Agentic Mesh: Architecture Notes from 18 Months of Production | Jumpgate Industries</title>
+  <meta name="description" content="What an agentic mesh looks like in production: four coordinated agents sharing a central data layer, running 24/7. Architecture notes and lessons from 18 months." />
+  <link rel="canonical" href="https://jumpgateindustries.com/blog/we-built-an-agentic-mesh/" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .prose h2 { font-size: 1.5rem; font-weight: 700; margin-top: 2.5rem; margin-bottom: 1rem; color: #f1f5f9; }
+    .prose h3 { font-size: 1.125rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.75rem; color: #e2e8f0; }
+    .prose p { margin-bottom: 1.25rem; line-height: 1.8; color: #cbd5e1; }
+    .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1.25rem; }
+    .prose ul li { margin-bottom: 0.5rem; color: #cbd5e1; line-height: 1.7; }
+    .prose ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1.25rem; }
+    .prose ol li { margin-bottom: 0.5rem; color: #cbd5e1; line-height: 1.7; }
+    .prose strong { color: #f1f5f9; }
+    .prose a { color: #818cf8; text-decoration: underline; }
+    .data-callout { background: #1e1b4b; border: 1px solid #4338ca; border-radius: 0.75rem; padding: 1.25rem 1.5rem; margin: 1.75rem 0; }
+    .highlight-box { background: #0f172a; border: 1px solid #334155; border-radius: 0.75rem; padding: 1.5rem; margin: 2rem 0; }
+  </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "We Built an Agentic Mesh: Architecture Notes from 18 Months of Production",
+    "description": "What an agentic mesh looks like in production: four coordinated agents sharing a central data layer, running 24/7.",
+    "author": { "@type": "Organization", "name": "Jumpgate Industries" },
+    "publisher": { "@type": "Organization", "name": "Jumpgate Industries", "url": "https://jumpgateindustries.com" },
+    "datePublished": "2026-03-12",
+    "url": "https://jumpgateindustries.com/blog/we-built-an-agentic-mesh/"
+  }
+  </script>
+</head>
+<body class="bg-gray-900 text-gray-100">
+
+  <nav class="border-b border-gray-800 px-6 py-4">
+    <div class="max-w-5xl mx-auto flex items-center justify-between">
+      <a href="/" class="text-xl font-bold text-white">Jumpgate Industries</a>
+      <div class="hidden md:flex gap-8 text-sm text-gray-400">
+        <a href="/services" class="hover:text-white transition">Services</a>
+        <a href="/blog" class="hover:text-white transition">Blog</a>
+        <a href="/about" class="hover:text-white transition">About</a>
+        <a href="/contact" class="text-indigo-400 hover:text-indigo-300 transition font-medium">Get in Touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="px-6 pt-16 pb-10 border-b border-gray-800">
+    <div class="max-w-3xl mx-auto">
+      <div class="mb-4">
+        <span class="text-xs font-semibold uppercase tracking-widest text-indigo-400 bg-indigo-950 px-3 py-1 rounded-full">AI Architecture</span>
+      </div>
+      <h1 class="text-4xl md:text-5xl font-bold leading-tight text-white mb-6">
+        We Built an Agentic Mesh: Architecture Notes from 18 Months of Production
+      </h1>
+      <p class="text-xl text-gray-400 leading-relaxed mb-6">Four coordinated AI agents sharing a central data layer, running 24/7, monitoring 550+ prospects. What the architecture looks like, how it has evolved, and what we learned building it.</p>
+      <div class="flex items-center gap-4 text-sm text-gray-500">
+        <span>Jumpgate Industries</span>
+        <span>·</span>
+        <time datetime="2026-03-12">March 12, 2026</time>
+        <span>·</span>
+        <span>16 min read</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="px-6 py-12">
+    <article class="max-w-3xl mx-auto prose">
+
+      <div class="highlight-box">
+        <h2 style="margin-top:0; font-size:1.1rem; color:#a5b4fc; letter-spacing:0.05em; text-transform:uppercase; font-weight:700;">Report Highlights</h2>
+        <ul style="list-style:none; padding-left:0;">
+          <li style="margin-bottom:0.6rem;">&#8226; Our agentic mesh has been running continuously for <strong>18 months</strong> across four coordinated agents covering research, outreach, engagement monitoring, and daily reporting.</li>
+          <li style="margin-bottom:0.6rem;">&#8226; The system monitors <strong>550+ active prospects</strong> and has mapped 460+ qualified leads with near-zero human hours on research and initial outreach.</li>
+          <li style="margin-bottom:0.6rem;">&#8226; The mesh architecture uses a <strong>single centralized state store</strong> that all agents read from and write to, eliminating the distributed state coordination failures common in multi-agent systems.</li>
+          <li style="margin-bottom:0.6rem;">&#8226; We underwent <strong>three major architectural rebuilds</strong> before reaching the current stable configuration, each driven by a different class of orchestration failure.</li>
+          <li style="margin-bottom:0.6rem;">&#8226; <strong>61%</strong> of multi-agent failures originate in handoff protocols, not individual agent logic, a pattern our rebuilds confirmed directly (LangChain 2026).</li>
+          <li style="margin-bottom:0.6rem;">&#8226; Agentic mesh architecture producing <strong>76% open rates and mid-teen reply rates</strong> in outreach, versus industry benchmarks of 20-25% and 2-3%.</li>
+          <li style="margin-bottom:0.6rem;">&#8226; The mesh runs <strong>24 hours a day</strong>, capturing the overnight window that gives Las Vegas-based businesses operational advantage in a 24/7 market.</li>
+          <li style="margin-bottom:0.6rem;">&#8226; <strong>Modular agent design</strong> means individual agents can be updated, rebuilt, or replaced without taking the entire mesh offline, a design decision that proved essential during model updates.</li>
+        </ul>
+      </div>
+
+      <p>An agentic mesh is a multi-agent system where multiple AI agents share a common data layer and operate in coordination, each focused on a specific part of a larger workflow. The term captures the key structural characteristic: the agents are not independent systems running in parallel. They form a connected mesh where the outputs of each agent feed the inputs of others, and all of them draw from and contribute to a shared state that represents the current reality of the pipeline.</p>
+
+      <p>Jumpgate Industries has been running an agentic mesh in production for eighteen months. The system covers our full top-of-funnel operation: research, outreach, engagement monitoring, and daily reporting. Four agents, one central data store, running continuously. This post covers the architecture, the evolution, and the specific design decisions that produce stable operation at this level of complexity.</p>
+
+      <h2>The Architecture</h2>
+
+      <h3>The Central Data Layer</h3>
+
+      <p>The foundation of the mesh is a single centralized state store. Every agent reads from it. Every agent writes to it. No agent maintains its own copy of shared data. When the research agent deposits a new lead, that lead is immediately available to the outreach agent and the monitoring agent. When the engagement monitoring agent updates a prospect's score, the reporting agent and the outreach agent see the current score on their next cycle. There is no synchronization step and no distributed state divergence.</p>
+
+      <p>We learned this lesson the hard way in our first architecture, which had each agent maintaining its own records with a synchronization process running between them. The synchronization process failed in ways that were difficult to detect and difficult to debug. After we consolidated to a single state store, the entire category of synchronization failures disappeared.</p>
+
+      <h3>The Four Agents</h3>
+
+      <p>The research agent runs nightly. It scans defined sources for companies matching our qualification criteria, applies the scoring rubric, checks for CRM duplicates, and deposits clean records into the central store. It is the only agent that adds new records to the pipeline.</p>
+
+      <p>The outreach agent runs on a regular cycle. It reads qualified leads from the central store, checks whether each one has received initial contact, composes a message for those that have not, and sends it. It updates the contact record in the central store after each action. The outreach agent does not decide which message to send based on a schedule. It reads the engagement signal data from the monitoring agent and adapts timing and content accordingly.</p>
+
+      <p>The engagement monitoring agent runs continuously in a lightweight polling loop. It monitors email engagement signals for all active prospects, updates engagement scores in real time, and flags high-engagement prospects for priority follow-up. It does not send messages or deposit leads. It only reads signals and writes scores.</p>
+
+      <p>The reporting agent runs every morning before 8am. It reads the current state of the pipeline from the central store and produces a structured brief covering hot prospects, stale threads, pipeline metrics for the past thirty days, and qualified leads waiting for first contact. The brief is delivered to the team's inbox before the workday begins.</p>
+
+      <h3>Handoff Protocols</h3>
+
+      <p>Each handoff between agents is governed by an explicit protocol defined before any agent was built. The protocol specifies the fields involved, the timing constraints, the error behavior, and what happens when the expected input is absent. These protocols are the contracts that make the mesh function reliably, and they are the first thing we check when a pipeline anomaly appears.</p>
+
+      <div class="data-callout">
+        <p class="text-sm text-indigo-300 font-semibold uppercase tracking-wide mb-3">Mesh Performance Statistics (18 Months)</p>
+        <ul style="list-style:none; padding-left:0; margin:0;">
+          <li style="margin-bottom:0.4rem; color:#cbd5e1;">Active prospects monitored: <strong style="color:#f1f5f9;">550+</strong></li>
+          <li style="margin-bottom:0.4rem; color:#cbd5e1;">Qualified leads mapped: <strong style="color:#f1f5f9;">460+</strong></li>
+          <li style="margin-bottom:0.4rem; color:#cbd5e1;">Open rate: <strong style="color:#f1f5f9;">76%</strong> vs. industry 20-25%</li>
+          <li style="margin-bottom:0.4rem; color:#cbd5e1;">Reply rate: <strong style="color:#f1f5f9;">mid-teens %</strong> vs. industry 2-3%</li>
+          <li style="margin-bottom:0.4rem; color:#cbd5e1;">Human hours on research and initial outreach: <strong style="color:#f1f5f9;">near zero</strong></li>
+          <li style="margin-bottom:0.4rem; color:#cbd5e1;">Major architectural rebuilds: <strong style="color:#f1f5f9;">3</strong> (each addressing a different failure class)</li>
+        </ul>
+      </div>
+
+      <h2>What the Three Rebuilds Addressed</h2>
+
+      <p>Version one used distributed state and broke due to synchronization failures. The second build added centralized state but had implicit data contracts, leading to data format failures when any agent's output structure changed. Version three defined explicit handoff contracts before any agent was built and has been stable since.</p>
+
+      <p>The progression confirms the pattern LangChain identified in their 2026 State of Agent Engineering report: 61% of multi-agent failures originate in handoff protocols, not individual agent logic. Our first two rebuilds were both orchestration failures, not agent capability failures. The individual agents were working correctly. The space between them was what broke.</p>
+
+      <p>For more detail on the orchestration problem, see our post on <a href="/blog/the-real-multi-agent-orchestration-problem/">the real multi-agent orchestration problem</a>. For the monitoring layer that keeps the mesh running reliably, see the <a href="/blog/ai-agent-failure-detection-what-to-monitor/">failure detection post</a>.</p>
+
+      <h2>Sources</h2>
+      <ol>
+        <li>LangChain: State of Agent Engineering 2026</li>
+        <li>Datagrid: 26 AI Agent Statistics 2025</li>
+        <li>McKinsey and Company: The State of AI 2025</li>
+        <li>HubSpot: State of AI 2024 Report</li>
+        <li>Cleanlab: AI Agents in Production: Enterprise Trends 2025</li>
+        <li>Gartner: Top Strategic Technology Trends for 2025: Agentic AI</li>
+        <li>Digital Applied: AI Agent Production Deployment Analysis 2025</li>
+        <li>Bain and Company: AI in Sales Research 2025</li>
+        <li>Salesforce Research: State of Sales 2024</li>
+        <li>IBM Research: Multi-Agent Systems and Production Reliability 2024</li>
+        <li>Landbase: 39 Agentic AI Statistics Every GTM Leader Should Know 2026</li>
+        <li>Forrester Research: AI Agent Architecture Study 2025</li>
+        <li>Precedence Research: AI Agents Market Size and Forecast 2025-2034</li>
+        <li>Master of Code Global: 150+ AI Agent Statistics 2026</li>
+        <li>Cirrus Insight: AI in Sales 2025: Statistics and Trends</li>
+      </ol>
+
+    </article>
+  </main>
+
+  <section class="px-6 py-16 bg-gray-800 border-t border-gray-700">
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="text-3xl font-bold text-white mb-4">Build a mesh that actually runs.</h2>
+      <p class="text-lg text-gray-400 mb-8 max-w-xl mx-auto">Jumpgate Industries builds multi-agent systems with the architecture decisions that produce stable operation at scale. The lessons from our own mesh, applied to yours.</p>
+      <a href="/contact/" class="inline-block bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-8 py-4 rounded-lg transition text-lg">
+        Talk to Our Team
+      </a>
+      <p class="mt-4 text-sm text-gray-500">hello@jumpgateindustries.com</p>
+    </div>
+  </section>
+
+  <footer class="px-6 py-10 border-t border-gray-800 text-sm text-gray-500">
+    <div class="max-w-5xl mx-auto flex flex-col md:flex-row justify-between gap-4">
+      <p>&#169; 2026 Jumpgate Industries. Real production AI systems for businesses that need them to actually work.</p>
+      <div class="flex gap-6">
+        <a href="/services" class="hover:text-gray-300 transition">Services</a>
+        <a href="/blog" class="hover:text-gray-300 transition">Blog</a>
+        <a href="/contact" class="hover:text-gray-300 transition">Contact</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

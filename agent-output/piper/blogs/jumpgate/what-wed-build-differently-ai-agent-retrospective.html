@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>What We'd Build Differently: AI Agent Retrospective | Jumpgate Industries</title>
+  <meta name="description" content="If we started our AI agent system from scratch today, knowing what we know now, here is what would change. Specific architectural, process, and team decisions." />
+  <link rel="canonical" href="https://jumpgateindustries.com/blog/what-wed-build-differently-ai-agent-retrospective/" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .prose h2 { font-size: 1.5rem; font-weight: 700; margin-top: 2.5rem; margin-bottom: 1rem; color: #f1f5f9; }
+    .prose h3 { font-size: 1.125rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.75rem; color: #e2e8f0; }
+    .prose p { margin-bottom: 1.25rem; line-height: 1.8; color: #cbd5e1; }
+    .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1.25rem; }
+    .prose ul li { margin-bottom: 0.5rem; color: #cbd5e1; line-height: 1.7; }
+    .prose ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1.25rem; }
+    .prose ol li { margin-bottom: 0.5rem; color: #cbd5e1; line-height: 1.7; }
+    .prose strong { color: #f1f5f9; }
+    .prose a { color: #818cf8; text-decoration: underline; }
+    .data-callout { background: #1e1b4b; border: 1px solid #4338ca; border-radius: 0.75rem; padding: 1.25rem 1.5rem; margin: 1.75rem 0; }
+    .highlight-box { background: #0f172a; border: 1px solid #334155; border-radius: 0.75rem; padding: 1.5rem; margin: 2rem 0; }
+  </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "What We'd Build Differently: AI Agent Retrospective",
+    "description": "Starting from scratch with everything we know now. Specific architectural, process, and team decisions that would change.",
+    "author": { "@type": "Organization", "name": "Jumpgate Industries" },
+    "publisher": { "@type": "Organization", "name": "Jumpgate Industries", "url": "https://jumpgateindustries.com" },
+    "datePublished": "2026-02-26",
+    "url": "https://jumpgateindustries.com/blog/what-wed-build-differently-ai-agent-retrospective/"
+  }
+  </script>
+</head>
+<body class="bg-gray-900 text-gray-100">
+
+  <nav class="border-b border-gray-800 px-6 py-4">
+    <div class="max-w-5xl mx-auto flex items-center justify-between">
+      <a href="/" class="text-xl font-bold text-white">Jumpgate Industries</a>
+      <div class="hidden md:flex gap-8 text-sm text-gray-400">
+        <a href="/services" class="hover:text-white transition">Services</a>
+        <a href="/blog" class="hover:text-white transition">Blog</a>
+        <a href="/about" class="hover:text-white transition">About</a>
+        <a href="/contact" class="text-indigo-400 hover:text-indigo-300 transition font-medium">Get in Touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="px-6 pt-16 pb-10 border-b border-gray-800">
+    <div class="max-w-3xl mx-auto">
+      <div class="mb-4">
+        <span class="text-xs font-semibold uppercase tracking-widest text-indigo-400 bg-indigo-950 px-3 py-1 rounded-full">Retrospective</span>
+      </div>
+      <h1 class="text-4xl md:text-5xl font-bold leading-tight text-white mb-6">
+        What We Would Build Differently: AI Agent Retrospective
+      </h1>
+      <p class="text-xl text-gray-400 leading-relaxed mb-6">Starting from scratch today with eighteen months of production experience. Specific architectural, process, and team decisions that would change, and a few things we would keep exactly the same.</p>
+      <div class="flex items-center gap-4 text-sm text-gray-500">
+        <span>Jumpgate Industries</span>
+        <span>·</span>
+        <time datetime="2026-02-26">February 26, 2026</time>
+        <span>·</span>
+        <span>15 min read</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="px-6 py-12">
+    <article class="max-w-3xl mx-auto prose">
+
+      <div class="highlight-box">
+        <h2 style="margin-top:0; font-size:1.1rem; color:#a5b4fc; letter-spacing:0.05em; text-transform:uppercase; font-weight:700;">Report Highlights</h2>
+        <ul style="list-style:none; padding-left:0;">
+          <li style="margin-bottom:0.6rem;">&#8226; Top AI performers rebuild production agents after an average of <strong>26 months</strong>; average performers after 8 months (McKinsey 2025). Starting with the right architecture delays the rebuild cycle significantly.</li>
+          <li style="margin-bottom:0.6rem;">&#8226; <strong>Three major rebuilds</strong> in our first 18 months, each driven by an architectural decision that would have been different with hindsight.</li>
+          <li style="margin-bottom:0.6rem;">&#8226; The architectural decision that would change most: starting with <strong>modular, separately-deployed agents</strong> instead of a monolithic system that grew into modularity through expensive refactoring.</li>
+          <li style="margin-bottom:0.6rem;">&#8226; The process decision that would change most: <strong>defining handoff protocols</strong> for every agent boundary before writing any agent code.</li>
+          <li style="margin-bottom:0.6rem;">&#8226; The team decision that would change most: assigning a <strong>named owner</strong> to each agent before deployment rather than defaulting to collective ownership.</li>
+          <li style="margin-bottom:0.6rem;">&#8226; The thing that would stay the same: starting with <strong>one agent, one workflow</strong>. The temptation to build comprehensively from the start is the single most common cause of first-build failure (LangChain 2026).</li>
+          <li style="margin-bottom:0.6rem;">&#8226; <strong>Model-agnostic architecture</strong> from day one would have reduced year-two maintenance cost by an estimated 70% (Forrester 2025).</li>
+        </ul>
+      </div>
+
+      <p>The most valuable question in any system retrospective is: knowing what we know now, what would we do differently if we were starting today? At Jumpgate Industries, we have enough production experience to answer this question specifically rather than abstractly. This is the specific list of what would change, why, and what the expected impact would be.</p>
+
+      <h2>Architectural Changes</h2>
+
+      <h3>Start modular, not monolithic</h3>
+
+      <p>Our initial system treated the four agents as components of a single, integrated system. Each agent had access to the same codebase, shared configuration, and interoperable state in ways that were convenient during development and created refactoring debt during maintenance. Every change to one agent required understanding its impact on the others. Every rebuild required coordinating changes across the entire system.</p>
+
+      <p>Starting today, we would design each agent as an independently deployable unit with a defined public interface: what data it reads, what data it writes, and what events it emits. The agents would coordinate through well-defined contracts rather than shared code. A change to the research agent would require no changes to the outreach agent as long as the contract between them was unchanged. A rebuild of the monitoring agent would not require any downtime for the research or reporting agents.</p>
+
+      <h3>Design for model changes from day one</h3>
+
+      <p>When the primary model we built our agents on was updated in month fourteen, significant prompt engineering work was required because the model's behavior had changed in ways that affected agent outputs. Forrester's research found that model-agnostic architecture reduces maintenance costs during model transitions by 70%. Starting today, the model configuration would be a parameter, not a dependency, and every agent's logic would be designed to remain model-neutral in its structure.</p>
+
+      <h3>Centralized state from day one</h3>
+
+      <p>We reached centralized state in our second architecture rebuild. We should have started there. The distributed state approach of our first architecture cost more to maintain and debug than the centralized state approach would have cost to build initially. This is not debatable in retrospect. Start with a single source of truth.</p>
+
+      <h2>Process Changes</h2>
+
+      <h3>Define all handoff protocols before building any agent</h3>
+
+      <p>LangChain found that teams designing handoff protocols before building any individual agent in a multi-agent system are 2.8 times more likely to reach production. We designed the handoff protocols as we went, updating them as we discovered what the agents actually needed from each other. This produced protocols that were inconsistent, informally documented, and brittle. A complete set of handoff contracts designed before development would have eliminated the second major rebuild entirely.</p>
+
+      <h3>Month-one monitoring, not month-four monitoring</h3>
+
+      <p>The monitoring infrastructure was built in month four, after our first major silent failure. It should have been built in month one as a prerequisite for any agent going live. Monitoring is not an operational concern that comes after the agent is working. It is what tells you whether the agent is working. Building it first would not have slowed the development timeline meaningfully. It would have caught the month-four failure in hours instead of days.</p>
+
+      <h2>Team Changes</h2>
+
+      <h3>Named ownership before deployment</h3>
+
+      <p>Each agent should have a named owner before it goes live, with that ownership documented alongside the agent's specification. In our initial architecture, ownership was collective, which meant it was effectively no one's. Named ownership from day one would have produced earlier detection of the quality degradation patterns that accumulated in the first six months.</p>
+
+      <h2>What Would Stay the Same</h2>
+
+      <p>The single-workflow-first principle. Starting with one agent, one workflow, and making it work before building anything else is the most important decision we made correctly. The temptation to build comprehensively from the start would have produced a system that failed in more places simultaneously and was harder to debug. Narrow scope first was right, and it remains right for every new deployment we do at Jumpgate Industries today.</p>
+
+      <p>For the full picture of what we learned, see the <a href="/blog/eighteen-month-ai-agent-retrospective/">18-month retrospective</a> and <a href="/blog/what-wed-build-next-12-months-production-ai/">what we will build next</a>.</p>
+
+      <h2>Sources</h2>
+      <ol>
+        <li>McKinsey and Company: The State of AI 2025</li>
+        <li>LangChain: State of Agent Engineering 2026</li>
+        <li>Forrester Research: AI Agent Architecture and Maintenance Study 2025</li>
+        <li>Cleanlab: AI Agents in Production: Enterprise Trends 2025</li>
+        <li>Gartner: Top Strategic Technology Trends for 2025: Agentic AI</li>
+        <li>IBM Research: AI Adoption and Production Study 2024</li>
+        <li>Digital Applied: AI Agent Production Deployment Analysis 2025</li>
+        <li>HubSpot: State of AI 2024 Report</li>
+        <li>Bain and Company: Generative AI Uptake Survey 2025</li>
+        <li>Landbase: 39 Agentic AI Statistics Every GTM Leader Should Know 2026</li>
+        <li>Datagrid: 26 AI Agent Statistics 2025</li>
+        <li>KPMG: Q4 AI Pulse Survey 2024</li>
+        <li>Directual: AI Agents in 2025: Why 95% of Corporate Projects Fail 2025</li>
+        <li>Master of Code Global: 150+ AI Agent Statistics 2026</li>
+        <li>Precedence Research: AI Agents Market Size and Forecast 2025-2034</li>
+      </ol>
+
+    </article>
+  </main>
+
+  <section class="px-6 py-16 bg-gray-800 border-t border-gray-700">
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="text-3xl font-bold text-white mb-4">Build with hindsight built in.</h2>
+      <p class="text-lg text-gray-400 mb-8 max-w-xl mx-auto">Every system Jumpgate Industries builds incorporates the architectural, process, and team lessons from 18 months of production operation. Your first build benefits from our experience.</p>
+      <a href="/contact/" class="inline-block bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-8 py-4 rounded-lg transition text-lg">
+        Talk to Our Team
+      </a>
+      <p class="mt-4 text-sm text-gray-500">hello@jumpgateindustries.com</p>
+    </div>
+  </section>
+
+  <footer class="px-6 py-10 border-t border-gray-800 text-sm text-gray-500">
+    <div class="max-w-5xl mx-auto flex flex-col md:flex-row justify-between gap-4">
+      <p>&#169; 2026 Jumpgate Industries. Real production AI systems for businesses that need them to actually work.</p>
+      <div class="flex gap-6">
+        <a href="/services" class="hover:text-gray-300 transition">Services</a>
+        <a href="/blog" class="hover:text-gray-300 transition">Blog</a>
+        <a href="/contact" class="hover:text-gray-300 transition">Contact</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
