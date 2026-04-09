@@ -68,6 +68,10 @@
     .status-dot.offline { background: var(--hot); }
     .status-dot.maintenance { background: var(--warn); }
     .status-dot.pending { background: var(--muted); }
+    .status-dot.ordered { background: var(--accent); }
+    .status-dot.in_transit { background: var(--purple); animation: pulse 2s infinite; }
+    .status-dot.received { background: #38b2ac; }
+    .status-dot.installing { background: var(--warn); animation: pulse 2s infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     .machine-card-body { padding: 16px 20px; }
     .machine-location { color: var(--muted); font-size: 0.85rem; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
@@ -273,8 +277,11 @@
           <div class="form-group">
             <label>Model</label>
             <select name="model">
+              <option value="Sandstar VRK">Sandstar VRK (AI Smart Vending)</option>
+              <option value="CVM13">CVM13 (Combo Vending)</option>
+              <option value="Taste GDM26">Taste GDM26 (Glass Door Merchandiser)</option>
+              <option value="Taste Freezer">Taste Freezer</option>
               <option value="SandStar AI Smart Cooler">SandStar AI Smart Cooler</option>
-              <option value="SandStar AI Freezer">SandStar AI Freezer</option>
               <option value="Custom">Other</option>
             </select>
           </div>
@@ -295,12 +302,26 @@
             <option value="">-- No Location Assigned --</option>
           </select>
         </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Purchase Date</label>
+            <input type="date" name="purchase_date">
+          </div>
+          <div class="form-group">
+            <label>Capacity (slots)</label>
+            <input type="number" name="capacity" value="10" min="1" max="100">
+          </div>
+        </div>
         <div class="form-group">
           <label>Status</label>
           <select name="status">
-            <option value="pending_install">Pending Install</option>
+            <option value="ordered">Ordered</option>
+            <option value="in_transit">In Transit</option>
+            <option value="received">Received</option>
+            <option value="installing">Installing</option>
             <option value="active">Active</option>
             <option value="maintenance">Maintenance</option>
+            <option value="offline">Offline</option>
           </select>
         </div>
         <div class="form-actions">
@@ -545,7 +566,8 @@
       grid.innerHTML = machines.map(m => {
         const healthScore = m.performance?.healthScore || 0;
         const healthClass = healthScore >= 70 ? 'good' : healthScore >= 40 ? 'warn' : 'bad';
-        const statusClass = m.status === 'active' ? 'active' : m.status === 'offline' ? 'offline' : m.status === 'maintenance' ? 'maintenance' : 'pending';
+        const statusMap = { active: 'active', offline: 'offline', maintenance: 'maintenance', ordered: 'ordered', in_transit: 'in_transit', received: 'received', installing: 'installing' };
+        const statusClass = statusMap[m.status] || 'pending';
         
         return `
           <div class="machine-card ${selectedMachine?.id === m.id ? 'selected' : ''}" onclick="openMachineDetail(${m.id})">
@@ -553,7 +575,7 @@
               <div class="machine-name">${m.name || m.model || 'Machine #' + m.id}</div>
               <div class="machine-status">
                 <div class="status-dot ${statusClass}"></div>
-                <span style="font-size: 0.8rem; color: var(--muted); text-transform: capitalize;">${m.status || 'pending'}</span>
+                <span style="font-size: 0.8rem; color: var(--muted); text-transform: capitalize;">${(m.status || 'pending').replace(/_/g, ' ')}</span>
               </div>
             </div>
             <div class="machine-card-body">
@@ -659,7 +681,9 @@
           <p style="color: var(--muted); margin-bottom: 8px;">📍 ${m.location?.name || 'No location'} ${m.location?.address ? '— ' + m.location.address : ''}</p>
           <p style="color: var(--muted); font-size: 0.85rem;">
             Model: ${m.model || 'SandStar AI Smart Cooler'} • Serial: ${m.serial_number || 'N/A'}
+            ${m.purchase_date ? '• Purchased: ' + m.purchase_date : ''}
           </p>
+          <p style="margin-top: 6px;"><span style="padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; background: rgba(49,130,206,0.12); color: var(--accent); text-transform: capitalize;">${(m.status || 'ordered').replace(/_/g, ' ')}</span></p>
         </div>
 
         <!-- Quick Stats -->
@@ -873,6 +897,8 @@
         name: form.name.value,
         serial_number: form.serial_number.value || undefined,
         model: form.model.value,
+        purchase_date: form.purchase_date.value || undefined,
+        capacity: parseInt(form.capacity.value) || 10,
         location_id: form.location_id.value ? parseInt(form.location_id.value) : null,
         status: form.status.value,
         config: {
