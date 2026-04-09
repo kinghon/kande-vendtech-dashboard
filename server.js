@@ -23888,77 +23888,176 @@ app.get('/office', (req, res) => {
 });
 
 // API: Live Agent Status for Office View
-app.get('/api/agents/live-status', (req, res) => {
+app.get('/api/agents/live-status', async (req, res) => {
   try {
-    // Enhanced team status with real-time cron job integration
     const teamStatus = db.teamStatus || {};
-    const cronJobs = db.cronJobs || [];
     
-    // Build enhanced agent status with live cron data
-    const agents = {};
+    // P0 FIX: Fetch REAL cron job data as PRIMARY source of truth (not db.cronJobs which is always empty)
+    let cronJobs = [];
+    try {
+      const { exec: execCb } = require('child_process');
+      const util = require('util');
+      const execAsync = util.promisify(execCb);
+      const { stdout } = await execAsync('openclaw cron list --json', { timeout: 8000 });
+      const parsed = JSON.parse(stdout);
+      const now = Date.now();
+      cronJobs = (parsed.jobs || []).map(job => {
+        const lastRunAtMs = job.state?.lastRunAtMs || 0;
+        const consecutiveErrors = job.state?.consecutiveErrors || 0;
+        const lastStatus = job.state?.lastStatus || 'unknown';
+        const minutesAgo = lastRunAtMs ? Math.floor((now - lastRunAtMs) / 60000) : Infinity;
+        const lastStr = lastRunAtMs ? (minutesAgo < 60 ? `${minutesAgo}m ago` : `${Math.floor(minutesAgo/60)}h ago`) : 'never';
+        return {
+          id: job.id,
+          name: job.name || '',
+          status: lastStatus,
+          last: lastStr,
+          lastRunAtMs,
+          minutesAgo,
+          consecutiveErrors,
+          enabled: job.enabled
+        };
+      }).filter(j => j.enabled !== false);
+    } catch (cronErr) {
+      console.error('live-status: Error fetching cron jobs:', cronErr.message);
+    }
     
-    // Core agents with priority display
-    const coreAgents = ['scout', 'relay', 'ralph', 'main', 'claude'];
-    
-    coreAgents.forEach(agent => {
-      const status = teamStatus[agent] || {};
-      const relatedJobs = cronJobs.filter(job => 
-        job.name.toLowerCase().includes(agent) ||
-        job.description?.toLowerCase().includes(agent)
-      );
-      
-      agents[agent] = {
-        name: agent.charAt(0).toUpperCase() + agent.slice(1),
-        role: getAgentRole(agent),
-        emoji: getAgentEmoji(agent),
-        model: status.model || 'anthropic/claude-sonnet-4-20250514',
-        description: getAgentDescription(agent),
-        type: 'core',
-        status: determineAgentStatus(status, relatedJobs),
-        lastRun: status.updatedAt || status.lastRun || null,
-        jobs: relatedJobs.length,
-        currentTask: status.lastActivity || getDefaultTask(agent),
-        statusText: status.statusText || 'Ready for work',
-        workingIndicator: isAgentWorking(status, relatedJobs)
-      };
-    });
-    
-    // Support agents grouped by type
-    const supportAgentTypes = {
-      'vendtech': ['autodraftemail', 'emailfollowup', 'emailsync', 'mixmaxsync', 'proposalfollowup'],
-      'photobooths': ['pbemaildrafter', 'pbgmailsync'],
-      'coordination': ['standup', 'watercooler', 'retro', 'morningbriefing'],
-      'system': ['e2eqa', 'healthwatchdog', 'qasweep', 'sessioncleanup', 'nightlybackup', 'selfupdate', 'goghealthcheck'],
-      'research': ['vendingpreneurs', 'seovt', 'seopb', 'sevenelevenscrape']
+    // Map cron job names → agent keys
+    const cronToAgent = {
+      'scout-morning': 'scout', 'scout-evening': 'scout', 'scout-overnight': 'scout',
+      'relay-morning': 'relay', 'relay-evening': 'relay', 'relay-overnight': 'relay',
+      'ralph-overnight': 'ralph',
+      'auto-draft-email0': 'autodraftemail',
+      'email-followup-drafter': 'emailfollowup',
+      'vendtech-sent-email-sync': 'emailsync',
+      'mixmax-tracking-sync': 'mixmaxsync',
+      'proposal-followup-check': 'proposalfollowup',
+      'pb-email-drafts': 'pbemaildrafter',
+      'pb-gmail-draft-sync': 'pbgmailsync', 'pb-gmail-draft-sync-offhours': 'pbgmailsync',
+      'daily-standup': 'standup',
+      'water-cooler': 'watercooler',
+      'weekly-retro': 'retro',
+      'morning-briefing': 'morningbriefing',
+      'daily-e2e-dashboards': 'e2eqa',
+      'health-watchdog': 'healthwatchdog',
+      'qa-sweep': 'qasweep',
+      'session-cleanup': 'sessioncleanup',
+      'nightly-backup': 'nightlybackup',
+      'self-update': 'selfupdate',
+      'gog-health-check': 'goghealthcheck',
+      'vendingpreneurs-scrape': 'vendingpreneurs',
+      'seo-vendtech': 'seovt',
+      'seo-photobooths': 'seopb',
+      'seven-eleven-scrape': 'sevenelevenscrape'
     };
     
-    Object.entries(supportAgentTypes).forEach(([type, agentList]) => {
-      agentList.forEach(agent => {
-        const status = teamStatus[agent] || {};
-        const relatedJobs = cronJobs.filter(job => 
-          job.name.includes(agent) || agent.includes(job.name.replace(/[-_]/g, ''))
-        );
-        
-        agents[agent] = {
-          name: formatAgentName(agent),
-          role: getAgentRole(agent),
-          emoji: getAgentEmoji(agent),
-          model: status.model || 'anthropic/claude-sonnet-4-20250514',
-          description: getAgentDescription(agent),
-          type: type,
-          status: determineAgentStatus(status, relatedJobs),
-          lastRun: status.updatedAt || status.lastRun || null,
-          jobs: relatedJobs.length,
-          currentTask: status.lastActivity || getDefaultTask(agent),
-          statusText: status.statusText || 'Waiting for next run',
-          workingIndicator: isAgentWorking(status, relatedJobs)
-        };
-      });
+    // Build per-agent cron job arrays
+    const agentCronMap = {};
+    cronJobs.forEach(job => {
+      // Try exact match first, then fuzzy
+      let agentKey = cronToAgent[job.name];
+      if (!agentKey) {
+        // Fuzzy: strip dashes and match
+        const normalized = job.name.replace(/[-_]/g, '').toLowerCase();
+        for (const [cronName, aKey] of Object.entries(cronToAgent)) {
+          if (normalized.includes(aKey) || aKey.includes(normalized)) { agentKey = aKey; break; }
+        }
+      }
+      if (agentKey) {
+        if (!agentCronMap[agentKey]) agentCronMap[agentKey] = [];
+        agentCronMap[agentKey].push(job);
+      }
+    });
+    
+    // Determine status from cron jobs (PRIMARY) + db.teamStatus (FALLBACK for details)
+    function getCronBasedStatus(agentKey) {
+      const jobs = agentCronMap[agentKey] || [];
+      const dbStatus = teamStatus[agentKey] || {};
+      if (jobs.length === 0) {
+        // No cron jobs found — use db.teamStatus if recent
+        if (dbStatus.updatedAt) {
+          const age = Date.now() - new Date(dbStatus.updatedAt).getTime();
+          if (age < 2 * 60 * 60 * 1000) return dbStatus.state === 'error' ? 'error' : 'active';
+        }
+        return 'idle';
+      }
+      // If any job has consecutive errors, show error
+      if (jobs.some(j => j.consecutiveErrors > 0 && j.minutesAgo < 120)) return 'error';
+      // If any job ran within 2 hours and succeeded, show active
+      if (jobs.some(j => j.minutesAgo < 120 && j.status === 'ok')) return 'active';
+      // If ran within 6 hours, show completed
+      if (jobs.some(j => j.minutesAgo < 360 && j.status === 'ok')) return 'completed';
+      return 'idle';
+    }
+    
+    function getCronLastRun(agentKey) {
+      const jobs = agentCronMap[agentKey] || [];
+      if (jobs.length === 0) return 'No cron job';
+      // Find most recent
+      const sorted = [...jobs].sort((a, b) => b.lastRunAtMs - a.lastRunAtMs);
+      return sorted[0].last || 'never';
+    }
+    
+    function getCronErrorInfo(agentKey) {
+      const jobs = agentCronMap[agentKey] || [];
+      const errorJob = jobs.find(j => j.consecutiveErrors > 0);
+      if (errorJob) return `${errorJob.consecutiveErrors} consecutive error(s) on ${errorJob.name}`;
+      return null;
+    }
+    
+    // Build enhanced agent status
+    const agents = {};
+    
+    // All agent definitions
+    const allAgents = {
+      // Core
+      scout: { type: 'core' }, relay: { type: 'core' }, ralph: { type: 'core' },
+      main: { type: 'core' }, claude: { type: 'core' },
+      // VendTech
+      autodraftemail: { type: 'vendtech' }, emailfollowup: { type: 'vendtech' },
+      emailsync: { type: 'vendtech' }, mixmaxsync: { type: 'vendtech' },
+      proposalfollowup: { type: 'vendtech' },
+      // Photo Booths
+      pbemaildrafter: { type: 'photobooths' }, pbgmailsync: { type: 'photobooths' },
+      // Coordination
+      standup: { type: 'coordination' }, watercooler: { type: 'coordination' },
+      retro: { type: 'coordination' }, morningbriefing: { type: 'coordination' },
+      // System
+      e2eqa: { type: 'system' }, healthwatchdog: { type: 'system' },
+      qasweep: { type: 'system' }, sessioncleanup: { type: 'system' },
+      nightlybackup: { type: 'system' }, selfupdate: { type: 'system' },
+      goghealthcheck: { type: 'system' },
+      // Research
+      vendingpreneurs: { type: 'research' }, seovt: { type: 'research' },
+      seopb: { type: 'research' }, sevenelevenscrape: { type: 'research' }
+    };
+    
+    Object.entries(allAgents).forEach(([agentKey, meta]) => {
+      const dbStatus = teamStatus[agentKey] || {};
+      const status = getCronBasedStatus(agentKey);
+      const lastRun = getCronLastRun(agentKey);
+      const errorInfo = getCronErrorInfo(agentKey);
+      const jobCount = (agentCronMap[agentKey] || []).length;
+      
+      agents[agentKey] = {
+        name: formatAgentName(agentKey) || agentKey.charAt(0).toUpperCase() + agentKey.slice(1),
+        role: getAgentRole(agentKey),
+        emoji: getAgentEmoji(agentKey),
+        model: dbStatus.model || 'anthropic/claude-sonnet-4-20250514',
+        description: getAgentDescription(agentKey),
+        type: meta.type,
+        status: status,
+        lastRun: lastRun,
+        jobs: jobCount,
+        currentTask: dbStatus.lastActivity || getDefaultTask(agentKey),
+        statusText: errorInfo || dbStatus.statusText || (status === 'active' ? 'Running' : status === 'completed' ? 'Last run successful' : 'Waiting for next run'),
+        workingIndicator: status === 'active' || status === 'working'
+      };
     });
     
     // Calculate office-wide metrics
     const agentList = Object.values(agents);
-    const workingCount = agentList.filter(a => a.status === 'working' || a.status === 'completed').length;
+    const workingCount = agentList.filter(a => a.status === 'active' || a.status === 'working' || a.status === 'completed').length;
     const idleCount = agentList.filter(a => a.status === 'idle' || a.status === 'waiting').length;
     const errorCount = agentList.filter(a => a.status === 'error' || a.status === 'failed').length;
     
