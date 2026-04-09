@@ -73,7 +73,7 @@ function sanitizeObject(obj) {
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
   // Allow these paths without auth
-  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status', '/api/memory/db-list', '/api/memory/db-read', '/api/memory/db-search', '/api/memory/sync', '/digital', '/api/mission-control/tasks/bulk-sync', '/onboard', '/api/digital/onboard', '/clients', '/scout-intel', '/api/pipeline/engagement-alerts', '/api/digital/gmb/batch-score', '/account-tiers', '/api/pipeline/account-tiers', '/api/crm/status-diff', '/api/monitoring', '/api/jobs/sentinel', '/api/briefing'];
+  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status', '/api/memory/db-list', '/api/memory/db-read', '/api/memory/db-search', '/api/memory/sync', '/digital', '/api/mission-control/tasks/bulk-sync', '/onboard', '/api/digital/onboard', '/clients', '/scout-intel', '/api/pipeline/engagement-alerts', '/api/digital/gmb/batch-score', '/account-tiers', '/api/pipeline/account-tiers', '/api/crm/status-diff', '/api/monitoring', '/api/jobs/sentinel', '/api/briefing', '/api/agents/cron-sync'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
     return next();
   }
@@ -23888,38 +23888,71 @@ app.get('/office', (req, res) => {
 });
 
 // API: Live Agent Status for Office View
+// POST /api/agents/cron-sync — Accept cron job data pushed from Mac mini sync script
+// This is the source of truth for agent status on Railway (can't run openclaw locally)
+app.post('/api/agents/cron-sync', express.json({ limit: '1mb' }), (req, res) => {
+  try {
+    const { jobs } = req.body;
+    if (!jobs || !Array.isArray(jobs)) return res.status(400).json({ error: 'jobs array required' });
+    db.cronJobsSync = { jobs, syncedAt: new Date().toISOString() };
+    res.json({ ok: true, jobCount: jobs.length, syncedAt: db.cronJobsSync.syncedAt });
+  } catch (err) {
+    res.status(500).json({ error: 'Cron sync failed', details: err.message });
+  }
+});
+
 app.get('/api/agents/live-status', async (req, res) => {
   try {
     const teamStatus = db.teamStatus || {};
     
-    // P0 FIX: Fetch REAL cron job data as PRIMARY source of truth (not db.cronJobs which is always empty)
+    // P0 FIX: Use cron data pushed from Mac mini via POST /api/agents/cron-sync
+    // Falls back to local openclaw CLI if available (dev), then to empty array
     let cronJobs = [];
-    try {
-      const { exec: execCb } = require('child_process');
-      const util = require('util');
-      const execAsync = util.promisify(execCb);
-      const { stdout } = await execAsync('openclaw cron list --json', { timeout: 8000 });
-      const parsed = JSON.parse(stdout);
-      const now = Date.now();
-      cronJobs = (parsed.jobs || []).map(job => {
-        const lastRunAtMs = job.state?.lastRunAtMs || 0;
-        const consecutiveErrors = job.state?.consecutiveErrors || 0;
-        const lastStatus = job.state?.lastStatus || 'unknown';
-        const minutesAgo = lastRunAtMs ? Math.floor((now - lastRunAtMs) / 60000) : Infinity;
-        const lastStr = lastRunAtMs ? (minutesAgo < 60 ? `${minutesAgo}m ago` : `${Math.floor(minutesAgo/60)}h ago`) : 'never';
-        return {
-          id: job.id,
-          name: job.name || '',
-          status: lastStatus,
-          last: lastStr,
-          lastRunAtMs,
-          minutesAgo,
-          consecutiveErrors,
-          enabled: job.enabled
-        };
-      }).filter(j => j.enabled !== false);
-    } catch (cronErr) {
-      console.error('live-status: Error fetching cron jobs:', cronErr.message);
+    const now = Date.now();
+    
+    // Primary: synced cron data from Mac mini
+    if (db.cronJobsSync && db.cronJobsSync.jobs) {
+      const syncAge = now - new Date(db.cronJobsSync.syncedAt).getTime();
+      if (syncAge < 30 * 60 * 1000) { // valid if synced within 30 min
+        cronJobs = db.cronJobsSync.jobs.map(job => {
+          const lastRunAtMs = job.state?.lastRunAtMs || 0;
+          const consecutiveErrors = job.state?.consecutiveErrors || 0;
+          const lastStatus = job.state?.lastStatus || 'unknown';
+          const minutesAgo = lastRunAtMs ? Math.floor((now - lastRunAtMs) / 60000) : Infinity;
+          const lastStr = lastRunAtMs ? (minutesAgo < 60 ? `${minutesAgo}m ago` : `${Math.floor(minutesAgo/60)}h ago`) : 'never';
+          return {
+            id: job.id,
+            name: job.name || '',
+            status: lastStatus,
+            last: lastStr,
+            lastRunAtMs,
+            minutesAgo,
+            consecutiveErrors,
+            enabled: job.enabled
+          };
+        }).filter(j => j.enabled !== false);
+      }
+    }
+    
+    // Fallback: try local openclaw CLI (works in dev, fails on Railway)
+    if (cronJobs.length === 0) {
+      try {
+        const { exec: execCb } = require('child_process');
+        const util = require('util');
+        const execAsync = util.promisify(execCb);
+        const { stdout } = await execAsync('openclaw cron list --json', { timeout: 8000 });
+        const parsed = JSON.parse(stdout);
+        cronJobs = (parsed.jobs || []).map(job => {
+          const lastRunAtMs = job.state?.lastRunAtMs || 0;
+          const consecutiveErrors = job.state?.consecutiveErrors || 0;
+          const lastStatus = job.state?.lastStatus || 'unknown';
+          const minutesAgo = lastRunAtMs ? Math.floor((now - lastRunAtMs) / 60000) : Infinity;
+          const lastStr = lastRunAtMs ? (minutesAgo < 60 ? `${minutesAgo}m ago` : `${Math.floor(minutesAgo/60)}h ago`) : 'never';
+          return { id: job.id, name: job.name || '', status: lastStatus, last: lastStr, lastRunAtMs, minutesAgo, consecutiveErrors, enabled: job.enabled };
+        }).filter(j => j.enabled !== false);
+      } catch (cronErr) {
+        // Expected to fail on Railway — no openclaw installed
+      }
     }
     
     // Map cron job names → agent keys

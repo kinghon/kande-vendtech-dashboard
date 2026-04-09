@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 # sync-mission-control.sh
 # Syncs local agent data to the vend.kandedash.com API so Mission Control
 # (kande-mission-control-production.up.railway.app) can read it.
@@ -23,6 +24,88 @@ echo "📋 Dumping cron list to cache..."
 openclaw cron list --json > /tmp/mc-cron-cache.json 2>/dev/null && \
   echo "   ✅ Cron list cached ($(wc -c < /tmp/mc-cron-cache.json) bytes)" || \
   echo "   ⚠️  Cron list dump failed (openclaw not available?)"
+
+# ── 1a. Push cron data to VendTech API for /api/agents/live-status ───────────
+if [ -f /tmp/mc-cron-cache.json ]; then
+  echo "🔧 Pushing cron data to VendTech API..."
+  curl -s -X POST "$API/api/agents/cron-sync" \
+    -H "Content-Type: application/json" \
+    -d @/tmp/mc-cron-cache.json > /dev/null && \
+    echo "   ✅ Cron data pushed to VendTech" || echo "   ⚠️  VendTech cron push failed"
+fi
+
+# ── 1b. Push cron data to Mission Control for live office view ───────────────
+MC_URL="https://kande-mission-control-production.up.railway.app"
+if [ -f /tmp/mc-cron-cache.json ]; then
+  echo "🏢 Pushing cron data to Mission Control..."
+  curl -s -X POST "$MC_URL/api/sync/cron-schedule" \
+    -H "x-sync-key: kmc-sync-2026" \
+    -H "Content-Type: application/json" \
+    -d @/tmp/mc-cron-cache.json > /dev/null && \
+    echo "   ✅ Cron schedule pushed" || echo "   ⚠️  Cron schedule push failed"
+
+  # Convert recent cron runs into office-activity events
+  echo "🏢 Pushing office activity events..."
+  python3 - /tmp/mc-cron-cache.json << 'PYEOF'
+import json, sys, subprocess
+from datetime import datetime, timezone, timedelta
+
+with open(sys.argv[1]) as f:
+    data = json.load(f)
+
+job_agent = {
+    'scout-morning': 'scout', 'scout-evening': 'scout',
+    'relay-morning': 'relay', 'relay-evening': 'relay',
+    'ralph-overnight': 'ralph', 'daily-e2e-dashboards': 'ralph',
+    'daily-standup': 'all', 'water-cooler': 'all', 'weekly-retro': 'all',
+    'piper-morning': 'piper', 'piper-evening': 'piper',
+    'daily-maps-discovery': 'scout', 'nightly-maps-verify': 'scout',
+    'mixmax-tracking-sync': 'relay', 'kimi-workload-dispatcher': 'pixel',
+    'pb-email-drafts': 'jarvis', 'auto-draft-email0': 'jarvis',
+    'morning-briefing': 'jarvis', 'cron-health-watchdog': 'jarvis',
+    'vendtech-qa-sweep': 'ralph', 'vendtech-sent-email-sync': 'jarvis',
+    'outreach-crm-sync': 'relay', 'proposal-followup-check': 'relay',
+    'weekly-seo-check': 'piper', 'weekly-seo-photobooths': 'piper',
+    'nightly-extraction': 'jarvis', 'morning-briefing': 'jarvis',
+}
+
+job_scene = {'daily-standup': 'meeting', 'water-cooler': 'watercooler', 'weekly-retro': 'meeting'}
+
+now = datetime.now(timezone.utc)
+events = []
+for job in data.get('jobs', []):
+    name = job.get('name', '')
+    agent = job_agent.get(name)
+    if not agent: continue
+    last_run = job.get('state', {}).get('lastRunAtMs', 0)
+    if not last_run: continue
+    run_time = datetime.fromtimestamp(last_run / 1000, timezone.utc)
+    if (now - run_time) > timedelta(hours=4): continue
+    duration_ms = job.get('state', {}).get('lastDurationMs', 0)
+    events.append({
+        'agent': agent,
+        'action': job.get('description', name),
+        'message': job.get('description', name),
+        'timestamp': run_time.isoformat(),
+        'job': name,
+        'durationMs': duration_ms,
+        'scene': job_scene.get(name, 'desk')
+    })
+
+if events:
+    payload = json.dumps({'events': events})
+    r = subprocess.run([
+        'curl', '-s', '-X', 'POST',
+        'https://kande-mission-control-production.up.railway.app/api/sync/office-activity',
+        '-H', 'x-sync-key: kmc-sync-2026',
+        '-H', 'Content-Type: application/json',
+        '-d', payload
+    ], capture_output=True, text=True)
+    print(f'   ✅ Pushed {len(events)} office events')
+else:
+    print('   ℹ️  No recent events to push')
+PYEOF
+fi
 
 # ── 2. Push key memory files to DB ──────────────────────────────────────────
 push_memory() {
