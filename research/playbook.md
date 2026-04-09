@@ -170,3 +170,27 @@
 - **Unicorn location: $22-25K/month** — operator's very first location, 18 months in. 4 total locations.
 - **First location was the unicorn** — proves that beginners can land exceptional locations. Don't need years of experience to find a winner.
 - **Kande takeaway:** Another data point for the pitch deck — single locations can generate $250K+/year. Use this in proposals to show the revenue potential landlords are leaving on the table without premium vending.
+
+## Vendingpreneurs: Why Vending Isn't a Gamble (2026-04-09)
+- **Location-first approach eliminates risk** — qualify the location (high foot traffic, captive audience, no nearby alternatives) BEFORE buying the machine. If it underperforms after 90 days, just move it.
+- **Vending's secret advantage over real estate:** you can relocate a machine, you can't relocate a house.
+- **Finance > save** — saving a year for one machine = a year of zero revenue. Financing lets you start earning in 30-60 days. By the time you've saved for one, you could have financed 2-3.
+- **Kande takeaway:** Use the "it's math, not a gamble" framing in sales pitches. The relocatability argument is strong for hesitant location owners — zero long-term risk if it doesn't perform.
+
+## Vendingpreneurs: One Upgrade From $1,200 to $2,500/mo (2026-04-09)
+- **Same location, same traffic — modern machine doubles revenue.** Traditional machine: $1,200/mo. Modern smart machine: $2,500/mo.
+- **Higher AOV + expanded product range** — modern machines increase average order value and let you sell categories (shakes, premium drinks) that traditional machines can't handle.
+- **Kande takeaway:** This is Kande's core pitch. Use these exact numbers in proposals: "Same foot traffic, 2x the revenue." Reinforces why Sandstar smart machines are worth the premium over traditional.
+
+## Vendingpreneurs: Financing Is the #1 Bottleneck (2026-04-09)
+- **Operator's biggest challenge = getting deals funded.** Claims they could place 100-150 machines in 4 months if capital wasn't a constraint.
+- **Demand is outpacing supply** — voted favorite vendor in Raleigh area across 4 locations, word-of-mouth driving inbound without marketing.
+- **Family as workforce** — college-age daughter doing admin, cold calling, PR/client retention. Proactive client check-ins to head off problems.
+- **Kande takeaway:** Financing is the universal bottleneck for scaling operators. Kande could differentiate by offering financing partnerships or machine-as-a-service. The proactive client retention model (check in before problems happen) is worth adopting.
+
+## Vendingpreneurs: Pricing Tricks That Boost Sales (2026-04-09)
+- **Anchor pricing works** — place expensive Monster ($X) next to Rockstar ($0.50 cheaper). Rockstar has higher margin but looks like the deal.
+- **Use .77 pricing, not round numbers** — $3.77 converts better than $4.00. Specific decimals signal value.
+- **Drinks outsell snacks 70/30** — mark up drinks aggressively, especially premium protein shakes (Fairlife etc.) which sell at $4.50-$6.00.
+- **Don't be afraid of premium pricing** — high-end drinks are the top sellers and highest margin.
+- **Kande takeaway:** Program Sandstar machines with anchor pricing from day one. Lead product mix with premium drinks (70% of sales). Price protein shakes at $4.50-$6.00. Use .77/.99 endings on all items. This is immediate revenue optimization for every Kande location.
