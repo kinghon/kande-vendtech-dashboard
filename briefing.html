@@ -354,69 +354,14 @@
     <!-- Right column: sidebar -->
     <div>
 
-      <!-- Hot Lead Priority -->
+      <!-- Hot Lead Priority (dynamic from API) -->
       <div class="section">
         <div class="sec-head">
           <div class="sec-title">⚡ Hot Lead Priority</div>
-          <span style="font-size:0.72rem;color:var(--muted);">Updated Feb 21</span>
+          <span style="font-size:0.72rem;color:var(--muted);" id="hot-lead-date">Loading…</span>
         </div>
-        <div class="sec-body">
-          <div class="lead-row">
-            <div class="lead-rank r1">1</div>
-            <div class="lead-body">
-              <div class="lead-name">Aspire / Ovation (116) 🏆</div>
-              <div class="lead-detail">Jennifer replied. In corporate training next week. 36 communities. <strong>Kurtis: tonight email required.</strong></div>
-            </div>
-          </div>
-          <div class="lead-row">
-            <div class="lead-rank r2">2</div>
-            <div class="lead-body">
-              <div class="lead-name">Carnegie Heights (5050) 🤝</div>
-              <div class="lead-detail">ED "loves it." Contract stage. Map approver chain first.</div>
-            </div>
-          </div>
-          <div class="lead-row">
-            <div class="lead-rank r2">3</div>
-            <div class="lead-body">
-              <div class="lead-name">Lyric / RPM Living (531)</div>
-              <div class="lead-detail">8 external opens. Portfolio play — Lyric + Watermark.</div>
-            </div>
-          </div>
-          <div class="lead-row">
-            <div class="lead-rank r2">4</div>
-            <div class="lead-body">
-              <div class="lead-name">Ilumina (67) 🚨</div>
-              <div class="lead-detail">6 external opens, 28 days overdue. CALL MONDAY.</div>
-            </div>
-          </div>
-          <div class="lead-row">
-            <div class="lead-rank">5</div>
-            <div class="lead-body">
-              <div class="lead-name">Gemma Las Vegas (4907)</div>
-              <div class="lead-detail">NOW LEASING. 337 units. 7-day window.</div>
-            </div>
-          </div>
-          <div class="lead-row">
-            <div class="lead-rank">6</div>
-            <div class="lead-body">
-              <div class="lead-name">Jade Apartments (29)</div>
-              <div class="lead-detail">Contract sent 10 days ago. Verify status.</div>
-            </div>
-          </div>
-          <div class="lead-row">
-            <div class="lead-rank">7</div>
-            <div class="lead-body">
-              <div class="lead-name">Paysign Inc (5571)</div>
-              <div class="lead-detail">345 employees, 2 Henderson locations, never contacted.</div>
-            </div>
-          </div>
-          <div class="lead-row" style="border-bottom:none;">
-            <div class="lead-rank">8</div>
-            <div class="lead-body">
-              <div class="lead-name">Rapid Response (5879)</div>
-              <div class="lead-detail">148 employees, 24/7. Scout researching contact.</div>
-            </div>
-          </div>
+        <div class="sec-body" id="hot-leads-body">
+          <div class="loading"><span class="spin"></span>Loading…</div>
         </div>
       </div>
 
@@ -762,8 +707,44 @@ async function loadReopened() {
   }
 }
 
+async function loadHotLeads() {
+  const body = document.getElementById('hot-leads-body');
+  const dateEl = document.getElementById('hot-lead-date');
+  try {
+    const r = await fetch('/api/briefing?period=daily', { headers: { 'x-api-key': KEY } });
+    const d = await r.json();
+    const leads = d.hotLeadPriority || [];
+    const genDate = d.generatedAt ? new Date(d.generatedAt) : new Date();
+    dateEl.textContent = 'Updated ' + genDate.toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric' });
+    if (leads.length === 0) {
+      body.innerHTML = '<div class="empty-state">No hot leads ranked yet.</div>';
+      return;
+    }
+    body.innerHTML = leads.map((l, i) => {
+      const emoji = l.call_today ? '📞' : (l.priority === 'hot' ? '🔥' : '⚡');
+      const rankClass = i === 0 ? 'r1' : i < 3 ? 'r2' : '';
+      const units = l.units > 0 ? ` (${l.units.toLocaleString()})` : '';
+      const statusLabel = { contract_stage:'Contract Stage', negotiating:'Negotiating', proposal_sent:'Proposal Sent', contacted:'Contacted', signed:'Signed', active:'Active', new:'New' }[l.status] || l.status;
+      let detail = statusLabel;
+      if (l.email_opens > 0) detail += `. ${l.email_opens} email opens`;
+      if (l.call_today) detail += '. <strong>CALL TODAY</strong>';
+      if (l.kurtis_notes) detail += '. ' + esc(l.kurtis_notes.slice(0, 60));
+      const lastBorder = i === leads.length - 1 ? 'border-bottom:none;' : '';
+      return `<div class="lead-row" style="${lastBorder}">
+        <div class="lead-rank ${rankClass}">${i + 1}</div>
+        <div class="lead-body">
+          <div class="lead-name">${emoji} ${esc(l.name)}${units}</div>
+          <div class="lead-detail">${detail}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    body.innerHTML = `<div style="color:var(--red);font-size:0.8rem;">Failed: ${e.message}</div>`;
+  }
+}
+
 async function loadAll() {
-  await Promise.all([loadMary(), loadAlerts(), loadTiers(), loadBriefing(), loadReopened(), loadDiff(), loadAgents(), loadCallSheet()]);
+  await Promise.all([loadMary(), loadAlerts(), loadTiers(), loadBriefing(), loadHotLeads(), loadReopened(), loadDiff(), loadAgents(), loadCallSheet()]);
   document.getElementById('last-refresh').textContent = new Date().toLocaleTimeString('en-US', { timeZone: 'America/Los_Angeles', hour:'numeric', minute:'2-digit', hour12:true }) + ' PT';
 }
 
