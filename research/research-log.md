@@ -18,3 +18,9 @@
 - `tfjgFj0BLgI` — "From AI Layoff Fears to $43K/Month in Vending" — Matt Morrison case study. $43K/mo, 40 machines, 20 locations. Key insight: Dubai chocolate $10 spread per bar.
 - `Y-Dxwvz0A_Q` — "Their Top Seller Isn't What You Think…" — Short clip. Dr. Pepper, Celsius, Bold Spicy Carbonara ramen (65%+ margin at $4 sell).
 - Transcripts saved, playbook updated.
+
+## 2026-04-02 — Vendingpreneurs YouTube (3 new videos)
+- `kiNn7IJ2XYQ` — $8K/Month From ONE Vending Location? → single location carrying portfolio
+- `jaB-ae-qUTE` — $6K Machine… $0 Down? → evending.com financing, $117/mo over 60 months
+- `pck0_EsI3VQ` — 18 Months In… First Location Does $22-25K/month → unicorn first location
+- Insights appended to playbook.md, transcripts saved

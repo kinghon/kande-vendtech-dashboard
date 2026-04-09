@@ -918,12 +918,30 @@ app.delete('/api/machines/:id', (req, res) => {
   res.json({ success: true });
 });
 
-// ===== LOCATIONS API =====
+// ===== LOCATIONS API (Enhanced with Rev Share + Collections) =====
+if (!db.collections) db.collections = [];
+
 app.get('/api/locations', (req, res) => {
   const locations = db.locations.map(l => {
     const machines = db.machines.filter(m => m.location_id === l.id);
     const prospect = db.prospects.find(p => p.id === l.prospect_id);
-    return { ...l, machines, prospect_name: prospect?.name || l.name };
+    const collections = (db.collections || []).filter(c => c.location_id === l.id);
+    const monthly_revenue = collections.filter(c => {
+      const d = new Date(c.date);
+      const now = new Date();
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }).reduce((sum, c) => sum + (c.total || 0), 0);
+    const total_revenue = collections.reduce((sum, c) => sum + (c.total || 0), 0);
+    const last_collection_date = collections.length ? collections.sort((a, b) => new Date(b.date) - new Date(a.date))[0].date : null;
+    return {
+      ...l,
+      machines,
+      prospect_name: prospect?.name || l.name,
+      monthly_revenue,
+      total_revenue,
+      last_collection_date,
+      collections_count: collections.length
+    };
   });
   res.json(locations);
 });
@@ -931,7 +949,19 @@ app.get('/api/locations', (req, res) => {
 app.post('/api/locations', (req, res) => {
   const location = {
     id: nextId(),
-    ...req.body,
+    name: req.body.name,
+    address: req.body.address,
+    contact_name: req.body.contact_name,
+    contact_phone: req.body.contact_phone,
+    contact_email: req.body.contact_email,
+    contract_start_date: req.body.contract_start_date,
+    prospect_id: req.body.prospect_id || null,
+    status: req.body.status || 'pending',
+    rev_share: req.body.rev_share || false,
+    rev_share_pct: req.body.rev_share_pct || 0,
+    rev_share_notes: req.body.rev_share_notes || '',
+    expected_monthly_revenue: req.body.expected_monthly_revenue || 0,
+    notes: req.body.notes || '',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
@@ -944,6 +974,7 @@ app.put('/api/locations/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const idx = db.locations.findIndex(l => l.id === id);
   if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  // Allow all rev share fields
   db.locations[idx] = { ...db.locations[idx], ...req.body, updated_at: new Date().toISOString() };
   saveDB(db);
   res.json(db.locations[idx]);
@@ -954,8 +985,80 @@ app.delete('/api/locations/:id', (req, res) => {
   db.locations = db.locations.filter(l => l.id !== id);
   // Unassign machines from deleted location
   db.machines.forEach(m => { if (m.location_id === id) { m.location_id = null; m.status = 'available'; } });
+  // Remove collections for deleted location
+  db.collections = (db.collections || []).filter(c => c.location_id !== id);
   saveDB(db);
   res.json({ success: true });
+});
+
+// ===== COLLECTIONS API =====
+app.get('/api/locations/:id/collections', (req, res) => {
+  const id = parseInt(req.params.id);
+  const loc = db.locations.find(l => l.id === id);
+  if (!loc) return res.status(404).json({ error: 'Location not found' });
+  const collections = (db.collections || []).filter(c => c.location_id === id)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+  res.json(collections);
+});
+
+app.post('/api/locations/:id/collections', (req, res) => {
+  const id = parseInt(req.params.id);
+  const loc = db.locations.find(l => l.id === id);
+  if (!loc) return res.status(404).json({ error: 'Location not found' });
+  const cash = parseFloat(req.body.cash_amount) || 0;
+  const card = parseFloat(req.body.card_amount) || 0;
+  const collection = {
+    id: nextId(),
+    location_id: id,
+    date: req.body.date || new Date().toISOString().split('T')[0],
+    cash_amount: cash,
+    card_amount: card,
+    total: cash + card,
+    collected_by: req.body.collected_by || 'unknown',
+    notes: req.body.notes || '',
+    created_at: new Date().toISOString()
+  };
+  db.collections.push(collection);
+  saveDB(db);
+  res.json(collection);
+});
+
+app.delete('/api/collections/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  db.collections = (db.collections || []).filter(c => c.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// ===== ADMIN HEALTH CHECK =====
+app.get('/api/admin/health-check', (req, res) => {
+  const prospects = db.prospects || [];
+  const missingName = prospects.filter(p => !p.name || !p.name.trim()).length;
+  const missingAddress = prospects.filter(p => !p.address || !p.address.trim()).length;
+  const missingPhone = prospects.filter(p => !p.phone || !p.phone.trim()).length;
+  const missingEmail = prospects.filter(p => !p.email || !p.email.trim()).length;
+  res.json({
+    ok: true,
+    timestamp: new Date().toISOString(),
+    counts: {
+      prospects: prospects.length,
+      locations: (db.locations || []).length,
+      machines: (db.machines || []).length,
+      collections: (db.collections || []).length,
+      products: (db.products || []).length,
+      restocks: (db.restocks || []).length,
+      revenue: (db.revenue || []).length,
+      contracts: (db.contracts || []).length,
+      finances: (db.finances || []).length
+    },
+    data_quality: {
+      prospects_missing_name: missingName,
+      prospects_missing_address: missingAddress,
+      prospects_missing_phone: missingPhone,
+      prospects_missing_email: missingEmail,
+      total_issues: missingName + missingAddress + missingPhone + missingEmail
+    }
+  });
 });
 
 // ===== PRODUCTS API =====
@@ -3484,6 +3587,7 @@ app.get('/prospect/:id', (req, res) => res.sendFile(path.join(__dirname, 'prospe
 app.get('/activities', (req, res) => res.sendFile(path.join(__dirname, 'activities.html')));
 app.get('/map', (req, res) => res.sendFile(path.join(__dirname, 'map.html')));
 app.get('/machines', (req, res) => res.sendFile(path.join(__dirname, 'machines.html')));
+app.get('/locations', (req, res) => res.sendFile(path.join(__dirname, 'locations.html')));
 app.get('/inventory', (req, res) => res.sendFile(path.join(__dirname, 'inventory.html')));
 app.get('/finance', (req, res) => res.sendFile(path.join(__dirname, 'finance.html')));
 app.get('/restock', (req, res) => res.sendFile(path.join(__dirname, 'restock.html')));

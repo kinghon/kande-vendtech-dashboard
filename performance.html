@@ -480,7 +480,8 @@ async function loadData() {
     
     prospects = prospectRes || [];
     activities = activityRes || [];
-    pipelineCards = pipelineRes || [];
+    // API returns { stages: [...], cards: [...] } — extract cards array
+    pipelineCards = (Array.isArray(pipelineRes) ? pipelineRes : (pipelineRes && pipelineRes.cards)) || [];
     
     // Load goals from localStorage
     const savedGoals = localStorage.getItem('vendtech_goals');
