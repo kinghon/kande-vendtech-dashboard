@@ -87,15 +87,16 @@ Build in this order: Locations → Machines → Revenue → Restock
 - Cost banner visible ($1465.82/week, $188.14/day)
 - Remaining: Fix "Starting task" placeholder text in activity feed
 
-## P1: MC Office fixes (3 issues)
+## P1: MC Office fixes (3 issues) — ALL RESOLVED Apr 9, 2026
 
 ### 1. Kimi heartbeat shows "Offline" — FIXED Apr 8, 2026
-Created kimi-heartbeat.sh LaunchAgent that pushes to MC's /api/kimi/heartbeat every 60s. MC office now shows "Online — Kimi-K2.5" with green dot.
+Created kimi-heartbeat.sh LaunchAgent. MC shows Online when Kimi is running.
 
-### 2. Today's cost shows $7.34 — wrong data was pushed
-The anthropic-cost-sync cron pulls from platform.claude.com (browser scrape). But it keeps timing out. Need to verify it runs successfully and pushes real data. Current cost-history.json has wrong today value.
+### 2. Conflicting heartbeat scripts — FIXED Apr 9, 2026
+Two scripts (kimi-heartbeat.sh and mc-heartbeat.sh) were fighting. mc-heartbeat.sh is authoritative (tests actual inference). Disabled kimi-heartbeat LaunchAgent. Kimi correctly shows Offline when no model loaded on exo.
 
-### 3. "Starting task" placeholders in activity feed
-Old dispatcher runs posted generic text. These will clear naturally as new real task names come in. No fix needed — just wait.
+### 3. "Starting task" placeholders — RESOLVED
+Cleared naturally with new real activity data.
 
-Screenshot the office page after fixing 1 and 2 to verify.
+## P1: Briefing Hot Lead Priority — SHIPPED Apr 9, 2026
+Replaced hardcoded "Updated Feb 21" Hot Lead section with dynamic API-driven ranking. Scores based on status, priority, unit count, activity recency, email engagement, and Google reviews. Top 10 leads auto-update daily. Commits: 683359c, 0ff9d4b.
