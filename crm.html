@@ -95,6 +95,7 @@
     .prospect-card.warm { border-left: 4px solid var(--warm); }
     .prospect-card.opening-soon { border-left: 4px solid #38b2ac; background: rgba(56,178,172,0.08); }
     .prospect-card.stale { border-left: 4px solid var(--hot); background: rgba(229,62,62,0.08); opacity: 0.85; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
     .prospect-card.expanded { border-color: var(--accent); cursor: default; }
 
     .prospect-summary { padding: 16px; }
@@ -408,6 +409,7 @@
       <div class="stat"><div class="stat-value accent" id="statActive">-</div><div class="stat-label">Active</div></div>
       <div class="stat"><div class="stat-value warn" id="statFollowup">-</div><div class="stat-label">Need Follow-up</div></div>
       <div class="stat"><div class="stat-value" id="statWeek">-</div><div class="stat-label">Activities (7d)</div></div>
+      <div class="stat"><div class="stat-value hot" id="statReopened">-</div><div class="stat-label">📬 Re-opened (7d)</div></div>
     </div>
 
     <!-- To-Do Checklist -->
@@ -444,6 +446,7 @@
       <button class="filter-btn" data-filter="signed">✅ Signed</button>
       <button class="filter-btn" data-filter="closed">⛔ Stale</button>
       <button class="filter-btn" data-filter="followup">📋 Needs Action</button>
+      <button class="filter-btn" data-filter="reopened" style="border-color:var(--hot);">📬 Re-opened</button>
       <select id="typeFilter" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:0.9rem;cursor:pointer;">
         <option value="all">All Types</option>
         <option value="apartments_condos">🏢 Apartments/Condos</option>
@@ -627,6 +630,32 @@
     let currentFilter = 'all';
     let currentPage = 1;
     const PAGE_SIZE = 25;
+
+    // Compute recent email opens for a prospect (external only)
+    function getRecentOpens(p) {
+      const tracking = p.email_tracking;
+      if (!Array.isArray(tracking) || !tracking.length) return null;
+      const now = Date.now();
+      const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+      let latest = null;
+      let totalAdjusted = 0;
+      let anyReplied = false;
+      for (const t of tracking) {
+        if (!t.last_event_at) continue;
+        if (t._internal_opens) continue; // skip internal-only opens
+        const evtTime = new Date(t.last_event_at).getTime();
+        const age = now - evtTime;
+        const adj = t._adjusted_opens || 0;
+        if (age < SEVEN_DAYS && adj > 0) {
+          if (!latest || evtTime > latest) latest = evtTime;
+          totalAdjusted += adj;
+          if (t.was_replied) anyReplied = true;
+        }
+      }
+      if (!latest) return null;
+      const ageDays = Math.floor((now - latest) / (24*60*60*1000));
+      return { latest, totalAdjusted, anyReplied, ageDays };
+    }
     let searchTimeout;
     let saveTimers = {};
 
@@ -647,6 +676,10 @@
     async function loadProspects() {
       const res = await fetch('/api/prospects');
       prospects = await res.json();
+      // Compute reopened count
+      const reopenedCount = prospects.filter(p => getRecentOpens(p) !== null).length;
+      const el = document.getElementById('statReopened');
+      if (el) el.textContent = reopenedCount;
       renderProspects();
       renderTodoList();
       renderCompletedToday();
@@ -1048,6 +1081,7 @@
       else if (currentFilter === 'signed') filtered = filtered.filter(p => p.status === 'signed');
       else if (currentFilter === 'closed') filtered = filtered.filter(p => p.status === 'closed');
       else if (currentFilter === 'followup') filtered = filtered.filter(p => p.needs_action);
+      else if (currentFilter === 'reopened') filtered = filtered.filter(p => getRecentOpens(p) !== null);
 
       if (search) {
         filtered = filtered.filter(p => {
@@ -1099,12 +1133,20 @@
         filtered = filtered.filter(p => normalizeType(p.property_type) === typeFilter);
       }
 
-      // Always sort stale to bottom
-      filtered.sort((a, b) => {
-        if (a.status === 'closed' && b.status !== 'closed') return 1;
-        if (a.status !== 'closed' && b.status === 'closed') return -1;
-        return 0;
-      });
+      // Always sort stale to bottom; if re-opened filter, sort by most recent open
+      if (currentFilter === 'reopened') {
+        filtered.sort((a, b) => {
+          const aO = getRecentOpens(a);
+          const bO = getRecentOpens(b);
+          return (bO?.latest || 0) - (aO?.latest || 0);
+        });
+      } else {
+        filtered.sort((a, b) => {
+          if (a.status === 'closed' && b.status !== 'closed') return 1;
+          if (a.status !== 'closed' && b.status === 'closed') return -1;
+          return 0;
+        });
+      }
 
       if (filtered.length === 0) {
         document.getElementById('prospectList').innerHTML = '<div class="empty-state"><h3>No prospects found</h3></div>';
@@ -1119,7 +1161,7 @@
         <div class="prospect-card ${p.priority} ${p.status === 'closed' ? 'stale' : ''} ${p.status === 'opening_soon' ? 'opening-soon' : ''} ${expandedId === p.id ? 'expanded' : ''}" id="card-${p.id}">
           <div class="prospect-summary" onclick="toggleExpand(${p.id})">
             <div class="prospect-header">
-              <div class="prospect-name">${p.name}${p.status === 'closed' && p.stale_reason ? `<span style="margin-left:10px;font-size:0.8rem;font-weight:700;color:var(--hot);">⛔ ${esc(p.stale_reason)}</span>` : ''}${p.next_action ? `<span style="margin-left:10px;font-size:0.8rem;font-weight:600;color:var(--accent);background:rgba(49,130,206,0.1);padding:2px 8px;border-radius:4px;">→ ${p.next_action === 'Pop In' ? '🚶' : p.next_action === 'Call' ? '📞' : '📧'} ${esc(p.next_action)}${p.next_action_date ? ' (' + p.next_action_date + ')' : ''}</span>` : ''}</div>
+              <div class="prospect-name">${p.name}${(() => { const ro = getRecentOpens(p); if (!ro) return ''; const urgency = ro.ageDays <= 2 ? '#e53e3e' : ro.ageDays <= 5 ? '#dd6b20' : '#718096'; const callFlag = ro.totalAdjusted >= 3 && !ro.anyReplied ? '<span style="margin-left:6px;font-size:0.7rem;font-weight:800;color:#e53e3e;background:rgba(229,62,62,0.12);padding:2px 8px;border-radius:4px;animation:pulse 2s infinite;">📞 CALL TODAY</span>' : ''; return `<span style="margin-left:8px;font-size:0.75rem;font-weight:700;color:${urgency};background:rgba(229,62,62,0.08);padding:2px 8px;border-radius:4px;">📬 ${ro.totalAdjusted} open${ro.totalAdjusted > 1 ? 's' : ''} · ${ro.ageDays === 0 ? 'today' : ro.ageDays + 'd ago'}${ro.anyReplied ? ' ✓replied' : ''}</span>${callFlag}`; })()}${p.status === 'closed' && p.stale_reason ? `<span style="margin-left:10px;font-size:0.8rem;font-weight:700;color:var(--hot);">⛔ ${esc(p.stale_reason)}</span>` : ''}${p.next_action ? `<span style="margin-left:10px;font-size:0.8rem;font-weight:600;color:var(--accent);background:rgba(49,130,206,0.1);padding:2px 8px;border-radius:4px;">→ ${p.next_action === 'Pop In' ? '🚶' : p.next_action === 'Call' ? '📞' : '📧'} ${esc(p.next_action)}${p.next_action_date ? ' (' + p.next_action_date + ')' : ''}</span>` : ''}</div>
               <span class="saved-indicator" id="saved-${p.id}">✓ Saved</span>
               <div class="badge-row" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                 <select class="status-select" onclick="event.stopPropagation()" onchange="setStatus(${p.id}, this.value)" style="padding:4px 10px;border-radius:12px;font-size:0.7rem;font-weight:700;cursor:pointer;border:none;background:${p.priority === 'hot' ? 'rgba(229,62,62,0.15)' : p.priority === 'intalks' ? 'rgba(139,92,246,0.15)' : p.priority === 'warm' ? 'rgba(234,179,8,0.15)' : 'rgba(49,130,206,0.15)'};color:${p.priority === 'hot' ? 'var(--hot)' : p.priority === 'intalks' ? 'var(--intalks)' : p.priority === 'warm' ? 'var(--warm)' : 'var(--accent)'};">
