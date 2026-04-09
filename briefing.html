@@ -442,6 +442,17 @@
         </div>
       </div>
 
+      <!-- Reopened This Week -->
+      <div class="section">
+        <div class="sec-head">
+          <div class="sec-title">📬 Reopened This Week</div>
+          <span style="font-size:0.72rem;color:var(--muted);" id="reopened-count-label">…</span>
+        </div>
+        <div class="sec-body" id="reopened-body">
+          <div class="loading"><span class="spin"></span>Loading…</div>
+        </div>
+      </div>
+
       <!-- Team Agent Status -->
       <div class="section">
         <div class="sec-head">
@@ -718,8 +729,41 @@ async function loadCallSheet() {
   }
 }
 
+async function loadReopened() {
+  const body = document.getElementById('reopened-body');
+  try {
+    const r = await fetch('/api/briefing?period=daily', { headers: { 'x-api-key': KEY } });
+    const d = await r.json();
+    const reopened = d.reopenedThisWeek || [];
+    document.getElementById('reopened-count-label').textContent = reopened.length ? `${reopened.length} prospects` : 'none';
+    // Update hot signals stat with call-today count
+    const callTodayCount = reopened.filter(r => r.call_today).length;
+    if (callTodayCount > 0) {
+      const hotEl = document.getElementById('s-hot');
+      if (hotEl) hotEl.textContent = (parseInt(hotEl.textContent) || 0) + callTodayCount;
+    }
+    if (reopened.length === 0) {
+      body.innerHTML = '<div class="empty-state">✅ No unreplied re-opens this week.</div>';
+      return;
+    }
+    body.innerHTML = reopened.slice(0, 8).map(r => {
+      const days = Math.round((Date.now() - new Date(r.last_opened_at)) / (24*60*60*1000));
+      const timeLabel = days === 0 ? 'today' : days + 'd ago';
+      const flag = r.call_today ? '<span style="background:#ef4444;color:#fff;padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:700;margin-left:8px;">📞 CALL TODAY</span>'
+        : r.urgency === 'urgent' ? '<span style="background:#fef2f2;color:#ef4444;padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:600;margin-left:8px;">🔴 Urgent</span>'
+        : '<span style="background:#fffbeb;color:#f59e0b;padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:600;margin-left:8px;">🟠 Warm</span>';
+      return `<div class="prospect-row" style="justify-content:space-between;">
+        <div><span class="prospect-name">${esc(r.prospect_name)}</span><span style="color:var(--muted);font-size:0.78rem;margin-left:8px;">${r.total_opens} opens · last ${timeLabel}</span></div>
+        <div>${flag}</div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    body.innerHTML = `<div style="color:var(--red);font-size:0.8rem;">Failed: ${e.message}</div>`;
+  }
+}
+
 async function loadAll() {
-  await Promise.all([loadMary(), loadAlerts(), loadTiers(), loadBriefing(), loadDiff(), loadAgents(), loadCallSheet()]);
+  await Promise.all([loadMary(), loadAlerts(), loadTiers(), loadBriefing(), loadReopened(), loadDiff(), loadAgents(), loadCallSheet()]);
   document.getElementById('last-refresh').textContent = new Date().toLocaleTimeString('en-US', { timeZone: 'America/Los_Angeles', hour:'numeric', minute:'2-digit', hour12:true }) + ' PT';
 }
 

@@ -6304,12 +6304,55 @@ app.get('/api/briefing', (req, res) => {
     overdueCount: followUps.filter(f => f.status === 'overdue').length
   };
 
+  // 5. Reopened This Week — prospects with recent email opens not yet followed up
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString();
+  const reopenedThisWeek = [];
+  allProspects.forEach(p => {
+    if (!p.email_tracking || !Array.isArray(p.email_tracking)) return;
+    let totalOpens = 0;
+    let latestOpenAt = null;
+    let anyReplied = false;
+    p.email_tracking.forEach(t => {
+      const opens = t._adjusted_opens !== undefined ? t._adjusted_opens : (t.num_opens || 0);
+      totalOpens += opens;
+      if (t.was_replied) anyReplied = true;
+      if (t.last_event_at && t.last_event === 'opened') {
+        if (!latestOpenAt || t.last_event_at > latestOpenAt) latestOpenAt = t.last_event_at;
+      }
+    });
+    if (latestOpenAt && latestOpenAt >= weekAgo && !anyReplied) {
+      const callToday = totalOpens >= 3 && latestOpenAt >= weekAgo;
+      const urgency = latestOpenAt >= threeDaysAgo ? 'urgent' : 'warm';
+      reopenedThisWeek.push({
+        prospect_id: p.id,
+        prospect_name: p.name,
+        property_type: p.property_type || 'Unknown',
+        total_opens: totalOpens,
+        last_opened_at: latestOpenAt,
+        urgency,
+        call_today: callToday,
+        status: p.status,
+        priority: p.priority
+      });
+    }
+  });
+  // Sort: CALL TODAY first, then by recency
+  reopenedThisWeek.sort((a, b) => {
+    if (a.call_today !== b.call_today) return b.call_today ? 1 : -1;
+    return b.last_opened_at.localeCompare(a.last_opened_at);
+  });
+
+  metrics.reopenedCount = reopenedThisWeek.length;
+  metrics.callTodayCount = reopenedThisWeek.filter(r => r.call_today).length;
+
   res.json({
     period,
     generatedAt: now.toISOString(),
     newProspects,
     stageChanges,
     followUps,
+    reopenedThisWeek,
     metrics
   });
 });
@@ -6422,6 +6465,34 @@ app.get('/api/briefing/text', (req, res) => {
     hotProspects.slice(0, 3).forEach(p => {
       lines.push(`  • ${p.name} — ${p.property_type || 'Unknown'}`);
     });
+  }
+
+  // Reopened This Week — email re-open signals
+  const weekAgoText = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const threeDaysAgoText = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString();
+  const reopened = [];
+  allProspects.forEach(p => {
+    if (!p.email_tracking || !Array.isArray(p.email_tracking)) return;
+    let totalOpens = 0, latestOpenAt = null, anyReplied = false;
+    p.email_tracking.forEach(t => {
+      totalOpens += (t._adjusted_opens !== undefined ? t._adjusted_opens : (t.num_opens || 0));
+      if (t.was_replied) anyReplied = true;
+      if (t.last_event_at && t.last_event === 'opened' && (!latestOpenAt || t.last_event_at > latestOpenAt)) latestOpenAt = t.last_event_at;
+    });
+    if (latestOpenAt && latestOpenAt >= weekAgoText && !anyReplied) {
+      reopened.push({ name: p.name, opens: totalOpens, last: latestOpenAt, urgent: latestOpenAt >= threeDaysAgoText, callToday: totalOpens >= 3 });
+    }
+  });
+  reopened.sort((a, b) => (b.callToday ? 1 : 0) - (a.callToday ? 1 : 0) || b.last.localeCompare(a.last));
+  if (reopened.length > 0) {
+    lines.push('');
+    lines.push(`📬 Reopened This Week (${reopened.length}):`);  
+    reopened.slice(0, 8).forEach(r => {
+      const flag = r.callToday ? ' 📞 CALL TODAY' : (r.urgent ? ' 🔴' : ' 🟠');
+      const days = Math.round((now - new Date(r.last)) / (24*60*60*1000));
+      lines.push(`  • ${r.name} — ${r.opens} opens, last ${days === 0 ? 'today' : days + 'd ago'}${flag}`);
+    });
+    if (reopened.length > 8) lines.push(`  ... and ${reopened.length - 8} more`);
   }
 
   lines.push('');
