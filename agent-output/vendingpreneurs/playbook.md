@@ -55,3 +55,43 @@ Insights extracted from Vendingpreneurs YouTube channel for Kande VendTech.
 - [ ] Price using .77 / .47 endings instead of round numbers
 - [ ] Stock mix should be drink-heavy (aim for 60-70% drink SKUs)
 - [ ] Include Fairlife / protein shakes at $4.50-$5.50 price points
+
+---
+
+### 5. Location Before Machine — Don't Get This Wrong (`_58QJF_yUhU`)
+**Key Takeaways:**
+- **NEVER buy a machine before securing a location.** #1 beginner mistake — machines sit in garages for months collecting dust.
+- **Different locations need different machines:** Luxury apartments → sleek smart coolers. Warehouses → micromarkets with high inventory capacity. Outdoor → weatherproof units.
+- **Buying first = wrong equipment.** You end up with a $6K machine that doesn't fit the location you eventually find.
+- **Correct order:** (1) Find & secure location → (2) Determine what machine type fits → (3) Buy the machine.
+
+**Kande Action Items:**
+- [x] We're already doing this right — machines ordered AFTER securing locations
+- [ ] Create a location-to-machine-type matching guide for future placements
+
+---
+
+### 6. They Lost Money… But This Changed Everything (`7kCRxXRqrtU`)
+**Key Takeaways:**
+- **Couple came from house flipping** — lost money on a flip in 2021, pivoted to vending after seeing tap-to-pay smart kiosks in an airport.
+- **Visionary + logistics partner combo works:** One spouse dreams big, the other breaks it into actionable steps. Strong operator archetype.
+- **Airport smart coolers as inspiration** — the "camera sees everything, tap and go" model is exactly what Sandstar VRK does.
+- **Started from Twitter/X research** — social media vending community drove the decision to enter the business.
+
+**Kande Action Items:**
+- [ ] Use our Sandstar VRK "tap and go" experience as a selling point when pitching locations — reference airport-style convenience
+- [ ] Document our own origin story for marketing (website, social, pitch decks)
+
+---
+
+### 7. Measure Twice to Avoid This Vending Mistake (`xHnagLIdcNQ`)
+**Key Takeaways:**
+- **Always measure TWICE** — once on first site visit, once after ordering the machine (before delivery). People constantly get this wrong and the machine doesn't fit.
+- **Standard AI smart machine dimensions:** ~75" H × 35" W × 30-35" D. Most will fit standard spaces as long as opening is >35" wide.
+- **A standard refrigerator opening (<35") is too tight** — if the space is fridge-sized, verify clearance carefully.
+- **Measure = sleep at night.** Knowing it fits before delivery day eliminates a major stress point.
+
+**Kande Action Items:**
+- [ ] Add measurement checklist to our site visit template (height, width, depth, door clearance, power outlet location)
+- [ ] Record Sandstar VRK exact dimensions and keep on hand for quick location qualification
+- [ ] Double-measure protocol: measure on first visit + confirm before delivery scheduling
