@@ -301,8 +301,17 @@
       let filtered = allEvents.filter(e => e.timestamp >= cutoff14d);
       // Hide auto-logged "Proposal sent" activities from the display (data stays in DB for tracking)
       filtered = filtered.filter(e => !e.text?.toLowerCase().includes('proposal sent'));
-      // Hide auto-logged "email sent" activities (emails to leads)
-      filtered = filtered.filter(e => !(e.category === 'email' && /\b(sent|send|delivered|dispatched)\b/i.test(e.text || '')));
+      // Hide all activities about sending emails to leads (both email-type and notes mentioning email sends)
+      filtered = filtered.filter(e => {
+        const t = (e.text || '').toLowerCase();
+        // Hide email-category entries about sending
+        if (e.category === 'email' && /\b(sent|send|delivered|dispatched)\b/i.test(t)) return false;
+        // Hide notes/entries that are just about sending follow-up emails
+        if (/sent.*(?:follow[- ]?up|visit).*email|(?:follow[- ]?up|visit).*email.*sent|sent.*email.*(?:with proposal|proposal pdf)/i.test(e.text || '')) return false;
+        // Hide "Proposal email sent" patterns
+        if (/^(?:proposal email sent|sent (?:visit )?follow[- ]?up email)/i.test((e.text || '').replace(/^[📧📬🔔\s]+/, ''))) return false;
+        return true;
+      });
       if (currentFilter !== 'all') filtered = filtered.filter(e => e.category === currentFilter);
       if (search) filtered = filtered.filter(e => e.prospectName.toLowerCase().includes(search) || e.text.toLowerCase().includes(search));
 

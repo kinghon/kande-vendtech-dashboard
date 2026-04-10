@@ -112,3 +112,60 @@
 - KY operating license questions, Vero Beach FL VP networking
 - VendHub account creation questions
 - Open market vs closed machine format debates
+
+## 2026-04-03 Daily Scrape
+
+### 🔴 HIGH-IMPACT: 365 Acquiring Cantaloupe — Antitrust Review
+- **365 Retail Markets is acquiring Cantaloupe** — deal was supposed to close in 2025 but is now under antitrust review, pushed to June 2026.
+- If approved, 365 and Cantaloupe operations (including customer service) will likely consolidate.
+- **Kande impact:** This reduces competition in the smart cooler/market platform space. If we use either 365 or Cantaloupe equipment, expect service disruptions during merger. May also mean less negotiating leverage on fees long-term.
+
+### 🔴 HIGH-IMPACT: Vegas Competitor Spotted — Madison Graves
+- **Madison Graves is actively operating in Las Vegas** with HAHA machines (white interior).
+- She has a **3-location deal** in progress — one HAHA already placed since last year, relocating a second, needs a third.
+- **Kande impact:** Direct competitor in our market. She's ahead of us in placement count. We need to accelerate pop-ins and close pending deals before she locks up more properties.
+
+### 🔴 HIGH-IMPACT: NSF Certification Update (Corrects Previous Intel)
+- **EZEgo IS NSF/ANSI 7 certified** (confirmed by Zach Iniguez)
+- **SandStar Taste GDM and Haha Pro** also believed to be NSF certified
+- This corrects the earlier concern that "no HAHA or SandStar machines are NSF compliant"
+- **Kande impact:** Our incoming Sandstar VRK may NOT be NSF certified, but the Taste GDM is. If targeting hospitals/corporate with strict compliance, prioritize Taste GDM or EZEgo models.
+
+### 🟡 SIGNIFICANT: HAHA Financing — Affirm 0% for 6 Months
+- When ordering HAHA **directly** (not through VendHub), Affirm financing available: **6 months 0% interest**
+- Caveat: works for first couple machines, then Affirm may change terms. Criteria unclear.
+- **Kande impact:** If we ever need a HAHA quickly, order direct for 0% financing rather than through VendHub.
+
+### 🟡 SIGNIFICANT: Q1 Profit Stagnation Pattern
+- Operator (Calen Gerstenberger) reporting revenue growing but monthly profit NOT growing proportionally
+- Seeking best practices for cashflow management at scale
+- **Kande impact:** Common scaling trap. As we add machines, ensure COGS stays at 30% target (per Anthony's benchmark) and factor in restock labor/transport costs per machine.
+
+### 🟡 SIGNIFICANT: Credit Card Processing — Castle > Pax for SandStar
+- Matt Sievers reports Castle readers work better than Pax on SandStar machines
+- SandStar now offers multiple processor options (WeVend was previously only option)
+- **Kande impact:** When setting up our SandStar VRKs, ask about Castle reader option.
+
+### 🟡 SIGNIFICANT: VP Weekly Calls All Uploaded as Replays
+- Christabel uploaded ALL 2026 VP Weekly Call replays to the community
+- Linda Horrell (USG) was on March 31 call discussing rebates and self-reporting for manufacturers
+- **Kande impact:** Watch March 31 replay for USG rebate program details — we should be enrolled from day 1.
+
+### ✅ Logged Only
+- Cold email template shared by Manuelle Duvall (MKD Vending)
+- Auto-renewal contract clauses confirmed standard practice
+- 5.5% credit card fees questioned (normal range)
+- Stockwell glass door replacement $800 (elevator damage)
+- VendInsights still no release date
+- Florida VP network forming, Atlanta leads being shared
+
+## 2026-04-04 — Scrape Status
+
+**Mighty Networks session expired.** The community landing page now shows "We Created Our Own Platform — It's Happening" with a Fillout form ("Client Weekly Check in Form") instead of direct community access. The _session_id cookie is no longer valid for authenticated access.
+
+- The iOS/Android apps still appear to be Mighty Networks-powered (com.mightybell.vendingpreneurs)
+- Landing page redirects unauthenticated users to a form at forms.fillout.com/t/ih64AaSuUDus
+- Last successful scrape: 2026-03-30 (510 posts captured)
+- No new posts or video replays could be scraped today
+- **Action needed:** Kurtis needs to re-login to the community in the OpenClaw browser profile to refresh cookies, OR access through the mobile app and export new cookies
+

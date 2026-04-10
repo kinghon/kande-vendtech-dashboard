@@ -157,40 +157,21 @@
 - Extra shelf means more SKU capacity at premium price
 - **Kande takeaway:** Evaluate whether extra shelf justifies $1K premium based on location product mix needs.
 
-## Vendingpreneurs: $8K/Month From ONE Location (2026-04-02)
-- **Single location doing $8K/month** — operator's highest-revenue location. Total portfolio doing $10.5-$11K/month across all locations.
-- **Kande takeaway:** Reinforces that one stellar location can carry a portfolio. Focus prospecting energy on high-potential sites rather than spreading thin across mediocre ones.
+## Vendingpreneurs: 365/Cantaloupe Acquisition Under Antitrust Review (2026-04-03)
+- **365 Retail Markets is acquiring Cantaloupe** — deal delayed by antitrust review, expected to close June 2026.
+- Major consolidation in the smart vending/market platform space. Post-merger, fewer platform choices and potentially less responsive customer service during transition.
+- **Kande takeaway:** Monitor this closely. If we choose 365 or Cantaloupe platforms, budget for service disruptions. Long-term: fewer competitors = potentially higher fees.
 
-## Vendingpreneurs: $6K Machine… $0 Down? Here's How (2026-04-02)
-- **Financing eliminates the capital barrier** — evending.com offers $0 down, first payment deferred 90 days. $6K machine → $117/month over 60 months.
-- **90 days of revenue before first payment** — operator generated sales for 3 months before owing anything on the machine.
-- **Kande takeaway:** Financing pitch is powerful for operators worried about upfront costs. For Kande's B2B pitch, this reinforces the "no cost to you" messaging — locations get machines installed at zero cost. The financing model validates that machines pay for themselves quickly.
+## Vendingpreneurs: NSF Certification Clarification (2026-04-03)
+- **Updated:** EZEgo IS NSF/ANSI 7 certified. SandStar Taste GDM and Haha Pro also likely certified.
+- Previous intel (3/30) that "neither HAHA nor SandStar are NSF" was partially incorrect.
+- **Kande takeaway:** For strict compliance locations, EZEgo or Taste GDM are safe bets. Verify VRK certification before pitching to hospitals/corporate.
 
-## Vendingpreneurs: 18 Months In… First Location Does $22-25K/Month (2026-04-02)
-- **Unicorn location: $22-25K/month** — operator's very first location, 18 months in. 4 total locations.
-- **First location was the unicorn** — proves that beginners can land exceptional locations. Don't need years of experience to find a winner.
-- **Kande takeaway:** Another data point for the pitch deck — single locations can generate $250K+/year. Use this in proposals to show the revenue potential landlords are leaving on the table without premium vending.
+## Vendingpreneurs: Vegas Competitor Identified — Madison Graves (2026-04-03)
+- Active Las Vegas operator with HAHA white interior machines. Has 3-location deal, at least 1 machine already placed since 2025.
+- Looking to buy more white interior HAHAs locally.
+- **Kande takeaway:** Direct competitor in our market. Accelerate pop-ins and close pending deals. Track her presence — she's already placed machines.
 
-## Vendingpreneurs: Why Vending Isn't a Gamble (2026-04-09)
-- **Location-first approach eliminates risk** — qualify the location (high foot traffic, captive audience, no nearby alternatives) BEFORE buying the machine. If it underperforms after 90 days, just move it.
-- **Vending's secret advantage over real estate:** you can relocate a machine, you can't relocate a house.
-- **Finance > save** — saving a year for one machine = a year of zero revenue. Financing lets you start earning in 30-60 days. By the time you've saved for one, you could have financed 2-3.
-- **Kande takeaway:** Use the "it's math, not a gamble" framing in sales pitches. The relocatability argument is strong for hesitant location owners — zero long-term risk if it doesn't perform.
-
-## Vendingpreneurs: One Upgrade From $1,200 to $2,500/mo (2026-04-09)
-- **Same location, same traffic — modern machine doubles revenue.** Traditional machine: $1,200/mo. Modern smart machine: $2,500/mo.
-- **Higher AOV + expanded product range** — modern machines increase average order value and let you sell categories (shakes, premium drinks) that traditional machines can't handle.
-- **Kande takeaway:** This is Kande's core pitch. Use these exact numbers in proposals: "Same foot traffic, 2x the revenue." Reinforces why Sandstar smart machines are worth the premium over traditional.
-
-## Vendingpreneurs: Financing Is the #1 Bottleneck (2026-04-09)
-- **Operator's biggest challenge = getting deals funded.** Claims they could place 100-150 machines in 4 months if capital wasn't a constraint.
-- **Demand is outpacing supply** — voted favorite vendor in Raleigh area across 4 locations, word-of-mouth driving inbound without marketing.
-- **Family as workforce** — college-age daughter doing admin, cold calling, PR/client retention. Proactive client check-ins to head off problems.
-- **Kande takeaway:** Financing is the universal bottleneck for scaling operators. Kande could differentiate by offering financing partnerships or machine-as-a-service. The proactive client retention model (check in before problems happen) is worth adopting.
-
-## Vendingpreneurs: Pricing Tricks That Boost Sales (2026-04-09)
-- **Anchor pricing works** — place expensive Monster ($X) next to Rockstar ($0.50 cheaper). Rockstar has higher margin but looks like the deal.
-- **Use .77 pricing, not round numbers** — $3.77 converts better than $4.00. Specific decimals signal value.
-- **Drinks outsell snacks 70/30** — mark up drinks aggressively, especially premium protein shakes (Fairlife etc.) which sell at $4.50-$6.00.
-- **Don't be afraid of premium pricing** — high-end drinks are the top sellers and highest margin.
-- **Kande takeaway:** Program Sandstar machines with anchor pricing from day one. Lead product mix with premium drinks (70% of sales). Price protein shakes at $4.50-$6.00. Use .77/.99 endings on all items. This is immediate revenue optimization for every Kande location.
+## Vendingpreneurs: SandStar Credit Card Processing (2026-04-03)
+- Castle readers preferred over Pax on SandStar machines. SandStar now supports multiple processor options.
+- **Kande takeaway:** Request Castle readers when setting up our VRK machines.
