@@ -301,6 +301,8 @@
       let filtered = allEvents.filter(e => e.timestamp >= cutoff14d);
       // Hide auto-logged "Proposal sent" activities from the display (data stays in DB for tracking)
       filtered = filtered.filter(e => !e.text?.toLowerCase().includes('proposal sent'));
+      // Hide auto-logged "email sent" activities (emails to leads)
+      filtered = filtered.filter(e => !(e.category === 'email' && /\b(sent|send|delivered|dispatched)\b/i.test(e.text || '')));
       if (currentFilter !== 'all') filtered = filtered.filter(e => e.category === currentFilter);
       if (search) filtered = filtered.filter(e => e.prospectName.toLowerCase().includes(search) || e.text.toLowerCase().includes(search));
 
