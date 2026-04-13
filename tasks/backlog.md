@@ -2,6 +2,14 @@
 
 _(P0s complete. Remaining P1 items below.)_
 
+## P1: Mission Control — Agent Model Monitor Panel — SHIPPED Apr 13, 2026 (ralph-overnight)
+- API: GET /api/agents/model-status + POST /api/agents/model-sync
+- Push script: scripts/push-model-status.py scans session jsonl for model_change + cost, pushes to VendTech
+- Integrated into sync-mission-control.sh (runs every sync cycle)
+- Office page: table with per-agent model, cost/24h, tier (🟢/🟡/🔴), last run
+- Currently showing 34 agents: 30 🟢 free, 4 🟡 Sonnet, 0 🔴 Opus
+- Commits: 287e4b6, b6e17e6, 49e2e5d
+
 ## Completed
 - **P0: Office "Right Now" + Machine Setup UI** — Shipped Apr 8, 2026 (ralph-overnight). Fixed 5-min staleness, added 5 real machine models + full status flow (ordered→active), purchase tracking. commits: 7e4a48c, 8ea6a6c
 - **P0: Locations Schema + Rev Share + Collections API + Health Check** — Built and shipped Apr 8, 2026 (ralph-overnight). Created locations.html with rev share color coding, /api/locations/:id/collections CRUD, /api/admin/health-check. commit: 8fa560f
@@ -42,7 +50,8 @@ The logic: recent re-opens = renewed interest. That's the signal to prioritize.
 
 After shipping, screenshot the pipeline page showing the new column.
 
-## P0: Operations Backend — 5 Machines Arriving in 3 Weeks
+## P0: Operations Backend — 5 Machines Arriving in 3 Weeks — ALL SUB-ITEMS SHIPPED
+_Machine Setup UI (8ea6a6c), Locations + Rev Share (8fa560f), Revenue Tracking (revenue.html + collections API), Restock Workflow (restock.html + APIs), Data Integrity (26 addresses fixed Apr 9)_
 5 real vending machines arriving in ~3 weeks:
 - 2x Sandstar VRK (smart vending)
 - 1x CVM13 (combo vending)
@@ -73,9 +82,9 @@ Note: Sandstar VRK = AI-powered camera-based machine. May have API/telemetry we 
 - Flag machines that need restocking (below threshold)
 - Log restock events
 
-**5. Data Integrity Check**
-- Fix 25 prospects with missing name/address
-- Add a /api/admin/health-check endpoint that returns: DB record counts, missing field counts, last sync timestamps
+**5. Data Integrity Check** — SHIPPED Apr 9, 2026
+- ~~Fix 25 prospects with missing name/address~~ Fixed 26 prospects via web-researched addresses. `prospects_missing_address`: 26→0.
+- ~~Add a /api/admin/health-check endpoint~~ Already shipped (commit 8fa560f).
 
 ### Priority: P0 — machines arrive in 3 weeks, this needs to work before then.
 Build in this order: Locations → Machines → Revenue → Restock
@@ -100,3 +109,6 @@ Cleared naturally with new real activity data.
 
 ## P1: Briefing Hot Lead Priority — SHIPPED Apr 9, 2026
 Replaced hardcoded "Updated Feb 21" Hot Lead section with dynamic API-driven ranking. Scores based on status, priority, unit count, activity recency, email engagement, and Google reviews. Top 10 leads auto-update daily. Commits: 683359c, 0ff9d4b.
+
+## P1: Office page "Tasks Running" out of sync with "Right Now" — SHIPPED Apr 9, 2026
+Banner now syncs from same updateScene() data as Right Now section (pollStatus → /api/office/status-v2 every 15s). No more heartbeat fallback. Commits: 86b4d72, 080a055. Verified live — banner and Right Now show matching count.
