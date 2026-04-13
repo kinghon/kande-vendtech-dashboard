@@ -417,6 +417,35 @@
             </div>
         </div>
 
+        <!-- Agent Model Monitor Panel -->
+        <div id="modelMonitor" style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+            <h3 style="margin: 0 0 12px 0; font-size: 1rem; color: #374151; display: flex; align-items: center; gap: 8px;">
+                🤖 Agent Model Monitor
+                <span id="modelSyncAge" style="font-size: 0.7rem; color: #9ca3af; font-weight: 400;"></span>
+            </h3>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #e5e7eb;">
+                            <th style="text-align: left; padding: 6px 8px; color: #6b7280; font-weight: 600;">Agent</th>
+                            <th style="text-align: left; padding: 6px 8px; color: #6b7280; font-weight: 600;">Model</th>
+                            <th style="text-align: right; padding: 6px 8px; color: #6b7280; font-weight: 600;">Cost/24h</th>
+                            <th style="text-align: center; padding: 6px 8px; color: #6b7280; font-weight: 600;">Tier</th>
+                            <th style="text-align: right; padding: 6px 8px; color: #6b7280; font-weight: 600;">Last Run</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modelTableBody">
+                        <tr><td colspan="5" style="padding: 12px; color: #9ca3af; text-align: center;">Loading model data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top: 10px; display: flex; gap: 16px; font-size: 0.75rem; color: #6b7280;">
+                <span>🟢 Free (DeepSeek/local)</span>
+                <span>🟡 Cheap (Sonnet/Haiku)</span>
+                <span>🔴 Expensive (Opus/GPT-4)</span>
+            </div>
+        </div>
+
         <div class="stats-panel">
             <div class="stat-card">
                 <div class="stat-value" id="totalAgents">-</div>
@@ -659,6 +688,57 @@
             }
         });
         
+        // Load Agent Model Monitor data
+        async function loadModelData() {
+            try {
+                const r = await fetch('/api/agents/model-status');
+                const data = await r.json();
+                const agents = data.agents || [];
+                const tbody = document.getElementById('modelTableBody');
+
+                if (agents.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="padding:12px;color:#9ca3af;text-align:center;">No model data available (push script not synced yet)</td></tr>';
+                    return;
+                }
+
+                const tierColors = {
+                    'free': { bg: '#f0fdf4', dot: '#10b981', emoji: '🟢' },
+                    'cheap': { bg: '#fffbeb', dot: '#f59e0b', emoji: '🟡' },
+                    'expensive': { bg: '#fef2f2', dot: '#ef4444', emoji: '🔴' },
+                    'unknown': { bg: '#f9fafb', dot: '#9ca3af', emoji: '⚪' }
+                };
+
+                let html = '';
+                agents.forEach(a => {
+                    const tier = tierColors[a.tier] || tierColors['unknown'];
+                    const costStr = a.cost > 0 ? '$' + a.cost.toFixed(2) : '$0';
+                    const costColor = a.cost > 1 ? '#ef4444' : a.cost > 0.1 ? '#f59e0b' : '#10b981';
+                    const lastRun = a.lastRun ? new Date(a.lastRun).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
+                    html += `<tr style="border-bottom:1px solid #f3f4f6;background:${tier.bg};">
+                        <td style="padding:5px 8px;font-weight:500;color:#374151;">${a.job}</td>
+                        <td style="padding:5px 8px;color:#6b7280;font-family:monospace;font-size:0.78rem;">${a.model}</td>
+                        <td style="padding:5px 8px;text-align:right;color:${costColor};font-weight:600;">${costStr}</td>
+                        <td style="padding:5px 8px;text-align:center;">${tier.emoji}</td>
+                        <td style="padding:5px 8px;text-align:right;color:#9ca3af;">${lastRun}</td>
+                    </tr>`;
+                });
+                tbody.innerHTML = html;
+
+                // Sync age indicator
+                if (data.syncedAt) {
+                    const ageMin = Math.floor((Date.now() - new Date(data.syncedAt).getTime()) / 60000);
+                    document.getElementById('modelSyncAge').textContent = ageMin < 60 ? `synced ${ageMin}m ago` : `synced ${Math.floor(ageMin/60)}h ago`;
+                }
+                if (data.stale) {
+                    document.getElementById('modelSyncAge').style.color = '#ef4444';
+                    document.getElementById('modelSyncAge').textContent += ' ⚠️ stale';
+                }
+            } catch (e) {
+                console.error('Model data load failed:', e);
+                document.getElementById('modelTableBody').innerHTML = '<tr><td colspan="5" style="padding:12px;color:#ef4444;text-align:center;">Failed to load model data</td></tr>';
+            }
+        }
+
         // Load API cost data
         async function loadCostData() {
             try {
@@ -704,8 +784,10 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadOfficeData();
             loadCostData();
+            loadModelData();
             startAutoRefresh();
             setInterval(loadCostData, 60000); // refresh costs every minute
+            setInterval(loadModelData, 120000); // refresh model data every 2 min
         });
         
         // Keyboard shortcuts
