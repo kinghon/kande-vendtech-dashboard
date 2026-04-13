@@ -107,6 +107,10 @@ else:
 PYEOF
 fi
 
+# ── 1c. Push model+cost data for Agent Model Monitor ────────────────────────
+echo "🤖 Pushing agent model status..."
+python3 /Users/kurtishon/clawd/scripts/push-model-status.py 2>&1 | while IFS= read -r line; do echo "   $line"; done
+
 # ── 2. Push key memory files to DB ──────────────────────────────────────────
 push_memory() {
   local filepath="$1"
