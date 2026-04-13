@@ -73,7 +73,7 @@ function sanitizeObject(obj) {
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
   // Allow these paths without auth
-  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status', '/api/memory/db-list', '/api/memory/db-read', '/api/memory/db-search', '/api/memory/sync', '/digital', '/api/mission-control/tasks/bulk-sync', '/onboard', '/api/digital/onboard', '/clients', '/scout-intel', '/api/pipeline/engagement-alerts', '/api/digital/gmb/batch-score', '/account-tiers', '/api/pipeline/account-tiers', '/api/crm/status-diff', '/api/monitoring', '/api/jobs/sentinel', '/api/briefing', '/api/agents/cron-sync'];
+  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status', '/api/agents/model-status', '/api/memory/db-list', '/api/memory/db-read', '/api/memory/db-search', '/api/memory/sync', '/digital', '/api/mission-control/tasks/bulk-sync', '/onboard', '/api/digital/onboard', '/clients', '/scout-intel', '/api/pipeline/engagement-alerts', '/api/digital/gmb/batch-score', '/account-tiers', '/api/pipeline/account-tiers', '/api/crm/status-diff', '/api/monitoring', '/api/jobs/sentinel', '/api/briefing', '/api/agents/cron-sync', '/api/agents/model-sync'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
     return next();
   }
@@ -24020,6 +24020,33 @@ app.post('/api/agents/cron-sync', express.json({ limit: '1mb' }), (req, res) => 
     res.json({ ok: true, jobCount: jobs.length, syncedAt: db.cronJobsSync.syncedAt });
   } catch (err) {
     res.status(500).json({ error: 'Cron sync failed', details: err.message });
+  }
+});
+
+// POST /api/agents/model-sync — Accept model+cost data pushed from Mac mini
+app.post('/api/agents/model-sync', express.json({ limit: '1mb' }), (req, res) => {
+  try {
+    const { agents } = req.body;
+    if (!agents || !Array.isArray(agents)) return res.status(400).json({ error: 'agents array required' });
+    db.modelStatusSync = { agents, syncedAt: new Date().toISOString() };
+    res.json({ ok: true, agentCount: agents.length, syncedAt: db.modelStatusSync.syncedAt });
+  } catch (err) {
+    res.status(500).json({ error: 'Model sync failed', details: err.message });
+  }
+});
+
+// GET /api/agents/model-status — Return model + cost per cron agent
+app.get('/api/agents/model-status', (req, res) => {
+  try {
+    const sync = db.modelStatusSync;
+    if (!sync || !sync.agents) {
+      return res.json({ agents: [], syncedAt: null, stale: true });
+    }
+    const syncAge = Date.now() - new Date(sync.syncedAt).getTime();
+    const stale = syncAge > 30 * 60 * 1000; // stale if older than 30 min
+    res.json({ agents: sync.agents, syncedAt: sync.syncedAt, stale });
+  } catch (err) {
+    res.status(500).json({ error: 'Model status failed', details: err.message });
   }
 });
 
