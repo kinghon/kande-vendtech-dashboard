@@ -602,11 +602,28 @@ app.get('/api/prospects/:id', (req, res) => {
   res.json({ ...prospect, contacts, activities });
 });
 
+// Valid source values for prospects
+const PROSPECT_SOURCES = ['manual', 'scout-maps', 'scout-web', 'scout-research', 'apollo', 'field', 'referral', 'crm-import', 'other'];
+function normalizeSource(src) {
+  if (!src) return 'manual';
+  const s = src.toLowerCase().trim();
+  if (s.includes('field') || s.includes('pop') || s.includes('visit')) return 'field';
+  if (s.includes('scout') && s.includes('map')) return 'scout-maps';
+  if (s.includes('scout') && s.includes('web')) return 'scout-web';
+  if (s.includes('scout') || s.includes('research')) return 'scout-research';
+  if (s.includes('google') || s.includes('maps')) return 'scout-maps';
+  if (s.includes('apollo')) return 'apollo';
+  if (s.includes('referral') || s.includes('referred') || s.includes('hand')) return 'referral';
+  if (s.includes('import') || s.includes('bulk')) return 'crm-import';
+  if (s.includes('manual') || s.includes('direct')) return 'manual';
+  return 'other';
+}
+
 app.post('/api/prospects', (req, res) => {
   if (!req.body.name || !req.body.name.trim()) {
     return res.status(400).json({ error: 'name is required' });
   }
-  const prospect = { id: nextId(), ...req.body, status: req.body.status || 'new', priority: req.body.priority || 'normal', created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+  const prospect = { id: nextId(), ...req.body, source: normalizeSource(req.body.source), status: req.body.status || 'new', priority: req.body.priority || 'normal', created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
   db.prospects.push(prospect);
   saveDB(db);
   // Auto-create pipeline card for new prospect (CRM→Pipeline sync)
