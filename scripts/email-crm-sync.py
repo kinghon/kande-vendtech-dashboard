@@ -12,15 +12,23 @@ from pathlib import Path
 
 ACCOUNTS = [
     {
-        "email":    "kurtis@kandevendtech.com",
-        "password": "kandepb2026",
-        "crm_base": "https://vend.kandedash.com",
-        "crm_key":  "kande2026",
-        "label":    "VendTech",
+        "email":      "kurtis@kandevendtech.com",
+        "password":   "kandepb2026",
+        "crm_base":   "https://vend.kandedash.com",
+        "crm_key":    "kande2026",
+        "crm_auth":   "api-key",
+        "label":      "VendTech",
+        "staff":      ["jordan@kandevendtech.com"],
     },
-    # PhotoBooths emails handled separately by pb-email-drafts cron
-    # (PB uses Bearer auth + /api/inbox, not a prospects CRM)
-    # To add PB: use https://pb.kandedash.com/api/inbox with Authorization: Bearer kpb-ops-2026
+    {
+        "email":      "kurtis@kandephotobooths.com",
+        "password":   "kandepb2026",
+        "crm_base":   "https://pb.kandedash.com",
+        "crm_key":    "kpb-ops-2026",
+        "crm_auth":   "bearer",
+        "label":      "PhotoBooths",
+        "staff":      ["mary@kandephotobooths.com", "coreen@kandephotobooths.com"],
+    },
 ]
 
 INTERNAL_EMAILS = {
@@ -28,6 +36,8 @@ INTERNAL_EMAILS = {
     "mary@kandephotobooths.com", "coreen@kandephotobooths.com",
     "kurtis@kandephotobooths.com", "kurtis.hon@gmail.com",
 }
+# All staff across all accounts (built dynamically below)
+ALL_STAFF = set()
 
 STATE_FILE = Path("/Users/kurtishon/clawd/logs/email-sync-state.json")
 DRY_RUN    = "--dry-run" in sys.argv
@@ -86,14 +96,31 @@ def extract_email_addr(raw):
     return m.group(1).lower().strip() if m else raw.lower().strip()
 
 # ── CRM ───────────────────────────────────────────────────────────────────────
-def load_prospects(crm_base, crm_key):
+def load_prospects(crm_base, crm_key, crm_auth="api-key"):
     try:
-        req = urllib.request.Request(
-            f"{crm_base}/api/prospects?limit=1000",
-            headers={"x-api-key": crm_key})
-        with urllib.request.urlopen(req, timeout=15) as r:
-            data = json.loads(r.read())
-        return data if isinstance(data, list) else data.get("data", [])
+        if crm_auth == "bearer":
+            # PB uses inbox as its lead system
+            req = urllib.request.Request(
+                f"{crm_base}/api/inbox",
+                headers={"Authorization": f"Bearer {crm_key}"})
+            with urllib.request.urlopen(req, timeout=15) as r:
+                data = json.loads(r.read())
+            # Convert inbox emails to prospect-like objects for matching
+            emails = data.get("emails", [])
+            return [{
+                "id":       e["id"],
+                "name":     e.get("from", "?").split("<")[0].strip(),
+                "contacts": [{"email": extract_email_addr(e.get("from", ""))}],
+                "status":   "new",
+                "_pb_inbox": True,
+            } for e in emails]
+        else:
+            req = urllib.request.Request(
+                f"{crm_base}/api/prospects?limit=1000",
+                headers={"x-api-key": crm_key})
+            with urllib.request.urlopen(req, timeout=15) as r:
+                data = json.loads(r.read())
+            return data if isinstance(data, list) else data.get("data", [])
     except Exception as e:
         print(f"    ⚠️ Could not load prospects: {e}")
         return []
@@ -116,15 +143,22 @@ def find_prospect(prospects, email_addr):
                         return p
     return None
 
-def log_activity(crm_base, crm_key, prospect_id, atype, notes, direction):
+def log_activity(crm_base, crm_key, crm_auth, prospect_id, atype, notes, direction):
     if DRY_RUN:
-        print(f"      [DRY RUN] log {atype} → prospect {prospect_id}")
+        print(f"      [DRY RUN] log {atype} → {prospect_id}")
         return True
     body = json.dumps({"type": atype, "notes": notes, "date": TODAY, "direction": direction}).encode()
-    req  = urllib.request.Request(
-        f"{crm_base}/api/prospects/{prospect_id}/activities",
-        data=body, method="POST",
-        headers={"x-api-key": crm_key, "Content-Type": "application/json"})
+    if crm_auth == "bearer":
+        # PB: log to /api/activity
+        req = urllib.request.Request(
+            f"{crm_base}/api/activity",
+            data=body, method="POST",
+            headers={"Authorization": f"Bearer {crm_key}", "Content-Type": "application/json"})
+    else:
+        req = urllib.request.Request(
+            f"{crm_base}/api/prospects/{prospect_id}/activities",
+            data=body, method="POST",
+            headers={"x-api-key": crm_key, "Content-Type": "application/json"})
     try:
         with urllib.request.urlopen(req, timeout=10) as r:
             return r.status < 300
@@ -132,9 +166,9 @@ def log_activity(crm_base, crm_key, prospect_id, atype, notes, direction):
         print(f"      ⚠️ log failed: {e}")
         return False
 
-def update_status(crm_base, crm_key, prospect_id, status):
-    if DRY_RUN:
-        return
+def update_status(crm_base, crm_key, crm_auth, prospect_id, status):
+    if DRY_RUN or crm_auth == "bearer":
+        return  # PB inbox has no status field
     body = json.dumps({"status": status}).encode()
     req  = urllib.request.Request(
         f"{crm_base}/api/prospects/{prospect_id}",
@@ -152,15 +186,17 @@ def sync_account(acct, processed):
     password = acct["password"]
     crm_base = acct["crm_base"]
     crm_key  = acct["crm_key"]
+    crm_auth = acct.get("crm_auth", "api-key")
     label    = acct["label"]
+    staff    = set(acct.get("staff", [])) | {email}
 
-    prospects   = load_prospects(crm_base, crm_key)
+    prospects   = load_prospects(crm_base, crm_key, crm_auth)
     new_seen    = []
     logged      = 0
 
     print(f"\n  [{label}] {len(prospects)} prospects loaded")
 
-    # ── Inbound ───────────────────────────────────────────────────────────────
+    # ── Inbound from prospects ────────────────────────────────────────────────
     print(f"  [{label}] 📥 Checking inbound...")
     inbound = search_emails(email, password,
         "-from:noreply -from:no-reply -from:notifications newer_than:3d", max_results=30)
@@ -174,21 +210,7 @@ def sync_account(acct, processed):
         from_addr = extract_email_addr(from_raw)
         subject   = e["subject"]
 
-        # Skip internal + self
         if from_addr in INTERNAL_EMAILS:
-            # But if it's Jordan emailing a prospect, log it
-            if from_addr == "jordan@kandevendtech.com":
-                detail = get_email_detail(email, password, mid)
-                to_addr = detail.get("to", "")
-                p = find_prospect(prospects, to_addr) if to_addr else None
-                if p:
-                    print(f"    🌟 [{label}] Jordan→{p['name']}: {subject[:45]}")
-                    if log_activity(crm_base, crm_key, p["id"],
-                                    "jordan_followup_email",
-                                    f"Jordan sent: '{subject}' to {to_addr}", "outbound"):
-                        if p.get("status") not in ("signed","negotiating","proposal_sent","active"):
-                            update_status(crm_base, crm_key, p["id"], "active")
-                        logged += 1
             new_seen.append(mid)
             continue
 
@@ -196,8 +218,42 @@ def sync_account(acct, processed):
         if p:
             atype = "email_reply_received" if re.match(r're:', subject, re.I) else "email_received"
             print(f"    ✉️  [{label}] Inbound: {p['name']} | {subject[:45]}")
-            if log_activity(crm_base, crm_key, p["id"], atype,
+            if log_activity(crm_base, crm_key, crm_auth, p["id"], atype,
                             f"Inbound: '{subject}' from {from_addr}", "inbound"):
+                logged += 1
+        new_seen.append(mid)
+
+    # ── Staff emails (CC'd to Kurtis) ─────────────────────────────────────────
+    print(f"  [{label}] 👥 Checking staff CC'd emails...")
+    cc_emails = search_emails(email, password,
+        f"cc:{email} -from:{email} -from:noreply newer_than:3d", max_results=30)
+
+    for e in cc_emails:
+        mid       = e["id"]
+        if mid in processed:
+            continue
+
+        from_raw  = e["from"]
+        from_addr = extract_email_addr(from_raw)
+        subject   = e["subject"]
+
+        # Only track emails from this account's staff
+        if from_addr not in staff:
+            new_seen.append(mid)
+            continue
+
+        detail      = get_email_detail(email, password, mid)
+        to_addr     = detail.get("to", "")
+        sender_name = from_raw.split("<")[0].strip() or from_addr
+
+        p = find_prospect(prospects, to_addr) if to_addr else None
+        if p:
+            print(f"    👥 [{label}] {sender_name}→{p['name']}: {subject[:40]}")
+            if log_activity(crm_base, crm_key, crm_auth, p["id"],
+                            "staff_email_sent",
+                            f"{sender_name} sent: '{subject}' to {to_addr}", "outbound"):
+                if p.get("status") not in ("signed","negotiating","proposal_sent","active"):
+                    update_status(crm_base, crm_key, crm_auth, p["id"], "active")
                 logged += 1
         new_seen.append(mid)
 
@@ -223,11 +279,11 @@ def sync_account(acct, processed):
         p = find_prospect(prospects, to_addr) if to_addr else None
         if p:
             print(f"    📤 [{label}] Outbound: {p['name']} | {subject[:45]}")
-            if log_activity(crm_base, crm_key, p["id"], atype,
+            if log_activity(crm_base, crm_key, crm_auth, p["id"], atype,
                             f"Sent: '{subject}' to {to_addr}", "outbound"):
                 if atype in ("proposal_sent","visit_follow_up_email"):
                     if p.get("status") not in ("signed","negotiating","proposal_sent"):
-                        update_status(crm_base, crm_key, p["id"], "proposal_sent")
+                        update_status(crm_base, crm_key, crm_auth, p["id"], "proposal_sent")
                 logged += 1
         new_seen.append(mid)
 
