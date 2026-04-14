@@ -552,8 +552,21 @@ app.post('/api/marketing/gbp', (req, res) => {
 function nextId() { return db.nextId++; }
 
 // ===== PROSPECTS API =====
+app.get('/api/prospects/staging', (req, res) => {
+  const staging = db.prospects.filter(p => p.qual_status === 'staging').map(p => ({
+    ...p,
+    activities: db.activities.filter(a => a.prospect_id === p.id),
+    contacts: db.contacts.filter(c => c.prospect_id === p.id)
+  }));
+  res.json(staging);
+});
+
 app.get('/api/prospects', (req, res) => {
-  const prospects = db.prospects.map(p => {
+  const includeStaging = req.query.include_staging === 'true';
+  const allProspects = includeStaging
+    ? db.prospects
+    : db.prospects.filter(p => p.qual_status !== 'staging');
+  const prospects = allProspects.map(p => {
     const activities = db.activities.filter(a => a.prospect_id === p.id);
     const contacts = db.contacts.filter(c => c.prospect_id === p.id);
     const lastActivity = activities.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
@@ -619,11 +632,19 @@ function normalizeSource(src) {
   return 'other';
 }
 
+const { qualifyLead, logRejection } = require('./scripts/qual-gate.js');
 app.post('/api/prospects', (req, res) => {
   if (!req.body.name || !req.body.name.trim()) {
     return res.status(400).json({ error: 'name is required' });
   }
-  const prospect = { id: nextId(), ...req.body, source: normalizeSource(req.body.source), status: req.body.status || 'new', priority: req.body.priority || 'normal', created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+  // Lead qualification gate — reject/stage low-quality leads before CRM entry
+  const qualResult = qualifyLead(req.body);
+  if (qualResult.tier === 'D') {
+    logRejection(req.body, qualResult);
+    return res.status(422).json({ error: 'Lead failed qualification', tier: 'D', score: qualResult.score, reason: qualResult.reason });
+  }
+  const qual_status = qualResult.bypass ? 'approved' : (qualResult.tier === 'C' ? 'staging' : 'approved');
+  const prospect = { id: nextId(), ...req.body, source: normalizeSource(req.body.source), status: req.body.status || 'new', priority: req.body.priority || 'normal', qual_status, qual_gate_score: qualResult.score, qual_gate_tier: qualResult.tier, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
   db.prospects.push(prospect);
   saveDB(db);
   // Auto-create pipeline card for new prospect (CRM→Pipeline sync)
