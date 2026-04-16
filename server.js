@@ -643,7 +643,12 @@ app.post('/api/prospects', (req, res) => {
     logRejection(req.body, qualResult);
     return res.status(422).json({ error: 'Lead failed qualification', tier: 'D', score: qualResult.score, reason: qualResult.reason });
   }
-  const qual_status = qualResult.bypass ? 'approved' : (qualResult.tier === 'C' ? 'staging' : 'approved');
+  // Tier C now banned same as D
+  if (!qualResult.bypass && qualResult.tier === 'C') {
+    logRejection(req.body, qualResult);
+    return res.status(422).json({ error: 'Lead failed qualification', tier: 'C', score: qualResult.score, reason: qualResult.reason });
+  }
+  const qual_status = qualResult.bypass ? 'approved' : 'approved';
   const prospect = { id: nextId(), ...req.body, source: normalizeSource(req.body.source), status: req.body.status || 'new', priority: req.body.priority || 'normal', qual_status, qual_gate_score: qualResult.score, qual_gate_tier: qualResult.tier, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
   db.prospects.push(prospect);
   saveDB(db);

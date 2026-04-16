@@ -9,7 +9,7 @@
  *
  * Tiers:
  *   score >= 4  → A/B  → approved, save normally
- *   score == 2-3 → C   → staging (hidden from main CRM view)
+ *   score == 2-3 → C   → rejected (same as D)
  *   score <= 1  → D    → rejected (log to file, return 422)
  *
  * Bypass (always approved):
@@ -21,6 +21,27 @@ const fs   = require('fs');
 const path = require('path');
 
 const REJECTION_LOG = '/Users/kurtishon/clawd/logs/qual-rejections.jsonl';
+const BLOCKLIST_PATH = '/Users/kurtishon/clawd/data/lead-blocklist.json';
+
+function loadBlocklist() {
+  try {
+    const raw = fs.readFileSync(BLOCKLIST_PATH, 'utf8');
+    return JSON.parse(raw);
+  } catch { return []; }
+}
+
+function isBlocked(data) {
+  const list = loadBlocklist();
+  const placeId = data.google_place_id || data.maps_place_id;
+  const name = (data.name || '').toLowerCase().trim();
+  if (placeId && list.some(e => e.google_place_id === placeId)) {
+    return { blocked: true, reason: `place_id ${placeId} is on blocklist` };
+  }
+  if (name && list.some(e => (e.name || '').toLowerCase().trim() === name)) {
+    return { blocked: true, reason: `"${data.name}" is on blocklist` };
+  }
+  return { blocked: false };
+}
 
 function qualifyLead(data) {
   // Bypass for manual/referral entries
@@ -28,6 +49,11 @@ function qualifyLead(data) {
   const kurtisNotes = (data.kurtis_notes || '').trim();
   if (source === 'manual' || source === 'referral' || kurtisNotes) {
     return { tier: 'A', score: 6, reason: 'manual/referral bypass', bypass: true };
+  }
+  // Blocklist check — permanently banned Tier C/D locations
+  const blockCheck = isBlocked(data);
+  if (blockCheck.blocked) {
+    return { tier: 'D', score: 0, reason: `Blocklisted: ${blockCheck.reason}`, bypass: false };
   }
 
   let score = 0;
@@ -70,7 +96,7 @@ function qualifyLead(data) {
   // Determine tier
   let tier;
   if (score >= 4) tier = 'B';      // pass
-  else if (score >= 2) tier = 'C'; // staging
+  else if (score >= 2) tier = 'C'; // rejected
   else tier = 'D';                  // reject
 
   return { tier, score, reason: reasons.join(' | '), bypass: false };
