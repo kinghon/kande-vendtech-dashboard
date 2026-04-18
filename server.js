@@ -73,7 +73,7 @@ function sanitizeObject(obj) {
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
   // Allow these paths without auth
-  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status', '/api/agents/model-status', '/api/memory/db-list', '/api/memory/db-read', '/api/memory/db-search', '/api/memory/sync', '/digital', '/api/mission-control/tasks/bulk-sync', '/onboard', '/api/digital/onboard', '/clients', '/scout-intel', '/api/pipeline/engagement-alerts', '/api/digital/gmb/batch-score', '/account-tiers', '/api/pipeline/account-tiers', '/api/crm/status-diff', '/api/monitoring', '/api/jobs/sentinel', '/api/briefing', '/api/agents/cron-sync', '/api/agents/model-sync'];
+  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status', '/api/agents/model-status', '/api/memory/db-list', '/api/memory/db-read', '/api/memory/db-search', '/api/memory/sync', '/digital', '/api/mission-control/tasks/bulk-sync', '/onboard', '/api/digital/onboard', '/clients', '/scout-intel', '/competitor-intel', '/api/competitor-intel', '/ocs', '/api/pipeline/engagement-alerts', '/api/digital/gmb/batch-score', '/account-tiers', '/api/pipeline/account-tiers', '/api/crm/status-diff', '/api/monitoring', '/api/jobs/sentinel', '/api/briefing', '/api/agents/cron-sync', '/api/agents/model-sync'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
     return next();
   }
@@ -24774,6 +24774,41 @@ app.post('/api/mission-control/tasks/bulk-sync', express.json({ limit: '1mb' }),
 // Market coverage status, unclaimed verticals, overthrow intelligence, pipeline alerts
 app.get('/scout-intel', (req, res) => {
   res.sendFile(path.join(__dirname, 'scout-intel.html'));
+});
+
+// ===== COMPETITOR INTELLIGENCE API (Jarvis 2026-04-17) =====
+app.get('/competitor-intel', (req, res) => {
+  res.sendFile(path.join(__dirname, 'competitor-intel.html'));
+});
+
+app.get('/ocs', (req, res) => {
+  res.sendFile(path.join(__dirname, 'ocs.html'));
+});
+
+app.get('/api/competitor-intel/files', (req, res) => {
+  const fs = require('fs');
+  const intelDir = '/Users/kurtishon/clawd/agent-output/intelligence/competitors';
+  try {
+    if (!fs.existsSync(intelDir)) return res.json([]);
+    const files = fs.readdirSync(intelDir).filter(f => f.endsWith('.md'));
+    const result = files.map(f => {
+      const content = fs.readFileSync(path.join(intelDir, f), 'utf8');
+      const name = f.replace('.md', '').replace(/-/g, ' ').replace(/\band\b/g, '&').replace(/\b\w/g, c => c.toUpperCase());
+      // Extract sections
+      const sections = {};
+      const sectionRegex = /## ([^\n]+) — [\d-]+\n([\s\S]*?)(?=\n## |$)/g;
+      let m;
+      while ((m = sectionRegex.exec(content)) !== null) {
+        sections[m[1].trim()] = m[2].trim();
+      }
+      // Extract QA scores
+      const qaMatches = content.match(/QUALITY: (\d)/g) || [];
+      const scores = qaMatches.map(s => parseInt(s.replace('QUALITY: ', '')));
+      const avgScore = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0) / scores.length * 10) / 10 : null;
+      return { file: f, name, content, sections, avgScore, sectionCount: Object.keys(sections).length };
+    });
+    res.json(result);
+  } catch(e) { res.json([]); }
 });
 
 // ===== PIPELINE ENGAGEMENT ALERTS API (Ralph 2026-02-21) =====

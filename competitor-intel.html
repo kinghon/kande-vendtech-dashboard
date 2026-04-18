@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Competitor Intelligence — Kande Mission Control</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f8f9fa; --card: #ffffff; --border: #e2e8f0;
+    --text: #1a1a1a; --text-muted: #64748b;
+    --accent: #3b82f6; --green: #10b981; --yellow: #f59e0b;
+    --red: #ef4444; --orange: #f97316; --purple: #8b5cf6;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08); --shadow-md: 0 4px 12px rgba(0,0,0,0.10);
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  nav { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 24px; height: 56px; display: flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow); }
+  .nav-logo { font-weight: 700; font-size: 1rem; color: var(--accent); margin-right: 8px; text-decoration: none; }
+  .nav-divider { width: 1px; height: 20px; background: var(--border); margin: 0 8px; }
+  nav a { color: var(--text-muted); text-decoration: none; font-size: 0.875rem; padding: 6px 10px; border-radius: 6px; transition: all .15s; }
+  nav a:hover, nav a.active { background: #f1f5f9; color: var(--text); }
+
+  .page { max-width: 1400px; margin: 0 auto; padding: 28px 24px; }
+  .page-header { margin-bottom: 28px; display: flex; align-items: flex-start; justify-content: space-between; }
+  .page-title { font-size: 1.75rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+  .page-subtitle { color: var(--text-muted); margin-top: 4px; font-size: 0.9rem; }
+  .refresh-btn { background: var(--accent); color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.875rem; font-weight: 500; }
+  .refresh-btn:hover { opacity: 0.9; }
+
+  /* COMPETITOR TABS */
+  .comp-tabs { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+  .comp-tab { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; cursor: pointer; font-size: 0.875rem; font-weight: 500; transition: all .15s; display: flex; align-items: center; gap: 8px; }
+  .comp-tab:hover { border-color: var(--accent); }
+  .comp-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .comp-tab .score { font-size: 0.75rem; opacity: 0.8; }
+  .comp-tab .sections { background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 10px; font-size: 0.7rem; }
+
+  /* SECTION GRID */
+  .sections-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 20px; }
+
+  .section-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+  .section-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: #fafbfc; }
+  .section-title { font-weight: 600; font-size: 0.925rem; text-transform: capitalize; }
+  .section-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+  .badge-publish { background: #dcfce7; color: #15803d; }
+  .badge-weak { background: #fef3c7; color: #92400e; }
+  .badge-na { background: #f1f5f9; color: var(--text-muted); }
+
+  .section-body { padding: 16px 18px; font-size: 0.875rem; line-height: 1.6; max-height: 300px; overflow-y: auto; }
+  .section-body.expanded { max-height: none; }
+
+  /* Markdown rendering */
+  .section-body strong { font-weight: 600; }
+  .section-body .fact-item { padding: 4px 0; border-bottom: 1px solid #f1f5f9; }
+  .section-body .fact-item:last-child { border: none; }
+  .fact-confirmed { color: var(--green); font-weight: 600; font-size: 0.8rem; margin-bottom: 4px; }
+  .fact-missing { color: var(--yellow); font-weight: 600; font-size: 0.8rem; margin-bottom: 4px; margin-top: 10px; }
+
+  .expand-btn { display: block; width: 100%; text-align: center; padding: 8px; border: none; background: none; color: var(--accent); cursor: pointer; font-size: 0.8rem; border-top: 1px solid var(--border); }
+  .expand-btn:hover { background: #f8faff; }
+
+  /* EMPTY STATE */
+  .empty-state { text-align: center; padding: 80px 24px; color: var(--text-muted); }
+  .empty-state .icon { font-size: 3rem; margin-bottom: 16px; }
+  .empty-state h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+
+  /* LAST UPDATED */
+  .meta-bar { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; font-size: 0.8rem; color: var(--text-muted); }
+  .meta-pill { background: #f1f5f9; padding: 4px 10px; border-radius: 20px; }
+
+  /* LOADING */
+  .loading { text-align: center; padding: 60px; color: var(--text-muted); }
+  .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">🦞 Mission Control</a>
+  <div class="nav-divider"></div>
+  <a href="/home">Dashboard</a>
+  <a href="/scout-intel">Scout Intel</a>
+  <a href="/competitor-intel" class="active">Competitors</a>
+  <a href="/account-tiers">Tiers</a>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">🔍 Competitor Intelligence</div>
+      <div class="page-subtitle">AI-researched profiles updated 5x daily. All facts sourced — verify before acting.</div>
+    </div>
+    <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+  </div>
+
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    Loading intelligence files...
+  </div>
+
+  <div id="content" style="display:none">
+    <div id="meta-bar" class="meta-bar"></div>
+    <div id="comp-tabs" class="comp-tabs"></div>
+    <div id="sections-grid" class="sections-grid"></div>
+  </div>
+
+  <div id="empty" class="empty-state" style="display:none">
+    <div class="icon">📂</div>
+    <h3>No intelligence files yet</h3>
+    <p>The competitor monitor runs 5x daily. First reports appear at 7 AM tomorrow.</p>
+  </div>
+</div>
+
+<script>
+let data = [];
+let activeComp = 0;
+
+const SECTION_ORDER = [
+  'Deep Operations & Employee Profile',
+  'Locations', 'Sales Strategy', 'Employees Linkedin',
+  'Deep Operations', 'Hiring Patterns', 'Org Memberships',
+  'Pricing Strategy', 'Weaknesses'
+];
+
+function linkify(text) {
+  // Convert (source: URL) and bare URLs to clickable links
+  return text
+    .replace(/\(source:\s*(https?:\/\/[^\s)]+)\)/gi, (m, url) => {
+      return `<br><a href="${url}" target="_blank" style="color:var(--accent);text-decoration:none;font-size:0.78rem;word-break:break-all" title="${url"}>🔗 ${url}</a>`;
+    })
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, (m, label, url) =>
+      `<a href="${url}" target="_blank" style="color:var(--accent);text-decoration:none">${label}</a>`);
+}
+
+function parseMd(raw) {
+  if (!raw) return '';
+  return raw
+    .replace(/\*\*CONFIRMED FACTS:\*\*/g, '<div class="fact-confirmed">✅ CONFIRMED FACTS</div>')
+    .replace(/\*\*NOT FOUND \/ UNCLEAR:\*\*/g, '<div class="fact-missing">❓ NOT FOUND / UNCLEAR</div>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^- /gm, '')
+    .split('\n')
+    .filter(l => l.trim())
+    .map(l => `<div class="fact-item">${linkify(l)}</div>`)
+    .join('');
+}
+
+function getBadge(content) {
+  if (!content) return {label: 'Pending', cls: 'badge-na'};
+  if (content.includes('PUBLISH')) return {label: 'PUBLISH', cls: 'badge-publish'};
+  if (content.includes('WEAK')) return {label: 'WEAK', cls: 'badge-weak'};
+  if (content.includes('CONFIRMED FACTS') && !content.includes('None found')) return {label: 'Data', cls: 'badge-publish'};
+  return {label: 'Review', cls: 'badge-na'};
+}
+
+function renderComp(idx) {
+  activeComp = idx;
+  // Update tab styles
+  document.querySelectorAll('.comp-tab').forEach((t,i) => t.classList.toggle('active', i === idx));
+
+  const comp = data[idx];
+  if (!comp) return;
+
+  const grid = document.getElementById('sections-grid');
+
+  // Sort sections
+  const sectionKeys = Object.keys(comp.sections);
+  const sorted = [
+    ...SECTION_ORDER.filter(k => sectionKeys.includes(k)),
+    ...sectionKeys.filter(k => !SECTION_ORDER.includes(k))
+  ];
+
+  if (sorted.length === 0) {
+    grid.innerHTML = '<div class="empty-state"><div class="icon">🔎</div><h3>No sections yet for this competitor</h3><p>Running now — check back shortly.</p></div>';
+    return;
+  }
+
+  grid.innerHTML = sorted.map((section, i) => {
+    const content = comp.sections[section] || '';
+    const badge = getBadge(content);
+    const html = parseMd(content);
+    const id = `sec-${idx}-${i}`;
+    return `
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">${section}</div>
+          <span class="section-badge ${badge.cls}">${badge.label}</span>
+        </div>
+        <div class="section-body" id="${id}">${html}</div>
+        <button class="expand-btn" onclick="toggleExpand('${id}', this)">Show more ▾</button>
+      </div>`;
+  }).join('');
+}
+
+function toggleExpand(id, btn) {
+  const el = document.getElementById(id);
+  el.classList.toggle('expanded');
+  btn.textContent = el.classList.contains('expanded') ? 'Show less ▴' : 'Show more ▾';
+}
+
+async function loadData() {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('content').style.display = 'none';
+  document.getElementById('empty').style.display = 'none';
+
+  try {
+    const res = await fetch('/api/competitor-intel/files');
+    data = await res.json();
+
+    if (!data.length) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('empty').style.display = 'block';
+      return;
+    }
+
+    // Meta bar
+    const totalSections = data.reduce((a,c) => a + c.sectionCount, 0);
+    document.getElementById('meta-bar').innerHTML = `
+      <span class="meta-pill">📊 ${data.length} competitors tracked</span>
+      <span class="meta-pill">📋 ${totalSections} research sections</span>
+      <span class="meta-pill">🔄 Updated 5x daily</span>
+    `;
+
+    // Tabs
+    document.getElementById('comp-tabs').innerHTML = data.map((c, i) => `
+      <div class="comp-tab ${i === 0 ? 'active' : ''}" onclick="renderComp(${i})">
+        ${c.name}
+        <span class="sections">${c.sectionCount} sections</span>
+        ${c.avgScore ? `<span class="score">QA ${c.avgScore}/5</span>` : ''}
+      </div>`).join('');
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+    renderComp(0);
+  } catch(e) {
+    document.getElementById('loading').innerHTML = `<p style="color:var(--red)">Error loading data: ${e.message}</p>`;
+  }
+}
+
+loadData();
+</script>
+</body>
+</html>
