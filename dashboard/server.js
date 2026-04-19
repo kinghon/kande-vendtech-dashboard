@@ -7618,6 +7618,7 @@ app.put('/api/prospects/:id/qualification', (req, res) => {
     'vendor_approval_status', 'vendor_approval_company', 'vendor_approval_notes',
     'revenue_share_percent', 'referral_source', 'referred_by_prospect_id',
     'management_company', 'decision_maker_name', 'decision_maker_title',
+    'decision_maker_type', 'approval_complexity',
     'pitch_language_notes'];
   qFields.forEach(f => { if (req.body[f] !== undefined) p[f] = req.body[f]; });
   p.updated_at = new Date().toISOString();
