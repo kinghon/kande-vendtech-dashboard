@@ -176,31 +176,41 @@
 - Castle readers preferred over Pax on SandStar machines. SandStar now supports multiple processor options.
 - **Kande takeaway:** Request Castle readers when setting up our VRK machines.
 
-## Vendingpreneurs: Generational Wealth — Give Your Kids a Machine (2026-04-15)
-- **Jason's model:** Gave each of 4 kids a different vending machine — kids pick prices, stock products, and compete against each other on sales. Real-life supply & demand lesson.
-- **40 machines in ~1 year** — built through route acquisition + community leads, now $30K+/month.
-- **Kande takeaway:** Strong pitch angle for family-oriented prospects ("start something your family can build on together"). Also reinforces that combining route acquisition with organic lead gen accelerates growth dramatically vs. organic-only.
+## Vendingpreneurs: Employee Caught Stealing (2026-04-20)
+- **Theft in micro markets is manageable, not catastrophic** — camera systems revealed theft was minimal overall; one repeat-offender employee was the real issue.
+- **Camera tech is a partnership closer** — documented video evidence + case history allowed the operator to share proof with location management, who fired the employee the same day.
+- **Locations act fast when you bring receipts** — operators don't need to play investigator; present the evidence, let the location handle their people.
+- **Self-checkout = cameras required** — micro markets without surveillance have an accountability gap. This is non-negotiable.
+- **Kande takeaway:** Position camera/security system as a selling point in micro market proposals — "We protect you from internal theft, not just external." This directly addresses a common manager fear.
 
-## Vendingpreneurs: They Lost the Deal… And It Got Personal (2026-04-15)
-- **2 months of silence = lost deal** — prospects who say "come back in May" will sign with someone who shows up before you. A two-month gap is all it takes.
-- **Don't wait for permission to follow up** — the team held back to avoid being pushy. That cost them the deal.
-- **Losing a deal = fuel, not defeat** — "nobody's going to outwork me" is the response that scales. Emotionally engaged operators consistently out-follow-up.
-- **Kande takeaway:** Jordan should never let a warm prospect go cold for more than 2-3 weeks. Build a calendar ping system for "revisit in X weeks" notes. Every location that says "not yet" gets a scheduled return date. Complacency is what competitors exploit.
+## Vendingpreneurs: Vending Is Like Dating (2026-04-20)
+- **Every location has its own product profile** — learn it over the first 30–60 days; don't expect perfection at install.
+- **"Dating" analogy works with property managers** — normalizes the ramp-up period and sets realistic expectations without pressure.
+- **Weeks 2–3 are data gold** — start with general variety, then double and triple down on proven sellers. Let data drive SKU decisions.
+- **Customization drives retention** — when a location feels like you're tailoring to them, churn risk drops.
+- **Kande takeaway:** Use the dating analogy during onboarding. It humanizes the relationship and frames the 30–60 day optimization window as a feature, not a delay.
 
-## Vendingpreneurs: He Risked Everything… Now It's $20K/Month (Matt Dicks) (2026-04-15)
-- **10 locations, $20-24K/month, 7 months in** — started August 2025, recording in March 2026. Went all-in leaving corporate.
-- **Top products by revenue:** (1) Zero calorie Monster (white cans), (2) Dubai chocolate bars ($3 cost → $12 retail — massive margin, move fast), (3) Charcuterie snack packs from Costco (~50¢ cost → $5-6 retail), (4) Diet Coke (still shockingly dominant despite health trends).
-- **$70K/year from one location** — a $6K/month building visited 1-2x/week nearly runs empty after 4 days. One great location carries the whole operation.
-- **"Every day you don't take action, your competition pulls ahead"** — left a flyer on an empty desk → got an email 3 days later → closed. You have to try everything.
-- **Verbal yes → keep showing up every 2 weeks** — had verbal confirmation in December, still no signed contract in March. Regional manager approved it, just hasn't signed. Matt keeps coming back every other week + email every few weeks. Persistence is the job.
-- **Pop-ins are non-negotiable** — "emails and phone calls are never going to get you anywhere in this industry. You have to walk in." Face-to-face with confidence wins every time.
-- **Community ROI math:** One $3K/month location = $1,500/month profit after COGS. Community membership paid back in <1 year from that single location alone.
-- **1:00 AM machine fix mindset** — machine went offline, 1AM, drove down, fixed it. "Nobody's going to fix it for you." That commitment is what separates operators who scale from those who stall.
-- **Kande takeaway:** Add Dubai chocolate bars and charcuterie Costco packs to recommended stocking list. Reinforce "verbal yes → bi-weekly pop-in" protocol for Jordan. The $70K/year single-location data point is powerful for pitch decks and landlord conversations. Pop-in cadence is the most consistent closer in this business.
+## Vendingpreneurs: Why Fast Vendors Win More (2026-04-20)
+- **Speed is the #1 differentiator** — property/ops managers are fire-fighters. Vendors who respond instantly stand out.
+- **24-hour proposal commitment** — commit in the meeting: "I'll have your proposal within 24 hours." It's professional, low-pressure, and closes the loop.
+- **Set mutual expectations** — frame it as two-way: fast from you, fast from them. Compresses the decision cycle.
+- **Faster follow-through = shorter sales cycle = faster revenue** — simple math. Speed compounds.
+- **Responsiveness before the deal = trust for after** — how you behave in the sales process signals how you'll behave on maintenance calls.
+- **Kande takeaway:** Make 24-hour proposal turnaround a standard brand promise. Build it into pitch language. Operators who are slow to respond are leaving deals on the table — this is easy to own.
 
-## Vendingpreneurs: The $1,000 Stocking Mistake (2026-04-15)
-- **Waiting months to swap products = money lost** — one operator didn't change underperforming products for months, thinking customers just needed time to "discover" them. Lost ~$1,000 in potential revenue.
-- **Tailor immediately to demographics** — don't wait. Roofers at a job site warehouse want 16oz Rockstars and Monsters, not premium Salani energy drinks.
-- **Not all premium products = premium profits** — a higher-cost item doesn't mean higher margins or faster turns. Know your audience's actual buying behavior.
-- **10x sales by doubling down on what works** — pull the underperformers fast. Every slot that's wrong is a slot that's costing you money.
-- **Kande takeaway:** Jordan should do a first-week "product audit" after every new install. Check turn rates within 7-10 days, not months. Build a demographics-to-product cheat sheet (e.g., warehouse/industrial = large energy drinks + salty snacks; office = protein bars + sparkling water; residential = Smart Water + convenience snacks). Swap early, swap often.
+## Vendingpreneurs: Full-Time Job, Two Kids — Now It's $4K/Month (2026-04-20)
+- **$4K/month in one year with a PA job, two kids under 5, and two dogs** — eliminates the "too busy" objection entirely.
+- **10 years of analysis paralysis → vending finally clicked** — lower barrier to entry + manageable complexity made the difference vs. real estate/acquisitions.
+- **6 locations in year one** — sustainable pacing, proven model before scaling.
+- **500-employee law office install next** — graduating from small locations to large commercial accounts after proving the model is the right progression.
+- **Kande takeaway:** Mallorie's profile (overwhelmed professional, family first, zero business background) is exactly who Kande's full-service model serves. Use this story to neutralize "I'm too busy" and "I don't have business experience" objections in prospect conversations.
+
+## Vendingpreneurs: How to Spot a Winning Vending Location (2026-04-20)
+- **3-factor location scoring: Parking + Availability + Visibility**
+  1. **Parking lot full?** Full = high traffic = high revenue. Works for medical, hospital, urgent care, pet hospitals. Drive-by screen before you ever walk in.
+  2. **Availability** — Actual physical presence matters more than headcount. WFH kills revenue. Ask: Do they come in on Mondays? Fridays? Are they near the break room?
+  3. **Visibility** — Is the machine in the natural foot traffic path?
+- **Parking lot is a free pre-qualifier** — screen locations from the car before investing any conversation time.
+- **Remote/hybrid work is a hidden landmine** — a 100-person office with 3-day hybrid = ~60 effective customers. Always ask before proposing.
+- **Medical/healthcare is consistently strong** — steady traffic, captive audience, full parking lots.
+- **Kande takeaway:** Add parking lot assessment and WFH cadence questions to Jordan's prospecting script as mandatory pre-qualifiers. These filter bad locations fast, before wasting proposal time.
