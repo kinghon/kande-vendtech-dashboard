@@ -1,3 +1,18 @@
+## P0 — E2E Failure 2026-04-23 — SHIPPED 2026-04-23 (ralph-overnight)
+- Photo Booths Ops: Leaderboard bots empty/invalid on GET /api/leaderboard
+- Task file: /Users/kurtishon/clawd/tasks/e2e-fixes.md
+
+# P0 — URGENT: info.kandedash.com 502 (E2E 2026-04-19) — SHIPPED 2026-04-21 (ralph-overnight)
+
+- Homepage: 502
+- /api/events: 502
+- All 5 Photo Booths Events tests failing
+- Details: /Users/kurtishon/clawd/tasks/e2e-fixes.md
+
+
+# P0 — E2E Failure 2026-04-18 — SHIPPED 2026-04-21 (ralph-overnight)
+info.kandedash.com returning 502. All Events dashboard endpoints down. See /Users/kurtishon/clawd/tasks/e2e-fixes.md
+
 # Backlog
 
 _(P0s complete. Remaining P1 items below.)_
@@ -69,46 +84,4 @@ Note: Sandstar VRK = AI-powered camera-based machine. May have API/telemetry we 
 
 **2. Locations** (currently 0 in DB)  
 - Create location records for wherever the 5 machines are going
-- Each location needs: name, address, contact name, contract start date, rev share %, expected monthly revenue
-- Link to the CRM prospect record
-
-**3. Revenue Tracking**
-- /api/locations/:id/collections endpoint — log each collection (date, cash amount, card amount, total)
-- Monthly revenue rollup per location
-- Dashboard showing revenue per machine, revenue per location
-
-**4. Restock Workflow** (/restock page)
-- Show current inventory levels per machine
-- Flag machines that need restocking (below threshold)
-- Log restock events
-
-**5. Data Integrity Check** — SHIPPED Apr 9, 2026
-- ~~Fix 25 prospects with missing name/address~~ Fixed 26 prospects via web-researched addresses. `prospects_missing_address`: 26→0.
-- ~~Add a /api/admin/health-check endpoint~~ Already shipped (commit 8fa560f).
-
-### Priority: P0 — machines arrive in 3 weeks, this needs to work before then.
-Build in this order: Locations → Machines → Revenue → Restock
-
-
-## P1: MC Office — Kimi banner + cost banner not deploying — PARTIALLY FIXED Apr 9, 2026
-- ~~Commits pushed to kande-mission-control repo but Railway not auto-deploying~~ FIXED: Connected GitHub repo to Railway. Auto-deploy now works.
-- Kimi heartbeat banner visible on office page (shows "Offline" currently)
-- Cost banner visible ($1465.82/week, $188.14/day)
-- Remaining: Fix "Starting task" placeholder text in activity feed
-
-## P1: MC Office fixes (3 issues) — ALL RESOLVED Apr 9, 2026
-
-### 1. Kimi heartbeat shows "Offline" — FIXED Apr 8, 2026
-Created kimi-heartbeat.sh LaunchAgent. MC shows Online when Kimi is running.
-
-### 2. Conflicting heartbeat scripts — FIXED Apr 9, 2026
-Two scripts (kimi-heartbeat.sh and mc-heartbeat.sh) were fighting. mc-heartbeat.sh is authoritative (tests actual inference). Disabled kimi-heartbeat LaunchAgent. Kimi correctly shows Offline when no model loaded on exo.
-
-### 3. "Starting task" placeholders — RESOLVED
-Cleared naturally with new real activity data.
-
-## P1: Briefing Hot Lead Priority — SHIPPED Apr 9, 2026
-Replaced hardcoded "Updated Feb 21" Hot Lead section with dynamic API-driven ranking. Scores based on status, priority, unit count, activity recency, email engagement, and Google reviews. Top 10 leads auto-update daily. Commits: 683359c, 0ff9d4b.
-
-## P1: Office page "Tasks Running" out of sync with "Right Now" — SHIPPED Apr 9, 2026
-Banner now syncs from same updateScene() data as Right Now section (pollStatus → /api/office/status-v2 every 15s). No more heartbeat fallback. Commits: 86b4d72, 080a055. Verified live — banner and Right Now show matching count.
+- Each location needs: name, address, contact name, contract start date, rev share 
