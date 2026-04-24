@@ -182,12 +182,19 @@ for j in jobs:
         # Use the summary from last run if available and successful
         summary = state.get('lastSummary', '') if status == 'ok' else ''
         display = f"{task_desc}" if status == 'ok' else f"{task_desc} (errored)"
-        events.append({
+        dur_ms = state.get('lastDurationMs') or None
+        exit_code = 0 if status == 'ok' else (1 if status == 'error' else None)
+        evt = {
             'agent': agent,
             'action': display,
             'message': f"{task_desc} — {status}",
             'timestamp': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(last_run/1000))
-        })
+        }
+        if dur_ms:
+            evt['durationMs'] = dur_ms
+        if exit_code is not None:
+            evt['exitCode'] = exit_code
+        events.append(evt)
 
 if events:
     payload = json.dumps({'events': events})

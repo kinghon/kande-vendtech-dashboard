@@ -81,16 +81,22 @@ for job in data.get('jobs', []):
     if not last_run: continue
     run_time = datetime.fromtimestamp(last_run / 1000, timezone.utc)
     if (now - run_time) > timedelta(hours=4): continue
-    duration_ms = job.get('state', {}).get('lastDurationMs', 0)
-    events.append({
+    duration_ms = job.get('state', {}).get('lastDurationMs') or None
+    last_status = job.get('state', {}).get('lastStatus', '')
+    exit_code = 0 if last_status == 'ok' else (1 if last_status == 'error' else None)
+    evt = {
         'agent': agent,
         'action': job.get('description', name),
         'message': job.get('description', name),
         'timestamp': run_time.isoformat(),
         'job': name,
-        'durationMs': duration_ms,
         'scene': job_scene.get(name, 'desk')
-    })
+    }
+    if duration_ms:
+        evt['durationMs'] = duration_ms
+    if exit_code is not None:
+        evt['exitCode'] = exit_code
+    events.append(evt)
 
 if events:
     payload = json.dumps({'events': events})
