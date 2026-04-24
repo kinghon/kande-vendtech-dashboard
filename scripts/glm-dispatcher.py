@@ -89,14 +89,19 @@ def release_lock():
     except: pass
 
 def run(cmd, timeout=1800):
-    """Non-blocking — fires script as background process and exits fast."""
+    """Blocking — launches script and waits for completion so we can measure real duration."""
     import subprocess as _sp, time as _time
     log_out = open("/tmp/glm-run-out.log", "a")
     for attempt in range(3):
         try:
             proc = _sp.Popen(cmd, shell=True, stdout=log_out, stderr=_sp.STDOUT)
             log(f"Launched (pid {proc.pid}): {cmd[:80]}")
-            return 0, f"pid={proc.pid}"
+            try:
+                proc.wait(timeout=timeout)
+            except _sp.TimeoutExpired:
+                proc.kill()
+                log(f"Killed (timeout {timeout}s): {cmd[:80]}")
+            return proc.returncode or 0, f"pid={proc.pid}"
         except BlockingIOError:
             log(f"Fork failed (attempt {attempt+1}/3) — waiting 5s")
             _time.sleep(5)

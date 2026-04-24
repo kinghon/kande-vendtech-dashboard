@@ -103,8 +103,8 @@ def job_name_from_cmd(cmd):
         return m.group(1).replace('_', '-')
     return None
 
-def run(cmd, _timeout=None):
-    """Non-blocking — launches script and exits immediately. Script runs independently.
+def run(cmd, _timeout=1800):
+    """Blocking — launches script and waits for completion so we can measure real duration.
     Skips if the job already has an active PID lock."""
     import subprocess as _sp, time as _time
     # Check per-job lock before spawning
@@ -117,7 +117,12 @@ def run(cmd, _timeout=None):
         try:
             proc = _sp.Popen(cmd, shell=True, stdout=log_out, stderr=_sp.STDOUT)
             log(f"Launched (pid {proc.pid}): {cmd[:80]}")
-            return 0, f"pid={proc.pid}"
+            try:
+                proc.wait(timeout=_timeout)
+            except _sp.TimeoutExpired:
+                proc.kill()
+                log(f"Killed (timeout {_timeout}s): {cmd[:80]}")
+            return proc.returncode or 0, f"pid={proc.pid}"
         except BlockingIOError:
             log(f"Fork failed (attempt {attempt+1}/3) — waiting 5s")
             _time.sleep(5)
