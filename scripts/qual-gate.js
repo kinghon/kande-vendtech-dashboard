@@ -44,11 +44,11 @@ function isBlocked(data) {
 }
 
 function qualifyLead(data) {
-  // Bypass for manual/referral entries
+  // Bypass for trusted sources — no Maps data needed
   const source = (data.source || '').toLowerCase();
   const kurtisNotes = (data.kurtis_notes || '').trim();
-  if (source === 'manual' || source === 'referral' || kurtisNotes) {
-    return { tier: 'A', score: 6, reason: 'manual/referral bypass', bypass: true };
+  if (['manual', 'referral', 'glm-scout', 'field', 'scout-research', 'scout-maps', 'scout-web'].includes(source) || kurtisNotes) {
+    return { tier: 'A', score: 6, reason: `${source || 'manual'} source bypass`, bypass: true };
   }
   // Blocklist check — permanently banned Tier C/D locations
   const blockCheck = isBlocked(data);
