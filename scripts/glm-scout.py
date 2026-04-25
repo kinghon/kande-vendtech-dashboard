@@ -179,6 +179,43 @@ def get_existing_names():
     except:
         return set()
 
+def nearby_sweep_queries(n=3):
+    """
+    Metric 1: Proximity clustering.
+    Pick n existing CRM prospects, generate location-specific search queries
+    targeting other high-traffic businesses in the same zip/corridor.
+    """
+    import random
+    queries = []
+    try:
+        leads = crm_get("/api/prospects?limit=1000")
+        if isinstance(leads, dict): leads = leads.get("data", [])
+        # Filter to active leads with usable addresses in LV metro
+        candidates = [l for l in leads
+                      if l.get("address") and
+                      any(z in (l.get("address") or "") for z in ["89118","89119","89103","89113","89128","89117","89139","89148","89030","89081"])
+                      and l.get("status") not in ("closed","lost","stale")]
+        if not candidates:
+            return []
+        picks = random.sample(candidates, min(n, len(candidates)))
+        for lead in picks:
+            addr = lead.get("address", "")
+            # Extract zip code
+            zip_match = re.search(r'8\d{4}', addr)
+            zip_code = zip_match.group(0) if zip_match else ""
+            # Extract street name for corridor search
+            street_match = re.search(r'\d+\s+([\w\s]+?)(?:,|Las Vegas|Henderson|NV)', addr)
+            street = street_match.group(1).strip() if street_match else ""
+            if zip_code:
+                queries.append(f"companies businesses {zip_code} Las Vegas NV 50+ employees warehouse office")
+                queries.append(f"industrial commercial businesses near {street} Las Vegas NV workforce employees")
+            elif street:
+                queries.append(f"businesses near {street} Las Vegas NV employees daily foot traffic")
+        log(f"Nearby sweep: {len(queries)} proximity queries from {len(picks)} CRM anchors")
+    except Exception as e:
+        log(f"Nearby sweep error: {e}")
+    return queries[:n]  # cap at n
+
 def normalize(name):
     return re.sub(r'\s+', ' ', (name or "").lower().strip())
 
@@ -217,29 +254,72 @@ def hard_traffic_rule(candidate):
     Returns 'pass', 'fail', or 'glm' (needs GLM judgment).
     Rules based on category type inferred from name/snippet.
     Minimum: 100 people in/out per day.
+    Metrics checked (in order):
+      1. Review count  >= 150 → pass  (foot traffic proxy)
+      2. Employee count >= 50 → pass  (<20 → fail)
+      3. Operating hours 6-7 days/week → positive signal
+      4. Industry category hard rules
+      5. Unit count for apartments
     """
     text = (candidate['name'] + ' ' + candidate['snippet']).lower()
 
-    # HARD PASS — always 100+ daily by nature
+    # ── METRIC 2: Employee count ──────────────────────────────────────────────
+    emp_match = re.search(r'(\d+)\+?\s*(?:employees?|workers?|staff members?)', text)
+    if emp_match:
+        emps = int(emp_match.group(1))
+        if emps >= 50:  return 'pass'
+        if emps < 20:   return 'fail'
+
+    # ── METRIC 1: Review count as foot-traffic proxy ──────────────────────────
+    review_match = re.search(r'(\d+)\s*(?:google\s*)?(?:reviews?|ratings?)', text)
+    if review_match:
+        reviews = int(review_match.group(1))
+        if reviews >= 150: return 'pass'
+        if reviews < 20:   return 'fail'
+
+    # ── METRIC 4: Operating hours — 6-7 day operation = captive audience ──────
+    seven_day_signals = ['7 days', 'seven days', 'open daily', 'open 7',
+                         'mon-sun', 'monday-sunday', 'open every day',
+                         'open 365', '24 hours', '24/7']
+    if any(s in text for s in seven_day_signals):
+        # Confirm it's a commercial/public-facing business, not residential
+        if not any(bad in text for bad in ['single family', 'residential home', 'house for sale']):
+            return 'pass'
+
+    # ── METRIC 5: Industry hard-pass categories ───────────────────────────────
     hard_pass_signals = [
         # Apartments/residential (large)
         ("apartment", ["200 unit", "300 unit", "400 unit", "500 unit", "600 unit",
                         "luxury apartment", "resort-style", "gated community"]),
         # Warehouses / fulfillment (national brands)
         ("warehouse", ["amazon", "fedex", "ups", "usps", "dhl", "walmart",
-                        "distribution center", "fulfillment center"]),
+                        "distribution center", "fulfillment center", "food distribution",
+                        "foodservice distribution", "98,000", "100,000 sq"]),
         # Medical — large
         ("medical", ["hospital", "medical center", "regional medical", "urgent care",
                       "dialysis center", "surgery center", "va ", "veterans"]),
-        # Education
+        # Education — any college/school
         ("education", ["university", "college", "community college", "unlv", "csn",
-                        "trade school", "vocational", "charter school"]),
+                        "trade school", "vocational", "charter school", "nursing school",
+                        "bsn program", "career college", "private college"]),
         # Government / civic
         ("government", ["courthouse", "dmv", "post office", "clark county",
                          "city of las vegas", "government center", "social security"]),
         # Recreation — large venues
         ("recreation", ["convention center", "sports complex", "stadium", "arena",
                          "movie theater", "amc", "regal", "cinemark"]),
+        # Expanded: auction / retail liquidation
+        ("auction", ["auction house", "retail returns", "liquidation", "estate auction",
+                      "weekly auction", "bi-weekly auction"]),
+        # Expanded: industrial / manufacturing
+        ("industrial", ["manufacturing plant", "gaming manufacturer", "gaming technology",
+                         "electronic gaming", "industrial park", "corporate campus",
+                         "event production", "av production", "audio visual"]),
+        # Expanded: elite training / performance
+        ("fitness", ["performance institute", "mma training", "combat sports",
+                      "boxing gym", "martial arts", "ufc", "world-class training"]),
+        # Expanded: design centers / showrooms with high reviews
+        ("retail", ["design center", "showroom", "window treatment", "flooring showroom"]),
     ]
     for _cat, signals in hard_pass_signals:
         if any(s in text for s in signals):
@@ -249,7 +329,7 @@ def hard_traffic_rule(candidate):
     hard_fail_signals = [
         "single family", "residential home", "house for sale", "townhome",
         "single-bay", "1-bay", "solo practice", "solo practitioner",
-        "small office", "suite 100",  # generic small suite
+        "small office", "suite 100",
         "permanently closed", "closed permanently",
         "kiosk", "food truck", "pop-up",
     ]
@@ -262,7 +342,6 @@ def hard_traffic_rule(candidate):
         units = int(unit_match.group(1))
         if units >= 100: return 'pass'
         if units < 50:   return 'fail'
-        # 50-99 units → send to GLM
 
     return 'glm'
 
@@ -278,15 +357,25 @@ Context: {candidate['snippet']}
 HARD REQUIREMENT: The location must have at least 100 people coming in and out per day.
 This is a strict floor — locations below this threshold are not worth placing a machine.
 
-CATEGORY RULES (apply these first):
+SCORING METRICS — use all available signals:
+1. REVIEW COUNT: 150+ Google reviews = strong foot traffic proxy. Upgrade tier.
+2. EMPLOYEE COUNT: 50+ employees on-site = good. 150+ = excellent.
+3. OPERATING HOURS: Open 6-7 days/week or 24 hours = captive recurring audience. Upgrade tier.
+4. FOOD ACCESS: Located in industrial park or area with no nearby restaurants = higher vending need.
+5. INDUSTRY FIT: Warehouses, distribution centers, manufacturing, auction houses, colleges,
+   training facilities, design showrooms, gaming tech companies = strong fit.
+
+CATEGORY RULES:
 - Apartments/residential: need 100+ units OR evidence of high occupancy
 - Offices/warehouses: need evidence of 50+ employees on-site daily
 - Medical: hospitals and multi-provider clinics pass; solo/2-person practices fail
 - Retail/services: need clear evidence of high daily volume (busy gym, multi-location chain, etc.)
+- Auction houses / liquidation centers: open 7 days = excellent
+- Distribution warehouses: 50+ drivers/staff = good
 - Small businesses with <5 staff, kiosks, food trucks, pop-ups: always D
 
 Reply with ONE of these only:
-A - Excellent (200+ people/day, high dwell time)
+A - Excellent (200+ people/day, high dwell time, 6-7 day operation)
 B - Good (100-200 people/day, solid fit)
 C - Borderline (50-100 people/day, might be worth it)
 D - Disqualify (<50 people/day, residential, permanently closed, or wrong type)
@@ -345,8 +434,13 @@ def main():
     if stall_suffix:
         log(f"STALL MODE active — appending '{stall_suffix}' to queries")
 
+    # Metric 1: Run nearby sweep queries alongside regular queries
+    nearby_queries = nearby_sweep_queries(n=2)
+    all_queries = queries + nearby_queries
+    log(f"Running {len(queries)} regular + {len(nearby_queries)} nearby-sweep queries")
+
     added = 0
-    for query in queries:
+    for query in all_queries:
         log(f"Searching: {query[:60]}...")
         results = brave_search(query)
         time.sleep(SLEEP_S)
