@@ -142,14 +142,43 @@ def main():
 
         try:
             resp, status = crm_post("/api/maps/discover", {"categories": cats, "maxPerCategory": 25})
-            new   = resp.get("added",   resp.get("new",   0))
-            found = resp.get("total",   resp.get("found", 0))
-            skipped = resp.get("skipped", resp.get("existing", 0))
-            rejected = resp.get("rejected", 0)
-            print(f"     Found: {found} | New: {new} | Skipped: {skipped} | Rejected by qual gate: {rejected}")
-            total_new   += new
+            found      = resp.get("total", 0)
+            new_leads  = resp.get("newLeads", [])
+            skipped    = resp.get("existingMatches", 0)
+            added      = 0
+            rejected   = 0
+
+            # Persist each new lead to CRM
+            for lead in new_leads:
+                prospect = {
+                    "name":                 lead.get("name", ""),
+                    "address":              lead.get("address", ""),
+                    "phone":                lead.get("phone", ""),
+                    "website":              lead.get("website", ""),
+                    "property_type":        lead.get("type", "other"),
+                    "source":               "scout-maps",
+                    "status":               "new",
+                    "google_place_id":      lead.get("placeId", ""),
+                    "google_rating":        lead.get("rating", 0),
+                    "google_review_count":  lead.get("reviewCount", 0),
+                    "maps_business_status": lead.get("businessStatus", "OPERATIONAL"),
+                    "notes":                f"Maps Scout ({group['name']}): {lead.get('category','')}",
+                }
+                if not prospect["name"]:
+                    continue
+                try:
+                    result, _ = crm_post("/api/prospects", prospect)
+                    added += 1
+                except Exception as pe:
+                    err = str(pe)
+                    if "422" in err or "qualification" in err.lower():
+                        rejected += 1
+                    # else skip silently
+
+            print(f"     Found: {found} | New: {added} | Skipped: {skipped} | Rejected: {rejected}")
+            total_new   += added
             total_found += found
-            results.append({"group": group["name"], "new": new, "found": found})
+            results.append({"group": group["name"], "new": added, "found": found})
         except Exception as e:
             print(f"     ⚠️ Error: {e}")
             results.append({"group": group["name"], "error": str(e)})
