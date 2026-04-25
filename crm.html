@@ -1074,7 +1074,12 @@
       const search = document.getElementById('search').value.toLowerCase();
 
       if (currentFilter === 'hot') filtered = filtered.filter(p => p.priority === 'hot');
-      else if (currentFilter === 'intalks') filtered = filtered.filter(p => p.priority === 'intalks');
+      else if (currentFilter === 'intalks') filtered = filtered.filter(p => {
+        if (p.priority === 'intalks') return true;
+        const hasPopIn = (p.activities || []).some(a => a.type === 'pop-in' || a.type === 'pop_in' || (a.description && /pop.?in/i.test(a.description)));
+        const hasReply = (p.email_tracking || []).some(e => e.was_replied === true);
+        return hasPopIn && hasReply;
+      });
       else if (currentFilter === 'warm') filtered = filtered.filter(p => p.priority === 'warm');
       else if (currentFilter === 'new') filtered = filtered.filter(p => p.status === 'new');
       else if (currentFilter === 'opening_soon') filtered = filtered.filter(p => p.status === 'opening_soon');
