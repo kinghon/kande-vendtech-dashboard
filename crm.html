@@ -447,6 +447,7 @@
       <button class="filter-btn" data-filter="closed">⛔ Stale</button>
       <button class="filter-btn" data-filter="followup">📋 Needs Action</button>
       <button class="filter-btn" data-filter="reopened" style="border-color:var(--hot);">📬 Re-opened</button>
+      <button class="filter-btn" data-filter="newlyadded">✨ Newly Added</button>
       <select id="typeFilter" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:0.9rem;cursor:pointer;">
         <option value="all">All Types</option>
         <option value="apartments_condos">🏢 Apartments/Condos</option>
@@ -457,6 +458,14 @@
         <option value="other">📦 Other</option>
       </select>
       <input type="text" class="search-input" id="search" placeholder="Search prospects...">
+    </div>
+
+    <!-- Newly Added sub-filter (shown only when Newly Added is active) -->
+    <div id="newlyAddedSubfilter" style="display:none;gap:8px;flex-wrap:wrap;padding:0 0 8px 0;">
+      <span style="font-size:0.8rem;font-weight:600;color:var(--muted);align-self:center;">Source:</span>
+      <button class="na-sub-btn active" data-source="all" onclick="setSourceFilter('all')" style="padding:5px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--accent);color:#fff;">All</button>
+      <button class="na-sub-btn" data-source="manual" onclick="setSourceFilter('manual')" style="padding:5px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text);">👤 Manual</button>
+      <button class="na-sub-btn" data-source="ai" onclick="setSourceFilter('ai')" style="padding:5px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text);">🤖 AI Scout</button>
     </div>
 
     <div class="prospect-list" id="prospectList">
@@ -628,6 +637,7 @@
     let prospects = [];
     let expandedId = null;
     let currentFilter = 'all';
+    let currentSourceFilter = 'all'; // for Newly Added sub-filter
     let currentPage = 1;
     const PAGE_SIZE = 25;
 
@@ -1085,6 +1095,14 @@
       else if (currentFilter === 'opening_soon') filtered = filtered.filter(p => p.status === 'opening_soon');
       else if (currentFilter === 'signed') filtered = filtered.filter(p => p.status === 'signed');
       else if (currentFilter === 'closed') filtered = filtered.filter(p => p.status === 'closed' || p.status === 'stale');
+      else if (currentFilter === 'newlyadded') {
+        const aiSources = ['scout-research','scout-maps','scout-web'];
+        const manualSources = ['manual','field'];
+        if (currentSourceFilter === 'manual') filtered = filtered.filter(p => manualSources.includes(p.source));
+        else if (currentSourceFilter === 'ai') filtered = filtered.filter(p => aiSources.includes(p.source));
+        // else show all — no status restriction, just sort newest first
+        filtered = filtered.slice().sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+      }
       else if (currentFilter === 'followup') filtered = filtered.filter(p => p.needs_action);
       else if (currentFilter === 'reopened') filtered = filtered.filter(p => getRecentOpens(p) !== null);
 
@@ -1191,6 +1209,7 @@
               </div>
             </div>
             <div class="prospect-meta" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              ${currentFilter === 'newlyadded' ? `<span style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:4px;background:${['scout-research','scout-maps','scout-web'].includes(p.source) ? 'rgba(139,92,246,0.15)' : 'rgba(49,130,206,0.15)'};color:${['scout-research','scout-maps','scout-web'].includes(p.source) ? '#8b5cf6' : '#3182ce'}">${['scout-research','scout-maps','scout-web'].includes(p.source) ? '🤖 AI Scout' : '👤 Manual'}</span>` : ''}
               <span>${p.property_type || 'Unknown'} ${p.units ? '• ' + p.units + ' units' : ''}
               ${p.address ? ' • <a href="https://www.google.com/maps/search/' + encodeURIComponent(p.address) + '" target="_blank" class="address-link" onclick="event.stopPropagation()">📍 ' + p.address + '</a>' : ''}
               ${p.subsidy_amount ? ' • <span style="color:#276749;font-weight:600;">💰 $' + parseFloat(p.subsidy_amount).toFixed(2) + '/mo subsidy</span>' : ''}</span>
@@ -1806,9 +1825,24 @@
         btn.classList.add('active');
         currentFilter = btn.dataset.filter;
         currentPage = 1;
+        // Show/hide Newly Added sub-filter
+        const sf = document.getElementById('newlyAddedSubfilter');
+        if (sf) sf.style.display = currentFilter === 'newlyadded' ? 'flex' : 'none';
+        if (currentFilter !== 'newlyadded') currentSourceFilter = 'all';
         renderProspects();
       });
     });
+
+    function setSourceFilter(source) {
+      currentSourceFilter = source;
+      currentPage = 1;
+      document.querySelectorAll('.na-sub-btn').forEach(b => {
+        const isActive = b.dataset.source === source;
+        b.style.background = isActive ? 'var(--accent)' : 'transparent';
+        b.style.color = isActive ? '#fff' : 'var(--text)';
+      });
+      renderProspects();
+    }
     document.getElementById('search').addEventListener('input', () => {
       clearTimeout(searchTimeout);
       searchTimeout = setTimeout(() => { currentPage = 1; renderProspects(); }, 300);
