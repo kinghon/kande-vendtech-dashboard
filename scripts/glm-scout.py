@@ -16,7 +16,7 @@ from job_lock import acquire_job_lock
 acquire_job_lock("glm-scout")
 
 
-CRM_BASE   = "https://vend.kandedash.com"
+CRM_BASE   = "https://sales.kandedash.com"
 CRM_KEY    = "kande2026"
 BRAVE_KEY  = "BSA8enLl2f0NW0JBRjem3n4eNpiNzbz"
 GLM_URL    = "http://192.168.1.52:52415/v1/chat/completions"
@@ -220,32 +220,74 @@ def normalize(name):
     return re.sub(r'\s+', ' ', (name or "").lower().strip())
 
 def extract_businesses(results, query):
-    """Extract business name + address candidates from Brave results."""
+    """Extract business name + address candidates from Brave results.
+    Strict filtering: only direct business websites, not aggregators/directories.
+    """
     candidates = []
-    for r in results:
-        title = r.get("title", "")
-        desc = r.get("description", "")
-        url = r.get("url", "")
 
-        # Skip directories, social media, generic sites
-        skip_domains = ["yellowpages", "yelp.com", "google.com", "facebook.com",
-                        "tripadvisor", "bbb.org", "indeed.com", "linkedin.com/jobs",
-                        "apartments.com", "rent.com", "zillow", "apartmentlist"]
-        if any(d in url for d in skip_domains):
+    # Expanded skip list: directories, aggregators, listicles, govt, job boards
+    skip_domains = [
+        "yellowpages", "yelp.com", "google.com", "facebook.com", "instagram.com",
+        "tripadvisor", "bbb.org", "indeed.com", "linkedin.com", "glassdoor",
+        "apartments.com", "rent.com", "zillow", "apartmentlist", "rentcafe",
+        "niche.com", "usnews.com", "vegas4locals", "lasvegasrealestate",
+        "fandango.com", "movietickets", "rottentomatoes",
+        "carelisting", "healthgrades", "vitals.com", "zocdoc",
+        "buildzoom", "houzz.com", "angieslist", "thumbtack",
+        "mapquest", "waze.com", "nextdoor", "bing.com",
+        "prnewswire", "businesswire", "globenewswire",
+        "wikipedia.org", "wikimedia",
+        "realtor.com", "trulia", "loopnet", "costar",
+        "clark county", "nevadabusiness", "sos.nv.gov",
+        "causeiq.com", "dnb.com", "zoominfo",
+    ]
+    # Skip title patterns that indicate listicles/directories rather than businesses
+    skip_title_patterns = [
+        r'^best\s', r'^top\s?\d', r'^\d+\s+best', r'our top',
+        r'near me$', r'near you$', r'in las vegas$', r'in henderson$',
+        r'\| las vegas$', r'\| henderson$', r'\| vegas4locals',
+        r'^how to', r'^what is', r'^guide to', r'overview$',
+        r'options around', r'student housing options',
+        r'\d+ locations', r'all locations',
+        r'doing business', r'business license', r'welcome new businesses',
+        r'a snapshot of', r'land.*infrastructure.*opportunity',
+        r'search results', r'directory',
+    ]
+
+    for r in results:
+        title = r.get("title", "").strip()
+        desc  = r.get("description", "")
+        url   = r.get("url", "")
+
+        if any(d in url.lower() for d in skip_domains):
+            continue
+
+        # Skip listicle/directory titles
+        t_lower = title.lower()
+        if any(re.search(p, t_lower) for p in skip_title_patterns):
+            continue
+
+        # Clean pipe/dash suffixes ("Business Name | City, NV" -> "Business Name")
+        clean_name = re.split(r'\s+[|\u2013\u2014-]\s+', title)[0].strip()
+        # Skip if still looks like a category phrase (no proper nouns / all lowercase)
+        if len(clean_name) < 5 or clean_name == clean_name.lower():
             continue
 
         # Look for address patterns
-        addr_match = re.search(r'\d+\s+\w+.*?(?:Las Vegas|Henderson|North Las Vegas|Summerlin)[,\s]+NV', desc + " " + title, re.IGNORECASE)
-        addr = addr_match.group(0) if addr_match else ""
+        addr_match = re.search(
+            r'\d+\s+[\w.]+(?:\s+\w+){0,4}(?:,\s*(?:Suite|Ste|Unit|#)\s*[\w]+)?'  
+            r'[,\s]+(?:Las Vegas|Henderson|North Las Vegas|Summerlin)[,\s]+NV',
+            desc + " " + title, re.IGNORECASE)
+        addr = addr_match.group(0).strip() if addr_match else ""
 
-        if title and len(title) > 5:
-            candidates.append({
-                "name": title[:80],
-                "address": addr[:150],
-                "url": url,
-                "snippet": desc[:200],
-                "query": query,
-            })
+        candidates.append({
+            "name": clean_name[:80],
+            "address": addr[:150],
+            "url": url,
+            "snippet": desc[:200],
+            "query": query,
+        })
+
     return candidates[:5]
 
 # Hard category rules — applied BEFORE GLM, no LLM cost
