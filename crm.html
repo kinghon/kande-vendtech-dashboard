@@ -813,10 +813,11 @@
       // Include prospects with next_action OR where follow_up_date has passed (excluding stale/signed)
       const withActions = prospects.filter(p => {
         if (p.status === 'closed' || p.status === 'signed') return false;
-        // Allow if manually flagged OR has a real logged activity
+        // Show if needs_action is set with a next_action (user explicitly flagged it)
+        if (p.needs_action && p.next_action) return true;
+        // Also show if manually sourced or has a real logged activity
         const isManual = p.next_action_source === 'manual' || hasManualActivity(p);
-        if (!isManual) return false;
-        if (p.next_action) return true;
+        if (isManual && p.next_action) return true;
         // Check if follow-up is due
         if (p.follow_up_date && p.follow_up_date <= today) return true;
         return false;
