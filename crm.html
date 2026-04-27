@@ -839,12 +839,17 @@
         ? withActions.filter(p => (p.name || '').toLowerCase().includes(todoQuery) || (p.next_action || '').toLowerCase().includes(todoQuery) || (p.property_type || '').toLowerCase().includes(todoQuery))
         : withActions;
       
-      // Sort by action type: Pop In first, then Call, then Email, then Follow Up, then Other
+      // Sort: action type first (Pop In → Call → Email → Other), then newest-added first within each type
       const actionOrder = {'Pop In': 1, 'Call': 2, 'Email': 3};
       displayActions.sort((a, b) => {
         if (a._isFollowUp && !b._isFollowUp) return 1;
         if (!a._isFollowUp && b._isFollowUp) return -1;
-        return (actionOrder[a.next_action] || 99) - (actionOrder[b.next_action] || 99);
+        const typeSort = (actionOrder[a.next_action] || 99) - (actionOrder[b.next_action] || 99);
+        if (typeSort !== 0) return typeSort;
+        // Within same action type: newest next_action_added first
+        const aDate = a.next_action_added ? new Date(a.next_action_added).getTime() : 0;
+        const bDate = b.next_action_added ? new Date(b.next_action_added).getTime() : 0;
+        return bDate - aDate;
       });
       
       if (displayActions.length === 0) {
