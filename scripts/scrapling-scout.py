@@ -67,8 +67,8 @@ SCRAPE_TARGETS = [
      "apartment complex Henderson NV"),
 
     # Developer portfolio pages — catches all properties from major LV apartment builders
-    ("picerne_portfolio",
-     "https://www.picerne.com/communities/",
+    ("picerne_nevada",
+     "https://www.picerne.com/nv/apartments",
      "Picerne apartment community Las Vegas NV"),
 
     # Senior living
@@ -279,7 +279,10 @@ def main():
             log(f"  No content returned, skipping")
             continue
 
-        log(f"  Got {len(content)} chars of content")
+        # apartments.com pages have ~7k chars of nav/filter UI before actual listings
+    if 'apartments.com' in url:
+        content = content[6000:] if len(content) > 6000 else content
+    log(f"  Got {len(content)} chars of content")
 
         candidates = glm_extract_leads(content, context_hint, url)
         log(f"  GLM extracted {len(candidates)} candidates")
