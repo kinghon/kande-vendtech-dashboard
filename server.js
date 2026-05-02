@@ -26824,8 +26824,17 @@ function matchesExistingProspect(place, prospects) {
   const norm = normalizePlace(place);
   for (const p of prospects) {
     if (p.google_place_id && p.google_place_id === norm.placeId) return true;
-    const { confidence } = smartMatchConfidence(p, place);
-    if (confidence >= 50) return true;
+    // Raised threshold from 50 → 80 to prevent geo-close false positives
+    // (e.g. two different apartment complexes on the same street within 200m)
+    const { confidence, method } = smartMatchConfidence(p, place);
+    if (confidence >= 80) return true;
+    // Geo-nearby (500m) still needs name similarity to match
+    if (confidence >= 60 && method === 'geo-nearby') {
+      const normName = norm.name.toLowerCase();
+      const pName = (p.name || '').toLowerCase();
+      const nameOverlap = normName.includes(pName.slice(0, 10)) || pName.includes(normName.slice(0, 10));
+      if (nameOverlap) return true;
+    }
   }
   return false;
 }
