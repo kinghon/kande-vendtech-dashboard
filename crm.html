@@ -457,6 +457,12 @@
         <option value="office">🏢 Office/Business</option>
         <option value="other">📦 Other</option>
       </select>
+      <select id="sortSelect" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:0.9rem;cursor:pointer;" onchange="currentSort=this.value;renderProspects()">
+        <option value="default">Sort: Priority</option>
+        <option value="mgmt_company">Sort: Mgmt Company</option>
+        <option value="name">Sort: Name A-Z</option>
+        <option value="newest">Sort: Newest</option>
+      </select>
       <input type="text" class="search-input" id="search" placeholder="Search prospects...">
     </div>
 
@@ -637,6 +643,7 @@
     let prospects = [];
     let expandedId = null;
     let currentFilter = 'all';
+    let currentSort = 'default';
     let currentSourceFilter = 'all'; // for Newly Added sub-filter
     let currentPage = 1;
     const PAGE_SIZE = 25;
@@ -1077,6 +1084,8 @@
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       document.querySelector('[data-filter="all"]').classList.add('active');
       document.getElementById('typeFilter').value = 'all';
+      document.getElementById('sortSelect').value = 'default';
+      currentSort = 'default';
       document.getElementById('search').value = '';
       
       // Ensure prospect is visible by expanding page far enough
@@ -1171,9 +1180,25 @@
         });
       } else {
         filtered.sort((a, b) => {
+          // Always keep closed/stale at bottom
           if (a.status === 'closed' && b.status !== 'closed') return 1;
           if (a.status !== 'closed' && b.status === 'closed') return -1;
-          return 0;
+          if (currentSort === 'mgmt_company') {
+            const ma = (a.management_company || '').toLowerCase();
+            const mb = (b.management_company || '').toLowerCase();
+            if (!ma && mb) return 1;
+            if (ma && !mb) return -1;
+            return ma.localeCompare(mb) || (a.name || '').localeCompare(b.name || '');
+          }
+          if (currentSort === 'name') {
+            return (a.name || '').localeCompare(b.name || '');
+          }
+          if (currentSort === 'newest') {
+            return new Date(b.created_at) - new Date(a.created_at);
+          }
+          // default: priority order
+          const priorityOrder = { hot: 1, intalks: 2, warm: 3, normal: 4 };
+          return (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4);
         });
       }
 
@@ -1193,6 +1218,7 @@
               <div class="prospect-name">${p.name}${(() => { const ro = getRecentOpens(p); if (!ro) return ''; const urgency = ro.ageDays <= 2 ? '#e53e3e' : ro.ageDays <= 5 ? '#dd6b20' : '#718096'; const callFlag = ro.totalAdjusted >= 3 && !ro.anyReplied ? '<span style="margin-left:6px;font-size:0.7rem;font-weight:800;color:#e53e3e;background:rgba(229,62,62,0.12);padding:2px 8px;border-radius:4px;animation:pulse 2s infinite;">📞 CALL TODAY</span>' : ''; return `<span style="margin-left:8px;font-size:0.75rem;font-weight:700;color:${urgency};background:rgba(229,62,62,0.08);padding:2px 8px;border-radius:4px;">📬 ${ro.totalAdjusted} open${ro.totalAdjusted > 1 ? 's' : ''} · ${ro.ageDays === 0 ? 'today' : ro.ageDays + 'd ago'}${ro.anyReplied ? ' ✓replied' : ''}</span>${callFlag}`; })()}${p.status === 'closed' && p.stale_reason ? `<span style="margin-left:10px;font-size:0.8rem;font-weight:700;color:var(--hot);">⛔ ${esc(p.stale_reason)}</span>` : ''}${p.next_action ? `<span style="margin-left:10px;font-size:0.8rem;font-weight:600;color:var(--accent);background:rgba(49,130,206,0.1);padding:2px 8px;border-radius:4px;">→ ${p.next_action === 'Pop In' ? '🚶' : p.next_action === 'Call' ? '📞' : '📧'} ${esc(p.next_action)}${p.next_action_date ? ' (' + p.next_action_date + ')' : ''}</span>` : ''}</div>
               <span class="saved-indicator" id="saved-${p.id}">✓ Saved</span>
               <div class="badge-row" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                ${p.management_company ? `<span style="font-size:0.7rem;font-weight:600;color:#6b7280;background:rgba(107,114,128,0.1);padding:2px 8px;border-radius:4px;border:1px solid rgba(107,114,128,0.2);">🏢 ${esc(p.management_company)}</span>` : ''}
                 <select class="status-select" onclick="event.stopPropagation()" onchange="setStatus(${p.id}, this.value)" style="padding:4px 10px;border-radius:12px;font-size:0.7rem;font-weight:700;cursor:pointer;border:none;background:${p.priority === 'hot' ? 'rgba(229,62,62,0.15)' : p.priority === 'intalks' ? 'rgba(139,92,246,0.15)' : p.priority === 'warm' ? 'rgba(234,179,8,0.15)' : 'rgba(49,130,206,0.15)'};color:${p.priority === 'hot' ? 'var(--hot)' : p.priority === 'intalks' ? 'var(--intalks)' : p.priority === 'warm' ? 'var(--warm)' : 'var(--accent)'};">
                   <option value="hot" ${p.priority === 'hot' ? 'selected' : ''}>🔥 HOT</option>
                   <option value="intalks" ${p.priority === 'intalks' ? 'selected' : ''}>💬 IN TALKS</option>
@@ -1324,6 +1350,10 @@
               <div class="field-group">
                 <label class="field-label">Est. Foot Traffic</label>
                 <input class="field-input" type="number" placeholder="daily visitors" value="${esc(p.estimated_foot_traffic || '')}" onchange="updateField(${p.id},'estimated_foot_traffic',this.value)" style="padding:6px 8px;font-size:0.85rem;">
+              </div>
+              <div class="field-group" style="grid-column:1/-1;">
+                <label class="field-label">🏢 Management Company</label>
+                <input class="field-input" value="${esc(p.management_company || '')}" placeholder="e.g. Avenue5 Residential" onchange="updateField(${p.id},'management_company',this.value)" style="padding:6px 8px;font-size:0.85rem;">
               </div>
             </div>
             <div style="display:flex;justify-content:flex-end;margin-top:12px;">
