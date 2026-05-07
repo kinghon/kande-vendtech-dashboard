@@ -648,6 +648,21 @@ app.post('/api/prospects', (req, res) => {
     logRejection(req.body, qualResult);
     return res.status(422).json({ error: 'Lead failed qualification', tier: 'C', score: qualResult.score, reason: qualResult.reason });
   }
+  // Validate units on creation too
+  if (req.body.units !== undefined) {
+    const rawUnits = String(req.body.units).replace(/,/g, '').trim();
+    const parsedUnits = parseInt(rawUnits, 10);
+    const ptype = (req.body.property_type || '').toLowerCase();
+    const isResidential = ptype.includes('apart') || ptype.includes('condo') || ptype.includes('senior') || ptype.includes('residential');
+    if (isResidential && !isNaN(parsedUnits) && (parsedUnits > 2000 || parsedUnits < 25)) {
+      console.warn(`[units-validation] Suspicious unit count ${parsedUnits} on new prospect "${req.body.name}" — flagging`);
+      req.body.units_flagged = true;
+      req.body.units_flag_reason = parsedUnits > 2000
+        ? `unit count ${parsedUnits} exceeds 2000 — possible sq footage or data error`
+        : `unit count ${parsedUnits} below 25 — possible data entry error`;
+    }
+  }
+
   const qual_status = qualResult.bypass ? 'approved' : 'approved';
   const prospect = { id: nextId(), ...req.body, source: normalizeSource(req.body.source), status: req.body.status || 'new', priority: req.body.priority || 'normal', qual_status, qual_gate_score: qualResult.score, qual_gate_tier: qualResult.tier, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
   db.prospects.push(prospect);
@@ -701,6 +716,28 @@ app.put('/api/prospects/:id', (req, res) => {
       description: changes.join(' · '),
       created_at: new Date().toISOString()
     });
+  }
+
+  // Validate units field if provided — catch obvious data errors before writing
+  if (req.body.units !== undefined) {
+    const rawUnits = String(req.body.units).replace(/,/g, '').trim();
+    const parsedUnits = parseInt(rawUnits, 10);
+    const ptype = (req.body.property_type || old.property_type || '').toLowerCase();
+    const isResidential = ptype.includes('apart') || ptype.includes('condo') || ptype.includes('senior') || ptype.includes('residential');
+    if (isResidential && !isNaN(parsedUnits)) {
+      if (parsedUnits > 2000) {
+        console.warn(`[units-validation] Suspicious unit count ${parsedUnits} for prospect ${id} (${old.name}) — value exceeds 2000. Storing but flagging.`);
+        req.body.units_flagged = true;
+        req.body.units_flag_reason = `unit count ${parsedUnits} exceeds 2000 — possible data entry error`;
+      } else if (parsedUnits < 25) {
+        console.warn(`[units-validation] Suspicious unit count ${parsedUnits} for prospect ${id} (${old.name}) — value below 25 for residential.`);
+        req.body.units_flagged = true;
+        req.body.units_flag_reason = `unit count ${parsedUnits} below 25 — possible data entry error`;
+      } else {
+        req.body.units_flagged = false;
+        req.body.units_flag_reason = null;
+      }
+    }
   }
 
   db.prospects[index] = { ...old, ...req.body, updated_at: new Date().toISOString() };
