@@ -186,6 +186,10 @@
     .order-items-table td { padding: 10px 12px; border-top: 1px solid var(--border); font-size: 0.85rem; vertical-align: middle; }
     .order-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); }
     .order-thumb-placeholder { width: 48px; height: 48px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #f0f4f8; border: 1px solid var(--border); }
+    .prod-thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; transition: transform 0.15s; }
+    .prod-thumb:hover { transform: scale(1.08); }
+    .prod-thumb-placeholder { width: 44px; height: 44px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; background: #f0f4f8; border: 1px solid var(--border); }
+    .prod-image-full { width: 100%; max-height: 260px; object-fit: contain; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 16px; background: #fafbfc; }
 
     /* Price History */
     .price-history-list { max-height: 300px; overflow-y: auto; }
@@ -275,6 +279,7 @@
         <table class="data-table" id="inventoryTable">
           <thead>
             <tr>
+              <th style="width:52px"></th>
               <th>Product</th>
               <th>Category</th>
               <th>SKU</th>
@@ -554,6 +559,9 @@
     <div class="modal" style="max-width:640px">
       <h3>📊 Product Details</h3>
       <input type="hidden" id="detailProductId">
+      <div id="detailImageWrap" style="display:none;margin-bottom:16px">
+        <img id="detailImageFull" src="" alt="" class="prod-image-full">
+      </div>
       <div class="detail-grid" style="margin-bottom:16px">
         <div class="detail-item"><div class="label">Name</div><div class="value" id="detailName"></div></div>
         <div class="detail-item"><div class="label">Category</div><div class="value" id="detailCategory"></div></div>
@@ -796,6 +804,7 @@
 
         return `
           <tr class="${rowClass}">
+            <td style="padding:6px 8px">${p.thumbnail ? `<img src="${p.thumbnail}" class="prod-thumb" alt="${p.name}" onclick="openProductDetail(${p.id})" title="${p.name}">` : `<div class="prod-thumb-placeholder">${getCategoryEmoji(p.name)}</div>`}</td>
             <td><strong>${p.name}</strong>${p.unit_size ? '<br><span style="font-size:0.75rem;color:var(--muted)">' + p.unit_size + '</span>' : ''}</td>
             <td><span class="cat-badge ${catClass}">${getCategoryLabel(p.category)}</span></td>
             <td style="font-family:monospace;font-size:0.8rem;color:var(--muted);">${p.sku || '—'}</td>
@@ -1524,6 +1533,17 @@
       if (!p) return;
 
       document.getElementById('detailProductId').value = productId;
+      // Show full-size image if available
+      const imgWrap = document.getElementById('detailImageWrap');
+      const imgEl = document.getElementById('detailImageFull');
+      const imgSrc = p.image_url || p.thumbnail;
+      if (imgSrc) {
+        imgEl.src = imgSrc;
+        imgEl.alt = p.name;
+        imgWrap.style.display = 'block';
+      } else {
+        imgWrap.style.display = 'none';
+      }
       document.getElementById('detailName').textContent = p.name;
       document.getElementById('detailCategory').textContent = getCategoryLabel(p.category);
       document.getElementById('detailSKU').textContent = p.sku || '—';
