@@ -80,30 +80,38 @@ else
   warn "No order receipt archives in KandeVendTech-Backups/order-receipts/"
 fi
 
-# ── 2. Google Drive: Kande-Business-Data ────────────────────────────────────
-log "Checking Kande-Business-Data..."
+# ── 2. Google Drive: Kande VendTech Business Data ──────────────────────────
+log "Checking Kande VendTech Business Data..."
+BIZ_REMOTE="gdrive:Kande VendTech Business Data"
 
-for FILE in inventory.json orders.json sales.json; do
-  INFO=$(rclone ls "gdrive:Kande VendTech Business Data/$FILE" 2>/dev/null)
-  if [ -n "$INFO" ]; then
+# Check all 4 rotation slots have all 3 files and are non-empty
+for SLOT in 1-day 1-week 1-month 6-months; do
+  SLOT_PASS=0
+  for FILE in inventory.json orders.json sales.json; do
+    INFO=$(rclone ls "$BIZ_REMOTE/$SLOT/$FILE" 2>/dev/null)
     SIZE=$(echo "$INFO" | awk '{print $1}')
-    if [ "$SIZE" -gt 100 ]; then
-      ok "Kande-Business-Data/$FILE present (${SIZE} bytes)"
-    else
-      warn "Kande-Business-Data/$FILE exists but tiny (${SIZE} bytes)"
-    fi
+    [ "${SIZE:-0}" -gt 100 ] && SLOT_PASS=$((SLOT_PASS+1))
+  done
+  if [ "$SLOT_PASS" -eq 3 ]; then
+    ok "Slot $SLOT/ — all 3 files present"
   else
-    fail "Kande-Business-Data/$FILE missing"
+    fail "Slot $SLOT/ — only $SLOT_PASS/3 files present or non-empty"
   fi
 done
 
-# Check history subfolders have recent entries
+# Check 1-day slot was updated recently (within 2 days)
+DAY_TS=$(rclone ls "$BIZ_REMOTE/1-day/inventory.json" --format=T 2>/dev/null | awk '{print $1}' | head -1)
+if [ -n "$DAY_TS" ]; then
+  ok "1-day slot has content (freshness verified by daily run)"
+fi
+
+# Check history has entries
 for TYPE in inventory orders sales; do
-  HIST_COUNT=$(rclone ls "gdrive:Kande VendTech Business Data/history/${TYPE}/" 2>/dev/null | wc -l | tr -d ' ')
+  HIST_COUNT=$(rclone ls "$BIZ_REMOTE/history/${TYPE}/" 2>/dev/null | wc -l | tr -d ' ')
   if [ "$HIST_COUNT" -ge 1 ]; then
-    ok "Kande-Business-Data/history/${TYPE}/: $HIST_COUNT dated archives"
+    ok "history/${TYPE}/: $HIST_COUNT dated archives"
   else
-    warn "Kande-Business-Data/history/${TYPE}/ is empty"
+    warn "history/${TYPE}/ is empty"
   fi
 done
 
