@@ -281,12 +281,15 @@
             <tr>
               <th style="width:52px"></th>
               <th>Product</th>
+              <th>Size</th>
+              <th>Item #</th>
               <th>Category</th>
               <th>SKU</th>
               <th>Stock</th>
               <th>Reorder Pt</th>
               <th>Cost</th>
               <th>Unit Cost</th>
+              <th>Sale Price</th>
               <th>Sell</th>
               <th>Margin</th>
               <th>Profit</th>
@@ -805,7 +808,9 @@
         return `
           <tr class="${rowClass}">
             <td style="padding:6px 8px">${p.thumbnail ? `<img src="${p.thumbnail}" class="prod-thumb" alt="${p.name}" onclick="openProductDetail(${p.id})" title="${p.name}">` : `<div class="prod-thumb-placeholder">${getCategoryEmoji(p.name)}</div>`}</td>
-            <td><strong>${p.name}</strong>${p.unit_size ? '<br><span style="font-size:0.75rem;color:var(--muted)">' + p.unit_size + '</span>' : ''}</td>
+            <td><strong>${p.name}</strong></td>
+            <td style="font-size:0.82rem;color:var(--muted);white-space:nowrap">${p.unit_size || '—'}</td>
+            <td style="font-family:monospace;font-size:0.8rem;color:var(--muted)">${p.item_number || '—'}</td>
             <td><span class="cat-badge ${catClass}">${getCategoryLabel(p.category)}</span></td>
             <td style="font-family:monospace;font-size:0.8rem;color:var(--muted);">${p.sku || '—'}</td>
             <td>
@@ -818,6 +823,7 @@
             <td>${reorder}</td>
             <td>$${cost.toFixed(2)}</td>
             <td class="unit-cost">$${unitCost.toFixed(2)}</td>
+            <td style="color:var(--success);font-weight:600">$${(unitCost * 1.62).toFixed(2)}</td>
             <td>$${sell.toFixed(2)}</td>
             <td><strong>${margin}%</strong></td>
             <td class="profit-unit ${profitClass}">$${profitUnit.toFixed(2)}</td>
@@ -1476,28 +1482,34 @@
                   <tr>
                     <th style="width:60px">Img</th>
                     <th>Item</th>
-                    <th>Unit Size</th>
+                    <th>Size</th>
+                    <th>Item #</th>
                     <th>Units/Case</th>
                     <th>Cases</th>
                     <th>Price/Case</th>
                     <th>Unit Cost</th>
-                    <th>Sale Price</th>
                     <th style="text-align:right">Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${(order.items || []).map(item => {
                     const unitCost = item.units_per_case ? (item.price_per_case / item.units_per_case) : 0;
-                    const thumb = item.thumbnail ? `<img src="${item.thumbnail}" class="order-thumb" alt="">` : `<div class="order-thumb-placeholder">${getCategoryEmoji(item.product_name)}</div>`;
+                    const prod = products.find(p => p.id === item.product_id);
+                    const thumbSrc = prod?.thumbnail || item.thumbnail;
+                    const imgSrc   = prod?.image_url  || prod?.thumbnail || item.thumbnail;
+                    const thumb = thumbSrc
+                      ? `<img src="${thumbSrc}" class="order-thumb" alt="" style="cursor:pointer" onclick="window.open('${imgSrc}','_blank')">`
+                      : `<div class="order-thumb-placeholder">${getCategoryEmoji(item.product_name)}</div>`;
+                    const itemNum = prod?.item_number || item.item_number || '—';
                     return `<tr>
                       <td>${thumb}</td>
                       <td><strong>${item.product_name || 'Unknown'}</strong></td>
-                      <td>${item.unit_size || '—'}</td>
+                      <td style="font-size:0.82rem;color:var(--muted);white-space:nowrap">${item.unit_size || '—'}</td>
+                      <td style="font-family:monospace;font-size:0.8rem;color:var(--muted)">${itemNum}</td>
                       <td>${item.units_per_case || '—'}</td>
                       <td>${item.cases}</td>
                       <td>$${(item.price_per_case || 0).toFixed(2)}</td>
                       <td>$${unitCost.toFixed(2)}</td>
-                      <td style="color:var(--success);font-weight:600">$${(unitCost * 1.62).toFixed(2)}</td>
                       <td style="text-align:right;font-weight:700">$${(item.total || 0).toFixed(2)}</td>
                     </tr>`;
                   }).join('')}
