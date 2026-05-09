@@ -4,7 +4,7 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
 BACKUP_DATE=$(date +%Y-%m-%d)
 LOG_FILE="/Users/kurtishon/clawd/logs/backup.log"
-DATA_REMOTE="gdrive:Kande-Business-Data"
+DATA_REMOTE="gdrive:Kande VendTech Business Data"
 COOKIE="/tmp/kande-biz-data-cookies.txt"
 TMP="/tmp/kande-biz-$$"
 

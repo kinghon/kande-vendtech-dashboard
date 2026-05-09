@@ -84,7 +84,7 @@ fi
 log "Checking Kande-Business-Data..."
 
 for FILE in inventory.json orders.json sales.json; do
-  INFO=$(rclone ls "gdrive:Kande-Business-Data/$FILE" 2>/dev/null)
+  INFO=$(rclone ls "gdrive:Kande VendTech Business Data/$FILE" 2>/dev/null)
   if [ -n "$INFO" ]; then
     SIZE=$(echo "$INFO" | awk '{print $1}')
     if [ "$SIZE" -gt 100 ]; then
@@ -99,7 +99,7 @@ done
 
 # Check history subfolders have recent entries
 for TYPE in inventory orders sales; do
-  HIST_COUNT=$(rclone ls "gdrive:Kande-Business-Data/history/${TYPE}/" 2>/dev/null | wc -l | tr -d ' ')
+  HIST_COUNT=$(rclone ls "gdrive:Kande VendTech Business Data/history/${TYPE}/" 2>/dev/null | wc -l | tr -d ' ')
   if [ "$HIST_COUNT" -ge 1 ]; then
     ok "Kande-Business-Data/history/${TYPE}/: $HIST_COUNT dated archives"
   else
