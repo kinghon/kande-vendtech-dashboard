@@ -76,7 +76,7 @@ log "========================================="
 log "📦 Step 1: Snapshotting database..."
 
 # Local dashboard data
-DASHBOARD_DB="$WORKSPACE/kande-vendtech/dashboard/data/data.json"
+DASHBOARD_DB="$WORKSPACE/data/data.json"
 if [ -f "$DASHBOARD_DB" ]; then
   cp "$DASHBOARD_DB" "$TEMP_DIR/$DB_BACKUP_NAME"
   DB_SIZE=$(du -h "$TEMP_DIR/$DB_BACKUP_NAME" | cut -f1)
@@ -169,3 +169,51 @@ log "  Database: $DB_BACKUP_NAME"
 log "  Destination: $GDRIVE_REMOTE"
 $DRY_RUN && log "  ⚠ DRY RUN — nothing was uploaded"
 log "========================================="
+
+# --- Step 6: Export order receipts from production API ---
+log "📋 Step 6: Exporting order receipts from production..."
+
+ORDERS_DIR="$WORKSPACE/data/order-receipts-archive"
+mkdir -p "$ORDERS_DIR"
+
+# Authenticate and fetch orders
+AUTH_RESPONSE=$(curl -s -c /tmp/kande-backup-cookies.txt \
+  -X POST "https://vend.kandedash.com/api/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"password":"kande2026"}' 2>/dev/null)
+
+if echo "$AUTH_RESPONSE" | grep -q '"success":true'; then
+  ORDERS_JSON=$(curl -s -b /tmp/kande-backup-cookies.txt \
+    "https://vend.kandedash.com/api/order-receipts" 2>/dev/null)
+  
+  if echo "$ORDERS_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); exit(0 if isinstance(d,list) else 1)" 2>/dev/null; then
+    ORDER_COUNT=$(echo "$ORDERS_JSON" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))" 2>/dev/null)
+    
+    # Save latest snapshot locally
+    echo "$ORDERS_JSON" > "$WORKSPACE/data/order-receipts-latest.json"
+    
+    # Save dated archive copy locally
+    echo "$ORDERS_JSON" > "$ORDERS_DIR/orders-${BACKUP_DATE}.json"
+    
+    log "  ✅ $ORDER_COUNT order receipts exported"
+    
+    if ! $DRY_RUN; then
+      # Upload to dedicated permanent orders folder (no retention limit — orders are financial records)
+      rclone copy "$ORDERS_DIR/orders-${BACKUP_DATE}.json" \
+        "$GDRIVE_REMOTE/order-receipts/" \
+        --progress 2>> "$LOG_FILE" || log "  ⚠ Failed to upload order receipts to Drive"
+      
+      # Always overwrite the "latest" file on Drive too
+      rclone copy "$WORKSPACE/data/order-receipts-latest.json" \
+        "$GDRIVE_REMOTE/order-receipts/" \
+        --progress 2>> "$LOG_FILE" || true
+      
+      log "  ✅ Orders uploaded to $GDRIVE_REMOTE/order-receipts/"
+    fi
+  else
+    log "  ⚠ Could not parse order receipts response"
+  fi
+  rm -f /tmp/kande-backup-cookies.txt
+else
+  log "  ⚠ Could not authenticate to fetch order receipts"
+fi
