@@ -235,3 +235,10 @@ if echo "$AUTH" | grep -q '"success":true'; then
 else
   log "  ⚠ Auth failed — skipping production data backup"
 fi
+
+
+# =============================================================================
+# STEP 7: Kande-Business-Data — dedicated files per data type
+# =============================================================================
+log "📊 Step 7: Exporting business data files to Kande-Business-Data..."
+bash /Users/kurtishon/clawd/scripts/export-business-data.sh || log "  ⚠ Business data export had errors (non-fatal)"
