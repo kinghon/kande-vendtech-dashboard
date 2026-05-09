@@ -1233,29 +1233,46 @@ app.get('/api/order-receipts/:id', (req, res) => {
 
 app.post('/api/order-receipts', (req, res) => {
   const items = req.body.items || [];
-  const subtotal = items.reduce((sum, item) => sum + ((item.price_per_case || 0) * (item.cases || 0)), 0);
-  const tax_rate = req.body.tax_rate || 0;
-  const tax_amount = subtotal * tax_rate;
-  const total = subtotal + tax_amount + (req.body.shipping || 0);
+  // Use provided financial values (distributor invoices have complex pricing)
+  const subtotal = req.body.subtotal !== undefined ? req.body.subtotal
+    : items.reduce((sum, item) => sum + ((item.price_per_case || 0) * (item.cases || 0)), 0);
+  const fuel_surcharge = req.body.fuel_surcharge || 0;
+  const discount = req.body.discount || 0;
+  const service_charge = req.body.service_charge || 0;
+  const tax = req.body.tax || 0;
+  const tax_exempt = req.body.tax_exempt || false;
+  const credit = req.body.credit || 0;
+  const total_charged = req.body.total_charged !== undefined ? req.body.total_charged
+    : subtotal + fuel_surcharge + discount + service_charge + tax + credit;
 
   const receipt = {
     id: nextId(),
-    vendor: req.body.vendor || '',
+    supplier: req.body.supplier || req.body.vendor || '',
+    vendor: req.body.supplier || req.body.vendor || '',  // keep legacy compat
+    vendhub_order_id: req.body.vendhub_order_id || '',
+    vendhub_order_ref: req.body.vendhub_order_ref || req.body.invoice_number || '',
     order_date: req.body.order_date || new Date().toISOString().split('T')[0],
-    invoice_number: req.body.invoice_number || '',
+    payment_date: req.body.payment_date || '',
     items: items.map(item => ({
       product_id: item.product_id,
       product_name: item.product_name || '',
+      brand: item.brand || '',
+      unit_size: item.unit_size || '',
       cases: item.cases || 0,
+      cases_shipped: item.cases_shipped || item.cases || 0,
       units_per_case: item.units_per_case || 0,
       price_per_case: item.price_per_case || 0,
-      total: (item.price_per_case || 0) * (item.cases || 0)
+      price_per_unit: item.price_per_unit || (item.units_per_case ? parseFloat((item.price_per_case / item.units_per_case).toFixed(2)) : 0),
+      total: item.total || item.invoiced_total || (item.price_per_case || 0) * (item.cases || 0)
     })),
     subtotal,
-    tax_rate,
-    tax_amount,
-    shipping: req.body.shipping || 0,
-    total,
+    fuel_surcharge,
+    discount,
+    service_charge,
+    tax,
+    tax_exempt,
+    credit,
+    total_charged,
     notes: req.body.notes || '',
     created_at: new Date().toISOString()
   };
