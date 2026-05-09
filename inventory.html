@@ -1453,11 +1453,22 @@
         return `
           <div class="order-card">
             <div class="order-header" onclick="document.getElementById('order-body-${order.id}').classList.toggle('collapsed')">
-              <div>
-                <h4>${order.supplier || order.vendor || 'Unknown Vendor'} <span style="font-weight:400;color:var(--muted)">— ${order.vendhub_order_ref || order.invoice_number || 'No ref #'}</span></h4>
-                <div class="order-meta">${date}${order.payment_date ? ' · Paid ' + new Date(order.payment_date).toLocaleDateString() : ''} · ${itemCount} item${itemCount !== 1 ? 's' : ''}</div>
+              <div style="flex:1">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                  <h4>${order.supplier || order.vendor || 'Unknown Vendor'} <span style="font-weight:400;color:var(--muted)">— ${order.vendhub_order_ref || order.invoice_number || 'No ref #'}</span></h4>
+                  <div class="order-total">$${(order.total_charged ?? order.total ?? 0).toFixed(2)} charged</div>
+                </div>
+                <div class="order-meta" style="margin-bottom:8px">${date}${order.payment_date ? ' · Paid ' + new Date(order.payment_date).toLocaleDateString() : ''} · ${itemCount} item${itemCount !== 1 ? 's' : ''}</div>
+                <div style="display:flex;flex-wrap:wrap;gap:16px;font-size:0.8rem;">
+                  <span>Subtotal: <strong>$${(order.subtotal||0).toFixed(2)}</strong></span>
+                  ${order.fuel_surcharge ? `<span style="color:var(--warn)">Fuel Surchg: <strong>+$${(order.fuel_surcharge||0).toFixed(2)}</strong></span>` : ''}
+                  ${order.discount ? `<span style="color:var(--success)">Discount: <strong>-$${Math.abs(order.discount||0).toFixed(2)}</strong></span>` : ''}
+                  ${order.service_charge ? `<span>Svc Charge: <strong>+$${(order.service_charge||0).toFixed(2)}</strong></span>` : ''}
+                  ${order.tax_exempt ? `<span style="color:var(--muted)">Tax: <strong>Exempt</strong></span>` : (order.tax ? `<span>Tax: <strong>$${(order.tax||0).toFixed(2)}</strong></span>` : '')}
+                  ${order.credit ? `<span style="color:var(--success)">Credit: <strong>-$${Math.abs(order.credit||0).toFixed(2)}</strong></span>` : ''}
+                  <span style="font-weight:700;color:var(--accent)">Total Charged: $${(order.total_charged??order.total??0).toFixed(2)}</span>
+                </div>
               </div>
-              <div class="order-total">$${(order.total_charged ?? order.total ?? 0).toFixed(2)}</div>
             </div>
             <div class="order-body" id="order-body-${order.id}">
               <table class="order-items-table">
@@ -1492,18 +1503,7 @@
                   }).join('')}
                 </tbody>
               </table>
-              <div style="padding:14px 18px;background:#fafbfc;border-top:1px solid var(--border);">
-                <div style="display:flex;gap:24px;flex-wrap:wrap;font-size:0.83rem;">
-                  <span>Subtotal: <strong>$${(order.subtotal||0).toFixed(2)}</strong></span>
-                  ${order.fuel_surcharge ? `<span style="color:var(--warn)">Fuel Surchg: <strong>+$${(order.fuel_surcharge||0).toFixed(2)}</strong></span>` : ''}
-                  ${order.discount ? `<span style="color:var(--success)">Discount: <strong>-$${Math.abs(order.discount||0).toFixed(2)}</strong></span>` : ''}
-                  ${order.service_charge ? `<span>Svc Charge: <strong>+$${(order.service_charge||0).toFixed(2)}</strong></span>` : ''}
-                  ${order.tax_exempt ? `<span style="color:var(--muted)">Tax: <strong>Exempt</strong></span>` : (order.tax ? `<span>Tax: <strong>$${(order.tax||0).toFixed(2)}</strong></span>` : '')}
-                  ${order.credit ? `<span style="color:var(--success)">Credit: <strong>-$${Math.abs(order.credit||0).toFixed(2)}</strong></span>` : ''}
-                  <span style="font-size:0.9rem;font-weight:700;color:var(--accent)">Total Charged: $${(order.total_charged??order.total??0).toFixed(2)}</span>
-                </div>
-                ${order.notes ? `<div style="font-size:0.78rem;color:var(--muted);margin-top:6px">${order.notes}</div>` : ''}
-              </div>
+              ${order.notes ? `<div style="padding:8px 18px;font-size:0.78rem;color:var(--muted);border-top:1px solid var(--border)">${order.notes}</div>` : ''}
             </div>
           </div>
         `;
