@@ -14277,19 +14277,45 @@ app.get('/api/export/:type', (req, res) => {
     // Full database export
     const exportData = {
       exported_at: new Date().toISOString(),
-      version: '1.0.0',
+      version: '2.0.0',
       settings: loadSettings(),
+      // Inventory
+      products: db.products || [],
+      order_receipts: db.order_receipts || [],
+      restocks: db.restocks || [],
+      restockLogs: db.restockLogs || [],
+      warehouseStock: db.warehouseStock || [],
+      // Sales & Finance
+      sales: db.sales || [],
+      salesVelocity: db.salesVelocity || [],
+      finances: db.finances || [],
+      creditCards: db.creditCards || [],
+      revenue: db.revenue || [],
+      marketingSpend: db.marketingSpend || [],
+      // CRM
       prospects: db.prospects || [],
       contacts: db.contacts || [],
       activities: db.activities || [],
+      touchpoints: db.touchpoints || [],
+      contracts: db.contracts || [],
+      clients: db.clients || [],
+      // Operations
       machines: db.machines || [],
       locations: db.locations || [],
-      products: db.products || [],
       suppliers: db.suppliers || [],
-      finances: db.finances || [],
-      contracts: db.contracts || [],
+      routes: db.routes || [],
+      staff: db.staff || [],
+      shifts: db.shifts || [],
+      issues: db.issues || [],
+      planograms: db.planograms || [],
+      micromarkets: db.micromarkets || [],
+      smartMachines: db.smartMachines || [],
+      // Other
       pipelineCards: db.pipelineCards || [],
-      todos: db.todos || []
+      todos: db.todos || [],
+      emailTemplates: db.emailTemplates || [],
+      emailSequences: db.emailSequences || [],
+      emailSends: db.emailSends || []
     };
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', `attachment; filename=vendtech-backup-${new Date().toISOString().split('T')[0]}.json`);

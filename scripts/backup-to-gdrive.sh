@@ -170,50 +170,68 @@ log "  Destination: $GDRIVE_REMOTE"
 $DRY_RUN && log "  ⚠ DRY RUN — nothing was uploaded"
 log "========================================="
 
-# --- Step 6: Export order receipts from production API ---
-log "📋 Step 6: Exporting order receipts from production..."
 
-ORDERS_DIR="$WORKSPACE/data/order-receipts-archive"
-mkdir -p "$ORDERS_DIR"
+# =============================================================================
+# FULL PRODUCTION DATA BACKUP — pulls everything from vend.kandedash.com
+# =============================================================================
+log "🗄️  Step 6: Full production data backup..."
 
-# Authenticate and fetch orders
-AUTH_RESPONSE=$(curl -s -c /tmp/kande-backup-cookies.txt \
+VEND_BACKUP_DIR="$WORKSPACE/data/vend-backups"
+VEND_ARCHIVE_DIR="$VEND_BACKUP_DIR/archive"
+mkdir -p "$VEND_ARCHIVE_DIR"
+
+FULL_BACKUP_FILE="$VEND_ARCHIVE_DIR/vend-full-${BACKUP_DATE}.json"
+LATEST_FILE="$VEND_BACKUP_DIR/vend-full-latest.json"
+ORDERS_LATEST="$VEND_BACKUP_DIR/order-receipts-latest.json"
+ORDERS_ARCHIVE="$VEND_BACKUP_DIR/archive/orders-${BACKUP_DATE}.json"
+
+# Authenticate
+AUTH=$(curl -s -c /tmp/kande-backup-cookies.txt \
   -X POST "https://vend.kandedash.com/api/auth/login" \
   -H "Content-Type: application/json" \
   -d '{"password":"kande2026"}' 2>/dev/null)
 
-if echo "$AUTH_RESPONSE" | grep -q '"success":true'; then
-  ORDERS_JSON=$(curl -s -b /tmp/kande-backup-cookies.txt \
-    "https://vend.kandedash.com/api/order-receipts" 2>/dev/null)
-  
-  if echo "$ORDERS_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); exit(0 if isinstance(d,list) else 1)" 2>/dev/null; then
-    ORDER_COUNT=$(echo "$ORDERS_JSON" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))" 2>/dev/null)
+if echo "$AUTH" | grep -q '"success":true'; then
+  log "  ✅ Authenticated to vend.kandedash.com"
+
+  # Pull full export (all collections)
+  FULL_JSON=$(curl -s -b /tmp/kande-backup-cookies.txt \
+    "https://vend.kandedash.com/api/export/json" 2>/dev/null)
+
+  if [ -n "$FULL_JSON" ] && echo "$FULL_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f\"products:{len(d.get('products',[]))}, orders:{len(d.get('order_receipts',[]))}, prospects:{len(d.get('prospects',[]))}, sales:{len(d.get('sales',[]))}\")" 2>/dev/null; then
+    SUMMARY=$(echo "$FULL_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f\"products:{len(d.get('products',[]))}, orders:{len(d.get('order_receipts',[]))}, prospects:{len(d.get('prospects',[]))}, finances:{len(d.get('finances',[]))}\")" 2>/dev/null)
     
-    # Save latest snapshot locally
-    echo "$ORDERS_JSON" > "$WORKSPACE/data/order-receipts-latest.json"
-    
-    # Save dated archive copy locally
-    echo "$ORDERS_JSON" > "$ORDERS_DIR/orders-${BACKUP_DATE}.json"
-    
-    log "  ✅ $ORDER_COUNT order receipts exported"
-    
+    echo "$FULL_JSON" > "$FULL_BACKUP_FILE"
+    echo "$FULL_JSON" > "$LATEST_FILE"
+    log "  📦 Full export: $SUMMARY"
+
+    # Also write order-receipts standalone files for quick access
+    echo "$FULL_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps(d.get('order_receipts',[]), indent=2))" > "$ORDERS_LATEST"
+    cp "$ORDERS_LATEST" "$ORDERS_ARCHIVE"
+    log "  📋 Order receipts extracted separately"
+
     if ! $DRY_RUN; then
-      # Upload to dedicated permanent orders folder (no retention limit — orders are financial records)
-      rclone copy "$ORDERS_DIR/orders-${BACKUP_DATE}.json" \
-        "$GDRIVE_REMOTE/order-receipts/" \
-        --progress 2>> "$LOG_FILE" || log "  ⚠ Failed to upload order receipts to Drive"
-      
-      # Always overwrite the "latest" file on Drive too
-      rclone copy "$WORKSPACE/data/order-receipts-latest.json" \
-        "$GDRIVE_REMOTE/order-receipts/" \
-        --progress 2>> "$LOG_FILE" || true
-      
-      log "  ✅ Orders uploaded to $GDRIVE_REMOTE/order-receipts/"
+      # Upload full backup — keep ALL of them forever (no retention limit — critical financial data)
+      rclone copy "$FULL_BACKUP_FILE" "$GDRIVE_REMOTE/vend-full-backups/" 2>> "$LOG_FILE" \
+        && log "  ✅ Full backup → Drive/vend-full-backups/" \
+        || log "  ⚠ Failed to upload full backup"
+
+      # Upload order receipts standalone — no retention limit
+      rclone copy "$ORDERS_ARCHIVE" "$GDRIVE_REMOTE/order-receipts/" 2>> "$LOG_FILE" || true
+      rclone copy "$ORDERS_LATEST" "$GDRIVE_REMOTE/order-receipts/" 2>> "$LOG_FILE" || true
+      log "  ✅ Orders → Drive/order-receipts/"
+
+      # Upload latest as always-fresh reference
+      rclone copy "$LATEST_FILE" "$GDRIVE_REMOTE/vend-full-backups/" 2>> "$LOG_FILE" || true
+
+      DRIVE_COUNT=$(rclone ls "$GDRIVE_REMOTE/vend-full-backups/" 2>/dev/null | wc -l | tr -d ' ')
+      log "  Total full backups on Drive: $DRIVE_COUNT"
     fi
   else
-    log "  ⚠ Could not parse order receipts response"
+    log "  ⚠ Full export failed or empty — server may still be deploying"
   fi
+
   rm -f /tmp/kande-backup-cookies.txt
 else
-  log "  ⚠ Could not authenticate to fetch order receipts"
+  log "  ⚠ Auth failed — skipping production data backup"
 fi
