@@ -252,6 +252,8 @@ if (!db.micromarkets) db.micromarkets = [];
 if (!db.smartMachines) db.smartMachines = [];
 if (!db.machineTelemetry) db.machineTelemetry = [];
 if (!db.todos) db.todos = [];
+if (!db.order_receipts) db.order_receipts = [];
+if (!db.price_history) db.price_history = [];
 
 // Seed initial todos if empty
 if (db.todos.length === 0) {
@@ -1159,6 +1161,10 @@ app.post('/api/products', (req, res) => {
     id: nextId(),
     ...req.body,
     margin: req.body.cost_price && req.body.sell_price ? Math.round(((req.body.sell_price - req.body.cost_price) / req.body.sell_price) * 100) : 0,
+    price_history: req.body.price_history || [],
+    unit_size: req.body.unit_size || null,
+    units_per_case: req.body.units_per_case || null,
+    thumbnail: req.body.thumbnail || null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
@@ -1171,9 +1177,20 @@ app.put('/api/products/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const idx = db.products.findIndex(p => p.id === id);
   if (idx === -1) return res.status(404).json({ error: 'Not found' });
-  const updated = { ...db.products[idx], ...req.body, updated_at: new Date().toISOString() };
+  const oldProduct = db.products[idx];
+  const updated = { ...oldProduct, ...req.body, updated_at: new Date().toISOString() };
   if (updated.cost_price && updated.sell_price) {
     updated.margin = Math.round(((updated.sell_price - updated.cost_price) / updated.sell_price) * 100);
+  }
+  // Track cost price changes in price history
+  if (req.body.cost_price !== undefined && req.body.cost_price !== oldProduct.cost_price) {
+    if (!updated.price_history) updated.price_history = [];
+    updated.price_history.unshift({
+      date: new Date().toISOString(),
+      cost_price: req.body.cost_price,
+      source: req.body.price_source || 'manual update'
+    });
+    if (updated.price_history.length > 20) updated.price_history = updated.price_history.slice(0, 20);
   }
   db.products[idx] = updated;
   saveDB(db);
@@ -1185,6 +1202,109 @@ app.delete('/api/products/:id', (req, res) => {
   db.products = db.products.filter(p => p.id !== id);
   saveDB(db);
   res.json({ success: true });
+});
+
+// ===== ORDER RECEIPTS API =====
+app.get('/api/order-receipts', (req, res) => {
+  const receipts = db.order_receipts || [];
+  res.json(receipts.sort((a, b) => new Date(b.order_date) - new Date(a.order_date)));
+});
+
+app.get('/api/order-receipts/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const receipt = (db.order_receipts || []).find(r => r.id === id);
+  if (!receipt) return res.status(404).json({ error: 'Order receipt not found' });
+  // Enrich items with product names
+  const enriched = {
+    ...receipt,
+    items: receipt.items.map(item => {
+      const product = db.products.find(p => p.id === item.product_id);
+      return {
+        ...item,
+        product_name: product?.name || 'Unknown',
+        thumbnail: product?.thumbnail || null,
+        unit_size: product?.unit_size || null,
+        units_per_case: product?.units_per_case || item.units_per_case || null
+      };
+    })
+  };
+  res.json(enriched);
+});
+
+app.post('/api/order-receipts', (req, res) => {
+  const items = req.body.items || [];
+  const subtotal = items.reduce((sum, item) => sum + ((item.price_per_case || 0) * (item.cases || 0)), 0);
+  const tax_rate = req.body.tax_rate || 0;
+  const tax_amount = subtotal * tax_rate;
+  const total = subtotal + tax_amount + (req.body.shipping || 0);
+
+  const receipt = {
+    id: nextId(),
+    vendor: req.body.vendor || '',
+    order_date: req.body.order_date || new Date().toISOString().split('T')[0],
+    invoice_number: req.body.invoice_number || '',
+    items: items.map(item => ({
+      product_id: item.product_id,
+      product_name: item.product_name || '',
+      cases: item.cases || 0,
+      units_per_case: item.units_per_case || 0,
+      price_per_case: item.price_per_case || 0,
+      total: (item.price_per_case || 0) * (item.cases || 0)
+    })),
+    subtotal,
+    tax_rate,
+    tax_amount,
+    shipping: req.body.shipping || 0,
+    total,
+    notes: req.body.notes || '',
+    created_at: new Date().toISOString()
+  };
+  if (!db.order_receipts) db.order_receipts = [];
+  db.order_receipts.push(receipt);
+
+  // Update product stock and price history
+  items.forEach(item => {
+    const product = db.products.find(p => p.id === item.product_id);
+    if (product) {
+      const unitCost = item.units_per_case ? (item.price_per_case / item.units_per_case) : 0;
+      if (unitCost > 0) {
+        if (!product.price_history) product.price_history = [];
+        product.price_history.unshift({
+          date: receipt.order_date,
+          cost_price: parseFloat(unitCost.toFixed(2)),
+          source: receipt.vendor,
+          order_id: receipt.id
+        });
+        if (product.price_history.length > 20) product.price_history = product.price_history.slice(0, 20);
+        product.cost_price = parseFloat(unitCost.toFixed(2));
+        if (product.sell_price) {
+          product.margin = Math.round(((product.sell_price - product.cost_price) / product.sell_price) * 100);
+        }
+      }
+      if (item.units_per_case && item.cases) {
+        product.stock = (product.stock || 0) + (item.units_per_case * item.cases);
+      }
+      product.updated_at = new Date().toISOString();
+    }
+  });
+
+  saveDB(db);
+  res.json(receipt);
+});
+
+app.delete('/api/order-receipts/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  db.order_receipts = (db.order_receipts || []).filter(r => r.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// ===== PRICE HISTORY API =====
+app.get('/api/products/:id/price-history', (req, res) => {
+  const id = parseInt(req.params.id);
+  const product = db.products.find(p => p.id === id);
+  if (!product) return res.status(404).json({ error: 'Product not found' });
+  res.json(product.price_history || []);
 });
 
 // ===== PRODUCT MIX RECOMMENDATION API =====

@@ -165,6 +165,55 @@
       .header-actions { width: 100%; }
       .header-actions .btn { flex: 1; justify-content: center; }
     }
+
+    /* Unit cost & profit */
+    .unit-cost { font-family: monospace; color: var(--muted); font-size: 0.82rem; }
+    .profit-unit { font-weight: 700; font-size: 0.82rem; }
+    .profit-positive { color: var(--success); }
+    .profit-negative { color: var(--hot); }
+
+    /* Orders tab */
+    .order-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; }
+    .order-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: #fafbfc; border-bottom: 1px solid var(--border); cursor: pointer; }
+    .order-header:hover { background: #f0f4f8; }
+    .order-header h4 { font-size: 0.95rem; font-weight: 700; margin: 0; }
+    .order-meta { font-size: 0.78rem; color: var(--muted); }
+    .order-total { font-weight: 800; font-size: 1.1rem; color: var(--accent); }
+    .order-body { padding: 0; }
+    .order-body.collapsed { display: none; }
+    .order-items-table { width: 100%; border-collapse: collapse; }
+    .order-items-table th { background: #edf2f7; padding: 8px 12px; font-size: 0.7rem; text-transform: uppercase; color: var(--muted); font-weight: 700; text-align: left; }
+    .order-items-table td { padding: 10px 12px; border-top: 1px solid var(--border); font-size: 0.85rem; vertical-align: middle; }
+    .order-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); }
+    .order-thumb-placeholder { width: 48px; height: 48px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #f0f4f8; border: 1px solid var(--border); }
+
+    /* Price History */
+    .price-history-list { max-height: 300px; overflow-y: auto; }
+    .price-history-item { display: flex; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+    .price-history-item:last-child { border-bottom: none; }
+    .price-history-item .ph-date { font-size: 0.78rem; color: var(--muted); }
+    .price-history-item .ph-price { font-weight: 700; font-family: monospace; }
+    .price-history-item .ph-source { font-size: 0.75rem; color: var(--muted); }
+    .sparkline { height: 40px; display: flex; align-items: flex-end; gap: 3px; padding: 10px 0; }
+    .sparkline-bar { flex: 1; background: var(--accent); border-radius: 2px 2px 0 0; min-height: 2px; opacity: 0.7; }
+    .sparkline-bar:hover { opacity: 1; }
+
+    /* Order receipt modal */
+    .order-item-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto; gap: 10px; align-items: center; margin-bottom: 10px; padding: 10px; background: #fafbfc; border-radius: 8px; border: 1px solid var(--border); }
+    .order-item-row .form-group { margin-bottom: 0; }
+    .order-item-row .form-group input, .order-item-row .form-group select { width: 100%; padding: 6px 8px; font-size: 0.85rem; }
+    .order-summary { background: #fafbfc; border-radius: 8px; padding: 14px; margin-top: 14px; }
+    .order-summary-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.9rem; }
+    .order-summary-row.total { font-weight: 800; font-size: 1.05rem; border-top: 2px solid var(--border); padding-top: 8px; margin-top: 4px; }
+
+    /* Product detail inline */
+    .product-detail-inline { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-top: 12px; }
+    .product-detail-inline h4 { font-size: 0.95rem; margin-bottom: 12px; }
+    .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+    .detail-item { font-size: 0.85rem; }
+    .detail-item .label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; font-weight: 600; }
+    .detail-item .value { font-weight: 700; }
+
   </style>
 </head>
 <body>
@@ -176,6 +225,7 @@
         <button class="btn btn-primary" onclick="openAddProduct()">+ Add Product</button>
         <button class="btn btn-success" onclick="openReceiveStock()">📥 Receive Stock</button>
         <button class="btn btn-warn" onclick="switchTab('shopping', document.querySelector('[data-tab=shopping]'))">🛒 Shopping List</button>
+        <button class="btn" onclick="switchTab('orders', document.querySelector('[data-tab=orders]'))">📋 Orders</button>
       </div>
     </div>
 
@@ -194,6 +244,7 @@
     <div class="tab-bar">
       <button class="tab-btn active" data-tab="inventory" onclick="switchTab('inventory', this)">📦 Inventory</button>
       <button class="tab-btn" data-tab="shopping" onclick="switchTab('shopping', this)">🛒 Shopping List</button>
+      <button class="tab-btn" data-tab="orders" onclick="switchTab('orders', this)">📋 Orders</button>
       <button class="tab-btn" data-tab="expiration" onclick="switchTab('expiration', this)">📅 Expiration</button>
       <button class="tab-btn" data-tab="history" onclick="switchTab('history', this)">📜 History</button>
       <button class="tab-btn" data-tab="categories" onclick="switchTab('categories', this)">🏷️ Categories</button>
@@ -230,8 +281,10 @@
               <th>Stock</th>
               <th>Reorder Pt</th>
               <th>Cost</th>
+              <th>Unit Cost</th>
               <th>Sell</th>
               <th>Margin</th>
+              <th>Profit</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -241,6 +294,15 @@
       </div>
     </div>
 
+
+    <!-- Orders Tab -->
+    <div id="tab-orders" class="tab-content" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="font-size:1.1rem">📋 Order Receipts</h3>
+        <button class="btn btn-primary" onclick="openAddOrderReceipt()">+ Add Order Receipt</button>
+      </div>
+      <div id="ordersContainer"></div>
+    </div>
     <!-- Shopping List Tab -->
     <div id="tab-shopping" class="tab-content" style="display:none;">
       <div class="shopping-list">
@@ -360,6 +422,20 @@
           <input type="number" id="productReorder" placeholder="10" value="10">
         </div>
       </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Unit Size</label>
+          <input type="text" id="productUnitSize" placeholder="e.g., 20 fl oz, 1.75 oz">
+        </div>
+        <div class="form-group">
+          <label>Units per Case</label>
+          <input type="number" id="productUnitsPerCase" placeholder="24">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Thumbnail URL (optional)</label>
+        <input type="text" id="productThumbnail" placeholder="https://...">
+      </div>
       <div class="form-group">
         <label>Expiration Date (optional)</label>
         <input type="date" id="productExpiration">
@@ -446,6 +522,20 @@
           <input type="number" id="editProductReorder">
         </div>
       </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Unit Size</label>
+          <input type="text" id="editProductUnitSize" placeholder="e.g., 20 fl oz">
+        </div>
+        <div class="form-group">
+          <label>Units per Case</label>
+          <input type="number" id="editProductUnitsPerCase" placeholder="24">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Thumbnail URL (optional)</label>
+        <input type="text" id="editProductThumbnail" placeholder="https://...">
+      </div>
       <div class="form-group">
         <label>Expiration Date</label>
         <input type="date" id="editProductExpiration">
@@ -458,6 +548,61 @@
     </div>
   </div>
 
+
+  <!-- Product Detail Modal (with Price History) -->
+  <div class="modal-overlay" id="productDetailModal">
+    <div class="modal" style="max-width:640px">
+      <h3>📊 Product Details</h3>
+      <input type="hidden" id="detailProductId">
+      <div class="detail-grid" style="margin-bottom:16px">
+        <div class="detail-item"><div class="label">Name</div><div class="value" id="detailName"></div></div>
+        <div class="detail-item"><div class="label">Category</div><div class="value" id="detailCategory"></div></div>
+        <div class="detail-item"><div class="label">SKU</div><div class="value" id="detailSKU"></div></div>
+        <div class="detail-item"><div class="label">Unit Size</div><div class="value" id="detailUnitSize"></div></div>
+        <div class="detail-item"><div class="label">Units/Case</div><div class="value" id="detailUnitsPerCase"></div></div>
+        <div class="detail-item"><div class="label">Current Stock</div><div class="value" id="detailStock"></div></div>
+        <div class="detail-item"><div class="label">Cost Price</div><div class="value" id="detailCost"></div></div>
+        <div class="detail-item"><div class="label">Sell Price</div><div class="value" id="detailSell"></div></div>
+        <div class="detail-item"><div class="label">Margin</div><div class="value" id="detailMargin"></div></div>
+        <div class="detail-item"><div class="label">Profit/Unit</div><div class="value" id="detailProfit"></div></div>
+      </div>
+      <h4 style="font-size:0.9rem;margin-bottom:8px">📈 Cost Price History</h4>
+      <div class="price-history-list" id="priceHistoryList"></div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('productDetailModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Order Receipt Modal -->
+  <div class="modal-overlay" id="addOrderReceiptModal">
+    <div class="modal" style="max-width:720px">
+      <h3>📋 Add Order Receipt</h3>
+      <div class="form-row">
+        <div class="form-group"><label>Vendor *</label><input type="text" id="orderVendor" placeholder="e.g., Vistar, Costco"></div>
+        <div class="form-group"><label>Order Date *</label><input type="date" id="orderDate"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Invoice Number</label><input type="text" id="orderInvoice" placeholder="PO-12345"></div>
+        <div class="form-group"><label>Tax Rate (%)</label><input type="number" step="0.01" id="orderTaxRate" value="0" placeholder="8.375"></div>
+      </div>
+      <div class="form-group"><label>Shipping ($)</label><input type="number" step="0.01" id="orderShipping" value="0" placeholder="0.00"></div>
+      <h4 style="font-size:0.9rem;margin:16px 0 8px">Items</h4>
+      <div id="orderItemsContainer"></div>
+      <button class="btn btn-sm" onclick="addOrderItemRow()" style="margin-top:8px">+ Add Item</button>
+      <div class="order-summary">
+        <div class="order-summary-row"><span>Subtotal</span><span id="orderSubtotal">$0.00</span></div>
+        <div class="order-summary-row"><span>Tax</span><span id="orderTax">$0.00</span></div>
+        <div class="order-summary-row"><span>Shipping</span><span id="orderShippingDisplay">$0.00</span></div>
+        <div class="order-summary-row total"><span>Total</span><span id="orderTotal">$0.00</span></div>
+      </div>
+      <div class="form-group" style="margin-top:12px"><label>Notes</label><textarea id="orderNotes" rows="2"></textarea></div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('addOrderReceiptModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveOrderReceipt()">Save Receipt</button>
+      </div>
+    </div>
+  </div>
   <!-- Log Adjustment Modal -->
   <div class="modal-overlay" id="adjustModal">
     <div class="modal">
@@ -503,6 +648,7 @@
       await loadProducts();
       await loadInventory();
       await loadHistory();
+      await loadOrderReceipts();
       loadShoppingListFromStorage();
       renderAll();
     }
@@ -566,6 +712,7 @@
       renderExpiring();
       renderHistory();
       renderCategories();
+      renderOrders();
     }
 
     function renderStats() {
@@ -630,21 +777,26 @@
 
       const tbody = document.getElementById('inventoryBody');
       if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted);">No products found. <a href="#" onclick="openAddProduct();return false;">Add your first product</a></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted);">No products found. <a href="#" onclick="openAddProduct();return false;">Add your first product</a></td></tr>`;
         return;
       }
 
       tbody.innerHTML = filtered.map(p => {
         const stock = getStock(p.id);
         const reorder = getReorderPoint(p.id);
-        const margin = p.sell_price > 0 ? Math.round(((p.sell_price - (p.cost_price || 0)) / p.sell_price) * 100) : 0;
+        const cost = p.cost_price || 0;
+        const sell = p.sell_price || 0;
+        const margin = sell > 0 ? Math.round(((sell - cost) / sell) * 100) : 0;
+        const unitCost = getUnitCost(p);
+        const profitUnit = sell - unitCost;
         const status = getStockStatus(stock, reorder);
         const rowClass = status === 'out' ? 'out-of-stock' : status === 'low' ? 'low-stock' : '';
         const catClass = 'cat-' + (p.category || 'other');
+        const profitClass = profitUnit >= 0 ? 'profit-positive' : 'profit-negative';
 
         return `
           <tr class="${rowClass}">
-            <td><strong>${p.name}</strong></td>
+            <td><strong>${p.name}</strong>${p.unit_size ? '<br><span style="font-size:0.75rem;color:var(--muted)">' + p.unit_size + '</span>' : ''}</td>
             <td><span class="cat-badge ${catClass}">${getCategoryLabel(p.category)}</span></td>
             <td style="font-family:monospace;font-size:0.8rem;color:var(--muted);">${p.sku || '—'}</td>
             <td>
@@ -655,11 +807,14 @@
               </div>
             </td>
             <td>${reorder}</td>
-            <td>$${(p.cost_price || 0).toFixed(2)}</td>
-            <td>$${(p.sell_price || 0).toFixed(2)}</td>
+            <td>$${cost.toFixed(2)}</td>
+            <td class="unit-cost">$${unitCost.toFixed(2)}</td>
+            <td>$${sell.toFixed(2)}</td>
             <td><strong>${margin}%</strong></td>
+            <td class="profit-unit ${profitClass}">$${profitUnit.toFixed(2)}</td>
             <td>${getStatusBadge(status)}</td>
             <td>
+              <button class="btn btn-sm btn-icon" onclick="openProductDetail(${p.id})" title="Details">📊</button>
               <button class="btn btn-sm btn-icon" onclick="openEditProduct(${p.id})" title="Edit">✏️</button>
               <button class="btn btn-sm btn-icon" onclick="addToShoppingList(${p.id})" title="Add to Shopping List">🛒</button>
               <button class="btn btn-sm btn-icon" onclick="openAdjustModal(${p.id})" title="Log Adjustment">📝</button>
@@ -1054,6 +1209,9 @@
       const stock = parseInt(document.getElementById('productStock').value) || 0;
       const reorder_point = parseInt(document.getElementById('productReorder').value) || 10;
       const expiration_date = document.getElementById('productExpiration').value || null;
+      const unit_size = document.getElementById('productUnitSize').value.trim() || null;
+      const units_per_case = parseInt(document.getElementById('productUnitsPerCase').value) || null;
+      const thumbnail = document.getElementById('productThumbnail').value.trim() || null;
 
       if (!name) {
         alert('Product name is required');
@@ -1064,7 +1222,7 @@
         const res = await fetch('/api/products', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, category, sku, cost_price, sell_price, stock, reorder_point, expiration_date })
+          body: JSON.stringify({ name, category, sku, cost_price, sell_price, stock, reorder_point, expiration_date, unit_size, units_per_case, thumbnail })
         });
 
         if (res.ok) {
@@ -1097,6 +1255,9 @@
       document.getElementById('editProductStock').value = getStock(productId);
       document.getElementById('editProductReorder').value = getReorderPoint(productId);
       document.getElementById('editProductExpiration').value = getExpiration(productId) || '';
+      document.getElementById('editProductUnitSize').value = p.unit_size || '';
+      document.getElementById('editProductUnitsPerCase').value = p.units_per_case || '';
+      document.getElementById('editProductThumbnail').value = p.thumbnail || '';
       openModal('editProductModal');
     }
 
@@ -1110,6 +1271,9 @@
       const stock = parseInt(document.getElementById('editProductStock').value) || 0;
       const reorder_point = parseInt(document.getElementById('editProductReorder').value) || 10;
       const expiration_date = document.getElementById('editProductExpiration').value || null;
+      const unit_size = document.getElementById('editProductUnitSize').value.trim() || null;
+      const units_per_case = parseInt(document.getElementById('editProductUnitsPerCase').value) || null;
+      const thumbnail = document.getElementById('editProductThumbnail').value.trim() || null;
 
       if (!name) {
         alert('Product name is required');
@@ -1120,7 +1284,7 @@
         const res = await fetch(`/api/products/${productId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, category, sku, cost_price, sell_price, stock, reorder_point, expiration_date })
+          body: JSON.stringify({ name, category, sku, cost_price, sell_price, stock, reorder_point, expiration_date, unit_size, units_per_case, thumbnail })
         });
 
         if (res.ok) {
@@ -1247,6 +1411,284 @@
     function selectCategory(cat) {
       selectedCategory = cat;
       renderCategories();
+    }
+
+    // ===== UNIT COST =====
+    function getUnitCost(product) {
+      if (!product) return 0;
+      if (product.units_per_case && product.units_per_case > 0) {
+        return (product.cost_price || 0) / product.units_per_case;
+      }
+      return product.cost_price || 0;
+    }
+
+    // ===== ORDERS =====
+    let orderReceipts = [];
+
+    async function loadOrderReceipts() {
+      try {
+        const res = await fetch('/api/order-receipts');
+        if (res.ok) orderReceipts = await res.json();
+      } catch (e) { console.log('No order receipts'); }
+    }
+
+    function renderOrders() {
+      const container = document.getElementById('ordersContainer');
+      if (orderReceipts.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>No order receipts yet.</p><button class="btn btn-primary" onclick="openAddOrderReceipt()">Add your first receipt</button></div>';
+        return;
+      }
+
+      container.innerHTML = orderReceipts.map((order, idx) => {
+        const date = new Date(order.order_date).toLocaleDateString();
+        const itemCount = order.items?.length || 0;
+        return `
+          <div class="order-card">
+            <div class="order-header" onclick="document.getElementById('order-body-${order.id}').classList.toggle('collapsed')">
+              <div>
+                <h4>${order.vendor || 'Unknown Vendor'} <span style="font-weight:400;color:var(--muted)">— ${order.invoice_number || 'No invoice #'}</span></h4>
+                <div class="order-meta">${date} · ${itemCount} item${itemCount !== 1 ? 's' : ''}</div>
+              </div>
+              <div class="order-total">$${(order.total || 0).toFixed(2)}</div>
+            </div>
+            <div class="order-body" id="order-body-${order.id}">
+              <table class="order-items-table">
+                <thead>
+                  <tr>
+                    <th style="width:60px">Img</th>
+                    <th>Item</th>
+                    <th>Unit Size</th>
+                    <th>Units/Case</th>
+                    <th>Cases</th>
+                    <th>Price/Case</th>
+                    <th>Unit Cost</th>
+                    <th style="text-align:right">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${(order.items || []).map(item => {
+                    const unitCost = item.units_per_case ? (item.price_per_case / item.units_per_case) : 0;
+                    const thumb = item.thumbnail ? `<img src="${item.thumbnail}" class="order-thumb" alt="">` : `<div class="order-thumb-placeholder">${getCategoryEmoji(item.product_name)}</div>`;
+                    return `<tr>
+                      <td>${thumb}</td>
+                      <td><strong>${item.product_name || 'Unknown'}</strong></td>
+                      <td>${item.unit_size || '—'}</td>
+                      <td>${item.units_per_case || '—'}</td>
+                      <td>${item.cases}</td>
+                      <td>$${(item.price_per_case || 0).toFixed(2)}</td>
+                      <td>$${unitCost.toFixed(2)}</td>
+                      <td style="text-align:right;font-weight:700">$${(item.total || 0).toFixed(2)}</td>
+                    </tr>`;
+                  }).join('')}
+                </tbody>
+              </table>
+              <div style="padding:12px 18px;background:#fafbfc;border-top:1px solid var(--border);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+                <span style="font-size:0.8rem;color:var(--muted)">${order.notes || ''}</span>
+                <span style="font-size:0.85rem">Subtotal: $${(order.subtotal || 0).toFixed(2)} · Tax: $${(order.tax_amount || 0).toFixed(2)} · Shipping: $${(order.shipping || 0).toFixed(2)} · <strong>Total: $${(order.total || 0).toFixed(2)}</strong></span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function getCategoryEmoji(name) {
+      if (!name) return '📦';
+      const n = name.toLowerCase();
+      if (n.includes('coke') || n.includes('pepsi') || n.includes('dew') || n.includes('sprite') || n.includes('dr pepper')) return '🥤';
+      if (n.includes('water') || n.includes('aquafina') || n.includes('smartwater')) return '💧';
+      if (n.includes('gatorade')) return '🏃';
+      if (n.includes('celsius')) return '⚡';
+      if (n.includes('snapple') || n.includes('tea')) return '🍵';
+      if (n.includes('milk') || n.includes('fairlife')) return '🥛';
+      if (n.includes('doritos') || n.includes('cheetos') || n.includes('lays') || n.includes('ruffles') || n.includes('chip')) return '🍿';
+      if (n.includes('ritz') || n.includes('cracker')) return '🍘';
+      if (n.includes('oreo') || n.includes('cookie') || n.includes('teddy') || n.includes('nutter')) return '🍪';
+      if (n.includes('sour') || n.includes('swedish') || n.includes('starburst') || n.includes('skittles')) return '🍬';
+      if (n.includes('m&m') || n.includes('reeses') || n.includes('snickers') || n.includes('twix') || n.includes('milky') || n.includes('musketeers') || n.includes('kit kat') || n.includes('hershey')) return '🍫';
+      return '📦';
+    }
+
+    // ===== PRODUCT DETAIL & PRICE HISTORY =====
+    function openProductDetail(productId) {
+      const p = products.find(pr => pr.id === productId);
+      if (!p) return;
+
+      document.getElementById('detailProductId').value = productId;
+      document.getElementById('detailName').textContent = p.name;
+      document.getElementById('detailCategory').textContent = getCategoryLabel(p.category);
+      document.getElementById('detailSKU').textContent = p.sku || '—';
+      document.getElementById('detailUnitSize').textContent = p.unit_size || '—';
+      document.getElementById('detailUnitsPerCase').textContent = p.units_per_case || '—';
+      document.getElementById('detailStock').textContent = getStock(productId);
+      document.getElementById('detailCost').textContent = '$' + (p.cost_price || 0).toFixed(2);
+      document.getElementById('detailSell').textContent = '$' + (p.sell_price || 0).toFixed(2);
+      const margin = p.sell_price > 0 ? Math.round(((p.sell_price - (p.cost_price || 0)) / p.sell_price) * 100) : 0;
+      document.getElementById('detailMargin').textContent = margin + '%';
+      const unitCost = getUnitCost(p);
+      const profit = (p.sell_price || 0) - unitCost;
+      document.getElementById('detailProfit').textContent = '$' + profit.toFixed(2);
+
+      renderPriceHistory(p);
+      openModal('productDetailModal');
+    }
+
+    function renderPriceHistory(product) {
+      const container = document.getElementById('priceHistoryList');
+      const history = product.price_history || [];
+      if (history.length === 0) {
+        container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">No price history yet. Order receipts will track cost changes automatically.</div>';
+        return;
+      }
+
+      // Sparkline
+      const prices = history.map(h => h.cost_price || 0).reverse();
+      const max = Math.max(...prices, 0.01);
+      const min = Math.min(...prices, 0);
+      const range = max - min || 1;
+      const sparkline = prices.map(p => {
+        const h = Math.max(4, ((p - min) / range) * 36);
+        return `<div class="sparkline-bar" style="height:${h}px" title="$${p.toFixed(2)}"></div>`;
+      }).join('');
+
+      container.innerHTML = `
+        <div class="sparkline">${sparkline}</div>
+        ${history.slice(0, 10).map(h => `
+          <div class="price-history-item">
+            <div>
+              <div class="ph-date">${new Date(h.date).toLocaleDateString()} ${h.source ? '· ' + h.source : ''}</div>
+            </div>
+            <div class="ph-price">$${(h.cost_price || 0).toFixed(2)}</div>
+          </div>
+        `).join('')}
+      `;
+    }
+
+    // ===== ADD ORDER RECEIPT =====
+    function openAddOrderReceipt() {
+      document.getElementById('orderVendor').value = '';
+      document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('orderInvoice').value = '';
+      document.getElementById('orderTaxRate').value = '0';
+      document.getElementById('orderShipping').value = '0';
+      document.getElementById('orderNotes').value = '';
+      document.getElementById('orderItemsContainer').innerHTML = '';
+      addOrderItemRow();
+      calculateOrderTotals();
+      openModal('addOrderReceiptModal');
+    }
+
+    function addOrderItemRow() {
+      const container = document.getElementById('orderItemsContainer');
+      const idx = container.children.length;
+      const row = document.createElement('div');
+      row.className = 'order-item-row';
+      row.innerHTML = `
+        <div class="form-group">
+          <select id="orderItemProduct${idx}" onchange="onOrderItemChange(${idx})">
+            <option value="">Select product...</option>
+            ${products.map(p => `<option value="${p.id}" data-cost="${p.cost_price || 0}" data-units="${p.units_per_case || ''}" data-size="${p.unit_size || ''}">${p.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group"><input type="number" id="orderItemCases${idx}" placeholder="Cases" min="1" value="1" onchange="calculateOrderTotals()"></div>
+        <div class="form-group"><input type="number" id="orderItemUnits${idx}" placeholder="Units/Case" min="1" onchange="calculateOrderTotals()"></div>
+        <div class="form-group"><input type="number" step="0.01" id="orderItemPrice${idx}" placeholder="Price/Case" onchange="calculateOrderTotals()"></div>
+        <div class="form-group" style="text-align:center;font-weight:700;font-size:0.9rem" id="orderItemTotal${idx}">$0.00</div>
+        <button class="btn btn-sm btn-icon" onclick="this.parentElement.remove();calculateOrderTotals();" title="Remove">✕</button>
+      `;
+      container.appendChild(row);
+    }
+
+    function onOrderItemChange(idx) {
+      const select = document.getElementById(`orderItemProduct${idx}`);
+      const option = select.options[select.selectedIndex];
+      if (!option || !option.value) return;
+      const units = option.getAttribute('data-units');
+      if (units && units !== 'null' && units !== '') {
+        document.getElementById(`orderItemUnits${idx}`).value = units;
+      }
+      calculateOrderTotals();
+    }
+
+    function calculateOrderTotals() {
+      const container = document.getElementById('orderItemsContainer');
+      let subtotal = 0;
+      for (let i = 0; i < container.children.length; i++) {
+        const cases = parseFloat(document.getElementById(`orderItemCases${i}`)?.value) || 0;
+        const price = parseFloat(document.getElementById(`orderItemPrice${i}`)?.value) || 0;
+        const total = cases * price;
+        const totalEl = document.getElementById(`orderItemTotal${i}`);
+        if (totalEl) totalEl.textContent = '$' + total.toFixed(2);
+        subtotal += total;
+      }
+      const taxRate = parseFloat(document.getElementById('orderTaxRate').value) || 0;
+      const shipping = parseFloat(document.getElementById('orderShipping').value) || 0;
+      const tax = subtotal * (taxRate / 100);
+      const total = subtotal + tax + shipping;
+
+      document.getElementById('orderSubtotal').textContent = '$' + subtotal.toFixed(2);
+      document.getElementById('orderTax').textContent = '$' + tax.toFixed(2);
+      document.getElementById('orderShippingDisplay').textContent = '$' + shipping.toFixed(2);
+      document.getElementById('orderTotal').textContent = '$' + total.toFixed(2);
+    }
+
+    async function saveOrderReceipt() {
+      const vendor = document.getElementById('orderVendor').value.trim();
+      const order_date = document.getElementById('orderDate').value;
+      const invoice_number = document.getElementById('orderInvoice').value.trim();
+      const tax_rate = (parseFloat(document.getElementById('orderTaxRate').value) || 0) / 100;
+      const shipping = parseFloat(document.getElementById('orderShipping').value) || 0;
+      const notes = document.getElementById('orderNotes').value.trim();
+
+      if (!vendor || !order_date) {
+        alert('Vendor and order date are required');
+        return;
+      }
+
+      const container = document.getElementById('orderItemsContainer');
+      const items = [];
+      for (let i = 0; i < container.children.length; i++) {
+        const productSelect = document.getElementById(`orderItemProduct${i}`);
+        const productId = productSelect?.value;
+        if (!productId) continue;
+        const p = products.find(pr => pr.id === parseInt(productId));
+        const cases = parseInt(document.getElementById(`orderItemCases${i}`)?.value) || 0;
+        const units_per_case = parseInt(document.getElementById(`orderItemUnits${i}`)?.value) || 0;
+        const price_per_case = parseFloat(document.getElementById(`orderItemPrice${i}`)?.value) || 0;
+        if (cases <= 0 || price_per_case <= 0) continue;
+        items.push({
+          product_id: parseInt(productId),
+          product_name: p?.name || '',
+          cases,
+          units_per_case,
+          price_per_case
+        });
+      }
+
+      if (items.length === 0) {
+        alert('Add at least one item');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/order-receipts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vendor, order_date, invoice_number, tax_rate, shipping, notes, items })
+        });
+        if (res.ok) {
+          closeModal('addOrderReceiptModal');
+          await loadOrderReceipts();
+          await loadProducts();
+          renderAll();
+          showToast('Order receipt saved');
+        } else {
+          alert('Failed to save order receipt');
+        }
+      } catch (e) {
+        console.error(e);
+        alert('Error saving order receipt');
+      }
     }
 
     // ===== TOAST =====
