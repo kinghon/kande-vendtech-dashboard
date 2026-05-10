@@ -819,7 +819,11 @@
         return `
           <tr class="${rowClass}">
             <td style="padding:4px 6px">${p.thumbnail ? `<img src="${p.thumbnail}" class="prod-thumb" alt="${p.name}" onclick="openProductDetail(${p.id})" title="${p.name}">` : `<div class="prod-thumb-placeholder">${getCategoryEmoji(p.name)}</div>`}</td>
-            <td><strong>${p.name}</strong></td>
+            <td>
+              <span id="pname-${p.id}" ondblclick="startEditName(${p.id})" title="Double-click to edit" style="cursor:text">
+                <strong>${p.name}</strong>
+              </span>
+            </td>
             <td style="font-size:0.82rem;color:var(--text);white-space:nowrap;font-weight:700">${p.unit_size || '—'}</td>
             <td style="font-family:monospace;font-size:0.8rem;color:var(--muted)">${p.item_number || '—'}</td>
             <td><span class="cat-badge ${catClass}">${getCategoryLabel(p.category)}</span></td>
@@ -1449,6 +1453,30 @@
     }
 
     // ===== UNIT COST =====
+    function startEditName(productId) {
+      const p = products.find(x => x.id === productId);
+      if (!p) return;
+      const span = document.getElementById(`pname-${productId}`);
+      if (!span) return;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = p.name;
+      input.style.cssText = 'width:100%;padding:2px 6px;border:1px solid var(--accent);border-radius:4px;font-size:0.85rem;font-weight:600;outline:none';
+      span.innerHTML = '';
+      span.appendChild(input);
+      input.focus();
+      input.select();
+      const save = async () => {
+        const newName = input.value.trim();
+        if (!newName || newName === p.name) { renderInventory(); return; }
+        await fetch(`/api/products/${productId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:newName}) });
+        p.name = newName;
+        renderInventory();
+      };
+      input.addEventListener('blur', save);
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = p.name; input.blur(); } });
+    }
+
     async function updateRetailPrice(productId, newRetail) {
       const p = products.find(x => x.id === productId);
       if (!p) return;
