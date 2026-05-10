@@ -794,10 +794,12 @@
         const reorder = getReorderPoint(p.id);
         const unitCost = getUnitCost(p);
         const sell = p.sell_price || 0;
-        const retailPrice = unitCost * 1.62;
-        const marginBase = sell > 0 ? sell : retailPrice;
-        const margin = marginBase > 0 ? Math.round(((marginBase - unitCost) / marginBase) * 100) : 0;
-        const profitUnit = (sell > 0 ? sell : retailPrice) - unitCost;
+        const marginPct = p.target_margin !== undefined ? p.target_margin : 62;
+        const retailPrice = unitCost * (1 + marginPct / 100);
+        const effectiveRetail = sell > 0 ? sell : retailPrice;
+        // Markup % = (retail - cost) / cost × 100
+        const margin = unitCost > 0 ? Math.round(((effectiveRetail - unitCost) / unitCost) * 100) : marginPct;
+        const profitUnit = effectiveRetail - unitCost;
         const status = getStockStatus(stock, reorder);
         const rowClass = status === 'out' ? 'out-of-stock' : status === 'low' ? 'low-stock' : '';
         const catClass = 'cat-' + (p.category || 'other');
@@ -819,7 +821,14 @@
             </td>
             <td>${reorder}</td>
             <td class="unit-cost">$${unitCost.toFixed(2)}</td>
-            <td><strong style="color:${margin>=38?'var(--success)':'var(--warn)'}">${margin}%</strong></td>
+            <td>
+              <div style="display:flex;align-items:center;gap:4px">
+                <input type="number" value="${marginPct}" min="0" max="200" step="1"
+                  style="width:52px;text-align:center;padding:3px 4px;border:1px solid var(--border);border-radius:5px;font-size:0.82rem;font-weight:600;color:${margin>=50?'var(--success)':'var(--warn)'}"
+                  onchange="updateMargin(${p.id}, parseFloat(this.value))">
+                <span style="font-size:0.78rem;color:var(--muted)">%</span>
+              </div>
+            </td>
             <td style="color:var(--success);font-weight:600">$${retailPrice.toFixed(2)}</td>
             <td>$${sell.toFixed(2)}</td>
             <td class="profit-unit ${profitClass}">$${profitUnit.toFixed(2)}</td>
@@ -1423,6 +1432,23 @@
     }
 
     // ===== UNIT COST =====
+    async function updateMargin(productId, newMarginPct) {
+      const p = products.find(x => x.id === productId);
+      if (!p) return;
+      const unitCost = getUnitCost(p);
+      const newRetail = parseFloat((unitCost * (1 + newMarginPct / 100)).toFixed(2));
+      try {
+        await fetch(`/api/products/${productId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ target_margin: newMarginPct, sell_price: newRetail })
+        });
+        p.target_margin = newMarginPct;
+        p.sell_price = newRetail;
+        renderInventory();
+      } catch(e) { console.error('updateMargin failed', e); }
+    }
+
     function getUnitCost(product) {
       if (!product) return 0;
       // price_per_unit is already the per-item cost; cost_price is set to the same value
