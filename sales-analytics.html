@@ -372,7 +372,28 @@
 
     function renderMachines(data, machines) {
       const container = document.getElementById('machineBody');
-      const byLocation = data.by_location || [];
+      // Build location list from machines if by_location is empty or has Unknown entries
+      const CLIENT_LOCATIONS = [
+        { location_name: 'Jade Apartments', rev_share_label: '0%' },
+        { location_name: 'All In Aviation', rev_share_label: '0% \u2264$599/mo | 10% >$599/mo' },
+        { location_name: 'Regus \u2014 Howard Hughes Pkwy Ste 200', rev_share_label: '0%' },
+        { location_name: 'Regus \u2014 Howard Hughes Pkwy Ste 500', rev_share_label: '10%' },
+      ];
+      let byLocation = data.by_location || [];
+      // If all entries are Unknown, rebuild from machines
+      if (byLocation.length === 0 || byLocation.every(l => l.location_name === 'Unknown Location' || !l.location_name)) {
+        const locMap = {};
+        machines.forEach(m => {
+          const locName = m.location?.name || 'Unknown';
+          if (!locMap[locName]) {
+            const rule = CLIENT_LOCATIONS.find(c => c.location_name === locName);
+            locMap[locName] = { location_name: locName, address: m.location?.address || '', rev_share_label: rule?.rev_share_label || '0%', gross_revenue: 0, rev_share_amount: 0, net_revenue: 0, transactions: 0, machines: [] };
+          }
+          locMap[locName].machines.push({ machine_name: m.name, model: m.model || '', status: m.status, revenue: 0, transactions: 0 });
+        });
+        byLocation = Object.values(locMap);
+        if (byLocation.length === 0) byLocation = CLIENT_LOCATIONS.map(l => ({ ...l, gross_revenue: 0, net_revenue: 0, transactions: 0, machines: [] }));
+      }
 
       if (byLocation.length === 0) {
         container.innerHTML = `
@@ -388,8 +409,15 @@
       let html = '';
 
       byLocation.forEach(loc => {
-        const rsLabel = loc.rev_share_label || '0%';
-        const rsNote = loc.rev_share_config?.type === 'tiered' ? '(tiered)' : '';
+        // Client-side rev share rules — fallback if backend doesn't return them
+        const CLIENT_REV_SHARE = {
+          'Jade Apartments': '0%',
+          'Regus \u2014 Howard Hughes Pkwy Ste 200': '0%',
+          'Regus \u2014 Howard Hughes Pkwy Ste 500': '10%',
+          'All In Aviation': '0% \u2264$599/mo \u00a0|\u00a0 10% >$599/mo',
+        };
+        const rsLabel = loc.rev_share_label || CLIENT_REV_SHARE[loc.location_name] || '0%';
+        const rsNote = (loc.rev_share_config?.type === 'tiered' || loc.location_name === 'All In Aviation') ? '' : '';
         html += `
           <div style="margin-bottom:20px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
             <div style="background:#f8fafc;padding:12px 16px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;gap:8px;align-items:center">
