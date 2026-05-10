@@ -90,6 +90,7 @@
   <div class="app">
     <div class="page-header">
       <h1>📍 Locations</h1>
+      <button class="btn btn-primary" onclick="openAddLocation()">+ Add Location</button>
     </div>
 
     <div class="stats">
@@ -100,6 +101,31 @@
     </div>
 
     <div id="locationsList"></div>
+  </div>
+
+  <!-- Add Location Modal -->
+  <div class="modal-overlay" id="addLocModal">
+    <div class="modal">
+      <h3>Add Location</h3>
+      <div class="form-group"><label>Location Name *</label><input type="text" id="newLocName" placeholder="Jade Apartments"></div>
+      <div class="form-group"><label>Address</label><input type="text" id="newLocAddress" placeholder="3150 W Twain Ave, Las Vegas, NV 89103"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Phone</label><input type="text" id="newLocPhone" placeholder="702-555-0100"></div>
+        <div class="form-group"><label>Contract Start</label><input type="date" id="newLocContract"></div>
+      </div>
+      <div class="form-group"><label>Status</label>
+        <select id="newLocStatus">
+          <option value="pending_install">Pending Install</option>
+          <option value="active">Active</option>
+          <option value="in_transit">In Transit</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeAddLocModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveLocation()">Add Location</button>
+      </div>
+    </div>
   </div>
 
   <!-- Add/Edit Contact Modal -->
@@ -121,9 +147,12 @@
         <div class="form-group"><label>Favorite Snack / Food / Drink</label><input type="text" id="contactFavorite" placeholder="e.g. Diet Coke, Snickers"></div>
       </div>
       <div class="form-group"><label>Notes</label><textarea id="contactNotes" placeholder="Best time to call, preferences, etc."></textarea></div>
-      <div class="modal-actions">
-        <button class="btn" onclick="closeContactModal()">Cancel</button>
-        <button class="btn btn-primary" onclick="saveContact()">Save Contact</button>
+      <div class="modal-actions" style="justify-content:space-between">
+        <button class="btn btn-danger" id="deleteContactBtn" onclick="deleteCurrentContact()" style="display:none">Delete Contact</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn" onclick="closeContactModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveContact()">Save Contact</button>
+        </div>
       </div>
     </div>
   </div>
@@ -192,9 +221,8 @@
             <div>${c.phone ? '<a href="tel:' + c.phone + '">' + c.phone + '</a>' : '—'}</div>
             <div>${c.email ? '<a href="mailto:' + c.email + '">' + c.email + '</a>' : '—'}</div>
             <div style="color:var(--muted);font-size:0.78rem">${c.birthday ? '🎂 ' + new Date(c.birthday).toLocaleDateString('en-US',{month:'short',day:'numeric'}) + (c.favorite ? ' &nbsp;·&nbsp; 🍫 ' + c.favorite : '') : (c.favorite ? '🍫 ' + c.favorite : (c.notes || '—'))}</div>
-            <div style="display:flex;gap:6px">
+            <div>
               <button class="btn btn-sm" onclick="openEditContact(${loc.id}, ${c.id})">Edit</button>
-              <button class="btn btn-sm btn-danger" onclick="deleteContact(${loc.id}, ${c.id})">✕</button>
             </div>
           </div>`).join('');
 
@@ -300,6 +328,7 @@
     document.getElementById('contactId').value = '';
     ['contactName','contactTitle','contactPhone','contactEmail','contactNotes','contactFavorite'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('contactBirthday').value = '';
+    document.getElementById('deleteContactBtn').style.display = 'none';
     document.getElementById('contactModal').classList.add('open');
   }
 
@@ -308,6 +337,9 @@
     const c = (loc?.contacts || []).find(c => c.id === contactId);
     if (!c) return;
     document.getElementById('contactModalTitle').textContent = 'Edit Contact';
+    document.getElementById('deleteContactBtn').style.display = 'block';
+    document.getElementById('deleteContactBtn').dataset.locId = locId;
+    document.getElementById('deleteContactBtn').dataset.contactId = contactId;
     document.getElementById('contactLocId').value = locId;
     document.getElementById('contactId').value = contactId;
     document.getElementById('contactName').value = c.name || '';
@@ -318,6 +350,14 @@
     document.getElementById('contactFavorite').value = c.favorite || '';
     document.getElementById('contactNotes').value = c.notes || '';
     document.getElementById('contactModal').classList.add('open');
+  }
+
+  async function deleteCurrentContact() {
+    const btn = document.getElementById('deleteContactBtn');
+    if (!confirm('Remove this contact?')) return;
+    await fetch('/api/locations/' + btn.dataset.locId + '/contacts/' + btn.dataset.contactId, { method: 'DELETE' });
+    closeContactModal();
+    load();
   }
 
   function closeContactModal() { document.getElementById('contactModal').classList.remove('open'); }
@@ -349,6 +389,29 @@
 
   document.getElementById('contactModal').addEventListener('click', e => {
     if (e.target === document.getElementById('contactModal')) closeContactModal();
+  });
+
+  function openAddLocation() {
+    document.getElementById('addLocModal').classList.add('open');
+  }
+  function closeAddLocModal() {
+    document.getElementById('addLocModal').classList.remove('open');
+  }
+  async function saveLocation() {
+    const name = document.getElementById('newLocName').value.trim();
+    if (!name) { alert('Name is required'); return; }
+    const body = {
+      name,
+      address: document.getElementById('newLocAddress').value.trim(),
+      phone: document.getElementById('newLocPhone').value.trim(),
+      contract_start: document.getElementById('newLocContract').value || null,
+      status: document.getElementById('newLocStatus').value,
+    };
+    const res = await fetch('/api/locations', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    if (res.ok) { closeAddLocModal(); load(); } else { alert('Failed to add location'); }
+  }
+  document.getElementById('addLocModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('addLocModal')) closeAddLocModal();
   });
 
   load();
