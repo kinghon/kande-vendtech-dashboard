@@ -238,6 +238,13 @@
       }
     }
 
+    function cleanMachineName(name, locationName) {
+      if (!name) return '—';
+      const parts = name.split(' - ');
+      if (parts.length > 1) return parts.slice(1).join(' - ');
+      return name;
+    }
+
     function formatCurrency(n) {
       return '$' + (n || 0).toFixed(2);
     }
@@ -452,7 +459,7 @@
                 const dot = `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${isOnline ? '#38a169' : '#e53e3e'};margin-right:5px"></span>`;
                 const lastSale = m.last_sale_at ? new Date(m.last_sale_at).toLocaleDateString() : '—';
                 return `<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;gap:8px;padding:10px 16px;border-bottom:1px solid #f0f4f8;align-items:center">
-                  <div style="font-size:0.83rem;padding-left:12px">${dot}<strong>${m.machine_name}</strong> <span style="color:var(--muted);font-size:0.75rem">${m.model || ''}</span></div>
+                  <div style="font-size:0.83rem;padding-left:12px">${dot}<strong>${cleanMachineName(m.machine_name, loc.location_name)}</strong></div>
                   <div style="text-align:center;font-size:0.83rem">${fc(m.revenue)}</div>
                   <div style="text-align:center;font-size:0.75rem;color:var(--muted)">—</div>
                   <div style="text-align:center;font-size:0.75rem;color:var(--muted)">—</div>
