@@ -106,24 +106,62 @@ function dashApi(method, path, body, cookies) {
     if (!token) throw new Error('No token in localStorage after login');
     log(`Token obtained: ${token.substring(0,8)}...`);
 
-    // 2. Pull data via browser fetch (same origin = no CORS issues)
-    const data = await page.evaluate(async ({ api, org, scope }) => {
+    // 2. Pull ALL orders with pagination
+    log('Fetching all orders (paginated)...');
+    const allOrders = [];
+    let pageNum = 1;
+    const pageSize = 100;
+    let totalRows = 0;
+
+    while (true) {
+      const pageData = await page.evaluate(async ({ api, org, scope, pageNum, pageSize }) => {
+        const h = { 'Content-Type': 'application/json', 'x-token': localStorage.getItem('token'), 'app-scope': scope, 'organSn': org };
+        const res = await fetch(`${api}/order/v2/findOrderInfoList`, {
+          method: 'POST',
+          headers: h,
+          body: JSON.stringify({ pageNum, pageSize, zoneId: 'US/Pacific' })
+        });
+        return res.json();
+      }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE, pageNum, pageSize });
+
+      const rows = pageData?.data?.resultList || [];
+      const rowcount = pageData?.data?.rowcount || 0;
+      if (totalRows === 0) totalRows = rowcount;
+
+      if (rows.length === 0) break;
+      allOrders.push(...rows);
+      log(`  Page ${pageNum}: ${rows.length} orders (total so far: ${allOrders.length}/${totalRows})`);
+
+      if (allOrders.length >= totalRows) break;
+      pageNum++;
+      if (pageNum > 50) { log('  Stopping at 50 pages to avoid overload'); break; }
+    }
+
+    // 3. Pull machines
+    const machineData = await page.evaluate(async ({ api, org, scope }) => {
       const h = { 'Content-Type': 'application/json', 'x-token': localStorage.getItem('token'), 'app-scope': scope, 'organSn': org };
-      const p = (path, body) => fetch(`${api}${path}`, { method: 'POST', headers: h, body: JSON.stringify(body) }).then(r => r.json());
+      const res = await fetch(`${api}/freezer/getFreezerInfoList`, {
+        method: 'POST',
+        headers: h,
+        body: JSON.stringify({ pageNum: 1, pageSize: 20, organSn: org })
+      });
+      return res.json();
+    }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE });
 
-      const [machines, orders, abnormal] = await Promise.all([
-        p('/freezer/getFreezerInfoList', { pageNum: 1, pageSize: 20, organSn: org }),
-        p('/order/v2/findOrderInfoList', { pageNum: 1, pageSize: 100, zoneId: 'US/Pacific' }),
-        p('/order/v2/findAbHandlerOrderInfoCount', { zoneId: 'US/Pacific' }),
-      ]);
-
-      return { machines, orders, abnormal };
+    const abnormalData = await page.evaluate(async ({ api, org, scope }) => {
+      const h = { 'Content-Type': 'application/json', 'x-token': localStorage.getItem('token'), 'app-scope': scope, 'organSn': org };
+      const res = await fetch(`${api}/order/v2/findAbHandlerOrderInfoCount`, {
+        method: 'POST',
+        headers: h,
+        body: JSON.stringify({ zoneId: 'US/Pacific' })
+      });
+      return res.json();
     }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE });
 
     await browser.close();
 
-    // 3. Process machines
-    const machines = data.machines?.data?.resultList || [];
+    // 4. Process machines
+    const machines = machineData?.data?.resultList || [];
     log(`Machines: ${machines.length}`);
     const machineStatus = machines.map(m => ({
       sandstar_id:  m.freezerId,
@@ -135,24 +173,23 @@ function dashApi(method, path, body, cookies) {
       last_seen:    m.connectTime,
     }));
 
-    // 4. Process orders — filter completed with revenue
-    const allOrders = data.orders?.data?.resultList || [];
-    const totalOrderCount = data.orders?.data?.rowcount || 0;
+    // 5. Process orders — filter completed with revenue (phase >= 2 OR totalMoney > 0)
     const completedOrders = allOrders.filter(o =>
-      o.phase >= 2 &&
-      (o.totalMoney || 0) > 0 &&
-      !state.syncedOrderNos?.includes(o.orderNo)
+      o.phase >= 2 || (o.totalMoney || 0) > 0
     );
-    log(`Orders: ${totalOrderCount} total, ${completedOrders.length} new completed`);
+    log(`Orders: ${allOrders.length} total, ${completedOrders.length} completed/importable`);
 
     // Revenue stats from all completed orders
-    const allCompleted = allOrders.filter(o => o.phase >= 2 && (o.totalMoney || 0) > 0);
-    const totalRevenue = allCompleted.reduce((s, o) => s + (o.totalMoney || 0), 0);
+    const totalRevenue = completedOrders.reduce((s, o) => s + (o.totalMoney || 0), 0);
     const todayStr = new Date().toISOString().split('T')[0];
-    const todayOrders = allCompleted.filter(o => (o.closeTime || o.phaseChangeTime || '').startsWith(todayStr));
+    const todayOrders = completedOrders.filter(o => (o.closeTime || o.phaseChangeTime || '').startsWith(todayStr));
     const todayRevenue = todayOrders.reduce((s, o) => s + (o.totalMoney || 0), 0);
 
-    // 5. Push to dashboard
+    // Find new orders (not yet synced)
+    const newOrders = completedOrders.filter(o => !state.syncedOrderNos?.includes(o.orderNo));
+    log(`New orders to import: ${newOrders.length}`);
+
+    // 6. Push to dashboard
     const dashCookies = {};
     await dashApi('POST', '/api/auth/login', { password: DASHBOARD_PW }, dashCookies);
 
@@ -172,33 +209,44 @@ function dashApi(method, path, body, cookies) {
       if (existing?.id) await dashApi('PUT', `/api/machines/${existing.id}`, payload, dashCookies);
     }
 
-    // Import new sales
+    // Batch import new sales to the sandstar endpoint
     let salesImported = 0;
-    for (const order of completedOrders) {
-      const r = await dashApi('POST', '/api/sales', {
-        source: 'sandstar', sandstar_order_no: order.orderNo,
-        machine_name: order.freezerName, machine_id: order.freezerId,
-        amount: order.totalMoney,
+    if (newOrders.length > 0) {
+      const salesBatch = newOrders.map(order => ({
+        sandstar_order_no: order.orderNo,
+        machine_name: order.freezerName,
+        machine_id: order.freezerId,
+        amount: order.totalMoney || 0,
         items: (order.goods || []).map(g => ({ name: g.goodsName, qty: g.goodsNum, price: g.goodsPrice })),
-        sale_date: order.closeTime || order.phaseChangeTime,
-        pay_method: order.payName,
-      }, dashCookies);
-      if (r?.id || r?.success) salesImported++;
+        sale_date: order.closeTime || order.phaseChangeTime || order.createTime || new Date().toISOString(),
+        pay_method: order.payName || '',
+        phase: order.phase || 2
+      }));
+
+      const batchRes = await dashApi('POST', '/api/sandstar/sales/batch', { sales: salesBatch }, dashCookies);
+      salesImported = batchRes?.imported || 0;
+      log(`Batch import result: ${JSON.stringify(batchRes)}`);
+
+      // Track synced order numbers
       if (!state.syncedOrderNos) state.syncedOrderNos = [];
-      state.syncedOrderNos.push(order.orderNo);
+      newOrders.forEach(o => {
+        if (!state.syncedOrderNos.includes(o.orderNo)) state.syncedOrderNos.push(o.orderNo);
+      });
     }
-    if (state.syncedOrderNos?.length > 1000) state.syncedOrderNos = state.syncedOrderNos.slice(-1000);
+
+    if (state.syncedOrderNos?.length > 5000) state.syncedOrderNos = state.syncedOrderNos.slice(-5000);
 
     // Save snapshot
     const snapshot = {
       synced_at: new Date().toISOString(),
       machines: machineStatus,
-      total_orders: totalOrderCount,
+      total_orders: allOrders.length,
+      completed_orders: completedOrders.length,
       today_orders: todayOrders.length,
       today_revenue: todayRevenue,
       total_revenue: totalRevenue,
       new_sales_imported: salesImported,
-      abnormal_orders: data.abnormal?.data || 0,
+      abnormal_orders: abnormalData?.data || 0,
     };
     fs.writeFileSync('/Users/kurtishon/clawd/data/sandstar-latest.json', JSON.stringify(snapshot, null, 2));
 
@@ -231,7 +279,7 @@ function dashApi(method, path, body, cookies) {
       log(`Sending: ${msg.replace(/\n/g,' ').substring(0,100)}`);
       sendTelegram(msg);
     } else {
-      log(`No changes — silent (${onlineCount}/${machineStatus.length} online, ${totalOrderCount} total orders)`);
+      log(`No changes — silent (${onlineCount}/${machineStatus.length} online, ${allOrders.length} total orders, ${completedOrders.length} completed)`);
     }
 
     log('===== Sandstar sync complete =====');

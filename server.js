@@ -254,6 +254,8 @@ if (!db.machineTelemetry) db.machineTelemetry = [];
 if (!db.todos) db.todos = [];
 if (!db.order_receipts) db.order_receipts = [];
 if (!db.price_history) db.price_history = [];
+if (!db.sandstar_sales) db.sandstar_sales = [];
+if (!db.sandstar_machines) db.sandstar_machines = [];
 
 // Seed initial todos if empty
 if (db.todos.length === 0) {
@@ -27607,5 +27609,151 @@ app.post('/api/prospects/normalize-types', (req, res) => {
   if (!dryRun && updated > 0) saveDB(db);
   res.json({ checked: db.prospects.length, updated: dryRun ? changes.length : updated, changes: changes.slice(0, 20), dry_run: !!dryRun });
 });
+
+// ===== SANDSTAR SALES ANALYTICS API =====
+app.get('/api/sandstar/sales', (req, res) => {
+  const { machine, startDate, endDate, limit } = req.query;
+  let records = db.sandstar_sales || [];
+  if (machine) records = records.filter(r => r.machine_name === machine || String(r.machine_id) === machine);
+  if (startDate) records = records.filter(r => r.sale_date >= startDate);
+  if (endDate) records = records.filter(r => r.sale_date <= endDate);
+  records = records.sort((a, b) => new Date(b.sale_date) - new Date(a.sale_date));
+  if (limit) records = records.slice(0, parseInt(limit));
+  res.json(records);
+});
+
+app.post('/api/sandstar/sales/batch', (req, res) => {
+  const { sales } = req.body;
+  if (!Array.isArray(sales) || sales.length === 0) {
+    return res.status(400).json({ error: 'sales array required' });
+  }
+  let imported = 0;
+  let skipped = 0;
+  for (const sale of sales) {
+    const existing = (db.sandstar_sales || []).find(s => s.sandstar_order_no === sale.sandstar_order_no);
+    if (existing) { skipped++; continue; }
+    const record = {
+      id: nextId(),
+      sandstar_order_no: sale.sandstar_order_no,
+      machine_id: sale.machine_id,
+      machine_name: sale.machine_name,
+      amount: parseFloat(sale.amount) || 0,
+      items: sale.items || [],
+      sale_date: sale.sale_date,
+      pay_method: sale.pay_method || '',
+      phase: sale.phase || 2,
+      synced_at: new Date().toISOString()
+    };
+    if (!db.sandstar_sales) db.sandstar_sales = [];
+    db.sandstar_sales.push(record);
+    imported++;
+  }
+  saveDB(db);
+  res.json({ imported, skipped, total: (db.sandstar_sales || []).length });
+});
+
+app.get('/api/sandstar/machines', (req, res) => {
+  const machines = db.sandstar_machines || [];
+  const sales = db.sandstar_sales || [];
+  const enriched = machines.map(m => {
+    const machineSales = sales.filter(s => s.machine_id === m.machine_id || s.machine_name === m.machine_name);
+    const total_sales = machineSales.length;
+    const total_revenue = machineSales.reduce((sum, s) => sum + (s.amount || 0), 0);
+    const last_sale = machineSales.sort((a, b) => new Date(b.sale_date) - new Date(a.sale_date))[0];
+    return {
+      ...m,
+      total_sales,
+      total_revenue,
+      last_sale_at: last_sale?.sale_date || null
+    };
+  });
+  res.json(enriched);
+});
+
+app.put('/api/sandstar/machines/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.sandstar_machines || []).findIndex(m => m.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Machine not found' });
+  db.sandstar_machines[idx] = { ...db.sandstar_machines[idx], ...req.body, updated_at: new Date().toISOString() };
+  saveDB(db);
+  res.json(db.sandstar_machines[idx]);
+});
+
+app.get('/api/sandstar/summary', (req, res) => {
+  const sales = db.sandstar_sales || [];
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const weekStart = new Date(now);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const total_revenue = sales.reduce((s, r) => s + (r.amount || 0), 0);
+  const total_transactions = sales.length;
+
+  const revenue_today = sales
+    .filter(s => (s.sale_date || '').startsWith(todayStr))
+    .reduce((s, r) => s + (r.amount || 0), 0);
+
+  const revenue_this_week = sales
+    .filter(s => new Date(s.sale_date) >= weekStart)
+    .reduce((s, r) => s + (r.amount || 0), 0);
+
+  const revenue_this_month = sales
+    .filter(s => new Date(s.sale_date) >= monthStart)
+    .reduce((s, r) => s + (r.amount || 0), 0);
+
+  // Top products
+  const productRevenue = {};
+  sales.forEach(s => {
+    (s.items || []).forEach(item => {
+      const name = item.name || 'Unknown';
+      if (!productRevenue[name]) productRevenue[name] = { name, revenue: 0, qty: 0 };
+      productRevenue[name].revenue += (item.price || 0) * (item.qty || 1);
+      productRevenue[name].qty += item.qty || 1;
+    });
+  });
+  const top_products = Object.values(productRevenue)
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 10);
+
+  // By machine
+  const by_machine = {};
+  sales.forEach(s => {
+    const key = s.machine_name || `Machine ${s.machine_id}`;
+    if (!by_machine[key]) by_machine[key] = { machine_name: key, machine_id: s.machine_id, revenue: 0, transactions: 0 };
+    by_machine[key].revenue += s.amount || 0;
+    by_machine[key].transactions++;
+  });
+
+  // Daily revenue for last 30 days
+  const dailyRevenue = {};
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    dailyRevenue[d.toISOString().split('T')[0]] = 0;
+  }
+  sales.forEach(s => {
+    const d = (s.sale_date || '').split('T')[0];
+    if (dailyRevenue[d] !== undefined) dailyRevenue[d] += s.amount || 0;
+  });
+
+  res.json({
+    total_revenue,
+    total_transactions,
+    revenue_today,
+    revenue_this_week,
+    revenue_this_month,
+    avg_transaction: total_transactions > 0 ? total_revenue / total_transactions : 0,
+    top_products,
+    by_machine: Object.values(by_machine),
+    daily_revenue: Object.entries(dailyRevenue).map(([date, revenue]) => ({ date, revenue })),
+    machine_count: (db.sandstar_machines || []).length,
+    active_machines: (db.sandstar_machines || []).filter(m => m.status === 'online' || m.online).length,
+    last_sync: sales.length > 0 ? sales[0].synced_at : null
+  });
+});
+
+// ===== SALES ANALYTICS PAGE =====
+app.get('/sales-analytics', (req, res) => res.sendFile(path.join(__dirname, 'sales-analytics.html')));
 
 // ===== END PROPERTY TYPE NORMALIZATION =====
