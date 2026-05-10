@@ -31,19 +31,19 @@
     .loc-block { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; }
 
     /* Location header row */
-    .loc-header-row { display: grid; grid-template-columns: 2.5fr 1.5fr 1fr 1fr 1fr; gap: 0; border-bottom: 1px solid var(--border); background: #f8fafc; }
+    .loc-header-row { display: grid; grid-template-columns: 2fr 1.5fr 0.8fr 1fr 1.2fr 1.5fr; gap: 0; border-bottom: 1px solid var(--border); background: #f8fafc; }
     .loc-cell { padding: 10px 14px; font-size: 0.85rem; display: flex; align-items: center; }
     .loc-cell:not(:last-child) { border-right: 1px solid var(--border); }
     .loc-name-cell { font-weight: 700; }
 
     /* Machine rows */
-    .machine-row { display: grid; grid-template-columns: 2.5fr 1.5fr 1fr 1fr 1fr; gap: 0; border-top: 1px solid var(--border); }
+    .machine-row { display: grid; grid-template-columns: 2fr 1.5fr 0.8fr 1fr 1.2fr 1.5fr; gap: 0; border-top: 1px solid var(--border); }
     .machine-cell { padding: 7px 14px; font-size: 0.8rem; display: flex; align-items: center; color: var(--muted); }
     .machine-cell:first-child { padding-left: 28px; color: var(--text); }
     .machine-cell:not(:last-child) { border-right: 1px solid var(--border); }
 
     /* Column headers */
-    .col-headers { display: grid; grid-template-columns: 2.5fr 1.5fr 1fr 1fr 1fr; gap: 0; background: #edf2f7; border: 1px solid var(--border); border-bottom: none; border-radius: var(--radius) var(--radius) 0 0; }
+    .col-headers { display: grid; grid-template-columns: 2fr 1.5fr 0.8fr 1fr 1.2fr 1.5fr; gap: 0; background: #edf2f7; border: 1px solid var(--border); border-bottom: none; border-radius: var(--radius) var(--radius) 0 0; }
     .col-header { padding: 8px 14px; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); font-weight: 700; }
 
     /* Contacts section */
@@ -95,9 +95,10 @@
     <div class="col-headers">
       <div class="col-header">Location / Machine</div>
       <div class="col-header">Address</div>
-      <div class="col-header">Status</div>
       <div class="col-header">Contract Start</div>
       <div class="col-header">Phone</div>
+      <div class="col-header">Main Contact</div>
+      <div class="col-header">Email</div>
     </div>
 
     <div id="locationsList"></div>
@@ -188,7 +189,8 @@
         <div class="machine-row">
           <div class="machine-cell">${cleanMachineName(m.name, loc.name)}</div>
           <div class="machine-cell">—</div>
-          <div class="machine-cell"><span class="badge ${badgeClass(m.status)}">${statusLabel(m.status)}</span></div>
+          <div class="machine-cell">—</div>
+          <div class="machine-cell">—</div>
           <div class="machine-cell">—</div>
           <div class="machine-cell">—</div>
         </div>`).join('');
@@ -208,14 +210,17 @@
             </div>
           </div>`).join('');
 
+      const contacts = loc.contacts || [];
+      const mainContact = contacts[0] || null;
       return `
         <div class="loc-block" id="loc-${loc.id}">
           <div class="loc-header-row">
             <div class="loc-cell loc-name-cell">${loc.name}</div>
-            <div class="loc-cell" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${loc.address || '—'}</div>
-            <div class="loc-cell"><span class="badge ${badgeClass(loc.status)}">${statusLabel(loc.status)}</span></div>
-            <div class="loc-cell">${contractDate}</div>
+            <div class="loc-cell" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${loc.address || '—'}</div>
+            <div class="loc-cell" style="white-space:nowrap">${contractDate !== '—' ? contractDate : '—'}</div>
             <div class="loc-cell" style="white-space:nowrap">${loc.phone ? `<a href="tel:${loc.phone}">${loc.phone}</a>` : '—'}</div>
+            <div class="loc-cell">${mainContact ? mainContact.name + (mainContact.title ? '<span style=\"color:var(--muted);font-size:0.75rem;margin-left:5px\">' + mainContact.title + '</span>' : '') : '—'}</div>
+            <div class="loc-cell">${mainContact?.email ? `<a href="mailto:${mainContact.email}">${mainContact.email}</a>` : '—'}</div>
           </div>
           ${machineRows}
           <div class="contacts-section">
