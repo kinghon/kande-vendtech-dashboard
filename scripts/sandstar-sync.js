@@ -158,6 +158,51 @@ function dashApi(method, path, body, cookies) {
       return res.json();
     }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE });
 
+    // 3b. Pull machine inventory (current stock per machine per product)
+    log('Fetching machine inventory...');
+    const INVENTORY_ENDPOINTS = [
+      { path: '/stock/getEquipmentInventoryList', method: 'POST', body: { pageNum: 1, pageSize: 200 } },
+      { path: '/stock/equipmentInventory/list', method: 'POST', body: { pageNum: 1, pageSize: 200 } },
+      { path: '/inventory/getEquipmentInventory', method: 'POST', body: { pageNum: 1, pageSize: 200 } },
+      { path: '/stock/getEquipmentInventoryList', method: 'GET', body: null },
+    ];
+
+    let inventoryData = null;
+    let inventoryEndpointUsed = null;
+    for (const ep of INVENTORY_ENDPOINTS) {
+      try {
+        const result = await page.evaluate(async ({ api, org, scope, ep }) => {
+          const h = { 'Content-Type': 'application/json', 'x-token': localStorage.getItem('token'), 'app-scope': scope, 'organSn': org };
+          const url = `${api}${ep.path}`;
+          const res = ep.method === 'GET'
+            ? await fetch(url, { method: 'GET', headers: h })
+            : await fetch(url, { method: 'POST', headers: h, body: JSON.stringify(ep.body || {}) });
+          return res.json();
+        }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE, ep });
+        const list = result?.data?.resultList || result?.data?.list || result?.resultList || result?.data || null;
+        if (list && Array.isArray(list) && list.length > 0) {
+          inventoryData = result;
+          inventoryEndpointUsed = ep.path;
+          log(`  Inventory endpoint OK: ${ep.method} ${ep.path} — ${list.length} records`);
+          break;
+        }
+        log(`  Tried ${ep.method} ${ep.path} — no inventory records`);
+      } catch (e) {
+        log(`  Tried ${ep.method} ${ep.path} — error: ${e.message}`);
+      }
+    }
+
+    if (!inventoryData) {
+      log('  No inventory endpoint returned data — skipping inventory sync');
+    } else {
+      // Save raw for inspection
+      fs.writeFileSync('/Users/kurtishon/clawd/data/sandstar-inventory-latest.json', JSON.stringify({
+        fetched_at: new Date().toISOString(),
+        endpoint: inventoryEndpointUsed,
+        raw: inventoryData
+      }, null, 2));
+    }
+
     await browser.close();
 
     // 4. Process machines
@@ -207,6 +252,33 @@ function dashApi(method, path, body, cookies) {
         alarm_count: m.alarms ? 1 : 0, sandstar_synced_at: new Date().toISOString(),
       };
       if (existing?.id) await dashApi('PUT', `/api/machines/${existing.id}`, payload, dashCookies);
+    }
+
+    // Batch import machine inventory
+    if (inventoryData) {
+      try {
+        const rawList = inventoryData?.data?.resultList || inventoryData?.data?.list || inventoryData?.resultList || inventoryData?.data || [];
+        // Normalize to a common schema
+        const inventoryBatch = rawList.map(row => ({
+          sandstar_machine_id: row.freezerId || row.machineId || row.equipmentId || row.freezer_id || null,
+          machine_name: row.freezerName || row.machineName || row.equipmentName || '',
+          product_barcode: row.barcode || row.goodsBarcode || row.productBarcode || row.sku || '',
+          product_name: row.goodsName || row.productName || row.name || '',
+          current_quantity: parseInt(row.currentNum || row.stockNum || row.quantity || row.num || row.goodsNum || 0),
+          capacity: parseInt(row.capacityNum || row.capacity || row.maxNum || 0),
+          lane_no: row.laneNo || row.lane || row.position || '',
+          synced_at: new Date().toISOString()
+        })).filter(r => r.sandstar_machine_id && (r.product_barcode || r.product_name));
+
+        if (inventoryBatch.length > 0) {
+          const invRes = await dashApi('POST', '/api/sandstar/inventory/batch', { inventory: inventoryBatch }, dashCookies);
+          log(`Inventory batch import: ${JSON.stringify(invRes).substring(0,200)}`);
+        } else {
+          log('  No inventory records to import after normalization');
+        }
+      } catch (e) {
+        log(`  Inventory batch import failed: ${e.message}`);
+      }
     }
 
     // Batch import new sales to the sandstar endpoint

@@ -256,6 +256,10 @@ if (!db.order_receipts) db.order_receipts = [];
 if (!db.price_history) db.price_history = [];
 if (!db.sandstar_sales) db.sandstar_sales = [];
 if (!db.sandstar_machines) db.sandstar_machines = [];
+if (!db.sandstar_inventory) db.sandstar_inventory = [];
+if (!db.inventory_deployments) db.inventory_deployments = [];
+if (!db.pull_list) db.pull_list = [];
+if (!db.spoilage_log) db.spoilage_log = [];
 
 // Seed initial todos if empty
 if (db.todos.length === 0) {
@@ -1380,6 +1384,382 @@ app.delete('/api/order-receipts/:id', (req, res) => {
   db.order_receipts = (db.order_receipts || []).filter(r => r.id !== id);
   saveDB(db);
   res.json({ success: true });
+});
+
+// ===== FIFO INVENTORY API =====
+app.get('/api/inventory/fifo', (req, res) => {
+  const receipts = db.order_receipts || [];
+  const sandstarInv = db.sandstar_inventory || [];
+
+  // Build product name -> product_id lookup
+  const nameToProduct = {};
+  db.products.forEach(p => {
+    nameToProduct[p.name.toLowerCase()] = p.id;
+  });
+
+  const productMap = {};
+
+  receipts.forEach(receipt => {
+    (receipt.items || []).forEach(item => {
+      if (!item.product_id) return;
+      const unitsReceived = (item.cases || 0) * (item.units_per_case || 0);
+      if (unitsReceived <= 0) return;
+      if (!productMap[item.product_id]) {
+        const product = db.products.find(p => p.id === item.product_id);
+        productMap[item.product_id] = {
+          product_id: item.product_id,
+          product_name: product?.name || item.product_name || 'Unknown',
+          total_received: 0,
+          total_in_machines: 0,
+          warehouse_on_hand: 0,
+          batches: [],
+          machine_breakdown: {}
+        };
+      }
+      productMap[item.product_id].batches.push({
+        order_receipt_id: receipt.id,
+        order_date: receipt.order_date,
+        supplier: receipt.supplier || receipt.vendor || '',
+        units_received: unitsReceived,
+        units_deployed: 0,
+        units_remaining: unitsReceived,
+        is_depleted: false
+      });
+      productMap[item.product_id].total_received += unitsReceived;
+    });
+  });
+
+  // Aggregate Sandstar inventory per machine per product
+  sandstarInv.forEach(inv => {
+    const pid = nameToProduct[(inv.product_name || '').toLowerCase()];
+    if (!pid || !productMap[pid]) return;
+    const prod = productMap[pid];
+    const qty = inv.current_quantity || 0;
+    if (qty <= 0) return;
+
+    const mid = inv.sandstar_machine_id || inv.machine_name || 'unknown';
+    if (!prod.machine_breakdown[mid]) {
+      prod.machine_breakdown[mid] = {
+        machine_id: mid,
+        machine_name: inv.machine_name || 'Unknown',
+        deployed: 0
+      };
+    }
+    prod.machine_breakdown[mid].deployed += qty;
+    prod.total_in_machines += qty;
+  });
+
+  // FIFO: deplete oldest batches first by machine stock
+  Object.values(productMap).forEach(prod => {
+    prod.batches.sort((a, b) => {
+      const dateA = new Date(a.order_date || '9999-12-31');
+      const dateB = new Date(b.order_date || '9999-12-31');
+      if (dateA - dateB !== 0) return dateA - dateB;
+      return a.order_receipt_id - b.order_receipt_id;
+    });
+
+    let remainingToDeploy = prod.total_in_machines;
+    prod.batches.forEach(batch => {
+      const depletedFromThisBatch = Math.min(batch.units_received, remainingToDeploy);
+      batch.units_deployed = depletedFromThisBatch;
+      batch.units_remaining = batch.units_received - depletedFromThisBatch;
+      batch.is_depleted = batch.units_remaining <= 0;
+      remainingToDeploy -= depletedFromThisBatch;
+    });
+
+    prod.warehouse_on_hand = prod.batches.reduce((sum, b) => sum + b.units_remaining, 0);
+  });
+
+  const result = Object.values(productMap).map(prod => ({
+    product_id: prod.product_id,
+    product_name: prod.product_name,
+    total_received: prod.total_received,
+    total_in_machines: prod.total_in_machines,
+    warehouse_on_hand: prod.warehouse_on_hand,
+    batches: prod.batches,
+    machine_breakdown: Object.values(prod.machine_breakdown)
+  }));
+
+  res.json(result);
+});
+
+app.post('/api/inventory/deployments', (req, res) => {
+  const { product_id, machine_id, machine_name, quantity, deployed_at, notes } = req.body;
+  if (!product_id || !machine_id || !quantity || quantity <= 0) {
+    return res.status(400).json({ error: 'product_id, machine_id, and quantity > 0 are required' });
+  }
+
+  const receipts = (db.order_receipts || [])
+    .filter(r => (r.items || []).some(item => item.product_id === product_id))
+    .sort((a, b) => {
+      const dateA = new Date(a.order_date || '9999-12-31');
+      const dateB = new Date(b.order_date || '9999-12-31');
+      if (dateA - dateB !== 0) return dateA - dateB;
+      return a.id - b.id;
+    });
+
+  const deployments = db.inventory_deployments || [];
+  const deployedPerReceipt = {};
+  deployments.forEach(d => {
+    if (d.product_id === product_id) {
+      deployedPerReceipt[d.order_receipt_id] = (deployedPerReceipt[d.order_receipt_id] || 0) + d.quantity;
+    }
+  });
+
+  let remainingQty = quantity;
+  const createdRecords = [];
+
+  for (const receipt of receipts) {
+    if (remainingQty <= 0) break;
+    const item = receipt.items.find(i => i.product_id === product_id);
+    if (!item) continue;
+    const unitsReceived = (item.cases || 0) * (item.units_per_case || 0);
+    const alreadyDeployed = deployedPerReceipt[receipt.id] || 0;
+    const available = unitsReceived - alreadyDeployed;
+    if (available <= 0) continue;
+
+    const deployFromThisBatch = Math.min(available, remainingQty);
+    const record = {
+      id: nextId(),
+      order_receipt_id: receipt.id,
+      order_receipt_item_idx: receipt.items.indexOf(item),
+      product_id,
+      product_name: item.product_name || db.products.find(p => p.id === product_id)?.name || 'Unknown',
+      machine_id,
+      machine_name: machine_name || 'Unknown',
+      quantity: deployFromThisBatch,
+      deployed_at: deployed_at || new Date().toISOString().split('T')[0],
+      notes: notes || '',
+      created_at: new Date().toISOString()
+    };
+    if (!db.inventory_deployments) db.inventory_deployments = [];
+    db.inventory_deployments.push(record);
+    createdRecords.push(record);
+    deployedPerReceipt[receipt.id] = alreadyDeployed + deployFromThisBatch;
+    remainingQty -= deployFromThisBatch;
+  }
+
+  if (remainingQty > 0) {
+    return res.status(422).json({ error: 'Insufficient warehouse stock', requested: quantity, fulfilled: quantity - remainingQty, created: createdRecords });
+  }
+
+  saveDB(db);
+  res.json(createdRecords);
+});
+
+app.get('/api/inventory/warehouse', (req, res) => {
+  const receipts = db.order_receipts || [];
+  const sandstarInv = db.sandstar_inventory || [];
+
+  // Build product name -> product_id lookup
+  const nameToProduct = {};
+  db.products.forEach(p => {
+    nameToProduct[p.name.toLowerCase()] = p.id;
+  });
+
+  const productMap = {};
+
+  receipts.forEach(receipt => {
+    (receipt.items || []).forEach(item => {
+      if (!item.product_id) return;
+      const unitsReceived = (item.cases || 0) * (item.units_per_case || 0);
+      if (!productMap[item.product_id]) {
+        const product = db.products.find(p => p.id === item.product_id);
+        productMap[item.product_id] = {
+          product_id: item.product_id,
+          product_name: product?.name || item.product_name || 'Unknown',
+          total_received: 0,
+          total_in_machines: 0
+        };
+      }
+      productMap[item.product_id].total_received += unitsReceived;
+    });
+  });
+
+  sandstarInv.forEach(inv => {
+    const pid = nameToProduct[(inv.product_name || '').toLowerCase()];
+    if (!pid || !productMap[pid]) return;
+    productMap[pid].total_in_machines += inv.current_quantity || 0;
+  });
+
+  const result = Object.values(productMap).map(p => {
+    const onHand = p.total_received - p.total_in_machines;
+    return {
+      product_id: p.product_id,
+      product_name: p.product_name,
+      total_received: p.total_received,
+      total_in_machines: p.total_in_machines,
+      warehouse_on_hand: onHand,
+      low_stock: onHand < 12
+    };
+  }).sort((a, b) => a.product_name.localeCompare(b.product_name));
+
+  res.json(result);
+});
+
+app.delete('/api/inventory/deployments/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  if (!db.inventory_deployments) db.inventory_deployments = [];
+  db.inventory_deployments = db.inventory_deployments.filter(d => d.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// ===== PULL LIST API =====
+app.get('/api/pull-list', (req, res) => {
+  const status = req.query.status;
+  let items = db.pull_list || [];
+  if (status) items = items.filter(i => i.status === status);
+  res.json(items.sort((a, b) => new Date(b.pulled_at) - new Date(a.pulled_at)));
+});
+
+app.post('/api/pull-list', (req, res) => {
+  const { product_id, machine_id, machine_name, quantity, pulled_at, reason, notes } = req.body;
+  if (!product_id || !machine_id || !quantity || quantity <= 0) {
+    return res.status(400).json({ error: 'product_id, machine_id, and quantity > 0 are required' });
+  }
+
+  // Note: machine stock is source-of-truth from Sandstar. Pull list is for tracking
+  // pulled/spoiled items; it does NOT modify the deployment ledger.
+
+  const record = {
+    id: nextId(),
+    product_id,
+    product_name: db.products.find(p => p.id === product_id)?.name || 'Unknown',
+    machine_id,
+    machine_name: machine_name || 'Unknown',
+    quantity,
+    pulled_at: pulled_at || new Date().toISOString().split('T')[0],
+    reason: reason || 'other',
+    notes: notes || '',
+    status: 'pending'
+  };
+  if (!db.pull_list) db.pull_list = [];
+  db.pull_list.push(record);
+  saveDB(db);
+  res.json(record);
+});
+
+app.put('/api/pull-list/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const item = (db.pull_list || []).find(p => p.id === id);
+  if (!item) return res.status(404).json({ error: 'Pull list item not found' });
+  if (req.body.status && ['pending', 'confirmed', 'returned'].includes(req.body.status)) {
+    item.status = req.body.status;
+  }
+  if (req.body.notes !== undefined) item.notes = req.body.notes;
+  if (req.body.reason !== undefined) item.reason = req.body.reason;
+  saveDB(db);
+  res.json(item);
+});
+
+app.post('/api/pull-list/:id/confirm-spoilage', (req, res) => {
+  const id = parseInt(req.params.id);
+  const item = (db.pull_list || []).find(p => p.id === id);
+  if (!item) return res.status(404).json({ error: 'Pull list item not found' });
+  if (item.status === 'confirmed') return res.status(400).json({ error: 'Already confirmed' });
+
+  // Look up unit_cost from matching order receipt item
+  let unitCost = 0;
+  const receipts = db.order_receipts || [];
+  for (const receipt of receipts) {
+    const match = (receipt.items || []).find(i => i.product_id === item.product_id);
+    if (match && match.price_per_case) {
+      const unitsPerCase = match.units_per_case || 1;
+      unitCost = match.price_per_case / unitsPerCase;
+      break;
+    }
+  }
+
+  const totalCost = unitCost * item.quantity;
+  const spoilageRecord = {
+    id: nextId(),
+    pull_list_id: item.id,
+    product_id: item.product_id,
+    product_name: item.product_name,
+    machine_id: item.machine_id,
+    machine_name: item.machine_name,
+    quantity: item.quantity,
+    unit_cost: parseFloat(unitCost.toFixed(4)),
+    total_cost: parseFloat(totalCost.toFixed(2)),
+    pulled_at: item.pulled_at,
+    confirmed_at: new Date().toISOString().split('T')[0],
+    reason: item.reason,
+    notes: item.notes
+  };
+  if (!db.spoilage_log) db.spoilage_log = [];
+  db.spoilage_log.push(spoilageRecord);
+  item.status = 'confirmed';
+  saveDB(db);
+  res.json(spoilageRecord);
+});
+
+app.delete('/api/pull-list/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const item = (db.pull_list || []).find(p => p.id === id);
+  if (!item) return res.status(404).json({ error: 'Pull list item not found' });
+
+  // Removing a pull list item means it was returned to warehouse / voided.
+  // Sandstar remains source of truth for machine stock.
+
+  db.pull_list = (db.pull_list || []).filter(p => p.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// ===== SPOILAGE API =====
+app.get('/api/spoilage', (req, res) => {
+  let items = db.spoilage_log || [];
+  if (req.query.machine_id) items = items.filter(i => String(i.machine_id) === String(req.query.machine_id));
+  if (req.query.product_id) items = items.filter(i => String(i.product_id) === String(req.query.product_id));
+  if (req.query.from && req.query.to) {
+    const from = new Date(req.query.from);
+    const to = new Date(req.query.to);
+    items = items.filter(i => {
+      const d = new Date(i.confirmed_at);
+      return d >= from && d <= to;
+    });
+  }
+  res.json(items.sort((a, b) => new Date(b.confirmed_at) - new Date(a.confirmed_at)));
+});
+
+app.get('/api/spoilage/summary', (req, res) => {
+  let items = db.spoilage_log || [];
+  if (req.query.from && req.query.to) {
+    const from = new Date(req.query.from);
+    const to = new Date(req.query.to);
+    items = items.filter(i => {
+      const d = new Date(i.confirmed_at);
+      return d >= from && d <= to;
+    });
+  }
+
+  const totalUnits = items.reduce((sum, i) => sum + (i.quantity || 0), 0);
+  const totalCost = items.reduce((sum, i) => sum + (i.total_cost || 0), 0);
+
+  const byProduct = {};
+  const byMachine = {};
+  items.forEach(i => {
+    if (!byProduct[i.product_name]) byProduct[i.product_name] = { product_name: i.product_name, units: 0, cost: 0 };
+    byProduct[i.product_name].units += i.quantity || 0;
+    byProduct[i.product_name].cost += i.total_cost || 0;
+
+    if (!byMachine[i.machine_name]) byMachine[i.machine_name] = { machine_name: i.machine_name, units: 0, cost: 0 };
+    byMachine[i.machine_name].units += i.quantity || 0;
+    byMachine[i.machine_name].cost += i.total_cost || 0;
+  });
+
+  const productList = Object.values(byProduct).sort((a, b) => b.cost - a.cost);
+  const machineList = Object.values(byMachine).sort((a, b) => b.cost - a.cost);
+
+  res.json({
+    total_units_lost: totalUnits,
+    total_cost_lost: parseFloat(totalCost.toFixed(2)),
+    worst_sku: productList[0] || null,
+    worst_machine: machineList[0] || null,
+    by_product: productList,
+    by_machine: machineList
+  });
 });
 
 // ===== PRICE HISTORY API =====
@@ -27691,6 +28071,48 @@ app.post('/api/sandstar/sales/batch', (req, res) => {
   }
   saveDB(db);
   res.json({ imported, skipped, total: (db.sandstar_sales || []).length });
+});
+
+app.post('/api/sandstar/inventory/batch', (req, res) => {
+  const { inventory } = req.body;
+  if (!Array.isArray(inventory) || inventory.length === 0) {
+    return res.status(400).json({ error: 'inventory array required' });
+  }
+  if (!db.sandstar_inventory) db.sandstar_inventory = [];
+
+  // Upsert: replace all records for machines that appear in this batch,
+  // keep others. This avoids stale data from machines not in the latest sync.
+  const batchMachineIds = new Set(inventory.map(i => i.sandstar_machine_id).filter(Boolean));
+  db.sandstar_inventory = (db.sandstar_inventory || []).filter(
+    existing => !batchMachineIds.has(existing.sandstar_machine_id)
+  );
+
+  for (const inv of inventory) {
+    const record = {
+      id: nextId(),
+      sandstar_machine_id: inv.sandstar_machine_id || null,
+      machine_name: inv.machine_name || '',
+      product_barcode: inv.product_barcode || '',
+      product_name: inv.product_name || '',
+      current_quantity: parseInt(inv.current_quantity) || 0,
+      capacity: parseInt(inv.capacity) || 0,
+      lane_no: inv.lane_no || '',
+      synced_at: inv.synced_at || new Date().toISOString()
+    };
+    db.sandstar_inventory.push(record);
+  }
+  saveDB(db);
+  res.json({ imported: inventory.length, total: db.sandstar_inventory.length });
+});
+
+app.get('/api/sandstar/inventory', (req, res) => {
+  let items = db.sandstar_inventory || [];
+  if (req.query.machine_id) items = items.filter(i => String(i.sandstar_machine_id) === String(req.query.machine_id));
+  if (req.query.product_name) {
+    const q = req.query.product_name.toLowerCase();
+    items = items.filter(i => (i.product_name || '').toLowerCase().includes(q));
+  }
+  res.json(items.sort((a, b) => (a.machine_name || '').localeCompare(b.machine_name || '')));
 });
 
 app.get('/api/sandstar/machines', (req, res) => {
