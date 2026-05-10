@@ -1075,6 +1075,47 @@ app.delete('/api/locations/:id', (req, res) => {
   res.json({ success: true });
 });
 
+// ===== LOCATION CONTACTS API =====
+app.get('/api/locations/:id/contacts', (req, res) => {
+  const id = parseInt(req.params.id);
+  const loc = (db.locations || []).find(l => l.id === id);
+  if (!loc) return res.status(404).json({ error: 'Not found' });
+  res.json(loc.contacts || []);
+});
+
+app.post('/api/locations/:id/contacts', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.locations || []).findIndex(l => l.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  if (!db.locations[idx].contacts) db.locations[idx].contacts = [];
+  const contact = { id: nextId(), ...req.body, created_at: new Date().toISOString() };
+  db.locations[idx].contacts.push(contact);
+  saveDB(db);
+  res.json(contact);
+});
+
+app.put('/api/locations/:id/contacts/:cid', (req, res) => {
+  const id = parseInt(req.params.id);
+  const cid = parseInt(req.params.cid);
+  const loc = (db.locations || []).find(l => l.id === id);
+  if (!loc) return res.status(404).json({ error: 'Not found' });
+  const ci = (loc.contacts || []).findIndex(c => c.id === cid);
+  if (ci === -1) return res.status(404).json({ error: 'Contact not found' });
+  loc.contacts[ci] = { ...loc.contacts[ci], ...req.body, updated_at: new Date().toISOString() };
+  saveDB(db);
+  res.json(loc.contacts[ci]);
+});
+
+app.delete('/api/locations/:id/contacts/:cid', (req, res) => {
+  const id = parseInt(req.params.id);
+  const cid = parseInt(req.params.cid);
+  const loc = (db.locations || []).find(l => l.id === id);
+  if (!loc) return res.status(404).json({ error: 'Not found' });
+  loc.contacts = (loc.contacts || []).filter(c => c.id !== cid);
+  saveDB(db);
+  res.json({ success: true });
+});
+
 // ===== COLLECTIONS API =====
 app.get('/api/locations/:id/collections', (req, res) => {
   const id = parseInt(req.params.id);
