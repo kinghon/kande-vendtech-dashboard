@@ -27796,11 +27796,17 @@ app.get('/api/sandstar/summary', (req, res) => {
     if (!by_machine[key].last_sale_at || s.sale_date > by_machine[key].last_sale_at) by_machine[key].last_sale_at = s.sale_date;
   });
 
-  // Group by location (seeded from db.machines so 0-sales locations still show)
+  // Group by location — seed all known locations first so rev share rules show even with 0 sales
   const by_location = {};
+  (db.locations || []).forEach(loc => {
+    const lkey = String(loc.id);
+    const cfg = REV_SHARE[loc.name] || { type: 'flat', pct: 0 };
+    if (!by_location[lkey]) by_location[lkey] = { location_id: loc.id, location_name: loc.name, address: loc.address || '', rev_share_config: cfg, rev_share_label: revShareLabel(cfg), gross_revenue: 0, rev_share_amount: 0, net_revenue: 0, transactions: 0, machines: [] };
+  });
   (db.machines || []).forEach(m => {
-    const loc = m.location || { id: m.id + '_noloc', name: 'Unknown Location', address: '' };
-    const lkey = String(loc.id || loc.name);
+    const loc = locById[m.location_id] || m.location || null;
+    if (!loc) return;
+    const lkey = String(loc.id);
     if (!by_location[lkey]) {
       const cfg = REV_SHARE[loc.name] || { type: 'flat', pct: 0 };
       by_location[lkey] = { location_id: loc.id, location_name: loc.name, address: loc.address || '', rev_share_config: cfg, rev_share_label: revShareLabel(cfg), gross_revenue: 0, rev_share_amount: 0, net_revenue: 0, transactions: 0, machines: [] };
