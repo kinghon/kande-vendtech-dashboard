@@ -670,13 +670,12 @@
         products = await res.json();
         // Merge inventory data
         products.forEach(p => {
-          if (!inventory[p.id]) {
-            inventory[p.id] = {
-              stock: p.stock || 0,
-              reorder_point: p.reorder_point || 10,
-              expiration_date: p.expiration_date || null
-            };
-          }
+          // Always sync from API — don't use stale cached values for stock
+          inventory[p.id] = {
+            stock: p.stock || 0,
+            reorder_point: p.reorder_point || 10,
+            expiration_date: p.expiration_date || null
+          };
         });
       } catch (e) {
         console.error('Failed to load products:', e);
@@ -733,7 +732,8 @@
         return s > 0 && s <= r;
       }).length;
       const outOfStock = products.filter(p => getStock(p.id) <= 0).length;
-      const totalValue = products.reduce((sum, p) => sum + (getStock(p.id) * (p.cost_price || 0)), 0);
+      // Use p.stock directly from API — avoids stale inventory cache
+      const totalValue = products.reduce((sum, p) => sum + ((p.stock || 0) * (p.cost_price || 0)), 0);
       const expiringSoon = products.filter(p => isExpiringSoon(p.id)).length;
 
       document.getElementById('statTotalSKUs').textContent = products.length;
