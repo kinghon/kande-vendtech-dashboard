@@ -2049,7 +2049,11 @@
         return;
       }
 
-      const sortedReceipts = [...orderReceipts].sort((a,b) => new Date(b.order_date) - new Date(a.order_date));
+      const sortedReceipts = [...orderReceipts].sort((a,b) => {
+        const dateDiff = new Date(b.order_date) - new Date(a.order_date);
+        if (dateDiff !== 0) return dateDiff;
+        return (b.id || 0) - (a.id || 0);
+      });
       container.innerHTML = sortedReceipts.map((order, idx) => {
         const date = new Date(order.order_date).toLocaleDateString();
         const itemCount = order.items?.length || 0;

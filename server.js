@@ -1254,7 +1254,11 @@ app.delete('/api/products/:id', (req, res) => {
 // ===== ORDER RECEIPTS API =====
 app.get('/api/order-receipts', (req, res) => {
   const receipts = db.order_receipts || [];
-  res.json(receipts.sort((a, b) => new Date(b.order_date) - new Date(a.order_date)));
+  res.json(receipts.sort((a, b) => {
+    const dateDiff = new Date(b.order_date) - new Date(a.order_date);
+    if (dateDiff !== 0) return dateDiff;
+    return (b.id || 0) - (a.id || 0);
+  }));
 });
 
 app.get('/api/order-receipts/:id', (req, res) => {
