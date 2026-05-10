@@ -165,16 +165,16 @@
         const ssUrl = sandstarUrl(m);
         return `
           <div class="machine-row">
-            <div class="machine-info">
+            <div style="flex:2;min-width:0">
               <div class="machine-name">${m.name || m.model || 'Machine'}</div>
-              <div class="machine-model">${m.model || ''}${m.serial_number ? ' · S/N ' + m.serial_number : ''}</div>
-              <div class="machine-badges">
-                <span class="badge ${machineBadgeClass(m.status)}">${statusLabel(m.status)}</span>
-                ${m.model ? `<span class="contract-chip">${m.model}</span>` : ''}
-              </div>
+              ${m.model ? `<div class="machine-model">${m.model}</div>` : ''}
             </div>
-            <div class="machine-actions">
-              ${ssUrl ? `<a class="icon-btn" href="${ssUrl}" target="_blank" title="View in Sandstar">⚡</a>` : ''}
+            <div style="flex:1;display:flex;justify-content:center">
+              <span class="badge ${machineBadgeClass(m.status)}">${statusLabel(m.status)}</span>
+            </div>
+            <div style="flex:1;font-size:0.78rem;color:var(--muted);text-align:center">${m.serial_number || '—'}</div>
+            <div class="machine-actions" style="flex:0 0 auto">
+              ${ssUrl ? `<a class="icon-btn" href="${ssUrl}" target="_blank" title="View in Sandstar">⚡</a>` : '<div style="width:32px"></div>'}
               <button class="icon-btn" onclick="editMachine(${m.id})" title="Edit">✏️</button>
             </div>
           </div>`;
@@ -183,18 +183,20 @@
       return `
         <div class="location-card">
           <div class="loc-header">
-            <div style="flex:1;min-width:0">
-              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-                <div class="loc-name">${loc.name}</div>
-                <span class="loc-status ${locationStatusClass(loc.status)}">${statusLabel(loc.status)}</span>
-              </div>
+            <div style="flex:2;min-width:0">
+              <div class="loc-name">${loc.name}</div>
               ${loc.address ? `<div class="loc-address">${loc.address}</div>` : ''}
-              <div class="loc-meta">
-                ${ms.length} machine${ms.length !== 1 ? 's' : ''}
-                ${contractStart ? `· Contract started ${contractStart}` : ''}
-                ${mapsUrl ? `· <a href="${mapsUrl}" target="_blank">📍 Directions</a>` : ''}
-                ${loc.phone ? `· <a href="tel:${loc.phone}">${loc.phone}</a>` : ''}
-              </div>
+            </div>
+            <div style="flex:1;text-align:center;font-size:0.78rem;color:var(--muted)">
+              <div style="font-weight:600;color:var(--text)">${ms.length} machine${ms.length !== 1 ? 's' : ''}</div>
+              ${contractStart ? `<div>Since ${contractStart}</div>` : ''}
+            </div>
+            <div style="flex:1;display:flex;align-items:center;justify-content:center">
+              <span class="loc-status ${locationStatusClass(loc.status)}">${statusLabel(loc.status)}</span>
+            </div>
+            <div style="flex:1;display:flex;align-items:center;justify-content:flex-end;gap:8px">
+              ${loc.phone ? `<a href="tel:${loc.phone}" style="font-size:0.78rem;color:var(--accent);text-decoration:none">${loc.phone}</a>` : ''}
+              ${mapsUrl ? `<a href="${mapsUrl}" target="_blank" style="font-size:0.75rem;padding:4px 10px;border:1px solid var(--border);border-radius:6px;color:var(--text);text-decoration:none;background:var(--bg)">Directions</a>` : ''}
             </div>
           </div>
           <div class="machines-section">
