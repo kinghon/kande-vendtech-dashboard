@@ -71,6 +71,7 @@
             <th>Status</th>
             <th>Contract Start</th>
             <th>Phone</th>
+            <th>Rev Share</th>
           </tr>
         </thead>
         <tbody id="tableBody">
@@ -81,6 +82,13 @@
   </div>
 
   <script>
+  const REV_SHARE_RULES = {
+    'Jade Apartments': '0%',
+    'Regus — Howard Hughes Pkwy Ste 200': '0%',
+    'Regus — Howard Hughes Pkwy Ste 500': '10% flat',
+    'All In Aviation': '0% ≤$599/mo &nbsp;|&nbsp; 10% >$599/mo',
+  };
+
   function statusLabel(s) {
     const map = { active:'Active', online:'Online', offline:'Offline', in_transit:'In Transit', pending_install:'Pending Install', inactive:'Inactive' };
     return map[s] || s || '—';
@@ -126,6 +134,7 @@
         <td><span class="badge ${badgeClass(loc.status)}">${statusLabel(loc.status)}</span></td>
         <td>${contractDate}</td>
         <td style="font-weight:400;font-size:0.8rem">${loc.phone || '—'}</td>
+        <td style="font-size:0.78rem;color:var(--accent);font-weight:600">${REV_SHARE_RULES[loc.name] || '0%'}</td>
       </tr>`;
       // Machine rows
       ms.forEach(m => {
@@ -134,6 +143,7 @@
           <td>—</td>
           <td>${m.model || '—'}</td>
           <td><span class="badge ${badgeClass(m.status)}">${statusLabel(m.status)}</span></td>
+          <td>—</td>
           <td>—</td>
           <td>—</td>
         </tr>`;
