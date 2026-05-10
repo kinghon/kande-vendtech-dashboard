@@ -1477,6 +1477,15 @@
       input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = p.name; input.blur(); } });
     }
 
+    function roundPrice(price) {
+      const w = Math.floor(price);
+      const d = price - w;
+      if (d <= 0.25) return w + 0.25;
+      if (d <= 0.50) return w + 0.50;
+      if (d <= 0.75) return w + 0.75;
+      return w + 0.99;
+    }
+
     async function updateRetailPrice(productId, newRetail) {
       const p = products.find(x => x.id === productId);
       if (!p) return;
@@ -1498,7 +1507,7 @@
       const p = products.find(x => x.id === productId);
       if (!p) return;
       const unitCost = getUnitCost(p);
-      const newRetail = parseFloat((unitCost * (1 + newMarginPct / 100)).toFixed(2));
+      const newRetail = roundPrice(unitCost * (1 + newMarginPct / 100));
       try {
         await fetch(`/api/products/${productId}`, {
           method: 'PUT',
