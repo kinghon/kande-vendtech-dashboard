@@ -27776,10 +27776,15 @@ app.get('/api/sandstar/summary', (req, res) => {
     return cfg.tiers.map((t, i) => t.pct + '% ' + (t.upTo === Infinity ? '>' + (cfg.tiers[i-1]?.upTo || 0) + '/mo' : '\u2264$' + t.upTo + '/mo')).join(' / ');
   }
 
-  // Build by_machine enriched with location from db.machines
+  // Build by_machine enriched with location from db.machines (join locations)
+  const locById = {};
+  (db.locations || []).forEach(l => { locById[l.id] = l; });
   const by_machine = {};
   const machineLocationMap = {};
-  (db.machines || []).forEach(m => { if (m.location) machineLocationMap[m.name] = m.location; });
+  (db.machines || []).forEach(m => {
+    const loc = m.location || (m.location_id ? locById[m.location_id] : null);
+    if (loc) machineLocationMap[m.name] = loc;
+  });
   sales.forEach(s => {
     const key = s.machine_name || `Machine ${s.machine_id}`;
     if (!by_machine[key]) {
