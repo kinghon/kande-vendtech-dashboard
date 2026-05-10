@@ -567,12 +567,12 @@
       <div class="detail-grid" style="margin-bottom:16px">
         <div class="detail-item"><div class="label">Name</div><div class="value" id="detailName"></div></div>
         <div class="detail-item"><div class="label">Category</div><div class="value" id="detailCategory"></div></div>
-        <div class="detail-item"><div class="label">SKU</div><div class="value" id="detailSKU"></div></div>
+        <div class="detail-item"><div class="label">Item Number</div><div class="value" id="detailSKU"></div></div>
         <div class="detail-item"><div class="label">Unit Size</div><div class="value" id="detailUnitSize"></div></div>
         <div class="detail-item"><div class="label">Units/Case</div><div class="value" id="detailUnitsPerCase"></div></div>
         <div class="detail-item"><div class="label">Current Stock</div><div class="value" id="detailStock"></div></div>
         <div class="detail-item"><div class="label">Cost Price</div><div class="value" id="detailCost"></div></div>
-        <div class="detail-item"><div class="label">Sell Price</div><div class="value" id="detailSell"></div></div>
+        <div class="detail-item"><div class="label">Retail Price</div><div class="value" id="detailSell"></div></div>
         <div class="detail-item"><div class="label">Margin</div><div class="value" id="detailMargin"></div></div>
         <div class="detail-item"><div class="label">Profit/Unit</div><div class="value" id="detailProfit"></div></div>
       </div>
@@ -1641,16 +1641,20 @@
       }
       document.getElementById('detailName').textContent = p.name;
       document.getElementById('detailCategory').textContent = getCategoryLabel(p.category);
-      document.getElementById('detailSKU').textContent = p.sku || '—';
+      document.getElementById('detailSKU').textContent = p.item_number || p.sku || '—';
       document.getElementById('detailUnitSize').textContent = p.unit_size || '—';
       document.getElementById('detailUnitsPerCase').textContent = p.units_per_case || '—';
       document.getElementById('detailStock').textContent = getStock(productId);
       document.getElementById('detailCost').textContent = '$' + (p.cost_price || 0).toFixed(2);
-      document.getElementById('detailSell').textContent = '$' + (p.sell_price || 0).toFixed(2);
-      const margin = p.sell_price > 0 ? Math.round(((p.sell_price - (p.cost_price || 0)) / p.sell_price) * 100) : 0;
-      document.getElementById('detailMargin').textContent = margin + '%';
+      // Retail price = sell_price if set, else unit_cost * (1 + target_margin/100)
       const unitCost = getUnitCost(p);
-      const profit = (p.sell_price || 0) - unitCost;
+      const marginPct = p.target_margin !== undefined ? p.target_margin : 62;
+      const retailPrice = p.sell_price > 0 ? p.sell_price : unitCost * (1 + marginPct / 100);
+      document.getElementById('detailSell').textContent = '$' + retailPrice.toFixed(2);
+      // Margin = same markup % shown in inventory table
+      const margin = unitCost > 0 ? Math.round(((retailPrice - unitCost) / unitCost) * 100) : marginPct;
+      document.getElementById('detailMargin').textContent = margin + '%';
+      const profit = retailPrice - unitCost;
       document.getElementById('detailProfit').textContent = '$' + profit.toFixed(2);
 
       renderPriceHistory(p);
@@ -1665,8 +1669,15 @@
         return;
       }
 
+      // Filter out invalid entries
+      const validHistory = history.filter(h => h.date && h.cost_price > 0 && !isNaN(new Date(h.date)));
+      if (validHistory.length === 0) {
+        container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">No price history yet.</div>';
+        return;
+      }
+
       // Sparkline
-      const prices = history.map(h => h.cost_price || 0).reverse();
+      const prices = validHistory.map(h => h.cost_price || 0).reverse();
       const max = Math.max(...prices, 0.01);
       const min = Math.min(...prices, 0);
       const range = max - min || 1;
@@ -1677,7 +1688,7 @@
 
       container.innerHTML = `
         <div class="sparkline">${sparkline}</div>
-        ${history.slice(0, 10).map(h => `
+        ${validHistory.slice(0, 10).map(h => `
           <div class="price-history-item">
             <div>
               <div class="ph-date">${new Date(h.date).toLocaleDateString()} ${h.source ? '· ' + h.source : ''}</div>
