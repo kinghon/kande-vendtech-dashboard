@@ -284,16 +284,13 @@
               <th>Size</th>
               <th>Item #</th>
               <th>Category</th>
-              <th>SKU</th>
               <th>Stock</th>
               <th>Reorder Pt</th>
-              <th>Cost</th>
               <th>Unit Cost</th>
-              <th>Sale Price</th>
-              <th>Sell</th>
               <th>Margin</th>
+              <th>Retail Price</th>
+              <th>Sell</th>
               <th>Profit</th>
-              <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -795,11 +792,12 @@
       tbody.innerHTML = filtered.map(p => {
         const stock = getStock(p.id);
         const reorder = getReorderPoint(p.id);
-        const cost = p.cost_price || 0;
-        const sell = p.sell_price || 0;
-        const margin = sell > 0 ? Math.round(((sell - cost) / sell) * 100) : 0;
         const unitCost = getUnitCost(p);
-        const profitUnit = sell - unitCost;
+        const sell = p.sell_price || 0;
+        const retailPrice = unitCost * 1.62;
+        const marginBase = sell > 0 ? sell : retailPrice;
+        const margin = marginBase > 0 ? Math.round(((marginBase - unitCost) / marginBase) * 100) : 0;
+        const profitUnit = (sell > 0 ? sell : retailPrice) - unitCost;
         const status = getStockStatus(stock, reorder);
         const rowClass = status === 'out' ? 'out-of-stock' : status === 'low' ? 'low-stock' : '';
         const catClass = 'cat-' + (p.category || 'other');
@@ -812,7 +810,6 @@
             <td style="font-size:0.82rem;color:var(--muted);white-space:nowrap">${p.unit_size || '—'}</td>
             <td style="font-family:monospace;font-size:0.8rem;color:var(--muted)">${p.item_number || '—'}</td>
             <td><span class="cat-badge ${catClass}">${getCategoryLabel(p.category)}</span></td>
-            <td style="font-family:monospace;font-size:0.8rem;color:var(--muted);">${p.sku || '—'}</td>
             <td>
               <div class="stock-adjust">
                 <button onclick="quickAdjust(${p.id}, -1)">−</button>
@@ -821,13 +818,11 @@
               </div>
             </td>
             <td>${reorder}</td>
-            <td>$${cost.toFixed(2)}</td>
             <td class="unit-cost">$${unitCost.toFixed(2)}</td>
-            <td style="color:var(--success);font-weight:600">$${(unitCost * 1.62).toFixed(2)}</td>
+            <td><strong style="color:${margin>=38?'var(--success)':'var(--warn)'}">${margin}%</strong></td>
+            <td style="color:var(--success);font-weight:600">$${retailPrice.toFixed(2)}</td>
             <td>$${sell.toFixed(2)}</td>
-            <td><strong>${margin}%</strong></td>
             <td class="profit-unit ${profitClass}">$${profitUnit.toFixed(2)}</td>
-            <td>${getStatusBadge(status)}</td>
             <td>
               <button class="btn btn-sm btn-icon" onclick="openProductDetail(${p.id})" title="Details">📊</button>
               <button class="btn btn-sm btn-icon" onclick="openEditProduct(${p.id})" title="Edit">✏️</button>
@@ -978,7 +973,6 @@
             <td><strong>${p.name}</strong></td>
             <td style="font-family:monospace;font-size:0.8rem;">${p.sku || '—'}</td>
             <td>${stock}</td>
-            <td>${getStatusBadge(status)}</td>
             <td>$${(p.sell_price || 0).toFixed(2)}</td>
             <td><strong>${margin}%</strong></td>
           </tr>
