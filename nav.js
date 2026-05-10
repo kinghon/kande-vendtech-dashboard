@@ -33,7 +33,7 @@
         { label: 'Schedule',       href: '/schedule' },
         { label: 'Weekly Routes',  href: '/weekly-routes' },
         { label: 'Routes',         href: '/routes' },
-        { label: 'Machines',       href: '/machines' },
+        { label: 'Locations',      href: '/locations' },
         { label: 'Sales Analytics', href: '/sales-analytics' },
         { label: 'Restock Planner', href: '/restock-planner' },
         { label: 'Inventory',      href: '/inventory' },

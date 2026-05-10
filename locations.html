@@ -4,602 +4,216 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-vend.png">
   <title>Locations — Kande VendTech</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --bg: #f5f7fa; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
-      --muted: #718096; --accent: #3182ce; --hot: #e53e3e; --warn: #dd6b20;
-      --success: #38a169; --purple: #7b2cbf;
-      --gradient: linear-gradient(135deg, #3182ce 0%, #7b2cbf 100%);
+      --bg: #f5f5f7; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
+      --muted: #718096; --accent: #3182ce; --success: #38a169; --warn: #dd6b20;
+      --hot: #e53e3e; --radius: 12px;
     }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-    .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    .app { max-width: 1100px; margin: 0 auto; padding: 24px 20px 40px; }
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .page-header h1 { font-size: 1.6rem; font-weight: 700; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-    .top-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
-    .top-nav a { color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500; padding: 6px 12px; border-radius: 6px; transition: all 0.2s; }
-    .top-nav a:hover, .top-nav a.active { color: var(--accent); background: rgba(49,130,206,0.08); }
-    .nav-spacer { flex: 1; }
+    /* Stats row */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 12px; margin-bottom: 28px; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; }
+    .stat-card .val { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
+    .stat-card .lbl { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
 
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
-    .header h1 { font-size: 1.5rem; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    /* Location cards */
+    .location-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 20px; overflow: hidden; }
+    .loc-header { padding: 18px 20px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .loc-name { font-size: 1.1rem; font-weight: 700; margin-bottom: 3px; }
+    .loc-address { font-size: 0.83rem; color: var(--muted); }
+    .loc-status { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; }
+    .status-active    { background: rgba(56,161,105,.12); color: var(--success); }
+    .status-pending   { background: rgba(221,107,32,.12); color: var(--warn); }
+    .status-transit   { background: rgba(49,130,206,.12); color: var(--accent); }
+    .status-inactive  { background: #edf2f7; color: var(--muted); }
+    .loc-meta { font-size: 0.8rem; color: var(--muted); margin-top: 6px; display: flex; gap: 14px; flex-wrap: wrap; }
+    .loc-meta a { color: var(--accent); text-decoration: none; }
 
-    .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
-    .btn-primary { background: var(--accent); color: #fff; }
-    .btn-primary:hover { opacity: 0.9; }
-    .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
-    .btn-danger { background: var(--hot); color: #fff; }
-    .btn-success { background: var(--success); color: #fff; }
-    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+    /* Machine rows inside location */
+    .machines-section { padding: 0; }
+    .machine-row { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+    .machine-row:last-child { border-bottom: none; }
+    .machine-icon { width: 40px; height: 40px; border-radius: 10px; background: #edf2f7; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
+    .machine-info { flex: 1; min-width: 0; }
+    .machine-name { font-weight: 600; font-size: 0.9rem; }
+    .machine-model { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+    .machine-badges { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; }
+    .badge-online  { background: rgba(56,161,105,.12); color: var(--success); }
+    .badge-offline { background: rgba(229,62,62,.12); color: var(--hot); }
+    .badge-transit { background: rgba(49,130,206,.12); color: var(--accent); }
+    .badge-pending { background: rgba(221,107,32,.12); color: var(--warn); }
+    .machine-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .icon-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.9rem; text-decoration: none; color: var(--text); }
+    .icon-btn:hover { background: #f0f4f8; }
 
-    /* Stats */
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .stat { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); position: relative; overflow: hidden; }
-    .stat::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--gradient); }
-    .stat-value { font-size: 2rem; font-weight: 700; }
-    .stat-value.accent { color: var(--accent); }
-    .stat-value.success { color: var(--success); }
-    .stat-value.warn { color: var(--warn); }
-    .stat-value.hot { color: var(--hot); }
-    .stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .stat-sub { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    /* Contract chip */
+    .contract-chip { font-size: 0.73rem; color: var(--muted); background: #f7fafc; border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; }
 
-    /* Table */
-    .table-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
-    .table-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-    .table-header h2 { font-size: 1.1rem; }
-    table { width: 100%; border-collapse: collapse; }
-    th { text-align: left; padding: 12px 16px; font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); background: #fafbfc; }
-    td { padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-    tr:hover { background: rgba(49,130,206,0.03); }
-    tr:last-child td { border-bottom: none; }
-
-    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
-    .badge-green { background: #e6ffed; color: #22543d; }
-    .badge-yellow { background: #fefce8; color: #854d0e; }
-    .badge-red { background: #fee2e2; color: #991b1b; }
-    .badge-blue { background: #ebf8ff; color: #2b6cb0; }
-    .badge-gray { background: #f1f5f9; color: #64748b; }
-    .badge-purple { background: #f3e8ff; color: #7c3aed; }
-
-    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
-    .status-dot.active { background: var(--success); }
-    .status-dot.pending { background: var(--warn); }
-    .status-dot.ordered { background: var(--accent); }
-    .status-dot.transit { background: var(--purple); }
-
-    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
-    .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
-    .empty-state h3 { font-size: 1.2rem; color: var(--text); margin-bottom: 8px; }
-
-    /* Modal */
-    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
-    .modal-overlay.open { display: flex; }
-    .modal { background: var(--card); border-radius: 16px; padding: 32px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; }
-    .modal h2 { margin-bottom: 20px; font-size: 1.2rem; }
-    .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; margin-bottom: 6px; font-size: 0.85rem; font-weight: 500; color: var(--text); }
-    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; background: var(--bg); }
-    .form-group textarea { min-height: 80px; resize: vertical; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
-    .toggle-group { display: flex; align-items: center; gap: 12px; }
-    .toggle { position: relative; width: 48px; height: 26px; }
-    .toggle input { opacity: 0; width: 0; height: 0; }
-    .toggle .slider { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #cbd5e0; border-radius: 26px; cursor: pointer; transition: 0.3s; }
-    .toggle .slider:before { content: ''; position: absolute; width: 20px; height: 20px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; }
-    .toggle input:checked + .slider { background: var(--accent); }
-    .toggle input:checked + .slider:before { transform: translateX(22px); }
-
-    /* Collection detail */
-    .collection-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
-    .collection-row:last-child { border-bottom: none; }
-    .collection-amount { font-weight: 700; font-size: 1.1rem; }
-    .collection-meta { font-size: 0.8rem; color: var(--muted); }
-    .collection-breakdown { display: flex; gap: 16px; font-size: 0.8rem; color: var(--muted); }
-
-    @media (max-width: 768px) {
-      .form-row { grid-template-columns: 1fr; }
-      .stats { grid-template-columns: 1fr 1fr; }
-      td, th { padding: 10px 8px; font-size: 0.8rem; }
-    }
+    .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty .icon { font-size: 2.5rem; margin-bottom: 10px; }
   </style>
 </head>
 <body>
+  <script src="/nav.js"></script>
   <div class="app">
-    <nav class="top-nav">
-      <a href="/">🏠 Home</a>
-      <a href="/crm">📋 CRM</a>
-      <a href="/pipeline">🔄 Pipeline</a>
-      <a href="/machines">🤖 Machines</a>
-      <a href="/locations" class="active">📍 Locations</a>
-      <a href="/operations">⚙️ Operations</a>
-      <a href="/revenue">💰 Revenue</a>
-      <a href="/restock">📦 Restock</a>
-      <span class="nav-spacer"></span>
-      <a href="/office">🏢 Office</a>
-    </nav>
-
-    <div class="header">
-      <h1>📍 Location Management</h1>
-      <div style="display:flex;gap:12px;">
-        <button class="btn btn-secondary" onclick="loadLocations()">🔄 Refresh</button>
-        <button class="btn btn-primary" onclick="openAddModal()">+ Add Location</button>
+    <div class="page-header">
+      <h1>📍 Locations</h1>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" onclick="openAddLocation()">+ Add Location</button>
       </div>
     </div>
 
-    <!-- Revenue Summary -->
     <div class="stats" id="statsRow">
-      <div class="stat">
-        <div class="stat-value accent" id="totalLocations">0</div>
-        <div class="stat-label">Total Locations</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value success" id="monthlyRevenue">$0</div>
-        <div class="stat-label">Monthly Revenue</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value warn" id="revSharePaid">$0</div>
-        <div class="stat-label">Rev Share Owed</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value accent" id="netRevenue">$0</div>
-        <div class="stat-label">Net Revenue</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value" id="totalMachines">0</div>
-        <div class="stat-label">Machines Deployed</div>
-      </div>
+      <div class="stat-card"><div class="val" id="statLocations">—</div><div class="lbl">Locations</div></div>
+      <div class="stat-card"><div class="val" id="statMachines">—</div><div class="lbl">Machines</div></div>
+      <div class="stat-card"><div class="val" id="statOnline">—</div><div class="lbl">Online</div></div>
+      <div class="stat-card"><div class="val" id="statRevShare">—</div><div class="lbl">Rev Share Active</div></div>
     </div>
 
-    <!-- Locations Table -->
-    <div class="table-card">
-      <div class="table-header">
-        <h2>All Locations</h2>
-        <span id="locationCount" style="color:var(--muted);font-size:0.85rem;"></span>
-      </div>
-      <div id="locationsBody" style="overflow-x:auto;">
-        <div class="empty-state">
-          <div class="icon">📍</div>
-          <h3>Loading locations...</h3>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Add/Edit Location Modal -->
-  <div class="modal-overlay" id="locationModal">
-    <div class="modal">
-      <h2 id="modalTitle">Add Location</h2>
-      <form id="locationForm" onsubmit="submitLocation(event)">
-        <input type="hidden" id="editId" value="">
-
-        <div class="form-group">
-          <label>Location Name *</label>
-          <input type="text" name="name" required placeholder="e.g. Elysian at Tivoli Apartments">
-        </div>
-
-        <div class="form-group">
-          <label>Address</label>
-          <input type="text" name="address" placeholder="Full address">
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Contact Name</label>
-            <input type="text" name="contact_name" placeholder="Property manager name">
-          </div>
-          <div class="form-group">
-            <label>Contact Phone</label>
-            <input type="text" name="contact_phone" placeholder="(702) 555-0000">
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Contact Email</label>
-            <input type="email" name="contact_email" placeholder="pm@property.com">
-          </div>
-          <div class="form-group">
-            <label>Contract Start Date</label>
-            <input type="date" name="contract_start_date">
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Status</label>
-            <select name="status">
-              <option value="pending">Pending</option>
-              <option value="active">Active</option>
-              <option value="installing">Installing</option>
-              <option value="negotiating">Negotiating</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Expected Monthly Revenue</label>
-            <input type="number" name="expected_monthly_revenue" step="0.01" placeholder="0.00">
-          </div>
-        </div>
-
-        <hr style="border:none;border-top:1px solid var(--border);margin:20px 0;">
-        <h3 style="font-size:1rem;margin-bottom:12px;">💰 Revenue Share Terms</h3>
-
-        <div class="form-group">
-          <div class="toggle-group">
-            <label class="toggle">
-              <input type="checkbox" name="rev_share" id="revShareToggle" onchange="toggleRevShareFields()">
-              <span class="slider"></span>
-            </label>
-            <span>Revenue share applies to this location</span>
-          </div>
-        </div>
-
-        <div id="revShareFields" style="display:none;">
-          <div class="form-row">
-            <div class="form-group">
-              <label>Revenue Share %</label>
-              <input type="number" name="rev_share_pct" step="0.1" min="0" max="100" placeholder="e.g. 10">
-            </div>
-            <div class="form-group">
-              <label>Payment Terms</label>
-              <select name="rev_share_notes">
-                <option value="">Select...</option>
-                <option value="Monthly, NET 30">Monthly, NET 30</option>
-                <option value="Quarterly">Quarterly</option>
-                <option value="Monthly, after 6mo grace">Monthly, after 6mo grace</option>
-                <option value="Flat fee monthly">Flat fee monthly</option>
-                <option value="Custom">Custom (describe in notes)</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Notes</label>
-          <textarea name="notes" placeholder="Any additional notes about this location..."></textarea>
-        </div>
-
-        <div class="form-actions">
-          <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-          <button type="submit" class="btn btn-primary" id="submitBtn">Add Location</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Collection Modal -->
-  <div class="modal-overlay" id="collectionModal">
-    <div class="modal">
-      <h2>💵 Log Collection</h2>
-      <form id="collectionForm" onsubmit="submitCollection(event)">
-        <input type="hidden" id="collectionLocationId" value="">
-        <p id="collectionLocationName" style="color:var(--muted);margin-bottom:16px;"></p>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Cash Amount</label>
-            <input type="number" name="cash_amount" step="0.01" min="0" placeholder="0.00">
-          </div>
-          <div class="form-group">
-            <label>Card Amount</label>
-            <input type="number" name="card_amount" step="0.01" min="0" placeholder="0.00">
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Collection Date</label>
-            <input type="date" name="date" required>
-          </div>
-          <div class="form-group">
-            <label>Collected By</label>
-            <input type="text" name="collected_by" placeholder="Driver name">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Notes</label>
-          <textarea name="notes" placeholder="Any notes about this collection..."></textarea>
-        </div>
-
-        <div class="form-actions">
-          <button type="button" class="btn btn-secondary" onclick="closeCollectionModal()">Cancel</button>
-          <button type="submit" class="btn btn-success">💵 Log Collection</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Collections History Modal -->
-  <div class="modal-overlay" id="historyModal">
-    <div class="modal">
-      <h2 id="historyTitle">Collection History</h2>
-      <div id="historyBody"></div>
-      <div class="form-actions">
-        <button class="btn btn-secondary" onclick="closeHistoryModal()">Close</button>
-      </div>
+    <div id="locationsList">
+      <div class="empty"><div class="icon">⏳</div>Loading...</div>
     </div>
   </div>
 
   <script>
-    let locations = [];
+  const SANDSTAR_IDS = {
+    'CVM13': 128010, 'ARK 28': 128002, 'VRK C-3276': 127763, 'VRK C-1021': 127761,
+  };
 
-    function toggleRevShareFields() {
-      document.getElementById('revShareFields').style.display =
-        document.getElementById('revShareToggle').checked ? 'block' : 'none';
-    }
-
-    async function loadLocations() {
-      try {
-        const res = await fetch('/api/locations');
-        locations = await res.json();
-        render();
-      } catch (err) {
-        console.error('Failed to load locations:', err);
+  function sandstarUrl(machine) {
+    if (machine.sandstar_id) return `https://prod-ops-us.sandstar.com/#/pages/freezer/detail?freezerId=${machine.sandstar_id}`;
+    for (const [k, id] of Object.entries(SANDSTAR_IDS)) {
+      if ((machine.name||'').includes(k) || (machine.model||'').includes(k)) {
+        return `https://prod-ops-us.sandstar.com/#/pages/freezer/detail?freezerId=${id}`;
       }
     }
+    return null;
+  }
 
-    function render() {
-      // Stats
-      const totalLoc = locations.length;
-      const monthlyRev = locations.reduce((s, l) => s + (l.monthly_revenue || 0), 0);
-      const revShareOwed = locations.reduce((s, l) => {
-        if (l.rev_share && l.rev_share_pct > 0) {
-          return s + (l.monthly_revenue || 0) * (l.rev_share_pct / 100);
-        }
-        return s;
-      }, 0);
-      const totalMachines = locations.reduce((s, l) => s + (l.machines?.length || 0), 0);
+  function machineEmoji(model) {
+    if (!model) return '🏪';
+    const m = model.toLowerCase();
+    if (m.includes('freezer')) return '🧊';
+    if (m.includes('vrk') || m.includes('sandstar')) return '🤖';
+    if (m.includes('cvm')) return '🏪';
+    if (m.includes('taste')) return '🥤';
+    return '🏪';
+  }
 
-      document.getElementById('totalLocations').textContent = totalLoc;
-      document.getElementById('monthlyRevenue').textContent = '$' + monthlyRev.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      document.getElementById('revSharePaid').textContent = '$' + revShareOwed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      document.getElementById('netRevenue').textContent = '$' + (monthlyRev - revShareOwed).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      document.getElementById('totalMachines').textContent = totalMachines;
-      document.getElementById('locationCount').textContent = totalLoc + ' location' + (totalLoc !== 1 ? 's' : '');
+  function statusLabel(status) {
+    const map = { active: 'Active', online: 'Online', offline: 'Offline', in_transit: 'In Transit',
+                  pending_install: 'Pending Install', inactive: 'Inactive' };
+    return map[status] || status || '—';
+  }
 
-      if (locations.length === 0) {
-        document.getElementById('locationsBody').innerHTML = `
-          <div class="empty-state">
-            <div class="icon">📍</div>
-            <h3>No Locations Yet</h3>
-            <p style="margin-bottom:16px;">Add your first location to start tracking machines and revenue.</p>
-            <button class="btn btn-primary" onclick="openAddModal()">+ Add Location</button>
-          </div>`;
-        return;
-      }
+  function locationStatusClass(status) {
+    if (status === 'active' || status === 'online') return 'status-active';
+    if (status === 'in_transit' || status === 'pending_install') return 'status-transit';
+    if (status === 'inactive') return 'status-inactive';
+    return 'status-pending';
+  }
 
-      let html = `<table>
-        <thead><tr>
-          <th>Location</th>
-          <th>Status</th>
-          <th>Machines</th>
-          <th>Rev Share</th>
-          <th>Monthly Rev</th>
-          <th>Total Rev</th>
-          <th>Last Collection</th>
-          <th>Actions</th>
-        </tr></thead><tbody>`;
+  function machineBadgeClass(status) {
+    if (status === 'active' || status === 'online') return 'badge-online';
+    if (status === 'offline') return 'badge-offline';
+    if (status === 'in_transit') return 'badge-transit';
+    return 'badge-pending';
+  }
 
-      locations.forEach(l => {
-        const statusClass = l.status === 'active' ? 'active' : l.status === 'pending' ? 'pending' : l.status === 'installing' ? 'transit' : 'ordered';
-        const statusLabel = (l.status || 'pending').charAt(0).toUpperCase() + (l.status || 'pending').slice(1);
+  async function load() {
+    const res = await fetch('/api/machines');
+    const machines = await res.json();
 
-        // Rev share badge color
-        let revBadge;
-        if (!l.rev_share) {
-          revBadge = '<span class="badge badge-green">✅ Keep 100%</span>';
-        } else if (l.rev_share && l.rev_share_pct > 0) {
-          revBadge = `<span class="badge badge-yellow">📊 ${l.rev_share_pct}%</span>`;
-        } else {
-          revBadge = '<span class="badge badge-red">⚠️ Not Agreed</span>';
-        }
-
-        const lastCol = l.last_collection_date ? new Date(l.last_collection_date).toLocaleDateString() : '—';
-        const machineCount = l.machines?.length || 0;
-
-        html += `<tr>
-          <td>
-            <div style="font-weight:600;">${l.name || 'Unnamed'}</div>
-            <div style="font-size:0.8rem;color:var(--muted);">${l.address || ''}</div>
-            ${l.contact_name ? `<div style="font-size:0.75rem;color:var(--muted);">👤 ${l.contact_name}</div>` : ''}
-          </td>
-          <td><span class="status-dot ${statusClass}"></span>${statusLabel}</td>
-          <td><span class="badge badge-blue">${machineCount} machine${machineCount !== 1 ? 's' : ''}</span></td>
-          <td>${revBadge}</td>
-          <td style="font-weight:600;">$${(l.monthly_revenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-          <td>$${(l.total_revenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-          <td>${lastCol}</td>
-          <td>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              <button class="btn btn-success btn-sm" onclick="openCollectionModal(${l.id}, '${(l.name || '').replace(/'/g, "\\'")}')">💵 Collect</button>
-              <button class="btn btn-sm btn-secondary" onclick="viewHistory(${l.id}, '${(l.name || '').replace(/'/g, "\\'")}')">📊</button>
-              <button class="btn btn-sm btn-secondary" onclick="editLocation(${l.id})">✏️</button>
-              <button class="btn btn-sm btn-danger" onclick="deleteLocation(${l.id})">🗑️</button>
-            </div>
-          </td>
-        </tr>`;
-      });
-
-      html += '</tbody></table>';
-      document.getElementById('locationsBody').innerHTML = html;
+    // Group by location
+    const locMap = {};
+    for (const m of machines) {
+      const loc = m.location || { id: m.id + '_noloc', name: 'Unknown Location', address: '' };
+      const key = loc.id || (m.id + '_noloc');
+      if (!locMap[key]) locMap[key] = { loc, machines: [] };
+      locMap[key].machines.push(m);
     }
 
-    function openAddModal() {
-      document.getElementById('modalTitle').textContent = 'Add Location';
-      document.getElementById('submitBtn').textContent = 'Add Location';
-      document.getElementById('editId').value = '';
-      document.getElementById('locationForm').reset();
-      document.getElementById('revShareFields').style.display = 'none';
-      document.getElementById('locationModal').classList.add('open');
+    const groups = Object.values(locMap);
+    const totalOnline = machines.filter(m => m.status === 'active' || m.status === 'online' || m.sandstar_status === 'online').length;
+    const revShareCount = groups.filter(g => g.loc.notes && g.loc.notes.toLowerCase().includes('rev share')).length;
+
+    document.getElementById('statLocations').textContent = groups.length;
+    document.getElementById('statMachines').textContent = machines.length;
+    document.getElementById('statOnline').textContent = totalOnline;
+    document.getElementById('statRevShare').textContent = revShareCount;
+
+    if (groups.length === 0) {
+      document.getElementById('locationsList').innerHTML = '<div class="empty"><div class="icon">📍</div><p>No locations yet.</p></div>';
+      return;
     }
 
-    function editLocation(id) {
-      const l = locations.find(loc => loc.id === id);
-      if (!l) return;
-      document.getElementById('modalTitle').textContent = 'Edit Location';
-      document.getElementById('submitBtn').textContent = 'Save Changes';
-      document.getElementById('editId').value = id;
+    document.getElementById('locationsList').innerHTML = groups.map(({ loc, machines: ms }) => {
+      const contractStart = loc.contract_start ? new Date(loc.contract_start).toLocaleDateString('en-US', {month:'short', year:'numeric'}) : null;
+      const mapsUrl = loc.address ? `https://maps.google.com/?q=${encodeURIComponent(loc.address)}` : null;
 
-      const form = document.getElementById('locationForm');
-      form.name.value = l.name || '';
-      form.address.value = l.address || '';
-      form.contact_name.value = l.contact_name || '';
-      form.contact_phone.value = l.contact_phone || '';
-      form.contact_email.value = l.contact_email || '';
-      form.contract_start_date.value = l.contract_start_date || '';
-      form.status.value = l.status || 'pending';
-      form.expected_monthly_revenue.value = l.expected_monthly_revenue || '';
-      form.rev_share.checked = !!l.rev_share;
-      form.rev_share_pct.value = l.rev_share_pct || '';
-      form.rev_share_notes.value = l.rev_share_notes || '';
-      form.notes.value = l.notes || '';
-
-      toggleRevShareFields();
-      document.getElementById('locationModal').classList.add('open');
-    }
-
-    function closeModal() {
-      document.getElementById('locationModal').classList.remove('open');
-    }
-
-    async function submitLocation(e) {
-      e.preventDefault();
-      const form = e.target;
-      const editId = document.getElementById('editId').value;
-      const data = {
-        name: form.name.value,
-        address: form.address.value,
-        contact_name: form.contact_name.value,
-        contact_phone: form.contact_phone.value,
-        contact_email: form.contact_email.value,
-        contract_start_date: form.contract_start_date.value,
-        status: form.status.value,
-        expected_monthly_revenue: parseFloat(form.expected_monthly_revenue.value) || 0,
-        rev_share: form.rev_share.checked,
-        rev_share_pct: parseFloat(form.rev_share_pct.value) || 0,
-        rev_share_notes: form.rev_share_notes.value,
-        notes: form.notes.value
-      };
-
-      const url = editId ? `/api/locations/${editId}` : '/api/locations';
-      const method = editId ? 'PUT' : 'POST';
-
-      try {
-        const res = await fetch(url, {
-          method,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        if (!res.ok) throw new Error('Failed');
-        closeModal();
-        loadLocations();
-      } catch (err) {
-        alert('Error: ' + err.message);
-      }
-    }
-
-    async function deleteLocation(id) {
-      const l = locations.find(loc => loc.id === id);
-      if (!confirm(`Delete "${l?.name || 'this location'}"? This will also unassign all machines.`)) return;
-      try {
-        await fetch(`/api/locations/${id}`, { method: 'DELETE' });
-        loadLocations();
-      } catch (err) {
-        alert('Error deleting: ' + err.message);
-      }
-    }
-
-    function openCollectionModal(id, name) {
-      document.getElementById('collectionLocationId').value = id;
-      document.getElementById('collectionLocationName').textContent = '📍 ' + name;
-      document.getElementById('collectionForm').reset();
-      document.querySelector('#collectionForm input[name="date"]').value = new Date().toISOString().split('T')[0];
-      document.getElementById('collectionModal').classList.add('open');
-    }
-
-    function closeCollectionModal() {
-      document.getElementById('collectionModal').classList.remove('open');
-    }
-
-    async function submitCollection(e) {
-      e.preventDefault();
-      const form = e.target;
-      const locId = document.getElementById('collectionLocationId').value;
-      const data = {
-        cash_amount: parseFloat(form.cash_amount.value) || 0,
-        card_amount: parseFloat(form.card_amount.value) || 0,
-        date: form.date.value,
-        collected_by: form.collected_by.value,
-        notes: form.notes.value
-      };
-
-      try {
-        const res = await fetch(`/api/locations/${locId}/collections`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        if (!res.ok) throw new Error('Failed');
-        closeCollectionModal();
-        loadLocations();
-      } catch (err) {
-        alert('Error: ' + err.message);
-      }
-    }
-
-    async function viewHistory(id, name) {
-      document.getElementById('historyTitle').textContent = '📊 Collections — ' + name;
-      document.getElementById('historyBody').innerHTML = '<p style="color:var(--muted)">Loading...</p>';
-      document.getElementById('historyModal').classList.add('open');
-
-      try {
-        const res = await fetch(`/api/locations/${id}/collections`);
-        const collections = await res.json();
-
-        if (collections.length === 0) {
-          document.getElementById('historyBody').innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px;">No collections recorded yet.</p>';
-          return;
-        }
-
-        const totalAll = collections.reduce((s, c) => s + c.total, 0);
-        let html = `<div style="margin-bottom:16px;padding:12px;background:var(--bg);border-radius:8px;">
-          <strong>Total: $${totalAll.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
-          <span style="color:var(--muted);margin-left:8px;">${collections.length} collection${collections.length !== 1 ? 's' : ''}</span>
-        </div>`;
-
-        collections.forEach(c => {
-          html += `<div class="collection-row">
-            <div>
-              <div class="collection-amount">$${c.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-              <div class="collection-breakdown">
-                <span>💵 Cash: $${(c.cash_amount || 0).toFixed(2)}</span>
-                <span>💳 Card: $${(c.card_amount || 0).toFixed(2)}</span>
+      const machineRows = ms.map(m => {
+        const ssUrl = sandstarUrl(m);
+        return `
+          <div class="machine-row">
+            <div class="machine-icon">${machineEmoji(m.model)}</div>
+            <div class="machine-info">
+              <div class="machine-name">${m.name || m.model || 'Machine'}</div>
+              <div class="machine-model">${m.model || ''}${m.serial_number ? ' · S/N ' + m.serial_number : ''}</div>
+              <div class="machine-badges">
+                <span class="badge ${machineBadgeClass(m.status)}">${statusLabel(m.status)}</span>
+                ${m.model ? `<span class="contract-chip">${m.model}</span>` : ''}
               </div>
             </div>
-            <div style="text-align:right;">
-              <div class="collection-meta">${new Date(c.date).toLocaleDateString()}</div>
-              <div class="collection-meta">${c.collected_by || ''}</div>
-              ${c.notes ? `<div class="collection-meta" style="font-style:italic;">${c.notes}</div>` : ''}
+            <div class="machine-actions">
+              ${ssUrl ? `<a class="icon-btn" href="${ssUrl}" target="_blank" title="View in Sandstar">⚡</a>` : ''}
+              <button class="icon-btn" onclick="editMachine(${m.id})" title="Edit">✏️</button>
             </div>
           </div>`;
-        });
+      }).join('');
 
-        document.getElementById('historyBody').innerHTML = html;
-      } catch (err) {
-        document.getElementById('historyBody').innerHTML = '<p style="color:var(--hot);">Error loading collections.</p>';
-      }
-    }
+      return `
+        <div class="location-card">
+          <div class="loc-header">
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <div class="loc-name">${loc.name}</div>
+                <span class="loc-status ${locationStatusClass(loc.status)}">${statusLabel(loc.status)}</span>
+              </div>
+              ${loc.address ? `<div class="loc-address">${loc.address}</div>` : ''}
+              <div class="loc-meta">
+                ${ms.length} machine${ms.length !== 1 ? 's' : ''}
+                ${contractStart ? `· Contract started ${contractStart}` : ''}
+                ${mapsUrl ? `· <a href="${mapsUrl}" target="_blank">📍 Directions</a>` : ''}
+                ${loc.phone ? `· <a href="tel:${loc.phone}">${loc.phone}</a>` : ''}
+              </div>
+            </div>
+          </div>
+          <div class="machines-section">
+            ${machineRows}
+          </div>
+        </div>`;
+    }).join('');
+  }
 
-    function closeHistoryModal() {
-      document.getElementById('historyModal').classList.remove('open');
-    }
+  function editMachine(id) {
+    window.location.href = `/machines/${id}`;
+  }
 
-    // Init
-    document.addEventListener('DOMContentLoaded', loadLocations);
+  function openAddLocation() {
+    alert('Add location via CRM — link a prospect and add a machine to their account.');
+  }
+
+  load();
   </script>
 </body>
 </html>
