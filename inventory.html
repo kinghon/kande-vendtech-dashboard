@@ -282,6 +282,7 @@
     .profit-unit { font-weight: 700; font-size: 0.82rem; }
     .profit-positive { color: var(--success); }
     .profit-negative { color: var(--hot); }
+    .profit-zero { color: var(--muted); }
 
     /* Orders tab */
     .order-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; }
@@ -361,7 +362,7 @@
       <button class="tab-btn" data-tab="shopping" onclick="switchTab('shopping', this)">🛒 Shopping List</button>
       <button class="tab-btn" data-tab="orders" onclick="switchTab('orders', this)">📋 Inventory Orders</button>
       <button class="tab-btn" data-tab="expiration" onclick="switchTab('expiration', this)">📅 Expiration</button>
-      <button class="tab-btn" data-tab="history" onclick="switchTab('history', this)">📜 History</button>
+      <button class="tab-btn" data-tab="history" onclick="switchTab('history', this)">📜 Inventory History</button>
       <button class="tab-btn" data-tab="categories" onclick="switchTab('categories', this)">🏷️ Categories</button>
       <button class="tab-btn" data-tab="warehouse" onclick="switchTab('warehouse', this)">🏭 Warehouse</button>
       <button class="tab-btn" data-tab="spoilage" onclick="switchTab('spoilage', this)">🗑️ Spoilage</button>
@@ -459,6 +460,19 @@
 
     <!-- History Tab -->
     <div id="tab-history" class="tab-content" style="display:none;">
+      <!-- Per Order Summary -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:20px;">
+        <div class="shopping-header">
+          <h3>📊 Per Order Summary</h3>
+          <button class="btn btn-sm btn-primary" id="loadOrdersBtn" onclick="loadOrderSummary()">📋 Load Orders</button>
+        </div>
+        <div id="orderSummaryContainer" style="padding:0 18px 18px;">
+          <div class="shopping-empty" style="padding:20px;">Click "Load Orders" to see per-order profit breakdown.</div>
+        </div>
+      </div>
+
+      <!-- Stock Event History -->
+      <h3 style="font-size:1rem;margin-bottom:12px;">📜 Stock Event History</h3>
       <div class="filters-bar" style="margin-bottom:16px;">
         <select id="historyTypeFilter" onchange="renderHistory()">
           <option value="all">All Changes</option>
@@ -838,6 +852,22 @@
       </div>
       <h4 style="font-size:0.9rem;margin-bottom:8px">📈 Cost Price History</h4>
       <div class="price-history-list" id="priceHistoryList"></div>
+
+      <h4 style="font-size:0.9rem;margin:16px 0 8px">📦 Stock Breakdown</h4>
+      <div id="stockBreakdown" style="font-size:0.85rem;">
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+          <span>📦 Warehouse</span>
+          <span id="sbWarehouse" style="font-weight:700;">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+          <span>🏪 In Machines</span>
+          <span id="sbMachines" style="font-weight:700;">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;">
+          <span>🗑️ Pulled / Expired</span>
+          <span id="sbSpoilage" style="font-weight:700;">—</span>
+        </div>
+      </div>
       <div class="modal-actions">
         <button class="btn" onclick="closeModal('productDetailModal')">Close</button>
       </div>
@@ -1282,6 +1312,95 @@
             <span class="exp-product">${p.name}</span>
             <span class="exp-date">${exp.toLocaleDateString()}</span>
             <span class="exp-days ${daysClass}">${days <= 0 ? 'EXPIRED' : days + ' days'}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ===== PER ORDER SUMMARY =====
+    let orderSummaryData = [];
+
+    async function loadOrderSummary() {
+      const btn = document.getElementById('loadOrdersBtn');
+      btn.textContent = '⏳ Loading...';
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/inventory/order-summary');
+        if (res.ok) {
+          orderSummaryData = await res.json();
+          renderOrderSummary();
+        } else {
+          document.getElementById('orderSummaryContainer').innerHTML = '<div class="shopping-empty">Failed to load order summary.</div>';
+        }
+      } catch (e) {
+        console.error('Failed to load order summary:', e);
+        document.getElementById('orderSummaryContainer').innerHTML = '<div class="shopping-empty">Error loading order summary.</div>';
+      } finally {
+        btn.textContent = '🔄 Refresh Orders';
+        btn.disabled = false;
+      }
+    }
+
+    function renderOrderSummary() {
+      const container = document.getElementById('orderSummaryContainer');
+      if (orderSummaryData.length === 0) {
+        container.innerHTML = '<div class="shopping-empty">No order receipts found.</div>';
+        return;
+      }
+
+      container.innerHTML = orderSummaryData.map(order => {
+        const date = new Date(order.order_date).toLocaleDateString();
+        const itemsHtml = order.items.map(item => {
+          const profitClass = item.profit > 0 ? 'profit-positive' : item.profit < 0 ? 'profit-negative' : 'profit-zero';
+          return `
+            <tr>
+              <td style="padding:6px 10px;font-size:0.82rem;"><strong>${escapeHtml(item.product_name)}</strong></td>
+              <td style="padding:6px 10px;font-size:0.82rem;text-align:center;">${item.ordered_qty}</td>
+              <td style="padding:6px 10px;font-size:0.82rem;text-align:center;">${item.qty_sold}</td>
+              <td style="padding:6px 10px;font-size:0.82rem;text-align:right;font-family:monospace;">$${item.unit_cost.toFixed(2)}</td>
+              <td style="padding:6px 10px;font-size:0.82rem;text-align:right;font-family:monospace;">$${item.revenue.toFixed(2)}</td>
+              <td style="padding:6px 10px;font-size:0.82rem;text-align:right;font-family:monospace;" class="${profitClass}">$${item.profit.toFixed(2)}</td>
+            </tr>
+          `;
+        }).join('');
+
+        const t = order.order_totals;
+        const totalProfitClass = t.total_profit > 0 ? 'profit-positive' : t.total_profit < 0 ? 'profit-negative' : 'profit-zero';
+
+        return `
+          <div style="border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden;">
+            <div style="padding:10px 14px;background:#fafbfc;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+              <div>
+                <strong style="font-size:0.95rem;">Order #${order.order_id}</strong>
+                <span style="color:var(--muted);font-size:0.82rem;"> · ${date} · ${escapeHtml(order.supplier)}</span>
+              </div>
+              <span style="font-size:0.82rem;color:var(--muted);">${order.items.length} item${order.items.length !== 1 ? 's' : ''}</span>
+            </div>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;font-size:0.85rem;min-width:500px;">
+                <thead>
+                  <tr style="background:#edf2f7;">
+                    <th style="padding:8px 10px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Product</th>
+                    <th style="padding:8px 10px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Ordered</th>
+                    <th style="padding:8px 10px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Sold</th>
+                    <th style="padding:8px 10px;text-align:right;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Unit Cost</th>
+                    <th style="padding:8px 10px;text-align:right;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Revenue</th>
+                    <th style="padding:8px 10px;text-align:right;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Profit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${itemsHtml}
+                  <tr style="border-top:2px solid var(--border);background:#fafbfc;font-weight:700;">
+                    <td style="padding:8px 10px;">Totals</td>
+                    <td style="padding:8px 10px;text-align:center;">${t.ordered_qty}</td>
+                    <td style="padding:8px 10px;text-align:center;">${t.qty_sold}</td>
+                    <td style="padding:8px 10px;text-align:right;font-family:monospace;">$${t.total_cogs.toFixed(2)}</td>
+                    <td style="padding:8px 10px;text-align:right;font-family:monospace;">$${t.total_revenue.toFixed(2)}</td>
+                    <td style="padding:8px 10px;text-align:right;font-family:monospace;" class="${totalProfitClass}">$${t.total_profit.toFixed(2)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         `;
       }).join('');
@@ -2018,7 +2137,7 @@
     }
 
     // ===== PRODUCT DETAIL & PRICE HISTORY =====
-    function openProductDetail(productId) {
+    async function openProductDetail(productId) {
       const p = products.find(pr => pr.id === productId);
       if (!p) return;
 
@@ -2051,6 +2170,30 @@
       document.getElementById('detailMargin').textContent = margin + '%';
       const profit = retailPrice - unitCost;
       document.getElementById('detailProfit').textContent = '$' + profit.toFixed(2);
+
+      // Stock Breakdown
+      const whProd = warehouseData.find(w => w.product_id === productId);
+      const whQty = whProd ? whProd.warehouse_on_hand : 0;
+      document.getElementById('sbWarehouse').textContent = whQty + ' units';
+
+      // Fetch sandstar inventory for this product
+      let machineHtml = 'No units in machines';
+      try {
+        const ssRes = await fetch(`/api/sandstar/inventory?product_name=${encodeURIComponent(p.name)}`);
+        if (ssRes.ok) {
+          const ssItems = await ssRes.json();
+          if (ssItems.length > 0) {
+            const machineLines = ssItems.map(i => `${escapeHtml(i.machine_name)}: ${i.current_quantity || 0}`);
+            machineHtml = ssItems.reduce((sum, i) => sum + (i.current_quantity || 0), 0) + ' units<br><span style="font-size:0.75rem;color:var(--muted);">(' + machineLines.join(', ') + ')</span>';
+          }
+        }
+      } catch (e) { console.error('Failed to load sandstar inventory:', e); }
+      document.getElementById('sbMachines').innerHTML = machineHtml;
+
+      // Spoilage for this product
+      const spoilItems = (spoilageLogData || []).filter(s => String(s.product_id) === String(productId));
+      const spoilQty = spoilItems.reduce((sum, s) => sum + (s.quantity || 0), 0);
+      document.getElementById('sbSpoilage').textContent = spoilQty > 0 ? spoilQty + ' units' : 'No spoilage recorded';
 
       renderPriceHistory(p);
       openModal('productDetailModal');

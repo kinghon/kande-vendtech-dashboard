@@ -1605,6 +1605,82 @@ app.delete('/api/inventory/deployments/:id', (req, res) => {
   res.json({ success: true });
 });
 
+// ===== INVENTORY ORDER SUMMARY API =====
+app.get('/api/inventory/order-summary', (req, res) => {
+  const receipts = db.order_receipts || [];
+  const sales = db.sandstar_sales || [];
+  const products = db.products || [];
+
+  // Pre-index sales by product name (case-insensitive)
+  const salesByProduct = {};
+  sales.forEach(s => {
+    (s.items || []).forEach(item => {
+      const name = (item.name || '').toLowerCase().trim();
+      if (!name) return;
+      if (!salesByProduct[name]) salesByProduct[name] = 0;
+      salesByProduct[name] += (item.qty || 1);
+    });
+  });
+
+  const result = receipts.sort((a, b) => new Date(b.order_date) - new Date(a.order_date)).map(order => {
+    let orderTotals = {
+      ordered_qty: 0,
+      qty_sold: 0,
+      total_cogs: 0,
+      total_revenue: 0,
+      total_profit: 0
+    };
+
+    const items = (order.items || []).map(item => {
+      const product = products.find(p => p.id === item.product_id);
+      const ordered_qty = (item.cases || 0) * (item.units_per_case || 0);
+      // Match sales by product name (fuzzy, case-insensitive)
+      const productName = (product?.name || item.product_name || '').toLowerCase().trim();
+      const qty_sold = salesByProduct[productName] || 0;
+      const unit_cost = item.price_per_unit || (item.units_per_case ? (item.price_per_case / item.units_per_case) : 0);
+      const sell_price = product?.sell_price || 0;
+      const cost_of_goods_sold = unit_cost * qty_sold;
+      const revenue = sell_price * qty_sold;
+      const profit = revenue - cost_of_goods_sold;
+
+      orderTotals.ordered_qty += ordered_qty;
+      orderTotals.qty_sold += qty_sold;
+      orderTotals.total_cogs += cost_of_goods_sold;
+      orderTotals.total_revenue += revenue;
+      orderTotals.total_profit += profit;
+
+      return {
+        product_id: item.product_id,
+        product_name: product?.name || item.product_name || 'Unknown',
+        barcode: product?.sku || '',
+        ordered_qty,
+        qty_sold,
+        unit_cost: parseFloat(unit_cost.toFixed(4)),
+        sell_price: parseFloat(sell_price.toFixed(2)),
+        cost_of_goods_sold: parseFloat(cost_of_goods_sold.toFixed(2)),
+        revenue: parseFloat(revenue.toFixed(2)),
+        profit: parseFloat(profit.toFixed(2))
+      };
+    });
+
+    return {
+      order_id: order.id,
+      order_date: order.order_date,
+      supplier: order.supplier || order.vendor || 'Unknown',
+      items,
+      order_totals: {
+        ordered_qty: orderTotals.ordered_qty,
+        qty_sold: orderTotals.qty_sold,
+        total_cogs: parseFloat(orderTotals.total_cogs.toFixed(2)),
+        total_revenue: parseFloat(orderTotals.total_revenue.toFixed(2)),
+        total_profit: parseFloat(orderTotals.total_profit.toFixed(2))
+      }
+    };
+  });
+
+  res.json(result);
+});
+
 // ===== PULL LIST API =====
 app.get('/api/pull-list', (req, res) => {
   const status = req.query.status;
