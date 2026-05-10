@@ -1614,6 +1614,7 @@ app.get('/api/inventory/order-summary', (req, res) => {
   const receipts = db.order_receipts || [];
   const sales = db.sandstar_sales || [];
   const products = db.products || [];
+  const spoilage = db.spoilage_log || [];
 
   // Pre-index sales by product name (case-insensitive)
   const salesByProduct = {};
@@ -1626,11 +1627,25 @@ app.get('/api/inventory/order-summary', (req, res) => {
     });
   });
 
-  const result = receipts.sort((a, b) => new Date(b.order_date) - new Date(a.order_date)).map(order => {
+  // Pre-index spoilage by product_id
+  const spoilageByProduct = {};
+  spoilage.forEach(s => {
+    const pid = s.product_id;
+    if (!pid) return;
+    if (!spoilageByProduct[pid]) spoilageByProduct[pid] = 0;
+    spoilageByProduct[pid] += (s.quantity || 0);
+  });
+
+  const result = receipts.sort((a, b) => {
+    const dateDiff = new Date(b.order_date) - new Date(a.order_date);
+    return dateDiff !== 0 ? dateDiff : (b.id || 0) - (a.id || 0);
+  }).map(order => {
     let orderTotals = {
       ordered_qty: 0,
       qty_sold: 0,
-      total_cogs: 0,
+      qty_unsold: 0,
+      qty_pulled: 0,
+      total_cost: 0,
       total_revenue: 0,
       total_profit: 0
     };
@@ -1638,18 +1653,21 @@ app.get('/api/inventory/order-summary', (req, res) => {
     const items = (order.items || []).map(item => {
       const product = products.find(p => p.id === item.product_id);
       const ordered_qty = (item.cases || 0) * (item.units_per_case || 0);
-      // Match sales by product name (fuzzy, case-insensitive)
       const productName = (product?.name || item.product_name || '').toLowerCase().trim();
       const qty_sold = salesByProduct[productName] || 0;
+      const qty_pulled = spoilageByProduct[item.product_id] || 0;
+      const qty_unsold = Math.max(0, ordered_qty - qty_sold - qty_pulled);
       const unit_cost = item.price_per_unit || (item.units_per_case ? (item.price_per_case / item.units_per_case) : 0);
+      const total_cost = unit_cost * ordered_qty;
       const sell_price = product?.sell_price || 0;
-      const cost_of_goods_sold = unit_cost * qty_sold;
       const revenue = sell_price * qty_sold;
-      const profit = revenue - cost_of_goods_sold;
+      const profit = revenue - total_cost;
 
       orderTotals.ordered_qty += ordered_qty;
       orderTotals.qty_sold += qty_sold;
-      orderTotals.total_cogs += cost_of_goods_sold;
+      orderTotals.qty_unsold += qty_unsold;
+      orderTotals.qty_pulled += qty_pulled;
+      orderTotals.total_cost += total_cost;
       orderTotals.total_revenue += revenue;
       orderTotals.total_profit += profit;
 
@@ -1659,9 +1677,11 @@ app.get('/api/inventory/order-summary', (req, res) => {
         barcode: product?.sku || '',
         ordered_qty,
         qty_sold,
+        qty_unsold,
+        qty_pulled,
         unit_cost: parseFloat(unit_cost.toFixed(4)),
+        total_cost: parseFloat(total_cost.toFixed(2)),
         sell_price: parseFloat(sell_price.toFixed(2)),
-        cost_of_goods_sold: parseFloat(cost_of_goods_sold.toFixed(2)),
         revenue: parseFloat(revenue.toFixed(2)),
         profit: parseFloat(profit.toFixed(2))
       };
@@ -1675,7 +1695,9 @@ app.get('/api/inventory/order-summary', (req, res) => {
       order_totals: {
         ordered_qty: orderTotals.ordered_qty,
         qty_sold: orderTotals.qty_sold,
-        total_cogs: parseFloat(orderTotals.total_cogs.toFixed(2)),
+        qty_unsold: orderTotals.qty_unsold,
+        qty_pulled: orderTotals.qty_pulled,
+        total_cost: parseFloat(orderTotals.total_cost.toFixed(2)),
         total_revenue: parseFloat(orderTotals.total_revenue.toFixed(2)),
         total_profit: parseFloat(orderTotals.total_profit.toFixed(2))
       }
