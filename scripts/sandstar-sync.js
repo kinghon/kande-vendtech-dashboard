@@ -161,29 +161,45 @@ function dashApi(method, path, body, cookies) {
     // 3b. Pull machine inventory (current stock per machine per product)
     log('Fetching machine inventory...');
     const INVENTORY_ENDPOINTS = [
+      { path: '/stock/getFreezerStockForPage', method: 'POST', body: { pageNum: 1, pageSize: 500 } },
+      { path: '/stock/getFreezerStockDetail', method: 'POST', body: { pageNum: 1, pageSize: 500 } },
       { path: '/stock/getEquipmentInventoryList', method: 'POST', body: { pageNum: 1, pageSize: 200 } },
-      { path: '/stock/equipmentInventory/list', method: 'POST', body: { pageNum: 1, pageSize: 200 } },
-      { path: '/inventory/getEquipmentInventory', method: 'POST', body: { pageNum: 1, pageSize: 200 } },
-      { path: '/stock/getEquipmentInventoryList', method: 'GET', body: null },
+      { path: '/stock/getMerchantStockForPage', method: 'POST', body: { pageNum: 1, pageSize: 200 } },
     ];
 
-    let inventoryData = null;
+    let allInventoryRecords = [];
     let inventoryEndpointUsed = null;
     for (const ep of INVENTORY_ENDPOINTS) {
       try {
-        const result = await page.evaluate(async ({ api, org, scope, ep }) => {
-          const h = { 'Content-Type': 'application/json', 'x-token': localStorage.getItem('token'), 'app-scope': scope, 'organSn': org };
-          const url = `${api}${ep.path}`;
-          const res = ep.method === 'GET'
-            ? await fetch(url, { method: 'GET', headers: h })
-            : await fetch(url, { method: 'POST', headers: h, body: JSON.stringify(ep.body || {}) });
-          return res.json();
-        }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE, ep });
-        const list = result?.data?.resultList || result?.data?.list || result?.resultList || result?.data || null;
-        if (list && Array.isArray(list) && list.length > 0) {
-          inventoryData = result;
+        // Paginate through all pages
+        let pageNum = 1;
+        let totalPages = 1;
+        let pageRecords = [];
+        do {
+          const bodyWithPage = { ...(ep.body || {}), pageNum };
+          const result = await page.evaluate(async ({ api, org, scope, ep, body }) => {
+            const h = { 'Content-Type': 'application/json', 'x-token': localStorage.getItem('token'), 'app-scope': scope, 'organSn': org };
+            const url = `${api}${ep.path}`;
+            const res = ep.method === 'GET'
+              ? await fetch(url, { method: 'GET', headers: h })
+              : await fetch(url, { method: 'POST', headers: h, body: JSON.stringify(body) });
+            return res.json();
+          }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE, ep, body: bodyWithPage });
+          const data = result?.data || {};
+          const list = data.records || data.resultList || data.list || null;
+          if (!list || !Array.isArray(list)) break;
+          pageRecords.push(...list);
+          // Calculate total pages from rowcount and pagesize
+          const rowcount = data.rowcount || list.length;
+          const pagesize = data.pagesize || 10;
+          totalPages = Math.ceil(rowcount / pagesize);
+          pageNum++;
+        } while (pageNum <= totalPages);
+
+        if (pageRecords.length > 0) {
+          allInventoryRecords = pageRecords;
           inventoryEndpointUsed = ep.path;
-          log(`  Inventory endpoint OK: ${ep.method} ${ep.path} — ${list.length} records`);
+          log(`  Inventory endpoint OK: ${ep.method} ${ep.path} — ${pageRecords.length} records`);
           break;
         }
         log(`  Tried ${ep.method} ${ep.path} — no inventory records`);
@@ -192,14 +208,13 @@ function dashApi(method, path, body, cookies) {
       }
     }
 
-    if (!inventoryData) {
+    if (allInventoryRecords.length === 0) {
       log('  No inventory endpoint returned data — skipping inventory sync');
     } else {
-      // Save raw for inspection
       fs.writeFileSync('/Users/kurtishon/clawd/data/sandstar-inventory-latest.json', JSON.stringify({
         fetched_at: new Date().toISOString(),
         endpoint: inventoryEndpointUsed,
-        raw: inventoryData
+        records: allInventoryRecords
       }, null, 2));
     }
 
@@ -255,18 +270,17 @@ function dashApi(method, path, body, cookies) {
     }
 
     // Batch import machine inventory
-    if (inventoryData) {
+    if (allInventoryRecords.length > 0) {
       try {
-        const rawList = inventoryData?.data?.resultList || inventoryData?.data?.list || inventoryData?.resultList || inventoryData?.data || [];
-        // Normalize to a common schema
-        const inventoryBatch = rawList.map(row => ({
-          sandstar_machine_id: row.freezerId || row.machineId || row.equipmentId || row.freezer_id || null,
+        // Normalize using confirmed field names from getFreezerStockForPage
+        const inventoryBatch = allInventoryRecords.map(row => ({
+          sandstar_machine_id: row.freezerId || row.machineId || row.equipmentId || null,
           machine_name: row.freezerName || row.machineName || row.equipmentName || '',
-          product_barcode: row.barcode || row.goodsBarcode || row.productBarcode || row.sku || '',
+          product_barcode: row.barcode || row.goodsBarcode || row.skuid || '',
           product_name: row.goodsName || row.productName || row.name || '',
-          current_quantity: parseInt(row.currentNum || row.stockNum || row.quantity || row.num || row.goodsNum || 0),
+          current_quantity: parseInt(row.stockRealtime ?? row.currentNum ?? row.stockNum ?? row.quantity ?? 0),
           capacity: parseInt(row.capacityNum || row.capacity || row.maxNum || 0),
-          lane_no: row.laneNo || row.lane || row.position || '',
+          lane_no: row.laneNo || row.lane || row.position || row.sbbh || '',
           synced_at: new Date().toISOString()
         })).filter(r => r.sandstar_machine_id && (r.product_barcode || r.product_name));
 
