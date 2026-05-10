@@ -75,7 +75,7 @@
           </tr>
         </thead>
         <tbody id="tableBody">
-          <tr><td colspan="6" style="padding:40px;text-align:center;color:var(--muted)">Loading...</td></tr>
+          <tr><td colspan="7" style="padding:40px;text-align:center;color:var(--muted)">Loading...</td></tr>
         </tbody>
       </table>
     </div>
@@ -102,6 +102,7 @@
 
   async function load() {
     const res = await fetch('/api/machines');
+    if (res.status === 401) { window.location.href = '/login?redirect=/locations'; return; }
     const machines = await res.json();
 
     // Group by location
@@ -150,7 +151,8 @@
       });
     });
 
-    document.getElementById('tableBody').innerHTML = rows || '<tr><td colspan="6" style="padding:40px;text-align:center;color:var(--muted)">No locations found.</td></tr>';
+    if (!rows) rows = '<tr><td colspan="7" style="padding:40px;text-align:center;color:var(--muted)">No locations found.</td></tr>';
+    document.getElementById('tableBody').innerHTML = rows;
   }
 
   load();
