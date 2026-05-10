@@ -1232,6 +1232,15 @@ app.get('/api/order-receipts/:id', (req, res) => {
 });
 
 app.post('/api/order-receipts', (req, res) => {
+  // Idempotency guard — reject if this VendHub order was already received
+  const incomingOrderId = req.body.vendhub_order_id;
+  if (incomingOrderId) {
+    const existing = (db.order_receipts || []).find(r => r.vendhub_order_id === incomingOrderId);
+    if (existing) {
+      return res.status(409).json({ error: 'duplicate_order', message: `Order ${incomingOrderId} has already been received (receipt #${existing.id}). To re-import, delete the existing receipt first.` });
+    }
+  }
+
   const items = req.body.items || [];
   // Use provided financial values (distributor invoices have complex pricing)
   const subtotal = req.body.subtotal !== undefined ? req.body.subtotal
@@ -1305,8 +1314,22 @@ app.post('/api/order-receipts', (req, res) => {
     }
   });
 
+  // Mark stock as applied so a future re-run of this receipt won't double-count
+  receipt.stock_applied = true;
+
   saveDB(db);
   res.json(receipt);
+});
+
+app.put('/api/order-receipts/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.order_receipts || []).findIndex(r => r.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  // Never re-apply stock on a PUT — only POST does that
+  const updated = { ...db.order_receipts[idx], ...req.body, id, stock_applied: db.order_receipts[idx].stock_applied };
+  db.order_receipts[idx] = updated;
+  saveDB(db);
+  res.json(updated);
 });
 
 app.delete('/api/order-receipts/:id', (req, res) => {
