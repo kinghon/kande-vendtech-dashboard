@@ -785,6 +785,15 @@
         return true;
       });
 
+      // Default sort: category order, then A-Z within each category
+      const catOrder = { beverages: 0, energy: 1, snacks: 2, candy: 3, healthy: 4, incidentals: 5 };
+      filtered.sort((a, b) => {
+        const ca = catOrder[a.category] ?? 99;
+        const cb = catOrder[b.category] ?? 99;
+        if (ca !== cb) return ca - cb;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+
       const tbody = document.getElementById('inventoryBody');
       if (filtered.length === 0) {
         tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted);">No products found. <a href="#" onclick="openAddProduct();return false;">Add your first product</a></td></tr>`;
