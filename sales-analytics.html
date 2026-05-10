@@ -167,13 +167,13 @@
     </div>
 
     <div class="two-col">
-      <!-- Machine Performance -->
-      <div class="section">
+      <!-- Location & Machine Performance -->
+      <div class="section" style="grid-column:1/-1">
         <div class="section-header">
-          <h2>🖥 Machine Performance</h2>
+          <h2>📍 Revenue by Location</h2>
         </div>
         <div class="section-body" id="machineBody">
-          <div class="loading">Loading machines</div>
+          <div class="loading">Loading locations</div>
         </div>
       </div>
 
@@ -372,53 +372,74 @@
 
     function renderMachines(data, machines) {
       const container = document.getElementById('machineBody');
-      const byMachine = data.by_machine || [];
+      const byLocation = data.by_location || [];
 
-      if (byMachine.length === 0 && machines.length === 0) {
+      if (byLocation.length === 0) {
         container.innerHTML = `
           <div class="empty-state">
-            <div class="icon">🖥</div>
-            <h3>No machines yet</h3>
-            <p>Your Sandstar machines will appear here once they're registered. Check the Machines page for setup.</p>
-          </div>
-        `;
+            <div class="icon">📍</div>
+            <h3>No locations yet</h3>
+            <p>Revenue by location will appear here once your machines start selling.</p>
+          </div>`;
         return;
       }
 
-      // Merge with machine status from /api/machines
-      const machineMap = {};
-      byMachine.forEach(m => { machineMap[m.machine_name] = m; });
+      const fc = v => v > 0 ? '$' + v.toFixed(2) : '—';
+      let html = '';
 
-      // Use machines from /api/machines as primary source, enrich with sales data
-      const displayMachines = machines.length > 0 ? machines : byMachine;
-
-      let html = '<div class="table-container"><table class="data-table"><thead><tr>';
-      html += '<th>Machine</th><th>Status</th><th>Today</th><th>This Week</th><th>This Month</th><th>Total</th><th>Transactions</th><th>Last Sale</th>';
-      html += '</tr></thead><tbody>';
-
-      displayMachines.forEach(m => {
-        const salesData = machineMap[m.name || m.machine_name] || {};
-        const isOnline = m.status === 'online' || m.online;
-        const statusDot = `<span class="status-dot ${isOnline ? 'online' : 'offline'}"></span>`;
-        const statusText = isOnline ? 'Online' : 'Offline';
-
-        html += `<tr>
-          <td><strong>${m.name || m.machine_name || 'Unknown'}</strong></td>
-          <td>${statusDot}${statusText}</td>
-          <td class="amount">—</td>
-          <td class="amount">—</td>
-          <td class="amount">—</td>
-          <td class="amount positive">${formatCurrency(salesData.revenue)}</td>
-          <td>${salesData.transactions || 0}</td>
-          <td style="font-size:0.78rem;color:var(--muted)">${salesData.last_sale_at ? new Date(salesData.last_sale_at).toLocaleDateString() : '—'}</td>
-        </tr>`;
+      byLocation.forEach(loc => {
+        const rsLabel = loc.rev_share_label || '0%';
+        const rsNote = loc.rev_share_config?.type === 'tiered' ? '(tiered)' : '';
+        html += `
+          <div style="margin-bottom:20px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+            <div style="background:#f8fafc;padding:12px 16px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;gap:8px;align-items:center">
+              <div>
+                <div style="font-weight:700;font-size:0.9rem">${loc.location_name}</div>
+                <div style="font-size:0.72rem;color:var(--muted)">${loc.address || ''}</div>
+              </div>
+              <div style="text-align:center">
+                <div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:2px">Gross Rev</div>
+                <div style="font-weight:700;font-size:0.9rem">${fc(loc.gross_revenue)}</div>
+              </div>
+              <div style="text-align:center">
+                <div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:2px">Rev Share</div>
+                <div style="font-weight:700;font-size:0.9rem;color:var(--warn)">${rsLabel} ${rsNote}</div>
+              </div>
+              <div style="text-align:center">
+                <div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:2px">Rev Share $</div>
+                <div style="font-weight:700;font-size:0.9rem;color:var(--warn)">${loc.rev_share_amount > 0 ? '-' + fc(loc.rev_share_amount) : '—'}</div>
+              </div>
+              <div style="text-align:center">
+                <div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:2px">Net Rev</div>
+                <div style="font-weight:700;font-size:0.9rem;color:var(--success)">${fc(loc.net_revenue || loc.gross_revenue)}</div>
+              </div>
+              <div style="text-align:center">
+                <div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:2px">Transactions</div>
+                <div style="font-weight:700;font-size:0.9rem">${loc.transactions || 0}</div>
+              </div>
+            </div>
+            <div>
+              ${(loc.machines || []).map(m => {
+                const isOnline = m.status === 'online' || m.status === 'active';
+                const dot = `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${isOnline ? '#38a169' : '#e53e3e'};margin-right:5px"></span>`;
+                const lastSale = m.last_sale_at ? new Date(m.last_sale_at).toLocaleDateString() : '—';
+                return `<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;gap:8px;padding:10px 16px;border-bottom:1px solid #f0f4f8;align-items:center">
+                  <div style="font-size:0.83rem;padding-left:12px">${dot}<strong>${m.machine_name}</strong> <span style="color:var(--muted);font-size:0.75rem">${m.model || ''}</span></div>
+                  <div style="text-align:center;font-size:0.83rem">${fc(m.revenue)}</div>
+                  <div style="text-align:center;font-size:0.75rem;color:var(--muted)">—</div>
+                  <div style="text-align:center;font-size:0.75rem;color:var(--muted)">—</div>
+                  <div style="text-align:center;font-size:0.83rem">${fc(m.revenue)}</div>
+                  <div style="text-align:center;font-size:0.83rem">${m.transactions || 0}</div>
+                </div>`;
+              }).join('')}
+            </div>
+          </div>`;
       });
 
-      html += '</tbody></table></div>';
       container.innerHTML = html;
     }
 
-    function renderProducts(data) {
+        function renderProducts(data) {
       const container = document.getElementById('productsBody');
       const products = data.top_products || [];
 

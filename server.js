@@ -27716,13 +27716,59 @@ app.get('/api/sandstar/summary', (req, res) => {
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 10);
 
-  // By machine
+  // Revenue share config per location
+  const REV_SHARE = {
+    'Regus — Howard Hughes Pkwy Ste 200': { type: 'flat', pct: 0 },
+    'Regus — Howard Hughes Pkwy Ste 500': { type: 'flat', pct: 10 },
+    'All In Aviation': { type: 'tiered', tiers: [{ upTo: 599, pct: 0 }, { upTo: Infinity, pct: 10 }] },
+    'Jade Apartments': { type: 'flat', pct: 0 },
+  };
+  function calcRevShare(locationName, gross) {
+    const cfg = REV_SHARE[locationName] || { type: 'flat', pct: 0 };
+    if (cfg.type === 'flat') return { pct: cfg.pct, amount: gross * cfg.pct / 100 };
+    const tier = cfg.tiers.find(t => gross <= t.upTo) || cfg.tiers[cfg.tiers.length - 1];
+    return { pct: tier.pct, amount: gross * tier.pct / 100 };
+  }
+  function revShareLabel(cfg) {
+    if (!cfg) return '0%';
+    if (cfg.type === 'flat') return cfg.pct + '%';
+    return cfg.tiers.map((t, i) => t.pct + '% ' + (t.upTo === Infinity ? '>' + (cfg.tiers[i-1]?.upTo || 0) + '/mo' : '\u2264$' + t.upTo + '/mo')).join(' / ');
+  }
+
+  // Build by_machine enriched with location from db.machines
   const by_machine = {};
+  const machineLocationMap = {};
+  (db.machines || []).forEach(m => { if (m.location) machineLocationMap[m.name] = m.location; });
   sales.forEach(s => {
     const key = s.machine_name || `Machine ${s.machine_id}`;
-    if (!by_machine[key]) by_machine[key] = { machine_name: key, machine_id: s.machine_id, revenue: 0, transactions: 0 };
+    if (!by_machine[key]) {
+      const loc = machineLocationMap[key] || null;
+      by_machine[key] = { machine_name: key, machine_id: s.machine_id, location_name: loc?.name || null, revenue: 0, transactions: 0, last_sale_at: null };
+    }
     by_machine[key].revenue += s.amount || 0;
     by_machine[key].transactions++;
+    if (!by_machine[key].last_sale_at || s.sale_date > by_machine[key].last_sale_at) by_machine[key].last_sale_at = s.sale_date;
+  });
+
+  // Group by location (seeded from db.machines so 0-sales locations still show)
+  const by_location = {};
+  (db.machines || []).forEach(m => {
+    const loc = m.location || { id: m.id + '_noloc', name: 'Unknown Location', address: '' };
+    const lkey = String(loc.id || loc.name);
+    if (!by_location[lkey]) {
+      const cfg = REV_SHARE[loc.name] || { type: 'flat', pct: 0 };
+      by_location[lkey] = { location_id: loc.id, location_name: loc.name, address: loc.address || '', rev_share_config: cfg, rev_share_label: revShareLabel(cfg), gross_revenue: 0, rev_share_amount: 0, net_revenue: 0, transactions: 0, machines: [] };
+    }
+    if (!by_location[lkey].machines.find(x => x.machine_name === m.name)) {
+      const ms = by_machine[m.name] || { revenue: 0, transactions: 0, last_sale_at: null };
+      by_location[lkey].machines.push({ machine_name: m.name, machine_id: m.id, model: m.model || '', status: m.status || 'unknown', revenue: ms.revenue, transactions: ms.transactions, last_sale_at: ms.last_sale_at });
+    }
+  });
+  Object.values(by_location).forEach(loc => {
+    loc.gross_revenue = loc.machines.reduce((s, m) => s + m.revenue, 0);
+    loc.transactions = loc.machines.reduce((s, m) => s + m.transactions, 0);
+    const rs = calcRevShare(loc.location_name, loc.gross_revenue);
+    loc.rev_share_pct = rs.pct; loc.rev_share_amount = rs.amount; loc.net_revenue = loc.gross_revenue - rs.amount;
   });
 
   // Daily revenue for last 30 days
@@ -27746,6 +27792,7 @@ app.get('/api/sandstar/summary', (req, res) => {
     avg_transaction: total_transactions > 0 ? total_revenue / total_transactions : 0,
     top_products,
     by_machine: Object.values(by_machine),
+    by_location: Object.values(by_location).sort((a, b) => b.gross_revenue - a.gross_revenue),
     daily_revenue: Object.entries(dailyRevenue).map(([date, revenue]) => ({ date, revenue })),
     machine_count: (db.sandstar_machines || []).length,
     active_machines: (db.sandstar_machines || []).filter(m => m.status === 'online' || m.online).length,
