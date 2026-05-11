@@ -835,6 +835,10 @@
     <!-- Expiration Tab -->
     <div id="tab-expiration" class="tab-content" style="display:none;">
       <!-- Sticky Import Bar -->
+      <!-- Search -->
+      <input type="search" id="expSearch" placeholder="🔍 Search products..." oninput="renderExpirationRecords()"
+        style="width:100%;box-sizing:border-box;padding:14px 16px;font-size:18px;font-weight:500;border:2px solid var(--border);border-radius:12px;margin-bottom:12px;background:#fff;color:var(--text);-webkit-appearance:none;">
+
       <!-- Filter Pills -->
       <div class="exp-filter-pills">
         <button class="exp-pill active" data-filter="all" onclick="setExpFilter('all', this)">All</button>
@@ -1876,6 +1880,8 @@
       if (!container) return;
 
       let records = [...expirationRecords];
+      const searchQ = (document.getElementById('expSearch')?.value || '').toLowerCase().trim();
+      if (searchQ) records = records.filter(r => (r.product_name || '').toLowerCase().includes(searchQ));
 
       // Always hide past-expired records from default view (only show in 'expired' filter)
       if (expFilter !== 'expired') records = records.filter(r => getExpStatus(r) !== 'expired');
