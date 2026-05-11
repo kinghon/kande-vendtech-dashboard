@@ -719,6 +719,27 @@
     .detail-item .label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; font-weight: 600; }
     .detail-item .value { font-weight: 700; }
 
+    /* Pick List */
+    .pl-card { background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden; }
+    .pl-card-header { display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);background:#fafbfc; }
+    .pl-card-body { padding:14px 16px; }
+    .pl-meta { display:flex;gap:14px;font-size:0.8rem;color:var(--muted);margin-bottom:10px;flex-wrap:wrap; }
+    .pl-item { display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border); }
+    .pl-item:last-child { border-bottom:none; }
+    .pl-check { width:22px;height:22px;border-radius:4px;border:2px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.85rem; }
+    .pl-check.checked { background:var(--success);border-color:var(--success);color:#fff; }
+    .pl-name { flex:1;font-size:0.85rem; }
+    .pl-name.done { text-decoration:line-through;color:var(--muted); }
+    .pl-qty { font-size:0.82rem;font-weight:700;color:var(--accent); }
+    .pl-actions { display:flex;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border); }
+    .badge-pending { background:rgba(113,128,150,0.12);color:#718096; }
+    .badge-picking { background:rgba(49,130,206,0.12);color:#2b6cb0; }
+    .badge-packed { background:rgba(221,107,32,0.12);color:#c05621; }
+    .badge-loaded { background:rgba(123,44,191,0.12);color:#6b46c1; }
+    .badge-delivering { background:rgba(56,161,105,0.12);color:var(--success); }
+    .badge-done { background:rgba(56,161,105,0.12);color:var(--success); }
+    #picklistModal { display:none; }
+    #picklistModal.open { display:flex; }
   </style>
 </head>
 <body>
@@ -756,6 +777,7 @@
       <button class="tab-btn" data-tab="categories" onclick="switchTab('categories', this)">🏷️ Categories</button>
       <button class="tab-btn" data-tab="warehouse" onclick="switchTab('warehouse', this)">🏭 Warehouse</button>
       <button class="tab-btn" data-tab="spoilage" onclick="switchTab('spoilage', this)">🗑️ Spoilage</button>
+      <button class="tab-btn" data-tab="picklist" onclick="switchTab('picklist', this)">📋 Pick List</button>
     </div>
 
     <!-- Inventory Tab -->
@@ -1102,6 +1124,57 @@
     </div>
   </div>
 
+  <!-- Pick List Tab -->
+  <div id="tab-picklist" class="tab-content" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="tab-btn pl-filter active" data-plfilter="active" onclick="plFilter('active',this)">🔄 Active</button>
+        <button class="tab-btn pl-filter" data-plfilter="all" onclick="plFilter('all',this)">All</button>
+        <button class="tab-btn pl-filter" data-plfilter="pending" onclick="plFilter('pending',this)">⏳ Pending</button>
+        <button class="tab-btn pl-filter" data-plfilter="picking" onclick="plFilter('picking',this)">📋 Picking</button>
+        <button class="tab-btn pl-filter" data-plfilter="packed" onclick="plFilter('packed',this)">📦 Packed</button>
+        <button class="tab-btn pl-filter" data-plfilter="loaded" onclick="plFilter('loaded',this)">🚛 Loaded</button>
+        <button class="tab-btn pl-filter" data-plfilter="delivering" onclick="plFilter('delivering',this)">🚚 Delivering</button>
+        <button class="tab-btn pl-filter" data-plfilter="done" onclick="plFilter('done',this)">✅ Done</button>
+      </div>
+      <button class="btn btn-primary" onclick="openPicklistModal()">+ New Pick List</button>
+    </div>
+    <div id="picklistGrid"></div>
+    <div id="picklistEmpty" style="display:none;text-align:center;padding:40px;color:var(--muted);">📋 No pick lists yet. Create one to get started.</div>
+  </div>
+
+  <!-- Pick List Modal -->
+  <div class="modal-overlay" id="picklistModal" style="display:none;align-items:center;justify-content:center;">
+    <div class="modal" style="max-width:540px;width:100%;">
+      <h3 id="plModalTitle">New Pick List</h3>
+      <input type="hidden" id="plId">
+      <div class="form-group">
+        <label>Machine / Location</label>
+        <select id="plMachine" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;">
+          <option value="">— Select Machine —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Scheduled Date</label>
+        <input type="date" id="plDate" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;">
+      </div>
+      <div class="form-group">
+        <label>Items <button class="btn btn-sm" style="margin-left:8px;" onclick="plAddAllProducts()">+ All Products</button></label>
+        <div id="plItemsBuilder" style="margin-top:8px;"></div>
+        <button class="btn btn-sm" style="margin-top:8px;" onclick="plAddItemRow()">+ Add Item</button>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="plNotes" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;" rows="2" placeholder="Special instructions..."></textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+        <button class="btn" id="plDeleteBtn" style="display:none;color:var(--hot);" onclick="plDelete()">Delete</button>
+        <button class="btn" onclick="closePlModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="plSave()">Save</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Add Product Modal -->
   <div class="modal-overlay" id="addProductModal">
     <div class="modal">
@@ -1439,6 +1512,7 @@
       await loadPullList();
       await loadSpoilageLog();
       await loadSpoilageSummary();
+      await loadPicklist();
       await loadExpirationRecords();
       renderAll();
       runAudit();
@@ -2748,6 +2822,9 @@
         loadPriceHistory();
         loadOrderSummary();
       }
+      if (tabId === 'picklist') {
+        loadPicklist();
+      }
     }
 
     // ===== STOCK ADJUSTMENTS =====
@@ -3982,6 +4059,173 @@
 
     // Initialize
     init();
+    // ===== PICK LIST TAB =====
+    let plRestocks = [];
+    let plMachines = [];
+    let plCurrentFilter = 'active';
+
+    async function loadPicklist() {
+      try {
+        const [rRes, mRes] = await Promise.all([
+          fetch('/api/restocks').then(r => r.json()),
+          fetch('/api/machines').then(r => r.json())
+        ]);
+        plRestocks = Array.isArray(rRes) ? rRes : [];
+        plMachines = Array.isArray(mRes) ? mRes : [];
+        renderPicklist();
+        plPopulateMachineSelect();
+      } catch(e) { console.error('loadPicklist:', e); }
+    }
+
+    function plFilter(status, btn) {
+      plCurrentFilter = status;
+      document.querySelectorAll('.pl-filter').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      renderPicklist();
+    }
+
+    function renderPicklist() {
+      let filtered = plRestocks;
+      if (plCurrentFilter === 'active') filtered = filtered.filter(r => r.status !== 'done');
+      else if (plCurrentFilter !== 'all') filtered = filtered.filter(r => r.status === plCurrentFilter);
+      const grid = document.getElementById('picklistGrid');
+      const empty = document.getElementById('picklistEmpty');
+      if (!grid) return;
+      if (filtered.length === 0) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+      const statusFlow = ['pending','picking','packed','loaded','delivering','done'];
+      grid.innerHTML = filtered.map(r => {
+        const machine = plMachines.find(m => m.id === r.machine_id);
+        const items = r.items || [];
+        const checkedCount = items.filter(i => i.checked).length;
+        const sidx = statusFlow.indexOf(r.status);
+        const nextStatus = sidx >= 0 && sidx < statusFlow.length-1 ? statusFlow[sidx+1] : null;
+        const prevStatus = sidx > 0 ? statusFlow[sidx-1] : null;
+        const itemsHtml = items.length > 0 ? items.slice(0,10).map((item,idx) => `
+          <div class="pl-item">
+            <div class="pl-check ${item.checked?'checked':''}" onclick="plToggleItem(${r.id},${idx})">${item.checked?'✓':''}</div>
+            <span class="pl-name ${item.checked?'done':''}">${escapeHtml(item.name)}</span>
+            <span class="pl-qty">×${item.qty}</span>
+          </div>`).join('') + (items.length>10?`<div style="color:var(--muted);font-size:0.78rem;padding:6px 0;">+ ${items.length-10} more items</div>`:'') :
+          '<div style="color:var(--muted);font-size:0.85rem;">No items added yet</div>';
+        return `<div class="pl-card">
+          <div class="pl-card-header">
+            <div><strong>${machine ? (machine.name||'Machine #'+machine.id) : 'Unknown Machine'}</strong><br>
+              <span style="font-size:0.75rem;color:var(--muted);">${machine?.location?.name||machine?.address||''}</span></div>
+            <span class="badge badge-${r.status}">${r.status}</span>
+          </div>
+          <div class="pl-card-body">
+            <div class="pl-meta">
+              <span>📅 ${r.scheduled_date||'No date'}</span>
+              <span>📦 ${items.length} items</span>
+              <span>✅ ${checkedCount}/${items.length} picked</span>
+            </div>
+            ${itemsHtml}
+            ${r.notes?`<div style="font-size:0.8rem;color:var(--muted);margin-top:8px;font-style:italic;">${escapeHtml(r.notes)}</div>`:''}
+            <div class="pl-actions">
+              ${prevStatus?`<button class="btn btn-sm" onclick="plMoveStatus(${r.id},'${prevStatus}')">← ${prevStatus}</button>`:''}
+              ${nextStatus?`<button class="btn btn-sm btn-primary" onclick="plMoveStatus(${r.id},'${nextStatus}')">${nextStatus==='done'?'✅ Complete':nextStatus+' →'}</button>`:''}
+              <button class="btn btn-sm" onclick="openPicklistModal(${r.id})">Edit</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    async function plToggleItem(restockId, itemIdx) {
+      const r = plRestocks.find(x => x.id === restockId);
+      if (!r || !r.items[itemIdx]) return;
+      r.items[itemIdx].checked = !r.items[itemIdx].checked;
+      await fetch(`/api/restocks/${restockId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({items:r.items}) });
+      renderPicklist();
+    }
+
+    async function plMoveStatus(restockId, newStatus) {
+      await fetch(`/api/restocks/${restockId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:newStatus}) });
+      await loadPicklist();
+    }
+
+    function plPopulateMachineSelect() {
+      const sel = document.getElementById('plMachine');
+      if (!sel) return;
+      sel.innerHTML = '<option value="">— Select Machine —</option>' +
+        plMachines.map(m => `<option value="${m.id}">${m.name||'Machine #'+m.id}${m.location?' — '+m.location.name:''}</option>`).join('');
+    }
+
+    function openPicklistModal(id) {
+      const r = id ? plRestocks.find(x => x.id === id) : null;
+      document.getElementById('plModalTitle').textContent = r ? 'Edit Pick List' : 'New Pick List';
+      document.getElementById('plId').value = r ? r.id : '';
+      document.getElementById('plDate').value = r ? (r.scheduled_date||'') : new Date().toISOString().split('T')[0];
+      document.getElementById('plNotes').value = r ? (r.notes||'') : '';
+      document.getElementById('plDeleteBtn').style.display = r ? 'inline-block' : 'none';
+      plPopulateMachineSelect();
+      setTimeout(() => { if (r) document.getElementById('plMachine').value = r.machine_id||''; }, 50);
+      const builder = document.getElementById('plItemsBuilder');
+      builder.innerHTML = '';
+      if (r && r.items) r.items.forEach(item => plAddItemRow(item.name, item.qty));
+      else plAddItemRow();
+      document.getElementById('picklistModal').classList.add('open');
+    }
+
+    function closePlModal() { document.getElementById('picklistModal').classList.remove('open'); }
+
+    function plAddItemRow(name, qty) {
+      const builder = document.getElementById('plItemsBuilder');
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:6px;';
+      row.innerHTML = `
+        <select style="flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;">
+          <option value="">— Select product —</option>
+          ${products.map(p=>`<option value="${escapeHtml(p.name)}" ${name===p.name?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}
+        </select>
+        <input type="number" min="1" value="${qty||1}" style="width:60px;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;text-align:center;">
+        <button class="btn btn-sm" onclick="this.parentElement.remove()" style="padding:4px 8px;">✕</button>`;
+      builder.appendChild(row);
+    }
+
+    function plAddAllProducts() {
+      const builder = document.getElementById('plItemsBuilder');
+      builder.innerHTML = '';
+      products.forEach(p => plAddItemRow(p.name, 1));
+    }
+
+    async function plSave() {
+      const id = document.getElementById('plId').value;
+      const rows = document.querySelectorAll('#plItemsBuilder > div');
+      const items = Array.from(rows).map(row => ({
+        name: row.querySelector('select').value,
+        qty: parseInt(row.querySelector('input[type=number]').value)||1,
+        checked: false
+      })).filter(i => i.name);
+      const data = {
+        machine_id: parseInt(document.getElementById('plMachine').value)||null,
+        scheduled_date: document.getElementById('plDate').value,
+        items, notes: document.getElementById('plNotes').value,
+        status: 'pending'
+      };
+      if (id) {
+        const existing = plRestocks.find(r => r.id === parseInt(id));
+        if (existing?.items) data.items = items.map(ni => ({ ...ni, checked: existing.items.find(oi=>oi.name===ni.name)?.checked||false }));
+        data.status = existing?.status || 'pending';
+        await fetch(`/api/restocks/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+      } else {
+        await fetch('/api/restocks', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+      }
+      closePlModal();
+      await loadPicklist();
+    }
+
+    async function plDelete() {
+      const id = document.getElementById('plId').value;
+      if (!id || !confirm('Delete this pick list?')) return;
+      await fetch(`/api/restocks/${id}`, { method:'DELETE' });
+      closePlModal();
+      await loadPicklist();
+    }
+
+    document.getElementById('picklistModal')?.addEventListener('click', e => { if (e.target.id==='picklistModal') closePlModal(); });
+
   </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 </body>
