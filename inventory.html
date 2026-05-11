@@ -4219,6 +4219,8 @@
           ${nextStatus ? `<button class="btn btn-primary btn-sm" onclick="plMoveStatus(${r.id},'${nextStatus}')">Move to ${nextStatus} →</button>` : ''}
         </div>`;
 
+      const REFRIGERATED = ['reeses','snickers','dubai','nerds','trolli','oreo','grandma cookie','grandma cookies','smuckers','fairlife','pressed acai','pressed tropical','pressed greens','pressed strawberry','pressed orange','pressed mango','pressed som','coconut water'];
+      const needsRefrig = name => REFRIGERATED.some(r => name.toLowerCase().includes(r));
       const catOrder = ['food','snacks','candy','energy','beverages','healthy','incidentals',''];
       const sortedItems = [...(r.items || [])].map((item, idx) => ({ item, idx })).sort((a, b) => {
         const pa = products.find(p => p.id === a.item.product_id || p.name === a.item.name);
@@ -4242,22 +4244,26 @@
             ? `<img src="${thumb}" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#f7f7f7;flex-shrink:0;" onerror="this.style.display='none'">`
             : `<div style="width:40px;height:40px;border-radius:6px;background:#f0f4f8;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">${getCategoryEmoji(item.name)}</div>`;
           const checkedAt = item.checked_at ? `<div style="font-size:0.65rem;color:var(--muted);">${new Date(item.checked_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>` : '';
-          items += `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--card);">
-            <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;">
-              <div class="pl-check ${item.checked?'checked':''}" onclick="plToggleItem(${r.id},${idx});openMachinePicklist(${machineId},${restockId})">${item.checked?'✓':''}</div>
-              ${checkedAt}
-            </div>
-            ${thumbEl}
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:0.88rem;${item.checked?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(item.name)}</div>
-              ${pct !== null ? `<div style="font-size:0.72rem;color:${pctColor};font-weight:700;">${pct}% full</div>` : ''}
-            </div>
-            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-              <input type="number" min="0" value="${item.qty_needed||item.qty}" style="width:52px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:0.88rem;font-weight:700;color:var(--accent);text-align:center;background:var(--card);" onchange="plUpdateQty(${r.id},${idx},this.value)">
-              ${prod?.stock !== undefined ? `<span style="font-size:0.72rem;color:var(--muted);">/ ${prod.stock}</span>` : ''}
-              <button onclick="plDeleteItem(${r.id},${idx})" style="background:none;border:none;cursor:pointer;font-size:1rem;color:var(--muted);padding:2px 4px;" title="Delete item">🗑️</button>
-            </div>
-          </div>`;
+          const refrig = needsRefrig(item.name);
+          items += `<div style="border-bottom:1px solid var(--border);background:${refrig?'rgba(59,130,246,0.08)':'var(--card)'};${refrig?'border-left:3px solid #3b82f6;':''}">
+              ${refrig ? `<div style="font-size:0.62rem;font-weight:700;color:#3b82f6;letter-spacing:0.05em;padding:6px 14px 0;">\u2744\ufe0f NEEDS REFRIGERATION</div>` : ''}
+              <div style="display:flex;align-items:center;gap:10px;padding:${refrig?'4px':'10px'} 14px 10px;">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;">
+                  <div class="pl-check ${item.checked?'checked':''}" onclick="plToggleItem(${r.id},${idx});openMachinePicklist(${machineId},${restockId})">${item.checked?'\u2713':''}</div>
+                  ${checkedAt}
+                </div>
+                ${thumbEl}
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:0.88rem;${item.checked?'text-decoration:line-through;color:var(--muted);':''}${refrig?'color:#1d4ed8;':''}">${escapeHtml(item.name)}</div>
+                  ${pct !== null ? `<div style="font-size:0.72rem;color:${pctColor};font-weight:700;">${pct}% full</div>` : ''}
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                  <input type="number" min="0" value="${item.qty_needed||item.qty}" style="width:52px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:0.88rem;font-weight:700;color:var(--accent);text-align:center;background:var(--card);" onchange="plUpdateQty(${r.id},${idx},this.value)">
+                  ${prod?.stock !== undefined ? `<span style="font-size:0.72rem;color:var(--muted);">/ ${prod.stock}</span>` : ''}
+                  <button onclick="plDeleteItem(${r.id},${idx})" style="background:none;border:none;cursor:pointer;font-size:1rem;color:var(--muted);padding:2px 4px;" title="Delete">\ud83d\uddd1\ufe0f</button>
+                </div>
+              </div>
+            </div>`;
         });
         grid.innerHTML = header + `<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">${items || '<div style="padding:20px;text-align:center;color:var(--muted);">No items</div>'}</div>`;
       } else {
@@ -4276,9 +4282,10 @@
             ? `<img src="${thumb2}" style="width:36px;height:36px;object-fit:contain;border-radius:5px;background:#f7f7f7;" onerror="this.style.display='none'">`
             : `<div style="width:36px;height:36px;border-radius:5px;background:#f0f4f8;display:flex;align-items:center;justify-content:center;font-size:1.1rem;">${getCategoryEmoji(item.name)}</div>`;
           const checkedAtDesk = item.checked_at ? `<div style="font-size:0.65rem;color:var(--muted);">${new Date(item.checked_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>` : '';
-          tableRows += `<tr>
+          const refrig2 = needsRefrig(item.name);
+          tableRows += `<tr style="background:${refrig2?'rgba(59,130,246,0.08)':''}; ${refrig2?'border-left:3px solid #3b82f6;':''}">
             <td style="padding:6px 10px;">${thumbEl2}</td>
-            <td style="${item.checked?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(item.name)}</td>
+            <td style="${item.checked?'text-decoration:line-through;color:var(--muted);':''}${refrig2?'color:#1d4ed8;font-weight:600;':''}"> ${escapeHtml(item.name)}${refrig2?` <span style="font-size:0.6rem;font-weight:700;color:#3b82f6;vertical-align:middle;margin-left:4px;">❄️ REFRIG</span>`:''}</td>
             <td>${cat ? `<span class="cat-badge ${cls}">${cat}</span>` : '—'}</td>
             <td style="text-align:center;">${prod?.stock !== undefined ? prod.stock : '—'}</td>
             <td>${bar}</td>
