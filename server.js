@@ -1708,6 +1708,69 @@ app.get('/api/inventory/order-summary', (req, res) => {
   res.json(result);
 });
 
+// ===== PRICE HISTORY API =====
+app.get('/api/inventory/price-history', (req, res) => {
+  const receipts = db.order_receipts || [];
+  const products = db.products || [];
+
+  // Collect all items from all receipts with their order context
+  const allItems = [];
+  receipts.forEach(order => {
+    (order.items || []).forEach(item => {
+      const unitCost = item.price_per_unit || (item.units_per_case ? (item.price_per_case / item.units_per_case) : 0);
+      allItems.push({
+        product_id: item.product_id,
+        product_name: (item.product_name || '').trim(),
+        unit_size: item.unit_size || null,
+        order_id: order.id,
+        order_date: order.order_date,
+        supplier: order.supplier || order.vendor || 'Unknown',
+        unit_cost: parseFloat(unitCost.toFixed(4))
+      });
+    });
+  });
+
+  // Group by product — prefer product_id, fallback to case-insensitive name
+  const byProduct = {};
+  allItems.forEach(item => {
+    const key = item.product_id ? `pid:${item.product_id}` : `name:${item.product_name.toLowerCase()}`;
+    if (!byProduct[key]) {
+      byProduct[key] = {
+        product_name: item.product_name,
+        product_id: item.product_id,
+        unit_size: item.unit_size,
+        orders: []
+      };
+    }
+    byProduct[key].orders.push({
+      order_id: item.order_id,
+      order_date: item.order_date,
+      supplier: item.supplier,
+      unit_cost: item.unit_cost
+    });
+    // Keep unit_size if missing
+    if (!byProduct[key].unit_size && item.unit_size) {
+      byProduct[key].unit_size = item.unit_size;
+    }
+  });
+
+  // Resolve unit_size from products table if still missing
+  const result = Object.values(byProduct).map(p => {
+    if (!p.unit_size && p.product_id) {
+      const prod = products.find(pr => pr.id === p.product_id);
+      if (prod) p.unit_size = prod.unit_size || null;
+    }
+    // Sort orders by date ASC
+    p.orders.sort((a, b) => new Date(a.order_date) - new Date(b.order_date));
+    return p;
+  });
+
+  // Sort A→Z by product_name
+  result.sort((a, b) => (a.product_name || '').localeCompare(b.product_name || ''));
+
+  res.json(result);
+});
+
 // ===== PULL LIST API =====
 app.get('/api/pull-list', (req, res) => {
   const status = req.query.status;

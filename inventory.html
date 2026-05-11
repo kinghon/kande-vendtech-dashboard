@@ -314,6 +314,38 @@
     .sparkline-bar { flex: 1; background: var(--accent); border-radius: 2px 2px 0 0; min-height: 2px; opacity: 0.7; }
     .sparkline-bar:hover { opacity: 1; }
 
+    /* ===== MASTER PRICE LIST ===== */
+    .mpl-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .mpl-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.92rem; }
+    .mpl-table thead th { position: sticky; top: 0; background: var(--card); z-index: 10; border-bottom: 2px solid var(--border); padding: 10px 8px; font-size: 0.78rem; text-transform: uppercase; color: var(--muted); font-weight: 700; white-space: nowrap; }
+    .mpl-table tbody td { padding: 10px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; white-space: nowrap; }
+    .mpl-table tbody tr:hover td { background: #f7fafc; }
+    .mpl-product { font-weight: 600; font-size: 0.95rem; }
+    .mpl-unit-size { font-size: 0.78rem; color: var(--muted); }
+    .mpl-cost { font-family: monospace; font-size: 0.9rem; text-align: right; }
+    .mpl-cost.na { color: var(--muted); }
+    .mpl-trend svg { display: block; }
+    .mpl-detail-panel { background: #fafbfc; border: 1px solid var(--border); border-radius: var(--radius); margin: 8px 0 16px; padding: 16px; overflow: hidden; }
+    .mpl-detail-panel .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .mpl-detail-panel .detail-title { font-weight: 700; font-size: 1rem; }
+    .mpl-detail-panel .detail-close { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--muted); }
+    .mpl-detail-panel .detail-close:hover { color: var(--text); }
+    .mpl-detail-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-bottom: 16px; }
+    .mpl-detail-table th, .mpl-detail-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+    .mpl-detail-table th { font-size: 0.75rem; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+    .mpl-detail-table td.mono { font-family: monospace; }
+    .mpl-detail-table td.pct-up { color: var(--success); }
+    .mpl-detail-table td.pct-down { color: var(--hot); }
+    .mpl-order-card { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
+    .mpl-order-card-header { padding: 10px 14px; background: #fafbfc; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+    .mpl-order-card-header:hover { background: #edf2f7; }
+    .mpl-order-card-body { display: none; padding: 12px; }
+    .mpl-order-card.open .mpl-order-card-body { display: block; }
+    @media (max-width: 640px) {
+      .mpl-table thead th, .mpl-table tbody td { padding: 8px 6px; font-size: 0.82rem; }
+      .mpl-product { font-size: 0.88rem; }
+    }
+
     /* ===== EXPIRATION TAB — Mobile-First ===== */
     .exp-import-bar {
       position: sticky;
@@ -810,14 +842,25 @@
 
     <!-- History Tab -->
     <div id="tab-history" class="tab-content" style="display:none;">
-      <!-- Per Order Summary -->
+      <!-- SECTION 1: Master Price List -->
       <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:20px;">
         <div class="shopping-header">
-          <h3>📊 Per Order Summary</h3>
-          <button class="btn btn-sm btn-primary" id="loadOrdersBtn" onclick="loadOrderSummary()">📋 Load Orders</button>
+          <h3>📦 All Items — Price History</h3>
+          <span id="mplCount" style="font-size:0.82rem;color:var(--muted);">Loading…</span>
+        </div>
+        <div id="priceHistoryContainer" style="padding:0 12px 12px;">
+          <div class="shopping-empty" style="padding:20px;">Loading price history…</div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: Orders -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:20px;">
+        <div class="shopping-header">
+          <h3>📋 Orders</h3>
+          <span id="orderCount" style="font-size:0.82rem;color:var(--muted);"></span>
         </div>
         <div id="orderSummaryContainer" style="padding:0 18px 18px;">
-          <div class="shopping-empty" style="padding:20px;">Click "Load Orders" to see per-order profit breakdown.</div>
+          <div class="shopping-empty" style="padding:20px;">Loading orders…</div>
         </div>
       </div>
 
@@ -1941,11 +1984,10 @@
 
     // ===== PER ORDER SUMMARY =====
     let orderSummaryData = [];
+    let priceHistoryData = [];
+    const priceChartInstances = {};
 
     async function loadOrderSummary() {
-      const btn = document.getElementById('loadOrdersBtn');
-      btn.textContent = '⏳ Loading...';
-      btn.disabled = true;
       try {
         const res = await fetch('/api/inventory/order-summary');
         if (res.ok) {
@@ -1957,20 +1999,225 @@
       } catch (e) {
         console.error('Failed to load order summary:', e);
         document.getElementById('orderSummaryContainer').innerHTML = '<div class="shopping-empty">Error loading order summary.</div>';
-      } finally {
-        btn.textContent = '🔄 Refresh Orders';
-        btn.disabled = false;
       }
+    }
+
+    async function loadPriceHistory() {
+      try {
+        const res = await fetch('/api/inventory/price-history');
+        if (res.ok) {
+          priceHistoryData = await res.json();
+          renderPriceHistory();
+        } else {
+          document.getElementById('priceHistoryContainer').innerHTML = '<div class="shopping-empty">Failed to load price history.</div>';
+        }
+      } catch (e) {
+        console.error('Failed to load price history:', e);
+        document.getElementById('priceHistoryContainer').innerHTML = '<div class="shopping-empty">Error loading price history.</div>';
+      }
+    }
+
+    function formatShortDate(dateStr) {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function generateSparklineSVG(costs) {
+      if (!costs || costs.length === 0) return '';
+      const n = costs.length;
+      if (n === 1) {
+        return `<svg width="80" height="24" viewBox="0 0 80 24"><circle cx="40" cy="12" r="3" fill="var(--accent)"/></svg>`;
+      }
+      const min = Math.min(...costs);
+      const max = Math.max(...costs);
+      const range = max - min || 1;
+      const points = costs.map((c, i) => {
+        const x = (i / (n - 1)) * 80;
+        const y = 24 - ((c - min) / range) * 20 + 2;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(' ');
+      return `<svg width="80" height="24" viewBox="0 0 80 24"><polyline points="${points}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    }
+
+    function _phSlug(name) {
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) {
+        hash = ((hash << 5) - hash) + name.charCodeAt(i);
+        hash |= 0;
+      }
+      return 'ph' + Math.abs(hash).toString(36);
+    }
+
+    function renderPriceHistory() {
+      const container = document.getElementById('priceHistoryContainer');
+      if (!priceHistoryData.length) {
+        container.innerHTML = '<div class="shopping-empty">No order receipts found.</div>';
+        document.getElementById('mplCount').textContent = '0 products';
+        return;
+      }
+
+      document.getElementById('mplCount').textContent = priceHistoryData.length + ' product' + (priceHistoryData.length !== 1 ? 's' : '');
+
+      // Collect all unique order dates (newest → oldest, limit 6)
+      const allOrderDates = [];
+      priceHistoryData.forEach(p => {
+        p.orders.forEach(o => {
+          if (!allOrderDates.find(d => d.date === o.order_date)) {
+            allOrderDates.push({ date: o.order_date, supplier: o.supplier });
+          }
+        });
+      });
+      allOrderDates.sort((a, b) => new Date(b.date) - new Date(a.date));
+      const recent6 = allOrderDates.slice(0, 6);
+
+      // Build header
+      let headerHtml = '<tr><th style="text-align:left;min-width:160px;">Product</th><th style="min-width:60px;">Size</th>';
+      recent6.forEach(o => {
+        headerHtml += `<th style="min-width:70px;text-align:center;"><div>${formatShortDate(o.date)}</div><div style="font-size:0.65rem;color:var(--muted);font-weight:400;">${escapeHtml(o.supplier)}</div></th>`;
+      });
+      headerHtml += '<th style="min-width:90px;">Trend</th><th style="min-width:44px;"></th></tr>';
+
+      // Build rows
+      const rowsHtml = priceHistoryData.map(p => {
+        const safeName = _phSlug(p.product_name);
+        const allCosts = p.orders.map(o => o.unit_cost);
+        const sparkline = generateSparklineSVG(allCosts);
+        let cells = '';
+        recent6.forEach(o => {
+          const match = p.orders.find(ord => ord.order_date === o.date);
+          cells += `<td style="text-align:center;font-family:monospace;font-size:0.85rem;" class="${match ? '' : 'mpl-cost na'}">${match ? '$' + match.unit_cost.toFixed(2) : '—'}</td>`;
+        });
+        return `
+          <tr data-product="${safeName}">
+            <td><div class="mpl-product">${escapeHtml(p.product_name)}</div></td>
+            <td><span class="mpl-unit-size">${escapeHtml(p.unit_size || '—')}</span></td>
+            ${cells}
+            <td style="text-align:center;"><div class="mpl-trend">${sparkline}</div></td>
+            <td style="text-align:center;"><button class="btn btn-sm btn-icon" onclick="event.stopPropagation();togglePriceDetail('${p.product_name.replace(/'/g, "\\'")}')" title="View details">📊</button></td>
+          </tr>
+          <tr id="ph-detail-${safeName}" style="display:none;">
+            <td colspan="${4 + recent6.length}" style="padding:0;border:none;">
+              <div class="mpl-detail-panel" id="ph-panel-${safeName}">
+                <div class="detail-header">
+                  <div class="detail-title">${escapeHtml(p.product_name)} — Full Price History</div>
+                  <button class="detail-close" onclick="togglePriceDetail('${p.product_name.replace(/'/g, "\\'")}')">&times;</button>
+                </div>
+                <table class="mpl-detail-table">
+                  <thead><tr><th>Order Date</th><th>Supplier</th><th style="text-align:right">Unit Cost</th><th style="text-align:right">Δ Change</th></tr></thead>
+                  <tbody>
+                    ${p.orders.map((o, i) => {
+                      const prev = i > 0 ? p.orders[i - 1].unit_cost : o.unit_cost;
+                      const delta = o.unit_cost - prev;
+                      const deltaClass = i === 0 ? '' : (delta > 0 ? 'pct-down' : delta < 0 ? 'pct-up' : '');
+                      const deltaText = i === 0 ? '—' : (delta > 0 ? '+' : '') + '$' + delta.toFixed(2);
+                      return `<tr><td>${formatShortDate(o.order_date)}</td><td>${escapeHtml(o.supplier)}</td><td class="mono" style="text-align:right">$${o.unit_cost.toFixed(2)}</td><td class="mono ${deltaClass}" style="text-align:right">${deltaText}</td></tr>`;
+                    }).join('')}
+                  </tbody>
+                </table>
+                <div style="height:250px;width:100%;"><canvas id="ph-chart-${safeName}"></canvas></div>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      container.innerHTML = `
+        <div class="mpl-wrapper">
+          <table class="mpl-table">
+            <thead>${headerHtml}</thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function togglePriceDetail(productName) {
+      const safeName = _phSlug(productName);
+      const detailRow = document.getElementById(`ph-detail-${safeName}`);
+      const panel = document.getElementById(`ph-panel-${safeName}`);
+      if (!detailRow) return;
+
+      const isOpen = detailRow.style.display !== 'none';
+      if (isOpen) {
+        // Destroy chart
+        if (priceChartInstances[safeName]) {
+          priceChartInstances[safeName].destroy();
+          delete priceChartInstances[safeName];
+        }
+        detailRow.style.display = 'none';
+      } else {
+        // Close any open panels first
+        document.querySelectorAll('[id^="ph-detail-"]').forEach(el => {
+          if (el.id !== `ph-detail-${safeName}`) {
+            el.style.display = 'none';
+            const otherSafe = el.id.replace('ph-detail-', '');
+            if (priceChartInstances[otherSafe]) {
+              priceChartInstances[otherSafe].destroy();
+              delete priceChartInstances[otherSafe];
+            }
+          }
+        });
+        detailRow.style.display = 'table-row';
+        // Render chart after DOM update
+        requestAnimationFrame(() => renderPriceChart(productName));
+      }
+    }
+
+    function renderPriceChart(productName) {
+      const product = priceHistoryData.find(p => p.product_name === productName);
+      if (!product || !product.orders.length) return;
+      const safeName = _phSlug(productName);
+      const ctx = document.getElementById(`ph-chart-${safeName}`);
+      if (!ctx) return;
+
+      if (priceChartInstances[safeName]) {
+        priceChartInstances[safeName].destroy();
+      }
+
+      const labels = product.orders.map(o => formatShortDate(o.order_date));
+      const data = product.orders.map(o => o.unit_cost);
+
+      priceChartInstances[safeName] = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Unit Cost',
+            data,
+            borderColor: 'var(--accent)',
+            backgroundColor: 'rgba(49,130,206,0.08)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 4,
+            pointBackgroundColor: 'var(--accent)'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              ticks: { callback: v => '$' + v.toFixed(2) },
+              grid: { color: 'rgba(0,0,0,0.05)' }
+            },
+            x: {
+              grid: { display: false }
+            }
+          }
+        }
+      });
     }
 
     function renderOrderSummary() {
       const container = document.getElementById('orderSummaryContainer');
+      document.getElementById('orderCount').textContent = orderSummaryData.length + ' order' + (orderSummaryData.length !== 1 ? 's' : '');
       if (orderSummaryData.length === 0) {
         container.innerHTML = '<div class="shopping-empty">No order receipts found.</div>';
         return;
       }
 
-      container.innerHTML = orderSummaryData.map(order => {
+      container.innerHTML = orderSummaryData.map((order, idx) => {
         const date = new Date(order.order_date).toLocaleDateString();
         const itemsHtml = order.items.map(item => {
           const profitClass = item.profit > 0 ? 'profit-positive' : item.profit < 0 ? 'profit-negative' : 'profit-zero';
@@ -1992,46 +2239,57 @@
         const totalProfitClass = t.total_profit > 0 ? 'profit-positive' : t.total_profit < 0 ? 'profit-negative' : 'profit-zero';
 
         return `
-          <div style="border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden;">
-            <div style="padding:10px 14px;background:#fafbfc;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div class="mpl-order-card" id="order-card-${idx}">
+            <div class="mpl-order-card-header" onclick="toggleOrderCard(${idx})">
               <div>
                 <strong style="font-size:0.95rem;">Order #${order.order_id}</strong>
                 <span style="color:var(--muted);font-size:0.82rem;"> · ${date} · ${escapeHtml(order.supplier)}</span>
               </div>
               <span style="font-size:0.82rem;color:var(--muted);">${order.items.length} item${order.items.length !== 1 ? 's' : ''}</span>
             </div>
-            <div style="overflow-x:auto;">
-              <table style="width:100%;border-collapse:collapse;font-size:0.85rem;min-width:500px;">
-                <thead>
-                  <tr style="background:#edf2f7;">
-                    <th style="padding:8px 10px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Product</th>
-                    <th style="padding:8px 10px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Ordered</th>
-                    <th style="padding:8px 10px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Sold</th>
-                    <th style="padding:8px 10px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Unsold</th>
-                    <th style="padding:8px 10px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Pulled/Expired</th>
-                    <th style="padding:8px 10px;text-align:right;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Cost</th>
-                    <th style="padding:8px 10px;text-align:right;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Revenue</th>
-                    <th style="padding:8px 10px;text-align:right;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Profit</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${itemsHtml}
-                  <tr style="border-top:2px solid var(--border);background:#fafbfc;font-weight:700;">
-                    <td style="padding:8px 10px;">Totals</td>
-                    <td style="padding:8px 10px;text-align:center;">${t.ordered_qty}</td>
-                    <td style="padding:8px 10px;text-align:center;">${t.qty_sold}</td>
-                    <td style="padding:8px 10px;text-align:center;">${t.qty_unsold}</td>
-                    <td style="padding:8px 10px;text-align:center;">${t.qty_pulled}</td>
-                    <td style="padding:8px 10px;text-align:right;font-family:monospace;">$${t.total_cost.toFixed(2)}</td>
-                    <td style="padding:8px 10px;text-align:right;font-family:monospace;">$${t.total_revenue.toFixed(2)}</td>
-                    <td style="padding:8px 10px;text-align:right;font-family:monospace;" class="${totalProfitClass}">$${t.total_profit.toFixed(2)}</td>
-                  </tr>
-                </tbody>
-              </table>
+            <div class="mpl-order-card-body" id="order-body-${idx}">
+              <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:0.85rem;min-width:500px;">
+                  <thead>
+                    <tr style="background:#edf2f7;">
+                      <th style="padding:8px 10px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Product</th>
+                      <th style="padding:8px 10px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Ordered</th>
+                      <th style="padding:8px 10px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Sold</th>
+                      <th style="padding:8px 10px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Unsold</th>
+                      <th style="padding:8px 10px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Pulled/Expired</th>
+                      <th style="padding:8px 10px;text-align:right;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Cost</th>
+                      <th style="padding:8px 10px;text-align:right;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Revenue</th>
+                      <th style="padding:8px 10px;text-align:right;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Profit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${itemsHtml}
+                    <tr style="border-top:2px solid var(--border);background:#fafbfc;font-weight:700;">
+                      <td style="padding:8px 10px;">Totals</td>
+                      <td style="padding:8px 10px;text-align:center;">${t.ordered_qty}</td>
+                      <td style="padding:8px 10px;text-align:center;">${t.qty_sold}</td>
+                      <td style="padding:8px 10px;text-align:center;">${t.qty_unsold}</td>
+                      <td style="padding:8px 10px;text-align:center;">${t.qty_pulled}</td>
+                      <td style="padding:8px 10px;text-align:right;font-family:monospace;">$${t.total_cost.toFixed(2)}</td>
+                      <td style="padding:8px 10px;text-align:right;font-family:monospace;">$${t.total_revenue.toFixed(2)}</td>
+                      <td style="padding:8px 10px;text-align:right;font-family:monospace;" class="${totalProfitClass}">$${t.total_profit.toFixed(2)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         `;
       }).join('');
+    }
+
+    function toggleOrderCard(idx) {
+      const card = document.getElementById('order-card-' + idx);
+      const body = document.getElementById('order-body-' + idx);
+      if (!card || !body) return;
+      const isOpen = body.style.display === 'block';
+      body.style.display = isOpen ? 'none' : 'block';
+      card.classList.toggle('open', !isOpen);
     }
 
     function renderHistory() {
@@ -2194,6 +2452,11 @@
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.getElementById('tab-' + tabId).style.display = 'block';
       if (btn) btn.classList.add('active');
+
+      if (tabId === 'history') {
+        loadPriceHistory();
+        loadOrderSummary();
+      }
     }
 
     // ===== STOCK ADJUSTMENTS =====
@@ -3425,5 +3688,6 @@
     // Initialize
     init();
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 </body>
 </html>
