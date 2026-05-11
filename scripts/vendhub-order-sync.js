@@ -87,6 +87,31 @@ async function importOrderToDashboard(order, dashCookies) {
 }
 
 // Extract order financials and items from a VendHub order page
+// Fetch the actual case pack count from the VendHub product page.
+// This is the ONLY authoritative source for units_per_case — never guess or back-calculate.
+async function fetchCasePack(page, vendhubProductId) {
+  if (!vendhubProductId) return null;
+  try {
+    await page.goto(`https://www.vendhubhq.com/market/products/${vendhubProductId}`, { waitUntil: 'domcontentloaded', timeout: 15000 });
+    await page.waitForTimeout(1500);
+    const result = await page.evaluate(() => {
+      const t = document.body.innerText;
+      const i = t.indexOf('Case Pack');
+      if (i < 0) return null;
+      const chunk = t.substring(i, i + 60);
+      // Match patterns like "Case Pack\n24 items" or "Case Pack\n6 (24ct) boxes"
+      const m = chunk.match(/Case Pack\s*\n?\s*(\d+)\s*(?:\((\d+)ct\))?/);
+      if (!m) return null;
+      // If format is "6 (24ct) boxes", total items = 6 * 24
+      if (m[2]) return parseInt(m[1]) * parseInt(m[2]);
+      return parseInt(m[1]);
+    });
+    return result;
+  } catch (e) {
+    return null;
+  }
+}
+
 async function scrapeOrderDetails(page, orderId) {
   await page.goto(`https://www.vendhubhq.com/market/orders/${orderId}`, {
     waitUntil: 'domcontentloaded', timeout: 20000
@@ -236,18 +261,34 @@ async function scrapeOrderDetails(page, orderId) {
           if (p.vendhub_id) vidMap[p.vendhub_id] = p;
         });
 
-        const enrichedItems = details.items.map(item => {
+        // Fetch authoritative case pack from each product's VendHub page
+        // This is mandatory — do NOT use order-page values which are unreliable
+        log(`  Fetching case pack sizes from VendHub product pages...`);
+        const enrichedItems = [];
+        for (const item of details.items) {
           const prod = vidMap[item.vendhub_id] || nameMap[item.product_name];
-          return {
+          let casePack = null;
+          if (item.vendhub_id) {
+            casePack = await fetchCasePack(page, item.vendhub_id);
+            if (casePack) {
+              log(`    ${item.product_name}: ${casePack} per case (from VendHub product page)`);
+            } else {
+              log(`    ${item.product_name}: case pack not found on product page — check manually`);
+            }
+          }
+          const units_per_case = casePack || prod?.units_per_case || null;
+          const total_units = units_per_case ? item.cases * units_per_case : null;
+          const price_per_unit = (total_units && item.total) ? Math.round((item.total / total_units) * 10000) / 10000 : (item.price_per_unit || prod?.price_per_unit || null);
+          enrichedItems.push({
             ...item,
             product_id:    prod?.id    || null,
             item_number:   prod?.item_number || null,
             unit_size:     item.unit_size    || prod?.unit_size    || null,
-            units_per_case: item.units_per_case || prod?.units_per_case || null,
-            price_per_unit: item.price_per_unit || prod?.price_per_unit || null,
+            units_per_case,
+            price_per_unit,
             thumbnail:     prod?.thumbnail || null,
-          };
-        });
+          });
+        }
 
         const receipt = {
           vendhub_order_id:  orderId,
