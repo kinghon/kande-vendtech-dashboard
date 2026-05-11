@@ -432,27 +432,27 @@
     .exp-card-header {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 12px 14px;
+      gap: 8px;
+      padding: 8px 10px;
       border-bottom: 1px solid var(--border);
       background: #fafbfc;
     }
     .exp-card-thumb {
-      width: 44px;
-      height: 44px;
-      border-radius: 8px;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
       object-fit: cover;
       border: 1px solid var(--border);
       flex-shrink: 0;
     }
     .exp-card-thumb-placeholder {
-      width: 44px;
-      height: 44px;
-      border-radius: 8px;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.3rem;
+      font-size: 1rem;
       background: #f0f4f8;
       border: 1px solid var(--border);
       flex-shrink: 0;
@@ -463,45 +463,47 @@
     }
     .exp-card-name {
       font-weight: 700;
-      font-size: 0.95rem;
+      font-size: 0.82rem;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .exp-card-meta {
-      font-size: 0.78rem;
+      font-size: 0.7rem;
       color: var(--muted);
-      margin-top: 2px;
+      margin-top: 1px;
     }
     .exp-card-body {
-      padding: 14px;
+      padding: 8px 10px;
     }
     .exp-field {
-      margin-bottom: 14px;
+      margin-bottom: 6px;
     }
     .exp-field:last-child {
       margin-bottom: 0;
     }
     .exp-field-label {
-      display: block;
-      font-size: 14px;
+      display: inline;
+      font-size: 11px;
       font-weight: 600;
       color: var(--muted);
-      margin-bottom: 6px;
+      margin-right: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
     }
     .exp-field-row {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
     .exp-input {
       width: 100%;
-      min-height: 48px;
-      padding: 10px 14px;
+      min-height: 36px;
+      padding: 6px 10px;
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: 8px;
       font-size: 16px;
-      font-weight: 600;
+      font-weight: 500;
       color: var(--text);
       background: #fff;
       -webkit-appearance: none;
@@ -510,14 +512,14 @@
     .exp-input:focus {
       outline: none;
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(49,130,206,0.15);
+      box-shadow: 0 0 0 2px rgba(49,130,206,0.15);
     }
     .exp-input-number {
-      width: 100%;
-      min-height: 48px;
-      padding: 10px 14px;
+      width: 80px;
+      min-height: 36px;
+      padding: 6px 8px;
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: 8px;
       font-size: 16px;
       font-weight: 600;
       text-align: center;
@@ -654,17 +656,22 @@
         min-height: 36px;
       }
       .exp-card-header {
-        padding: 10px 12px;
+        padding: 8px 10px;
       }
       .exp-card-body {
-        padding: 12px;
+        padding: 8px 10px;
       }
       .exp-field-label {
-        font-size: 13px;
+        font-size: 11px;
       }
-      .exp-input, .exp-input-number {
+      .exp-input {
         font-size: 16px; /* prevents iOS zoom */
-        min-height: 48px;
+        min-height: 36px;
+      }
+      .exp-input-number {
+        font-size: 16px;
+        min-height: 36px;
+        width: 70px;
       }
       .exp-sublot-row {
         grid-template-columns: 1fr;
@@ -1828,28 +1835,19 @@
               </div>
             </div>
             <div class="exp-card-body">
-              <div class="exp-field">
-                <label class="exp-field-label">Total Quantity</label>
-                <div class="exp-field-row">
-                  <input type="number" class="exp-input-number" value="${r.total_qty || 0}" min="0"
-                    onblur="updateExpRecord(${r.id}, 'total_qty', parseInt(this.value)||0)"
-                    style="max-width:140px;">
-                  <span style="font-size:14px;color:var(--muted);">units</span>
-                </div>
+              <div class="exp-field" style="display:flex;align-items:center;gap:8px;">
+                <label class="exp-field-label" style="white-space:nowrap;">Qty</label>
+                <input type="number" class="exp-input-number" value="${r.total_qty || 0}" min="0"
+                  onblur="updateExpRecord(${r.id}, 'total_qty', parseInt(this.value)||0)">
+                <label class="exp-field-label" style="white-space:nowrap;margin-left:8px;">Exp</label>
+                <input type="date" class="exp-input" value="${r.expiration_date || ''}"
+                  onblur="updateExpRecord(${r.id}, 'expiration_date', this.value)" style="flex:1;">
+                <span class="exp-status-dot ${dotClass}"></span>
+                <span style="font-size:12px;font-weight:700;color:var(--${daysClass});white-space:nowrap;">${daysText}</span>
               </div>
               <div class="exp-field">
-                <label class="exp-field-label">Expiration Date</label>
-                <div class="exp-field-row">
-                  <input type="date" class="exp-input" value="${r.expiration_date || ''}"
-                    onblur="updateExpRecord(${r.id}, 'expiration_date', this.value)">
-                  <span class="exp-status-dot ${dotClass}"></span>
-                  <span style="font-size:14px;font-weight:700;color:var(--${daysClass});">${daysText}</span>
-                </div>
-              </div>
-              <div class="exp-field">
-                <label class="exp-field-label">Notes</label>
-                <input type="text" class="exp-input" value="${escapeHtml(r.notes || '')}" placeholder="e.g., warehouse shelf A3"
-                  onblur="updateExpRecord(${r.id}, 'notes', this.value)">
+                <input type="text" class="exp-input" value="${escapeHtml(r.notes || '')}" placeholder="Notes (e.g. shelf A3)"
+                  onblur="updateExpRecord(${r.id}, 'notes', this.value)" style="font-size:14px;">
               </div>
               ${subLotHtml}
               <div class="exp-actions">
