@@ -4138,145 +4138,105 @@
       const grid = document.getElementById('picklistGrid');
       const empty = document.getElementById('picklistEmpty');
       if (!grid) return;
-      if (filtered.length === 0) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
-      empty.style.display = 'none';
 
-      const statusFlow = ['pending','picking','packed','loaded','delivering','done'];
-
-      // Build flat rows: location, machine, item
-      const rows = [];
+      // Build location → machine → restocks tree
+      const locationTree = [];
       const usedIds = new Set();
       for (const loc of plLocations) {
         const locMachines = plMachines.filter(m => m.location_id === loc.id || m.location?.id === loc.id);
+        const machineRows = [];
         for (const m of locMachines) {
           const mrs = filtered.filter(r => r.machine_id === m.id);
-          for (const r of mrs) {
-            usedIds.add(r.id);
-            (r.items || []).forEach((item, idx) => {
-              rows.push({ loc, machine: m, restock: r, item, idx });
-            });
-          }
+          mrs.forEach(r => usedIds.add(r.id));
+          machineRows.push({ machine: m, restocks: mrs });
         }
+        if (machineRows.length) locationTree.push({ location: loc, machineRows });
       }
-      // Orphans
-      for (const r of filtered.filter(r => !usedIds.has(r.id))) {
-        (r.items || []).forEach((item, idx) => {
-          rows.push({ loc: { name: 'Unassigned', address: '' }, machine: null, restock: r, item, idx });
-        });
+      // Orphan restocks (no matching machine)
+      const orphanRestocks = filtered.filter(r => !usedIds.has(r.id));
+      if (orphanRestocks.length) {
+        locationTree.push({ location: { name: 'Unassigned', id: '__unassigned' }, machineRows: [{ machine: null, restocks: orphanRestocks }] });
       }
 
-      if (rows.length === 0) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+      if (locationTree.length === 0) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
 
-      const isMobile = window.innerWidth <= 768;
+      let html = '';
+      for (const { location, machineRows } of locationTree) {
+        html += `<div style="margin-bottom:24px;">
+          <div style="font-size:0.72rem;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:0.05em;padding:0 0 8px 2px;">📍 ${escapeHtml(location.name)}</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">`;
+        for (const { machine, restocks: mrs } of machineRows) {
+          const machineName = machine ? escapeHtml(machine.name || 'Machine #' + machine.id) : 'Unknown';
+          const totalItems = mrs.reduce((s, r) => s + (r.items||[]).length, 0);
+          const checkedItems = mrs.reduce((s, r) => s + (r.items||[]).filter(i => i.checked).length, 0);
+          const statuses = [...new Set(mrs.map(r => r.status))];
+          const primaryStatus = mrs[0]?.status || 'pending';
+          const machineId = machine ? machine.id : null;
+          html += `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;gap:12px;">
+            <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
+              <div style="font-size:0.95rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${machineName}</div>
+              ${mrs.length ? `<span class="badge badge-${primaryStatus}" style="font-size:0.65rem;flex-shrink:0;">${primaryStatus}</span>` : ''}
+              ${totalItems ? `<span style="font-size:0.78rem;color:var(--muted);flex-shrink:0;">${checkedItems}/${totalItems} items</span>` : '<span style="font-size:0.78rem;color:var(--muted);">no pick list</span>'}
+            </div>
+            <div style="display:flex;gap:8px;flex-shrink:0;">
+              ${mrs.length ? `<button class="btn btn-primary btn-sm" onclick="openMachinePicklist(${machineId ? machineId : 'null'}, ${mrs[0].id})">📋 View Pick List</button>` : `<button class="btn btn-sm" onclick="openPicklistModal()">+ Create</button>`}
+            </div>
+          </div>`;
+        }
+        html += '</div></div>';
+      }
+      grid.innerHTML = html;
+    }
 
-      if (!isMobile) {
-        // Desktop: single flat table like inventory page
-        let html = `<div style="overflow-x:auto;margin-bottom:24px;display:flex;justify-content:center;">
+    function openMachinePicklist(machineId, restockId) {
+      const r = plRestocks.find(x => x.id === restockId);
+      if (!r) return;
+      const machine = plMachines.find(m => m.id === machineId);
+      const loc = plLocations.find(l => l.id === (machine?.location_id || machine?.location?.id));
+      const statusFlow = ['pending','picking','packed','loaded','delivering','done'];
+      const sidx = statusFlow.indexOf(r.status);
+      const nextStatus = sidx >= 0 && sidx < statusFlow.length-1 ? statusFlow[sidx+1] : null;
+      const grid = document.getElementById('picklistGrid');
+
+      let tableRows = '';
+      (r.items || []).forEach((item, idx) => {
+        const pct = item.pct_full !== undefined ? item.pct_full : null;
+        const pctColor = pct !== null ? (pct<25?'var(--hot)':pct<50?'var(--warn)':'var(--success)') : 'var(--muted)';
+        const bar = pct !== null
+          ? `<div style="display:flex;align-items:center;gap:6px;"><div style="width:70px;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${pctColor};"></div></div><span style="font-size:0.75rem;font-weight:700;color:${pctColor};">${pct}%</span></div>`
+          : '<span style="color:var(--muted);">—</span>';
+        const prod = products.find(p => p.id === item.product_id || p.name === item.name);
+        const cat = prod?.category || '';
+        const cls = {'beverages':'cat-beverages','snacks':'cat-snacks','candy':'cat-candy','healthy':'cat-healthy','energy':'cat-energy','incidentals':'cat-incidentals'}[cat] || '';
+        tableRows += `<tr>
+          <td style="${item.checked?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(item.name)}</td>
+          <td>${cat ? `<span class="cat-badge ${cls}">${cat}</span>` : '—'}</td>
+          <td style="text-align:center;">${prod?.stock !== undefined ? prod.stock : '—'}</td>
+          <td>${bar}</td>
+          <td style="text-align:center;font-weight:700;color:var(--accent);">×${item.qty_needed||item.qty}</td>
+          <td style="text-align:center;"><div class="pl-check ${item.checked?'checked':''}" style="margin:auto;" onclick="plToggleItem(${r.id},${idx});openMachinePicklist(${machineId},${restockId})">${item.checked?'✓':''}</div></td>
+        </tr>`;
+      });
+
+      grid.innerHTML = `
+        <div style="margin-bottom:16px;display:flex;align-items:center;gap:12px;">
+          <button class="btn btn-sm" onclick="renderPicklist()">← Back</button>
+          <div>
+            <div style="font-weight:700;font-size:1rem;">${escapeHtml(machine?.name || 'Unknown Machine')}</div>
+            ${loc ? `<div style="font-size:0.78rem;color:var(--muted);">📍 ${escapeHtml(loc.name)}</div>` : ''}
+          </div>
+          <span class="badge badge-${r.status}" style="margin-left:4px;">${r.status}</span>
+          ${nextStatus ? `<button class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="plMoveStatus(${r.id},'${nextStatus}')">Move to ${nextStatus} →</button>` : ''}
+        </div>
+        <div style="overflow-x:auto;">
           <table class="data-table" style="width:auto !important;min-width:0 !important;">
-            <thead>
-              <tr>
-                <th>Location</th>
-                <th>Machine</th>
-                <th>Product</th>
-                <th>Category</th>
-                <th>In Stock</th>
-                <th>Fill Level</th>
-                <th>Qty to Bring</th>
-                <th>Status</th>
-                <th>✓</th>
-              </tr>
-            </thead>
-            <tbody>`;
-
-        let lastLocId = null, lastMachineId = null;
-        rows.forEach(({ loc, machine, restock: r, item, idx }) => {
-          const locId = loc.id || loc.name;
-          const machineId = machine ? machine.id : 'none';
-          const pct = item.pct_full !== undefined ? item.pct_full : null;
-          const pctColor = pct !== null ? (pct<25?'var(--hot)':pct<50?'var(--warn)':'var(--success)') : 'var(--muted)';
-          const bar = pct !== null
-            ? `<div style="display:flex;align-items:center;gap:6px;"><div style="width:70px;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${pctColor};"></div></div><span style="font-size:0.75rem;font-weight:700;color:${pctColor};">${pct}%</span></div>`
-            : '<span style="color:var(--muted);">—</span>';
-          const prod = products.find(p => p.id === item.product_id || p.name === item.name);
-          const cat = prod?.category || '';
-          const cls = {'beverages':'cat-beverages','snacks':'cat-snacks','candy':'cat-candy','healthy':'cat-healthy','energy':'cat-energy','incidentals':'cat-incidentals'}[cat] || '';
-          const sidx = statusFlow.indexOf(r.status);
-          const nextStatus = sidx >= 0 && sidx < statusFlow.length-1 ? statusFlow[sidx+1] : null;
-
-          html += `<tr class="${item.checked ? '' : ''}">
-            <td style="font-size:0.8rem;font-weight:600;color:var(--accent);">${locId !== lastLocId ? escapeHtml(loc.name) : ''}</td>
-            <td style="font-size:0.8rem;">${machineId !== lastMachineId ? escapeHtml(machine ? machine.name : 'Unknown') : ''}</td>
-            <td style="${item.checked?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(item.name)}</td>
-            <td>${cat ? `<span class="cat-badge ${cls}">${cat}</span>` : '—'}</td>
-            <td style="text-align:center;">${prod?.stock !== undefined ? prod.stock : '—'}</td>
-            <td>${bar}</td>
-            <td style="text-align:center;font-weight:700;color:var(--accent);">×${item.qty_needed||item.qty}</td>
-            <td style="text-align:center;">${machineId !== lastMachineId ? `<span class="badge badge-${r.status}" style="font-size:0.65rem;">${r.status}</span>` : ''}</td>
-            <td style="text-align:center;"><div class="pl-check ${item.checked?'checked':''}" style="margin:auto;" onclick="plToggleItem(${r.id},${idx})">${item.checked?'✓':''}</div></td>
-          </tr>`;
-
-          lastLocId = locId;
-          lastMachineId = machineId;
-        });
-
-        html += '</tbody></table></div>';
-        grid.innerHTML = html;
-
-      } else {
-        // Mobile: compact cards per location
-        const locationTree = [];
-        const usedIds2 = new Set();
-        for (const loc of plLocations) {
-          const locMachines = plMachines.filter(m => m.location_id === loc.id || m.location?.id === loc.id);
-          const entries = [];
-          for (const m of locMachines) {
-            const mrs = filtered.filter(r => r.machine_id === m.id);
-            if (mrs.length) { entries.push({ machine: m, restocks: mrs }); mrs.forEach(r => usedIds2.add(r.id)); }
-          }
-          if (entries.length) locationTree.push({ location: loc, entries });
-        }
-        const orphans2 = filtered.filter(r => !usedIds2.has(r.id));
-        if (orphans2.length) locationTree.push({ location: { name: 'Unassigned', address: '' }, entries: [{ machine: null, restocks: orphans2 }] });
-
-        let html = '';
-        for (const { location, entries } of locationTree) {
-          html += `<div style="margin-bottom:20px;"><div style="background:var(--accent);color:#fff;padding:9px 14px;border-radius:8px 8px 0 0;font-weight:700;font-size:0.88rem;">📍 ${escapeHtml(location.name)}</div>`;
-          for (const { machine, restocks: mRestocks } of entries) {
-            for (const r of mRestocks) {
-              const items = r.items || [];
-              const checkedCount = items.filter(i => i.checked).length;
-              const sidx = statusFlow.indexOf(r.status);
-              const nextStatus = sidx >= 0 && sidx < statusFlow.length-1 ? statusFlow[sidx+1] : null;
-              html += `<div style="border:1px solid var(--border);border-top:none;background:var(--card);">
-                <div style="background:#f0f4f8;border-bottom:1px solid var(--border);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;">
-                  <strong style="font-size:0.82rem;">${escapeHtml(machine?machine.name:'Unknown')}</strong>
-                  <div style="display:flex;gap:6px;align-items:center;">
-                    <span class="badge badge-${r.status}" style="font-size:0.65rem;">${r.status}</span>
-                    <span style="font-size:0.72rem;color:var(--muted);">${checkedCount}/${items.length}</span>
-                    ${nextStatus?`<button class="btn btn-sm btn-primary" style="padding:3px 8px;font-size:0.72rem;" onclick="plMoveStatus(${r.id},'${nextStatus}')">${nextStatus==='done'?'✅':nextStatus+' →'}</button>`:''}
-                  </div>
-                </div>
-                ${items.map((item,idx)=>{
-                  const pct=item.pct_full!==undefined?item.pct_full:null;
-                  const pc=pct!==null?(pct<25?'var(--hot)':pct<50?'var(--warn)':'var(--success)'):'var(--muted)';
-                  return `<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--border);min-height:44px;">
-                    <div class="pl-check ${item.checked?'checked':''}" style="flex-shrink:0;" onclick="plToggleItem(${r.id},${idx})">${item.checked?'✓':''}</div>
-                    <span style="flex:1;font-size:0.85rem;${item.checked?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(item.name)}</span>
-                    ${pct!==null?`<span style="font-size:0.72rem;font-weight:700;color:${pc};flex-shrink:0;">${pct}%</span>`:''}
-                    <span style="font-weight:700;color:var(--accent);flex-shrink:0;font-size:0.82rem;">×${item.qty_needed||item.qty}</span>
-                  </div>`;
-                }).join('')}
-                <div style="padding:8px 12px;display:flex;gap:8px;">
-                  ${nextStatus?`<button class="btn btn-primary" style="flex:1;min-height:44px;" onclick="plMoveStatus(${r.id},'${nextStatus}')">${nextStatus==='done'?'✅ Complete':nextStatus+' →'}</button>`:''}
-                  <button class="btn btn-sm" onclick="openPicklistModal(${r.id})">Edit</button>
-                </div>
-              </div>`;
-            }
-          }
-          html += '</div>';
-        }
-        grid.innerHTML = html;
-      }
+            <thead><tr>
+              <th>Product</th><th>Category</th><th>In Stock</th><th>Fill Level</th><th>Qty to Bring</th><th>✓</th>
+            </tr></thead>
+            <tbody>${tableRows}</tbody>
+          </table>
+        </div>`;
     }
 
 
