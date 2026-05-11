@@ -786,6 +786,18 @@
         </table>
         <div class="mobile-cards" id="inventoryMobileCards"></div>
       </div>
+
+      <!-- Audit Panel -->
+      <div id="auditPanel" style="display:none;margin-top:24px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <h3 style="font-size:1rem;font-weight:700;">🔍 Data Audit</h3>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-sm btn-warn" onclick="fixAllAuditIssues(this)">Fix All</button>
+            <button class="btn btn-sm" onclick="document.getElementById('auditPanel').style.display='none'">Hide</button>
+          </div>
+        </div>
+        <div id="auditPanelBody"></div>
+      </div>
     </div>
 
 
@@ -1412,12 +1424,15 @@
         if (!audit.ok && warnings.length > 0) {
           const labels = warnings.map(c => c.label).join('; ');
           banner.innerHTML = `⚠️ <strong>${warnings.length} data issue${warnings.length > 1 ? 's' : ''} found</strong> — ${labels}.
+            <a href="#" onclick="showAuditDetails();return false;" style="margin-left:8px;color:#c05621;font-weight:700;text-decoration:underline;">View & Fix</a>
             <button onclick="fixAllAuditIssues(this)" style="margin-left:12px;padding:4px 10px;border:1px solid #c05621;border-radius:6px;background:#fff;color:#c05621;font-weight:700;cursor:pointer;font-size:0.8rem;">Fix All</button>
             <button onclick="this.parentElement.style.display='none'" style="margin-left:8px;background:none;border:none;font-size:1rem;cursor:pointer;color:#c05621;">✕</button>`;
           banner.style.display = 'flex';
         } else {
           banner.style.display = 'none';
         }
+        // Also populate the audit panel
+        renderAuditPanel(audit);
       } catch(e) { console.error('Audit failed:', e); }
     }
 
@@ -1437,6 +1452,52 @@
       } finally {
         if (btn) { btn.textContent = 'Fix All'; btn.disabled = false; }
       }
+    }
+
+    function showAuditDetails() {
+      switchTab('inventory', document.querySelector('[data-tab="inventory"]'));
+      const panel = document.getElementById('auditPanel');
+      if (panel) panel.style.display = 'block';
+      panel.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function renderAuditPanel(audit) {
+      const body = document.getElementById('auditPanelBody');
+      if (!body) return;
+      if (!audit || !audit.checks) {
+        body.innerHTML = '<div style="color:var(--muted);">No audit data available.</div>';
+        return;
+      }
+
+      const html = audit.checks.map(check => {
+        const severityColor = check.severity === 'warning' ? 'var(--warn)' : check.severity === 'danger' ? 'var(--hot)' : 'var(--accent)';
+        const badgeClass = check.severity === 'warning' ? 'badge-warn' : check.severity === 'danger' ? 'badge-danger' : 'badge-success';
+        const itemsHtml = (check.items || []).length > 0
+          ? `<table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:0.8rem;">
+              <thead><tr style="background:#edf2f7;">
+                ${Object.keys(check.items[0]).map(k => `<th style="padding:4px 8px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">${k.replace(/_/g, ' ')}</th>`).join('')}
+              </tr></thead>
+              <tbody>
+                ${check.items.slice(0, 20).map(item => `<tr style="border-top:1px solid var(--border);">
+                  ${Object.values(item).map(v => `<td style="padding:4px 8px;">${v !== null && v !== undefined ? v : '—'}</td>`).join('')}
+                </tr>`).join('')}
+                ${check.items.length > 20 ? `<tr><td colspan="${Object.keys(check.items[0]).length}" style="padding:4px 8px;color:var(--muted);">... and ${check.items.length - 20} more</td></tr>` : ''}
+              </tbody>
+            </table>`
+          : (check.count !== undefined ? `<div style="margin-top:8px;color:var(--muted);font-size:0.85rem;">Count: ${check.count}</div>` : '');
+
+        return `
+          <div style="margin-bottom:16px;padding:12px;border:1px solid var(--border);border-radius:8px;border-left:4px solid ${severityColor};">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <span class="badge ${badgeClass}">${check.severity}</span>
+              <strong style="font-size:0.9rem;">${check.label}</strong>
+            </div>
+            ${itemsHtml}
+          </div>
+        `;
+      }).join('');
+
+      body.innerHTML = html || '<div style="color:var(--muted);">All checks passed.</div>';
     }
 
     // ===== API CALLS =====
