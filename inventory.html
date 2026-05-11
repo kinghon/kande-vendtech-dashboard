@@ -1906,10 +1906,17 @@
       }
 
       // Apply filter
-      if (expFilter === 'missing') records = records.filter(r => !r.expiration_date);
-      else if (expFilter === 'soon') records = records.filter(r => getExpStatus(r) === 'soon');
-      else if (expFilter === 'expired') records = records.filter(r => getExpStatus(r) === 'expired');
-      // 'all' shows everything — never hide items
+      if (expFilter === 'missing') {
+        records = records.filter(r => !r.expiration_date);
+        records.sort((a, b) => (a.product_name || '').localeCompare(b.product_name || ''));
+      } else if (expFilter === 'soon') {
+        records = records.filter(r => getExpStatus(r) === 'soon');
+        records.sort((a, b) => new Date(a.expiration_date) - new Date(b.expiration_date)); // soonest first
+      } else if (expFilter === 'expired') {
+        records = records.filter(r => getExpStatus(r) === 'expired');
+        records.sort((a, b) => new Date(b.expiration_date) - new Date(a.expiration_date)); // most recently expired first
+      }
+      // 'all' keeps server sort: order date → category → A-Z
 
       // Update stats
       document.getElementById('expStatTotal').textContent = expirationRecords.length;
