@@ -4167,7 +4167,8 @@
           <div style="font-size:0.68rem;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:0.06em;padding:0 0 6px 2px;">📍 ${escapeHtml(location.name)}</div>
           <div style="display:flex;flex-direction:column;gap:6px;">`;
         for (const { machine, restocks: mrs } of machineRows) {
-          const machineName = machine ? escapeHtml(machine.name || 'Machine #' + machine.id) : 'Unknown';
+          const rawName = machine ? (machine.name || 'Machine #' + machine.id) : 'Unknown';
+          const machineName = escapeHtml(rawName.includes(' - ') ? rawName.split(' - ').slice(1).join(' - ') : rawName);
           const totalItems = mrs.reduce((s, r) => s + (r.items||[]).length, 0);
           const checkedItems = mrs.reduce((s, r) => s + (r.items||[]).filter(i => i.checked).length, 0);
           const primaryStatus = mrs[0]?.status || 'pending';
