@@ -2996,6 +2996,34 @@ app.delete('/api/restocks/:id', (req, res) => {
   res.json({ success: true });
 });
 
+// ===== PICKLIST TEMPLATES =====
+if (!db.picklist_templates) db.picklist_templates = [];
+
+app.get('/api/picklist-templates', (req, res) => {
+  res.json(db.picklist_templates || []);
+});
+
+app.post('/api/picklist-templates', (req, res) => {
+  const { name, items } = req.body;
+  if (!name || !items) return res.status(400).json({ error: 'name and items required' });
+  const template = {
+    id: nextId(),
+    name,
+    items: items.map(i => ({ name: i.name, product_id: i.product_id || null, qty: i.qty || i.qty_needed || 1, qty_needed: i.qty_needed || i.qty || 1, refrigerated: i.refrigerated || false })),
+    created_at: new Date().toISOString()
+  };
+  db.picklist_templates.push(template);
+  saveDB(db);
+  res.json(template);
+});
+
+app.delete('/api/picklist-templates/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  db.picklist_templates = db.picklist_templates.filter(t => t.id !== id);
+  saveDB(db);
+  res.json({ success: true });
+});
+
 // ===== AI OFFICE RUNS API =====
 app.get('/api/ai-office/runs', (req, res) => {
   const runs = (db.aiOfficeRuns || [])
