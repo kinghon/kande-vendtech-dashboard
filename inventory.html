@@ -2843,7 +2843,7 @@
         loadOrderSummary();
       }
       if (tabId === 'picklist') { loadPicklist(); }
-      if (tabId === 'pulllist') { loadPullList().then(renderPullList); }
+      if (tabId === 'pulllist') { autoGeneratePullList(); }
     }
 
     // ===== STOCK ADJUSTMENTS =====
@@ -3800,6 +3800,16 @@
       if (tab === 'analytics') { renderSpoilageAnalytics(); }
     }
 
+    async function autoGeneratePullList() {
+      try {
+        const res = await fetch('/api/pull-list/auto-generate', { method: 'POST' });
+        const data = await res.json();
+        if (data.generated > 0) expToast(`✓ ${data.generated} item${data.generated !== 1 ? 's' : ''} added to pull list`);
+      } catch(e) { console.error('auto-generate pull list:', e); }
+      await loadPullList();
+      renderPullList();
+    }
+
     async function loadPullList() {
       try {
         const res = await fetch('/api/pull-list?status=pending');
@@ -3826,7 +3836,7 @@
       }
       tbody.innerHTML = pullListData2.map(item => `
         <tr>
-          <td>${escapeHtml(item.product_name)}</td>
+          <td>${escapeHtml(item.product_name)}${item.auto_generated ? ' <span class="badge badge-warn" style="font-size:0.65rem;">auto</span>' : ''}</td>
           <td>${escapeHtml(item.machine_name)}</td>
           <td style="text-align:center;font-weight:700;">${item.quantity}</td>
           <td><span class="badge ${item.reason === 'expired' ? 'badge-purple' : item.reason === 'damaged' ? 'badge-danger' : 'badge-muted'}">${item.reason}</span></td>

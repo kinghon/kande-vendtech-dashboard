@@ -2189,6 +2189,81 @@ app.get('/api/pull-list', (req, res) => {
   res.json(items.sort((a, b) => new Date(b.pulled_at) - new Date(a.pulled_at)));
 });
 
+// POST /api/pull-list/auto-generate
+// Scans expiration records and creates pull list entries for items nearing expiration that are in machines.
+// Snacks/drinks: 4 days ahead. Fresh foods (sandwich/wrap/salad/fresh): 1 day ahead.
+app.post('/api/pull-list/auto-generate', (req, res) => {
+  if (!db.expiration_records) db.expiration_records = [];
+  if (!db.sandstar_inventory) db.sandstar_inventory = [];
+  if (!db.pull_list) db.pull_list = [];
+  if (!db.products) db.products = [];
+
+  const FRESH_KEYWORDS = ['sandwich', 'wrap', 'salad', 'fresh', 'sushi', 'roll', 'burrito', 'bowl'];
+  const FRESH_DAYS = 1;
+  const DEFAULT_DAYS = 4;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const created = [];
+  const skipped = [];
+
+  for (const record of db.expiration_records) {
+    if (!record.expiration_date) continue;
+    const expDate = new Date(record.expiration_date);
+    expDate.setHours(0, 0, 0, 0);
+    const daysLeft = Math.ceil((expDate - today) / (24 * 60 * 60 * 1000));
+
+    // Determine threshold based on product type
+    const nameLower = (record.product_name || '').toLowerCase();
+    const prod = db.products.find(p => p.id === record.product_id);
+    const catLower = (prod?.category || '').toLowerCase();
+    const isFresh = FRESH_KEYWORDS.some(k => nameLower.includes(k) || catLower.includes(k));
+    const threshold = isFresh ? FRESH_DAYS : DEFAULT_DAYS;
+
+    if (daysLeft > threshold || daysLeft < 0) continue; // not yet or already expired
+
+    // Find this product in machines (from Sandstar inventory)
+    const machineEntries = db.sandstar_inventory.filter(inv =>
+      (inv.product_barcode && prod?.sku && inv.product_barcode === prod.sku) ||
+      (inv.product_name || '').toLowerCase().trim() === nameLower
+    ).filter(inv => (inv.current_quantity || 0) > 0);
+
+    if (machineEntries.length === 0) continue; // not in any machine
+
+    for (const machineEntry of machineEntries) {
+      // Skip if a pending pull list entry already exists for this product+machine
+      const alreadyExists = db.pull_list.some(p =>
+        p.status === 'pending' &&
+        (p.product_id === record.product_id || p.product_name === record.product_name) &&
+        p.machine_id === String(machineEntry.sandstar_machine_id) &&
+        p.auto_generated
+      );
+      if (alreadyExists) { skipped.push({ product: record.product_name, machine: machineEntry.machine_name }); continue; }
+
+      const entry = {
+        id: nextId(),
+        product_id: record.product_id || null,
+        product_name: record.product_name,
+        machine_id: String(machineEntry.sandstar_machine_id),
+        machine_name: machineEntry.machine_name || 'Unknown Machine',
+        quantity: machineEntry.current_quantity || 1,
+        pulled_at: today.toISOString().split('T')[0],
+        reason: 'expired',
+        notes: `Auto-generated: expires ${record.expiration_date} (${daysLeft} day${daysLeft !== 1 ? 's' : ''})`,
+        status: 'pending',
+        auto_generated: true,
+        expiration_date: record.expiration_date,
+        days_until_expiration: daysLeft
+      };
+      db.pull_list.push(entry);
+      created.push({ product: record.product_name, machine: machineEntry.machine_name, days_left: daysLeft });
+    }
+  }
+
+  if (created.length > 0) saveDB(db);
+  res.json({ generated: created.length, skipped: skipped.length, items: created });
+});
+
 app.post('/api/pull-list', (req, res) => {
   const { product_id, machine_id, machine_name, quantity, pulled_at, reason, notes } = req.body;
   if (!product_id || !machine_id || !quantity || quantity <= 0) {

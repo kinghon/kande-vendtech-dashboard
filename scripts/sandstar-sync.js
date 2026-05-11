@@ -368,6 +368,12 @@ function dashApi(method, path, body, cookies) {
       log(`No changes — silent (${onlineCount}/${machineStatus.length} online, ${allOrders.length} total orders, ${completedOrders.length} completed)`);
     }
 
+    // Auto-generate pull list from expiration dates
+    try {
+      const plRes = await dashApi('POST', '/api/pull-list/auto-generate', {}, dashCookies);
+      if (plRes.generated > 0) log(`Pull list: ${plRes.generated} items auto-added (expiring within threshold)`);
+    } catch(e) { log(`Pull list auto-generate failed: ${e.message}`); }
+
     log('===== Sandstar sync complete =====');
 
   } catch (e) {
