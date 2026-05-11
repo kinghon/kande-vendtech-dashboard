@@ -294,8 +294,13 @@
     .order-body { padding: 0; }
     .order-body.collapsed { display: none; }
     .order-items-table { width: 100%; border-collapse: collapse; }
-    .order-items-table th { background: #edf2f7; padding: 8px 12px; font-size: 0.7rem; text-transform: uppercase; color: var(--muted); font-weight: 700; text-align: left; }
+    .order-items-table th { background: #edf2f7; padding: 8px 12px; font-size: 0.7rem; text-transform: uppercase; color: var(--muted); font-weight: 700; text-align: left; white-space:nowrap; }
     .order-items-table td { padding: 10px 12px; border-top: 1px solid var(--border); font-size: 0.85rem; vertical-align: middle; }
+    .order-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    @media (max-width: 768px) {
+      .order-items-table td, .order-items-table th { padding: 8px 8px; font-size: 0.78rem; }
+      .order-col-hide-mobile { display: none; }
+    }
     .order-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); }
     .order-thumb-placeholder { width: 48px; height: 48px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #f0f4f8; border: 1px solid var(--border); }
     .prod-thumb { width: 32px; height: 32px; object-fit: cover; border-radius: 5px; border: 1px solid var(--border); cursor: pointer; transition: transform 0.15s; }
@@ -3356,16 +3361,17 @@
               </div>
             </div>
             <div class="order-body collapsed" id="order-body-${order.id}">
+              <div class="order-table-wrap">
               <table class="order-items-table">
                 <thead>
                   <tr>
-                    <th style="width:60px">Img</th>
+                    <th style="width:52px">Img</th>
                     <th>Item</th>
-                    <th>Size</th>
-                    <th>Item #</th>
-                    <th>Units/Case</th>
+                    <th class="order-col-hide-mobile">Size</th>
+                    <th class="order-col-hide-mobile">Item #</th>
+                    <th class="order-col-hide-mobile">Units/Case</th>
                     <th>Cases</th>
-                    <th>Price/Case</th>
+                    <th class="order-col-hide-mobile">Price/Case</th>
                     <th>Unit Cost</th>
                     <th style="text-align:right">Total</th>
                   </tr>
@@ -3383,17 +3389,18 @@
                     return `<tr>
                       <td>${thumb}</td>
                       <td><strong>${item.product_name || 'Unknown'}</strong></td>
-                      <td style="font-size:0.82rem;color:var(--muted);white-space:nowrap">${item.unit_size || '—'}</td>
-                      <td style="font-family:monospace;font-size:0.8rem;color:var(--muted)">${itemNum}</td>
-                      <td>${item.units_per_case || '—'}</td>
+                      <td class="order-col-hide-mobile" style="font-size:0.82rem;color:var(--muted);white-space:nowrap">${item.unit_size || '—'}</td>
+                      <td class="order-col-hide-mobile" style="font-family:monospace;font-size:0.8rem;color:var(--muted)">${itemNum}</td>
+                      <td class="order-col-hide-mobile">${item.units_per_case || '—'}</td>
                       <td>${item.cases}</td>
-                      <td>$${(item.price_per_case || 0).toFixed(2)}</td>
+                      <td class="order-col-hide-mobile">$${(item.price_per_case || 0).toFixed(2)}</td>
                       <td>$${unitCost.toFixed(2)}</td>
                       <td style="text-align:right;font-weight:700">$${(item.total || 0).toFixed(2)}</td>
                     </tr>`;
                   }).join('')}
                 </tbody>
               </table>
+              </div>
               ${order.notes ? `<div style="padding:8px 18px;font-size:0.78rem;color:var(--muted);border-top:1px solid var(--border)">${order.notes}</div>` : ''}
             </div>
           </div>
