@@ -1953,6 +1953,41 @@ app.post('/api/expiration/import', (req, res) => {
   res.json({ imported: created.length + updated.length, created: created.length, updated: updated.length, records: [...created, ...updated] });
 });
 
+// POST /api/expiration/import-all — auto-import every order receipt (skips already-imported items)
+app.post('/api/expiration/import-all', (req, res) => {
+  if (!db.expiration_records) db.expiration_records = [];
+  let totalCreated = 0, totalUpdated = 0;
+
+  for (const receipt of (db.order_receipts || [])) {
+    const invoiceNumber = receipt.vendhub_order_ref || receipt.invoice_number || `Order #${receipt.id}`;
+    for (const item of (receipt.items || [])) {
+      const productName = item.product_name || (db.products || []).find(p => p.id === item.product_id)?.name || 'Unknown';
+      const totalQty = (item.cases || 0) * (item.units_per_case || 0);
+      const existingIdx = db.expiration_records.findIndex(er =>
+        er.product_name === productName && er.invoice_number === invoiceNumber
+      );
+      const record = {
+        id: existingIdx >= 0 ? db.expiration_records[existingIdx].id : (db.nextId = (db.nextId || 1000) + 1, db.nextId),
+        invoice_number: invoiceNumber,
+        supplier: receipt.supplier || receipt.vendor || 'Unknown',
+        order_date: receipt.order_date || null,
+        product_name: productName,
+        product_id: item.product_id || null,
+        total_qty: totalQty,
+        expiration_date: existingIdx >= 0 ? db.expiration_records[existingIdx].expiration_date : null,
+        sub_lots: existingIdx >= 0 ? (db.expiration_records[existingIdx].sub_lots || []) : [],
+        notes: existingIdx >= 0 ? (db.expiration_records[existingIdx].notes || '') : '',
+        created_at: existingIdx >= 0 ? db.expiration_records[existingIdx].created_at : new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      if (existingIdx >= 0) { db.expiration_records[existingIdx] = record; totalUpdated++; }
+      else { db.expiration_records.push(record); totalCreated++; }
+    }
+  }
+  saveDB(db);
+  res.json({ imported: totalCreated + totalUpdated, created: totalCreated, updated: totalUpdated });
+});
+
 // GET /api/expiration/records — list all expiration records
 app.get('/api/expiration/records', (req, res) => {
   if (!db.expiration_records) db.expiration_records = [];

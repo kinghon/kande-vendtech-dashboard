@@ -783,15 +783,6 @@
     <!-- Expiration Tab -->
     <div id="tab-expiration" class="tab-content" style="display:none;">
       <!-- Sticky Import Bar -->
-      <div id="expImportBar" class="exp-import-bar">
-        <div class="exp-import-inner">
-          <select id="expOrderSelect" class="exp-order-select">
-            <option value="">📋 Select an order to import…</option>
-          </select>
-          <button class="btn btn-primary exp-import-btn" onclick="importExpirationOrder()">📥 Import</button>
-        </div>
-      </div>
-
       <!-- Filter Pills -->
       <div class="exp-filter-pills">
         <button class="exp-pill active" data-filter="all" onclick="setExpFilter('all', this)">All</button>
@@ -1354,9 +1345,7 @@
       await loadPullList();
       await loadSpoilageLog();
       await loadSpoilageSummary();
-      await loadExpirationOrders();
       await loadExpirationRecords();
-      populateExpOrderSelect();
       renderAll();
     }
 
@@ -1649,15 +1638,10 @@
     let expirationOrders = [];
     let expFilter = 'all';
 
-    async function loadExpirationOrders() {
-      try {
-        const res = await fetch('/api/expiration/orders');
-        if (res.ok) expirationOrders = await res.json();
-      } catch (e) { console.error('Failed to load expiration orders:', e); }
-    }
-
     async function loadExpirationRecords() {
       try {
+        // Auto-import all orders first (idempotent — skips already-imported)
+        await fetch('/api/expiration/import-all', { method: 'POST' });
         const res = await fetch('/api/expiration/records');
         if (res.ok) expirationRecords = await res.json();
       } catch (e) { console.error('Failed to load expiration records:', e); }
