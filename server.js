@@ -2497,12 +2497,24 @@ app.get('/api/expiration/records', (req, res) => {
     return r;
   });
 
-  // Sort by order date (order receipt date) then by product_name — stable, doesn't jump when date is set
+  // Sort: 1) order date desc, 2) product category, 3) product name A-Z
+  const products = db.products || [];
+  const catOrder = ['beverages','energy','healthy','snacks','candy','incidentals'];
   records.sort((a, b) => {
+    // 1. Order date (newest first)
     const dateA = a.order_date || a.created_at || '';
     const dateB = b.order_date || b.created_at || '';
     const dateDiff = new Date(dateB) - new Date(dateA);
     if (dateDiff !== 0) return dateDiff;
+    // 2. Category
+    const prodA = products.find(p => p.id === a.product_id);
+    const prodB = products.find(p => p.id === b.product_id);
+    const catA = (prodA?.category || '').toLowerCase();
+    const catB = (prodB?.category || '').toLowerCase();
+    const catIdxA = catOrder.indexOf(catA) >= 0 ? catOrder.indexOf(catA) : 99;
+    const catIdxB = catOrder.indexOf(catB) >= 0 ? catOrder.indexOf(catB) : 99;
+    if (catIdxA !== catIdxB) return catIdxA - catIdxB;
+    // 3. Product name A-Z
     return (a.product_name || '').localeCompare(b.product_name || '');
   });
 
