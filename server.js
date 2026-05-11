@@ -2965,7 +2965,26 @@ app.put('/api/restocks/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const idx = db.restocks.findIndex(r => r.id === id);
   if (idx === -1) return res.status(404).json({ error: 'Not found' });
-  db.restocks[idx] = { ...db.restocks[idx], ...req.body, updated_at: new Date().toISOString() };
+  const existing = db.restocks[idx];
+  const update = { ...existing, ...req.body, updated_at: new Date().toISOString() };
+  // Preserve user-set qty, checked, and checked_at on each item — never overwrite with incoming defaults
+  if (req.body.items && existing.items && existing.items.length > 0) {
+    update.items = req.body.items.map(newItem => {
+      const old = existing.items.find(o =>
+        (newItem.product_id && o.product_id === newItem.product_id) ||
+        o.name === newItem.name
+      );
+      if (!old) return newItem;
+      return {
+        ...newItem,
+        qty:        newItem.qty         !== undefined && newItem.qty         !== old.qty         ? newItem.qty         : old.qty,
+        qty_needed: newItem.qty_needed   !== undefined && newItem.qty_needed   !== old.qty_needed   ? newItem.qty_needed   : old.qty_needed,
+        checked:    newItem.checked      !== undefined && newItem.checked      !== old.checked      ? newItem.checked      : old.checked,
+        checked_at: newItem.checked_at   !== undefined                                              ? newItem.checked_at   : old.checked_at,
+      };
+    });
+  }
+  db.restocks[idx] = update;
   saveDB(db);
   res.json(db.restocks[idx]);
 });
