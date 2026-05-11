@@ -4243,7 +4243,7 @@
           const prod = products.find(p => p.id === item.product_id || p.name === item.name);
           const thumb = prod?.thumbnail || prod?.image_url || '';
           const thumbEl = thumb
-            ? `<img src="${thumb}" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#f7f7f7;flex-shrink:0;" onerror="this.style.display='none'">`
+            ? `<img src="${thumb}" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#f7f7f7;flex-shrink:0;cursor:zoom-in;" onclick="plShowThumb('${thumb}')" onerror="this.style.display='none'">`
             : `<div style="width:40px;height:40px;border-radius:6px;background:#f0f4f8;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">${getCategoryEmoji(item.name)}</div>`;
           const checkedAt = item.checked_at ? `<div style="font-size:0.65rem;color:var(--muted);">${new Date(item.checked_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>` : '';
           const refrig = needsRefrig(item);
@@ -4283,7 +4283,7 @@
           const cls = {'beverages':'cat-beverages','snacks':'cat-snacks','candy':'cat-candy','healthy':'cat-healthy','energy':'cat-energy','incidentals':'cat-incidentals','fresh food':'cat-fresh-food'}[cat] || '';
           const thumb2 = prod?.thumbnail || prod?.image_url || '';
           const thumbEl2 = thumb2
-            ? `<img src="${thumb2}" style="width:36px;height:36px;object-fit:contain;border-radius:5px;background:#f7f7f7;" onerror="this.style.display='none'">`
+            ? `<img src="${thumb2}" style="width:36px;height:36px;object-fit:contain;border-radius:5px;background:#f7f7f7;cursor:zoom-in;" onclick="plShowThumb('${thumb2}')" onerror="this.style.display='none'">`
             : `<div style="width:36px;height:36px;border-radius:5px;background:#f0f4f8;display:flex;align-items:center;justify-content:center;font-size:1.1rem;">${getCategoryEmoji(item.name)}</div>`;
           const checkedAtDesk = item.checked_at ? `<div style="font-size:0.65rem;color:var(--muted);">${new Date(item.checked_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>` : '';
           const refrig2 = needsRefrig(item);
@@ -4428,6 +4428,11 @@
 
   </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<!-- Thumbnail Lightbox -->
+<div id="plLightbox" onclick="this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:2000;align-items:center;justify-content:center;cursor:zoom-out;">
+  <img id="plLightboxImg" src="" style="max-width:90vw;max-height:90vh;border-radius:12px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,0.6);">
+</div>
+
 <!-- Picklist Add Item Modal -->
 <div id="plAddItemModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1001;align-items:center;justify-content:center;">
   <div style="background:var(--card);border-radius:12px;padding:24px;width:92%;max-width:460px;">
@@ -4501,6 +4506,12 @@
   }
 
   document.getElementById('plAddItemModal')?.addEventListener('click', e => { if (e.target.id==='plAddItemModal') e.target.style.display='none'; });
+
+  function plShowThumb(src) {
+    const lb = document.getElementById('plLightbox');
+    document.getElementById('plLightboxImg').src = src;
+    lb.style.display = 'flex';
+  }
 
   let plTemplates = [];
 
