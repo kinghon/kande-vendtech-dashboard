@@ -4237,8 +4237,13 @@
           const pct = item.pct_full !== undefined ? item.pct_full : null;
           const pctColor = pct !== null ? (pct<25?'var(--hot)':pct<50?'var(--warn)':'var(--success)') : 'var(--muted)';
           const prod = products.find(p => p.id === item.product_id || p.name === item.name);
-          items += `<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);background:var(--card);">
+          const thumb = prod?.thumbnail || prod?.image_url || '';
+          const thumbEl = thumb
+            ? `<img src="${thumb}" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#f7f7f7;flex-shrink:0;" onerror="this.style.display='none'">`
+            : `<div style="width:40px;height:40px;border-radius:6px;background:#f0f4f8;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">${getCategoryEmoji(item.name)}</div>`;
+          items += `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--card);">
             <div class="pl-check ${item.checked?'checked':''}" style="flex-shrink:0;" onclick="plToggleItem(${r.id},${idx});openMachinePicklist(${machineId},${restockId})">${item.checked?'✓':''}</div>
+            ${thumbEl}
             <div style="flex:1;min-width:0;">
               <div style="font-size:0.88rem;${item.checked?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(item.name)}</div>
               ${pct !== null ? `<div style="font-size:0.72rem;color:${pctColor};font-weight:700;">${pct}% full</div>` : ''}
@@ -4261,7 +4266,12 @@
           const prod = products.find(p => p.id === item.product_id || p.name === item.name);
           const cat = prod?.category || '';
           const cls = {'beverages':'cat-beverages','snacks':'cat-snacks','candy':'cat-candy','healthy':'cat-healthy','energy':'cat-energy','incidentals':'cat-incidentals'}[cat] || '';
+          const thumb2 = prod?.thumbnail || prod?.image_url || '';
+          const thumbEl2 = thumb2
+            ? `<img src="${thumb2}" style="width:36px;height:36px;object-fit:contain;border-radius:5px;background:#f7f7f7;" onerror="this.style.display='none'">`
+            : `<div style="width:36px;height:36px;border-radius:5px;background:#f0f4f8;display:flex;align-items:center;justify-content:center;font-size:1.1rem;">${getCategoryEmoji(item.name)}</div>`;
           tableRows += `<tr>
+            <td style="padding:6px 10px;">${thumbEl2}</td>
             <td style="${item.checked?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(item.name)}</td>
             <td>${cat ? `<span class="cat-badge ${cls}">${cat}</span>` : '—'}</td>
             <td style="text-align:center;">${prod?.stock !== undefined ? prod.stock : '—'}</td>
@@ -4270,7 +4280,7 @@
             <td style="text-align:center;"><div class="pl-check ${item.checked?'checked':''}" style="margin:auto;" onclick="plToggleItem(${r.id},${idx});openMachinePicklist(${machineId},${restockId})">${item.checked?'✓':''}</div></td>
           </tr>`;
         });
-        grid.innerHTML = header + `<div style="overflow-x:auto;"><table class="data-table" style="width:auto !important;min-width:0 !important;"><thead><tr><th>Product</th><th>Category</th><th>In Stock</th><th>Fill Level</th><th>Qty to Bring</th><th>✓</th></tr></thead><tbody>${tableRows}</tbody></table></div>`;
+        grid.innerHTML = header + `<div style="overflow-x:auto;"><table class="data-table" style="width:auto !important;min-width:0 !important;"><thead><tr><th></th><th>Product</th><th>Category</th><th>In Stock</th><th>Fill Level</th><th>Qty to Bring</th><th>✓</th></tr></thead><tbody>${tableRows}</tbody></table></div>`;
       }
     }
 
