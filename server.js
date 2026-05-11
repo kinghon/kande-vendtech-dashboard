@@ -1552,6 +1552,159 @@ app.post('/api/inventory/deployments', (req, res) => {
   res.json(createdRecords);
 });
 
+// ===== COMPUTED STOCK =====
+// GET /api/inventory/computed-stock — derives stock from sources of truth
+app.get('/api/inventory/computed-stock', (req, res) => {
+  const receipts = db.order_receipts || [];
+  const sandstarInv = db.sandstar_inventory || [];
+  const spoilage = db.spoilage_log || [];
+  const products = db.products || [];
+
+  // Aggregate received per product_id
+  const received = {};
+  for (const r of receipts) {
+    for (const item of (r.items || [])) {
+      const pid = item.product_id;
+      if (!pid) continue;
+      received[pid] = (received[pid] || 0) + (item.cases || 0) * (item.units_per_case || 0);
+    }
+  }
+
+  // Aggregate in-machines per product barcode → match to product
+  const inMachines = {};
+  for (const s of sandstarInv) {
+    const prod = products.find(p => p.sku === s.product_barcode || p.name?.toLowerCase() === s.product_name?.toLowerCase());
+    const pid = prod?.id || null;
+    if (pid) inMachines[pid] = (inMachines[pid] || 0) + (s.current_quantity || 0);
+  }
+
+  // Aggregate spoiled per product_id
+  const spoiled = {};
+  for (const s of spoilage) {
+    if (s.product_id) spoiled[s.product_id] = (spoiled[s.product_id] || 0) + (s.quantity || 0);
+  }
+
+  const result = products.map(p => {
+    const total_received = received[p.id] || 0;
+    const total_in_machines = inMachines[p.id] || 0;
+    const total_spoiled = spoiled[p.id] || 0;
+    const computed_stock = Math.max(0, total_received - total_in_machines - total_spoiled);
+    const stored_stock = p.stock || 0;
+    return {
+      product_id: p.id, product_name: p.name,
+      total_received, total_in_machines, total_spoiled,
+      computed_stock, stored_stock,
+      in_sync: computed_stock === stored_stock,
+      discrepancy: computed_stock - stored_stock
+    };
+  }).filter(p => p.total_received > 0);
+
+  res.json(result);
+});
+
+// POST /api/inventory/sync-stock — update stored stock to computed values
+app.post('/api/inventory/sync-stock', (req, res) => {
+  const receipts = db.order_receipts || [];
+  const sandstarInv = db.sandstar_inventory || [];
+  const spoilage = db.spoilage_log || [];
+  const products = db.products || [];
+
+  const received = {};
+  for (const r of receipts) {
+    for (const item of (r.items || [])) {
+      if (item.product_id) received[item.product_id] = (received[item.product_id] || 0) + (item.cases || 0) * (item.units_per_case || 0);
+    }
+  }
+  const inMachines = {};
+  for (const s of sandstarInv) {
+    const prod = products.find(p => p.sku === s.product_barcode || p.name?.toLowerCase() === s.product_name?.toLowerCase());
+    if (prod?.id) inMachines[prod.id] = (inMachines[prod.id] || 0) + (s.current_quantity || 0);
+  }
+  const spoiled = {};
+  for (const s of spoilage) {
+    if (s.product_id) spoiled[s.product_id] = (spoiled[s.product_id] || 0) + (s.quantity || 0);
+  }
+
+  const updated = [];
+  for (const p of products) {
+    if (!received[p.id]) continue;
+    const computed = Math.max(0, (received[p.id] || 0) - (inMachines[p.id] || 0) - (spoiled[p.id] || 0));
+    if (p.stock !== computed) {
+      updated.push({ product_id: p.id, product_name: p.name, old_stock: p.stock, new_stock: computed });
+      p.stock = computed;
+    }
+  }
+  if (updated.length) saveDB(db);
+  res.json({ updated: updated.length, changes: updated });
+});
+
+// GET /api/inventory/audit — cross-check all collections for inconsistencies
+app.get('/api/inventory/audit', (req, res) => {
+  const receipts = db.order_receipts || [];
+  const products = db.products || [];
+  const expRecords = db.expiration_records || [];
+  const sandstarInv = db.sandstar_inventory || [];
+  const spoilage = db.spoilage_log || [];
+  const checks = [];
+
+  // 1. Expiration qty vs order receipt
+  const expMismatches = [];
+  for (const r of expRecords) {
+    const receipt = receipts.find(o =>
+      o.vendhub_order_ref === r.invoice_number ||
+      o.invoice_number === r.invoice_number ||
+      `Order #${o.id}` === r.invoice_number
+    );
+    if (!receipt) continue;
+    const item = (receipt.items || []).find(i =>
+      (r.product_id && i.product_id === r.product_id) ||
+      (i.product_name || '').toLowerCase().trim() === (r.product_name || '').toLowerCase().trim()
+    );
+    if (!item) continue;
+    const live_qty = (item.cases || 0) * (item.units_per_case || 0);
+    if (live_qty > 0 && r.total_qty !== live_qty) {
+      expMismatches.push({ product_name: r.product_name, stored_qty: r.total_qty, order_qty: live_qty, invoice: r.invoice_number });
+    }
+  }
+  if (expMismatches.length) checks.push({ id: 'expiration_qty_mismatch', severity: 'warning', label: 'Expiration qty out of sync with order receipt', items: expMismatches });
+
+  // 2. Product stock vs computed
+  const received = {};
+  for (const r of receipts) {
+    for (const item of (r.items || [])) {
+      if (item.product_id) received[item.product_id] = (received[item.product_id] || 0) + (item.cases || 0) * (item.units_per_case || 0);
+    }
+  }
+  const inMachines = {};
+  for (const s of sandstarInv) {
+    const prod = products.find(p => p.sku === s.product_barcode || p.name?.toLowerCase() === s.product_name?.toLowerCase());
+    if (prod?.id) inMachines[prod.id] = (inMachines[prod.id] || 0) + (s.current_quantity || 0);
+  }
+  const spoiled = {};
+  for (const s of spoilage) {
+    if (s.product_id) spoiled[s.product_id] = (spoiled[s.product_id] || 0) + (s.quantity || 0);
+  }
+  const stockMismatches = [];
+  for (const p of products) {
+    if (!received[p.id]) continue;
+    const computed = Math.max(0, (received[p.id] || 0) - (inMachines[p.id] || 0) - (spoiled[p.id] || 0));
+    if ((p.stock || 0) !== computed) stockMismatches.push({ product_name: p.name, stored_stock: p.stock || 0, computed_stock: computed, diff: computed - (p.stock || 0) });
+  }
+  if (stockMismatches.length) checks.push({ id: 'stock_mismatch', severity: 'warning', label: 'Product stock does not match calculated value', items: stockMismatches });
+
+  // 3. Missing expiration dates
+  const missingDates = expRecords.filter(r => !r.expiration_date).length;
+  if (missingDates > 0) checks.push({ id: 'missing_expiration_dates', severity: 'info', label: 'Products with no expiration date set', count: missingDates });
+
+  // 4. Products in catalog with no order history
+  const noOrders = products.filter(p => !received[p.id]).map(p => ({ product_id: p.id, product_name: p.name }));
+  if (noOrders.length) checks.push({ id: 'products_not_in_orders', severity: 'info', label: 'Products in catalog with no order history', items: noOrders });
+
+  const warnings = checks.filter(c => c.severity === 'warning').length;
+  const infos = checks.filter(c => c.severity === 'info').length;
+  res.json({ ok: warnings === 0, checks, summary: `${warnings} warning${warnings !== 1 ? 's' : ''}, ${infos} info` });
+});
+
 app.get('/api/inventory/warehouse', (req, res) => {
   const receipts = db.order_receipts || [];
   const sandstarInv = db.sandstar_inventory || [];
@@ -2066,6 +2219,26 @@ app.get('/api/expiration/records', (req, res) => {
     const q = req.query.product_name.toLowerCase();
     records = records.filter(r => (r.product_name || '').toLowerCase().includes(q));
   }
+
+  // Always sync total_qty live from order receipt (source of truth)
+  records = records.map(r => {
+    const receipt = (db.order_receipts || []).find(o =>
+      o.vendhub_order_ref === r.invoice_number ||
+      o.invoice_number === r.invoice_number ||
+      `Order #${o.id}` === r.invoice_number
+    );
+    if (receipt) {
+      const item = (receipt.items || []).find(i =>
+        (r.product_id && i.product_id === r.product_id) ||
+        (i.product_name || '').toLowerCase().trim() === (r.product_name || '').toLowerCase().trim()
+      );
+      if (item) {
+        const live_qty = (item.cases || 0) * (item.units_per_case || 0);
+        if (live_qty > 0) r = { ...r, total_qty: live_qty };
+      }
+    }
+    return r;
+  });
 
   // Sort by expiration_date (nulls last), then by product_name
   records.sort((a, b) => {

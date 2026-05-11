@@ -726,6 +726,7 @@
     </div>
 
     <!-- Alerts -->
+    <div id="auditBanner" class="alert-banner alert-warn" style="display:none;"></div>
     <div id="alertsContainer"></div>
 
     <div class="tab-bar">
@@ -1397,6 +1398,45 @@
       await loadSpoilageSummary();
       await loadExpirationRecords();
       renderAll();
+      runAudit();
+    }
+
+    async function runAudit() {
+      try {
+        const res = await fetch('/api/inventory/audit');
+        if (!res.ok) return;
+        const audit = await res.json();
+        const banner = document.getElementById('auditBanner');
+        if (!banner) return;
+        const warnings = audit.checks.filter(c => c.severity === 'warning');
+        if (!audit.ok && warnings.length > 0) {
+          const labels = warnings.map(c => c.label).join('; ');
+          banner.innerHTML = `⚠️ <strong>${warnings.length} data issue${warnings.length > 1 ? 's' : ''} found</strong> — ${labels}.
+            <button onclick="fixAllAuditIssues(this)" style="margin-left:12px;padding:4px 10px;border:1px solid #c05621;border-radius:6px;background:#fff;color:#c05621;font-weight:700;cursor:pointer;font-size:0.8rem;">Fix All</button>
+            <button onclick="this.parentElement.style.display='none'" style="margin-left:8px;background:none;border:none;font-size:1rem;cursor:pointer;color:#c05621;">✕</button>`;
+          banner.style.display = 'flex';
+        } else {
+          banner.style.display = 'none';
+        }
+      } catch(e) { console.error('Audit failed:', e); }
+    }
+
+    async function fixAllAuditIssues(btn) {
+      if (btn) { btn.textContent = '⏳ Fixing...'; btn.disabled = true; }
+      try {
+        await fetch('/api/inventory/sync-stock', { method: 'POST' });
+        await fetch('/api/expiration/import-all', { method: 'POST' });
+        await loadProducts();
+        await loadInventory();
+        await loadExpirationRecords();
+        renderAll();
+        await runAudit();
+        expToast('✅ All issues fixed');
+      } catch(e) {
+        expToast('✗ Fix failed: ' + e.message);
+      } finally {
+        if (btn) { btn.textContent = 'Fix All'; btn.disabled = false; }
+      }
     }
 
     // ===== API CALLS =====
