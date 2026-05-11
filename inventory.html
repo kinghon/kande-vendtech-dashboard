@@ -777,6 +777,7 @@
       <button class="tab-btn" data-tab="categories" onclick="switchTab('categories', this)">🏷️ Categories</button>
       <button class="tab-btn" data-tab="warehouse" onclick="switchTab('warehouse', this)">🏭 Warehouse</button>
       <button class="tab-btn" data-tab="spoilage" onclick="switchTab('spoilage', this)">🗑️ Spoilage</button>
+      <button class="tab-btn" data-tab="pulllist" onclick="switchTab('pulllist', this)">❌ Pull List</button>
       <button class="tab-btn" data-tab="picklist" onclick="switchTab('picklist', this)">📋 Pick List</button>
     </div>
 
@@ -1121,6 +1122,25 @@
           <tbody id="spoilageByMachineBody"></tbody>
         </table>
       </div>
+    </div>
+  </div>
+
+  <!-- Pull List Tab -->
+  <div id="tab-pulllist" class="tab-content" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <h3 style="font-size:1.1rem;margin:0;">❌ Active Pull List</h3>
+      <button class="btn btn-primary" onclick="openAddPullModal()">+ Add Pull</button>
+    </div>
+    <div class="table-container">
+      <table class="data-table" id="pullListTable2">
+        <thead>
+          <tr>
+            <th>Product</th><th>Machine</th><th>Qty</th><th>Reason</th><th>Pulled Date</th><th>Notes</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="pullListBody2"></tbody>
+      </table>
+      <div class="mobile-cards" id="pullListMobileCards2"></div>
     </div>
   </div>
 
@@ -2822,9 +2842,8 @@
         loadPriceHistory();
         loadOrderSummary();
       }
-      if (tabId === 'picklist') {
-        loadPicklist();
-      }
+      if (tabId === 'picklist') { loadPicklist(); }
+      if (tabId === 'pulllist') { loadPullList().then(renderPullList); }
     }
 
     // ===== STOCK ADJUSTMENTS =====
@@ -3789,15 +3808,23 @@
     }
 
     function renderPullList() {
-      const tbody = document.getElementById('pullListBody');
-      const mobileContainer = document.getElementById('pullListMobileCards');
+      // Render into both the spoilage sub-tab and the dedicated Pull List tab
+      ['pullListBody','pullListBody2'].forEach((id, i) => {
+        const tbody = document.getElementById(id);
+        const mobileContainer = document.getElementById(i===0?'pullListMobileCards':'pullListMobileCards2');
+        _renderPullListInto(tbody, mobileContainer);
+      });
+    }
+
+    function _renderPullListInto(tbody, mobileContainer) {
+      const pullListData2 = pullListData;  // use shared data
       if (!tbody) return;
-      if (pullListData.length === 0) {
+      if (pullListData2.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted);">No pending pull items. Items pulled from machines appear here.</td></tr>';
         if (mobileContainer) mobileContainer.innerHTML = '<div class="shopping-empty">No pending pull items.</div>';
         return;
       }
-      tbody.innerHTML = pullListData.map(item => `
+      tbody.innerHTML = pullListData2.map(item => `
         <tr>
           <td>${escapeHtml(item.product_name)}</td>
           <td>${escapeHtml(item.machine_name)}</td>
@@ -3813,7 +3840,7 @@
       `).join('');
 
       if (mobileContainer) {
-        mobileContainer.innerHTML = pullListData.map(item => `
+        mobileContainer.innerHTML = pullListData2.map(item => `
           <div class="spoil-mobile-card">
             <div class="sp-row">
               <span class="sp-name">${escapeHtml(item.product_name)}</span>
