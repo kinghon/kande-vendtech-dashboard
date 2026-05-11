@@ -4161,31 +4161,31 @@
       if (locationTree.length === 0) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
       empty.style.display = 'none';
 
-      let html = '';
+      let html = '<div style="max-width:640px;margin:0 auto;">';
       for (const { location, machineRows } of locationTree) {
-        html += `<div style="margin-bottom:24px;">
-          <div style="font-size:0.72rem;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:0.05em;padding:0 0 8px 2px;">📍 ${escapeHtml(location.name)}</div>
-          <div style="display:flex;flex-direction:column;gap:8px;">`;
+        html += `<div style="margin-bottom:20px;">
+          <div style="font-size:0.68rem;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:0.06em;padding:0 0 6px 2px;">📍 ${escapeHtml(location.name)}</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">`;
         for (const { machine, restocks: mrs } of machineRows) {
           const machineName = machine ? escapeHtml(machine.name || 'Machine #' + machine.id) : 'Unknown';
           const totalItems = mrs.reduce((s, r) => s + (r.items||[]).length, 0);
           const checkedItems = mrs.reduce((s, r) => s + (r.items||[]).filter(i => i.checked).length, 0);
-          const statuses = [...new Set(mrs.map(r => r.status))];
           const primaryStatus = mrs[0]?.status || 'pending';
           const machineId = machine ? machine.id : null;
-          html += `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;gap:12px;">
-            <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
-              <div style="font-size:0.95rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${machineName}</div>
-              ${mrs.length ? `<span class="badge badge-${primaryStatus}" style="font-size:0.65rem;flex-shrink:0;">${primaryStatus}</span>` : ''}
-              ${totalItems ? `<span style="font-size:0.78rem;color:var(--muted);flex-shrink:0;">${checkedItems}/${totalItems} items</span>` : '<span style="font-size:0.78rem;color:var(--muted);">no pick list</span>'}
+          html += `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border);border-radius:7px;padding:9px 14px;gap:12px;">
+            <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+              <div style="font-size:0.88rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${machineName}</div>
+              ${mrs.length ? `<span class="badge badge-${primaryStatus}" style="font-size:0.62rem;flex-shrink:0;">${primaryStatus}</span>` : ''}
+              ${totalItems ? `<span style="font-size:0.75rem;color:var(--muted);flex-shrink:0;">${checkedItems}/${totalItems} items</span>` : '<span style="font-size:0.75rem;color:var(--muted);">no pick list</span>'}
             </div>
-            <div style="display:flex;gap:8px;flex-shrink:0;">
-              ${mrs.length ? `<button class="btn btn-primary btn-sm" onclick="openMachinePicklist(${machineId ? machineId : 'null'}, ${mrs[0].id})">📋 View Pick List</button>` : `<button class="btn btn-sm" onclick="openPicklistModal()">+ Create</button>`}
+            <div style="flex-shrink:0;">
+              ${mrs.length ? `<button class="btn btn-primary btn-sm" onclick="openMachinePicklist(${machineId ?? 'null'}, ${mrs[0].id})">📋 View</button>` : `<button class="btn btn-sm" onclick="openPicklistModal()">+ Create</button>`}
             </div>
           </div>`;
         }
         html += '</div></div>';
       }
+      html += '</div>';
       grid.innerHTML = html;
     }
 
