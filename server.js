@@ -260,6 +260,7 @@ if (!db.sandstar_inventory) db.sandstar_inventory = [];
 if (!db.inventory_deployments) db.inventory_deployments = [];
 if (!db.pull_list) db.pull_list = [];
 if (!db.spoilage_log) db.spoilage_log = [];
+if (!db.expiration_records) db.expiration_records = [];
 
 // Seed initial todos if empty
 if (db.todos.length === 0) {
@@ -1862,6 +1863,153 @@ app.get('/api/spoilage/summary', (req, res) => {
     by_product: productList,
     by_machine: machineList
   });
+});
+
+// ===== EXPIRATION TRACKING API =====
+
+// GET /api/expiration/orders — list order receipts with item count for import dropdown
+app.get('/api/expiration/orders', (req, res) => {
+  const receipts = db.order_receipts || [];
+  const result = receipts
+    .sort((a, b) => {
+      const d = new Date(b.order_date) - new Date(a.order_date);
+      if (d !== 0) return d;
+      return (b.id || 0) - (a.id || 0);
+    })
+    .map(r => ({
+      id: r.id,
+      invoice_number: r.vendhub_order_ref || r.invoice_number || `Order #${r.id}`,
+      supplier: r.supplier || r.vendor || 'Unknown',
+      order_date: r.order_date,
+      item_count: (r.items || []).length,
+      items: (r.items || []).map(item => ({
+        product_id: item.product_id,
+        product_name: item.product_name || db.products.find(p => p.id === item.product_id)?.name || 'Unknown',
+        cases: item.cases || 0,
+        units_per_case: item.units_per_case || 0,
+        total_qty: (item.cases || 0) * (item.units_per_case || 0),
+        price_per_case: item.price_per_case || 0,
+        unit_size: item.unit_size || db.products.find(p => p.id === item.product_id)?.unit_size || ''
+      }))
+    }));
+  res.json(result);
+});
+
+// POST /api/expiration/import — import items from an order receipt by invoice number
+// Creates/upserts expiration records keyed by product_name + invoice_number
+app.post('/api/expiration/import', (req, res) => {
+  const { invoice_number } = req.body;
+  if (!invoice_number) {
+    return res.status(400).json({ error: 'invoice_number is required' });
+  }
+
+  // Find the receipt by invoice_number (match vendhub_order_ref or invoice_number)
+  const receipt = (db.order_receipts || []).find(r =>
+    r.vendhub_order_ref === invoice_number ||
+    r.invoice_number === invoice_number
+  );
+  if (!receipt) {
+    return res.status(404).json({ error: 'Order receipt not found for invoice: ' + invoice_number });
+  }
+
+  if (!db.expiration_records) db.expiration_records = [];
+
+  const created = [];
+  const updated = [];
+
+  for (const item of (receipt.items || [])) {
+    const productName = item.product_name || db.products.find(p => p.id === item.product_id)?.name || 'Unknown';
+    const totalQty = (item.cases || 0) * (item.units_per_case || 0);
+
+    // Upsert: find existing record by product_name + invoice_number
+    const existingIdx = db.expiration_records.findIndex(er =>
+      er.product_name === productName && er.invoice_number === invoice_number
+    );
+
+    const record = {
+      id: existingIdx >= 0 ? db.expiration_records[existingIdx].id : nextId(),
+      invoice_number: invoice_number,
+      supplier: receipt.supplier || receipt.vendor || 'Unknown',
+      product_name: productName,
+      product_id: item.product_id || null,
+      total_qty: totalQty,
+      expiration_date: null,
+      sub_lots: existingIdx >= 0 ? (db.expiration_records[existingIdx].sub_lots || []) : [],
+      notes: '',
+      created_at: existingIdx >= 0 ? db.expiration_records[existingIdx].created_at : new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    if (existingIdx >= 0) {
+      db.expiration_records[existingIdx] = record;
+      updated.push(record);
+    } else {
+      db.expiration_records.push(record);
+      created.push(record);
+    }
+  }
+
+  saveDB(db);
+  res.json({ imported: created.length + updated.length, created: created.length, updated: updated.length, records: [...created, ...updated] });
+});
+
+// GET /api/expiration/records — list all expiration records
+app.get('/api/expiration/records', (req, res) => {
+  if (!db.expiration_records) db.expiration_records = [];
+  let records = [...db.expiration_records];
+
+  // Optional filter by invoice_number
+  if (req.query.invoice_number) {
+    records = records.filter(r => r.invoice_number === req.query.invoice_number);
+  }
+
+  // Optional filter by product_name
+  if (req.query.product_name) {
+    const q = req.query.product_name.toLowerCase();
+    records = records.filter(r => (r.product_name || '').toLowerCase().includes(q));
+  }
+
+  // Sort by expiration_date (nulls last), then by product_name
+  records.sort((a, b) => {
+    if (!a.expiration_date && !b.expiration_date) return (a.product_name || '').localeCompare(b.product_name || '');
+    if (!a.expiration_date) return 1;
+    if (!b.expiration_date) return 1;
+    return new Date(a.expiration_date) - new Date(b.expiration_date);
+  });
+
+  res.json(records);
+});
+
+// PUT /api/expiration/records/:id — update an expiration record
+app.put('/api/expiration/records/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  if (!db.expiration_records) db.expiration_records = [];
+  const idx = db.expiration_records.findIndex(r => r.id === id);
+  if (idx < 0) return res.status(404).json({ error: 'Expiration record not found' });
+
+  const allowed = ['total_qty', 'expiration_date', 'sub_lots', 'notes', 'product_id'];
+  const patch = {};
+  for (const key of allowed) {
+    if (req.body[key] !== undefined) patch[key] = req.body[key];
+  }
+
+  db.expiration_records[idx] = {
+    ...db.expiration_records[idx],
+    ...patch,
+    updated_at: new Date().toISOString()
+  };
+
+  saveDB(db);
+  res.json(db.expiration_records[idx]);
+});
+
+// DELETE /api/expiration/records/:id
+app.delete('/api/expiration/records/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  if (!db.expiration_records) db.expiration_records = [];
+  db.expiration_records = db.expiration_records.filter(r => r.id !== id);
+  saveDB(db);
+  res.json({ deleted: true });
 });
 
 // ===== PRICE HISTORY API =====
