@@ -4255,8 +4255,8 @@
           <button class="btn btn-sm btn-success" onclick="plOpenAddItem(${r.id})" title="Add item">+ Add Item</button>
         </div>`;
 
-      const REFRIGERATED = ['reeses','snickers','dubai','nerds','trolli','oreo','grandma cookie','grandma cookies','smuckers','fairlife','pressed acai','pressed tropical','pressed greens','pressed strawberry','pressed orange','pressed mango','pressed som','coconut water'];
-      const needsRefrig = item => item.refrigerated || REFRIGERATED.some(k => (item.name||'').toLowerCase().includes(k));
+      const REFRIGERATED = ['reeses','snickers','dubai','nerds','trolli','oreo','grandma','smuckers','fairlife','pressed','coconut water','hershey','starbucks','m&m'];
+      const needsRefrig = (item, prod) => item.refrigerated || (prod?.category === 'fresh food') || REFRIGERATED.some(k => (item.name||'').toLowerCase().includes(k));
       const catOrder = ['fresh food','food','snacks','candy','beverages','energy','healthy','incidentals',''];
       const sortedItems = [...(r.items || [])].map((item, idx) => ({ item, idx })).sort((a, b) => {
         const ra = needsRefrig(a.item) ? 0 : 1;
@@ -4283,7 +4283,7 @@
             ? `<img src="${thumb}" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#f7f7f7;flex-shrink:0;cursor:zoom-in;" onclick="plShowThumb('${thumb}')" onerror="this.style.display='none'">`
             : `<div style="width:40px;height:40px;border-radius:6px;background:#f0f4f8;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">${getCategoryEmoji(item.name)}</div>`;
           const checkedAt = item.checked_at ? `<div style="font-size:0.65rem;color:var(--muted);">${new Date(item.checked_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>` : '';
-          const refrig = needsRefrig(item);
+          const refrig = needsRefrig(item, prod);
           items += `<div style="border-bottom:1px solid var(--border);background:${refrig?'rgba(59,130,246,0.08)':'var(--card)'};${refrig?'border-left:3px solid #3b82f6;':''}">
               ${refrig ? `<div style="font-size:0.62rem;font-weight:700;color:#3b82f6;letter-spacing:0.05em;padding:6px 14px 0;">\u2744\ufe0f NEEDS REFRIGERATION</div>` : ''}
               <div style="display:flex;align-items:center;gap:10px;padding:${refrig?'4px':'10px'} 14px 10px;">
@@ -4323,7 +4323,7 @@
             ? `<img src="${thumb2}" style="width:36px;height:36px;object-fit:contain;border-radius:5px;background:#f7f7f7;cursor:zoom-in;" onclick="plShowThumb('${thumb2}')" onerror="this.style.display='none'">`
             : `<div style="width:36px;height:36px;border-radius:5px;background:#f0f4f8;display:flex;align-items:center;justify-content:center;font-size:1.1rem;">${getCategoryEmoji(item.name)}</div>`;
           const checkedAtDesk = item.checked_at ? `<div style="font-size:0.65rem;color:var(--muted);">${new Date(item.checked_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>` : '';
-          const refrig2 = needsRefrig(item);
+          const refrig2 = needsRefrig(item, prod);
           tableRows += `<tr style="background:${refrig2?'rgba(59,130,246,0.08)':''}; ${refrig2?'border-left:3px solid #3b82f6;':''}">
             <td style="padding:6px 10px;">${thumbEl2}</td>
             <td style="${item.checked?'text-decoration:line-through;color:var(--muted);':''}${refrig2?'color:#1d4ed8;font-weight:600;':''}"> ${escapeHtml(item.name)}${refrig2?` <span style="font-size:0.6rem;font-weight:700;color:#3b82f6;vertical-align:middle;margin-left:4px;">❄️ REFRIG</span>`:''}</td>
