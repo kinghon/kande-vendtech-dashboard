@@ -1905,13 +1905,11 @@
         });
       }
 
-      // Always hide past-expired records from default view (only show in 'expired' filter)
-      if (expFilter !== 'expired') records = records.filter(r => getExpStatus(r) !== 'expired');
-
       // Apply filter
       if (expFilter === 'missing') records = records.filter(r => !r.expiration_date);
       else if (expFilter === 'soon') records = records.filter(r => getExpStatus(r) === 'soon');
       else if (expFilter === 'expired') records = records.filter(r => getExpStatus(r) === 'expired');
+      // 'all' shows everything — never hide items
 
       // Update stats
       document.getElementById('expStatTotal').textContent = expirationRecords.length;
