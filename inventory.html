@@ -1799,7 +1799,7 @@
               </span>
             </td>
             <td style="font-size:0.82rem;color:var(--text);white-space:nowrap;font-weight:700">${p.unit_size || '—'}</td>
-            <td style="font-family:monospace;font-size:0.8rem;color:var(--muted)">${p.item_number || '—'}</td>
+            <td><input type="text" value="${p.item_number || ''}" placeholder="—" style="width:80px;padding:3px 4px;border:1px solid var(--border);border-radius:5px;font-size:0.8rem;font-family:monospace;color:var(--muted);background:var(--card);" onchange="updateItemNumber(${p.id},this.value)" title="Edit item #"></td>
             <td><span class="cat-badge ${catClass}">${getCategoryLabel(p.category)}</span></td>
             <td>
               <div class="stock-adjust">
@@ -3285,6 +3285,19 @@
         p.target_margin = newMargin;
         renderInventory();
       } catch(e) { console.error('updateRetailPrice failed', e); }
+    }
+
+    async function updateItemNumber(productId, newNum) {
+      const p = products.find(x => x.id === productId);
+      if (!p) return;
+      try {
+        await fetch(`/api/products/${productId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item_number: newNum })
+        });
+        p.item_number = newNum;
+      } catch(e) { console.error('updateItemNumber failed', e); }
     }
 
     async function updateUnitCost(productId, newCost) {
