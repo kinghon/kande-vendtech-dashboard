@@ -2045,7 +2045,7 @@
       if (isDesktop) {
         // ===== DESKTOP: spreadsheet table =====
         container.innerHTML = `
-          <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+          <table style="width:100%;border-collapse:collapse;font-size:0.82rem;table-layout:fixed;">
             <thead>
               <tr style="background:#edf2f7;">
                 <th style="padding:8px 10px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Product</th>
@@ -3686,7 +3686,7 @@
 
       // ===== DESKTOP: spreadsheet table =====
       const th = (t, extra='') => `<th style="padding:8px 10px;text-align:${extra||'center'};font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;white-space:nowrap;">${t}</th>`;
-      let desktopHtml = `<div class="wh-desktop"><table style="width:100%;border-collapse:collapse;font-size:0.82rem;"><thead><tr style="background:#edf2f7;">${th('Product','left')}${th('Received')}${th('In Machines')}${th('Warehouse')}${th('Batch')}${th('Batch Date')}${th('Supplier')}${th('Status')}</tr></thead><tbody>`;
+      let desktopHtml = `<div class="wh-desktop"><table style="width:100%;border-collapse:collapse;font-size:0.82rem;table-layout:fixed;"><thead><tr style="background:#edf2f7;">${th('Product','left')}${th('Received')}${th('In Machines')}${th('Warehouse')}${th('Batch')}${th('Batch Date')}${th('Supplier')}${th('Status')}</tr></thead><tbody>`;
 
       for (const prod of warehouseData) {
         const low = prod.warehouse_on_hand < 12;
@@ -4163,11 +4163,11 @@
         let html = '';
         for (const { location, entries } of locationTree) {
           html += `<div style="margin-bottom:28px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
-            <div style="background:var(--accent);color:#fff;padding:11px 16px;display:flex;justify-content:space-between;align-items:center;">
+            <div style="background:var(--accent);color:#fff;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;">
               <span style="font-weight:700;font-size:0.95rem;">📍 ${escapeHtml(location.name)}</span>
               <span style="font-size:0.78rem;opacity:0.85;">${escapeHtml(location.address||'')}</span>
             </div>
-            <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">`;
+            <table style="width:100%;border-collapse:collapse;font-size:0.82rem;table-layout:fixed;">`;
 
           for (const { machine, restocks: mRestocks } of entries) {
             const machineName = machine ? machine.name : 'Unknown';
@@ -4178,10 +4178,10 @@
               const sidx = statusFlow.indexOf(r.status);
               const nextStatus = sidx >= 0 && sidx < statusFlow.length-1 ? statusFlow[sidx+1] : null;
               html += `<tr style="background:#f0f4f8;border-top:2px solid var(--border);">
-                <td colspan="4" style="padding:9px 14px;">
+                <td colspan="4" style="padding:6px 12px;">
                   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
                     <div>
-                      <strong>${escapeHtml(machineName)}</strong>
+                      <strong style="font-size:0.85rem;">${escapeHtml(machineName)}</strong>
                       ${machineModel ? `<span style="font-size:0.72rem;color:var(--muted);margin-left:8px;">${escapeHtml(machineModel)}</span>` : ''}
                       <span class="badge badge-${r.status}" style="margin-left:10px;">${r.status}</span>
                     </div>
@@ -4194,22 +4194,22 @@
                 </td>
               </tr>
               <tr style="background:#edf2f7;">
-                <th style="padding:5px 14px;width:32px;"></th>
-                <th style="padding:5px 14px;text-align:left;font-size:0.68rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Product</th>
-                <th style="padding:5px 10px;text-align:center;font-size:0.68rem;text-transform:uppercase;color:var(--muted);font-weight:700;width:130px;">Fill Level</th>
-                <th style="padding:5px 10px;text-align:center;font-size:0.68rem;text-transform:uppercase;color:var(--muted);font-weight:700;width:100px;">Qty Needed</th>
+                <th style="padding:4px 8px;width:28px;"></th>
+                <th style="padding:4px 8px;text-align:left;font-size:0.68rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Product</th>
+                <th style="padding:4px 8px;text-align:center;font-size:0.68rem;text-transform:uppercase;color:var(--muted);font-weight:700;width:110px;">Fill</th>
+                <th style="padding:4px 8px;text-align:center;font-size:0.68rem;text-transform:uppercase;color:var(--muted);font-weight:700;width:80px;">Qty</th>
               </tr>`;
               if (items.length === 0) {
                 html += `<tr><td colspan="4" style="padding:12px 14px;color:var(--muted);">No items.</td></tr>`;
               } else {
                 items.forEach((item, idx) => {
                   const pct = item.pct_full !== undefined ? item.pct_full : null;
-                  const bar = pct !== null ? `<div style="display:flex;align-items:center;gap:6px;justify-content:center;"><div style="width:64px;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${pct<25?'var(--hot)':pct<50?'var(--warn)':'var(--success)'};""></div></div><span style="font-size:0.75rem;font-weight:700;color:${pct<25?'var(--hot)':pct<50?'var(--warn)':'var(--success)'};">${pct}%</span></div>` : '—';
+                  const bar = pct !== null ? `<div style="display:flex;align-items:center;gap:6px;justify-content:center;"><div style="width:52px;height:7px;background:#e2e8f0;border-radius:4px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${pct<25?'var(--hot)':pct<50?'var(--warn)':'var(--success)'};""></div></div><span style="font-size:0.75rem;font-weight:700;color:${pct<25?'var(--hot)':pct<50?'var(--warn)':'var(--success)'};">${pct}%</span></div>` : '—';
                   html += `<tr style="border-top:1px solid var(--border);${item.checked?'background:#f8fdf8;':''}">
-                    <td style="padding:8px 14px;text-align:center;"><div class="pl-check ${item.checked?'checked':''}" style="margin:auto;" onclick="plToggleItem(${r.id},${idx})">${item.checked?'✓':''}</div></td>
-                    <td style="padding:8px 14px;${item.checked?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(item.name)}</td>
-                    <td style="padding:8px 10px;">${bar}</td>
-                    <td style="padding:8px 10px;text-align:center;font-weight:700;color:var(--accent);">×${item.qty_needed||item.qty}</td>
+                    <td style="padding:5px 8px;text-align:center;"><div class="pl-check ${item.checked?'checked':''}" style="margin:auto;" onclick="plToggleItem(${r.id},${idx})">${item.checked?'✓':''}</div></td>
+                    <td style="padding:5px 8px;${item.checked?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(item.name)}</td>
+                    <td style="padding:5px 8px;">${bar}</td>
+                    <td style="padding:5px 8px;text-align:center;font-weight:700;color:var(--accent);font-size:0.82rem;">×${item.qty_needed||item.qty}</td>
                   </tr>`;
                 });
               }
