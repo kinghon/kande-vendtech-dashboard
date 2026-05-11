@@ -4193,25 +4193,29 @@
                 </div>
               </div>
               ${items.length === 0 ? `<div style="padding:12px 16px;color:var(--muted);font-size:0.82rem;">No items.</div>` : `
-              <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+              <table style="width:100%;border-collapse:collapse;font-size:0.82rem;table-layout:fixed;">
                 <thead>
                   <tr style="background:#edf2f7;">
                     <th style="padding:7px 12px;width:36px;"></th>
                     <th style="padding:7px 12px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Product</th>
-                    <th style="padding:7px 12px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;width:120px;">Fill Level</th>
-                    <th style="padding:7px 12px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;width:100px;">Qty to Bring</th>
+                    <th style="padding:7px 10px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;width:100px;">Category</th>
+                    <th style="padding:7px 10px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;width:90px;">In Stock</th>
+                    <th style="padding:7px 10px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;width:130px;">Fill Level</th>
+                    <th style="padding:7px 10px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;width:100px;">Qty to Bring</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${items.map((item, idx) => {
                     const pct = item.pct_full !== undefined ? item.pct_full : null;
                     const pctColor = pct !== null ? (pct<25?'var(--hot)':pct<50?'var(--warn)':'var(--success)') : 'var(--muted)';
-                    const bar = pct !== null ? `<div style="display:flex;align-items:center;justify-content:center;gap:5px;"><div style="width:60px;height:7px;background:#e2e8f0;border-radius:3px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${pctColor};"></div></div><span style="font-size:0.72rem;font-weight:700;color:${pctColor};">${pct}%</span></div>` : '<span style="color:var(--muted);font-size:0.75rem;">—</span>';
+                    const bar = pct !== null ? `<div style="display:flex;align-items:center;justify-content:center;gap:5px;"><div style="width:80px;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${pctColor};"></div></div><span style="font-size:0.72rem;font-weight:700;color:${pctColor};">${pct}%</span></div>` : '<span style="color:var(--muted);font-size:0.75rem;">—</span>';
                     return `<tr style="border-top:1px solid var(--border);${item.checked?'background:#f4fdf4;':''}">
-                      <td style="padding:7px 12px;text-align:center;"><div class="pl-check ${item.checked?'checked':''}" style="margin:auto;" onclick="plToggleItem(${r.id},${idx})">${item.checked?'✓':''}</div></td>
-                      <td style="padding:7px 12px;${item.checked?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(item.name)}</td>
-                      <td style="padding:7px 12px;">${bar}</td>
-                      <td style="padding:7px 12px;text-align:center;font-weight:700;color:var(--accent);">×${item.qty_needed||item.qty}</td>
+                      <td style="padding:6px 12px;text-align:center;"><div class="pl-check ${item.checked?'checked':''}" style="margin:auto;" onclick="plToggleItem(${r.id},${idx})">${item.checked?'✓':''}</div></td>
+                      <td style="padding:6px 12px;${item.checked?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(item.name)}</td>
+                      <td style="padding:6px 10px;text-align:center;">${(() => { const p=products.find(x=>x.id===item.product_id||x.name===item.name); const cat=p?.category||''; const cls={'beverages':'cat-beverages','snacks':'cat-snacks','candy':'cat-candy','healthy':'cat-healthy','energy':'cat-energy','incidentals':'cat-incidentals'}[cat]||''; return cat?`<span class="cat-badge ${cls}">${cat}</span>`:'<span style="color:var(--muted);">—</span>'; })()}</td>
+                      <td style="padding:6px 10px;text-align:center;font-size:0.82rem;">${(() => { const p=products.find(x=>x.id===item.product_id||x.name===item.name); return p?.stock!==undefined?p.stock:'—'; })()}</td>
+                      <td style="padding:6px 10px;">${bar}</td>
+                      <td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--accent);">×${item.qty_needed||item.qty}</td>
                     </tr>`;
                   }).join('')}
                 </tbody>
