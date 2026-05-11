@@ -4213,7 +4213,6 @@
             ${loc ? `<div style="font-size:0.75rem;color:var(--muted);">📍 ${escapeHtml(loc.name)}</div>` : ''}
           </div>
           <span class="badge badge-${r.status}">${r.status}</span>
-          <span style="font-size:0.8rem;color:var(--muted);">${(r.items||[]).length} items</span>
           ${nextStatus ? `<button class="btn btn-primary btn-sm" onclick="plMoveStatus(${r.id},'${nextStatus}')">Move to ${nextStatus} →</button>` : ''}
           <button class="btn btn-sm" onclick="plSaveTemplate(${r.id})" title="Save as template">💾 Template</button>
           <button class="btn btn-sm btn-success" onclick="plOpenAddItem(${r.id})" title="Add item">+ Add Item</button>
@@ -4269,7 +4268,8 @@
               </div>
             </div>`;
         });
-        grid.innerHTML = header + `<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">${items || '<div style="padding:20px;text-align:center;color:var(--muted);">No items</div>'}</div>`;
+        const metricMobile = `<div style="margin-bottom:14px;"><span style="font-size:2rem;font-weight:800;color:var(--text);line-height:1;">${sortedItems.length}</span><span style="font-size:0.85rem;color:var(--muted);margin-left:6px;font-weight:500;">total items</span></div>`;
+        grid.innerHTML = header + metricMobile + `<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">${items || '<div style="padding:20px;text-align:center;color:var(--muted);">No items</div>'}</div>`;
       } else {
         let tableRows = '';
         sortedItems.forEach(({ item, idx }) => {
@@ -4298,7 +4298,8 @@
             <td style="text-align:center;"><button onclick="plDeleteItem(${r.id},${idx})" style="background:none;border:none;cursor:pointer;font-size:1rem;color:var(--muted);" title="Delete">🗑️</button></td>
           </tr>`;
         });
-        grid.innerHTML = header + `<div style="overflow-x:auto;display:flex;justify-content:center;"><table class="data-table" style="width:auto !important;min-width:0 !important;"><thead><tr><th></th><th>Product</th><th>Category</th><th>In Stock</th><th>Fill Level</th><th>Qty to Bring</th><th>✓</th><th></th></tr></thead><tbody>${tableRows}</tbody></table></div>`;
+        const metricDesktop = `<div style="margin-bottom:14px;"><span style="font-size:2rem;font-weight:800;color:var(--text);line-height:1;">${sortedItems.length}</span><span style="font-size:0.85rem;color:var(--muted);margin-left:6px;font-weight:500;">total items</span></div>`;
+        grid.innerHTML = header + metricDesktop + `<div style="overflow-x:auto;display:flex;justify-content:center;"><table class="data-table" style="width:auto !important;min-width:0 !important;"><thead><tr><th></th><th>Product</th><th>Category</th><th>In Stock</th><th>Fill Level</th><th>Qty to Bring</th><th>✓</th><th></th></tr></thead><tbody>${tableRows}</tbody></table></div>`;
       }
     }
 
