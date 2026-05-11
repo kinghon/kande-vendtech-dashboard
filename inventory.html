@@ -4236,9 +4236,9 @@
               <div style="font-size:0.88rem;${item.checked?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(item.name)}</div>
               ${pct !== null ? `<div style="font-size:0.72rem;color:${pctColor};font-weight:700;">${pct}% full</div>` : ''}
             </div>
-            <div style="text-align:right;flex-shrink:0;">
-              <div style="font-weight:700;color:var(--accent);font-size:0.88rem;">×${item.qty_needed||item.qty}</div>
-              ${prod?.stock !== undefined ? `<div style="font-size:0.72rem;color:var(--muted);">stock: ${prod.stock}</div>` : ''}
+            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+              <input type="number" min="0" value="${item.qty_needed||item.qty}" style="width:52px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:0.88rem;font-weight:700;color:var(--accent);text-align:center;background:var(--card);" onchange="plUpdateQty(${r.id},${idx},this.value)">
+              ${prod?.stock !== undefined ? `<span style="font-size:0.72rem;color:var(--muted);">/ ${prod.stock}</span>` : ''}
             </div>
           </div>`;
         });
@@ -4259,7 +4259,7 @@
             <td>${cat ? `<span class="cat-badge ${cls}">${cat}</span>` : '—'}</td>
             <td style="text-align:center;">${prod?.stock !== undefined ? prod.stock : '—'}</td>
             <td>${bar}</td>
-            <td style="text-align:center;font-weight:700;color:var(--accent);">×${item.qty_needed||item.qty}</td>
+            <td style="text-align:center;"><input type="number" min="0" value="${item.qty_needed||item.qty}" style="width:56px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:0.82rem;font-weight:700;color:var(--accent);text-align:center;background:var(--card);" onchange="plUpdateQty(${r.id},${idx},this.value)"></td>
             <td style="text-align:center;"><div class="pl-check ${item.checked?'checked':''}" style="margin:auto;" onclick="plToggleItem(${r.id},${idx});openMachinePicklist(${machineId},${restockId})">${item.checked?'✓':''}</div></td>
           </tr>`;
         });
@@ -4274,6 +4274,14 @@
       r.items[itemIdx].checked = !r.items[itemIdx].checked;
       await fetch(`/api/restocks/${restockId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({items:r.items}) });
       renderPicklist();
+    }
+
+    async function plUpdateQty(restockId, itemIdx, newQty) {
+      const r = plRestocks.find(x => x.id === restockId);
+      if (!r || !r.items[itemIdx]) return;
+      r.items[itemIdx].qty = parseInt(newQty) || 0;
+      r.items[itemIdx].qty_needed = r.items[itemIdx].qty;
+      await fetch(`/api/restocks/${restockId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({items:r.items}) });
     }
 
     async function plMoveStatus(restockId, newStatus) {
