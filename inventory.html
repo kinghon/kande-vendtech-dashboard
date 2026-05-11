@@ -604,6 +604,24 @@
       border-color: rgba(229,62,62,0.3);
     }
 
+    /* Expiration date row + save button layout */
+    .exp-date-row { display: flex; gap: 8px; }
+    .exp-save-desktop-col { display: none; }
+    .exp-save-btn {
+      width: 100%; margin-top: 10px; padding: 12px; font-size: 16px; font-weight: 700;
+      background: var(--accent); color: #fff; border: none; border-radius: 10px; cursor: pointer;
+    }
+    .exp-save-mobile-only { display: block; }
+    /* Desktop: save button inline with date fields */
+    @media (min-width: 769px) {
+      .exp-save-desktop-col { display: flex; flex-direction: column; justify-content: flex-end; flex-shrink: 0; }
+      .exp-save-desktop-col .exp-save-btn {
+        width: auto; margin-top: 0; padding: 10px 18px; font-size: 14px; white-space: nowrap;
+      }
+      .exp-save-mobile-only { display: none; }
+      .exp-btn { flex: none; padding: 6px 14px; min-height: 32px; font-size: 12px; }
+    }
+
     .exp-snackbar {
       position: fixed;
       bottom: 20px;
@@ -1981,7 +1999,7 @@
               </div>
               <div style="margin-bottom:6px;">
                 <label class="exp-field-label" style="display:block;margin-bottom:6px;font-size:11px;">EXPIRATION DATE</label>
-                <div style="display:flex;gap:8px;">
+                <div class="exp-date-row">
                   <div style="flex:2;">
                     <div style="font-size:10px;color:var(--muted);margin-bottom:3px;text-align:center;">MONTH</div>
                     <select class="exp-date-part" style="width:100%;font-size:22px;font-weight:700;padding:10px 4px;border:2px solid var(--border);border-radius:10px;text-align:center;background:#fff;color:var(--text);-webkit-appearance:none;">
@@ -2001,8 +2019,12 @@
                       ${buildYearOptions(r.expiration_date)}
                     </select>
                   </div>
+                  <div class="exp-save-desktop-col">
+                    <div style="font-size:10px;color:transparent;margin-bottom:3px;">_</div>
+                    <button class="exp-save-btn" onclick="updateExpDateParts(${r.id}, this.closest('.exp-card-body'))">✓ Save</button>
+                  </div>
                 </div>
-                <button onclick="updateExpDateParts(${r.id}, this.closest('.exp-card-body'))" style="width:100%;margin-top:10px;padding:12px;font-size:16px;font-weight:700;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer;">✓ Save Date</button>
+                <button class="exp-save-btn exp-save-mobile-only" onclick="updateExpDateParts(${r.id}, this.closest('.exp-card-body'))">✓ Save Date</button>
               </div>
               <div style="margin-bottom:6px;">
                 <input type="text" class="exp-input" value="${escapeHtml(r.notes || '')}" placeholder="Notes (e.g. shelf A3)"
