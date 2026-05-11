@@ -2497,12 +2497,13 @@ app.get('/api/expiration/records', (req, res) => {
     return r;
   });
 
-  // Sort by expiration_date (nulls last), then by product_name
+  // Sort by order date (order receipt date) then by product_name — stable, doesn't jump when date is set
   records.sort((a, b) => {
-    if (!a.expiration_date && !b.expiration_date) return (a.product_name || '').localeCompare(b.product_name || '');
-    if (!a.expiration_date) return 1;
-    if (!b.expiration_date) return 1;
-    return new Date(a.expiration_date) - new Date(b.expiration_date);
+    const dateA = a.order_date || a.created_at || '';
+    const dateB = b.order_date || b.created_at || '';
+    const dateDiff = new Date(dateB) - new Date(dateA);
+    if (dateDiff !== 0) return dateDiff;
+    return (a.product_name || '').localeCompare(b.product_name || '');
   });
 
   res.json(records);
