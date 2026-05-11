@@ -1947,6 +1947,75 @@
         return;
       }
 
+      const isDesktop = window.innerWidth > 768;
+      if (isDesktop) {
+        // ===== DESKTOP: spreadsheet table =====
+        container.innerHTML = `
+          <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+            <thead>
+              <tr style="background:#edf2f7;">
+                <th style="padding:8px 10px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Product</th>
+                <th style="padding:8px 10px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;width:60px;">Qty</th>
+                <th style="padding:8px 10px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Expiration Date</th>
+                <th style="padding:8px 10px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;width:80px;">Status</th>
+                <th style="padding:8px 10px;width:90px;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${records.map(r => {
+                const status = getExpStatus(r);
+                const daysText = getExpDaysText(r);
+                const daysClass = status === 'expired' ? 'var(--hot)' : status === 'soon' ? 'var(--warn)' : status === 'ok' ? 'var(--success)' : 'var(--muted)';
+                const prod = products.find(p => p.id === r.product_id);
+                const thumb = prod?.thumbnail
+                  ? `<img src="${prod.thumbnail}" style="width:28px;height:28px;border-radius:4px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;" alt="">`
+                  : `<span style="font-size:1rem;">${getCategoryEmoji(r.product_name)}</span>`;
+                const headerBg = !r.expiration_date ? 'background:rgba(229,62,62,0.08);' : '';
+                const inputStyle = 'border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:13px;font-weight:600;background:#fff;color:var(--text);text-align:center;';
+                return `
+                  <tr style="border-top:1px solid var(--border);${headerBg}" data-id="${r.id}">
+                    <td style="padding:8px 10px;">
+                      <div style="display:flex;align-items:center;gap:8px;">
+                        ${thumb}
+                        <div>
+                          <div style="font-weight:700;font-size:0.82rem;">${escapeHtml(r.product_name)}</div>
+                          <div style="font-size:0.68rem;color:var(--muted);">${escapeHtml(r.supplier || '')} · ${escapeHtml(r.invoice_number || '')}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style="padding:8px 6px;text-align:center;">
+                      <input type="number" class="exp-date-part" min="0" value="${r.total_qty || 0}"
+                        onblur="updateExpRecord(${r.id}, 'total_qty', parseInt(this.value)||0)"
+                        style="${inputStyle}width:52px;">
+                    </td>
+                    <td style="padding:8px 6px;">
+                      <div style="display:flex;align-items:center;gap:4px;" class="exp-desktop-date-row">
+                        <select class="exp-date-part" style="${inputStyle}flex:2;">
+                          ${buildMonthOptions(r.expiration_date)}
+                        </select>
+                        <input type="number" class="exp-date-part" min="1" max="31"
+                          value="${r.expiration_date ? parseInt(r.expiration_date.split('-')[2]) : 1}"
+                          onfocus="if(this.value=='1'&&!this.dataset.changed)this.select()" onchange="this.dataset.changed='1'"
+                          style="${inputStyle}width:44px;flex:none;">
+                        <select class="exp-date-part" style="${inputStyle}flex:1;">
+                          ${buildYearOptions(r.expiration_date)}
+                        </select>
+                        <button onclick="updateExpDateParts(${r.id}, this.closest('.exp-desktop-date-row'))" style="padding:4px 10px;font-size:12px;font-weight:700;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;white-space:nowrap;">✓</button>
+                      </div>
+                    </td>
+                    <td style="padding:8px 6px;text-align:center;font-weight:700;font-size:0.78rem;color:${daysClass};white-space:nowrap;">${daysText}</td>
+                    <td style="padding:8px 6px;text-align:right;">
+                      <button class="exp-btn" onclick="addSubLot(${r.id})" style="padding:4px 8px;font-size:11px;min-height:unset;">+Sub-lot</button>
+                    </td>
+                  </tr>`;
+              }).join('')}
+            </tbody>
+          </table>`;
+        // Fix updateExpDateParts to work with desktop row selector too
+        return;
+      }
+
+      // ===== MOBILE: card layout (unchanged) =====
       container.innerHTML = records.map(r => {
         const status = getExpStatus(r);
         const dotClass = status;
@@ -2065,8 +2134,8 @@
       return years.map(y => `<option value="${y}" ${y === selYear ? 'selected' : ''}>${y}</option>`).join('');
     }
 
-    function updateExpDateParts(id, cardBody) {
-      const parts = cardBody.querySelectorAll('.exp-date-part');
+    function updateExpDateParts(id, container) {
+      const parts = container.querySelectorAll('.exp-date-part');
       const month = parts[0]?.value || '';
       const dayVal = parseInt(parts[1]?.value) || 1;
       const year = parts[2]?.value || '';
