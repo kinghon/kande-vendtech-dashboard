@@ -846,6 +846,15 @@
         <button class="exp-pill" data-filter="soon" onclick="setExpFilter('soon', this)">Expiring Soon</button>
         <button class="exp-pill" data-filter="expired" onclick="setExpFilter('expired', this)">Expired</button>
       </div>
+      <div class="exp-filter-pills" style="margin-top:6px;">
+        <button class="exp-pill exp-cat-pill active" data-cat="all" onclick="setExpCategory('all', this)">All Categories</button>
+        <button class="exp-pill exp-cat-pill" data-cat="beverages" onclick="setExpCategory('beverages', this)">🥤 Beverages</button>
+        <button class="exp-pill exp-cat-pill" data-cat="energy" onclick="setExpCategory('energy', this)">⚡ Energy</button>
+        <button class="exp-pill exp-cat-pill" data-cat="healthy" onclick="setExpCategory('healthy', this)">🥗 Healthy</button>
+        <button class="exp-pill exp-cat-pill" data-cat="snacks" onclick="setExpCategory('snacks', this)">🍪 Snacks</button>
+        <button class="exp-pill exp-cat-pill" data-cat="candy" onclick="setExpCategory('candy', this)">🍬 Candy</button>
+        <button class="exp-pill exp-cat-pill" data-cat="incidentals" onclick="setExpCategory('incidentals', this)">🧴 Incidentals</button>
+      </div>
 
       <!-- Stats Row -->
       <div class="stats-row" style="margin-bottom:16px;">
@@ -1792,6 +1801,7 @@
     let expirationRecords = [];
     let expirationOrders = [];
     let expFilter = 'all';
+    let expCategory = 'all';
 
     async function loadExpirationRecords() {
       try {
@@ -1849,9 +1859,15 @@
 
     function setExpFilter(filter, btn) {
       expFilter = filter;
-      document.querySelectorAll('.exp-pill').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.exp-pill:not(.exp-cat-pill)').forEach(b => b.classList.remove('active'));
       if (btn) btn.classList.add('active');
-      else document.querySelector(`.exp-pill[data-filter="${filter}"]`)?.classList.add('active');
+      renderExpirationRecords();
+    }
+
+    function setExpCategory(cat, btn) {
+      expCategory = cat;
+      document.querySelectorAll('.exp-cat-pill').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
       renderExpirationRecords();
     }
 
@@ -1882,6 +1898,12 @@
       let records = [...expirationRecords];
       const searchQ = (document.getElementById('expSearch')?.value || '').toLowerCase().trim();
       if (searchQ) records = records.filter(r => (r.product_name || '').toLowerCase().includes(searchQ));
+      if (expCategory !== 'all') {
+        records = records.filter(r => {
+          const prod = products.find(p => p.id === r.product_id);
+          return (prod?.category || '').toLowerCase() === expCategory;
+        });
+      }
 
       // Always hide past-expired records from default view (only show in 'expired' filter)
       if (expFilter !== 'expired') records = records.filter(r => getExpStatus(r) !== 'expired');
