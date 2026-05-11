@@ -1809,7 +1809,7 @@
               </div>
             </td>
             <td>${reorder}</td>
-            <td class="unit-cost">$${unitCost.toFixed(2)}</td>
+            <td class="unit-cost"><div style="display:flex;align-items:center;gap:2px;">$<input type="number" min="0" step="0.01" value="${unitCost.toFixed(2)}" style="width:58px;padding:3px 4px;border:1px solid var(--border);border-radius:5px;font-size:0.82rem;font-family:monospace;color:var(--muted);background:var(--card);" onchange="updateUnitCost(${p.id},parseFloat(this.value))" title="Edit unit cost"></div></td>
             <td>
               <div style="display:flex;align-items:center;gap:4px">
                 <input type="number" value="${marginPct}" min="0" max="200" step="1"
@@ -3285,6 +3285,24 @@
         p.target_margin = newMargin;
         renderInventory();
       } catch(e) { console.error('updateRetailPrice failed', e); }
+    }
+
+    async function updateUnitCost(productId, newCost) {
+      const p = products.find(x => x.id === productId);
+      if (!p) return;
+      const newRetail = p.sell_price || 0;
+      const newMargin = newCost > 0 && newRetail > 0 ? Math.round(((newRetail - newCost) / newCost) * 1000) / 10 : p.target_margin || 0;
+      try {
+        await fetch(`/api/products/${productId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cost_price: newCost, price_per_unit: newCost, target_margin: newMargin })
+        });
+        p.cost_price = newCost;
+        p.price_per_unit = newCost;
+        p.target_margin = newMargin;
+        renderInventory();
+      } catch(e) { console.error('updateUnitCost failed', e); }
     }
 
     async function updateMargin(productId, newMarginPct) {
