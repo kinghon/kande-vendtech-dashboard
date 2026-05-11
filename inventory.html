@@ -2646,7 +2646,11 @@
       tbody.innerHTML = filtered.map(p => {
         const stock = getStock(p.id);
         const reorder = getReorderPoint(p.id);
-        const margin = p.sell_price > 0 ? Math.round(((p.sell_price - (p.cost_price || 0)) / p.sell_price) * 100) : 0;
+        const unitCostCat = getUnitCost(p);
+        const sellCat = p.sell_price || 0;
+        const marginPctCat = p.target_margin !== undefined ? p.target_margin : 62;
+        const effectiveRetailCat = sellCat > 0 ? sellCat : unitCostCat * (1 + marginPctCat / 100);
+        const margin = unitCostCat > 0 ? Math.round(((effectiveRetailCat - unitCostCat) / unitCostCat) * 100) : marginPctCat;
         const status = getStockStatus(stock, reorder);
         return `
           <tr>
@@ -2663,7 +2667,11 @@
         mobileContainer.innerHTML = filtered.map(p => {
           const stock = getStock(p.id);
           const reorder = getReorderPoint(p.id);
-          const margin = p.sell_price > 0 ? Math.round(((p.sell_price - (p.cost_price || 0)) / p.sell_price) * 100) : 0;
+          const unitCostCatM = getUnitCost(p);
+          const sellCatM = p.sell_price || 0;
+          const marginPctCatM = p.target_margin !== undefined ? p.target_margin : 62;
+          const effectiveRetailCatM = sellCatM > 0 ? sellCatM : unitCostCatM * (1 + marginPctCatM / 100);
+          const margin = unitCostCatM > 0 ? Math.round(((effectiveRetailCatM - unitCostCatM) / unitCostCatM) * 100) : marginPctCatM;
           const status = getStockStatus(stock, reorder);
           const badge = getStatusBadge(status);
           return `
