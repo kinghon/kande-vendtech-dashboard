@@ -1683,7 +1683,7 @@
         const retailPrice = unitCost * (1 + marginPct / 100);
         const effectiveRetail = sell > 0 ? sell : retailPrice;
         // Markup % = (retail - cost) / cost × 100
-        const margin = unitCost > 0 ? Math.round(((effectiveRetail - unitCost) / unitCost) * 100) : marginPct;
+        const margin = effectiveRetail > 0 ? Math.round(((effectiveRetail - unitCost) / effectiveRetail) * 100) : 0;
         const profitUnit = effectiveRetail - unitCost;
         const status = getStockStatus(stock, reorder);
         const rowClass = status === 'out' ? 'out-of-stock' : status === 'low' ? 'low-stock' : '';
@@ -1747,7 +1747,7 @@
           const marginPct = p.target_margin !== undefined ? p.target_margin : 62;
           const retailPrice = unitCost * (1 + marginPct / 100);
           const effectiveRetail = sell > 0 ? sell : retailPrice;
-          const margin = unitCost > 0 ? Math.round(((effectiveRetail - unitCost) / unitCost) * 100) : marginPct;
+          const margin = effectiveRetail > 0 ? Math.round(((effectiveRetail - unitCost) / effectiveRetail) * 100) : 0;
           const status = getStockStatus(stock, reorder);
           const stockClass = status === 'out' ? 'mc-stock-out' : status === 'low' ? 'mc-stock-low' : 'mc-stock-good';
           const catClass = 'cat-' + (p.category || 'other');
@@ -3343,8 +3343,8 @@
       const marginPct = p.target_margin !== undefined ? p.target_margin : 62;
       const retailPrice = p.sell_price > 0 ? p.sell_price : unitCost * (1 + marginPct / 100);
       document.getElementById('detailSell').textContent = '$' + retailPrice.toFixed(2);
-      // Margin = same markup % shown in inventory table
-      const margin = unitCost > 0 ? Math.round(((retailPrice - unitCost) / unitCost) * 100) : marginPct;
+      // Margin = gross margin % = (sell-cost)/sell — same formula as main inventory table
+      const margin = retailPrice > 0 ? Math.round(((retailPrice - unitCost) / retailPrice) * 100) : 0;
       document.getElementById('detailMargin').textContent = margin + '%';
       const profit = retailPrice - unitCost;
       document.getElementById('detailProfit').textContent = '$' + profit.toFixed(2);
