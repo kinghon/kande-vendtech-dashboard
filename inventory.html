@@ -3266,19 +3266,14 @@
     }
 
     function roundPrice(price) {
-      const w = Math.floor(price);
-      const d = price - w;
-      if (d <= 0.25) return w + 0.25;
-      if (d <= 0.50) return w + 0.50;
-      if (d <= 0.75) return w + 0.75;
-      return w + 0.99;
+      return Math.round(price * 100) / 100; // just round to 2 decimal places, no forced increments
     }
 
     async function updateRetailPrice(productId, newRetail) {
       const p = products.find(x => x.id === productId);
       if (!p) return;
       const unitCost = getUnitCost(p);
-      const newMargin = unitCost > 0 ? Math.round(((newRetail - unitCost) / unitCost) * 100) : 0;
+      const newMargin = unitCost > 0 ? Math.round(((newRetail - unitCost) / unitCost) * 1000) / 10 : 0;
       try {
         await fetch(`/api/products/${productId}`, {
           method: 'PUT',
