@@ -4143,89 +4143,140 @@
 
       const statusFlow = ['pending','picking','packed','loaded','delivering','done'];
 
-      // Build location tree
-      const locationTree = [];
+      // Build flat rows: location, machine, item
+      const rows = [];
       const usedIds = new Set();
       for (const loc of plLocations) {
         const locMachines = plMachines.filter(m => m.location_id === loc.id || m.location?.id === loc.id);
-        const entries = [];
         for (const m of locMachines) {
           const mrs = filtered.filter(r => r.machine_id === m.id);
-          if (mrs.length) { entries.push({ machine: m, restocks: mrs }); mrs.forEach(r => usedIds.add(r.id)); }
+          for (const r of mrs) {
+            usedIds.add(r.id);
+            (r.items || []).forEach((item, idx) => {
+              rows.push({ loc, machine: m, restock: r, item, idx });
+            });
+          }
         }
-        if (entries.length) locationTree.push({ location: loc, entries });
       }
-      const orphans = filtered.filter(r => !usedIds.has(r.id));
-      if (orphans.length) locationTree.push({ location: { name: 'Unassigned', address: '' }, entries: [{ machine: null, restocks: orphans }] });
-      if (!locationTree.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+      // Orphans
+      for (const r of filtered.filter(r => !usedIds.has(r.id))) {
+        (r.items || []).forEach((item, idx) => {
+          rows.push({ loc: { name: 'Unassigned', address: '' }, machine: null, restock: r, item, idx });
+        });
+      }
+
+      if (rows.length === 0) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
 
       const isMobile = window.innerWidth <= 768;
 
-      let html = '';
-      for (const { location, entries } of locationTree) {
-        html += `<div style="margin-bottom:24px;">
-          <div style="background:var(--accent);color:#fff;padding:9px 16px;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-weight:700;font-size:0.92rem;">📍 ${escapeHtml(location.name)}</span>
-            <span style="font-size:0.75rem;opacity:0.85;">${escapeHtml(location.address||'')}</span>
-          </div>`;
+      if (!isMobile) {
+        // Desktop: single flat table like inventory page
+        let html = `<div class="table-container">
+          <table class="data-table" style="min-width:900px;">
+            <thead>
+              <tr>
+                <th>Location</th>
+                <th>Machine</th>
+                <th>Product</th>
+                <th>Category</th>
+                <th>In Stock</th>
+                <th>Fill Level</th>
+                <th>Qty to Bring</th>
+                <th>Status</th>
+                <th>✓</th>
+              </tr>
+            </thead>
+            <tbody>`;
 
-        for (const { machine, restocks: mRestocks } of entries) {
-          const machineName = machine ? machine.name : 'Unknown';
-          const machineModel = machine ? (machine.model||machine.type||'') : '';
+        let lastLocId = null, lastMachineId = null;
+        rows.forEach(({ loc, machine, restock: r, item, idx }) => {
+          const locId = loc.id || loc.name;
+          const machineId = machine ? machine.id : 'none';
+          const pct = item.pct_full !== undefined ? item.pct_full : null;
+          const pctColor = pct !== null ? (pct<25?'var(--hot)':pct<50?'var(--warn)':'var(--success)') : 'var(--muted)';
+          const bar = pct !== null
+            ? `<div style="display:flex;align-items:center;gap:6px;"><div style="width:70px;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${pctColor};"></div></div><span style="font-size:0.75rem;font-weight:700;color:${pctColor};">${pct}%</span></div>`
+            : '<span style="color:var(--muted);">—</span>';
+          const prod = products.find(p => p.id === item.product_id || p.name === item.name);
+          const cat = prod?.category || '';
+          const cls = {'beverages':'cat-beverages','snacks':'cat-snacks','candy':'cat-candy','healthy':'cat-healthy','energy':'cat-energy','incidentals':'cat-incidentals'}[cat] || '';
+          const sidx = statusFlow.indexOf(r.status);
+          const nextStatus = sidx >= 0 && sidx < statusFlow.length-1 ? statusFlow[sidx+1] : null;
 
-          for (const r of mRestocks) {
-            const items = r.items || [];
-            const checkedCount = items.filter(i => i.checked).length;
-            const sidx = statusFlow.indexOf(r.status);
-            const nextStatus = sidx >= 0 && sidx < statusFlow.length-1 ? statusFlow[sidx+1] : null;
+          html += `<tr class="${item.checked ? '' : ''}">
+            <td style="font-size:0.8rem;font-weight:600;color:var(--accent);">${locId !== lastLocId ? escapeHtml(loc.name) : ''}</td>
+            <td style="font-size:0.8rem;">${machineId !== lastMachineId ? escapeHtml(machine ? machine.name : 'Unknown') : ''}</td>
+            <td style="${item.checked?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(item.name)}</td>
+            <td>${cat ? `<span class="cat-badge ${cls}">${cat}</span>` : '—'}</td>
+            <td style="text-align:center;">${prod?.stock !== undefined ? prod.stock : '—'}</td>
+            <td>${bar}</td>
+            <td style="text-align:center;font-weight:700;color:var(--accent);">×${item.qty_needed||item.qty}</td>
+            <td style="text-align:center;">${machineId !== lastMachineId ? `<span class="badge badge-${r.status}" style="font-size:0.65rem;">${r.status}</span>` : ''}</td>
+            <td style="text-align:center;"><div class="pl-check ${item.checked?'checked':''}" style="margin:auto;" onclick="plToggleItem(${r.id},${idx})">${item.checked?'✓':''}</div></td>
+          </tr>`;
 
-            html += `<div style="border:1px solid var(--border);border-top:none;background:var(--card);">
-              <div style="background:#f0f4f8;border-bottom:1px solid var(--border);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-                <div>
-                  <strong style="font-size:0.88rem;">${escapeHtml(machineName)}</strong>
-                  ${machineModel ? `<span style="font-size:0.72rem;color:var(--muted);margin-left:8px;">${escapeHtml(machineModel)}</span>` : ''}
-                  <span class="badge badge-${r.status}" style="margin-left:8px;">${r.status}</span>
+          lastLocId = locId;
+          lastMachineId = machineId;
+        });
+
+        html += '</tbody></table></div>';
+        grid.innerHTML = html;
+
+      } else {
+        // Mobile: compact cards per location
+        const locationTree = [];
+        const usedIds2 = new Set();
+        for (const loc of plLocations) {
+          const locMachines = plMachines.filter(m => m.location_id === loc.id || m.location?.id === loc.id);
+          const entries = [];
+          for (const m of locMachines) {
+            const mrs = filtered.filter(r => r.machine_id === m.id);
+            if (mrs.length) { entries.push({ machine: m, restocks: mrs }); mrs.forEach(r => usedIds2.add(r.id)); }
+          }
+          if (entries.length) locationTree.push({ location: loc, entries });
+        }
+        const orphans2 = filtered.filter(r => !usedIds2.has(r.id));
+        if (orphans2.length) locationTree.push({ location: { name: 'Unassigned', address: '' }, entries: [{ machine: null, restocks: orphans2 }] });
+
+        let html = '';
+        for (const { location, entries } of locationTree) {
+          html += `<div style="margin-bottom:20px;"><div style="background:var(--accent);color:#fff;padding:9px 14px;border-radius:8px 8px 0 0;font-weight:700;font-size:0.88rem;">📍 ${escapeHtml(location.name)}</div>`;
+          for (const { machine, restocks: mRestocks } of entries) {
+            for (const r of mRestocks) {
+              const items = r.items || [];
+              const checkedCount = items.filter(i => i.checked).length;
+              const sidx = statusFlow.indexOf(r.status);
+              const nextStatus = sidx >= 0 && sidx < statusFlow.length-1 ? statusFlow[sidx+1] : null;
+              html += `<div style="border:1px solid var(--border);border-top:none;background:var(--card);">
+                <div style="background:#f0f4f8;border-bottom:1px solid var(--border);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;">
+                  <strong style="font-size:0.82rem;">${escapeHtml(machine?machine.name:'Unknown')}</strong>
+                  <div style="display:flex;gap:6px;align-items:center;">
+                    <span class="badge badge-${r.status}" style="font-size:0.65rem;">${r.status}</span>
+                    <span style="font-size:0.72rem;color:var(--muted);">${checkedCount}/${items.length}</span>
+                    ${nextStatus?`<button class="btn btn-sm btn-primary" style="padding:3px 8px;font-size:0.72rem;" onclick="plMoveStatus(${r.id},'${nextStatus}')">${nextStatus==='done'?'✅':nextStatus+' →'}</button>`:''}
+                  </div>
                 </div>
-                <div style="display:flex;align-items:center;gap:8px;">
-                  <span style="font-size:0.78rem;color:var(--muted);">✅ ${checkedCount}/${items.length} picked</span>
-                  ${nextStatus ? `<button class="btn btn-sm btn-primary" onclick="plMoveStatus(${r.id},'${nextStatus}')">${nextStatus==='done'?'✅ Done':nextStatus+' →'}</button>` : ''}
+                ${items.map((item,idx)=>{
+                  const pct=item.pct_full!==undefined?item.pct_full:null;
+                  const pc=pct!==null?(pct<25?'var(--hot)':pct<50?'var(--warn)':'var(--success)'):'var(--muted)';
+                  return `<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--border);min-height:44px;">
+                    <div class="pl-check ${item.checked?'checked':''}" style="flex-shrink:0;" onclick="plToggleItem(${r.id},${idx})">${item.checked?'✓':''}</div>
+                    <span style="flex:1;font-size:0.85rem;${item.checked?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(item.name)}</span>
+                    ${pct!==null?`<span style="font-size:0.72rem;font-weight:700;color:${pc};flex-shrink:0;">${pct}%</span>`:''}
+                    <span style="font-weight:700;color:var(--accent);flex-shrink:0;font-size:0.82rem;">×${item.qty_needed||item.qty}</span>
+                  </div>`;
+                }).join('')}
+                <div style="padding:8px 12px;display:flex;gap:8px;">
+                  ${nextStatus?`<button class="btn btn-primary" style="flex:1;min-height:44px;" onclick="plMoveStatus(${r.id},'${nextStatus}')">${nextStatus==='done'?'✅ Complete':nextStatus+' →'}</button>`:''}
                   <button class="btn btn-sm" onclick="openPicklistModal(${r.id})">Edit</button>
                 </div>
-              </div>
-              ${items.length === 0 ? `<div style="padding:12px 16px;color:var(--muted);font-size:0.82rem;">No items.</div>` : `
-              <table style="width:100%;border-collapse:collapse;font-size:0.82rem;table-layout:fixed;">
-                <thead>
-                  <tr style="background:#edf2f7;">
-                    <th style="padding:7px 12px;width:36px;"></th>
-                    <th style="padding:7px 12px;text-align:left;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;">Product</th>
-                    <th style="padding:7px 10px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;width:100px;">Category</th>
-                    <th style="padding:7px 10px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;width:90px;">In Stock</th>
-                    <th style="padding:7px 10px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;width:130px;">Fill Level</th>
-                    <th style="padding:7px 10px;text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;width:100px;">Qty to Bring</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${items.map((item, idx) => {
-                    const pct = item.pct_full !== undefined ? item.pct_full : null;
-                    const pctColor = pct !== null ? (pct<25?'var(--hot)':pct<50?'var(--warn)':'var(--success)') : 'var(--muted)';
-                    const bar = pct !== null ? `<div style="display:flex;align-items:center;justify-content:center;gap:5px;"><div style="width:80px;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${pctColor};"></div></div><span style="font-size:0.72rem;font-weight:700;color:${pctColor};">${pct}%</span></div>` : '<span style="color:var(--muted);font-size:0.75rem;">—</span>';
-                    return `<tr style="border-top:1px solid var(--border);${item.checked?'background:#f4fdf4;':''}">
-                      <td style="padding:6px 12px;text-align:center;"><div class="pl-check ${item.checked?'checked':''}" style="margin:auto;" onclick="plToggleItem(${r.id},${idx})">${item.checked?'✓':''}</div></td>
-                      <td style="padding:6px 12px;${item.checked?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(item.name)}</td>
-                      <td style="padding:6px 10px;text-align:center;">${(() => { const p=products.find(x=>x.id===item.product_id||x.name===item.name); const cat=p?.category||''; const cls={'beverages':'cat-beverages','snacks':'cat-snacks','candy':'cat-candy','healthy':'cat-healthy','energy':'cat-energy','incidentals':'cat-incidentals'}[cat]||''; return cat?`<span class="cat-badge ${cls}">${cat}</span>`:'<span style="color:var(--muted);">—</span>'; })()}</td>
-                      <td style="padding:6px 10px;text-align:center;font-size:0.82rem;">${(() => { const p=products.find(x=>x.id===item.product_id||x.name===item.name); return p?.stock!==undefined?p.stock:'—'; })()}</td>
-                      <td style="padding:6px 10px;">${bar}</td>
-                      <td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--accent);">×${item.qty_needed||item.qty}</td>
-                    </tr>`;
-                  }).join('')}
-                </tbody>
-              </table>`}
-            </div>`;
+              </div>`;
+            }
           }
+          html += '</div>';
         }
-        html += '</div>';
+        grid.innerHTML = html;
       }
-      grid.innerHTML = html;
     }
 
 
