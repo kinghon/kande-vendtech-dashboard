@@ -1984,22 +1984,20 @@
                 <div style="display:flex;gap:8px;">
                   <div style="flex:2;">
                     <div style="font-size:10px;color:var(--muted);margin-bottom:3px;text-align:center;">MONTH</div>
-                    <select class="exp-date-part" style="width:100%;font-size:22px;font-weight:700;padding:10px 4px;border:2px solid var(--border);border-radius:10px;text-align:center;background:#fff;color:var(--text);-webkit-appearance:none;"
-                      onchange="updateExpDateParts(${r.id}, this.closest('.exp-card-body'))">
+                    <select class="exp-date-part" style="width:100%;font-size:22px;font-weight:700;padding:10px 4px;border:2px solid var(--border);border-radius:10px;text-align:center;background:#fff;color:var(--text);-webkit-appearance:none;">
                       ${buildMonthOptions(r.expiration_date)}
                     </select>
                   </div>
                   <div style="flex:1;">
-                    <div style="font-size:10px;color:var(--muted);margin-bottom:3px;text-align:center;">DAY <span style="font-size:9px;">(opt)</span></div>
-                    <input type="number" class="exp-date-part" min="1" max="31" placeholder="--"
-                      value="${r.expiration_date ? parseInt(r.expiration_date.split('-')[2]) : ''}"
-                      style="width:100%;font-size:22px;font-weight:700;padding:10px 4px;border:2px solid var(--border);border-radius:10px;text-align:center;background:#fff;color:var(--text);"
-                      onblur="updateExpDateParts(${r.id}, this.closest('.exp-card-body'))">
+                    <div style="font-size:10px;color:var(--muted);margin-bottom:3px;text-align:center;">DAY</div>
+                    <input type="number" class="exp-date-part" min="1" max="31"
+                      value="${r.expiration_date ? parseInt(r.expiration_date.split('-')[2]) : 1}"
+                      onfocus="if(this.value=='1' && !this.dataset.changed) this.select()" onchange="this.dataset.changed='1'"
+                      style="width:100%;font-size:22px;font-weight:700;padding:10px 4px;border:2px solid var(--border);border-radius:10px;text-align:center;background:#fff;color:var(--text);">
                   </div>
                   <div style="flex:2;">
                     <div style="font-size:10px;color:var(--muted);margin-bottom:3px;text-align:center;">YEAR</div>
-                    <select class="exp-date-part" style="width:100%;font-size:22px;font-weight:700;padding:10px 4px;border:2px solid var(--border);border-radius:10px;text-align:center;background:#fff;color:var(--text);-webkit-appearance:none;"
-                      onchange="updateExpDateParts(${r.id}, this.closest('.exp-card-body'))">
+                    <select class="exp-date-part" style="width:100%;font-size:22px;font-weight:700;padding:10px 4px;border:2px solid var(--border);border-radius:10px;text-align:center;background:#fff;color:var(--text);-webkit-appearance:none;">
                       ${buildYearOptions(r.expiration_date)}
                     </select>
                   </div>
@@ -2048,13 +2046,10 @@
     function updateExpDateParts(id, cardBody) {
       const parts = cardBody.querySelectorAll('.exp-date-part');
       const month = parts[0]?.value || '';
-      const dayVal = parseInt(parts[1]?.value) || 0;
+      const dayVal = parseInt(parts[1]?.value) || 1;
       const year = parts[2]?.value || '';
       if (!month || !year) return;
-      // Day is optional — if blank, use last day of the month
-      const day = dayVal > 0
-        ? String(dayVal).padStart(2, '0')
-        : String(new Date(parseInt(year), parseInt(month), 0).getDate()).padStart(2, '0');
+      const day = String(Math.max(1, Math.min(31, dayVal))).padStart(2, '0');
       const dateStr = `${year}-${month}-${day}`;
       updateExpRecord(id, 'expiration_date', dateStr);
     }
