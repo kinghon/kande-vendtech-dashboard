@@ -4212,9 +4212,21 @@
           ${nextStatus ? `<button class="btn btn-primary btn-sm" onclick="plMoveStatus(${r.id},'${nextStatus}')">Move to ${nextStatus} →</button>` : ''}
         </div>`;
 
+      const catOrder = ['food','snacks','candy','energy','beverages','healthy','incidentals',''];
+      const sortedItems = [...(r.items || [])].map((item, idx) => ({ item, idx })).sort((a, b) => {
+        const pa = products.find(p => p.id === a.item.product_id || p.name === a.item.name);
+        const pb = products.find(p => p.id === b.item.product_id || p.name === b.item.name);
+        const ca = (pa?.category || '').toLowerCase();
+        const cb = (pb?.category || '').toLowerCase();
+        const oa = catOrder.indexOf(ca) === -1 ? catOrder.length : catOrder.indexOf(ca);
+        const ob = catOrder.indexOf(cb) === -1 ? catOrder.length : catOrder.indexOf(cb);
+        if (oa !== ob) return oa - ob;
+        return a.item.name.localeCompare(b.item.name);
+      });
+
       if (isMobile) {
         let items = '';
-        (r.items || []).forEach((item, idx) => {
+        sortedItems.forEach(({ item, idx }) => {
           const pct = item.pct_full !== undefined ? item.pct_full : null;
           const pctColor = pct !== null ? (pct<25?'var(--hot)':pct<50?'var(--warn)':'var(--success)') : 'var(--muted)';
           const prod = products.find(p => p.id === item.product_id || p.name === item.name);
@@ -4233,7 +4245,7 @@
         grid.innerHTML = header + `<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">${items || '<div style="padding:20px;text-align:center;color:var(--muted);">No items</div>'}</div>`;
       } else {
         let tableRows = '';
-        (r.items || []).forEach((item, idx) => {
+        sortedItems.forEach(({ item, idx }) => {
           const pct = item.pct_full !== undefined ? item.pct_full : null;
           const pctColor = pct !== null ? (pct<25?'var(--hot)':pct<50?'var(--warn)':'var(--success)') : 'var(--muted)';
           const bar = pct !== null
