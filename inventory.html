@@ -1776,6 +1776,9 @@
 
       let records = [...expirationRecords];
 
+      // Always hide past-expired records from default view (only show in 'expired' filter)
+      if (expFilter !== 'expired') records = records.filter(r => getExpStatus(r) !== 'expired');
+
       // Apply filter
       if (expFilter === 'missing') records = records.filter(r => !r.expiration_date);
       else if (expFilter === 'soon') records = records.filter(r => getExpStatus(r) === 'soon');
@@ -1835,29 +1838,87 @@
               </div>
             </div>
             <div class="exp-card-body">
-              <div class="exp-field" style="display:flex;align-items:center;gap:8px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
                 <label class="exp-field-label" style="white-space:nowrap;">Qty</label>
                 <input type="number" class="exp-input-number" value="${r.total_qty || 0}" min="0"
                   onblur="updateExpRecord(${r.id}, 'total_qty', parseInt(this.value)||0)">
-                <label class="exp-field-label" style="white-space:nowrap;margin-left:8px;">Exp</label>
-                <input type="date" class="exp-input" value="${r.expiration_date || ''}"
-                  onblur="updateExpRecord(${r.id}, 'expiration_date', this.value)" style="flex:1;">
-                <span class="exp-status-dot ${dotClass}"></span>
+                <span class="exp-status-dot ${dotClass}" style="margin-left:4px;"></span>
                 <span style="font-size:12px;font-weight:700;color:var(--${daysClass});white-space:nowrap;">${daysText}</span>
               </div>
-              <div class="exp-field">
+              <div style="margin-bottom:6px;">
+                <label class="exp-field-label" style="display:block;margin-bottom:6px;font-size:11px;">EXPIRATION DATE</label>
+                <div style="display:flex;gap:8px;">
+                  <div style="flex:2;">
+                    <div style="font-size:10px;color:var(--muted);margin-bottom:3px;text-align:center;">MONTH</div>
+                    <select class="exp-date-part" style="width:100%;font-size:22px;font-weight:700;padding:10px 4px;border:2px solid var(--border);border-radius:10px;text-align:center;background:#fff;color:var(--text);-webkit-appearance:none;"
+                      onchange="updateExpDateParts(${r.id}, this.closest('.exp-card-body'))">
+                      ${buildMonthOptions(r.expiration_date)}
+                    </select>
+                  </div>
+                  <div style="flex:1;">
+                    <div style="font-size:10px;color:var(--muted);margin-bottom:3px;text-align:center;">DAY</div>
+                    <input type="number" class="exp-date-part" min="1" max="31" placeholder="--"
+                      value="${r.expiration_date ? parseInt(r.expiration_date.split('-')[2]) : ''}"
+                      style="width:100%;font-size:22px;font-weight:700;padding:10px 4px;border:2px solid var(--border);border-radius:10px;text-align:center;background:#fff;color:var(--text);"
+                      onblur="updateExpDateParts(${r.id}, this.closest('.exp-card-body'))">
+                  </div>
+                  <div style="flex:2;">
+                    <div style="font-size:10px;color:var(--muted);margin-bottom:3px;text-align:center;">YEAR</div>
+                    <select class="exp-date-part" style="width:100%;font-size:22px;font-weight:700;padding:10px 4px;border:2px solid var(--border);border-radius:10px;text-align:center;background:#fff;color:var(--text);-webkit-appearance:none;"
+                      onchange="updateExpDateParts(${r.id}, this.closest('.exp-card-body'))">
+                      ${buildYearOptions(r.expiration_date)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div style="margin-bottom:6px;">
                 <input type="text" class="exp-input" value="${escapeHtml(r.notes || '')}" placeholder="Notes (e.g. shelf A3)"
                   onblur="updateExpRecord(${r.id}, 'notes', this.value)" style="font-size:14px;">
               </div>
               ${subLotHtml}
               <div class="exp-actions">
                 <button class="exp-btn" onclick="addSubLot(${r.id})">+ Add Sub-lot</button>
-                <button class="exp-btn exp-btn-danger" onclick="deleteExpRecord(${r.id})">🗑 Remove</button>
               </div>
             </div>
           </div>
         `;
       }).join('');
+    }
+
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+    function buildMonthOptions(expDate) {
+      const now = new Date();
+      const curYear = now.getFullYear();
+      const curMonth = now.getMonth(); // 0-indexed
+      const defaultMonth = (curMonth + 2) % 12; // 2 months ahead
+      const selMonth = expDate ? parseInt(expDate.split('-')[1]) - 1 : defaultMonth; // 0-indexed
+      const selYear = expDate ? parseInt(expDate.split('-')[0]) : curYear + (curMonth + 2 >= 12 ? 1 : 0);
+      return MONTHS.map((name, i) => {
+        // Hide past months only if selected year is current year
+        if (selYear === curYear && i < curMonth) return '';
+        const val = String(i + 1).padStart(2, '0');
+        return `<option value="${val}" ${i === selMonth ? 'selected' : ''}>${name}</option>`;
+      }).join('');
+    }
+
+    function buildYearOptions(expDate) {
+      const now = new Date();
+      const threeMonths = new Date(now.getFullYear(), now.getMonth() + 3, 1);
+      const defaultYear = threeMonths.getFullYear();
+      const selYear = expDate ? parseInt(expDate.split('-')[0]) : defaultYear;
+      const years = [now.getFullYear(), now.getFullYear() + 1, now.getFullYear() + 2];
+      return years.map(y => `<option value="${y}" ${y === selYear ? 'selected' : ''}>${y}</option>`).join('');
+    }
+
+    function updateExpDateParts(id, cardBody) {
+      const parts = cardBody.querySelectorAll('.exp-date-part');
+      const month = parts[0]?.value || '';
+      const day = String(parseInt(parts[1]?.value) || '').padStart(2, '0');
+      const year = parts[2]?.value || '';
+      if (!month || !day || !year || day === '00') return;
+      const dateStr = `${year}-${month}-${day}`;
+      updateExpRecord(id, 'expiration_date', dateStr);
     }
 
     async function updateExpRecord(id, field, value) {
