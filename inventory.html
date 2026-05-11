@@ -78,6 +78,7 @@
     .cat-healthy { background: #c6f6d5; color: #276749; }
     .cat-energy { background: #e9d8fd; color: #6b46c1; }
     .cat-incidentals { background: #e2e8f0; color: #4a5568; }
+    .cat-fresh-food { background: #d4f7e0; color: #1a6640; }
 
     /* Stock Adjust Buttons */
     .stock-adjust { display: flex; align-items: center; gap: 4px; }
@@ -1786,7 +1787,7 @@
         const profitUnit = effectiveRetail - unitCost;
         const status = getStockStatus(stock, reorder);
         const rowClass = status === 'out' ? 'out-of-stock' : status === 'low' ? 'low-stock' : '';
-        const catClass = 'cat-' + (p.category || 'other');
+        const catClass = 'cat-' + (p.category || 'other').replace(/ /g, '-');
         const profitClass = profitUnit >= 0 ? 'profit-positive' : 'profit-negative';
 
         return `
@@ -1849,7 +1850,7 @@
           const margin = unitCost > 0 ? Math.round(((effectiveRetail - unitCost) / unitCost) * 100) : marginPct;
           const status = getStockStatus(stock, reorder);
           const stockClass = status === 'out' ? 'mc-stock-out' : status === 'low' ? 'mc-stock-low' : 'mc-stock-good';
-          const catClass = 'cat-' + (p.category || 'other');
+          const catClass = 'cat-' + (p.category || 'other').replace(/ /g, '-');
           const thumb = p.thumbnail
             ? `<img src="${p.thumbnail}" class="mc-thumb" alt="" onclick="openProductDetail(${p.id})">`
             : `<div class="mc-thumb-placeholder">${getCategoryEmoji(p.name)}</div>`;
@@ -2817,7 +2818,7 @@
     }
 
     function getCategoryLabel(cat) {
-      const labels = { beverages: 'Beverages', snacks: 'Snacks', candy: 'Candy', healthy: 'Healthy', energy: 'Beverages › Energy', incidentals: 'Incidentals' };
+      const labels = { beverages: 'Beverages', snacks: 'Snacks', candy: 'Candy', healthy: 'Healthy', energy: 'Beverages › Energy', incidentals: 'Incidentals', 'fresh food': 'Fresh Food' };
       return labels[cat] || cat;
     }
 
@@ -4277,7 +4278,7 @@
             : '<span style="color:var(--muted);">—</span>';
           const prod = products.find(p => p.id === item.product_id || p.name === item.name);
           const cat = prod?.category || '';
-          const cls = {'beverages':'cat-beverages','snacks':'cat-snacks','candy':'cat-candy','healthy':'cat-healthy','energy':'cat-energy','incidentals':'cat-incidentals'}[cat] || '';
+          const cls = {'beverages':'cat-beverages','snacks':'cat-snacks','candy':'cat-candy','healthy':'cat-healthy','energy':'cat-energy','incidentals':'cat-incidentals','fresh food':'cat-fresh-food'}[cat] || '';
           const thumb2 = prod?.thumbnail || prod?.image_url || '';
           const thumbEl2 = thumb2
             ? `<img src="${thumb2}" style="width:36px;height:36px;object-fit:contain;border-radius:5px;background:#f7f7f7;" onerror="this.style.display='none'">`
