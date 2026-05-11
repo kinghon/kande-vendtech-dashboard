@@ -2189,6 +2189,91 @@ app.get('/api/pull-list', (req, res) => {
   res.json(items.sort((a, b) => new Date(b.pulled_at) - new Date(a.pulled_at)));
 });
 
+// POST /api/restocks/auto-generate
+// Creates one restock order per machine listing items below 50% capacity
+app.post('/api/restocks/auto-generate', (req, res) => {
+  const DEFAULT_SLOT_CAPACITY = 10;
+  const REFILL_THRESHOLD = 0.5; // 50%
+  const inv = db.sandstar_inventory || [];
+  const machines = db.machines || [];
+  const products = db.products || [];
+
+  // Group inventory by machine
+  const byMachine = {};
+  for (const entry of inv) {
+    const key = String(entry.sandstar_machine_id || entry.machine_name);
+    if (!byMachine[key]) byMachine[key] = { machine_id: key, machine_name: entry.machine_name, items: [] };
+    const cap = entry.capacity > 0 ? entry.capacity : DEFAULT_SLOT_CAPACITY;
+    const qty = entry.current_quantity || 0;
+    const pct = qty / cap;
+    if (pct < REFILL_THRESHOLD) {
+      // Find matching dashboard machine id
+      const dashMachine = machines.find(m =>
+        m.sandstar_id === entry.sandstar_machine_id ||
+        (m.name || '').toLowerCase().includes((entry.machine_name || '').toLowerCase().slice(0, 8))
+      );
+      // Find matching product
+      const prod = products.find(p =>
+        p.sku === entry.product_barcode ||
+        (p.name || '').toLowerCase().trim() === (entry.product_name || '').toLowerCase().trim()
+      );
+      byMachine[key].items.push({
+        name: entry.product_name,
+        product_id: prod?.id || null,
+        qty_current: qty,
+        qty_max: cap,
+        qty_needed: cap - qty,
+        qty: cap - qty, // how much to bring
+        pct_full: Math.round(pct * 100),
+        checked: false
+      });
+      byMachine[key].dashboard_machine_id = dashMachine?.id || null;
+    }
+  }
+
+  if (!db.restocks) db.restocks = [];
+  const today = new Date().toISOString().split('T')[0];
+  const created = [];
+  const updated = [];
+
+  for (const [key, data] of Object.entries(byMachine)) {
+    if (data.items.length === 0) continue;
+    // Find existing auto-generated restock for this machine (pending/picking)
+    const existing = db.restocks.find(r =>
+      r.auto_generated && r.machine_key === key &&
+      ['pending', 'picking'].includes(r.status)
+    );
+    if (existing) {
+      // Merge: add new items not already listed
+      const existingNames = new Set(existing.items.map(i => i.name));
+      const newItems = data.items.filter(i => !existingNames.has(i.name));
+      if (newItems.length > 0) {
+        existing.items.push(...newItems);
+        existing.updated_at = new Date().toISOString();
+        updated.push(existing);
+      }
+    } else {
+      const restock = {
+        id: nextId(),
+        machine_id: data.dashboard_machine_id,
+        machine_key: key,
+        machine_name: data.machine_name,
+        scheduled_date: today,
+        status: 'pending',
+        items: data.items,
+        notes: `Auto-generated: ${data.items.length} items below 50% capacity`,
+        auto_generated: true,
+        created_at: new Date().toISOString()
+      };
+      db.restocks.push(restock);
+      created.push(restock);
+    }
+  }
+
+  if (created.length > 0 || updated.length > 0) saveDB(db);
+  res.json({ created: created.length, updated: updated.length, machines: Object.keys(byMachine).length });
+});
+
 // POST /api/pull-list/auto-generate
 // Scans expiration records and creates pull list entries for items nearing expiration that are in machines.
 // Snacks/drinks: 4 days ahead. Fresh foods (sandwich/wrap/salad/fresh): 1 day ahead.

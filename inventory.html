@@ -2842,7 +2842,7 @@
         loadPriceHistory();
         loadOrderSummary();
       }
-      if (tabId === 'picklist') { loadPicklist(); }
+      if (tabId === 'picklist') { autoGeneratePickList(); }
       if (tabId === 'pulllist') { autoGeneratePullList(); }
     }
 
@@ -3800,6 +3800,13 @@
       if (tab === 'analytics') { renderSpoilageAnalytics(); }
     }
 
+    async function autoGeneratePickList() {
+      try {
+        await fetch('/api/restocks/auto-generate', { method: 'POST' });
+      } catch(e) { console.error('auto-generate pick list:', e); }
+      await loadPicklist();
+    }
+
     async function autoGeneratePullList() {
       try {
         const res = await fetch('/api/pull-list/auto-generate', { method: 'POST' });
@@ -4138,12 +4145,16 @@
         const sidx = statusFlow.indexOf(r.status);
         const nextStatus = sidx >= 0 && sidx < statusFlow.length-1 ? statusFlow[sidx+1] : null;
         const prevStatus = sidx > 0 ? statusFlow[sidx-1] : null;
-        const itemsHtml = items.length > 0 ? items.slice(0,10).map((item,idx) => `
-          <div class="pl-item">
+        const itemsHtml = items.length > 0 ? items.slice(0,15).map((item,idx) => {
+          const pct = item.pct_full !== undefined ? item.pct_full : null;
+          const pctBar = pct !== null ? `<div style="width:50px;height:6px;background:#edf2f7;border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:4px;"><div style="width:${pct}%;height:100%;background:${pct<25?'var(--hot)':pct<50?'var(--warn)':'var(--success)'};"></div></div><span style="font-size:0.7rem;color:var(--muted);">${pct}%</span>` : '';
+          return `<div class="pl-item">
             <div class="pl-check ${item.checked?'checked':''}" onclick="plToggleItem(${r.id},${idx})">${item.checked?'✓':''}</div>
-            <span class="pl-name ${item.checked?'done':''}">${escapeHtml(item.name)}</span>
-            <span class="pl-qty">×${item.qty}</span>
-          </div>`).join('') + (items.length>10?`<div style="color:var(--muted);font-size:0.78rem;padding:6px 0;">+ ${items.length-10} more items</div>`:'') :
+            <span class="pl-name ${item.checked?'done':''}" style="flex:1;">${escapeHtml(item.name)}</span>
+            ${pctBar}
+            <span class="pl-qty" style="margin-left:6px;">×${item.qty_needed||item.qty}</span>
+          </div>`;
+        }).join('') + (items.length>15?`<div style="color:var(--muted);font-size:0.78rem;padding:6px 0;">+ ${items.length-15} more items</div>`:'') :
           '<div style="color:var(--muted);font-size:0.85rem;">No items added yet</div>';
         return `<div class="pl-card">
           <div class="pl-card-header">

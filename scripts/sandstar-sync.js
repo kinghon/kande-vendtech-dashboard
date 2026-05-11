@@ -368,6 +368,12 @@ function dashApi(method, path, body, cookies) {
       log(`No changes — silent (${onlineCount}/${machineStatus.length} online, ${allOrders.length} total orders, ${completedOrders.length} completed)`);
     }
 
+    // Auto-generate pick list from machine inventory levels (below 50% capacity)
+    try {
+      const plRes = await dashApi('POST', '/api/restocks/auto-generate', {}, dashCookies);
+      if (plRes.created > 0 || plRes.updated > 0) log(`Pick list: ${plRes.created} created, ${plRes.updated} updated across ${plRes.machines} machines`);
+    } catch(e) { log(`Pick list auto-generate failed: ${e.message}`); }
+
     // Auto-generate pull list from expiration dates
     try {
       const plRes = await dashApi('POST', '/api/pull-list/auto-generate', {}, dashCookies);
