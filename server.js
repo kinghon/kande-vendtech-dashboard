@@ -29155,6 +29155,15 @@ app.put('/api/sandstar/machines/:id', (req, res) => {
   res.json(db.sandstar_machines[idx]);
 });
 
+app.delete('/api/sandstar/machines/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.sandstar_machines || []).findIndex(m => m.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  db.sandstar_machines.splice(idx, 1);
+  saveDB(db);
+  res.json({ deleted: id });
+});
+
 // Upsert batch of sandstar machines by sandstar_id
 app.post('/api/sandstar/machines/batch', (req, res) => {
   const { machines } = req.body;
@@ -29162,7 +29171,7 @@ app.post('/api/sandstar/machines/batch', (req, res) => {
   if (!db.sandstar_machines) db.sandstar_machines = [];
   let upserted = 0;
   for (const m of machines) {
-    const idx = db.sandstar_machines.findIndex(x => x.sandstar_id === m.sandstar_id);
+    const idx = db.sandstar_machines.findIndex(x => String(x.sandstar_id) === String(m.sandstar_id));
     if (idx !== -1) {
       db.sandstar_machines[idx] = { ...db.sandstar_machines[idx], ...m, updated_at: new Date().toISOString() };
     } else {
