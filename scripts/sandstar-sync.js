@@ -233,17 +233,19 @@ function dashApi(method, path, body, cookies) {
       last_seen:    m.connectTime,
     }));
 
-    // 5. Process orders — filter completed with revenue (phase >= 2 OR totalMoney > 0)
+    // 5. Process orders — filter completed with revenue (phase >= 2 OR orderAmount > 0)
+    // Note: Sandstar API uses 'orderAmount' (pre-tax) and 'paymentAmount' (with tax) — NOT 'totalMoney'
+    const getOrderAmount = o => o.orderAmount || o.paymentAmount || o.statOrderAmount || o.totalMoney || 0;
     const completedOrders = allOrders.filter(o =>
-      o.phase >= 2 || (o.totalMoney || 0) > 0
+      o.phase >= 2 || getOrderAmount(o) > 0
     );
     log(`Orders: ${allOrders.length} total, ${completedOrders.length} completed/importable`);
 
     // Revenue stats from all completed orders
-    const totalRevenue = completedOrders.reduce((s, o) => s + (o.totalMoney || 0), 0);
+    const totalRevenue = completedOrders.reduce((s, o) => s + getOrderAmount(o), 0);
     const todayStr = new Date().toISOString().split('T')[0];
     const todayOrders = completedOrders.filter(o => (o.closeTime || o.phaseChangeTime || '').startsWith(todayStr));
-    const todayRevenue = todayOrders.reduce((s, o) => s + (o.totalMoney || 0), 0);
+    const todayRevenue = todayOrders.reduce((s, o) => s + getOrderAmount(o), 0);
 
     // Find new orders (not yet synced)
     const newOrders = completedOrders.filter(o => !state.syncedOrderNos?.includes(o.orderNo));
@@ -253,9 +255,10 @@ function dashApi(method, path, body, cookies) {
     const dashCookies = {};
     await dashApi('POST', '/api/auth/login', { password: DASHBOARD_PW }, dashCookies);
 
-    // Update machines
+    // Update machines — write to both CRM machines and sandstar_machines store
     const dashMachines = await dashApi('GET', '/api/machines', null, dashCookies);
     const dashMachineList = Array.isArray(dashMachines) ? dashMachines : [];
+    const sandstarMachineBatch = [];
     for (const m of machineStatus) {
       const existing = dashMachineList.find(dm =>
         dm.sandstar_id === m.sandstar_id ||
@@ -267,6 +270,12 @@ function dashApi(method, path, body, cookies) {
         alarm_count: m.alarms ? 1 : 0, sandstar_synced_at: new Date().toISOString(),
       };
       if (existing?.id) await dashApi('PUT', `/api/machines/${existing.id}`, payload, dashCookies);
+      sandstarMachineBatch.push(payload);
+    }
+    // Write to sandstar_machines store (used by summary active_machines count)
+    if (sandstarMachineBatch.length > 0) {
+      const machBatchRes = await dashApi('POST', '/api/sandstar/machines/batch', { machines: sandstarMachineBatch }, dashCookies);
+      log(`Sandstar machines upserted: ${JSON.stringify(machBatchRes)}`);
     }
 
     // Batch import machine inventory
@@ -302,7 +311,7 @@ function dashApi(method, path, body, cookies) {
         sandstar_order_no: order.orderNo,
         machine_name: order.freezerName,
         machine_id: order.freezerId,
-        amount: order.totalMoney || 0,
+        amount: order.orderAmount || order.paymentAmount || order.statOrderAmount || order.totalMoney || 0,
         items: (order.goods || []).map(g => ({ name: g.goodsName, qty: g.goodsNum, price: g.goodsPrice })),
         sale_date: order.closeTime || order.phaseChangeTime || order.createTime || new Date().toISOString(),
         pay_method: order.payName || '',

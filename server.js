@@ -29155,6 +29155,25 @@ app.put('/api/sandstar/machines/:id', (req, res) => {
   res.json(db.sandstar_machines[idx]);
 });
 
+// Upsert batch of sandstar machines by sandstar_id
+app.post('/api/sandstar/machines/batch', (req, res) => {
+  const { machines } = req.body;
+  if (!Array.isArray(machines) || machines.length === 0) return res.status(400).json({ error: 'machines array required' });
+  if (!db.sandstar_machines) db.sandstar_machines = [];
+  let upserted = 0;
+  for (const m of machines) {
+    const idx = db.sandstar_machines.findIndex(x => x.sandstar_id === m.sandstar_id);
+    if (idx !== -1) {
+      db.sandstar_machines[idx] = { ...db.sandstar_machines[idx], ...m, updated_at: new Date().toISOString() };
+    } else {
+      db.sandstar_machines.push({ id: nextId(), ...m, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+    }
+    upserted++;
+  }
+  saveDB(db);
+  res.json({ upserted, total: db.sandstar_machines.length });
+});
+
 app.get('/api/sandstar/summary', (req, res) => {
   const sales = db.sandstar_sales || [];
   const now = new Date();
