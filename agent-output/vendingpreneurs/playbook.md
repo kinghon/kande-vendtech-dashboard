@@ -175,3 +175,70 @@ Insights extracted from Vendingpreneurs YouTube channel for Kande VendTech.
 - [ ] Position Sandstar VRK / AI smart coolers explicitly as "the zero-employee store model" in prospect conversations.
 - [ ] Research the $40B unattended retail market stat for sourcing — use in pitches, proposals, and our website.
 - [ ] Consider creating content (short video/post) on this topic — it's a strong hook: "The 7-Eleven with no employees just showed up at Vegas airport. Here's why that matters for vending operators."
+
+---
+
+## 2026-05-14 — Daily Scrape (4 videos; 1 premiere pending)
+
+### 13. Convenience Beats Price (`X1zLUBZw0_I`)
+**Key Takeaways:**
+- **Convenience wins over price every time.** The airport example: travelers don't leave security to buy a cheaper drink at Hudson — they impulse-buy from the machine right in front of them.
+- **Impulse + proximity = purchase.** People pay premiums for convenience. The machine's location (through security, right there) beats the cheaper option (leave, go to bookstore, come back).
+- **Price sensitivity drops when convenience is high.** This reframes vending from "overpriced snacks" to "strategic convenience placement."
+
+**Kande Action Items:**
+- [ ] In location pitches, lead with convenience, not price: "Your residents/employees save 10-15 minutes not leaving the building"
+- [ ] Place machines at natural flow points (near exits, package rooms, break areas) — convenience is about reducing friction, not just being present
+- [ ] Test pricing elasticity: can we charge $0.50-$1.00 more in high-convenience locations (e.g., 24/7 buildings, places with no nearby alternatives)?
+
+---
+
+### 14. Don't Rely on Their Wi-Fi (`4jxEpxcqPNE`)
+**Key Takeaways:**
+- **Never depend on property Wi-Fi for smart machines or micro markets.** Property networks go down, get changed, or have weak signals — and your transactions stop.
+- **Dedicated cellular router = business continuity.** WTI and similar routers create their own Wi-Fi signal from cell towers. Plug into the machine and it just works.
+- **Transaction reliability is non-negotiable.** If the property's Wi-Fi drops, you lose sales, customers get frustrated, and the location questions your reliability.
+
+**Kande Action Items:**
+- [ ] Budget a dedicated cellular router for every smart machine / micro market deployment
+- [ ] Research WTI vs. alternatives (Verizon Business, Cradlepoint) — compare data plans, reliability, and setup ease
+- [ ] Add "dedicated connectivity" to our ops checklist: every machine must have independent internet, not shared property Wi-Fi
+- [ ] Document the Wi-Fi failure scenario for location managers: "Even if your internet goes down, our machines keep working"
+
+---
+
+### 15. What Sells in Manufacturing Plants (`wI3XJxB2yP4`)
+**Key Takeaways:**
+- **Manufacturing plants = captive audience with specific needs.** Night shift workers getting off at 7 AM buy orange juice and pastries. Day workers forget lunches and need frozen meals.
+- **Energy drinks are top sellers** across manufacturing locations — high-demand, high-turnover SKU.
+- **Frozen meals (breakfast bowls, pizzas, microwaveable items) perform well** because workers literally can't leave the plant for their break. The machine becomes their only food source.
+- **Shift timing matters.** Stock pastries and OJ for night-shift exit; stock hearty frozen meals for day-shift lunch breaks.
+
+**Kande Action Items:**
+- [ ] For manufacturing plant locations, prioritize frozen meal SKU capacity (need freezer space or frozen-capable machine)
+- [ ] Ensure energy drinks are always well-stocked — they're the #1 mover
+- [ ] Build shift-aware stocking: lighter breakfast items for morning, heavier meals for midday
+- [ ] In manufacturing pitches, emphasize "meals for workers who can't leave" — this is a problem they feel daily
+- [ ] Consider a "manufacturing SKU package": energy drinks + frozen meals + pastries + OJ as the starter mix
+
+---
+
+### 16. Most People Won't Take Action (`906hYZpu1bg`)
+**Key Takeaways:**
+- **Information without action is entertainment.** Most viewers will watch 50 more videos, make 100 more excuses, and stay in the same spot a year later.
+- **The difference-maker: speed of execution.** The speaker credits joining Vendingpreneurs and moving fast — not hesitating, not over-researching.
+- **Self-investment signals commitment.** "I invested in myself and my family's future" — the decision to act separates operators from dreamers.
+
+**Kande Action Items:**
+- [ ] Use this framing in our own marketing: "The roadmap is clear. The only variable is whether you'll act on it."
+- [ ] Create a "first 30 days" action checklist for new vending operators — reduce the activation energy from "inspired" to "moving"
+- [ ] In sales conversations, qualify for action orientation: "Are you ready to start placing machines in the next 30 days?" — filter out perpetual researchers
+- [ ] Document our own "speed to first machine" story — when did we go from idea to action? Use it as proof that execution beats preparation
+
+---
+
+### 17. Take Their Routes: 5 Questions to Replace Bad Operators (`lO8nZL3XD_A`)
+**Status:** ⏳ Premiere pending — video not yet available (premieres in ~24 hours). Will be processed on next daily scrape.
+
+**Expected topic:** How to approach locations with underperforming vending operators and win the contract by asking the right diagnostic questions.
+
