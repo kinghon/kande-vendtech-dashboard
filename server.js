@@ -23509,6 +23509,51 @@ app.post('/api/campaigns/sync-tracking', async (req, res) => {
               description: `Email bounced for ${campaign.contact_email}. Verify address.`,
               created_at: new Date().toISOString()
             });
+
+            // [ralph] Bounce auto-flag: update prospect status to needs_phone + add to call sheet
+            const prospect = db.prospects.find(p => p.id === campaign.prospect_id);
+            if (prospect) {
+              prospect.status = 'needs_phone';
+              prospect.updated_at = new Date().toISOString();
+
+              // Add or update call sheet entry
+              if (!db.callSheet) db.callSheet = [];
+              const existingCall = db.callSheet.find(c =>
+                c.prospect_name && c.prospect_name.toLowerCase().includes(prospect.name.toLowerCase())
+              );
+              if (existingCall) {
+                existingCall.engagement_signal = 'needs_phone';
+                existingCall.engagement_detail = `Email bounced for ${campaign.contact_email}. Call mandatory.`;
+                existingCall.last_engagement_at = new Date().toISOString();
+                existingCall.priority = 1;
+                existingCall.updatedAt = new Date().toISOString();
+              } else {
+                db.callSheet.push({
+                  id: Date.now() + Math.floor(Math.random() * 100),
+                  prospect_name: prospect.name,
+                  phone: prospect.phone || '',
+                  contact: prospect.contact || 'Property Manager',
+                  engagement_signal: 'needs_phone',
+                  engagement_detail: `Email bounced for ${campaign.contact_email}. Call mandatory.`,
+                  priority: 1,
+                  called: false,
+                  addedAt: new Date().toISOString(),
+                  addedBy: 'bounce-auto-flag'
+                });
+              }
+
+              // Create urgent task
+              db.crmTasks.push({
+                id: nextId(),
+                prospect_id: prospect.id,
+                title: `📞 ${prospect.name} — email bounced. Call now.`,
+                task_type: 'call',
+                priority: 'high',
+                due_date: new Date().toISOString(),
+                completed: false,
+                created_at: new Date().toISOString()
+              });
+            }
           }
 
           results.push({
@@ -23654,6 +23699,93 @@ app.post('/api/mixmax/sync-to-crm', async (req, res) => {
             activeCampaign.completed_reason = 'replied_mixmax';
             activeCampaign.last_reply_date = new Date().toISOString();
           }
+
+          // [ralph] 72-hour reply escalation: check if call outcome logged within 72h
+          const now = new Date().getTime();
+          const seventyTwoHoursAgo = now - 72 * 60 * 60 * 1000;
+          const callOutcomes = (db.callSheet || []).filter(c =>
+            c.prospect_name && c.prospect_name.toLowerCase().includes(prospect.name.toLowerCase()) &&
+            c.called && c.calledAt && new Date(c.calledAt).getTime() > seventyTwoHoursAgo
+          );
+          const recentContact = prospect.last_contacted && new Date(prospect.last_contacted).getTime() > seventyTwoHoursAgo;
+          if (callOutcomes.length === 0 && !recentContact) {
+            db.crmTasks.push({
+              id: nextId(),
+              prospect_id: prospect.id,
+              title: `🚨 CRITICAL: ${prospect.name} replied — NO CALL OUTCOME in 72h`,
+              task_type: 'call',
+              priority: 'critical',
+              due_date: new Date().toISOString(),
+              completed: false,
+              created_at: new Date().toISOString()
+            });
+            // Also add/update call sheet
+            if (!db.callSheet) db.callSheet = [];
+            const existingCall = db.callSheet.find(c =>
+              c.prospect_name && c.prospect_name.toLowerCase().includes(prospect.name.toLowerCase())
+            );
+            if (existingCall) {
+              existingCall.engagement_signal = 'critical';
+              existingCall.engagement_detail = `Replied but NO CALL in 72h. Call NOW.`;
+              existingCall.priority = 1;
+              existingCall.updatedAt = new Date().toISOString();
+            } else {
+              db.callSheet.push({
+                id: Date.now() + Math.floor(Math.random() * 100),
+                prospect_name: prospect.name,
+                phone: prospect.phone || '',
+                contact: prospect.contact || 'Property Manager',
+                engagement_signal: 'critical',
+                engagement_detail: `Replied but NO CALL in 72h. Call NOW.`,
+                priority: 1,
+                called: false,
+                addedAt: new Date().toISOString(),
+                addedBy: '72h-reply-escalation'
+              });
+            }
+          }
+        }
+
+        // [ralph] Bounce auto-flag: update prospect status to needs_phone + add to call sheet
+        if (msg.wasBounced) {
+          prospect.status = 'needs_phone';
+          prospect.updated_at = new Date().toISOString();
+
+          if (!db.callSheet) db.callSheet = [];
+          const existingCall = db.callSheet.find(c =>
+            c.prospect_name && c.prospect_name.toLowerCase().includes(prospect.name.toLowerCase())
+          );
+          if (existingCall) {
+            existingCall.engagement_signal = 'needs_phone';
+            existingCall.engagement_detail = `Email bounced for ${recipient.email}. Call mandatory.`;
+            existingCall.last_engagement_at = new Date().toISOString();
+            existingCall.priority = 1;
+            existingCall.updatedAt = new Date().toISOString();
+          } else {
+            db.callSheet.push({
+              id: Date.now() + Math.floor(Math.random() * 100),
+              prospect_name: prospect.name,
+              phone: prospect.phone || '',
+              contact: prospect.contact || 'Property Manager',
+              engagement_signal: 'needs_phone',
+              engagement_detail: `Email bounced for ${recipient.email}. Call mandatory.`,
+              priority: 1,
+              called: false,
+              addedAt: new Date().toISOString(),
+              addedBy: 'bounce-auto-flag'
+            });
+          }
+
+          db.crmTasks.push({
+            id: nextId(),
+            prospect_id: prospect.id,
+            title: `📞 ${prospect.name} — email bounced. Call now.`,
+            task_type: 'call',
+            priority: 'high',
+            due_date: new Date().toISOString(),
+            completed: false,
+            created_at: new Date().toISOString()
+          });
         }
 
         results.push(tracking);
@@ -29294,7 +29426,7 @@ app.get('/api/sandstar/summary', (req, res) => {
     dailyRevenue[d.toISOString().split('T')[0]] = 0;
   }
   sales.forEach(s => {
-    const d = (s.sale_date || '').split('T')[0];
+    const d = (s.sale_date || '').substring(0, 10);
     if (dailyRevenue[d] !== undefined) dailyRevenue[d] += s.amount || 0;
   });
 
