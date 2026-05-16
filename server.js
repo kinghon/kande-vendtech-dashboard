@@ -29187,15 +29187,21 @@ app.post('/api/sandstar/sales/batch', (req, res) => {
   for (const sale of sales) {
     const existingIdx = (db.sandstar_sales || []).findIndex(s => s.sandstar_order_no === sale.sandstar_order_no);
     if (existingIdx !== -1) {
-      // Backfill: update amount if existing record has amount=0 and new data has real amount
       const newAmt = parseFloat(sale.amount) || 0;
+      const newItems = sale.items || [];
+      const existingItems = db.sandstar_sales[existingIdx].items || [];
+      let updated = false;
+      // Backfill amount if was 0
       if (newAmt > 0 && (db.sandstar_sales[existingIdx].amount || 0) === 0) {
         db.sandstar_sales[existingIdx].amount = newAmt;
-        db.sandstar_sales[existingIdx].items = sale.items || db.sandstar_sales[existingIdx].items;
-        imported++; // count as updated
-      } else {
-        skipped++;
+        updated = true;
       }
+      // Backfill items if existing is empty and we now have real items
+      if (newItems.length > 0 && existingItems.length === 0) {
+        db.sandstar_sales[existingIdx].items = newItems;
+        updated = true;
+      }
+      if (updated) { imported++; } else { skipped++; }
       continue;
     }
     const record = {

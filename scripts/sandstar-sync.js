@@ -68,40 +68,72 @@ function dashApi(method, path, body, cookies) {
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
 
-  try {
-    log('Logging into Sandstar...');
-    await page.goto('https://prod-ops-us.sandstar.com/#/pages/login/login', { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(1000);
+  // Poll localStorage for token — waits up to maxMs
+  async function waitForToken(page, maxMs = 20000) {
+    const interval = 500;
+    for (let elapsed = 0; elapsed < maxMs; elapsed += interval) {
+      const t = await page.evaluate(() => localStorage.getItem('token')).catch(() => null);
+      if (t) return t;
+      await page.waitForTimeout(interval);
+    }
+    return null;
+  }
 
-    // Check if already at a post-login page
-    if (!page.url().includes('login')) {
-      log('Already logged in via cached session');
-    } else {
-      // Fill login form
-      const idField = await page.$('input[type="text"], input:not([type="password"])').catch(() => null);
-      const pwField = await page.$('input[type="password"]').catch(() => null);
-      if (idField && pwField) {
-        await idField.fill(SANDSTAR_EMAIL);
-        await pwField.fill(SANDSTAR_PASS);
-        // Click login button
-        await page.evaluate(() => {
-          const btns = [...document.querySelectorAll('*')].filter(e =>
-            e.textContent.trim() === 'Login' && getComputedStyle(e).cursor === 'pointer'
-          );
-          if (btns[0]) btns[0].click();
-        });
-        await page.waitForTimeout(3000);
-        // Select merchant if prompted
-        const merchantCard = await page.$('text=Kande VendTech').catch(() => null);
-        if (merchantCard) {
-          await merchantCard.click();
-          await page.waitForTimeout(2000);
-        }
-      }
+  // Login helper with retries
+  async function doLogin(page, attempt) {
+    log(`Login attempt ${attempt}...`);
+    await page.goto('https://prod-ops-us.sandstar.com/#/pages/login/login', { waitUntil: 'domcontentloaded', timeout: 60000 });
+
+    // Wait for page to stabilise before touching DOM
+    await page.waitForLoadState('domcontentloaded').catch(() => {});
+
+    // Check if already past login (cached session)
+    const existing = await waitForToken(page, 2000);
+    if (existing) return existing;
+
+    // Wait for the login form to render
+    await page.waitForSelector('input[type="password"]', { timeout: 40000 });
+    const idField = await page.$('input:not([type="password"])').catch(() => null);
+    const pwField = await page.$('input[type="password"]').catch(() => null);
+    if (!idField || !pwField) throw new Error('Login form fields not found');
+
+    await idField.fill(SANDSTAR_EMAIL);
+    await pwField.fill(SANDSTAR_PASS);
+    await page.evaluate(() => {
+      const btns = [...document.querySelectorAll('*')].filter(e =>
+        e.textContent.trim() === 'Login' && getComputedStyle(e).cursor === 'pointer'
+      );
+      if (btns[0]) btns[0].click();
+    });
+
+    // Wait for URL to leave the login form page
+    await page.waitForURL(url => !url.includes('pages/login/login'), { timeout: 15000 }).catch(() => {});
+    await page.waitForLoadState('domcontentloaded').catch(() => {});
+
+    // Select merchant if prompted
+    const merchantCard = await page.$('text=Kande VendTech').catch(() => null);
+    if (merchantCard) {
+      await merchantCard.click();
+      await page.waitForURL(url => !url.includes('login'), { timeout: 15000 }).catch(() => {});
+      await page.waitForLoadState('domcontentloaded').catch(() => {});
     }
 
-    // Get token from localStorage
-    const token = await page.evaluate(() => localStorage.getItem('token'));
+    // Poll for token — up to 10s
+    return await waitForToken(page, 20000);
+  }
+
+  try {
+    // Try login up to 3 times
+    let token = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      token = await doLogin(page, attempt).catch(e => { log(`Login attempt ${attempt} error: ${e.message}`); return null; });
+      if (token) break;
+      if (attempt < 3) {
+        const delay = attempt * 5000;
+        log(`Retrying login in ${delay/1000}s...`);
+        await page.waitForTimeout(delay);
+      }
+    }
     const organSn = await page.evaluate(() => localStorage.getItem('organSn'));
     if (!token) throw new Error('No token in localStorage after login');
     log(`Token obtained: ${token.substring(0,8)}...`);
@@ -135,6 +167,19 @@ function dashApi(method, path, body, cookies) {
       if (allOrders.length >= totalRows) break;
       pageNum++;
       if (pageNum > 50) { log('  Stopping at 50 pages to avoid overload'); break; }
+    }
+
+    // 2b. Probe first order to log all fields (helps diagnose goods field name)
+    if (allOrders.length > 0) {
+      const sample = allOrders[0];
+      const sampleKeys = Object.keys(sample);
+      log(`  Sample order keys: ${sampleKeys.join(', ')}`);
+      if (sample.goods || sample.goodsList || sample.orderGoodsList || sample.itemList || sample.goodsInfoList) {
+        const goodsField = sample.goods ? 'goods' : sample.goodsList ? 'goodsList' : sample.orderGoodsList ? 'orderGoodsList' : sample.itemList ? 'itemList' : 'goodsInfoList';
+        log(`  Goods field found in list response: ${goodsField} (${(sample[goodsField]||[]).length} items)`);
+      } else {
+        log('  No goods field in list response — will fetch order details per order');
+      }
     }
 
     // 3. Pull machines
@@ -247,6 +292,62 @@ function dashApi(method, path, body, cookies) {
     const todayOrders = completedOrders.filter(o => (o.closeTime || o.phaseChangeTime || '').startsWith(todayStr));
     const todayRevenue = todayOrders.reduce((s, o) => s + getOrderAmount(o), 0);
 
+    // 5b. Fetch order details for orders missing goods data (up to 200)
+    const ordersNeedingDetail = completedOrders.filter(o => {
+      const goods = o.goods || o.goodsList || o.orderGoodsList || o.itemList || o.goodsInfoList || [];
+      return goods.length === 0;
+    });
+    if (ordersNeedingDetail.length > 0) {
+      log(`Fetching order details for ${Math.min(ordersNeedingDetail.length, 200)} orders missing goods data...`);
+      const DETAIL_ENDPOINTS = [
+        '/order/v2/getOrderInfo',
+        '/order/v2/getOrderDetail',
+        '/order/findOrderDetail',
+      ];
+      // Probe which endpoint works using first order
+      let detailEndpoint = null;
+      const probeOrder = ordersNeedingDetail[0];
+      for (const ep of DETAIL_ENDPOINTS) {
+        const probeRes = await page.evaluate(async ({ api, org, scope, ep, orderNo }) => {
+          const h = { 'Content-Type': 'application/json', 'x-token': localStorage.getItem('token'), 'app-scope': scope, 'organSn': org };
+          try {
+            const r = await fetch(`${api}${ep}`, { method: 'POST', headers: h, body: JSON.stringify({ orderNo }) });
+            return r.json();
+          } catch(e) { return { error: e.message }; }
+        }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE, ep, orderNo: probeOrder.orderNo });
+        const probeData = probeRes?.data || probeRes?.result || {};
+        const probeGoods = probeData.goods || probeData.goodsList || probeData.orderGoodsList || probeData.itemList || probeData.goodsInfoList || [];
+        log(`  Detail probe ${ep}: ${JSON.stringify(Object.keys(probeData)).substring(0,100)} | goods: ${probeGoods.length}`);
+        if (probeGoods.length > 0 || Object.keys(probeData).length > 2) {
+          detailEndpoint = ep;
+          // Merge goods into probe order
+          probeOrder.goods = probeGoods.length > 0 ? probeGoods : probeOrder.goods;
+          if (probeGoods.length > 0) log(`  Using ${ep} — found ${probeGoods.length} goods items in probe order`);
+          break;
+        }
+      }
+      if (detailEndpoint && ordersNeedingDetail.length > 1) {
+        // Fetch detail for remaining orders in batches
+        const toFetch = ordersNeedingDetail.slice(1, 200);
+        log(`  Fetching details for ${toFetch.length} more orders via ${detailEndpoint}...`);
+        for (const order of toFetch) {
+          const detRes = await page.evaluate(async ({ api, org, scope, ep, orderNo }) => {
+            const h = { 'Content-Type': 'application/json', 'x-token': localStorage.getItem('token'), 'app-scope': scope, 'organSn': org };
+            try {
+              const r = await fetch(`${api}${ep}`, { method: 'POST', headers: h, body: JSON.stringify({ orderNo }) });
+              return r.json();
+            } catch(e) { return null; }
+          }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE, ep: detailEndpoint, orderNo: order.orderNo });
+          const detData = detRes?.data || detRes?.result || {};
+          const detGoods = detData.goods || detData.goodsList || detData.orderGoodsList || detData.itemList || detData.goodsInfoList || [];
+          if (detGoods.length > 0) order.goods = detGoods;
+        }
+        log(`  Order detail fetch complete`);
+      } else if (!detailEndpoint) {
+        log('  No working detail endpoint found — items will remain empty');
+      }
+    }
+
     // Find new orders (not yet synced)
     const newOrders = completedOrders.filter(o => !state.syncedOrderNos?.includes(o.orderNo));
     log(`New orders to import: ${newOrders.length}`);
@@ -312,7 +413,7 @@ function dashApi(method, path, body, cookies) {
         machine_name: order.freezerName,
         machine_id: order.freezerId,
         amount: order.orderAmount || order.paymentAmount || order.statOrderAmount || order.totalMoney || 0,
-        items: (order.goods || []).map(g => ({ name: g.goodsName, qty: g.goodsNum, price: g.goodsPrice })),
+        items: (order.goods || order.goodsList || order.orderGoodsList || order.itemList || order.goodsInfoList || []).map(g => ({ name: g.goodsName || g.productName || g.name || '', qty: g.goodsNum || g.quantity || g.qty || 1, price: g.goodsPrice || g.price || g.unitPrice || 0 })),
         sale_date: order.closeTime || order.phaseChangeTime || order.createTime || new Date().toISOString(),
         pay_method: order.payName || '',
         phase: order.phase || 2
@@ -361,17 +462,14 @@ function dashApi(method, path, body, cookies) {
     const alarmCount  = machineStatus.filter(m => m.alarms).length;
     let msg = null;
 
-    if (salesImported > 0) {
-      msg = `📊 *Sandstar Sync — ${todayStr}*\n💰 ${salesImported} new sale(s) — $${todayRevenue.toFixed(2)} today\n🖥 ${onlineCount}/${machineStatus.length} machines online`;
-      if (alarmCount) msg += ` · ⚠️ ${alarmCount} alarm(s)`;
-    } else if (statusChanges.length > 0) {
-      msg = `🔄 *Machine Status Change*\n${statusChanges.join('\n')}`;
-    } else if (alarmCount > 0 && !prevMachines[machineStatus.find(m=>m.alarms)?.sandstar_id]?.alarms) {
+    // Telegram notifications disabled — sync runs silently
+    // Only send alarms
+    if (alarmCount > 0 && !prevMachines[machineStatus.find(m=>m.alarms)?.sandstar_id]?.alarms) {
       msg = `⚠️ *Sandstar Alarm*\n${machineStatus.filter(m=>m.alarms).map(m=>m.name).join(', ')}`;
     }
 
     if (msg) {
-      log(`Sending: ${msg.replace(/\n/g,' ').substring(0,100)}`);
+      log(`Sending alarm: ${msg.replace(/\n/g,' ').substring(0,100)}`);
       sendTelegram(msg);
     } else {
       log(`No changes — silent (${onlineCount}/${machineStatus.length} online, ${allOrders.length} total orders, ${completedOrders.length} completed)`);
