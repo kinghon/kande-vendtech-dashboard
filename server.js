@@ -29375,10 +29375,21 @@ app.get('/api/sandstar/summary', (req, res) => {
   const locById = {};
   (db.locations || []).forEach(l => { locById[l.id] = l; });
   const by_machine = {};
+  // Build machineLocationMap keyed by CRM name AND by sandstar machine name (via sandstar_id)
   const machineLocationMap = {};
+  const sandstarIdToMachineName = {}; // sandstar_id → sandstar machine name from db.sandstar_machines
+  (db.sandstar_machines || []).forEach(sm => {
+    if (sm.sandstar_id && sm.name) sandstarIdToMachineName[sm.sandstar_id] = sm.name;
+  });
   (db.machines || []).forEach(m => {
     const loc = m.location || (m.location_id ? locById[m.location_id] : null);
-    if (loc) machineLocationMap[m.name] = loc;
+    if (loc) {
+      machineLocationMap[m.name] = loc;
+      // Also map by sandstar machine name so sales with sandstar names get a location
+      if (m.sandstar_id && sandstarIdToMachineName[m.sandstar_id]) {
+        machineLocationMap[sandstarIdToMachineName[m.sandstar_id]] = loc;
+      }
+    }
   });
   sales.forEach(s => {
     const key = s.machine_name || `Machine ${s.machine_id}`;
@@ -29407,7 +29418,9 @@ app.get('/api/sandstar/summary', (req, res) => {
       by_location[lkey] = { location_id: loc.id, location_name: loc.name, address: loc.address || '', rev_share_config: cfg, rev_share_label: revShareLabel(cfg), gross_revenue: 0, rev_share_amount: 0, net_revenue: 0, transactions: 0, machines: [] };
     }
     if (!by_location[lkey].machines.find(x => x.machine_name === m.name)) {
-      const ms = by_machine[m.name] || { revenue: 0, transactions: 0, last_sale_at: null };
+      // Look up by CRM machine name first, then by sandstar machine name (for linked machines)
+      const sandstarName = m.sandstar_id ? sandstarIdToMachineName[m.sandstar_id] : null;
+      const ms = by_machine[m.name] || (sandstarName ? by_machine[sandstarName] : null) || { revenue: 0, transactions: 0, last_sale_at: null };
       by_location[lkey].machines.push({ machine_name: m.name, machine_id: m.id, model: m.model || '', status: m.status || 'unknown', revenue: ms.revenue, transactions: ms.transactions, last_sale_at: ms.last_sale_at });
     }
   });
