@@ -25621,7 +25621,7 @@ app.get('/api/sandstar/sales', (req, res) => {
 });
 
 app.post('/api/sandstar/sales/batch', (req, res) => {
-  const { sales } = req.body;
+  const { sales, force } = req.body;
   if (!Array.isArray(sales) || sales.length === 0) {
     return res.status(400).json({ error: 'sales array required' });
   }
@@ -25630,12 +25630,14 @@ app.post('/api/sandstar/sales/batch', (req, res) => {
   for (const sale of sales) {
     const existingIdx = (db.sandstar_sales || []).findIndex(s => s.sandstar_order_no === sale.sandstar_order_no);
     if (existingIdx !== -1) {
-      // Backfill: update amount if existing record has amount=0 and new data has real amount
       const newAmt = parseFloat(sale.amount) || 0;
-      if (newAmt > 0 && (db.sandstar_sales[existingIdx].amount || 0) === 0) {
+      const existingAmt = db.sandstar_sales[existingIdx].amount || 0;
+      // force=true: always update amount; otherwise only backfill amount=0 records
+      if (newAmt > 0 && (force || existingAmt === 0)) {
         db.sandstar_sales[existingIdx].amount = newAmt;
         db.sandstar_sales[existingIdx].items = sale.items || db.sandstar_sales[existingIdx].items;
-        imported++; // count as updated
+        db.sandstar_sales[existingIdx].phase = sale.phase || db.sandstar_sales[existingIdx].phase;
+        imported++;
       } else {
         skipped++;
       }
