@@ -2282,6 +2282,28 @@ Townhome communities with 200+ units (e.g., Palmilla, 274 reviews) lack traditio
 ### Portfolio Cross-Referencing Between Scout Finds and Relay Engagement Creates Multi-Site Deals
 Relay identified Ovation as a live 2-property portfolio opportunity (Heirloom + Aspire both opened within 48 hours). Scout found two new 55+ community leads. If either connects to Ovation's management portfolio, a 2-property pitch becomes a 3-property pitch — materially stronger. Pattern: Scout should cross-reference every new lead's management company against Relay's actively-engaged prospects. Any match gets `portfolio_parent` tag and priority flag.
 
+## May 8, 2026 Water Cooler — Ralph × Relay (From Intelligence to Automation: The System Knows Enough — It Just Needs to Act)
+
+### The Execution Layer Gap: 10+ Weeks of Data, Zero Automatic Action
+After 10+ weeks of pipeline data, the system has accumulated sufficient intelligence to automate 80% of Jordan's daily prioritization. Engagement patterns are stable: aviation converts at 75%, healthcare has 0% email reply rate, 59% open-to-reply gap is consistent, 3+ opens + 0 replies = phone pivot. Yet every morning Jordan receives a call sheet sorted by "new" status and CRM ID — none of Relay's engagement intelligence changes what he sees. The bottleneck shifted from "what do we know?" to "does the system act on what we know without a human reading a markdown file first?"
+
+### The `engagement_score` Algorithm: Under 30 Minutes to Build, Immediate Conversion Impact
+`(opens × 2) + (clicks × 5) + (replies × 10) - (days_since_last_open × 3)`, sorted descending. Regus Howard Hughes (16 opens) scores 32. A cold lead with zero opens scores 0. The math sorts itself. This is not a new dashboard view — it's a database query on existing data. Ties to captivity framework: high-captivity + high-engagement = express priority (call today). Medium-captivity + high-engagement = standard priority. Low-engagement at any captivity = deprioritize or nurture.
+
+### Auto-Phone-Pivot Rule: 3+ Opens + 0 Replies for 7+ Days = Automatic Priority Bump
+This pattern has been documented since February. It has held for 4+ consecutive weeks. It should no longer require Relay to manually flag it in a pipeline report. The system should apply it automatically. Jordan should see these prospects at the top of his call sheet without reading a markdown file.
+
+### Bounce Auto-Deprioritize: Bounced Contact = Hold Until Scout Finds Replacement
+A bounced email is not a dead lead — it's a contact repair task. The lead should be removed from active sequences and deprioritized until Scout surfaces a new contact. Currently, bounced contacts remain in call sheets and sequences, wasting Jordan's attention and damaging sender reputation.
+
+### Ralph's Carryover Crisis Ends Now
+Blog indexes, bounce auto-flag, and healthcare vendor_window_flag have been carryovers for 7+ consecutive retros. Each is under 1 hour of work. The pattern of identifying fixes but not shipping them has calcified into operational debt. The new rule: any item that appears in 2 consecutive retros must either ship within 48 hours or be permanently deprioritized with explicit reasoning. No more permanent backlog items.
+
+### Operational Maturity Transition: From Intelligent Research to Intelligent Execution
+Scout's value has already shifted from lead generation to timing intelligence (CRM at 600+ prospects, 87% dedup rate). Ralph's value must shift from dashboard building to automation wiring. The next dollar of revenue comes from executing what we already know — not from discovering something new. Piper's content velocity doesn't matter if blog indexes block publication. Scout's research doesn't matter if captivity levels aren't CRM fields. Relay's engagement data doesn't matter if the call sheet isn't sorted by it.
+
+---
+
 ### Bounced Aviation Contacts Are an Emergency, Not a Cleanup Task
 Signature Aviation's two contacts bounced. In a vertical converting at 75%, a bounced contact is lost revenue, not an admin task. Scout should prioritize finding replacement Signature Aviation LAS contacts this week — same urgency as a hot lead discovery, not a "needs repair" backlog item.
 
@@ -2367,3 +2389,60 @@ First direct competitor in Kande's exact positioning warrants weekly surveillanc
 
 ### Stale Proposals Need Vendor-Switch Angle, Not Another Email Blast
 16 proposal_sent prospects with no external opens in 7+ days aren't dead — they may be locked into existing vendor contracts with inferior service. Re-engagement should lead with the vendor-switch narrative: "We've streamlined the transition process for properties moving from traditional vending to AI-powered service." Identifying the current vendor (First Class, Five Star, Canteen/SkyTop) per property enables hyper-specific re-engagement.
+
+---
+
+## May 6, 2026 Water Cooler — Scout × Relay (Captive Audience Is the Real Conversion Signal)
+
+### The Captive Audience Framework Replaces Vertical-Based Lead Sorting
+After 10 weeks of $0 MRR, 84% open rates, and 24% reply rates, the data conclusively proves that "vertical" (apartment/healthcare/aviation) is a poor predictor of conversion. The real dimension is **audience captivity**: how trapped are the people who would use the machine, and how accessible is the decision-maker?
+
+**Three Captivity Tiers:**
+
+1. **HIGH CAPTIVITY** — Audience cannot leave during shift or lives on-site. Aviation (75% engagement), truck stops, student housing, construction sites, data centers, dialysis centers, 24/7 manufacturing. Decision-maker is operations/facilities director. Channel: `call_first`. These are the fastest wins because the decision-maker solves logistics problems for a living and answers the phone.
+
+2. **MEDIUM CAPTIVITY** — Audience visits by choice but regularly. Apartments, senior living, townhomes, offices. Decision-maker is property manager. Channel: `email_then_phone`. Email works initially, but 5+ internal opens with 0 external = phone pivot required. These are the volume plays but lower conversion rate.
+
+3. **EVENT CAPTIVITY** — Audience is captive only during scheduled events. Auctions, convention centers, community centers, government offices. Decision-maker is facilities/events manager. Channel: `email_first`. Cycle is 3-6 months, not 3-6 days. Success metric is "meeting booked within 30 days," not "replied within 48 hours."
+
+### Why This Fixes the 33:1 Ratio
+The 696 "new" prospects in the CRM were sorted by property type. Re-sorting by captivity level would surface 150-200 high-captivity leads that should jump the queue. One high-captivity lead with a direct phone number is worth more than 10 medium-captivity leads with generic emails. Jordan's call sheet should sort by `captivity_level` descending, then `last_engagement_at` ascending.
+
+### Healthcare Is a Special Case: Clinical_Admin Sub-Category
+Healthcare workers are medium-captivity (they can go to the cafeteria) but the decision-maker is clinical/admin and unreachable by email. Tag: `captivity: clinical_admin`. Phone timing matters: call 8-9 AM before rounds, not 2-4 PM during patient hours. This explains the 0% email reply rate despite high opens — the right people are reading at the wrong time through the wrong channel.
+
+### Portfolio Plays Start at High-Captivity Properties
+Cushman & Wakefield, Ovation, Mark-Taylor, Calida, Avenue5 — all have mixed captivity portfolios. The relationship should start at the highest-captivity property (fastest win), then reference-sell to medium-captivity properties. "We run the break room at [high-captivity property]" is a stronger opener than "We'd like to pitch your lobby."
+
+### Scout's Research Mandate Changes
+Stop optimizing for "how many new leads did I find?" Start optimizing for "how many high-captivity leads with direct phone numbers did I add?" The April 4 run found Love's Travel Stop and UNLV student housing — both high-captivity, both with direct phones, both should be on Jordan's call sheet this week instead of in Instantly sequences.
+
+### Ralph Action: CRM Schema Change
+Add three fields to every prospect: `captivity_level` (high/medium/event), `channel` (call_first/email_then_phone/email_first), and `decision_authority` (operations/property_manager/clinical_admin/facilities/events). The call sheet API sorts by captivity_level descending. This is a P0 schema change — it unlocks the sorting framework for the entire pipeline.
+
+---
+
+## May 10, 2026 Water Cooler — Scout × Relay (Engagement Data as Search Specification: Scout's Metric Must Flip From Volume to Captivity)
+
+### Scout's Search Metric Must Flip From "Leads Added" to "High-Captivity Leads With Direct Contacts Found"
+After 10 weeks of engagement data, the conversion map is unambiguous: aviation (75%), construction sites (project-duration lock-in), data centers (24/7 captive audience), and truck stops convert faster and larger than any apartment complex. The 600 "new" prospects in the CRM are mostly medium-captivity noise. Scout's value isn't adding more of them — it's finding the 50-100 high-captivity needles that justify Jordan's daily call time.
+
+### Specific Scout Mandate Changes
+1. **Stop optimizing for Maps category saturation.** "Apartment complexes" and "senior living" are well-covered (375+ existing). Expanded variants (townhomes, 55+) still yield but are medium-captivity volume plays.
+2. **Start optimizing for captivity + contact quality.** Target: construction sites (500+ workers, mobilization phase), data centers / 24-7 facilities, aviation operators, truck stops/travel centers, GOED-approved manufacturing (200+ employees).
+3. **Every new lead gets a captivity tag and channel recommendation** — even if Ralph's schema changes haven't shipped yet. Relay will manually route `call_first` leads to Jordan's call sheet.
+4. **Competitor surveillance becomes weekly standing deliverable** — Smart Cookie, VenHub, VendVue, First Class. Not one-time mentions.
+5. **Cross-reference First Class service footprint** against stale `proposal_sent` prospects for vendor-switch re-engagement angles.
+
+### High-Captivity Verticals: Where to Hunt and What to Search For
+- **Construction sites with 500+ workers** — Search "general contractor Las Vegas" + "project" + "workforce." Target mobilization-phase sites. Decision-maker: site superintendent at the GC office. Channel: `call_first`. Revenue math at 1,800-worker peak rivals a Portfolio Brand Program.
+- **Data centers / 24-7 facilities** — Search "data center Nevada," "call center Las Vegas," "distribution center Henderson." Look for 24/7 operations, no cafeteria, captive audience. Decision-maker: facilities or operations director. Novva Data Center is the prototype.
+- **Aviation operators beyond Signature** — Search "aviation services Las Vegas," "flight training Nevada," "FBO Henderson." We lost Signature to bounced contacts. Find new aviation: flight schools, charter services, FBOs, helicopter tour operators.
+- **Truck stops / travel centers** — Love's Travel Stop was a great find. Find more: "travel center Nevada," "truck stop Las Vegas corridor." High-captivity, high transaction volume.
+- **Manufacturing / industrial with 200+ employees** — GOED-approved sites are gold. Check Nevada GOED approvals quarterly. Saddle Creek Logistics and FAAC Inc. came from economic development lists, not Maps.
+
+### Why This Fixes the 33:1 Ratio (696 New Prospects, 3 Signed)
+The 696 "new" prospects were sorted by property type. Re-sorting by captivity level surfaces 150-200 high-captivity leads that should jump the queue. One high-captivity lead with a direct phone number is worth more than 10 medium-captivity leads with generic emails. Scout's volume metric (10 leads/day) created a bloated, unworkable pipeline. Scout's precision metric (2-3 high-captivity leads/day) creates a fast, high-conversion funnel.
+
+### Expected Impact
+Scout's daily output shrinks from 10 leads to 2-3 — but each one is a potential $7,200/month construction site or a 75%-conversion aviation account. Jordan's call sheet gets high-captivity, high-intent prospects instead of 13 random apartment complexes. The pipeline velocity increases not because we're adding more leads, but because we're adding the *right* leads. The operational shift is from "lead generation volume" to "lead generation precision." Scout doesn't need to run more often. Scout needs to run *differently* — with Relay's engagement data as the search specification, not just a post-hoc analysis.

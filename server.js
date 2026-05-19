@@ -25761,7 +25761,8 @@ app.post('/api/sandstar/machines/batch', (req, res) => {
 app.get('/api/sandstar/summary', (req, res) => {
   const sales = db.sandstar_sales || [];
   const now = new Date();
-  const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+  // Use Pacific time since sale_date values are stored in US/Pacific (from Sandstar zoneId)
+  const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
   const weekStart = new Date(now);
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
