@@ -6462,6 +6462,7 @@ app.get('/api/leaderboard', (req, res) => {
   
   res.json({
     leaderboard: topAgents,
+    bots: topAgents,
     totalAgents: agents.length,
     departmentRankings: deptRankings,
     departmentMVPs: deptMVPs,
@@ -25908,6 +25909,61 @@ app.get('/api/sandstar/summary', (req, res) => {
 
 // ===== END SANDSTAR ROUTES =====
 // ===== END API COSTS =====
+
+// ===== MILEAGE LOG =====
+app.post('/api/mileage-log', async (req, res) => {
+  const { staff_name, date, start, stops, end, legs, total_miles, drive_time, total_cost, location_count } = req.body;
+  if (!staff_name || !total_miles) return res.status(400).json({ error: 'Missing required fields' });
+
+  const { execSync } = require('child_process');
+  const today = date || new Date().toISOString().slice(0, 10);
+  const stopCount = location_count || (stops || []).length;
+
+  // Build rows: one per leg (stop)
+  const rows = [];
+  if (legs && legs.length > 0) {
+    legs.forEach((leg, i) => {
+      rows.push([
+        today,
+        staff_name,
+        i + 1,
+        leg.to || '',
+        leg.leg_miles != null ? leg.leg_miles.toFixed(1) : '',
+        leg.cum_miles != null ? leg.cum_miles.toFixed(1) : '',
+        `${stopCount} stops`,
+        total_cost != null ? `$${parseFloat(total_cost).toFixed(2)}` : '',
+        drive_time || ''
+      ]);
+    });
+  } else {
+    // Fallback: single row with totals
+    rows.push([
+      today,
+      staff_name,
+      1,
+      end || '',
+      total_miles != null ? total_miles.toFixed(1) : '',
+      total_miles != null ? total_miles.toFixed(1) : '',
+      `${stopCount} stops`,
+      total_cost != null ? `$${parseFloat(total_cost).toFixed(2)}` : '',
+      drive_time || ''
+    ]);
+  }
+
+  // Add blank separator row
+  rows.push(['', '', '', '', '', '', '', '', '']);
+
+  const rowJson = JSON.stringify(rows);
+
+  try {
+    execSync(`gog sheets append --account kurtis@kandevendtech.com --values-json '${rowJson}' --input RAW 1oVwA7VgTUWKxP-N-mrmU0RPNKpl0_V6ZpAeaI1yNb5s "Sheet1!A1"`,
+      { env: { ...process.env, HOME: '/Users/kurtishon' } });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Mileage log error:', e.message);
+    res.status(500).json({ error: 'Failed to log route' });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`🤖 Kande VendTech Dashboard running at http://localhost:${PORT}`);

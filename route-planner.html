@@ -320,6 +320,49 @@
           <!-- Turn-by-turn directions -->
           <div class="directions-panel" id="directionsPanel"></div>
         </div>
+
+        <!-- Mileage Calculator -->
+        <div class="section" id="mileageSection">
+          <div class="section-title" style="cursor:pointer;" onclick="toggleMileage()">
+            <span id="mileageToggle">▶</span> 🧮 Mileage Calculator
+          </div>
+          <div id="mileagePanel" style="display:none;">
+            <div class="start-row" style="margin-bottom:10px;">
+              <input type="text" id="mcStart" placeholder="Start address...">
+              <button class="icon-btn" onclick="geocodeMileage('start')" title="Geocode">📍</button>
+            </div>
+            <div class="start-row" style="margin-bottom:10px;">
+              <input type="text" id="mcEnd" placeholder="End address (optional, defaults to start)">
+              <button class="icon-btn" onclick="geocodeMileage('end')" title="Geocode">📍</button>
+            </div>
+            <div class="start-row" style="margin-bottom:10px;">
+              <input type="text" id="mcStopInput" placeholder="Add a stop address..." onkeydown="if(event.key==='Enter')addMileageStop()">
+              <button class="icon-btn" onclick="addMileageStop()" title="Add stop">+</button>
+            </div>
+            <div id="mcStopList" style="margin-bottom:12px;"></div>
+            <button class="btn btn-primary" id="btnCalcMileage" onclick="calculateMileage()">🧮 Calculate Mileage</button>
+            <div id="mcResults" style="margin-top:14px; display:none;">
+              <div class="route-summary">
+                <div class="summary-title">📊 Mileage Results</div>
+                <div class="summary-grid">
+                  <div class="summary-stat"><div class="val accent" id="mcTotalMiles">—</div><div class="label">Total Miles</div></div>
+                  <div class="summary-stat"><div class="val warn" id="mcDriveTime">—</div><div class="label">Drive Time</div></div>
+                  <div class="summary-stat"><div class="val success" id="mcCost">—</div><div class="label">Cost @ $0.725/mi</div></div>
+                  <div class="summary-stat"><div class="val accent" id="mcStopCount">—</div><div class="label">Stops</div></div>
+                </div>
+              </div>
+              <div id="mcLegs" style="margin-top:10px; font-size:0.82rem;"></div>
+              <div class="start-row" style="margin-top:12px;">
+                <input type="text" id="mcStaffName" placeholder="Staff name..." style="flex:1;">
+              </div>
+              <div class="nav-btns" style="margin-top:10px;">
+                <button class="btn btn-success btn-sm" onclick="logMileageRoute()">📝 Log This Route</button>
+                <button class="btn btn-secondary btn-sm" onclick="openMileageGoogleMaps()">🗺️ Google Maps</button>
+              </div>
+              <div id="mcLogStatus" style="margin-top:8px; font-size:0.8rem;"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -943,6 +986,238 @@
 
     // Auto-detect on load
     useCurrentLocation();
+
+    /* ── Mileage Calculator ── */
+    let mcStops = [];
+    let mcStartCoord = null;
+    let mcEndCoord = null;
+    let lastMileageResult = null;
+
+    function toggleMileage() {
+      const panel = document.getElementById('mileagePanel');
+      const arrow = document.getElementById('mileageToggle');
+      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+      arrow.textContent = panel.style.display === 'none' ? '▶' : '▼';
+    }
+
+    async function geocodeMileage(field) {
+      const addr = document.getElementById(field === 'start' ? 'mcStart' : 'mcEnd').value.trim();
+      if (!addr) return;
+      const statusEl = document.getElementById('mcLogStatus');
+      if (statusEl) statusEl.textContent = 'Geocoding...';
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&limit=1`, {
+          headers: { 'User-Agent': 'KandeVendTech/1.0' }
+        });
+        const data = await res.json();
+        if (data && data.length > 0) {
+          const coord = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), address: data[0].display_name };
+          if (field === 'start') mcStartCoord = coord;
+          else mcEndCoord = coord;
+          if (statusEl) statusEl.textContent = '✅ Located';
+        } else {
+          if (statusEl) statusEl.textContent = '❌ Not found';
+        }
+      } catch (e) {
+        if (statusEl) statusEl.textContent = '❌ Geocode error';
+      }
+      setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
+    }
+
+    function addMileageStop() {
+      const input = document.getElementById('mcStopInput');
+      const addr = input.value.trim();
+      if (!addr) return;
+      mcStops.push({ address: addr, lat: null, lng: null });
+      input.value = '';
+      renderMcStops();
+    }
+
+    function renderMcStops() {
+      const container = document.getElementById('mcStopList');
+      if (mcStops.length === 0) { container.innerHTML = ''; return; }
+      container.innerHTML = mcStops.map((s, i) => `
+        <div class="stop-item" style="padding:6px 8px;">
+          <div class="stop-num">${i + 1}</div>
+          <div class="stop-info"><div class="stop-name">${s.address}</div></div>
+          <button class="icon-btn" style="width:28px;height:28px;font-size:0.9rem;" onclick="moveMcStop(${i},-1)" title="Up" ${i===0?'disabled style="opacity:0.3;cursor:not-allowed;"':''}>↑</button>
+          <button class="icon-btn" style="width:28px;height:28px;font-size:0.9rem;" onclick="moveMcStop(${i},1)" title="Down" ${i===mcStops.length-1?'disabled style="opacity:0.3;cursor:not-allowed;"':''}>↓</button>
+          <button class="stop-remove" onclick="removeMcStop(${i})" title="Remove">✕</button>
+        </div>
+      `).join('');
+    }
+
+    function moveMcStop(idx, dir) {
+      const newIdx = idx + dir;
+      if (newIdx < 0 || newIdx >= mcStops.length) return;
+      [mcStops[idx], mcStops[newIdx]] = [mcStops[newIdx], mcStops[idx]];
+      renderMcStops();
+    }
+
+    function removeMcStop(idx) {
+      mcStops.splice(idx, 1);
+      renderMcStops();
+    }
+
+    function fmtTime(seconds) {
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      return h > 0 ? `${h}h ${m}m` : `${m} min`;
+    }
+
+    async function calculateMileage() {
+      const btn = document.getElementById('btnCalcMileage');
+      const results = document.getElementById('mcResults');
+      const statusEl = document.getElementById('mcLogStatus');
+      btn.disabled = true;
+      if (statusEl) statusEl.textContent = 'Geocoding addresses...';
+
+      // Geocode start
+      const startAddr = document.getElementById('mcStart').value.trim();
+      if (!startAddr) { btn.disabled = false; if (statusEl) statusEl.textContent = 'Enter a start address'; return; }
+      if (!mcStartCoord || mcStartCoord.address !== startAddr) {
+        try {
+          const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(startAddr)}&limit=1`, { headers: { 'User-Agent': 'KandeVendTech/1.0' } });
+          const d = await r.json();
+          if (d && d.length) mcStartCoord = { lat: parseFloat(d[0].lat), lng: parseFloat(d[0].lon), address: d[0].display_name };
+        } catch (e) {}
+      }
+      if (!mcStartCoord) { btn.disabled = false; if (statusEl) statusEl.textContent = 'Could not geocode start'; return; }
+
+      // Geocode end (default to start)
+      const endAddr = document.getElementById('mcEnd').value.trim();
+      if (endAddr && (!mcEndCoord || mcEndCoord.address !== endAddr)) {
+        try {
+          const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endAddr)}&limit=1`, { headers: { 'User-Agent': 'KandeVendTech/1.0' } });
+          const d = await r.json();
+          if (d && d.length) mcEndCoord = { lat: parseFloat(d[0].lat), lng: parseFloat(d[0].lon), address: d[0].display_name };
+        } catch (e) {}
+      }
+      if (!endAddr || !mcEndCoord) mcEndCoord = { ...mcStartCoord };
+
+      // Geocode stops
+      for (let i = 0; i < mcStops.length; i++) {
+        if (!mcStops[i].lat) {
+          try {
+            const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(mcStops[i].address)}&limit=1`, { headers: { 'User-Agent': 'KandeVendTech/1.0' } });
+            const d = await r.json();
+            if (d && d.length) {
+              mcStops[i].lat = parseFloat(d[0].lat);
+              mcStops[i].lng = parseFloat(d[0].lon);
+              mcStops[i].address = d[0].display_name;
+            }
+          } catch (e) {}
+        }
+      }
+      renderMcStops();
+
+      // Build OSRM coords: start;stop1;stop2;...;end
+      const coords = [mcStartCoord, ...mcStops.filter(s => s.lat), mcEndCoord]
+        .map(c => `${c.lng},${c.lat}`).join(';');
+
+      if (statusEl) statusEl.textContent = 'Calculating route...';
+      try {
+        const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&steps=true`);
+        const data = await r.json();
+        if (!data.routes || !data.routes.length) { btn.disabled = false; if (statusEl) statusEl.textContent = 'Route not found'; return; }
+
+        const route = data.routes[0];
+        const totalMeters = route.distance;
+        const totalSeconds = route.duration;
+        const totalMiles = totalMeters / 1609.34;
+        const cost = (totalMiles * 0.725).toFixed(2);
+        const driveTime = fmtTime(totalSeconds);
+
+        document.getElementById('mcTotalMiles').textContent = totalMiles.toFixed(1);
+        document.getElementById('mcDriveTime').textContent = driveTime;
+        document.getElementById('mcCost').textContent = `$${cost}`;
+        document.getElementById('mcStopCount').textContent = mcStops.filter(s => s.lat).length;
+
+        // Per-leg breakdown
+        const legs = route.legs || [];
+        let legsHtml = '<div style="background:var(--bg);border-radius:8px;padding:10px;border:1px solid var(--border);">';
+        legsHtml += '<div style="font-weight:600;font-size:0.75rem;color:var(--muted);margin-bottom:6px;">LEG BREAKDOWN</div>';
+        let cumMiles = 0;
+        const waypoints = [mcStartCoord, ...mcStops.filter(s => s.lat), mcEndCoord];
+        legs.forEach((leg, i) => {
+          const legMiles = leg.distance / 1609.34;
+          cumMiles += legMiles;
+          const from = waypoints[i]?.address?.split(',').slice(0,2).join(',') || `Stop ${i}`;
+          const to = waypoints[i+1]?.address?.split(',').slice(0,2).join(',') || `Stop ${i+1}`;
+          legsHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(0,0,0,0.04);">
+            <span style="color:var(--text);">${from} → ${to}</span>
+            <span style="color:var(--muted);font-size:0.75rem;">${legMiles.toFixed(1)} mi (cum ${cumMiles.toFixed(1)} mi)</span>
+          </div>`;
+        });
+        legsHtml += '</div>';
+        document.getElementById('mcLegs').innerHTML = legsHtml;
+
+        lastMileageResult = {
+          total_miles: totalMiles,
+          drive_time: driveTime,
+          total_cost: parseFloat(cost),
+          legs: legs.map((leg, i) => ({
+            from: waypoints[i].address,
+            to: waypoints[i+1].address,
+            leg_miles: leg.distance / 1609.34,
+            cum_miles: legs.slice(0, i+1).reduce((s, l) => s + l.distance / 1609.34, 0)
+          })),
+          waypoints: waypoints.map(w => w.address),
+          location_count: mcStops.filter(s => s.lat).length
+        };
+
+        results.style.display = 'block';
+        if (statusEl) statusEl.textContent = '';
+      } catch (e) {
+        if (statusEl) statusEl.textContent = 'Route calculation failed';
+      }
+      btn.disabled = false;
+    }
+
+    function openMileageGoogleMaps() {
+      if (!mcStartCoord) return;
+      const pts = [mcStartCoord.address, ...mcStops.map(s => s.address)];
+      if (mcEndCoord && mcEndCoord.address !== mcStartCoord.address) pts.push(mcEndCoord.address);
+      const url = 'https://www.google.com/maps/dir/' + pts.map(encodeURIComponent).join('/');
+      window.open(url, '_blank');
+    }
+
+    async function logMileageRoute() {
+      const staff = document.getElementById('mcStaffName').value.trim();
+      const statusEl = document.getElementById('mcLogStatus');
+      if (!staff) { if (statusEl) statusEl.textContent = '❌ Enter staff name'; return; }
+      if (!lastMileageResult) { if (statusEl) statusEl.textContent = '❌ Calculate route first'; return; }
+
+      if (statusEl) statusEl.textContent = 'Logging...';
+      try {
+        const res = await fetch('/api/mileage-log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            staff_name: staff,
+            date: new Date().toISOString().slice(0, 10),
+            start: lastMileageResult.waypoints[0],
+            stops: lastMileageResult.waypoints.slice(1, -1),
+            end: lastMileageResult.waypoints[lastMileageResult.waypoints.length - 1],
+            legs: lastMileageResult.legs,
+            total_miles: lastMileageResult.total_miles,
+            drive_time: lastMileageResult.drive_time,
+            total_cost: lastMileageResult.total_cost,
+            location_count: lastMileageResult.location_count
+          })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          if (statusEl) statusEl.textContent = '✅ Logged to sheet';
+          document.getElementById('mcStaffName').value = '';
+        } else {
+          if (statusEl) statusEl.textContent = '❌ ' + (data.error || 'Failed');
+        }
+      } catch (e) {
+        if (statusEl) statusEl.textContent = '❌ Network error';
+      }
+      setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 3000);
+    }
 
     /* ── Init ── */
     loadData();
