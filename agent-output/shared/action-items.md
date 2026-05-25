@@ -1,84 +1,67 @@
-# Action Items — Week of April 6, 2026
+# Action Items — Week of May 18, 2026
 
-*Updated by weekly retro — April 6, 2026*
+*Updated by Clawd standup — Monday, May 18, 2026*
 
 ---
 
-## 🔴 EMERGENCY — System Infrastructure (blocks everything else)
+## 🔴 EMERGENCY — Revenue Conversations Going Cold
 
 | # | Action | Owner | Why urgent |
 |---|--------|-------|-----------|
-| 1 | **Diagnose full agent system silence** — `openclaw gateway status`, cron list, token health | Kurtis/Jarvis | All 25 agents idle for 2+ weeks. Nothing works until this is fixed. |
-| 2 | **Restore Mary** — pb-gmail-draft-sync diagnosis and restoration | Kurtis/Jarvis | Day 52+ offline. Peak wedding season. ~$45K-$60K estimated revenue lost. |
-| 3 | **Verify ALL agent cron jobs registered and firing** | Kurtis/Jarvis | 0/25 active agents for 2 consecutive weeks = catastrophic |
+| 1 | **Call Allegro at La Entrada TODAY.** 25 opens, zero reply. Hottest lead in CRM. | Kurtis/Jordan | Medical office, 93% leased, Tier A. Phone call breaks the stall. |
+| 2 | **Call Regus TODAY.** Replied May 12. Six days old now. | Kurtis/Jordan | Live revenue conversation going cold. Delivery scheduled 5/12. Confirm status. |
+| 3 | **Call Carnegie Heights TODAY.** Hard close May 21. Three days left. | Kurtis/Jordan | Only negotiating deal. Set final meeting with Jeannie Anderson or move to stalled. |
+| 4 | **Call Jade Apartments TODAY.** 35 opens, signed, legal review pending 9+ weeks. | Kurtis/Jordan | Get a yes/no or set a hard deadline. |
 
 ---
 
-## 🔴 CRITICAL — Revenue (Kurtis must do these)
+## 🔴 CRITICAL — Outreach Capacity
 
-| # | Action | Contact | Why urgent |
-|---|--------|---------|-----------|
-| 4 | **Push Carnegie Heights to contract** | Makenna — ask who else signs | Only Negotiating prospect. One signature = first MRR. |
-| 5 | **Call Allure Las Vegas Condos (#26)** | jromero@ (CRM) | 6 external opens, zero replies. Phone mandatory — "silent stalker" pattern. |
-| 6 | **Cold re-engage Jade (#29)** | brandon.mcclain@mark-taylor.com | Fresh spring angle. NOT "following up" — the warm window is gone at 10 weeks. |
-| 7 | **Cold re-engage EVO** | CRM record | 39 days post-reply. Complete restart required. |
-| 8 | **Call All In Aviation (#7004)** | mrasmuson@lonemtn.com | Replied March 11 — 26 days silence. Still opening emails. |
-| 9 | **Call Ace Rent A Car (#7886)** | joe.d@xomglobal.com | Recent reply + 4 opens. |
-
----
-
-## 🟠 Revenue Model Change — Build This Week
-
-| # | Action | Owner | Rationale |
+| # | Action | Owner | Why urgent |
 |---|--------|-------|-----------|
-| 10 | **Self-closing proposal flow** — digital signature link + auto-trigger at 3+ opens | Ralph | 10 weeks proves phone-call-as-final-step doesn't work. Remove the bottleneck. |
-| 11 | **Step-down as default** — "90-day pilot, cancel anytime, $0 cost" as the standard offer | Relay | Removes commitment barrier. Gets machines in buildings. Usage data closes itself. |
-| 12 | **Auto "ready to start?" email** — triggers when prospect opens proposal 3+ times | Ralph/Relay | Converts silent openers without requiring human phone call. |
+| 5 | **Phone blitz top 10 stale proposals.** Siegel Select, Aspire, EVO, Henderson Health, Ovation, High Line, Lyric, Dune, PDS Health. | Jordan | 46 proposals in flight, most stale. Phone or in-person only. |
+| 6 | **Verify Piper's 9 blogs from May 13 are published.** | Kurtis | Written but may not be live. Content sitting unused. |
+| 7 | **Get Ralph back on rescue sprint.** The agent shipped May 17. 6 items to attempt this week. | Kurtis | Ralph proved it can ship. Do not lose momentum. |
 
 ---
 
-## 🟠 Agent Execution — This Week
+## 🟠 Agent Execution
 
 ### Scout
-- [ ] **HVAC sprint — 20 Kande Digital leads** — Week 5 overdue. FINAL LISTING. Execute or remove permanently.
-- [ ] Incumbent vendor research on top 10 HOT accounts
-- [ ] `decision_authority` tagging on all employer leads
-- [ ] Aviation corridor batch (Henderson Executive Airport + NLV clusters)
+- [ ] **Produce dormant-triage-2026-05-18.md TODAY.** Overdue since May 12. Higher ROI than new lead discovery.
+- [ ] **STOP Sunday scanning until categories fixed.** Use Sunday for dormant triage instead.
+- [ ] **Shift from discovery to monitoring.** Market is saturated. 1 new lead per day is expected.
+- [ ] **Prioritize finding emails for 46 proposal-stage prospects.** Before finding new leads.
+- [ ] **Tag Allegro as `channel: call_first`.** Route directly to call sheet.
+- [ ] **Continue hotel/extended stay sweeps on weekdays.** Add as permanent rotation category.
 
 ### Relay
-- [ ] **Build employer break room Instantly sequence** — 5th consecutive retro. Paysign, RRM, TensorWave, Boring Company, DHL.
-- [ ] **Healthcare = phone only** — stop routing healthcare to email sequences. Data conclusive.
-- [ ] **Log 5+ call outcomes** — voicemail counts. 10 weeks at zero.
-- [ ] Top-3 subject lines by external click rate in Monday report (REQUIRED FIELD)
-- [ ] Fix Signature Aviation bounced contacts
-
-### Ralph
-- [ ] **FINAL CALL: Blog index pages** — ship today or document why and remove from future retros. Day 39+.
-- [ ] **FINAL CALL: Bounce auto-flag** — ship or deprioritize with reasoning. 7+ retros.
-- [ ] **FINAL CALL: Healthcare vendor_window_flag** — wire or deprioritize. 7+ retros.
-- [ ] **Self-closing proposal infrastructure** — DocuSign/PandaDoc integration or self-serve signing flow
-- [ ] Add call outcome visibility badge to Briefing page
-- [ ] 72-hour reply escalation rule — auto-CRITICAL for replied leads with no call outcome
+- [ ] **Route Allegro to Jordan as CRITICAL.** 25 opens = immediate phone call.
+- [ ] **Route Regus to Jordan as CRITICAL.** 6 days stale = emergency follow-up.
+- [ ] **Batch 50 hot leads by geography for Jordan's call sheet.** Filter to recent activity only (May 1+).
+- [ ] **Set Carnegie Heights close date.** May 21. Move to stalled if no sign.
+- [ ] **Archive or re-engage 64 stale leads.** Do not let them clutter the pipeline.
 
 ### Piper
-- [ ] Publish content immediately when blog index pages ship
-- [ ] Fix image generation failures (headers failing since Apr 4)
-- [ ] Shift to refreshing older posts and creating variant content
+- [ ] **Ship long-form blogs when unblocked.** Burst pattern is acceptable. Publish immediately upon delivery.
+- [ ] **Draft medical office building content.** For Allegro and Village at St Rose outreach.
+
+### Ralph
+- [ ] **Resume rescue sprint.** 6 items: bounce auto-flag, 72-hour reply escalation, call outcome badge, proposal nudge cron, school schema + call_first routing, engagement-alerts API fix.
 
 ### Mary
-- [ ] **DIAGNOSE TODAY:** `openclaw gateway status` + cron list → root cause
-- [ ] **Restore this week** — every day offline = missed bookings during peak
-- [ ] Triage 52-day backlog — which inquiries are recoverable?
-- [ ] Implement backup coverage protocol before any future peak season
+- [ ] **DECISION NEEDED.** Day 59 offline. Accept manual coverage and plan July restart.
 
 ---
 
-## 📊 Week of April 6 — Success Metrics
+## 📊 Week of May 18 — Success Metrics
 
-- [ ] All 25 agents running (from current 0/25)
-- [ ] Mary restored and processing inquiries
-- [ ] At least 1 signed contract (Carnegie Heights most likely)
-- [ ] Self-closing proposal flow designed and prototyped
-- [ ] 5+ call outcomes logged (first EVER)
-- [ ] Blog indexes live on both sites (or formally killed)
-- [ ] HVAC sprint executed (or formally killed)
+- [ ] Allegro called today (hottest lead, 25 opens).
+- [ ] Regus called today (replied May 12, now 6 days old).
+- [ ] Carnegie Heights closed or moved to stalled by May 21.
+- [ ] Jade Apartments called today (35 opens, legal review pending).
+- [ ] 5+ call outcomes logged (phone blitz executed).
+- [ ] Piper's 9 May 13 blogs published.
+- [ ] Dormant triage file produced (Scout, 6 days overdue).
+- [ ] Ralph rescue sprint resumed (6 items attempted).
+- [ ] Mary decision made (manual coverage or July restart).

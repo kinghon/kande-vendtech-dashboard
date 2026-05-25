@@ -106,7 +106,7 @@ def save_state(state):
 def crm_post(path, data):
     body = json.dumps(data).encode()
     req = urllib.request.Request(f"{CRM_BASE}{path}", data=body, method="POST",
-          headers={"x-api-key": CRM_KEY, "Content-Type": "application/json"})
+          headers={"x-api-key": CRM_KEY, "Content-Type": "application/json", "User-Agent": "Mozilla/5.0"})
     with urllib.request.urlopen(req, timeout=30) as r:
         return json.loads(r.read()), r.status
 

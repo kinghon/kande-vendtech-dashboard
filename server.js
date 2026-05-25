@@ -25912,42 +25912,30 @@ app.get('/api/sandstar/summary', (req, res) => {
 
 // ===== MILEAGE LOG =====
 app.post('/api/mileage-log', async (req, res) => {
-  const { staff_name, date, start, stops, end, legs, total_miles, drive_time, total_cost, location_count } = req.body;
+  const { staff_name, date, start, stops, end, legs, total_miles, drive_time, total_cost, cost, location_count, loc_count } = req.body;
   if (!staff_name || !total_miles) return res.status(400).json({ error: 'Missing required fields' });
 
   const { execSync } = require('child_process');
   const today = date || new Date().toISOString().slice(0, 10);
-  const stopCount = location_count || (stops || []).length;
+  const reimbursement = cost || total_cost || (total_miles * 0.725);
+  const stopList = Array.isArray(stops) ? stops : [];
+  const stopCount = loc_count || location_count || stopList.length;
 
-  // Build rows: one per leg (stop)
+  // Build rows: one per stop
   const rows = [];
   if (legs && legs.length > 0) {
+    // from route-planner.html (legs format)
     legs.forEach((leg, i) => {
-      rows.push([
-        today,
-        staff_name,
-        i + 1,
-        leg.to || '',
-        leg.leg_miles != null ? leg.leg_miles.toFixed(1) : '',
-        leg.cum_miles != null ? leg.cum_miles.toFixed(1) : '',
-        `${stopCount} stops`,
-        total_cost != null ? `$${parseFloat(total_cost).toFixed(2)}` : '',
-        drive_time || ''
-      ]);
+      rows.push([today, staff_name, i + 1, leg.to || '', parseFloat((leg.leg_miles || 0).toFixed(1)), parseFloat((leg.cum_miles || 0).toFixed(1)), `${stopCount} stops`, `$${parseFloat(reimbursement).toFixed(2)}`, drive_time || '']);
+    });
+  } else if (stopList.length > 0 && typeof stopList[0] === 'object') {
+    // from crm.html (stops array with {stopNum, address, legMiles, cumMiles})
+    stopList.forEach(s => {
+      rows.push([today, staff_name, s.stopNum, s.address || '', parseFloat((s.legMiles || 0).toFixed(1)), parseFloat((s.cumMiles || 0).toFixed(1)), `${stopCount} stops`, `$${parseFloat(reimbursement).toFixed(2)}`, drive_time || '']);
     });
   } else {
-    // Fallback: single row with totals
-    rows.push([
-      today,
-      staff_name,
-      1,
-      end || '',
-      total_miles != null ? total_miles.toFixed(1) : '',
-      total_miles != null ? total_miles.toFixed(1) : '',
-      `${stopCount} stops`,
-      total_cost != null ? `$${parseFloat(total_cost).toFixed(2)}` : '',
-      drive_time || ''
-    ]);
+    // Fallback: single summary row
+    rows.push([today, staff_name, 1, end || '', parseFloat(total_miles.toFixed(1)), parseFloat(total_miles.toFixed(1)), `${stopCount} stops`, `$${parseFloat(reimbursement).toFixed(2)}`, drive_time || '']);
   }
 
   // Add blank separator row

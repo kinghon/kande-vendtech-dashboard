@@ -15,9 +15,12 @@ KEY = 'kande2026'
 
 DRY_RUN = False  # Set True to preview without making changes
 
+# API blocks default Python User-Agent; use a browser-like one
+_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+
 
 def api_get(path):
-    req = urllib.request.Request(f'{API}{path}', headers={'x-api-key': KEY})
+    req = urllib.request.Request(f'{API}{path}', headers={'x-api-key': KEY, 'User-Agent': _UA})
     with urllib.request.urlopen(req) as resp:
         return json.loads(resp.read())
 
@@ -25,7 +28,7 @@ def api_get(path):
 def api_put(path, data):
     body = json.dumps(data).encode()
     req = urllib.request.Request(f'{API}{path}', data=body, method='PUT',
-                                 headers={'x-api-key': KEY, 'Content-Type': 'application/json'})
+                                 headers={'x-api-key': KEY, 'Content-Type': 'application/json', 'User-Agent': _UA})
     with urllib.request.urlopen(req) as resp:
         return json.loads(resp.read())
 
@@ -33,14 +36,14 @@ def api_put(path, data):
 def api_post(path, data):
     body = json.dumps(data).encode()
     req = urllib.request.Request(f'{API}{path}', data=body,
-                                 headers={'x-api-key': KEY, 'Content-Type': 'application/json'})
+                                 headers={'x-api-key': KEY, 'Content-Type': 'application/json', 'User-Agent': _UA})
     with urllib.request.urlopen(req) as resp:
         return json.loads(resp.read())
 
 
 def api_delete(path):
     req = urllib.request.Request(f'{API}{path}', method='DELETE',
-                                 headers={'x-api-key': KEY})
+                                 headers={'x-api-key': KEY, 'User-Agent': _UA})
     with urllib.request.urlopen(req) as resp:
         return json.loads(resp.read())
 

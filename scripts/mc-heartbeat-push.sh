@@ -107,11 +107,15 @@ report_model() {
 # Push OpenClaw session context window usage
 push_openclaw_context() {
   local CTX_SCRIPT="$HOME/clawd/scripts/get-oc-context.py"
-  local CTX_TOKENS
-  CTX_TOKENS=$(python3 "$CTX_SCRIPT" 2>/dev/null || echo 0)
+  local CTX_OUTPUT CTX_TOKENS CTX_MAX
+  CTX_OUTPUT=$(python3 "$CTX_SCRIPT" 2>/dev/null)
+  CTX_TOKENS=$(echo "$CTX_OUTPUT" | sed -n '1p')
+  CTX_MAX=$(echo "$CTX_OUTPUT" | sed -n '2p')
+  CTX_TOKENS=${CTX_TOKENS:-0}
+  CTX_MAX=${CTX_MAX:-200000}
   if [ "$CTX_TOKENS" -gt 0 ] 2>/dev/null; then
     curl -s -X POST -H 'Content-Type: application/json' "$MC_BASE/api/openclaw/context" \
-      -d "{\"contextTokens\":$CTX_TOKENS,\"contextMax\":200000}" > /dev/null
+      -d "{\"contextTokens\":$CTX_TOKENS,\"contextMax\":$CTX_MAX}" > /dev/null
   fi
 }
 

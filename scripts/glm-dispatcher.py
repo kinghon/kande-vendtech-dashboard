@@ -38,6 +38,7 @@ BRAVE    = "BSA8enLl2f0NW0JBRjem3n4eNpiNzbz"
 LOCK = "/tmp/glm-dispatcher.lock"
 
 VALUE_ADD_JOBS = [
+    "python3 /Users/kurtishon/clawd/scripts/scrapling-scout.py",
     "python3 /Users/kurtishon/clawd/scripts/jobs/vending-news-monitor.py",
     "python3 /Users/kurtishon/clawd/scripts/jobs/ocs-research.py",
     "python3 /Users/kurtishon/clawd/scripts/jobs/competitor-monitor.py",

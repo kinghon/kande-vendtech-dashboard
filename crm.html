@@ -152,6 +152,19 @@
     .btn-clear { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; }
     .btn-gmaps { background: #4285f4; color: #fff; }
     .btn-amaps { background: #000; color: #fff; }
+    .btn-mileage { background: #7b2cbf; color: #fff; }
+    #mcPanel { display:none; padding:12px 0 4px; border-top:1px solid rgba(255,255,255,0.2); margin-top:10px; }
+    .mc-row { display:flex; gap:8px; margin-bottom:8px; }
+    .mc-row input { flex:1; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.3); background:rgba(255,255,255,0.15); color:#fff; font-size:0.85rem; }
+    .mc-row input::placeholder { color:rgba(255,255,255,0.6); }
+    .mc-stop-list { margin-bottom:8px; }
+    .mc-stop-item { display:flex; align-items:center; gap:8px; padding:6px 8px; background:rgba(255,255,255,0.1); border-radius:6px; margin-bottom:4px; font-size:0.82rem; color:#fff; }
+    .mc-stop-item button { background:none; border:none; color:rgba(255,255,255,0.7); cursor:pointer; font-size:1rem; padding:0 4px; }
+    .mc-results { background:rgba(0,0,0,0.3); border-radius:8px; padding:10px 12px; margin-bottom:10px; color:#fff; }
+    .mc-results .mc-stat { display:inline-block; margin-right:18px; font-size:0.85rem; }
+    .mc-results .mc-stat strong { font-size:1.1rem; }
+    .mc-leg { font-size:0.78rem; color:rgba(255,255,255,0.75); margin-top:4px; }
+    .mc-log-row { display:flex; gap:8px; margin-top:8px; }
     .route-start-row { display: flex; gap: 8px; margin-bottom: 12px; }
     .route-start-row input { flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; background: var(--bg); }
     .route-start-row button { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); cursor: pointer; }
@@ -377,6 +390,28 @@
           <button class="btn btn-clear" onclick="clearRoute()">🗑️ Clear</button>
           <button class="btn btn-gmaps" onclick="openInGoogleMaps()">📍 Google Maps</button>
           <button class="btn btn-amaps" onclick="openInAppleMaps()">🍎 Apple Maps</button>
+          <button class="btn btn-mileage" onclick="toggleMCPanel()">🧮 Mileage</button>
+        </div>
+        <div id="mcPanel">
+          <div class="mc-row">
+            <input type="text" id="mcStart" placeholder="Start address...">
+            <input type="text" id="mcEnd" placeholder="End address (optional, defaults to round trip)">
+          </div>
+          <div class="mc-row">
+            <input type="text" id="mcStopInput" placeholder="Add a stop address..." onkeydown="if(event.key==='Enter')mcAddStop()">
+            <button class="btn btn-secondary" onclick="mcAddStop()" style="padding:8px 12px;">+</button>
+          </div>
+          <div class="mc-stop-list" id="mcStopList"></div>
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <button class="btn btn-optimize" onclick="mcCalculate()" style="flex:1;">Calculate Mileage</button>
+            <button class="btn btn-gmaps" id="mcGmapsBtn" onclick="mcOpenGmaps()" style="display:none;">Maps</button>
+          </div>
+          <div class="mc-results" id="mcResults" style="display:none;"></div>
+          <div class="mc-log-row" id="mcLogRow" style="display:none;">
+            <input type="text" id="mcStaffName" placeholder="Staff name..." style="flex:1;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.15);color:#fff;font-size:0.85rem;">
+            <button class="btn btn-mileage" onclick="mcLogRoute()">Log Route</button>
+          </div>
+          <div id="mcLogStatus" style="font-size:0.78rem;color:rgba(255,255,255,0.8);margin-top:4px;"></div>
         </div>
       </div>
       <div style="padding:8px 16px;background:rgba(255,255,255,0.95);cursor:pointer;" onclick="toggleRoutePlanner()">
@@ -2335,6 +2370,125 @@
       if (waypoints.length > 0) url += `&waypoints=${waypoints.join('|')}`;
       window.open(url, '_blank');
     }
+
+    /* ── Mileage Calculator ── */
+    let mcStops = [];
+    let mcLastRoute = null;
+
+    function toggleMCPanel() {
+      const p = document.getElementById('mcPanel');
+      p.style.display = p.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function mcAddStop() {
+      const inp = document.getElementById('mcStopInput');
+      const addr = inp.value.trim();
+      if (!addr) return;
+      mcStops.push(addr);
+      inp.value = '';
+      mcRenderStops();
+    }
+
+    function mcRemoveStop(i) {
+      mcStops.splice(i, 1);
+      mcRenderStops();
+    }
+
+    function mcRenderStops() {
+      const el = document.getElementById('mcStopList');
+      el.innerHTML = mcStops.map((s, i) =>
+        `<div class="mc-stop-item"><span style="flex:1;">${i+1}. ${s}</span><button onclick="mcRemoveStop(${i})">✕</button></div>`
+      ).join('');
+    }
+
+    async function mcGeocode(addr) {
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&limit=1`);
+      const d = await r.json();
+      if (!d.length) throw new Error('Not found: ' + addr);
+      return { lat: parseFloat(d[0].lat), lng: parseFloat(d[0].lon), label: d[0].display_name };
+    }
+
+    async function mcCalculate() {
+      const startVal = document.getElementById('mcStart').value.trim();
+      const endVal = document.getElementById('mcEnd').value.trim();
+      if (!startVal) { alert('Enter a start address'); return; }
+      if (mcStops.length === 0) { alert('Add at least one stop'); return; }
+      document.getElementById('mcResults').style.display = 'none';
+      document.getElementById('mcLogRow').style.display = 'none';
+      document.getElementById('mcGmapsBtn').style.display = 'none';
+      try {
+        const allAddrs = [startVal, ...mcStops, endVal || startVal];
+        const coords = await Promise.all(allAddrs.map(mcGeocode));
+        const coordStr = coords.map(c => `${c.lng},${c.lat}`).join(';');
+        const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${coordStr}?overview=full&steps=true&annotations=false`);
+        const data = await res.json();
+        if (!data.routes || !data.routes[0]) throw new Error('No route found');
+        const route = data.routes[0];
+        const totalMiles = (route.distance / 1609.34);
+        const cost = totalMiles * 0.725;
+        const hrs = Math.floor(route.duration / 3600);
+        const mins = Math.floor((route.duration % 3600) / 60);
+        const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins} min`;
+        const locCount = mcStops.length;
+        let legsHtml = '';
+        let cumMiles = 0;
+        const legData = [];
+        route.legs.forEach((leg, i) => {
+          const legMiles = leg.distance / 1609.34;
+          cumMiles += legMiles;
+          const fromLabel = i === 0 ? 'Start' : mcStops[i - 1];
+          const toLabel = i < mcStops.length ? mcStops[i] : (endVal || 'Return');
+          legData.push({ from: allAddrs[i], to: allAddrs[i+1], legMiles, cumMiles });
+          legsHtml += `<div class="mc-leg">${i+1}. ${toLabel.substring(0,35)}... — ${legMiles.toFixed(1)} mi</div>`;
+        });
+        mcLastRoute = { allAddrs, coords, totalMiles, cost, timeStr, locCount, legData };
+        document.getElementById('mcResults').style.display = 'block';
+        document.getElementById('mcResults').innerHTML =
+          `<div style="margin-bottom:8px;">
+            <span class="mc-stat"><strong>${totalMiles.toFixed(1)}</strong> mi</span>
+            <span class="mc-stat"><strong>${timeStr}</strong></span>
+            <span class="mc-stat"><strong>$${cost.toFixed(2)}</strong> reimbursement</span>
+            <span class="mc-stat"><strong>${locCount}</strong> stops</span>
+          </div>${legsHtml}`;
+        document.getElementById('mcLogRow').style.display = 'flex';
+        document.getElementById('mcGmapsBtn').style.display = 'inline-flex';
+      } catch(e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    function mcOpenGmaps() {
+      if (!mcLastRoute) return;
+      const url = 'https://www.google.com/maps/dir/' + mcLastRoute.allAddrs.map(encodeURIComponent).join('/');
+      window.open(url, '_blank');
+    }
+
+    async function mcLogRoute() {
+      const name = document.getElementById('mcStaffName').value.trim();
+      if (!name) { alert('Enter staff name'); return; }
+      if (!mcLastRoute) { alert('Calculate first'); return; }
+      const st = document.getElementById('mcLogStatus');
+      st.textContent = 'Logging...';
+      const today = new Date().toISOString().slice(0,10);
+      const { allAddrs, totalMiles, cost, timeStr, locCount, legData } = mcLastRoute;
+      const stops = legData.map((leg, i) => ({
+        stopNum: i + 1,
+        address: leg.to,
+        legMiles: leg.legMiles,
+        cumMiles: leg.cumMiles
+      }));
+      try {
+        const r = await fetch('/api/mileage-log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ staff_name: name, date: today, start: allAddrs[0], stops: stops, total_miles: totalMiles, drive_time: timeStr, cost, loc_count: locCount })
+        });
+        const d = await r.json();
+        if (d.ok) { st.textContent = 'Route logged!'; st.style.color = '#86efac'; }
+        else { st.textContent = 'Error: ' + (d.error || 'unknown'); }
+      } catch(e) { st.textContent = 'Network error'; }
+    }
+    /* ── End Mileage Calculator ── */
 
     function openInAppleMaps() {
       if (routeStops.length === 0) { alert('Add some stops first!'); return; }

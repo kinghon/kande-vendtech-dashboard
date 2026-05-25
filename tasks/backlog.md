@@ -1,4 +1,4 @@
-## P0 — E2E Failure 2026-04-23 — SHIPPED 2026-04-23 (ralph-overnight)
+## P0 — E2E Failure 2026-04-23 — SHIPPED 2026-05-17 (ralph-overnight)
 - Photo Booths Ops: Leaderboard bots empty/invalid on GET /api/leaderboard
 - Task file: /Users/kurtishon/clawd/tasks/e2e-fixes.md
 

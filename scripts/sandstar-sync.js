@@ -9,7 +9,7 @@ const fs     = require('fs');
 const { execSync } = require('child_process');
 
 const SANDSTAR_EMAIL = 'kurtis.hon@gmail.com';
-const SANDSTAR_PASS  = 'lanie123';
+const SANDSTAR_PASS  = 'kurtis123#';
 const SANDSTAR_ORG   = '001020';
 const SANDSTAR_SCOPE = '12';
 const SANDSTAR_API   = 'https://webapi-us.sandstar.com';
@@ -26,7 +26,7 @@ function log(msg) {
   fs.appendFileSync(LOG_FILE, line + '\n');
 }
 function loadState() {
-  try { return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')); } catch { return { syncedOrderNos: [] }; }
+  try { return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')); } catch { return { syncedOrderNos: [], consecutiveErrors: 0 }; }
 }
 function saveState(s) { fs.writeFileSync(STATE_FILE, JSON.stringify(s, null, 2)); }
 function sendTelegram(msg) {
@@ -138,7 +138,38 @@ function dashApi(method, path, body, cookies) {
     if (!token) throw new Error('No token in localStorage after login');
     log(`Token obtained: ${token.substring(0,8)}...`);
 
-    // 2. Pull ALL orders with pagination
+    // 2. Pull today's orders directly via API date filter
+    const _tnow = new Date();
+    const _todayLocal = `${_tnow.getFullYear()}-${String(_tnow.getMonth()+1).padStart(2,'0')}-${String(_tnow.getDate()).padStart(2,'0')}`;
+    const todayStart = `${_todayLocal} 00:00:00`;
+    const todayEnd   = `${_todayLocal} 23:59:59`;
+    log(`Fetching today-only orders (${_todayLocal})...`);
+    const todayApiOrders = [];
+    let todayPageNum = 1;
+    while (true) {
+      const todayData = await page.evaluate(async ({ api, org, scope, pn, ps, ts, te }) => {
+        const h = { 'Content-Type': 'application/json', 'x-token': localStorage.getItem('token'), 'app-scope': scope, 'organSn': org };
+        const res = await fetch(`${api}/order/v2/findOrderInfoList`, {
+          method: 'POST', headers: h,
+          body: JSON.stringify({ pageNum: pn, pageSize: ps, zoneId: 'US/Pacific', startTime: ts, endTime: te })
+        });
+        return res.json();
+      }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE, pn: todayPageNum, ps: 100, ts: todayStart, te: todayEnd });
+      const rows = todayData?.data?.resultList || [];
+      const rc = todayData?.data?.rowcount || 0;
+      if (rows.length === 0) break;
+      todayApiOrders.push(...rows);
+      log(`  Today page ${todayPageNum}: ${rows.length} orders (${todayApiOrders.length}/${rc})`);
+      if (todayApiOrders.length >= rc) break;
+      todayPageNum++;
+      if (todayPageNum > 20) break;
+    }
+    const getAmt = o => parseFloat(o.paymentAmount || o.tradeAmount || o.orderAmount || o.statPaymentAmount || o.statOrderAmount || o.totalMoney || 0);
+    const completedTodayApi = todayApiOrders.filter(o => o.phase >= 2 || getAmt(o) > 0);
+    const todayApiRevenue = completedTodayApi.reduce((s, o) => s + getAmt(o), 0);
+    log(`Today API fetch: ${completedTodayApi.length} completed orders, $${todayApiRevenue.toFixed(2)}`);
+
+    // 2b. Pull ALL orders with pagination
     log('Fetching all orders (paginated)...');
     const allOrders = [];
     let pageNum = 1;
@@ -263,8 +294,6 @@ function dashApi(method, path, body, cookies) {
       }, null, 2));
     }
 
-    await browser.close();
-
     // 4. Process machines
     const machines = machineData?.data?.resultList || [];
     log(`Machines: ${machines.length}`);
@@ -278,21 +307,14 @@ function dashApi(method, path, body, cookies) {
       last_seen:    m.connectTime,
     }));
 
-    // 5. Process orders — filter completed with revenue (phase >= 2 OR orderAmount > 0)
-    // Note: Sandstar API uses 'orderAmount' (pre-tax) and 'paymentAmount' (with tax) — NOT 'totalMoney'
-    const getOrderAmount = o => o.orderAmount || o.paymentAmount || o.statOrderAmount || o.totalMoney || 0;
+    // 5. Filter completed orders BEFORE browser.close() so we can fetch detail
+    const getOrderAmount = o => o.paymentAmount || o.tradeAmount || o.orderAmount || o.statPaymentAmount || o.statOrderAmount || o.totalMoney || 0;
     const completedOrders = allOrders.filter(o =>
       o.phase >= 2 || getOrderAmount(o) > 0
     );
     log(`Orders: ${allOrders.length} total, ${completedOrders.length} completed/importable`);
 
-    // Revenue stats from all completed orders
-    const totalRevenue = completedOrders.reduce((s, o) => s + getOrderAmount(o), 0);
-    const todayStr = new Date().toISOString().split('T')[0];
-    const todayOrders = completedOrders.filter(o => (o.closeTime || o.phaseChangeTime || '').startsWith(todayStr));
-    const todayRevenue = todayOrders.reduce((s, o) => s + getOrderAmount(o), 0);
-
-    // 5b. Fetch order details for orders missing goods data (up to 200)
+    // 5b. Fetch order details for orders missing goods data — MUST happen before browser.close()
     const ordersNeedingDetail = completedOrders.filter(o => {
       const goods = o.goods || o.goodsList || o.orderGoodsList || o.itemList || o.goodsInfoList || [];
       return goods.length === 0;
@@ -347,6 +369,15 @@ function dashApi(method, path, body, cookies) {
         log('  No working detail endpoint found — items will remain empty');
       }
     }
+
+    // Close browser — all page.evaluate calls are done above this line
+    await browser.close();
+
+    // Revenue stats from all completed orders
+    const totalRevenue = completedOrders.reduce((s, o) => s + getOrderAmount(o), 0);
+    const _now = new Date(); const todayStr = `${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,'0')}-${String(_now.getDate()).padStart(2,'0')}`;
+    const todayOrders = completedOrders.filter(o => (o.closeTime || o.phaseChangeTime || '').startsWith(todayStr));
+    const todayRevenue = todayOrders.reduce((s, o) => s + getOrderAmount(o), 0);
 
     // Find new orders (not yet synced)
     const newOrders = completedOrders.filter(o => !state.syncedOrderNos?.includes(o.orderNo));
@@ -405,6 +436,24 @@ function dashApi(method, path, body, cookies) {
       }
     }
 
+    // Always re-push today's orders with force:true so settled amounts stay current
+    const todayOrderNos = new Set(completedTodayApi.map(o => o.orderNo));
+    const todayOrdersFromAll = completedOrders.filter(o => todayOrderNos.has(o.orderNo));
+    if (todayOrdersFromAll.length > 0) {
+      const todayForceBatch = todayOrdersFromAll.map(order => ({
+        sandstar_order_no: order.orderNo,
+        machine_name: order.freezerName,
+        machine_id: order.freezerId,
+        amount: order.paymentAmount || order.tradeAmount || order.orderAmount || order.statPaymentAmount || order.statOrderAmount || order.totalMoney || 0,
+        items: [],
+        sale_date: order.closeTime || order.phaseChangeTime || order.createTime || new Date().toISOString(),
+        pay_method: order.payName || '',
+        phase: order.phase || 2
+      }));
+      const todayForceRes = await dashApi('POST', '/api/sandstar/sales/batch', { sales: todayForceBatch, force: true }, dashCookies);
+      log(`Today force-update: ${JSON.stringify(todayForceRes)}`);
+    }
+
     // Batch import new sales to the sandstar endpoint
     let salesImported = 0;
     if (newOrders.length > 0) {
@@ -412,14 +461,14 @@ function dashApi(method, path, body, cookies) {
         sandstar_order_no: order.orderNo,
         machine_name: order.freezerName,
         machine_id: order.freezerId,
-        amount: order.orderAmount || order.paymentAmount || order.statOrderAmount || order.totalMoney || 0,
+        amount: order.paymentAmount || order.tradeAmount || order.orderAmount || order.statPaymentAmount || order.statOrderAmount || order.totalMoney || 0,
         items: (order.goods || order.goodsList || order.orderGoodsList || order.itemList || order.goodsInfoList || []).map(g => ({ name: g.goodsName || g.productName || g.name || '', qty: g.goodsNum || g.quantity || g.qty || 1, price: g.goodsPrice || g.price || g.unitPrice || 0 })),
         sale_date: order.closeTime || order.phaseChangeTime || order.createTime || new Date().toISOString(),
         pay_method: order.payName || '',
         phase: order.phase || 2
       }));
 
-      const batchRes = await dashApi('POST', '/api/sandstar/sales/batch', { sales: salesBatch }, dashCookies);
+      const batchRes = await dashApi('POST', '/api/sandstar/sales/batch', { sales: salesBatch, force: true }, dashCookies);
       salesImported = batchRes?.imported || 0;
       log(`Batch import result: ${JSON.stringify(batchRes)}`);
 
@@ -438,8 +487,8 @@ function dashApi(method, path, body, cookies) {
       machines: machineStatus,
       total_orders: allOrders.length,
       completed_orders: completedOrders.length,
-      today_orders: todayOrders.length,
-      today_revenue: todayRevenue,
+      today_orders: completedTodayApi.length,
+      today_revenue: todayApiRevenue,
       total_revenue: totalRevenue,
       new_sales_imported: salesImported,
       abnormal_orders: abnormalData?.data || 0,
@@ -487,12 +536,22 @@ function dashApi(method, path, body, cookies) {
       if (plRes.generated > 0) log(`Pull list: ${plRes.generated} items auto-added (expiring within threshold)`);
     } catch(e) { log(`Pull list auto-generate failed: ${e.message}`); }
 
+    // Reset consecutive error count on success
+    if (state.consecutiveErrors) { state.consecutiveErrors = 0; saveState(state); }
     log('===== Sandstar sync complete =====');
 
   } catch (e) {
     await browser.close().catch(() => {});
     log(`FATAL: ${e.message}`);
-    sendTelegram(`❌ Sandstar sync error: ${e.message}`);
+    // Only alert after 3 consecutive failures to suppress transient noise
+    const errState = loadState();
+    errState.consecutiveErrors = (errState.consecutiveErrors || 0) + 1;
+    saveState(errState);
+    if (errState.consecutiveErrors >= 3) {
+      sendTelegram(`❌ Sandstar sync error (${errState.consecutiveErrors} in a row): ${e.message}`);
+    } else {
+      log(`Suppressing Telegram alert (consecutive errors: ${errState.consecutiveErrors}/3)`);
+    }
     process.exit(1);
   }
 })();
