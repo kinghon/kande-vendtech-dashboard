@@ -140,7 +140,7 @@
     .prospect-meta { font-size: 0.85rem; color: var(--muted); }
 
     /* Route Planner */
-    .route-planner-section { background: var(--card); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 16px; overflow: hidden; }
+    .route-planner-section { background: var(--card); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 16px; overflow: visible; }
     .route-planner-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; cursor: pointer; }
     .route-planner-header h3 { margin: 0; font-size: 1rem; }
     .route-planner-content { display: none; padding: 16px; }
@@ -933,7 +933,8 @@
           ${p.next_action_date ? `<span style="font-size:0.75rem;color:var(--accent);">${p.next_action_date}</span>` : ''}
           ${routeStops.some(s => s.prospectId === p.id) 
             ? `<span style="padding:6px 12px;border-radius:12px;font-size:0.75rem;font-weight:600;background:rgba(56,161,105,0.15);color:var(--success);">✓ In Route</span>`
-            : `<button class="todo-route-btn" ontouchstart="this.classList.add('tapped')" onclick="event.stopPropagation(); event.preventDefault(); addToRoute(${p.id}); return false;" title="Add to Route Planner" style="padding:8px 14px;border-radius:12px;font-size:0.8rem;font-weight:600;cursor:pointer;border:2px solid var(--success);background:rgba(56,161,105,0.2);color:var(--success);-webkit-tap-highlight-color:transparent;touch-action:manipulation;">+ Route</button>`}
+            : `<button class="todo-route-btn" ontouchstart="this.classList.add('tapped')" onclick="event.stopPropagation(); event.preventDefault(); addToRoute(${p.id}); return false;" title="Add to Route Planner" style="padding:8px 14px;border-radius:12px;font-size:0.8rem;font-weight:600;cursor:pointer;border:2px solid var(--success);background:rgba(56,161,105,0.2);color:var(--success);-webkit-tap-highlight-color:transparent;touch-action:manipulation;">+ Route</button>
+            <button ontouchstart="" onclick="event.stopPropagation(); mcAddStopFromTodo(${JSON.stringify(p.address || p.name).replace(/"/g,'&quot;')});" title="Add to Mileage Calculator" style="padding:8px 14px;border-radius:12px;font-size:0.8rem;font-weight:600;cursor:pointer;border:2px solid #7b2cbf;background:rgba(123,44,191,0.15);color:#7b2cbf;-webkit-tap-highlight-color:transparent;touch-action:manipulation;">+ Miles</button>`}
           <button class="todo-delete-btn" onclick="event.stopPropagation(); removeTodo(${p.id})" title="Remove from to-do list" style="padding:2px 6px;border-radius:4px;font-size:0.7rem;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);margin-left:4px;">✕</button>
         </div>
       `}).join('');
@@ -2380,6 +2381,17 @@
       p.style.display = p.style.display === 'none' ? 'block' : 'none';
     }
 
+    function mcAddStopFromTodo(addr) {
+      if (!addr) return;
+      mcStops.push(addr);
+      mcRenderStops();
+      // Open the mileage panel if closed
+      const p = document.getElementById('mcPanel');
+      if (p.style.display === 'none') toggleMCPanel();
+      // Scroll to mileage section
+      document.querySelector('.route-planner-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
     function mcAddStop() {
       const inp = document.getElementById('mcStopInput');
       const addr = inp.value.trim();
@@ -2412,7 +2424,7 @@
       const startVal = document.getElementById('mcStart').value.trim();
       const endVal = document.getElementById('mcEnd').value.trim();
       if (!startVal) { alert('Enter a start address'); return; }
-      if (mcStops.length === 0) { alert('Add at least one stop'); return; }
+      if (mcStops.length === 0 && !endVal) { alert('Add at least one stop, or enter an end address'); return; }
       document.getElementById('mcResults').style.display = 'none';
       document.getElementById('mcLogRow').style.display = 'none';
       document.getElementById('mcGmapsBtn').style.display = 'none';
