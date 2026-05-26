@@ -456,4 +456,11 @@
   updateNotificationBadge();
   setInterval(updateNotificationBadge, 60000);
 
+  // Auto-renew session every 20 minutes so it never expires mid-session
+  function refreshSession() {
+    fetch('/api/auth/refresh').catch(function() {});
+  }
+  refreshSession();
+  setInterval(refreshSession, 20 * 60 * 1000);
+
 })();

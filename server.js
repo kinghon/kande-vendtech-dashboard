@@ -28,7 +28,7 @@ function getActiveSessions() {
   // Clean expired sessions (older than 14 days)
   const now = Date.now();
   for (const [token, created] of Object.entries(db.sessions)) {
-    if (now - created > 14 * 24 * 60 * 60 * 1000) delete db.sessions[token];
+    if (now - created > 30 * 24 * 60 * 60 * 1000) delete db.sessions[token];
   }
   return db.sessions;
 }
@@ -73,7 +73,7 @@ function sanitizeObject(obj) {
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
   // Allow these paths without auth
-  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status', '/api/agents/model-status', '/api/memory/db-list', '/api/memory/db-read', '/api/memory/db-search', '/api/memory/sync', '/digital', '/api/mission-control/tasks/bulk-sync', '/onboard', '/api/digital/onboard', '/clients', '/scout-intel', '/competitor-intel', '/api/competitor-intel', '/ocs', '/api/pipeline/engagement-alerts', '/api/digital/gmb/batch-score', '/account-tiers', '/api/pipeline/account-tiers', '/api/crm/status-diff', '/api/monitoring', '/api/jobs/sentinel', '/api/briefing', '/api/agents/cron-sync', '/api/agents/model-sync'];
+  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/auth/refresh', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status', '/api/agents/model-status', '/api/memory/db-list', '/api/memory/db-read', '/api/memory/db-search', '/api/memory/sync', '/digital', '/api/mission-control/tasks/bulk-sync', '/onboard', '/api/digital/onboard', '/clients', '/scout-intel', '/competitor-intel', '/api/competitor-intel', '/ocs', '/api/pipeline/engagement-alerts', '/api/digital/gmb/batch-score', '/account-tiers', '/api/pipeline/account-tiers', '/api/crm/status-diff', '/api/monitoring', '/api/jobs/sentinel', '/api/briefing', '/api/agents/cron-sync', '/api/agents/model-sync'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
     return next();
   }
@@ -146,7 +146,7 @@ app.post('/api/auth/login', (req, res) => {
     saveDB(db);
     
     // Set cookie (24 hours)
-    res.setHeader('Set-Cookie', `vendtech_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${14 * 24 * 60 * 60}`);
+    res.setHeader('Set-Cookie', `vendtech_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${30 * 24 * 60 * 60}`);
     loginAttempts.delete(ip); // Clear attempts on success
     res.json({ success: true });
   } else {
@@ -159,6 +159,20 @@ app.post('/api/auth/login', (req, res) => {
     }
     res.status(401).json({ error: 'Invalid password' });
   }
+});
+
+// Session refresh — silently renew cookie if still valid
+app.get('/api/auth/refresh', (req, res) => {
+  const cookies = parseCookies(req);
+  const token = cookies['vendtech_session'];
+  const sessions = getActiveSessions();
+  if (token && sessions[token]) {
+    sessions[token] = Date.now(); // bump timestamp
+    saveDB(db);
+    res.setHeader('Set-Cookie', `vendtech_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${30 * 24 * 60 * 60}`);
+    return res.json({ ok: true });
+  }
+  res.status(401).json({ ok: false });
 });
 
 // Logout API
