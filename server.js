@@ -103,7 +103,7 @@ function requireAuth(req, res, next) {
     return res.status(401).json({ error: 'Unauthorized', message: 'Please log in at /login' });
   }
   
-  return res.redirect('/login');
+  return res.redirect('/login?next=' + encodeURIComponent(req.originalUrl));
 }
 
 // Apply auth middleware BEFORE other routes
