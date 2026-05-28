@@ -242,3 +242,110 @@ Insights extracted from Vendingpreneurs YouTube channel for Kande VendTech.
 
 **Expected topic:** How to approach locations with underperforming vending operators and win the contract by asking the right diagnostic questions.
 
+
+## 2026-05-28 — Daily Scrape (8 videos)
+
+### 18. Want Vending to Work? (`47g-lzw9DE0`)
+**Key Takeaways:**
+- **Treat it as a business.** The #1 differentiator between successful and failed operators is mindset — this isn't a side hustle you ignore, it's a business that demands business-level attention.
+- The speaker (appears to be a Vendingpreneurs team member/mentor) talks to prospective customers regularly and the core message is always: approach vending with business discipline, not hobby energy.
+
+**Kande Action Items:**
+- [ ] Audit our own operations — are we treating Kande VendTech as a business or a project? What's the gap?
+- [ ] Document our "business systems" (SOPs, tracking, reporting cadence) to formalize operations
+
+---
+
+### 19. 40 Outreaches = How Many Wins? (`aWvmaQlhX0g`)
+**Key Takeaways:**
+- **Outreach funnel math:** 10-15 outreach attempts per week → 5 in-person visits → pipeline of 40-60 contacts → 10 conversations → 4 meetings → 1-2 real opportunities.
+- **Months 1-3 focus:** Set up legal/financial foundations (LLC, bank, EIN, insurance) but the real focus is location acquisition. Goal: one machine live by month 3.
+- **The funnel is predictable.** 40-60 contacts yields 1-2 real opportunities. This is the math new operators need to internalize — it's a numbers game, not luck.
+
+**Kande Action Items:**
+- [ ] Document our outreach funnel metrics — what's our current conversion rate?
+- [ ] Set weekly outreach targets for location acquisition (10-15 attempts/week minimum)
+- [ ] Create a "first 90 days" onboarding guide for new operators using this exact funnel math
+
+---
+
+### 20. Laid Off… Now $100K/Month (`VBF8J2CACPc`)
+**Key Takeaways:**
+- **Origin story:** Was making $60K/year in real estate business development, got laid off the day before their 39th birthday. Built a vending business to $102,000/month revenue.
+- **Time freedom:** Works 8-10 hours per week and picks up kids from school at 3pm daily.
+- **The "laid off to freedom" narrative is powerful** — vending as a layoff-proof income replacement, not just supplemental income.
+- **Passivity achieved:** The 8-10 hour/week number suggests significant systems/staff are in place. This is the endgame state.
+
+**Kande Action Items:**
+- [ ] Use this story archetype in marketing: "What if your layoff was actually your launch?"
+- [ ] Document our own path to reduced hours — what systems do we need to hit 8-10 hours/week?
+- [ ] Create content around "vending as career insurance" — the layoff-recovery angle
+
+---
+
+### 21. This Machine Stops Theft Instantly (`PUQ3ahr1u4U`)
+**Key Takeaways:**
+- **Smart coolers with locked doors require pre-authorization** — the doors won't unlock until the customer's card is tapped and payment is authorized.
+- **Theft prevention is built into the technology:** If someone only has $5-10 on their card, the doors won't open for a $300 grab-and-go scenario.
+- **This directly addresses the #1 objection to unattended retail:** "What if people steal?" The answer: AI + pre-auth makes theft structurally impossible.
+
+**Kande Action Items:**
+- [ ] Add the "locked doors + pre-auth" feature to our Sandstar VRK pitch — it's a theft-proof value prop
+- [ ] Create a one-pager: "Why Our Machines Don't Get Robbed" — use this exact explanation
+- [ ] In location conversations, lead with theft prevention when the prospect raises security concerns
+
+---
+
+### 22. $18K/Month From One Location? (`w08UxiUAZzU`)
+**Key Takeaways:**
+- **$18,000/month from a single location** in the slow season. The math: $600/day × 30 days = $18K/month.
+- **Even conservative estimates are massive:** 5-7 hundred dollars per day still yields $15-21K/month from one machine.
+- **This reframes what's possible per location.** Most operators think in hundreds per month; this location generates tens of thousands.
+
+**Kande Action Items:**
+- [ ] Identify what type of location can generate $18K/month (high-traffic, captive audience, 24/7 access)
+- [ ] Add "revenue per location" ceiling examples to our pitch deck — show what's possible, not just averages
+- [ ] For our location pipeline, add a "revenue potential" scoring tier: A ($15K+), B ($5-15K), C ($1-5K)
+
+---
+
+### 23. How Many Machines to $5K/Month? (`itmKMfB1cE8`)
+**Key Takeaways:**
+- **The math to $5,000/month:** One strong machine nets $800-1,000/month. You need 5-7 strong locations — not 20, not 50.
+- **12-month mission:** Land strong locations, reinvest profits, repeat. That's the entire playbook.
+- **Quality over quantity.** The obsession with machine count is a beginner trap. 5-7 well-placed machines beats 20 poorly placed ones.
+
+**Kande Action Items:**
+- [ ] Reframe our marketing around "5-7 strong locations" instead of "build a massive route"
+- [ ] Define what makes a "strong location" for our machine types (foot traffic, captive audience, income demographics)
+- [ ] Track "average revenue per location" as a KPI — optimize for this number, not total machine count
+
+---
+
+### 24. Bad Operator? Replace Them (Ask This) (`zaJg9OZlHok`)
+**Key Takeaways:**
+- **Question 5 (of a 5-question framework):** "If there was a better option, would you be open to replacing it?" No pitch, just a question.
+- **The best locations already have machines.** Don't avoid locations with existing vending — that's where the proven demand is.
+- **Replace, don't compete:** "I'm not selling anything. I'm asking, listening, and offering a better option."
+- **Diagnostic approach:** Ask questions, listen to pain points, then offer a solution. This is consultative selling, not cold pitching.
+
+**Kande Action Items:**
+- [ ] Script the 5 replacement questions for our outreach team — especially question 5
+- [ ] Reframe our prospecting: target locations WITH existing vending, not just empty spaces
+- [ ] Create a "location audit" offer: "Let us evaluate your current vending setup — no obligation"
+- [ ] Train sales team on consultative replacement selling vs. cold pitching
+
+---
+
+### 25. Prices Change Automatically? (`5eLYHmCVxCI`)
+**Key Takeaways:**
+- **Time-based dynamic pricing is real:** A chicken bacon ranch sandwich expiring in 9 days can be 25% off on day 7, 50% off on day 8, pulled on day 9.
+- **Two pricing strategies in one:** (1) High-traffic time-based promos (e.g., Thursday nights at 11pm), and (2) Expiration-based discounting to reduce shrinkage.
+- **Shrinkage reduction through automation:** Instead of throwing away expired products, the machine dynamically discounts them before expiry.
+- **This requires smart machine technology** — traditional machines can't do time-based or expiration-based pricing.
+
+**Kande Action Items:**
+- [ ] Confirm Sandstar VRK supports time-based and expiration-based dynamic pricing
+- [ ] Build a pricing playbook: standard pricing, high-traffic surge pricing, and expiration discount tiers
+- [ ] Track shrinkage before/after implementing dynamic pricing — target 20-30% reduction
+- [ ] Market this feature to locations: "Our machines automatically discount items before they expire — less waste, more savings"
