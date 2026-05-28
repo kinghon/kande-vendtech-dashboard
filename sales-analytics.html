@@ -222,11 +222,20 @@
         const machines = await machinesRes.json();
         const sales = await salesRes.json();
 
+        // Filter $0 transactions globally
+        const filteredSales = (Array.isArray(sales) ? sales : []).filter(s => s.amount && s.amount > 0);
+
+        // Recalculate avg from filtered sales
+        if (filteredSales.length > 0) {
+          const total = filteredSales.reduce((sum, s) => sum + (s.amount || 0), 0);
+          summaryData.avg_transaction = total / filteredSales.length;
+        }
+
         renderStats(summaryData, machines);
         renderChart(summaryData);
         renderMachines(summaryData, machines);
         renderProducts(summaryData);
-        renderTransactions(sales);
+        renderTransactions(filteredSales);
 
         const syncText = summaryData.last_sync
           ? 'Last sync: ' + new Date(summaryData.last_sync).toLocaleString()
@@ -510,9 +519,6 @@
 
     function renderTransactions(sales) {
       const container = document.getElementById('transactionsBody');
-
-      // Filter out $0 / no-charge transactions
-      sales = (sales || []).filter(s => s.amount && s.amount > 0);
 
       if (!sales || sales.length === 0) {
         container.innerHTML = `
