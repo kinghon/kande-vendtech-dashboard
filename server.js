@@ -25626,7 +25626,7 @@ app.get('/api/costs/weekly', (req, res) => {
 // ===== SANDSTAR ROUTES =====
 app.get('/api/sandstar/sales', (req, res) => {
   const { machine, startDate, endDate, limit } = req.query;
-  let records = db.sandstar_sales || [];
+  let records = (db.sandstar_sales || []).filter(r => r.amount && r.amount > 0); // exclude $0 transactions
   if (machine) records = records.filter(r => r.machine_name === machine || String(r.machine_id) === machine);
   if (startDate) records = records.filter(r => r.sale_date >= startDate);
   if (endDate) records = records.filter(r => r.sale_date <= endDate);
@@ -25776,7 +25776,9 @@ app.post('/api/sandstar/machines/batch', (req, res) => {
 });
 
 app.get('/api/sandstar/summary', (req, res) => {
-  const sales = db.sandstar_sales || [];
+  const allSales = db.sandstar_sales || [];
+  // Exclude $0 / no-charge transactions from all stats
+  const sales = allSales.filter(s => s.amount && s.amount > 0);
   const now = new Date();
   // Use Pacific time since sale_date values are stored in US/Pacific (from Sandstar zoneId)
   const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
@@ -29529,7 +29531,7 @@ app.post('/api/prospects/normalize-types', (req, res) => {
 // ===== SANDSTAR SALES ANALYTICS API =====
 app.get('/api/sandstar/sales', (req, res) => {
   const { machine, startDate, endDate, limit } = req.query;
-  let records = db.sandstar_sales || [];
+  let records = (db.sandstar_sales || []).filter(r => r.amount && r.amount > 0); // exclude $0 transactions
   if (machine) records = records.filter(r => r.machine_name === machine || String(r.machine_id) === machine);
   if (startDate) records = records.filter(r => r.sale_date >= startDate);
   if (endDate) records = records.filter(r => r.sale_date <= endDate);
@@ -29683,7 +29685,9 @@ app.post('/api/sandstar/machines/batch', (req, res) => {
 });
 
 app.get('/api/sandstar/summary', (req, res) => {
-  const sales = db.sandstar_sales || [];
+  const allSales = db.sandstar_sales || [];
+  // Exclude $0 / no-charge transactions from all stats
+  const sales = allSales.filter(s => s.amount && s.amount > 0);
   const now = new Date();
   const todayStr = now.toISOString().split('T')[0];
   const weekStart = new Date(now);
