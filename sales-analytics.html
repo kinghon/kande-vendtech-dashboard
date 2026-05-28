@@ -511,6 +511,9 @@
     function renderTransactions(sales) {
       const container = document.getElementById('transactionsBody');
 
+      // Filter out $0 / no-charge transactions
+      sales = (sales || []).filter(s => s.amount && s.amount > 0);
+
       if (!sales || sales.length === 0) {
         container.innerHTML = `
           <div class="empty-state">
