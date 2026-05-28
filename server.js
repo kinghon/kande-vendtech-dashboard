@@ -25894,6 +25894,27 @@ app.get('/api/sandstar/summary', (req, res) => {
     loc.rev_share_pct = rs.pct; loc.rev_share_amount = rs.amount; loc.net_revenue = loc.gross_revenue - rs.amount;
   });
 
+  // Calculate quarterly rev share per location (current year)
+  const curYear = now.getFullYear();
+  const locSalesByQ = {}; // location_name → [Q1gross, Q2gross, Q3gross, Q4gross]
+  sales.forEach(s => {
+    if (!s.sale_date) return;
+    const sYear = parseInt((s.sale_date).substring(0, 4));
+    if (sYear !== curYear) return;
+    const sMonth = parseInt((s.sale_date).substring(5, 7));
+    const qIdx = Math.floor((sMonth - 1) / 3);
+    const machineName = s.machine_name || '';
+    const loc = machineLocationMap[machineName];
+    const locName = loc ? loc.name : null;
+    if (!locName) return;
+    if (!locSalesByQ[locName]) locSalesByQ[locName] = [0, 0, 0, 0];
+    locSalesByQ[locName][qIdx] += s.amount || 0;
+  });
+  Object.values(by_location).forEach(loc => {
+    const qg = locSalesByQ[loc.location_name] || [0, 0, 0, 0];
+    loc.rev_share_quarterly = qg.map(gross => calcRevShare(loc.location_name, gross).amount);
+  });
+
   // Daily revenue for last 30 days
   const dailyRevenue = {};
   for (let i = 29; i >= 0; i--) {
@@ -29800,6 +29821,27 @@ app.get('/api/sandstar/summary', (req, res) => {
     loc.transactions = loc.machines.reduce((s, m) => s + m.transactions, 0);
     const rs = calcRevShare(loc.location_name, loc.gross_revenue);
     loc.rev_share_pct = rs.pct; loc.rev_share_amount = rs.amount; loc.net_revenue = loc.gross_revenue - rs.amount;
+  });
+
+  // Calculate quarterly rev share per location (current year)
+  const curYear = now.getFullYear();
+  const locSalesByQ = {}; // location_name → [Q1gross, Q2gross, Q3gross, Q4gross]
+  sales.forEach(s => {
+    if (!s.sale_date) return;
+    const sYear = parseInt((s.sale_date).substring(0, 4));
+    if (sYear !== curYear) return;
+    const sMonth = parseInt((s.sale_date).substring(5, 7));
+    const qIdx = Math.floor((sMonth - 1) / 3);
+    const machineName = s.machine_name || '';
+    const loc = machineLocationMap[machineName];
+    const locName = loc ? loc.name : null;
+    if (!locName) return;
+    if (!locSalesByQ[locName]) locSalesByQ[locName] = [0, 0, 0, 0];
+    locSalesByQ[locName][qIdx] += s.amount || 0;
+  });
+  Object.values(by_location).forEach(loc => {
+    const qg = locSalesByQ[loc.location_name] || [0, 0, 0, 0];
+    loc.rev_share_quarterly = qg.map(gross => calcRevShare(loc.location_name, gross).amount);
   });
 
   // Daily revenue for last 30 days

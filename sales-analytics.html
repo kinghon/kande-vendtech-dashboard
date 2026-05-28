@@ -436,7 +436,7 @@
         const rsNote = (loc.rev_share_config?.type === 'tiered' || loc.location_name === 'All In Aviation') ? '' : '';
         html += `
           <div style="margin-bottom:20px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
-            <div style="background:#f8fafc;padding:12px 16px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;gap:8px;align-items:center">
+            <div style="background:#f8fafc;padding:12px 16px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;gap:6px;align-items:center">
               <div>
                 <div style="font-weight:700;font-size:0.9rem">${loc.location_name}</div>
                 <div style="font-size:0.72rem;color:var(--muted)">${loc.address || ''}</div>
@@ -447,12 +447,15 @@
               </div>
               <div style="text-align:center">
                 <div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:2px">Rev Share</div>
-                <div style="font-weight:700;font-size:0.9rem;color:var(--warn)">${rsLabel} ${rsNote}</div>
+                <div style="font-weight:700;font-size:0.85rem;color:var(--warn)">${rsLabel}</div>
               </div>
-              <div style="text-align:center">
-                <div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:2px">Rev Share $</div>
-                <div style="font-weight:700;font-size:0.9rem;color:var(--warn)">${loc.rev_share_amount > 0 ? '-' + fc(loc.rev_share_amount) : '—'}</div>
-              </div>
+              ${['Q1','Q2','Q3','Q4'].map((q,i) => {
+                const qAmt = (loc.rev_share_quarterly || [0,0,0,0])[i] || 0;
+                return `<div style="text-align:center">
+                  <div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:2px">${q} RS$</div>
+                  <div style="font-weight:700;font-size:0.85rem;color:var(--warn)">${qAmt > 0 ? '-' + fc(qAmt) : '—'}</div>
+                </div>`;
+              }).join('')}
               <div style="text-align:center">
                 <div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:2px">Net Rev</div>
                 <div style="font-weight:700;font-size:0.9rem;color:var(--success)">${fc(loc.net_revenue || loc.gross_revenue)}</div>
@@ -467,9 +470,12 @@
                 const isOnline = m.status === 'online' || m.status === 'active';
                 const dot = `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${isOnline ? '#38a169' : '#e53e3e'};margin-right:5px"></span>`;
                 const lastSale = m.last_sale_at ? new Date(m.last_sale_at).toLocaleDateString() : '—';
-                return `<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;gap:8px;padding:10px 16px;border-bottom:1px solid #f0f4f8;align-items:center">
+                return `<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;gap:6px;padding:10px 16px;border-bottom:1px solid #f0f4f8;align-items:center">
                   <div style="font-size:0.83rem;padding-left:12px">${dot}<strong>${cleanMachineName(m.machine_name, loc.location_name)}</strong></div>
                   <div style="text-align:center;font-size:0.83rem">${fc(m.revenue)}</div>
+                  <div style="text-align:center;font-size:0.75rem;color:var(--muted)">—</div>
+                  <div style="text-align:center;font-size:0.75rem;color:var(--muted)">—</div>
+                  <div style="text-align:center;font-size:0.75rem;color:var(--muted)">—</div>
                   <div style="text-align:center;font-size:0.75rem;color:var(--muted)">—</div>
                   <div style="text-align:center;font-size:0.75rem;color:var(--muted)">—</div>
                   <div style="text-align:center;font-size:0.83rem">${fc(m.revenue)}</div>
