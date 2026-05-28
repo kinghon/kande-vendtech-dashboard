@@ -25915,17 +25915,32 @@ app.get('/api/sandstar/summary', (req, res) => {
     loc.rev_share_quarterly = qg.map(gross => calcRevShare(loc.location_name, gross).amount);
   });
 
-  // Daily revenue for last 30 days
+  // Daily revenue for last 30 days (total + per machine)
   const dailyRevenue = {};
+  const dailyDates = [];
   for (let i = 29; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
-    dailyRevenue[d.toISOString().split('T')[0]] = 0;
+    const dateStr = d.toISOString().split('T')[0];
+    dailyRevenue[dateStr] = 0;
+    dailyDates.push(dateStr);
   }
+  const dailyByMachine = {}; // machine_name -> { date -> revenue }
   sales.forEach(s => {
     const d = (s.sale_date || '').substring(0, 10);
     if (dailyRevenue[d] !== undefined) dailyRevenue[d] += s.amount || 0;
+    if (d && dailyDates.includes(d) && s.machine_name) {
+      if (!dailyByMachine[s.machine_name]) {
+        dailyByMachine[s.machine_name] = {};
+        dailyDates.forEach(dt => dailyByMachine[s.machine_name][dt] = 0);
+      }
+      dailyByMachine[s.machine_name][d] = (dailyByMachine[s.machine_name][d] || 0) + (s.amount || 0);
+    }
   });
+  const daily_by_machine = Object.entries(dailyByMachine).map(([name, days]) => ({
+    machine_name: name,
+    daily: dailyDates.map(d => ({ date: d, revenue: days[d] || 0 }))
+  }));
 
   res.json({
     total_revenue,
@@ -25938,6 +25953,7 @@ app.get('/api/sandstar/summary', (req, res) => {
     by_machine: Object.values(by_machine),
     by_location: Object.values(by_location).sort((a, b) => b.gross_revenue - a.gross_revenue),
     daily_revenue: Object.entries(dailyRevenue).map(([date, revenue]) => ({ date, revenue })),
+    daily_by_machine,
     machine_count: (db.sandstar_machines || []).length,
     active_machines: (db.sandstar_machines || []).filter(m => m.status === 'online' || m.online).length,
     last_sync: sales.length > 0 ? sales[0].synced_at : null
@@ -29844,17 +29860,32 @@ app.get('/api/sandstar/summary', (req, res) => {
     loc.rev_share_quarterly = qg.map(gross => calcRevShare(loc.location_name, gross).amount);
   });
 
-  // Daily revenue for last 30 days
+  // Daily revenue for last 30 days (total + per machine)
   const dailyRevenue = {};
+  const dailyDates = [];
   for (let i = 29; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
-    dailyRevenue[d.toISOString().split('T')[0]] = 0;
+    const dateStr = d.toISOString().split('T')[0];
+    dailyRevenue[dateStr] = 0;
+    dailyDates.push(dateStr);
   }
+  const dailyByMachine = {}; // machine_name -> { date -> revenue }
   sales.forEach(s => {
     const d = (s.sale_date || '').substring(0, 10);
     if (dailyRevenue[d] !== undefined) dailyRevenue[d] += s.amount || 0;
+    if (d && dailyDates.includes(d) && s.machine_name) {
+      if (!dailyByMachine[s.machine_name]) {
+        dailyByMachine[s.machine_name] = {};
+        dailyDates.forEach(dt => dailyByMachine[s.machine_name][dt] = 0);
+      }
+      dailyByMachine[s.machine_name][d] = (dailyByMachine[s.machine_name][d] || 0) + (s.amount || 0);
+    }
   });
+  const daily_by_machine = Object.entries(dailyByMachine).map(([name, days]) => ({
+    machine_name: name,
+    daily: dailyDates.map(d => ({ date: d, revenue: days[d] || 0 }))
+  }));
 
   res.json({
     total_revenue,
@@ -29867,6 +29898,7 @@ app.get('/api/sandstar/summary', (req, res) => {
     by_machine: Object.values(by_machine),
     by_location: Object.values(by_location).sort((a, b) => b.gross_revenue - a.gross_revenue),
     daily_revenue: Object.entries(dailyRevenue).map(([date, revenue]) => ({ date, revenue })),
+    daily_by_machine,
     machine_count: (db.sandstar_machines || []).length,
     active_machines: (db.sandstar_machines || []).filter(m => m.status === 'online' || m.online).length,
     last_sync: sales.length > 0 ? sales[0].synced_at : null
