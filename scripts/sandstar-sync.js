@@ -205,11 +205,13 @@ function dashApi(method, path, body, cookies) {
       const sample = allOrders[0];
       const sampleKeys = Object.keys(sample);
       log(`  Sample order keys: ${sampleKeys.join(', ')}`);
-      if (sample.goods || sample.goodsList || sample.orderGoodsList || sample.itemList || sample.goodsInfoList) {
-        const goodsField = sample.goods ? 'goods' : sample.goodsList ? 'goodsList' : sample.orderGoodsList ? 'orderGoodsList' : sample.itemList ? 'itemList' : 'goodsInfoList';
-        log(`  Goods field found in list response: ${goodsField} (${(sample[goodsField]||[]).length} items)`);
+      const GOODS_FIELDS = ['goods','goodsList','orderGoodsList','itemList','goodsInfoList','finalItemList','orderItemList','algorItemList','businessItemList','manualItemList'];
+      const foundGoodsField = GOODS_FIELDS.find(f => sample[f] && sample[f].length > 0);
+      if (foundGoodsField) {
+        log(`  Goods field found in list response: ${foundGoodsField} (${(sample[foundGoodsField]||[]).length} items)`);
       } else {
         log('  No goods field in list response — will fetch order details per order');
+        log(`  Available item-like fields: ${GOODS_FIELDS.filter(f => f in sample).join(', ')}`);
       }
     }
 
@@ -316,7 +318,7 @@ function dashApi(method, path, body, cookies) {
 
     // 5b. Fetch order details for orders missing goods data — MUST happen before browser.close()
     const ordersNeedingDetail = completedOrders.filter(o => {
-      const goods = o.goods || o.goodsList || o.orderGoodsList || o.itemList || o.goodsInfoList || [];
+      const goods = o.goods || o.goodsList || o.orderGoodsList || o.itemList || o.goodsInfoList || o.finalItemList || o.orderItemList || o.algorItemList || o.businessItemList || o.manualItemList || [];
       return goods.length === 0;
     });
     if (ordersNeedingDetail.length > 0) {
@@ -338,7 +340,7 @@ function dashApi(method, path, body, cookies) {
           } catch(e) { return { error: e.message }; }
         }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE, ep, orderNo: probeOrder.orderNo });
         const probeData = probeRes?.data || probeRes?.result || {};
-        const probeGoods = probeData.goods || probeData.goodsList || probeData.orderGoodsList || probeData.itemList || probeData.goodsInfoList || [];
+        const probeGoods = probeData.goods || probeData.goodsList || probeData.orderGoodsList || probeData.itemList || probeData.goodsInfoList || probeData.finalItemList || probeData.orderItemList || probeData.algorItemList || probeData.businessItemList || probeData.manualItemList || [];
         log(`  Detail probe ${ep}: ${JSON.stringify(Object.keys(probeData)).substring(0,100)} | goods: ${probeGoods.length}`);
         if (probeGoods.length > 0 || Object.keys(probeData).length > 2) {
           detailEndpoint = ep;
@@ -361,7 +363,7 @@ function dashApi(method, path, body, cookies) {
             } catch(e) { return null; }
           }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE, ep: detailEndpoint, orderNo: order.orderNo });
           const detData = detRes?.data || detRes?.result || {};
-          const detGoods = detData.goods || detData.goodsList || detData.orderGoodsList || detData.itemList || detData.goodsInfoList || [];
+          const detGoods = detData.goods || detData.goodsList || detData.orderGoodsList || detData.itemList || detData.goodsInfoList || detData.finalItemList || detData.orderItemList || detData.algorItemList || detData.businessItemList || detData.manualItemList || [];
           if (detGoods.length > 0) order.goods = detGoods;
         }
         log(`  Order detail fetch complete`);
@@ -462,7 +464,7 @@ function dashApi(method, path, body, cookies) {
         machine_name: order.freezerName,
         machine_id: order.freezerId,
         amount: order.paymentAmount || order.tradeAmount || order.orderAmount || order.statPaymentAmount || order.statOrderAmount || order.totalMoney || 0,
-        items: (order.goods || order.goodsList || order.orderGoodsList || order.itemList || order.goodsInfoList || []).map(g => ({ name: g.goodsName || g.productName || g.name || '', qty: g.goodsNum || g.quantity || g.qty || 1, price: g.goodsPrice || g.price || g.unitPrice || 0 })),
+        items: (order.goods || order.goodsList || order.orderGoodsList || order.itemList || order.goodsInfoList || order.finalItemList || order.orderItemList || order.algorItemList || order.businessItemList || order.manualItemList || []).map(g => ({ name: g.goodsName || g.productName || g.name || g.goodsCn || '', qty: g.goodsNum || g.quantity || g.qty || g.num || 1, price: g.goodsPrice || g.price || g.unitPrice || g.salePrice || 0 })),
         sale_date: order.closeTime || order.phaseChangeTime || order.createTime || new Date().toISOString(),
         pay_method: order.payName || '',
         phase: order.phase || 2
