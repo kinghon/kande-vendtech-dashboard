@@ -25625,13 +25625,15 @@ app.get('/api/costs/weekly', (req, res) => {
 });
 // ===== SANDSTAR ROUTES =====
 app.get('/api/sandstar/sales', (req, res) => {
-  const { machine, startDate, endDate, limit } = req.query;
+  const { machine, startDate, endDate, limit, offset } = req.query;
   let records = (db.sandstar_sales || []).filter(r => r.amount && r.amount > 0); // exclude $0 transactions
   if (machine) records = records.filter(r => r.machine_name === machine || String(r.machine_id) === machine);
   if (startDate) records = records.filter(r => r.sale_date >= startDate);
   if (endDate) records = records.filter(r => r.sale_date <= endDate);
   records = records.sort((a, b) => new Date(b.sale_date) - new Date(a.sale_date));
-  if (limit) records = records.slice(0, parseInt(limit));
+  const off = parseInt(offset) || 0;
+  const lim = parseInt(limit) || 50;
+  records = records.slice(off, off + lim);
   res.json(records);
 });
 
@@ -29602,13 +29604,15 @@ app.post('/api/prospects/normalize-types', (req, res) => {
 
 // ===== SANDSTAR SALES ANALYTICS API =====
 app.get('/api/sandstar/sales', (req, res) => {
-  const { machine, startDate, endDate, limit } = req.query;
+  const { machine, startDate, endDate, limit, offset } = req.query;
   let records = (db.sandstar_sales || []).filter(r => r.amount && r.amount > 0); // exclude $0 transactions
   if (machine) records = records.filter(r => r.machine_name === machine || String(r.machine_id) === machine);
   if (startDate) records = records.filter(r => r.sale_date >= startDate);
   if (endDate) records = records.filter(r => r.sale_date <= endDate);
   records = records.sort((a, b) => new Date(b.sale_date) - new Date(a.sale_date));
-  if (limit) records = records.slice(0, parseInt(limit));
+  const off = parseInt(offset) || 0;
+  const lim = parseInt(limit) || 50;
+  records = records.slice(off, off + lim);
   res.json(records);
 });
 

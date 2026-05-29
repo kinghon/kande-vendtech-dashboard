@@ -222,6 +222,9 @@
     let chartView = 'day';
     let summaryData = null;
     let productPeriod = '30';
+    let allSales = [];
+    let salesOffset = 0;
+    const SALES_PAGE = 50;
 
     async function init() {
       await refreshData();
@@ -234,15 +237,16 @@
         const [summaryRes, machinesRes, salesRes] = await Promise.all([
           fetch('/api/sandstar/summary?period=' + productPeriod),
           fetch('/api/sandstar/machines'),
-          fetch('/api/sandstar/sales?limit=50')
+          fetch('/api/sandstar/sales?limit=50&offset=0')
         ]);
 
         summaryData = await summaryRes.json();
         const machines = await machinesRes.json();
-        const sales = await salesRes.json();
+        allSales = await salesRes.json();
+        salesOffset = allSales.length;
 
         // Filter $0 transactions globally
-        const filteredSales = (Array.isArray(sales) ? sales : []).filter(s => s.amount && s.amount > 0);
+        const filteredSales = (Array.isArray(allSales) ? allSales : []).filter(s => s.amount && s.amount > 0);
 
         // Recalculate avg from filtered sales
         if (filteredSales.length > 0) {
@@ -586,42 +590,65 @@
       qtyContainer.innerHTML = qtyHtml;
     }
 
+    function buildRow(s) {
+      const date = s.sale_date ? new Date(s.sale_date + (s.sale_date.includes('T') ? '' : ' ')) : null;
+      const timeStr = date ? date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+      const items = (s.items || []).map(i => `${i.qty || 1}\xd7 ${i.name}`).join(', ');
+      const qty = s.item_qty || (s.items || []).reduce((t, i) => t + (i.qty || 1), 0);
+      const itemDisplay = items.length > 0 ? (items.length > 60 ? items.substring(0, 60) + '...' : items) : (qty > 0 ? `${qty} item${qty !== 1 ? 's' : ''}` : '—');
+      return `<tr>
+        <td style="white-space:nowrap">${timeStr}</td>
+        <td><strong>${s.machine_name || 'Unknown'}</strong></td>
+        <td class="item-list">${itemDisplay}</td>
+        <td class="amount positive">${formatCurrency(s.amount)}</td>
+        <td><span class="pay-badge">${s.pay_method || '—'}</span></td>
+      </tr>`;
+    }
+
     function renderTransactions(sales) {
       const container = document.getElementById('transactionsBody');
 
       if (!sales || sales.length === 0) {
-        container.innerHTML = `
-          <div class="empty-state">
-            <div class="icon">🧾</div>
-            <h3>No transactions yet</h3>
-            <p>No sales yet — machines are being deployed. Check back once your machines are live.</p>
-          </div>
-        `;
+        container.innerHTML = `<div class="empty-state"><div class="icon">🧾</div><h3>No transactions yet</h3><p>No sales yet — machines are being deployed.</p></div>`;
         return;
       }
 
-      let html = '<div class="table-container"><table class="data-table"><thead><tr>';
+      let html = '<div class="table-container"><table class="data-table" id="txnTable"><thead><tr>';
       html += '<th>Time</th><th>Machine</th><th>Items</th><th>Amount</th><th>Payment</th>';
-      html += '</tr></thead><tbody>';
-
-      sales.slice(0, 50).forEach(s => {
-        const date = s.sale_date ? new Date(s.sale_date) : null;
-        const timeStr = date ? date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
-        const items = (s.items || []).map(i => `${i.qty || 1}× ${i.name}`).join(', ');
-        const qty = s.item_qty || (s.items || []).reduce((t, i) => t + (i.qty || 1), 0);
-        const itemDisplay = items.length > 0 ? (items.length > 60 ? items.substring(0, 60) + '...' : items) : (qty > 0 ? `${qty} item${qty !== 1 ? 's' : ''}` : '—');
-
-        html += `<tr>
-          <td style="white-space:nowrap">${timeStr}</td>
-          <td><strong>${s.machine_name || 'Unknown'}</strong></td>
-          <td class="item-list">${itemDisplay || '—'}</td>
-          <td class="amount positive">${formatCurrency(s.amount)}</td>
-          <td><span class="pay-badge">${s.pay_method || '—'}</span></td>
-        </tr>`;
-      });
-
+      html += '</tr></thead><tbody id="txnBody">';
+      sales.forEach(s => { html += buildRow(s); });
       html += '</tbody></table></div>';
+      html += `<div style="text-align:center;padding:16px 0" id="loadMoreWrap">
+        <button class="btn" id="loadMoreBtn" onclick="loadMoreTransactions()" style="padding:10px 28px;font-weight:600">Load More</button>
+      </div>`;
       container.innerHTML = html;
+    }
+
+    async function loadMoreTransactions() {
+      const btn = document.getElementById('loadMoreBtn');
+      btn.textContent = 'Loading...';
+      btn.disabled = true;
+      try {
+        const res = await fetch(`/api/sandstar/sales?limit=${SALES_PAGE}&offset=${salesOffset}`);
+        const newSales = await res.json();
+        const filtered = newSales.filter(s => s.amount && s.amount > 0);
+        if (filtered.length === 0) {
+          document.getElementById('loadMoreWrap').innerHTML = '<p style="text-align:center;color:var(--muted);font-size:0.85rem;padding:12px">All transactions loaded</p>';
+          return;
+        }
+        const tbody = document.getElementById('txnBody');
+        filtered.forEach(s => { tbody.insertAdjacentHTML('beforeend', buildRow(s)); });
+        allSales = allSales.concat(filtered);
+        salesOffset += filtered.length;
+        btn.textContent = 'Load More';
+        btn.disabled = false;
+        if (filtered.length < SALES_PAGE) {
+          document.getElementById('loadMoreWrap').innerHTML = '<p style="text-align:center;color:var(--muted);font-size:0.85rem;padding:12px">All transactions loaded</p>';
+        }
+      } catch(e) {
+        btn.textContent = 'Load More';
+        btn.disabled = false;
+      }
     }
 
 
