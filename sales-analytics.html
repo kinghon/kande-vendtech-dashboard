@@ -716,28 +716,46 @@
       document.getElementById('alertCount').textContent = alerts.length ? `${alerts.length} alerts` : '';
 
       if (alerts.length === 0) {
-        container.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:0.9rem">✅ No trend anomalies detected — all items look normal.</div>';
+        container.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:0.9rem">✅ No trend anomalies detected.</div>';
         return;
       }
 
-      const colors = { high: '#e53e3e', medium: '#d69e2e', positive: '#38a169', low: '#718096' };
-      const icons = { decline: '📉', surge: '📈', new_item: '✨', stale: '⚠️', slow_mover: '🐌' };
-      const labels = { decline: 'Declining', surge: 'Surging', new_item: 'New Item', stale: 'Possible Stock-Out', slow_mover: 'Slow Mover' };
+      const cfg = {
+        decline:    { icon: '📉', label: 'Declining',          color: '#e53e3e', bg: '#fff5f5' },
+        stale:      { icon: '⚠️',  label: 'Possible Stock-Out', color: '#c05621', bg: '#fffaf0' },
+        surge:      { icon: '📈', label: 'Surging',            color: '#276749', bg: '#f0fff4' },
+        new_item:   { icon: '✨',  label: 'New Winner',         color: '#2b6cb0', bg: '#ebf8ff' },
+        slow_mover: { icon: '🐌', label: 'Slow Mover',          color: '#718096', bg: '#f7fafc' },
+      };
+      const order = ['decline','stale','surge','new_item','slow_mover'];
+      const shortMachine = m => (m||'').replace('VRK ','').replace('CVM13 ','').replace('Regus 3753 Howard Hughes Parkway, Suite ','Regus Ste ');
 
-      let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;padding:4px">';
-      alerts.forEach(a => {
-        const color = colors[a.severity] || '#718096';
-        const icon = icons[a.type] || '❓';
-        const label = labels[a.type] || a.type;
-        const machineName = (a.machine || '').replace('VRK ', '').replace('CVM13 ', '').replace('Regus 3753 Howard Hughes Parkway, Suite ', 'Regus Ste ');
-        html += `<div style="border:1px solid ${color}33;border-left:4px solid ${color};border-radius:8px;padding:12px 14px;background:#fff">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <span style="font-size:0.72rem;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.04em">${icon} ${label}</span>
-            <span style="font-size:0.72rem;color:var(--muted)">${machineName}</span>
-          </div>
-          <div style="font-weight:600;font-size:0.88rem;margin-bottom:4px">${a.item}</div>
-          <div style="font-size:0.8rem;color:var(--muted)">${a.message}</div>
-        </div>`;
+      // Group by type
+      const groups = {};
+      order.forEach(t => { groups[t] = []; });
+      alerts.forEach(a => { if (groups[a.type]) groups[a.type].push(a); });
+
+      let html = '<div style="display:flex;flex-direction:column;gap:0">';
+      order.forEach(type => {
+        const rows = groups[type];
+        if (!rows.length) return;
+        const { icon, label, color, bg } = cfg[type];
+        html += `
+          <div style="border-bottom:1px solid var(--border)">
+            <div style="display:grid;grid-template-columns:180px 1fr 1fr;gap:0;background:${bg};border-left:4px solid ${color}">
+              <div style="padding:7px 12px;font-size:0.72rem;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:5px;border-bottom:1px solid ${color}22">${icon} ${label} <span style="font-weight:400;color:var(--muted);font-size:0.7rem;text-transform:none;margin-left:4px">${rows.length} item${rows.length!==1?'s':''}</span></div>
+              <div style="padding:7px 12px;font-size:0.72rem;font-weight:600;color:var(--muted);border-bottom:1px solid ${color}22">Item</div>
+              <div style="padding:7px 12px;font-size:0.72rem;font-weight:600;color:var(--muted);border-bottom:1px solid ${color}22">Detail</div>
+            </div>`;
+        rows.forEach((a, i) => {
+          const rowBg = i % 2 === 0 ? '#fff' : bg;
+          html += `<div style="display:grid;grid-template-columns:180px 1fr 1fr;gap:0;background:${rowBg};border-left:4px solid ${color}">
+            <div style="padding:6px 12px;font-size:0.8rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${shortMachine(a.machine)}</div>
+            <div style="padding:6px 12px;font-size:0.82rem;font-weight:600">${a.item}</div>
+            <div style="padding:6px 12px;font-size:0.8rem;color:var(--muted)">${a.message}</div>
+          </div>`;
+        });
+        html += '</div>';
       });
       html += '</div>';
       container.innerHTML = html;
