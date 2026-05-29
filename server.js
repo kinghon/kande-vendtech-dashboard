@@ -26038,15 +26038,25 @@ app.get('/api/sandstar/item-trends', (req, res) => {
   res.json({ daily_dates: dates, by_item });
 });
 
+// Fresh food restock log
+if (!db.fresh_food_restocks) db.fresh_food_restocks = [];
+
 app.get('/api/sandstar/fresh-foods', (req, res) => {
   const sales = (db.sandstar_sales || []).filter(s => s.amount > 0);
   const now = new Date();
   const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
-  const cutoff7 = new Date(now - 7 * 86400000);
   const FRESH_KEYWORDS = ['sub','sandwich','wrap','salad','biscuit','sausage','get fresh','turkey','italian','roast beef','chicken','tuna','hero','grilled'];
   const isFresh = name => FRESH_KEYWORDS.some(k => (name||'').toLowerCase().includes(k));
 
-  const items = {}; // `${machine}||${item}` -> stats
+  // Get latest restock per machine+item
+  const latestRestock = {}; // `${machine}||${item}` -> {qty, date, id}
+  (db.fresh_food_restocks || []).forEach(r => {
+    const key = `${r.machine}||${r.item}`;
+    if (!latestRestock[key] || r.date > latestRestock[key].date) latestRestock[key] = r;
+  });
+
+  // Sales aggregation
+  const items = {};
   sales.forEach(s => {
     const machine = s.machine_name || 'Unknown';
     const saleDate = (s.sale_date || '').substring(0, 10);
@@ -26054,25 +26064,56 @@ app.get('/api/sandstar/fresh-foods', (req, res) => {
       const name = item.name || '';
       if (!isFresh(name)) return;
       const key = `${machine}||${name}`;
-      if (!items[key]) items[key] = { machine, item: name, today: 0, last7: 0, allTime: 0, lastSold: null };
+      if (!items[key]) items[key] = { machine, item: name, today: 0, allTime: 0, lastSold: null, soldSinceRestock: 0 };
       const qty = item.qty || 1;
       if (saleDate === todayStr) items[key].today += qty;
-      if (new Date(s.sale_date) >= cutoff7) items[key].last7 += qty;
       items[key].allTime += qty;
       if (!items[key].lastSold || s.sale_date > items[key].lastSold) items[key].lastSold = s.sale_date;
+      // Count sold since latest restock
+      const restock = latestRestock[key];
+      if (restock && s.sale_date >= restock.date) items[key].soldSinceRestock += qty;
     });
   });
 
-  // Group by machine, sort by last sold descending
+  // Merge restock data
+  // Also add items that have a restock log but no recent sales
+  Object.entries(latestRestock).forEach(([key, restock]) => {
+    if (!items[key]) items[key] = { machine: restock.machine, item: restock.item, today: 0, allTime: 0, lastSold: null, soldSinceRestock: 0 };
+  });
+
   const byMachine = {};
   Object.values(items).forEach(v => {
     if (!byMachine[v.machine]) byMachine[v.machine] = [];
+    const key = `${v.machine}||${v.item}`;
+    const restock = latestRestock[key] || null;
+    const restockedQty = restock ? restock.qty : null;
+    const estCurrent = restockedQty !== null ? Math.max(0, restockedQty - v.soldSinceRestock) : null;
     const daysSinceSold = v.lastSold ? Math.floor((now - new Date(v.lastSold)) / 86400000) : 999;
-    byMachine[v.machine].push({ ...v, daysSinceSold });
+    byMachine[v.machine].push({ ...v, restock, restockedQty, soldSinceRestock: v.soldSinceRestock, estCurrent, daysSinceSold });
   });
-  Object.values(byMachine).forEach(arr => arr.sort((a, b) => a.daysSinceSold - b.daysSinceSold));
+  Object.values(byMachine).forEach(arr => arr.sort((a, b) => (a.estCurrent??999) - (b.estCurrent??999) || a.item.localeCompare(b.item)));
 
-  res.json({ by_machine: byMachine, generated_at: new Date().toISOString() });
+  res.json({ by_machine: byMachine, restocks: db.fresh_food_restocks, generated_at: new Date().toISOString() });
+});
+
+// POST restock entry
+app.post('/api/sandstar/fresh-foods/restock', (req, res) => {
+  const { machine, item, qty, date } = req.body;
+  if (!machine || !item || !qty) return res.status(400).json({ error: 'machine, item, qty required' });
+  if (!db.fresh_food_restocks) db.fresh_food_restocks = [];
+  const entry = { id: nextId(), machine, item, qty: parseInt(qty), date: date || new Date().toISOString().split('T')[0], created_at: new Date().toISOString() };
+  // Remove old entry for same machine+item if exists, replace with new
+  db.fresh_food_restocks = db.fresh_food_restocks.filter(r => !(r.machine === machine && r.item === item));
+  db.fresh_food_restocks.push(entry);
+  saveDB(db);
+  res.json({ ok: true, entry });
+});
+
+app.delete('/api/sandstar/fresh-foods/restock/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  db.fresh_food_restocks = (db.fresh_food_restocks || []).filter(r => r.id !== id);
+  saveDB(db);
+  res.json({ ok: true });
 });
 
 app.get('/api/sandstar/alerts', (req, res) => {

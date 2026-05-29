@@ -230,7 +230,41 @@
     <div class="section" id="freshFoodsSection">
       <div class="section-header">
         <h2>🥗 Fresh Foods Inventory</h2>
-        <span style="font-size:0.78rem;color:var(--muted)">Based on sales activity — Sandstar does not track fresh food stock in real time</span>
+        <button class="btn" onclick="toggleRestockForm()" style="font-size:0.8rem;padding:6px 14px">+ Log Restock</button>
+      </div>
+      <div id="restockFormWrap" style="display:none;padding:16px;border-bottom:1px solid var(--border);background:#f8fafc">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div>
+            <label style="font-size:0.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">Machine</label>
+            <select id="rfMachine" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;min-width:200px"></select>
+          </div>
+          <div>
+            <label style="font-size:0.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">Item</label>
+            <select id="rfItem" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;min-width:220px">
+              <option>Get Fresh Italian Style Sub</option>
+              <option>Get Fresh Turkey and Provolone Sandwich</option>
+              <option>Get Fresh Chicken Bacon Caesar Wrap</option>
+              <option>Get Fresh Chicken and Bacon Cobb Salad</option>
+              <option>Grilled Chicken Caesar Salad</option>
+              <option>Roast Beef Pretzel Sub</option>
+              <option>Sausage Egg &amp; Cheese Biscuit</option>
+              <option value="__custom__">Other (type below)</option>
+            </select>
+          </div>
+          <div id="rfCustomWrap" style="display:none">
+            <label style="font-size:0.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">Item Name</label>
+            <input id="rfCustom" type="text" placeholder="Item name" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;width:220px">
+          </div>
+          <div>
+            <label style="font-size:0.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">Qty Stocked</label>
+            <input id="rfQty" type="number" min="1" placeholder="e.g. 6" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;width:90px">
+          </div>
+          <div>
+            <label style="font-size:0.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">Date Stocked</label>
+            <input id="rfDate" type="date" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem">
+          </div>
+          <button class="btn btn-primary" onclick="submitRestock()" style="padding:8px 18px">Save</button>
+        </div>
       </div>
       <div class="section-body" id="freshFoodsBody">
         <div class="loading">Loading</div>
@@ -743,42 +777,76 @@
       container.innerHTML = html;
     }
 
-        function renderFreshFoods(data) {
+        function toggleRestockForm() {
+      const wrap = document.getElementById('restockFormWrap');
+      wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+      // Set today as default date
+      const dateEl = document.getElementById('rfDate');
+      if (!dateEl.value) dateEl.value = new Date().toLocaleDateString('en-CA', {timeZone:'America/Los_Angeles'});
+      // Populate machine dropdown from fresh foods data
+      const machSel = document.getElementById('rfMachine');
+      if (machSel.options.length === 0 && freshFoodsData) {
+        Object.keys(freshFoodsData.by_machine || {}).sort().forEach(m => {
+          const o = document.createElement('option'); o.value = m;
+          o.textContent = m.replace('VRK ','').replace('CVM13 ','').replace('Regus 3753 Howard Hughes Parkway, Suite ','Regus Ste ');
+          machSel.appendChild(o);
+        });
+      }
+      document.getElementById('rfItem').onchange = function() {
+        document.getElementById('rfCustomWrap').style.display = this.value === '__custom__' ? 'block' : 'none';
+      };
+    }
+
+    async function submitRestock() {
+      const machine = document.getElementById('rfMachine').value;
+      const itemSel = document.getElementById('rfItem').value;
+      const item = itemSel === '__custom__' ? document.getElementById('rfCustom').value.trim() : itemSel;
+      const qty = parseInt(document.getElementById('rfQty').value);
+      const date = document.getElementById('rfDate').value;
+      if (!machine || !item || !qty || !date) return alert('Fill in all fields');
+      await fetch('/api/sandstar/fresh-foods/restock', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({machine,item,qty,date}) });
+      document.getElementById('restockFormWrap').style.display = 'none';
+      document.getElementById('rfQty').value = '';
+      await refreshData();
+    }
+
+    function renderFreshFoods(data) {
       const container = document.getElementById('freshFoodsBody');
       if (!data || !data.by_machine || !Object.keys(data.by_machine).length) {
-        container.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:0.9rem">No fresh food sales data found.</div>';
+        container.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:0.9rem">No fresh food data. Log a restock to get started.</div>';
         return;
       }
       const shortMachine = m => (m||'').replace('VRK ','').replace('CVM13 ','').replace('Regus 3753 Howard Hughes Parkway, Suite ','Regus Ste ');
-      const staleness = days => {
-        if (days === 0) return { label: 'Sold today', color: '#276749' };
-        if (days === 1) return { label: 'Yesterday', color: '#2b6cb0' };
-        if (days <= 3) return { label: `${days}d ago`, color: '#d69e2e' };
-        if (days <= 7) return { label: `${days}d ago`, color: '#c05621' };
-        return { label: `${days}d ago`, color: '#e53e3e' };
+      const stockColor = n => n === null ? '#718096' : n <= 0 ? '#e53e3e' : n <= 2 ? '#c05621' : '#276749';
+      const stockLabel = (est, restocked) => {
+        if (restocked === null) return '—';
+        if (est <= 0) return '<span style="color:#e53e3e;font-weight:700">OUT</span>';
+        return `<span style="color:${stockColor(est)};font-weight:700">${est}</span>`;
       };
 
-      let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;padding:4px">';
+      let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:16px;padding:4px">';
       Object.entries(data.by_machine).sort(([a],[b])=>a.localeCompare(b)).forEach(([machine, items]) => {
         html += `<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden">
           <div style="background:#f8fafc;padding:10px 14px;border-bottom:1px solid var(--border);font-weight:700;font-size:0.85rem">${shortMachine(machine)}</div>
           <table style="width:100%;border-collapse:collapse">
             <thead><tr style="background:#fafbfc">
               <th style="padding:7px 12px;font-size:0.72rem;font-weight:600;color:var(--muted);text-align:left;border-bottom:1px solid var(--border)">Item</th>
+              <th style="padding:7px 8px;font-size:0.72rem;font-weight:600;color:var(--muted);text-align:center;border-bottom:1px solid var(--border)">Stocked</th>
+              <th style="padding:7px 8px;font-size:0.72rem;font-weight:600;color:var(--muted);text-align:center;border-bottom:1px solid var(--border)">Sold</th>
+              <th style="padding:7px 8px;font-size:0.72rem;font-weight:600;color:var(--muted);text-align:center;border-bottom:1px solid var(--border)">Est. Left</th>
               <th style="padding:7px 8px;font-size:0.72rem;font-weight:600;color:var(--muted);text-align:center;border-bottom:1px solid var(--border)">Today</th>
-              <th style="padding:7px 8px;font-size:0.72rem;font-weight:600;color:var(--muted);text-align:center;border-bottom:1px solid var(--border)">7 Days</th>
-              <th style="padding:7px 8px;font-size:0.72rem;font-weight:600;color:var(--muted);text-align:center;border-bottom:1px solid var(--border)">All Time</th>
-              <th style="padding:7px 10px;font-size:0.72rem;font-weight:600;color:var(--muted);text-align:right;border-bottom:1px solid var(--border)">Last Sold</th>
+              <th style="padding:7px 10px;font-size:0.72rem;font-weight:600;color:var(--muted);text-align:right;border-bottom:1px solid var(--border)">Restock Date</th>
             </tr></thead><tbody>`;
         items.forEach((item, i) => {
-          const s = staleness(item.daysSinceSold);
           const bg = i % 2 === 0 ? '#fff' : '#fafbfc';
+          const restockDate = item.restock ? item.restock.date : null;
           html += `<tr style="background:${bg}">
             <td style="padding:7px 12px;font-size:0.82rem;font-weight:500">${item.item}</td>
+            <td style="padding:7px 8px;font-size:0.82rem;text-align:center;color:var(--muted)">${item.restockedQty ?? '—'}</td>
+            <td style="padding:7px 8px;font-size:0.82rem;text-align:center">${item.restockedQty !== null ? item.soldSinceRestock : '—'}</td>
+            <td style="padding:7px 8px;font-size:0.82rem;text-align:center">${stockLabel(item.estCurrent, item.restockedQty)}</td>
             <td style="padding:7px 8px;font-size:0.82rem;text-align:center;font-weight:${item.today>0?'700':'400'};color:${item.today>0?'#276749':'var(--muted)'}">${item.today||'—'}</td>
-            <td style="padding:7px 8px;font-size:0.82rem;text-align:center">${item.last7||'—'}</td>
-            <td style="padding:7px 8px;font-size:0.82rem;text-align:center;color:var(--muted)">${item.allTime}</td>
-            <td style="padding:7px 10px;font-size:0.78rem;text-align:right;color:${s.color};font-weight:600">${s.label}</td>
+            <td style="padding:7px 10px;font-size:0.78rem;text-align:right;color:var(--muted)">${restockDate || '—'}</td>
           </tr>`;
         });
         html += '</tbody></table></div>';
