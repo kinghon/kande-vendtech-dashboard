@@ -26071,13 +26071,13 @@ app.get('/api/sandstar/alerts', (req, res) => {
     const daysSinceLast = (now - v.last_seen) / day;
 
     // 1. DECLINE: was selling, now dropped >50% week over week
-    if (v.prior7 >= 3 && v.recent7 < v.prior7 * 0.5) {
+    if (v.prior7 >= 7 && v.recent7 < v.prior7 * 0.5) {
       const drop = Math.round((1 - v.recent7/v.prior7)*100);
       alerts.push({ type: 'decline', severity: drop > 75 ? 'high' : 'medium', machine: v.machine, item: v.item,
         message: `${drop}% drop in last 7 days vs prior week (${v.recent7} vs ${v.prior7} units)` });
     }
     // 2. SURGE: new or growing item, >100% increase
-    if (v.prior7 >= 1 && v.recent7 > v.prior7 * 2 && v.recent7 >= 3) {
+    if (v.prior7 >= 7 && v.recent7 > v.prior7 * 2 && v.recent7 >= 3) {
       const gain = Math.round((v.recent7/v.prior7 - 1)*100);
       alerts.push({ type: 'surge', severity: 'positive', machine: v.machine, item: v.item,
         message: `${gain}% increase in last 7 days vs prior week (${v.recent7} vs ${v.prior7} units)` });
