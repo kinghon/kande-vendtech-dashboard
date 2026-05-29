@@ -418,6 +418,7 @@ function dashApi(method, path, body, cookies) {
     log(`New orders to import: ${newOrders.length}`);
 
 
+
     // 6. Push to dashboard
     const dashCookies = {};
     await dashApi('POST', '/api/auth/login', { password: DASHBOARD_PW }, dashCookies);
@@ -481,7 +482,7 @@ function dashApi(method, path, body, cookies) {
         machine_id: order.freezerId,
         amount: (() => { const g = parseFloat(order.paymentAmount || order.tradeAmount || order.orderAmount || order.statPaymentAmount || order.statOrderAmount || order.totalMoney || 0); const r = parseFloat(order.afterSalePaymentAmount || order.afterSaleTradeAmount || 0); return Math.max(0, g - r); })(),
         item_qty: parseInt(order.statQty || order.allQty || 0),
-        items: (getGoods(order)).map(g => ({ name: g.goodsName || g.productName || g.name || g.goodsCn || g.skuName || '', qty: g.goodsNum || g.quantity || g.qty || g.num || g.count || 1, price: g.goodsPrice || g.price || g.unitPrice || g.salePrice || g.amount || 0 })),
+        items: (getGoods(order)).map(g => ({ name: g.goodsName || g.productName || g.name || g.goodsCn || g.skuName || '', qty: g.goodsNum || g.quantity || g.qty || g.num || g.count || 1, price: g.payPrice || g.goodsPrice || g.price || g.unitPrice || g.salePrice || g.amount || 0, spec: g.goodsSpec || '', barcode: g.barcode || '' })),
         sale_date: order.closeTime || order.phaseChangeTime || order.createTime || new Date().toISOString(),
         pay_method: order.payName || '',
         phase: order.phase || 2
@@ -499,7 +500,7 @@ function dashApi(method, path, body, cookies) {
         machine_id: order.freezerId,
         amount: (() => { const g = parseFloat(order.paymentAmount || order.tradeAmount || order.orderAmount || order.statPaymentAmount || order.statOrderAmount || order.totalMoney || 0); const r = parseFloat(order.afterSalePaymentAmount || order.afterSaleTradeAmount || 0); return Math.max(0, g - r); })(),
         item_qty: parseInt(order.statQty || order.allQty || 0),
-        items: (getGoods(order)).map(g => ({ name: g.goodsName || g.productName || g.name || g.goodsCn || g.skuName || '', qty: g.goodsNum || g.quantity || g.qty || g.num || g.count || 1, price: g.goodsPrice || g.price || g.unitPrice || g.salePrice || g.amount || 0 })),
+        items: (getGoods(order)).map(g => ({ name: g.goodsName || g.productName || g.name || g.goodsCn || g.skuName || '', qty: g.goodsNum || g.quantity || g.qty || g.num || g.count || 1, price: g.payPrice || g.goodsPrice || g.price || g.unitPrice || g.salePrice || g.amount || 0, spec: g.goodsSpec || '', barcode: g.barcode || '' })),
         sale_date: order.closeTime || order.phaseChangeTime || order.createTime || new Date().toISOString(),
         pay_method: order.payName || '',
         phase: order.phase || 2
