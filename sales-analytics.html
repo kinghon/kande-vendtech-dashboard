@@ -180,10 +180,17 @@
       <!-- Top Products -->
       <div class="section">
         <div class="section-header">
-          <h2>🏆 Top Products</h2>
+          <h2>🏆 Top Products by Revenue &amp; Quantity</h2>
         </div>
-        <div class="section-body" id="productsBody">
-          <div class="loading">Loading products</div>
+        <div class="section-body" style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+          <div>
+            <div style="font-size:0.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">By Revenue</div>
+            <div id="productsBody"><div class="loading">Loading</div></div>
+          </div>
+          <div>
+            <div style="font-size:0.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">By Quantity Sold</div>
+            <div id="productsQtyBody"><div class="loading">Loading</div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -503,37 +510,46 @@
     }
 
         function renderProducts(data) {
-      const container = document.getElementById('productsBody');
+      const revContainer = document.getElementById('productsBody');
+      const qtyContainer = document.getElementById('productsQtyBody');
       const products = data.top_products || [];
 
+      const emptyHtml = `<div class="empty-state"><div class="icon">🏆</div><h3>No product sales yet</h3></div>`;
+
       if (products.length === 0) {
-        container.innerHTML = `
-          <div class="empty-state">
-            <div class="icon">🏆</div>
-            <h3>No product sales yet</h3>
-            <p>Top-selling products will appear here once transactions start flowing in from your machines.</p>
-          </div>
-        `;
+        revContainer.innerHTML = emptyHtml;
+        qtyContainer.innerHTML = emptyHtml;
         return;
       }
 
+      // Revenue chart
       const maxRevenue = Math.max(...products.map(p => p.revenue), 1);
-
-      let html = '';
+      let revHtml = '';
       products.forEach((p, i) => {
         const pct = (p.revenue / maxRevenue) * 100;
-        html += `
+        revHtml += `
           <div class="product-bar">
             <div class="bar-name">${i + 1}. ${p.name}</div>
-            <div class="bar-track">
-              <div class="bar-fill" style="width:${pct}%"></div>
-            </div>
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
             <div class="bar-value">${formatCurrency(p.revenue)}</div>
-          </div>
-        `;
+          </div>`;
       });
+      revContainer.innerHTML = revHtml;
 
-      container.innerHTML = html;
+      // Quantity chart — sorted by qty desc
+      const byQty = [...products].sort((a, b) => (b.qty || 0) - (a.qty || 0));
+      const maxQty = Math.max(...byQty.map(p => p.qty || 0), 1);
+      let qtyHtml = '';
+      byQty.forEach((p, i) => {
+        const pct = ((p.qty || 0) / maxQty) * 100;
+        qtyHtml += `
+          <div class="product-bar">
+            <div class="bar-name">${i + 1}. ${p.name}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:linear-gradient(90deg,#38a169,#68d391)"></div></div>
+            <div class="bar-value">${p.qty || 0} sold</div>
+          </div>`;
+      });
+      qtyContainer.innerHTML = qtyHtml;
     }
 
     function renderTransactions(sales) {
