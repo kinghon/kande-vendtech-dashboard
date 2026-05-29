@@ -9,7 +9,7 @@ const fs     = require('fs');
 const { execSync } = require('child_process');
 
 const SANDSTAR_EMAIL = 'kurtis.hon@gmail.com';
-const SANDSTAR_PASS  = 'kurtis123#';
+const SANDSTAR_PASS  = 'kurtis123';
 const SANDSTAR_ORG   = '001020';
 const SANDSTAR_SCOPE = '12';
 const SANDSTAR_API   = 'https://webapi-us.sandstar.com';
@@ -213,6 +213,8 @@ function dashApi(method, path, body, cookies) {
         log('  No goods field in list response — will fetch order details per order');
         log(`  Available item-like fields: ${GOODS_FIELDS.filter(f => f in sample).join(', ')}`);
       }
+      // DEBUG: dump full first order to file for inspection
+      try { fs.writeFileSync('/tmp/sandstar-order-debug.json', JSON.stringify(sample, null, 2)); } catch(e) {}
     }
 
     // 3. Pull machines
@@ -376,6 +378,8 @@ function dashApi(method, path, body, cookies) {
             log(`  order.finalItemList: ${JSON.stringify((d.order||{}).finalItemList || []).substring(0,200)}`);
             log(`  order.orderItemList: ${JSON.stringify((d.order||{}).orderItemList || []).substring(0,200)}`);
             log(`  order.algorItemList: ${JSON.stringify((d.order||{}).algorItemList || []).substring(0,200)}`);
+            // DEBUG: dump full detail response
+            try { fs.writeFileSync('/tmp/sandstar-detail-debug.json', JSON.stringify(d, null, 2)); } catch(e) {}
             break;
           }
         } catch(e) { log(`  ${ep}: ${e.message}`); }
@@ -477,6 +481,7 @@ function dashApi(method, path, body, cookies) {
         machine_name: order.freezerName,
         machine_id: order.freezerId,
         amount: (() => { const g = parseFloat(order.paymentAmount || order.tradeAmount || order.orderAmount || order.statPaymentAmount || order.statOrderAmount || order.totalMoney || 0); const r = parseFloat(order.afterSalePaymentAmount || order.afterSaleTradeAmount || 0); return Math.max(0, g - r); })(),
+        item_qty: parseInt(order.statQty || order.allQty || 0),
         items: [],
         sale_date: order.closeTime || order.phaseChangeTime || order.createTime || new Date().toISOString(),
         pay_method: order.payName || '',
@@ -494,6 +499,7 @@ function dashApi(method, path, body, cookies) {
         machine_name: order.freezerName,
         machine_id: order.freezerId,
         amount: (() => { const g = parseFloat(order.paymentAmount || order.tradeAmount || order.orderAmount || order.statPaymentAmount || order.statOrderAmount || order.totalMoney || 0); const r = parseFloat(order.afterSalePaymentAmount || order.afterSaleTradeAmount || 0); return Math.max(0, g - r); })(),
+        item_qty: parseInt(order.statQty || order.allQty || 0),
         items: (getGoods(order)).map(g => ({ name: g.goodsName || g.productName || g.name || g.goodsCn || g.skuName || '', qty: g.goodsNum || g.quantity || g.qty || g.num || g.count || 1, price: g.goodsPrice || g.price || g.unitPrice || g.salePrice || g.amount || 0 })),
         sale_date: order.closeTime || order.phaseChangeTime || order.createTime || new Date().toISOString(),
         pay_method: order.payName || '',

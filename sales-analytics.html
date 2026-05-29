@@ -558,7 +558,8 @@
         const date = s.sale_date ? new Date(s.sale_date) : null;
         const timeStr = date ? date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
         const items = (s.items || []).map(i => `${i.qty || 1}× ${i.name}`).join(', ');
-        const itemDisplay = items.length > 60 ? items.substring(0, 60) + '...' : items;
+        const qty = s.item_qty || (s.items || []).reduce((t, i) => t + (i.qty || 1), 0);
+        const itemDisplay = items.length > 0 ? (items.length > 60 ? items.substring(0, 60) + '...' : items) : (qty > 0 ? `${qty} item${qty !== 1 ? 's' : ''}` : '—');
 
         html += `<tr>
           <td style="white-space:nowrap">${timeStr}</td>

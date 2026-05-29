@@ -25647,14 +25647,25 @@ app.post('/api/sandstar/sales/batch', (req, res) => {
     if (existingIdx !== -1) {
       const newAmt = parseFloat(sale.amount) || 0;
       const existingAmt = db.sandstar_sales[existingIdx].amount || 0;
+      const newItems = sale.items || [];
+      const existingItems = db.sandstar_sales[existingIdx].items || [];
       // force=true: always update amount; otherwise only backfill amount=0 records
       if (newAmt > 0 && (force || existingAmt === 0)) {
         db.sandstar_sales[existingIdx].amount = newAmt;
-        db.sandstar_sales[existingIdx].items = sale.items || db.sandstar_sales[existingIdx].items;
+        // Only update items if we have real item data — never overwrite with empty
+        if (newItems.length > 0) db.sandstar_sales[existingIdx].items = newItems;
+        // Always update item_qty from statQty
+        if (sale.item_qty > 0) db.sandstar_sales[existingIdx].item_qty = sale.item_qty;
         db.sandstar_sales[existingIdx].phase = sale.phase || db.sandstar_sales[existingIdx].phase;
         imported++;
       } else {
-        skipped++;
+        // Still update item_qty even if amount didn't change
+        if (sale.item_qty > 0 && !db.sandstar_sales[existingIdx].item_qty) {
+          db.sandstar_sales[existingIdx].item_qty = sale.item_qty;
+          imported++;
+        } else {
+          skipped++;
+        }
       }
       continue;
     }
@@ -25664,6 +25675,7 @@ app.post('/api/sandstar/sales/batch', (req, res) => {
       machine_id: sale.machine_id,
       machine_name: sale.machine_name,
       amount: parseFloat(sale.amount) || 0,
+      item_qty: sale.item_qty || 0,
       items: sale.items || [],
       sale_date: sale.sale_date,
       pay_method: sale.pay_method || '',
@@ -29579,7 +29591,7 @@ app.get('/api/sandstar/sales', (req, res) => {
 });
 
 app.post('/api/sandstar/sales/batch', (req, res) => {
-  const { sales } = req.body;
+  const { sales, force } = req.body;
   if (!Array.isArray(sales) || sales.length === 0) {
     return res.status(400).json({ error: 'sales array required' });
   }
@@ -29592,14 +29604,19 @@ app.post('/api/sandstar/sales/batch', (req, res) => {
       const newItems = sale.items || [];
       const existingItems = db.sandstar_sales[existingIdx].items || [];
       let updated = false;
-      // Backfill amount if was 0
-      if (newAmt > 0 && (db.sandstar_sales[existingIdx].amount || 0) === 0) {
+      // Backfill amount if was 0 or force update
+      if (newAmt > 0 && (force || (db.sandstar_sales[existingIdx].amount || 0) === 0)) {
         db.sandstar_sales[existingIdx].amount = newAmt;
         updated = true;
       }
-      // Backfill items if existing is empty and we now have real items
+      // Backfill items only if we have real item data
       if (newItems.length > 0 && existingItems.length === 0) {
         db.sandstar_sales[existingIdx].items = newItems;
+        updated = true;
+      }
+      // Always update item_qty from statQty
+      if (sale.item_qty > 0) {
+        db.sandstar_sales[existingIdx].item_qty = sale.item_qty;
         updated = true;
       }
       if (updated) { imported++; } else { skipped++; }
@@ -29611,6 +29628,7 @@ app.post('/api/sandstar/sales/batch', (req, res) => {
       machine_id: sale.machine_id,
       machine_name: sale.machine_name,
       amount: parseFloat(sale.amount) || 0,
+      item_qty: sale.item_qty || 0,
       items: sale.items || [],
       sale_date: sale.sale_date,
       pay_method: sale.pay_method || '',
