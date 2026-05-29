@@ -25635,6 +25635,15 @@ app.get('/api/sandstar/sales', (req, res) => {
   res.json(records);
 });
 
+app.delete('/api/sandstar/sales/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const idx = (db.sandstar_sales || []).findIndex(s => s.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'not found' });
+  db.sandstar_sales.splice(idx, 1);
+  saveDB(db);
+  res.json({ deleted: id });
+});
+
 app.post('/api/sandstar/sales/batch', (req, res) => {
   const { sales, force } = req.body;
   if (!Array.isArray(sales) || sales.length === 0) {
