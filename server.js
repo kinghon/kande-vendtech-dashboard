@@ -25800,13 +25800,14 @@ app.get('/api/sandstar/summary', (req, res) => {
   const allSales = db.sandstar_sales || [];
   // Exclude $0 / no-charge transactions from all stats
   const allValidSales = allSales.filter(s => s.amount && s.amount > 0);
+  const sales = allValidSales; // all-time for stats/chart/transactions
   const now = new Date();
   // Use Pacific time since sale_date values are stored in US/Pacific (from Sandstar zoneId)
   const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
-  // Period filter for top products (default 30d, all = no filter)
+  // Period filter for top products only (default 30d, all = no filter)
   const periodDays = req.query.period === 'all' ? null : parseInt(req.query.period) || 30;
   const periodCutoff = periodDays ? new Date(now - periodDays * 86400000) : null;
-  const sales = periodCutoff
+  const productSales = periodCutoff
     ? allValidSales.filter(s => !s.sale_date || new Date(s.sale_date) >= periodCutoff)
     : allValidSales;
   const weekStart = new Date(now);
@@ -25828,9 +25829,9 @@ app.get('/api/sandstar/summary', (req, res) => {
     .filter(s => new Date(s.sale_date) >= monthStart)
     .reduce((s, r) => s + (r.amount || 0), 0);
 
-  // Top products
+  // Top products (uses period-filtered productSales)
   const productRevenue = {};
-  sales.forEach(s => {
+  productSales.forEach(s => {
     (s.items || []).forEach(item => {
       const name = item.name || 'Unknown';
       if (!productRevenue[name]) productRevenue[name] = { name, revenue: 0, qty: 0 };
