@@ -581,19 +581,31 @@
       }
 
       // Revenue chart
-      const showAllRevBtn = products.length > PRODUCTS_INITIAL
-        ? `<div style="text-align:center;padding:12px 0"><button class="btn" onclick="this.parentElement.previousElementSibling.innerHTML=window._revAllHtml;this.parentElement.remove()" style="padding:8px 24px;font-weight:600">Show All (${products.length})</button></div>`
-        : '';
-      window._revAllHtml = buildRevBars(products);
-      revContainer.innerHTML = buildRevBars(products.slice(0, PRODUCTS_INITIAL)) + (products.length > PRODUCTS_INITIAL ? `<div>${showAllRevBtn}</div>` : '');
+      window._allRevProducts = products;
+      window._allQtyProducts = [...products].sort((a, b) => (b.qty || 0) - (a.qty || 0));
 
-      // Quantity chart — sorted by qty desc
-      const byQty = [...products].sort((a, b) => (b.qty || 0) - (a.qty || 0));
-      const showAllQtyBtn = byQty.length > PRODUCTS_INITIAL
-        ? `<div style="text-align:center;padding:12px 0"><button class="btn" onclick="this.parentElement.previousElementSibling.innerHTML=window._qtyAllHtml;this.parentElement.remove()" style="padding:8px 24px;font-weight:600">Show All (${byQty.length})</button></div>`
-        : '';
-      window._qtyAllHtml = buildQtyBars(byQty);
-      qtyContainer.innerHTML = buildQtyBars(byQty.slice(0, PRODUCTS_INITIAL)) + (byQty.length > PRODUCTS_INITIAL ? `<div>${showAllQtyBtn}</div>` : '');
+      revContainer.innerHTML = buildRevBars(products.slice(0, PRODUCTS_INITIAL));
+      if (products.length > PRODUCTS_INITIAL) {
+        const btn = document.createElement('div');
+        btn.style.cssText = 'text-align:center;padding:12px 0';
+        btn.innerHTML = `<button class="btn" style="padding:8px 24px;font-weight:600">Show All (${products.length})</button>`;
+        btn.querySelector('button').onclick = () => {
+          revContainer.innerHTML = buildRevBars(window._allRevProducts);
+        };
+        revContainer.appendChild(btn);
+      }
+
+      const byQty = window._allQtyProducts;
+      qtyContainer.innerHTML = buildQtyBars(byQty.slice(0, PRODUCTS_INITIAL));
+      if (byQty.length > PRODUCTS_INITIAL) {
+        const btn = document.createElement('div');
+        btn.style.cssText = 'text-align:center;padding:12px 0';
+        btn.innerHTML = `<button class="btn" style="padding:8px 24px;font-weight:600">Show All (${byQty.length})</button>`;
+        btn.querySelector('button').onclick = () => {
+          qtyContainer.innerHTML = buildQtyBars(window._allQtyProducts);
+        };
+        qtyContainer.appendChild(btn);
+      }
     }
 
     function buildRow(s) {
