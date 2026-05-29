@@ -226,6 +226,17 @@
       </div>
     </div>
 
+    <!-- Fresh Foods -->
+    <div class="section" id="freshFoodsSection">
+      <div class="section-header">
+        <h2>🥗 Fresh Foods Inventory</h2>
+        <span style="font-size:0.78rem;color:var(--muted)">Based on sales activity — Sandstar does not track fresh food stock in real time</span>
+      </div>
+      <div class="section-body" id="freshFoodsBody">
+        <div class="loading">Loading</div>
+      </div>
+    </div>
+
     <!-- Recent Transactions -->
     <div class="section">
       <div class="section-header">
@@ -244,6 +255,7 @@
     let summaryData = null;
     let itemTrendsData = null;
     let alertData = null;
+    let freshFoodsData = null;
     let productPeriod = '30';
     let productMachine = '';
     let allSales = [];
@@ -259,12 +271,13 @@
 
     async function refreshData() {
       try {
-        const [summaryRes, machinesRes, salesRes, trendsRes, alertsRes] = await Promise.all([
+        const [summaryRes, machinesRes, salesRes, trendsRes, alertsRes, freshRes] = await Promise.all([
           fetch('/api/sandstar/summary?period=' + productPeriod + (productMachine ? '&machine=' + encodeURIComponent(productMachine) : '')),
           fetch('/api/sandstar/machines'),
           fetch('/api/sandstar/sales?limit=50&offset=0'),
           fetch('/api/sandstar/item-trends'),
-          fetch('/api/sandstar/alerts')
+          fetch('/api/sandstar/alerts'),
+          fetch('/api/sandstar/fresh-foods')
         ]);
 
         summaryData = await summaryRes.json();
@@ -273,6 +286,7 @@
         salesOffset = allSales.length;
         itemTrendsData = await trendsRes.json();
         alertData = await alertsRes.json();
+        freshFoodsData = await freshRes.json();
 
         // Filter $0 transactions globally
         const filteredSales = (Array.isArray(allSales) ? allSales : []).filter(s => s.amount && s.amount > 0);
@@ -300,6 +314,7 @@
         renderProducts(summaryData);
         renderTransactions(filteredSales);
         renderAlerts(alertData);
+        renderFreshFoods(freshFoodsData);
 
         const syncText = summaryData.last_sync
           ? 'Last sync: ' + new Date(summaryData.last_sync).toLocaleString()
@@ -725,6 +740,50 @@
           </div>`;
       });
 
+      container.innerHTML = html;
+    }
+
+        function renderFreshFoods(data) {
+      const container = document.getElementById('freshFoodsBody');
+      if (!data || !data.by_machine || !Object.keys(data.by_machine).length) {
+        container.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:0.9rem">No fresh food sales data found.</div>';
+        return;
+      }
+      const shortMachine = m => (m||'').replace('VRK ','').replace('CVM13 ','').replace('Regus 3753 Howard Hughes Parkway, Suite ','Regus Ste ');
+      const staleness = days => {
+        if (days === 0) return { label: 'Sold today', color: '#276749' };
+        if (days === 1) return { label: 'Yesterday', color: '#2b6cb0' };
+        if (days <= 3) return { label: `${days}d ago`, color: '#d69e2e' };
+        if (days <= 7) return { label: `${days}d ago`, color: '#c05621' };
+        return { label: `${days}d ago`, color: '#e53e3e' };
+      };
+
+      let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;padding:4px">';
+      Object.entries(data.by_machine).sort(([a],[b])=>a.localeCompare(b)).forEach(([machine, items]) => {
+        html += `<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden">
+          <div style="background:#f8fafc;padding:10px 14px;border-bottom:1px solid var(--border);font-weight:700;font-size:0.85rem">${shortMachine(machine)}</div>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr style="background:#fafbfc">
+              <th style="padding:7px 12px;font-size:0.72rem;font-weight:600;color:var(--muted);text-align:left;border-bottom:1px solid var(--border)">Item</th>
+              <th style="padding:7px 8px;font-size:0.72rem;font-weight:600;color:var(--muted);text-align:center;border-bottom:1px solid var(--border)">Today</th>
+              <th style="padding:7px 8px;font-size:0.72rem;font-weight:600;color:var(--muted);text-align:center;border-bottom:1px solid var(--border)">7 Days</th>
+              <th style="padding:7px 8px;font-size:0.72rem;font-weight:600;color:var(--muted);text-align:center;border-bottom:1px solid var(--border)">All Time</th>
+              <th style="padding:7px 10px;font-size:0.72rem;font-weight:600;color:var(--muted);text-align:right;border-bottom:1px solid var(--border)">Last Sold</th>
+            </tr></thead><tbody>`;
+        items.forEach((item, i) => {
+          const s = staleness(item.daysSinceSold);
+          const bg = i % 2 === 0 ? '#fff' : '#fafbfc';
+          html += `<tr style="background:${bg}">
+            <td style="padding:7px 12px;font-size:0.82rem;font-weight:500">${item.item}</td>
+            <td style="padding:7px 8px;font-size:0.82rem;text-align:center;font-weight:${item.today>0?'700':'400'};color:${item.today>0?'#276749':'var(--muted)'}">${item.today||'—'}</td>
+            <td style="padding:7px 8px;font-size:0.82rem;text-align:center">${item.last7||'—'}</td>
+            <td style="padding:7px 8px;font-size:0.82rem;text-align:center;color:var(--muted)">${item.allTime}</td>
+            <td style="padding:7px 10px;font-size:0.78rem;text-align:right;color:${s.color};font-weight:600">${s.label}</td>
+          </tr>`;
+        });
+        html += '</tbody></table></div>';
+      });
+      html += '</div>';
       container.innerHTML = html;
     }
 

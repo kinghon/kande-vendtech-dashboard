@@ -26038,6 +26038,43 @@ app.get('/api/sandstar/item-trends', (req, res) => {
   res.json({ daily_dates: dates, by_item });
 });
 
+app.get('/api/sandstar/fresh-foods', (req, res) => {
+  const sales = (db.sandstar_sales || []).filter(s => s.amount > 0);
+  const now = new Date();
+  const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  const cutoff7 = new Date(now - 7 * 86400000);
+  const FRESH_KEYWORDS = ['sub','sandwich','wrap','salad','biscuit','sausage','get fresh','turkey','italian','roast beef','chicken','tuna','hero','grilled'];
+  const isFresh = name => FRESH_KEYWORDS.some(k => (name||'').toLowerCase().includes(k));
+
+  const items = {}; // `${machine}||${item}` -> stats
+  sales.forEach(s => {
+    const machine = s.machine_name || 'Unknown';
+    const saleDate = (s.sale_date || '').substring(0, 10);
+    (s.items || []).forEach(item => {
+      const name = item.name || '';
+      if (!isFresh(name)) return;
+      const key = `${machine}||${name}`;
+      if (!items[key]) items[key] = { machine, item: name, today: 0, last7: 0, allTime: 0, lastSold: null };
+      const qty = item.qty || 1;
+      if (saleDate === todayStr) items[key].today += qty;
+      if (new Date(s.sale_date) >= cutoff7) items[key].last7 += qty;
+      items[key].allTime += qty;
+      if (!items[key].lastSold || s.sale_date > items[key].lastSold) items[key].lastSold = s.sale_date;
+    });
+  });
+
+  // Group by machine, sort by last sold descending
+  const byMachine = {};
+  Object.values(items).forEach(v => {
+    if (!byMachine[v.machine]) byMachine[v.machine] = [];
+    const daysSinceSold = v.lastSold ? Math.floor((now - new Date(v.lastSold)) / 86400000) : 999;
+    byMachine[v.machine].push({ ...v, daysSinceSold });
+  });
+  Object.values(byMachine).forEach(arr => arr.sort((a, b) => a.daysSinceSold - b.daysSinceSold));
+
+  res.json({ by_machine: byMachine, generated_at: new Date().toISOString() });
+});
+
 app.get('/api/sandstar/alerts', (req, res) => {
   const sales = (db.sandstar_sales || []).filter(s => s.amount > 0);
   const now = new Date();
