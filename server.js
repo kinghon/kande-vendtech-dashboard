@@ -25995,6 +25995,117 @@ app.get('/api/sandstar/summary', (req, res) => {
   });
 });
 
+app.get('/api/sandstar/item-trends', (req, res) => {
+  const sales = (db.sandstar_sales || []).filter(s => s.amount > 0);
+  const now = new Date();
+  const todayPacific = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+
+  // Build date range May 10 → today
+  const dates = [];
+  for (let d = new Date('2026-05-10T12:00:00'); d <= new Date(todayPacific + 'T23:59:59'); d.setDate(d.getDate()+1)) {
+    dates.push(d.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
+  }
+
+  // Aggregate qty per item per day
+  const itemDailyQty = {}; // itemName -> { date -> qty }
+  const itemTotal = {};    // itemName -> total qty
+  sales.forEach(s => {
+    const d = (s.sale_date || '').substring(0, 10);
+    if (!dates.includes(d)) return;
+    (s.items || []).forEach(item => {
+      const name = item.name || 'Unknown';
+      if (!itemDailyQty[name]) itemDailyQty[name] = {};
+      if (!itemTotal[name]) itemTotal[name] = 0;
+      itemDailyQty[name][d] = (itemDailyQty[name][d] || 0) + (item.qty || 1);
+      itemTotal[name] += item.qty || 1;
+    });
+  });
+
+  // Top 8 items by total qty
+  const topItems = Object.entries(itemTotal)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([name]) => name);
+
+  const by_item = topItems.map(name => ({
+    item_name: name,
+    total_qty: itemTotal[name],
+    daily: dates.map(d => ({ date: d, qty: itemDailyQty[name][d] || 0 }))
+  }));
+
+  res.json({ daily_dates: dates, by_item });
+});
+
+app.get('/api/sandstar/alerts', (req, res) => {
+  const sales = (db.sandstar_sales || []).filter(s => s.amount > 0);
+  const now = new Date();
+  const day = 86400000;
+  const cutoff7 = new Date(now - 7*day);
+  const cutoff14 = new Date(now - 14*day);
+  const cutoff30 = new Date(now - 30*day);
+
+  // Build per-item per-machine velocity: { machine -> { item -> { recent7, prior7, recent14, prior14 } } }
+  const velocity = {}; // `${machine}||${item}` -> { recent7, prior7, days_active_recent, days_active_prior, first_seen, last_seen }
+
+  sales.forEach(s => {
+    if (!s.sale_date) return;
+    const sDate = new Date(s.sale_date);
+    const machine = s.machine_name || 'Unknown';
+    (s.items || []).forEach(item => {
+      const name = item.name || 'Unknown';
+      const key = `${machine}||${name}`;
+      if (!velocity[key]) velocity[key] = { machine, item: name, recent7: 0, prior7: 0, recent30: 0, first_seen: sDate, last_seen: sDate };
+      if (sDate > velocity[key].last_seen) velocity[key].last_seen = sDate;
+      if (sDate < velocity[key].first_seen) velocity[key].first_seen = sDate;
+      const qty = item.qty || 1;
+      if (sDate >= cutoff7) velocity[key].recent7 += qty;
+      else if (sDate >= cutoff14) velocity[key].prior7 += qty;
+      if (sDate >= cutoff30) velocity[key].recent30 += qty;
+    });
+  });
+
+  const alerts = [];
+
+  Object.values(velocity).forEach(v => {
+    const daysSinceFirst = (now - v.first_seen) / day;
+    const daysSinceLast = (now - v.last_seen) / day;
+
+    // 1. DECLINE: was selling, now dropped >50% week over week
+    if (v.prior7 >= 3 && v.recent7 < v.prior7 * 0.5) {
+      const drop = Math.round((1 - v.recent7/v.prior7)*100);
+      alerts.push({ type: 'decline', severity: drop > 75 ? 'high' : 'medium', machine: v.machine, item: v.item,
+        message: `${drop}% drop in last 7 days vs prior week (${v.recent7} vs ${v.prior7} units)` });
+    }
+    // 2. SURGE: new or growing item, >100% increase
+    if (v.prior7 >= 1 && v.recent7 > v.prior7 * 2 && v.recent7 >= 3) {
+      const gain = Math.round((v.recent7/v.prior7 - 1)*100);
+      alerts.push({ type: 'surge', severity: 'positive', machine: v.machine, item: v.item,
+        message: `${gain}% increase in last 7 days vs prior week (${v.recent7} vs ${v.prior7} units)` });
+    }
+    // 3. NEW WINNER: first appeared within 14 days, selling well
+    if (daysSinceFirst <= 14 && v.recent7 >= 3) {
+      alerts.push({ type: 'new_item', severity: 'positive', machine: v.machine, item: v.item,
+        message: `New item selling ${v.recent7} units in first ${Math.round(daysSinceFirst)} days` });
+    }
+    // 4. STALE: was selling regularly but nothing in 7+ days
+    if (v.recent30 >= 5 && v.recent7 === 0 && daysSinceLast >= 7) {
+      alerts.push({ type: 'stale', severity: 'high', machine: v.machine, item: v.item,
+        message: `No sales in ${Math.round(daysSinceLast)} days — possible stock-out or dead slot (had ${v.recent30} sales in last 30 days)` });
+    }
+    // 5. SLOW MOVER: in machine 14+ days but <3 units total in 30d
+    if (daysSinceFirst >= 14 && v.recent30 < 3 && v.recent30 > 0) {
+      alerts.push({ type: 'slow_mover', severity: 'low', machine: v.machine, item: v.item,
+        message: `Only ${v.recent30} units sold in 30 days — consider replacing slot` });
+    }
+  });
+
+  // Sort: high severity first, then by machine
+  const severityOrder = { high: 0, medium: 1, positive: 2, low: 3 };
+  alerts.sort((a, b) => (severityOrder[a.severity]||9) - (severityOrder[b.severity]||9));
+
+  res.json({ alerts, generated_at: new Date().toISOString() });
+});
+
 // ===== END SANDSTAR ROUTES =====
 // ===== END API COSTS =====
 

@@ -146,11 +146,17 @@
     <!-- Revenue Chart -->
     <div class="section">
       <div class="section-header">
-        <h2>📈 Revenue Trend</h2>
-        <div class="chart-toggle">
-          <button class="active" onclick="setChartView('day', this)">Day</button>
-          <button onclick="setChartView('week', this)">Week</button>
-          <button onclick="setChartView('month', this)">Month</button>
+        <h2 id="chartTitle">📈 Revenue Trend</h2>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <div class="chart-toggle" style="margin-right:8px">
+            <button class="active" id="btnRev" onclick="setChartMetric('revenue', this)">Revenue</button>
+            <button id="btnItems" onclick="setChartMetric('items', this)">Items</button>
+          </div>
+          <div class="chart-toggle">
+            <button class="active" onclick="setChartView('day', this)">Day</button>
+            <button onclick="setChartView('week', this)">Week</button>
+            <button onclick="setChartView('month', this)">Month</button>
+          </div>
         </div>
       </div>
       <div class="section-body">
@@ -174,6 +180,17 @@
         </div>
         <div class="section-body" id="machineBody">
           <div class="loading">Loading locations</div>
+        </div>
+      </div>
+
+      <!-- Item Trend Alerts -->
+      <div class="section" style="grid-column:1/-1">
+        <div class="section-header">
+          <h2>🚨 Item Trend Alerts</h2>
+          <span id="alertCount" style="font-size:0.8rem;color:var(--muted)"></span>
+        </div>
+        <div class="section-body" id="alertsBody">
+          <div class="loading">Analyzing trends</div>
         </div>
       </div>
 
@@ -218,11 +235,15 @@
   <script>
     let chartInstance = null;
     let chartView = 'day';
+    let chartMetric = 'revenue';
     let summaryData = null;
+    let itemTrendsData = null;
+    let alertData = null;
     let productPeriod = '30';
     let allSales = [];
     let salesOffset = 0;
     const SALES_PAGE = 50;
+    const ITEM_COLORS = ['#3182ce','#38a169','#d69e2e','#e53e3e','#805ad5','#dd6b20','#2b6cb0','#276749'];
 
     async function init() {
       await refreshData();
@@ -232,16 +253,20 @@
 
     async function refreshData() {
       try {
-        const [summaryRes, machinesRes, salesRes] = await Promise.all([
+        const [summaryRes, machinesRes, salesRes, trendsRes, alertsRes] = await Promise.all([
           fetch('/api/sandstar/summary?period=' + productPeriod),
           fetch('/api/sandstar/machines'),
-          fetch('/api/sandstar/sales?limit=50&offset=0')
+          fetch('/api/sandstar/sales?limit=50&offset=0'),
+          fetch('/api/sandstar/item-trends'),
+          fetch('/api/sandstar/alerts')
         ]);
 
         summaryData = await summaryRes.json();
         const machines = await machinesRes.json();
         allSales = await salesRes.json();
         salesOffset = allSales.length;
+        itemTrendsData = await trendsRes.json();
+        alertData = await alertsRes.json();
 
         // Filter $0 transactions globally
         const filteredSales = (Array.isArray(allSales) ? allSales : []).filter(s => s.amount && s.amount > 0);
@@ -253,10 +278,11 @@
         }
 
         renderStats(summaryData, machines);
-        renderChart(summaryData);
+        if (chartMetric === 'revenue') renderChart(summaryData); else renderItemChart(itemTrendsData);
         renderMachines(summaryData, machines);
         renderProducts(summaryData);
         renderTransactions(filteredSales);
+        renderAlerts(alertData);
 
         const syncText = summaryData.last_sync
           ? 'Last sync: ' + new Date(summaryData.last_sync).toLocaleString()
@@ -291,6 +317,131 @@
       const statMachines = document.getElementById('statMachines');
       statMachines.textContent = `${active}/${total}`;
       statMachines.style.color = active === total ? 'var(--success)' : active > 0 ? 'var(--warn)' : 'var(--hot)';
+    }
+
+    function renderItemChart(data) {
+      const byItem = data.by_item || [];
+      const dailyDates = data.daily_dates || [];
+      const hasData = byItem.length > 0 && dailyDates.length > 0;
+
+      const chartWrap = document.getElementById('chartWrap');
+      const chartEmpty = document.getElementById('chartEmpty');
+
+      if (!hasData) {
+        chartWrap.style.display = 'none';
+        chartEmpty.style.display = 'block';
+        return;
+      }
+
+      chartWrap.style.display = 'block';
+      chartEmpty.style.display = 'none';
+
+      let labels, datasets;
+      if (chartView === 'day') {
+        labels = dailyDates.map(d => {
+          const date = new Date(d + 'T12:00:00');
+          return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        });
+        datasets = byItem.map((item, i) => {
+          const color = ITEM_COLORS[i % ITEM_COLORS.length];
+          return {
+            label: item.item_name,
+            data: item.daily.map(d => d.qty),
+            borderColor: color,
+            backgroundColor: 'transparent',
+            borderWidth: 1.8,
+            fill: false,
+            tension: 0.3,
+            pointRadius: 2,
+            pointBackgroundColor: color
+          };
+        });
+      } else if (chartView === 'week') {
+        const weeks = {};
+        dailyDates.forEach(d => {
+          const date = new Date(d + 'T12:00:00');
+          const weekStart = new Date(date);
+          weekStart.setDate(date.getDate() - date.getDay());
+          weeks[d] = weekStart.toISOString().split('T')[0];
+        });
+        const weekKeys = [...new Set(Object.values(weeks))].sort();
+        labels = weekKeys.map(k => {
+          const d = new Date(k + 'T12:00:00');
+          return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        });
+        datasets = byItem.map((item, i) => {
+          const color = ITEM_COLORS[i % ITEM_COLORS.length];
+          const weekQty = {};
+          item.daily.forEach(d => {
+            const wk = weeks[d.date];
+            weekQty[wk] = (weekQty[wk] || 0) + d.qty;
+          });
+          return {
+            label: item.item_name,
+            data: weekKeys.map(k => weekQty[k] || 0),
+            borderColor: color,
+            backgroundColor: 'transparent',
+            borderWidth: 1.8,
+            fill: false,
+            tension: 0.3,
+            pointRadius: 2,
+            pointBackgroundColor: color
+          };
+        });
+      } else {
+        const months = {};
+        dailyDates.forEach(d => {
+          months[d] = d.substring(0, 7);
+        });
+        const monthKeys = [...new Set(Object.values(months))].sort();
+        labels = monthKeys.map(k => {
+          const [year, month] = k.split('-');
+          return new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        });
+        datasets = byItem.map((item, i) => {
+          const color = ITEM_COLORS[i % ITEM_COLORS.length];
+          const monthQty = {};
+          item.daily.forEach(d => {
+            const mk = months[d.date];
+            monthQty[mk] = (monthQty[mk] || 0) + d.qty;
+          });
+          return {
+            label: item.item_name,
+            data: monthKeys.map(k => monthQty[k] || 0),
+            borderColor: color,
+            backgroundColor: 'transparent',
+            borderWidth: 1.8,
+            fill: false,
+            tension: 0.3,
+            pointRadius: 2,
+            pointBackgroundColor: color
+          };
+        });
+      }
+
+      const ctx = document.getElementById('revenueChart').getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: true, position: 'top', labels: { font: { size: 11 }, usePointStyle: true, pointStyleWidth: 12 } },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y} units`
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#718096' } },
+            y: { beginAtZero: true, ticks: { callback: (v) => v, font: { size: 11 }, color: '#718096' }, grid: { color: '#f0f4f8' } }
+          }
+        }
+      });
     }
 
     function renderChart(data) {
@@ -432,9 +583,23 @@
 
     function setChartView(view, btn) {
       chartView = view;
-      document.querySelectorAll('.chart-toggle button').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      if (summaryData) renderChart(summaryData);
+      // Only toggle active on the Day/Week/Month group (the second .chart-toggle)
+      const toggleGroups = document.querySelectorAll('.chart-toggle');
+      if (toggleGroups.length >= 2) {
+        toggleGroups[1].querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      }
+      if (chartMetric === 'revenue' && summaryData) renderChart(summaryData);
+      else if (chartMetric === 'items' && itemTrendsData) renderItemChart(itemTrendsData);
+    }
+
+    function setChartMetric(metric, btn) {
+      chartMetric = metric;
+      document.getElementById('btnRev').classList.toggle('active', metric === 'revenue');
+      document.getElementById('btnItems').classList.toggle('active', metric === 'items');
+      document.getElementById('chartTitle').textContent = metric === 'revenue' ? '📈 Revenue Trend' : '📦 Items Sold Trend';
+      if (metric === 'revenue' && summaryData) renderChart(summaryData);
+      else if (metric === 'items' && itemTrendsData) renderItemChart(itemTrendsData);
     }
 
     function onProductPeriodChange() {
@@ -545,7 +710,40 @@
       container.innerHTML = html;
     }
 
-        function renderProducts(data) {
+        function renderAlerts(data) {
+      const container = document.getElementById('alertsBody');
+      const alerts = (data && data.alerts) || [];
+      document.getElementById('alertCount').textContent = alerts.length ? `${alerts.length} alerts` : '';
+
+      if (alerts.length === 0) {
+        container.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:0.9rem">✅ No trend anomalies detected — all items look normal.</div>';
+        return;
+      }
+
+      const colors = { high: '#e53e3e', medium: '#d69e2e', positive: '#38a169', low: '#718096' };
+      const icons = { decline: '📉', surge: '📈', new_item: '✨', stale: '⚠️', slow_mover: '🐌' };
+      const labels = { decline: 'Declining', surge: 'Surging', new_item: 'New Item', stale: 'Possible Stock-Out', slow_mover: 'Slow Mover' };
+
+      let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;padding:4px">';
+      alerts.forEach(a => {
+        const color = colors[a.severity] || '#718096';
+        const icon = icons[a.type] || '❓';
+        const label = labels[a.type] || a.type;
+        const machineName = (a.machine || '').replace('VRK ', '').replace('CVM13 ', '').replace('Regus 3753 Howard Hughes Parkway, Suite ', 'Regus Ste ');
+        html += `<div style="border:1px solid ${color}33;border-left:4px solid ${color};border-radius:8px;padding:12px 14px;background:#fff">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:0.72rem;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.04em">${icon} ${label}</span>
+            <span style="font-size:0.72rem;color:var(--muted)">${machineName}</span>
+          </div>
+          <div style="font-weight:600;font-size:0.88rem;margin-bottom:4px">${a.item}</div>
+          <div style="font-size:0.8rem;color:var(--muted)">${a.message}</div>
+        </div>`;
+      });
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    function renderProducts(data) {
       const revContainer = document.getElementById('productsBody');
       const qtyContainer = document.getElementById('productsQtyBody');
       const products = data.top_products || [];
