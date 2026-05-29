@@ -151,7 +151,7 @@ function dashApi(method, path, body, cookies) {
         const h = { 'Content-Type': 'application/json', 'x-token': localStorage.getItem('token'), 'app-scope': scope, 'organSn': org };
         const res = await fetch(`${api}/order/v2/findOrderInfoList`, {
           method: 'POST', headers: h,
-          body: JSON.stringify({ pageNum: pn, pageSize: ps, zoneId: 'US/Pacific', startTime: ts, endTime: te })
+          body: JSON.stringify({ page: pn, pageNum: pn, pageSize: ps, commStatus: 10, phaseList: '3,4,5', zoneId: 'US/Pacific', startTime: ts, endTime: te })
         });
         return res.json();
       }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE, pn: todayPageNum, ps: 100, ts: todayStart, te: todayEnd });
@@ -182,7 +182,7 @@ function dashApi(method, path, body, cookies) {
         const res = await fetch(`${api}/order/v2/findOrderInfoList`, {
           method: 'POST',
           headers: h,
-          body: JSON.stringify({ pageNum, pageSize, zoneId: 'US/Pacific' })
+          body: JSON.stringify({ page: pageNum, pageNum, pageSize, commStatus: 10, phaseList: '3,4,5', zoneId: 'US/Pacific' })
         });
         return res.json();
       }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE, pageNum, pageSize });
@@ -213,8 +213,7 @@ function dashApi(method, path, body, cookies) {
         log('  No goods field in list response — will fetch order details per order');
         log(`  Available item-like fields: ${GOODS_FIELDS.filter(f => f in sample).join(', ')}`);
       }
-      // DEBUG: dump full first order to file for inspection
-      try { fs.writeFileSync('/tmp/sandstar-order-debug.json', JSON.stringify(sample, null, 2)); } catch(e) {}
+
     }
 
     // 3. Pull machines
@@ -319,7 +318,7 @@ function dashApi(method, path, body, cookies) {
     log(`Orders: ${allOrders.length} total, ${completedOrders.length} completed/importable`);
 
     // 5b. Fetch order details for orders missing goods data using direct Node.js HTTP
-    const ITEM_FIELDS = ['goods','goodsList','orderGoodsList','itemList','goodsInfoList','finalItemList','orderItemList','algorItemList','businessItemList','manualItemList'];
+    const ITEM_FIELDS = ['orderItemList','finalItemList','algorItemList','businessItemList','manualItemList','goods','goodsList','orderGoodsList','itemList','goodsInfoList'];
     const getGoods = (obj) => {
       // Check top-level and nested under 'order' sub-object
       for (const source of [obj, obj?.order || {}]) {
@@ -378,8 +377,7 @@ function dashApi(method, path, body, cookies) {
             log(`  order.finalItemList: ${JSON.stringify((d.order||{}).finalItemList || []).substring(0,200)}`);
             log(`  order.orderItemList: ${JSON.stringify((d.order||{}).orderItemList || []).substring(0,200)}`);
             log(`  order.algorItemList: ${JSON.stringify((d.order||{}).algorItemList || []).substring(0,200)}`);
-            // DEBUG: dump full detail response
-            try { fs.writeFileSync('/tmp/sandstar-detail-debug.json', JSON.stringify(d, null, 2)); } catch(e) {}
+
             break;
           }
         } catch(e) { log(`  ${ep}: ${e.message}`); }
@@ -482,7 +480,7 @@ function dashApi(method, path, body, cookies) {
         machine_id: order.freezerId,
         amount: (() => { const g = parseFloat(order.paymentAmount || order.tradeAmount || order.orderAmount || order.statPaymentAmount || order.statOrderAmount || order.totalMoney || 0); const r = parseFloat(order.afterSalePaymentAmount || order.afterSaleTradeAmount || 0); return Math.max(0, g - r); })(),
         item_qty: parseInt(order.statQty || order.allQty || 0),
-        items: [],
+        items: (getGoods(order)).map(g => ({ name: g.goodsName || g.productName || g.name || g.goodsCn || g.skuName || '', qty: g.goodsNum || g.quantity || g.qty || g.num || g.count || 1, price: g.goodsPrice || g.price || g.unitPrice || g.salePrice || g.amount || 0 })),
         sale_date: order.closeTime || order.phaseChangeTime || order.createTime || new Date().toISOString(),
         pay_method: order.payName || '',
         phase: order.phase || 2
