@@ -299,40 +299,45 @@
       chartEmpty.style.display = 'none';
 
       // Aggregate based on view
-      let labels, values;
+      let labels, values, txnCounts = [];
       if (chartView === 'day') {
         labels = dailyData.map(d => {
           const date = new Date(d.date + 'T12:00:00');
           return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         });
         values = dailyData.map(d => d.revenue);
+        txnCounts = dailyData.map(d => d.transactions || 0);
       } else if (chartView === 'week') {
-        const weeks = {};
+        const weeks = {}, weekTxns = {};
         dailyData.forEach(d => {
           const date = new Date(d.date + 'T12:00:00');
           const weekStart = new Date(date);
           weekStart.setDate(date.getDate() - date.getDay());
           const key = weekStart.toISOString().split('T')[0];
-          if (!weeks[key]) weeks[key] = 0;
+          if (!weeks[key]) { weeks[key] = 0; weekTxns[key] = 0; }
           weeks[key] += d.revenue;
+          weekTxns[key] += d.transactions || 0;
         });
         labels = Object.keys(weeks).map(k => {
           const d = new Date(k + 'T12:00:00');
           return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         });
         values = Object.values(weeks);
+        txnCounts = Object.values(weekTxns);
       } else {
-        const months = {};
+        const months = {}, monthTxns = {};
         dailyData.forEach(d => {
           const key = d.date.substring(0, 7);
-          if (!months[key]) months[key] = 0;
+          if (!months[key]) { months[key] = 0; monthTxns[key] = 0; }
           months[key] += d.revenue;
+          monthTxns[key] += d.transactions || 0;
         });
         labels = Object.keys(months).map(k => {
           const [year, month] = k.split('-');
           return new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
         });
         values = Object.values(months);
+        txnCounts = Object.values(monthTxns);
       }
 
       const ctx = document.getElementById('revenueChart').getContext('2d');
@@ -374,6 +379,7 @@
             {
               label: 'Total',
               data: values,
+              txnCounts,
               borderColor: '#3182ce',
               backgroundColor: 'rgba(49,130,206,0.06)',
               borderWidth: 2.5,
@@ -392,7 +398,18 @@
           maintainAspectRatio: false,
           plugins: {
             legend: { display: true, position: 'top', labels: { font: { size: 11 }, usePointStyle: true, pointStyleWidth: 12 } },
-            tooltip: { callbacks: { label: (ctx) => ctx.dataset.label + ': $' + ctx.parsed.y.toFixed(2) } }
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const rev = '$' + ctx.parsed.y.toFixed(2);
+                  if (ctx.dataset.label === 'Total' && ctx.dataset.txnCounts) {
+                    const txn = ctx.dataset.txnCounts[ctx.dataIndex] || 0;
+                    return `Total: ${rev} (${txn} sale${txn !== 1 ? 's' : ''})`;
+                  }
+                  return ctx.dataset.label + ': ' + rev;
+                }
+              }
+            }
           },
           scales: {
             x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#718096' } },

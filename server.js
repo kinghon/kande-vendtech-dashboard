@@ -25938,6 +25938,7 @@ app.get('/api/sandstar/summary', (req, res) => {
 
   // Daily revenue from May 10 to today (use Pacific time for date boundaries)
   const dailyRevenue = {};
+  const dailyTxns = {};
   const dailyDates = [];
   const chartStart = new Date('2026-05-10T12:00:00');
   const todayPacific = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
@@ -25945,12 +25946,16 @@ app.get('/api/sandstar/summary', (req, res) => {
   for (let d = new Date(chartStart); d <= chartEnd; d.setDate(d.getDate() + 1)) {
     const dateStr = d.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
     dailyRevenue[dateStr] = 0;
+    dailyTxns[dateStr] = 0;
     dailyDates.push(dateStr);
   }
   const dailyByMachine = {}; // machine_name -> { date -> revenue }
   sales.forEach(s => {
     const d = (s.sale_date || '').substring(0, 10);
-    if (dailyRevenue[d] !== undefined) dailyRevenue[d] += s.amount || 0;
+    if (dailyRevenue[d] !== undefined) {
+      dailyRevenue[d] += s.amount || 0;
+      dailyTxns[d] += 1;
+    }
     if (d && dailyDates.includes(d) && s.machine_name) {
       if (!dailyByMachine[s.machine_name]) {
         dailyByMachine[s.machine_name] = {};
@@ -25974,7 +25979,7 @@ app.get('/api/sandstar/summary', (req, res) => {
     top_products,
     by_machine: Object.values(by_machine),
     by_location: Object.values(by_location).sort((a, b) => b.gross_revenue - a.gross_revenue),
-    daily_revenue: Object.entries(dailyRevenue).map(([date, revenue]) => ({ date, revenue })),
+    daily_revenue: Object.entries(dailyRevenue).map(([date, revenue]) => ({ date, revenue, transactions: dailyTxns[date] || 0 })),
     daily_by_machine,
     machine_count: (db.sandstar_machines || []).length,
     active_machines: (db.sandstar_machines || []).filter(m => m.status === 'online' || m.online).length,
@@ -29890,6 +29895,7 @@ app.get('/api/sandstar/summary', (req, res) => {
 
   // Daily revenue from May 10 to today (use Pacific time for date boundaries)
   const dailyRevenue = {};
+  const dailyTxns = {};
   const dailyDates = [];
   const chartStart = new Date('2026-05-10T12:00:00');
   const todayPacific = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
@@ -29897,12 +29903,16 @@ app.get('/api/sandstar/summary', (req, res) => {
   for (let d = new Date(chartStart); d <= chartEnd; d.setDate(d.getDate() + 1)) {
     const dateStr = d.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
     dailyRevenue[dateStr] = 0;
+    dailyTxns[dateStr] = 0;
     dailyDates.push(dateStr);
   }
   const dailyByMachine = {}; // machine_name -> { date -> revenue }
   sales.forEach(s => {
     const d = (s.sale_date || '').substring(0, 10);
-    if (dailyRevenue[d] !== undefined) dailyRevenue[d] += s.amount || 0;
+    if (dailyRevenue[d] !== undefined) {
+      dailyRevenue[d] += s.amount || 0;
+      dailyTxns[d] += 1;
+    }
     if (d && dailyDates.includes(d) && s.machine_name) {
       if (!dailyByMachine[s.machine_name]) {
         dailyByMachine[s.machine_name] = {};
@@ -29926,7 +29936,7 @@ app.get('/api/sandstar/summary', (req, res) => {
     top_products,
     by_machine: Object.values(by_machine),
     by_location: Object.values(by_location).sort((a, b) => b.gross_revenue - a.gross_revenue),
-    daily_revenue: Object.entries(dailyRevenue).map(([date, revenue]) => ({ date, revenue })),
+    daily_revenue: Object.entries(dailyRevenue).map(([date, revenue]) => ({ date, revenue, transactions: dailyTxns[date] || 0 })),
     daily_by_machine,
     machine_count: (db.sandstar_machines || []).length,
     active_machines: (db.sandstar_machines || []).filter(m => m.status === 'online' || m.online).length,
