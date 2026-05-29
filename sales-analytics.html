@@ -558,34 +558,42 @@
         return;
       }
 
-      // Revenue chart
-      const maxRevenue = Math.max(...products.map(p => p.revenue), 1);
-      let revHtml = '';
-      products.forEach((p, i) => {
-        const pct = (p.revenue / maxRevenue) * 100;
-        revHtml += `
+      const PRODUCTS_INITIAL = 10;
+
+      function buildRevBars(list) {
+        const max = Math.max(...list.map(p => p.revenue), 1);
+        return list.map((p, i) => `
           <div class="product-bar">
             <div class="bar-name">${i + 1}. ${p.name}</div>
-            <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+            <div class="bar-track"><div class="bar-fill" style="width:${(p.revenue/max)*100}%"></div></div>
             <div class="bar-value">${formatCurrency(p.revenue)}</div>
-          </div>`;
-      });
-      revContainer.innerHTML = revHtml;
+          </div>`).join('');
+      }
+
+      function buildQtyBars(list) {
+        const max = Math.max(...list.map(p => p.qty || 0), 1);
+        return list.map((p, i) => `
+          <div class="product-bar">
+            <div class="bar-name">${i + 1}. ${p.name}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${((p.qty||0)/max)*100}%;background:linear-gradient(90deg,#38a169,#68d391)"></div></div>
+            <div class="bar-value">${p.qty || 0} sold</div>
+          </div>`).join('');
+      }
+
+      // Revenue chart
+      const showAllRevBtn = products.length > PRODUCTS_INITIAL
+        ? `<div style="text-align:center;padding:12px 0"><button class="btn" onclick="this.parentElement.previousElementSibling.innerHTML=window._revAllHtml;this.parentElement.remove()" style="padding:8px 24px;font-weight:600">Show All (${products.length})</button></div>`
+        : '';
+      window._revAllHtml = buildRevBars(products);
+      revContainer.innerHTML = buildRevBars(products.slice(0, PRODUCTS_INITIAL)) + (products.length > PRODUCTS_INITIAL ? `<div>${showAllRevBtn}</div>` : '');
 
       // Quantity chart — sorted by qty desc
       const byQty = [...products].sort((a, b) => (b.qty || 0) - (a.qty || 0));
-      const maxQty = Math.max(...byQty.map(p => p.qty || 0), 1);
-      let qtyHtml = '';
-      byQty.forEach((p, i) => {
-        const pct = ((p.qty || 0) / maxQty) * 100;
-        qtyHtml += `
-          <div class="product-bar">
-            <div class="bar-name">${i + 1}. ${p.name}</div>
-            <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:linear-gradient(90deg,#38a169,#68d391)"></div></div>
-            <div class="bar-value">${p.qty || 0} sold</div>
-          </div>`;
-      });
-      qtyContainer.innerHTML = qtyHtml;
+      const showAllQtyBtn = byQty.length > PRODUCTS_INITIAL
+        ? `<div style="text-align:center;padding:12px 0"><button class="btn" onclick="this.parentElement.previousElementSibling.innerHTML=window._qtyAllHtml;this.parentElement.remove()" style="padding:8px 24px;font-weight:600">Show All (${byQty.length})</button></div>`
+        : '';
+      window._qtyAllHtml = buildQtyBars(byQty);
+      qtyContainer.innerHTML = buildQtyBars(byQty.slice(0, PRODUCTS_INITIAL)) + (byQty.length > PRODUCTS_INITIAL ? `<div>${showAllQtyBtn}</div>` : '');
     }
 
     function buildRow(s) {

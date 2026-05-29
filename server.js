@@ -25842,8 +25842,7 @@ app.get('/api/sandstar/summary', (req, res) => {
     });
   });
   const top_products = Object.values(productRevenue)
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, 10);
+    .sort((a, b) => b.revenue - a.revenue);
 
   // Revenue share config per location
   const REV_SHARE = {
