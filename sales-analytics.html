@@ -198,12 +198,17 @@
       <div class="section">
         <div class="section-header">
           <h2>🏆 Top Products by Revenue</h2>
-          <select id="productPeriod" onchange="onProductPeriodChange()" style="font-size:0.8rem;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);cursor:pointer">
-            <option value="7">Last 7 days</option>
-            <option value="30" selected>Last 30 days</option>
-            <option value="90">Last 90 days</option>
-            <option value="all">All time</option>
-          </select>
+          <div style="display:flex;gap:6px">
+            <select id="productMachine" onchange="onProductFilterChange()" style="font-size:0.8rem;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);cursor:pointer">
+              <option value="">All Machines</option>
+            </select>
+            <select id="productPeriod" onchange="onProductFilterChange()" style="font-size:0.8rem;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);cursor:pointer">
+              <option value="7">Last 7 days</option>
+              <option value="30" selected>Last 30 days</option>
+              <option value="90">Last 90 days</option>
+              <option value="all">All time</option>
+            </select>
+          </div>
         </div>
         <div class="section-body" id="productsBody">
           <div class="loading">Loading</div>
@@ -240,6 +245,7 @@
     let itemTrendsData = null;
     let alertData = null;
     let productPeriod = '30';
+    let productMachine = '';
     let allSales = [];
     let salesOffset = 0;
     const SALES_PAGE = 50;
@@ -254,7 +260,7 @@
     async function refreshData() {
       try {
         const [summaryRes, machinesRes, salesRes, trendsRes, alertsRes] = await Promise.all([
-          fetch('/api/sandstar/summary?period=' + productPeriod),
+          fetch('/api/sandstar/summary?period=' + productPeriod + (productMachine ? '&machine=' + encodeURIComponent(productMachine) : '')),
           fetch('/api/sandstar/machines'),
           fetch('/api/sandstar/sales?limit=50&offset=0'),
           fetch('/api/sandstar/item-trends'),
@@ -280,6 +286,17 @@
         renderStats(summaryData, machines);
         if (chartMetric === 'revenue') renderChart(summaryData); else renderItemChart(itemTrendsData);
         renderMachines(summaryData, machines);
+        // Populate machine dropdown from sandstar machines
+        const machSel = document.getElementById('productMachine');
+        if (machSel && machSel.options.length === 1) {
+          const machNames = [...new Set((summaryData.by_machine || []).map(m => m.machine_name).filter(Boolean))].sort();
+          machNames.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name.replace('VRK ','').replace('CVM13 ','').replace('Regus 3753 Howard Hughes Parkway, Suite ','Regus Ste ');
+            machSel.appendChild(opt);
+          });
+        }
         renderProducts(summaryData);
         renderTransactions(filteredSales);
         renderAlerts(alertData);
@@ -602,8 +619,9 @@
       else if (metric === 'items' && itemTrendsData) renderItemChart(itemTrendsData);
     }
 
-    function onProductPeriodChange() {
+    function onProductFilterChange() {
       productPeriod = document.getElementById('productPeriod').value;
+      productMachine = document.getElementById('productMachine').value;
       refreshData();
     }
 

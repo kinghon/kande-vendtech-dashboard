@@ -25809,9 +25809,11 @@ app.get('/api/sandstar/summary', (req, res) => {
   // Period filter for top products only (default 30d, all = no filter)
   const periodDays = req.query.period === 'all' ? null : parseInt(req.query.period) || 30;
   const periodCutoff = periodDays ? new Date(now - periodDays * 86400000) : null;
-  const productSales = periodCutoff
-    ? allValidSales.filter(s => !s.sale_date || new Date(s.sale_date) >= periodCutoff)
-    : allValidSales;
+  // Machine filter for top products
+  const machineFilter = req.query.machine || null;
+  const productSales = allValidSales
+    .filter(s => !periodCutoff || !s.sale_date || new Date(s.sale_date) >= periodCutoff)
+    .filter(s => !machineFilter || s.machine_name === machineFilter);
   const weekStart = new Date(now);
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
