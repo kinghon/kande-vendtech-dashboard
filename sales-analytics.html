@@ -181,6 +181,14 @@
       <div class="section">
         <div class="section-header">
           <h2>🏆 Top Products by Revenue</h2>
+          <div style="display:flex;gap:6px">
+            <select id="productPeriod" onchange="onProductPeriodChange()" style="font-size:0.8rem;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);cursor:pointer">
+              <option value="7">Last 7 days</option>
+              <option value="30" selected>Last 30 days</option>
+              <option value="90">Last 90 days</option>
+              <option value="all">All time</option>
+            </select>
+          </div>
         </div>
         <div class="section-body" id="productsBody">
           <div class="loading">Loading</div>
@@ -213,6 +221,7 @@
     let chartInstance = null;
     let chartView = 'day';
     let summaryData = null;
+    let productPeriod = '30';
 
     async function init() {
       await refreshData();
@@ -223,7 +232,7 @@
     async function refreshData() {
       try {
         const [summaryRes, machinesRes, salesRes] = await Promise.all([
-          fetch('/api/sandstar/summary'),
+          fetch('/api/sandstar/summary?period=' + productPeriod),
           fetch('/api/sandstar/machines'),
           fetch('/api/sandstar/sales?limit=50')
         ]);
@@ -424,6 +433,11 @@
       document.querySelectorAll('.chart-toggle button').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       if (summaryData) renderChart(summaryData);
+    }
+
+    function onProductPeriodChange() {
+      productPeriod = document.getElementById('productPeriod').value;
+      refreshData();
     }
 
     function renderMachines(data, machines) {

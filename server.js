@@ -25799,10 +25799,16 @@ app.post('/api/sandstar/machines/batch', (req, res) => {
 app.get('/api/sandstar/summary', (req, res) => {
   const allSales = db.sandstar_sales || [];
   // Exclude $0 / no-charge transactions from all stats
-  const sales = allSales.filter(s => s.amount && s.amount > 0);
+  const allValidSales = allSales.filter(s => s.amount && s.amount > 0);
   const now = new Date();
   // Use Pacific time since sale_date values are stored in US/Pacific (from Sandstar zoneId)
   const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  // Period filter for top products (default 30d, all = no filter)
+  const periodDays = req.query.period === 'all' ? null : parseInt(req.query.period) || 30;
+  const periodCutoff = periodDays ? new Date(now - periodDays * 86400000) : null;
+  const sales = periodCutoff
+    ? allValidSales.filter(s => !s.sale_date || new Date(s.sale_date) >= periodCutoff)
+    : allValidSales;
   const weekStart = new Date(now);
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
