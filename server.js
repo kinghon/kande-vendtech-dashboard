@@ -25936,14 +25936,14 @@ app.get('/api/sandstar/summary', (req, res) => {
     loc.rev_share_quarterly = qg.map(gross => calcRevShare(loc.location_name, gross).amount);
   });
 
-  // Daily revenue from May 10 to today
+  // Daily revenue from May 10 to today (use Pacific time for date boundaries)
   const dailyRevenue = {};
   const dailyDates = [];
-  const chartStart = new Date('2026-05-10');
-  const chartEnd = new Date(now);
-  chartEnd.setHours(23,59,59,999);
+  const chartStart = new Date('2026-05-10T12:00:00');
+  const todayPacific = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  const chartEnd = new Date(todayPacific + 'T23:59:59');
   for (let d = new Date(chartStart); d <= chartEnd; d.setDate(d.getDate() + 1)) {
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = d.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
     dailyRevenue[dateStr] = 0;
     dailyDates.push(dateStr);
   }
@@ -29888,14 +29888,14 @@ app.get('/api/sandstar/summary', (req, res) => {
     loc.rev_share_quarterly = qg.map(gross => calcRevShare(loc.location_name, gross).amount);
   });
 
-  // Daily revenue from May 10 to today
+  // Daily revenue from May 10 to today (use Pacific time for date boundaries)
   const dailyRevenue = {};
   const dailyDates = [];
-  const chartStart = new Date('2026-05-10');
-  const chartEnd = new Date(now);
-  chartEnd.setHours(23,59,59,999);
+  const chartStart = new Date('2026-05-10T12:00:00');
+  const todayPacific = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  const chartEnd = new Date(todayPacific + 'T23:59:59');
   for (let d = new Date(chartStart); d <= chartEnd; d.setDate(d.getDate() + 1)) {
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = d.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
     dailyRevenue[dateStr] = 0;
     dailyDates.push(dateStr);
   }

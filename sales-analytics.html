@@ -292,14 +292,14 @@
       let labels, values;
       if (chartView === 'day') {
         labels = dailyData.map(d => {
-          const date = new Date(d.date);
+          const date = new Date(d.date + 'T12:00:00');
           return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         });
         values = dailyData.map(d => d.revenue);
       } else if (chartView === 'week') {
         const weeks = {};
         dailyData.forEach(d => {
-          const date = new Date(d.date);
+          const date = new Date(d.date + 'T12:00:00');
           const weekStart = new Date(date);
           weekStart.setDate(date.getDate() - date.getDay());
           const key = weekStart.toISOString().split('T')[0];
@@ -307,7 +307,7 @@
           weeks[key] += d.revenue;
         });
         labels = Object.keys(weeks).map(k => {
-          const d = new Date(k);
+          const d = new Date(k + 'T12:00:00');
           return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         });
         values = Object.values(weeks);
@@ -344,7 +344,7 @@
         } else if (chartView === 'week') {
           const wks = {};
           m.daily.forEach(d => {
-            const dt = new Date(d.date); const ws = new Date(dt); ws.setDate(dt.getDate()-dt.getDay());
+            const dt = new Date(d.date + 'T12:00:00'); const ws = new Date(dt); ws.setDate(dt.getDate()-dt.getDay());
             const k = ws.toISOString().split('T')[0]; wks[k] = (wks[k]||0) + d.revenue;
           });
           mValues = Object.values(wks);
