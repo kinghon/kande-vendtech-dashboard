@@ -29472,6 +29472,45 @@ app.post('/api/maps/discover', express.json(), async (req, res) => {
   }
 });
 
+// -- POST /api/maps/place-photos — Get Google Places photos for a place --
+app.post('/api/maps/place-photos', express.json(), async (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+    if (!GOOGLE_PLACES_API_KEY) return res.status(503).json({ error: 'GOOGLE_PLACES_API_KEY not configured' });
+
+    const { placeId, maxPhotos = 5 } = req.body || {};
+    if (!placeId) return res.status(400).json({ error: 'placeId required' });
+
+    // Fetch place details with photos field
+    const placeRes = await fetch(`${PLACES_BASE}/places/${placeId}?fields=photos`, {
+      headers: {
+        'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+        'X-Goog-FieldMask': 'photos'
+      }
+    });
+    const placeData = await placeRes.json();
+    const photos = (placeData.photos || []).slice(0, maxPhotos);
+
+    // For each photo, get the actual media URL
+    const photoUrls = [];
+    for (const photo of photos) {
+      const photoName = photo.name; // e.g. "places/xxx/photos/yyy"
+      const mediaUrl = `${PLACES_BASE}/${photoName}/media?key=${GOOGLE_PLACES_API_KEY}&maxHeightPx=800&maxWidthPx=800&skipHttpRedirect=true`;
+      const mediaRes = await fetch(mediaUrl);
+      const mediaData = await mediaRes.json();
+      if (mediaData.photoUri) {
+        photoUrls.push(mediaData.photoUri);
+      }
+    }
+
+    res.json({ ok: true, placeId, photoCount: photos.length, photoUrls });
+  } catch (err) {
+    console.error('Maps place-photos error:', err.message);
+    res.status(500).json({ error: 'Place photos failed', details: err.message });
+  }
+});
+
 // -- Maps Lead Scoring --
 
 // Score a prospect/place based on Maps signals (0-100)
