@@ -270,6 +270,7 @@ if (!db.machineTelemetry) db.machineTelemetry = [];
 if (!db.todos) db.todos = [];
 if (!db.order_receipts) db.order_receipts = [];
 if (!db.price_history) db.price_history = [];
+if (!db.price_overrides) db.price_overrides = []; // [{location_id, product_id, price, note, updated_at}]
 if (!db.sandstar_sales) db.sandstar_sales = [];
 if (!db.sandstar_machines) db.sandstar_machines = [];
 if (!db.sandstar_inventory) db.sandstar_inventory = [];
@@ -1269,6 +1270,156 @@ app.delete('/api/products/:id', (req, res) => {
   db.products = db.products.filter(p => p.id !== id);
   saveDB(db);
   res.json({ success: true });
+});
+
+// ===== PRICING TIERS & OVERRIDES =====
+// Tiers: 'standard' (default), 'premium' (+markup), 'budget' (-markup)
+// Products store: sell_price (standard), tier_prices: {premium, budget}
+// Locations store: pricing_tier ('standard'|'premium'|'budget')
+// Overrides: exact price for a specific product at a specific location
+
+// Helper: get effective price for a product at a location
+function getEffectivePrice(productId, locationId) {
+  const product = (db.products || []).find(p => p.id === productId);
+  if (!product) return null;
+
+  // 1. Check location-specific override first
+  const override = (db.price_overrides || []).find(
+    o => o.product_id === productId && o.location_id === locationId
+  );
+  if (override) return { price: override.price, source: 'override', note: override.note };
+
+  // 2. Check location tier
+  const location = (db.locations || []).find(l => l.id === locationId);
+  const tier = (location && location.pricing_tier) || 'standard';
+
+  if (tier === 'standard' || !product.tier_prices) {
+    return { price: product.sell_price, source: 'standard' };
+  }
+
+  const tierPrice = product.tier_prices[tier];
+  if (tierPrice != null) return { price: tierPrice, source: tier };
+
+  return { price: product.sell_price, source: 'standard_fallback' };
+}
+
+// GET /api/pricing/location/:id — all effective prices for a location
+app.get('/api/pricing/location/:id', (req, res) => {
+  const locationId = parseInt(req.params.id);
+  const location = (db.locations || []).find(l => l.id === locationId);
+  if (!location) return res.status(404).json({ error: 'Location not found' });
+
+  const prices = (db.products || []).map(p => ({
+    product_id: p.id,
+    product_name: p.name,
+    cost_price: p.cost_price,
+    standard_price: p.sell_price,
+    ...getEffectivePrice(p.id, locationId),
+    tier_prices: p.tier_prices || {}
+  }));
+
+  res.json({
+    location_id: locationId,
+    location_name: location.name,
+    pricing_tier: location.pricing_tier || 'standard',
+    prices
+  });
+});
+
+// PUT /api/pricing/location/:id/tier — set location pricing tier
+app.put('/api/pricing/location/:id/tier', express.json(), (req, res) => {
+  const locationId = parseInt(req.params.id);
+  const { tier } = req.body;
+  if (!['standard', 'premium', 'budget'].includes(tier)) {
+    return res.status(400).json({ error: 'tier must be standard, premium, or budget' });
+  }
+  const idx = (db.locations || []).findIndex(l => l.id === locationId);
+  if (idx === -1) return res.status(404).json({ error: 'Location not found' });
+  db.locations[idx].pricing_tier = tier;
+  db.locations[idx].updated_at = new Date().toISOString();
+  saveDB(db);
+  res.json({ location_id: locationId, pricing_tier: tier });
+});
+
+// PUT /api/pricing/tiers — set tier prices on a product (standard stays as sell_price)
+app.put('/api/pricing/tiers/:product_id', express.json(), (req, res) => {
+  const productId = parseInt(req.params.product_id);
+  const { premium, budget } = req.body;
+  const idx = (db.products || []).findIndex(p => p.id === productId);
+  if (idx === -1) return res.status(404).json({ error: 'Product not found' });
+  if (!db.products[idx].tier_prices) db.products[idx].tier_prices = {};
+  if (premium != null) db.products[idx].tier_prices.premium = parseFloat(premium);
+  if (budget != null) db.products[idx].tier_prices.budget = parseFloat(budget);
+  db.products[idx].updated_at = new Date().toISOString();
+  saveDB(db);
+  res.json(db.products[idx]);
+});
+
+// GET /api/pricing/overrides — list all overrides (optionally filter by location or product)
+app.get('/api/pricing/overrides', (req, res) => {
+  let overrides = db.price_overrides || [];
+  if (req.query.location_id) overrides = overrides.filter(o => o.location_id === parseInt(req.query.location_id));
+  if (req.query.product_id) overrides = overrides.filter(o => o.product_id === parseInt(req.query.product_id));
+  // Enrich with names
+  const enriched = overrides.map(o => ({
+    ...o,
+    product_name: (db.products || []).find(p => p.id === o.product_id)?.name || '?',
+    location_name: (db.locations || []).find(l => l.id === o.location_id)?.name || '?'
+  }));
+  res.json(enriched);
+});
+
+// POST /api/pricing/overrides — add or update a location+product override
+app.post('/api/pricing/overrides', express.json(), (req, res) => {
+  const { location_id, product_id, price, note } = req.body;
+  if (!location_id || !product_id || price == null) {
+    return res.status(400).json({ error: 'location_id, product_id, price required' });
+  }
+  if (!db.price_overrides) db.price_overrides = [];
+  const existing = db.price_overrides.findIndex(
+    o => o.location_id === location_id && o.product_id === product_id
+  );
+  const record = { location_id, product_id, price: parseFloat(price), note: note || '', updated_at: new Date().toISOString() };
+  if (existing !== -1) {
+    db.price_overrides[existing] = record;
+  } else {
+    db.price_overrides.push(record);
+  }
+  saveDB(db);
+  res.json(record);
+});
+
+// DELETE /api/pricing/overrides — remove a specific override
+app.delete('/api/pricing/overrides', express.json(), (req, res) => {
+  const { location_id, product_id } = req.body;
+  db.price_overrides = (db.price_overrides || []).filter(
+    o => !(o.location_id === location_id && o.product_id === product_id)
+  );
+  saveDB(db);
+  res.json({ success: true });
+});
+
+// GET /api/pricing/summary — all products with all tier prices + override count
+app.get('/api/pricing/summary', (req, res) => {
+  const products = (db.products || []).map(p => {
+    const overrideCount = (db.price_overrides || []).filter(o => o.product_id === p.id).length;
+    return {
+      id: p.id,
+      name: p.name,
+      cost_price: p.cost_price,
+      standard: p.sell_price,
+      premium: p.tier_prices?.premium ?? null,
+      budget: p.tier_prices?.budget ?? null,
+      override_count: overrideCount,
+      margin_standard: p.sell_price ? Math.round(((p.sell_price - (p.cost_price||0)) / p.sell_price) * 100) : 0
+    };
+  });
+  const tiers = { standard: 0, premium: 0, budget: 0, unset: 0 };
+  (db.locations || []).forEach(l => {
+    const t = l.pricing_tier || 'unset';
+    tiers[t] = (tiers[t] || 0) + 1;
+  });
+  res.json({ products, location_tiers: tiers, total_overrides: (db.price_overrides || []).length });
 });
 
 // ===== ORDER RECEIPTS API =====
@@ -5275,6 +5426,7 @@ app.get('/map', (req, res) => res.sendFile(path.join(__dirname, 'map.html')));
 app.get('/machines', (req, res) => res.redirect('/locations'));
 app.get('/locations', (req, res) => res.sendFile(path.join(__dirname, 'locations.html')));
 app.get('/inventory', (req, res) => res.sendFile(path.join(__dirname, 'inventory.html')));
+app.get('/pricing', (req, res) => res.sendFile(path.join(__dirname, 'pricing.html')));
 app.get('/finance', (req, res) => res.sendFile(path.join(__dirname, 'finance.html')));
 app.get('/restock', (req, res) => res.sendFile(path.join(__dirname, 'restock.html')));
 app.get('/restock-planner', (req, res) => res.sendFile(path.join(__dirname, 'restock-planner.html')));
