@@ -1,433 +1,453 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pricing Manager — Kande VendTech</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e0e0e0; }
-  .header { background: #1a1d2e; border-bottom: 1px solid #2a2d3e; padding: 16px 24px; display: flex; align-items: center; gap: 16px; }
-  .header h1 { font-size: 1.2rem; font-weight: 600; color: #fff; }
-  .header .back { color: #7c8cf8; text-decoration: none; font-size: 0.85rem; }
-  .stats-bar { display: flex; gap: 16px; padding: 16px 24px; background: #13151f; border-bottom: 1px solid #2a2d3e; flex-wrap: wrap; }
-  .stat { background: #1a1d2e; border-radius: 8px; padding: 12px 20px; min-width: 140px; }
-  .stat .label { font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
-  .stat .value { font-size: 1.4rem; font-weight: 700; color: #fff; margin-top: 4px; }
-  .tabs { display: flex; gap: 0; border-bottom: 1px solid #2a2d3e; background: #13151f; padding: 0 24px; }
-  .tab { padding: 12px 20px; cursor: pointer; font-size: 0.85rem; color: #888; border-bottom: 2px solid transparent; transition: all 0.2s; }
-  .tab.active { color: #7c8cf8; border-bottom-color: #7c8cf8; }
-  .tab:hover { color: #aaa; }
-  .section { display: none; padding: 24px; }
-  .section.active { display: block; }
-  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-  th { background: #1a1d2e; color: #888; padding: 10px 12px; text-align: left; font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; }
-  td { padding: 10px 12px; border-bottom: 1px solid #1e2130; vertical-align: middle; }
-  tr:hover td { background: #1a1d2e55; }
-  .price-input { background: #1e2130; border: 1px solid #2a2d3e; color: #fff; border-radius: 6px; padding: 6px 10px; width: 90px; font-size: 0.85rem; text-align: right; }
-  .price-input:focus { outline: none; border-color: #7c8cf8; }
-  .price-input.override { border-color: #f59e0b; color: #fbbf24; }
-  .btn { padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.15s; }
-  .btn-primary { background: #7c8cf8; color: #fff; }
-  .btn-primary:hover { background: #6366f1; }
-  .btn-danger { background: #ef444422; color: #f87171; border: 1px solid #ef444444; }
-  .btn-danger:hover { background: #ef444433; }
-  .btn-sm { padding: 4px 10px; font-size: 0.75rem; }
-  .tier-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; }
-  .tier-standard { background: #1e2130; color: #888; border: 1px solid #2a2d3e; }
-  .tier-premium { background: #7c3aed22; color: #a78bfa; border: 1px solid #7c3aed44; }
-  .tier-budget { background: #06b6d422; color: #67e8f9; border: 1px solid #06b6d444; }
-  select.tier-select { background: #1e2130; border: 1px solid #2a2d3e; color: #e0e0e0; border-radius: 6px; padding: 5px 8px; font-size: 0.8rem; cursor: pointer; }
-  .search-bar { display: flex; gap: 12px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
-  .search-bar input, .search-bar select { background: #1e2130; border: 1px solid #2a2d3e; color: #e0e0e0; border-radius: 8px; padding: 8px 14px; font-size: 0.85rem; }
-  .search-bar input { width: 260px; }
-  .search-bar input:focus, .search-bar select:focus { outline: none; border-color: #7c8cf8; }
-  .margin-badge { font-size: 0.72rem; padding: 2px 7px; border-radius: 4px; font-weight: 600; }
-  .margin-good { background: #10b98122; color: #34d399; }
-  .margin-ok { background: #f59e0b22; color: #fbbf24; }
-  .margin-low { background: #ef444422; color: #f87171; }
-  .save-row { position: fixed; bottom: 0; left: 0; right: 0; background: #1a1d2e; border-top: 1px solid #2a2d3e; padding: 12px 24px; display: flex; gap: 12px; align-items: center; z-index: 100; }
-  .save-status { font-size: 0.8rem; color: #888; }
-  .save-status.saved { color: #34d399; }
-  .save-status.error { color: #f87171; }
-  .override-tag { font-size: 0.65rem; background: #f59e0b22; color: #fbbf24; border: 1px solid #f59e0b44; border-radius: 4px; padding: 1px 5px; margin-left: 4px; }
-  .empty { color: #555; font-style: italic; text-align: center; padding: 32px; }
-  .location-filter { max-width: 240px; }
-  .cost { color: #888; }
-  .scroll-table { overflow-x: auto; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-vend-32.png">
+  <title>Kande VendTech — Pricing Manager</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f5f7; --card: #ffffff; --border: #e2e8f0; --text: #1a202c;
+      --muted: #718096; --accent: #3182ce; --hot: #e53e3e; --warn: #dd6b20;
+      --success: #38a169; --purple: #7b2cbf; --radius: 12px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .app { max-width: 1500px; margin: 0 auto; padding: 20px; }
+
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .page-header h1 { font-size: 1.6rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s; text-decoration: none; }
+    .btn:hover { background: #f0f4f8; }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover { background: #2b6cb0; }
+    .btn-success { background: var(--success); color: #fff; border-color: var(--success); }
+    .btn-danger { background: var(--hot); color: #fff; border-color: var(--hot); }
+    .btn-danger:hover { background: #c53030; }
+    .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
+
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; }
+    .stat-card .value { font-size: 1.7rem; font-weight: 800; }
+    .stat-card .label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
+    .value.accent { color: var(--accent); }
+    .value.success { color: var(--success); }
+    .value.warn { color: var(--warn); }
+    .value.purple { color: var(--purple); }
+
+    .tab-bar { display: flex; gap: 4px; margin-bottom: 20px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 4px; overflow-x: auto; }
+    .tab-btn { padding: 8px 18px; border: none; background: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: var(--muted); transition: all 0.15s; white-space: nowrap; }
+    .tab-btn.active { background: var(--accent); color: #fff; }
+    .tab-btn:hover:not(.active) { background: #f0f4f8; color: var(--text); }
+
+    .section { display: none; }
+    .section.active { display: block; }
+
+    .table-container { overflow-x: auto; margin-bottom: 24px; }
+    .data-table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; min-width: 700px; }
+    .data-table th { background: #edf2f7; padding: 10px 12px; font-size: 0.72rem; text-transform: uppercase; color: var(--muted); font-weight: 700; text-align: left; white-space: nowrap; }
+    .data-table td { padding: 8px 12px; border-top: 1px solid var(--border); font-size: 0.85rem; vertical-align: middle; }
+    .data-table tr:hover td { background: #fafbfc; }
+
+    .price-input { width: 90px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; font-family: monospace; text-align: right; background: var(--bg); color: var(--text); }
+    .price-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(49,130,206,0.15); }
+    .price-input.override-val { border-color: var(--warn); background: rgba(221,107,32,0.05); }
+
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; }
+    .badge-success { background: rgba(56,161,105,0.12); color: var(--success); }
+    .badge-warn { background: rgba(221,107,32,0.12); color: var(--warn); }
+    .badge-danger { background: rgba(229,62,62,0.12); color: var(--hot); }
+    .badge-muted { background: #edf2f7; color: var(--muted); }
+    .badge-purple { background: rgba(123,44,191,0.12); color: var(--purple); }
+
+    .tier-select { padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; background: var(--card); color: var(--text); cursor: pointer; }
+    .tier-select:focus { outline: none; border-color: var(--accent); }
+
+    .search-row { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
+    .search-row input, .search-row select { padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; background: var(--card); color: var(--text); }
+    .search-row input { width: 260px; }
+    .search-row input:focus, .search-row select:focus { outline: none; border-color: var(--accent); }
+
+    .panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; max-width: 500px; }
+    .panel h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    .form-group label { font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; }
+    .form-group input, .form-group select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; background: var(--bg); color: var(--text); }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--accent); }
+    .form-actions { display: flex; gap: 8px; margin-top: 4px; }
+
+    .save-notice { font-size: 0.8rem; color: var(--success); font-weight: 600; }
+    .save-notice.error { color: var(--hot); }
+
+    .muted { color: var(--muted); }
+    .mono { font-family: monospace; }
+    .source-tag { font-size: 0.72rem; color: var(--muted); }
+    .source-tag.premium { color: var(--purple); font-weight: 600; }
+    .source-tag.budget { color: var(--accent); font-weight: 600; }
+    .source-tag.override { color: var(--warn); font-weight: 600; }
+  </style>
 </head>
 <body>
-
-<div class="header">
-  <a href="/inventory" class="back">← Inventory</a>
-  <h1>💰 Pricing Manager</h1>
-  <div style="margin-left: auto; font-size: 0.8rem; color: #555;">Standard / Premium / Budget tiers + location overrides</div>
-</div>
-
-<div class="stats-bar" id="statsBar">
-  <div class="stat"><div class="label">Products</div><div class="value" id="statProducts">—</div></div>
-  <div class="stat"><div class="label">Standard Locations</div><div class="value" id="statStandard">—</div></div>
-  <div class="stat"><div class="label">Premium Locations</div><div class="value" id="statPremium">—</div></div>
-  <div class="stat"><div class="label">Budget Locations</div><div class="value" id="statBudget">—</div></div>
-  <div class="stat"><div class="label">Active Overrides</div><div class="value" id="statOverrides">—</div></div>
-</div>
-
-<div class="tabs">
-  <div class="tab active" onclick="showTab('products')">📦 Product Tier Prices</div>
-  <div class="tab" onclick="showTab('locations')">📍 Location Tiers</div>
-  <div class="tab" onclick="showTab('overrides')">⚡ Location Overrides</div>
-  <div class="tab" onclick="showTab('preview')">👁 Price Preview</div>
-</div>
-
-<!-- PRODUCT TIER PRICES -->
-<div class="section active" id="tab-products">
-  <div class="search-bar">
-    <input type="text" id="productSearch" placeholder="Search products..." oninput="filterProducts()">
-    <span style="font-size:0.8rem;color:#888;">Set Premium and Budget prices per product. Standard = current sell price.</span>
-    <button class="btn btn-primary" onclick="saveAllTiers()">💾 Save All Tier Prices</button>
-    <span class="save-status" id="tierSaveStatus"></span>
-  </div>
-  <div class="scroll-table">
-    <table>
-      <thead>
-        <tr>
-          <th>Product</th>
-          <th>Cost</th>
-          <th>Standard Price</th>
-          <th>Premium Price</th>
-          <th>Budget Price</th>
-          <th>Std Margin</th>
-          <th>Overrides</th>
-        </tr>
-      </thead>
-      <tbody id="productTierBody"></tbody>
-    </table>
-  </div>
-</div>
-
-<!-- LOCATION TIERS -->
-<div class="section" id="tab-locations">
-  <div class="search-bar">
-    <input type="text" id="locationSearch" placeholder="Search locations..." oninput="filterLocations()">
-    <span style="font-size:0.8rem;color:#888;">Assign each location to a pricing tier. Premium = higher markup. Budget = lower.</span>
-  </div>
-  <div class="scroll-table">
-    <table>
-      <thead>
-        <tr>
-          <th>Location</th>
-          <th>Type</th>
-          <th>Machines</th>
-          <th>Pricing Tier</th>
-          <th>Overrides</th>
-        </tr>
-      </thead>
-      <tbody id="locationTierBody"></tbody>
-    </table>
-  </div>
-</div>
-
-<!-- OVERRIDES -->
-<div class="section" id="tab-overrides">
-  <div class="search-bar">
-    <select id="overrideLocationFilter" class="location-filter" onchange="filterOverrides()">
-      <option value="">All locations</option>
-    </select>
-    <button class="btn btn-primary" onclick="showAddOverride()">+ Add Override</button>
-    <span style="font-size:0.8rem;color:#555;">Location-specific price takes priority over tier pricing.</span>
-  </div>
-
-  <div id="addOverrideForm" style="display:none; background:#1a1d2e; border:1px solid #2a2d3e; border-radius:10px; padding:16px; margin-bottom:16px; max-width:480px;">
-    <div style="font-size:0.9rem;font-weight:600;margin-bottom:12px;">Add Price Override</div>
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <select id="overrideLocation" style="background:#0f1117;border:1px solid #2a2d3e;color:#e0e0e0;border-radius:6px;padding:8px;font-size:0.85rem;"><option value="">Select location...</option></select>
-      <select id="overrideProduct" style="background:#0f1117;border:1px solid #2a2d3e;color:#e0e0e0;border-radius:6px;padding:8px;font-size:0.85rem;"><option value="">Select product...</option></select>
-      <input type="number" id="overridePrice" step="0.05" placeholder="Override price (e.g. 2.50)" style="background:#0f1117;border:1px solid #2a2d3e;color:#e0e0e0;border-radius:6px;padding:8px;font-size:0.85rem;">
-      <input type="text" id="overrideNote" placeholder="Note (e.g. 'Negotiated rate')" style="background:#0f1117;border:1px solid #2a2d3e;color:#e0e0e0;border-radius:6px;padding:8px;font-size:0.85rem;">
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-primary" onclick="saveOverride()">Save Override</button>
-        <button class="btn" style="background:#2a2d3e;color:#aaa;" onclick="document.getElementById('addOverrideForm').style.display='none'">Cancel</button>
+  <script src="/nav.js"></script>
+  <div class="app">
+    <div class="page-header">
+      <h1>💰 Pricing Manager</h1>
+      <div class="header-actions">
+        <a href="/inventory" class="btn">← Inventory</a>
+        <button class="btn btn-primary" onclick="saveAllTiers()">💾 Save Tier Prices</button>
+        <span class="save-notice" id="saveNotice" style="display:none"></span>
       </div>
     </div>
-  </div>
 
-  <div class="scroll-table">
-    <table>
-      <thead>
-        <tr>
-          <th>Location</th>
-          <th>Product</th>
-          <th>Standard Price</th>
-          <th>Override Price</th>
-          <th>Difference</th>
-          <th>Note</th>
-          <th>Updated</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="overridesBody"></tbody>
-    </table>
-  </div>
-</div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="value accent" id="statProducts">—</div><div class="label">Products</div></div>
+      <div class="stat-card"><div class="value" id="statStandard">—</div><div class="label">Standard Locations</div></div>
+      <div class="stat-card"><div class="value purple" id="statPremium">—</div><div class="label">Premium Locations</div></div>
+      <div class="stat-card"><div class="value accent" id="statBudget">—</div><div class="label">Budget Locations</div></div>
+      <div class="stat-card"><div class="value warn" id="statOverrides">—</div><div class="label">Active Overrides</div></div>
+    </div>
 
-<!-- PRICE PREVIEW -->
-<div class="section" id="tab-preview">
-  <div class="search-bar">
-    <select id="previewLocation" style="background:#1e2130;border:1px solid #2a2d3e;color:#e0e0e0;border-radius:8px;padding:8px 14px;font-size:0.85rem;" onchange="loadPreview()">
-      <option value="">Select a location to preview prices...</option>
-    </select>
-    <span id="previewTierBadge"></span>
-  </div>
-  <div class="scroll-table">
-    <table>
-      <thead>
-        <tr>
-          <th>Product</th>
-          <th>Cost</th>
-          <th>Standard</th>
-          <th>Effective Price</th>
-          <th>Source</th>
-          <th>Margin</th>
-        </tr>
-      </thead>
-      <tbody id="previewBody"></tbody>
-    </table>
-  </div>
-</div>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="showTab('products', this)">📦 Product Tier Prices</button>
+      <button class="tab-btn" onclick="showTab('locations', this)">📍 Location Tiers</button>
+      <button class="tab-btn" onclick="showTab('overrides', this)">⚡ Overrides</button>
+      <button class="tab-btn" onclick="showTab('preview', this)">👁 Price Preview</button>
+    </div>
 
-<script>
-let products = [], locations = [], overrides = [], summary = {};
-let tierEdits = {}; // product_id -> {premium, budget}
+    <!-- PRODUCT TIER PRICES -->
+    <div class="section active" id="tab-products">
+      <div class="search-row">
+        <input type="text" placeholder="Search products..." oninput="renderProducts(this.value)">
+        <span style="font-size:0.8rem;color:var(--muted)">Standard = current sell price. Set Premium and Budget prices below.</span>
+      </div>
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Unit Cost</th>
+              <th>Standard Price</th>
+              <th>Premium Price</th>
+              <th>Budget Price</th>
+              <th>Margin</th>
+              <th>Overrides</th>
+            </tr>
+          </thead>
+          <tbody id="productBody"></tbody>
+        </table>
+      </div>
+    </div>
 
-async function api(path, opts = {}) {
-  const r = await fetch(path, { headers: {'Content-Type':'application/json'}, ...opts });
-  return r.json();
-}
+    <!-- LOCATION TIERS -->
+    <div class="section" id="tab-locations">
+      <div class="search-row">
+        <input type="text" placeholder="Search locations..." oninput="renderLocations(this.value)">
+        <span style="font-size:0.8rem;color:var(--muted)">Assign each active location to a pricing tier.</span>
+      </div>
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Location</th>
+              <th>Type</th>
+              <th>Pricing Tier</th>
+              <th>Overrides</th>
+            </tr>
+          </thead>
+          <tbody id="locationBody"></tbody>
+        </table>
+      </div>
+    </div>
 
-async function init() {
-  [summary, locations, overrides] = await Promise.all([
-    api('/api/pricing/summary'),
-    api('/api/locations'),
-    api('/api/pricing/overrides')
-  ]);
-  products = summary.products;
-
-  // Stats
-  const tiers = summary.location_tiers || {};
-  document.getElementById('statProducts').textContent = products.length;
-  document.getElementById('statStandard').textContent = (tiers.standard || 0) + (tiers.unset || 0);
-  document.getElementById('statPremium').textContent = tiers.premium || 0;
-  document.getElementById('statBudget').textContent = tiers.budget || 0;
-  document.getElementById('statOverrides').textContent = summary.total_overrides || 0;
-
-  renderProductTiers();
-  renderLocationTiers();
-  renderOverrides();
-  populateSelects();
-}
-
-function showTab(name) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  event.target.classList.add('active');
-}
-
-function marginClass(m) {
-  if (m >= 50) return 'margin-good';
-  if (m >= 30) return 'margin-ok';
-  return 'margin-low';
-}
-
-function renderProductTiers(filter = '') {
-  const body = document.getElementById('productTierBody');
-  const filtered = products.filter(p => p.name.toLowerCase().includes(filter.toLowerCase()));
-  body.innerHTML = filtered.map(p => {
-    const oc = p.override_count;
-    const premiumVal = tierEdits[p.id]?.premium ?? p.premium ?? '';
-    const budgetVal = tierEdits[p.id]?.budget ?? p.budget ?? '';
-    return `<tr>
-      <td>${p.name}</td>
-      <td class="cost">$${(p.cost_price||0).toFixed(2)}</td>
-      <td><strong>$${(p.standard||0).toFixed(2)}</strong></td>
-      <td><input class="price-input" type="number" step="0.05" value="${premiumVal}" placeholder="e.g. ${((p.standard||0)*1.18).toFixed(2)}" onchange="setTierEdit(${p.id},'premium',this.value)" id="prem-${p.id}"></td>
-      <td><input class="price-input" type="number" step="0.05" value="${budgetVal}" placeholder="e.g. ${((p.standard||0)*0.9).toFixed(2)}" onchange="setTierEdit(${p.id},'budget',this.value)" id="budg-${p.id}"></td>
-      <td><span class="margin-badge ${marginClass(p.margin_standard)}">${p.margin_standard}%</span></td>
-      <td>${oc > 0 ? `<span class="override-tag">${oc} override${oc>1?'s':''}</span>` : '<span style="color:#444">—</span>'}</td>
-    </tr>`;
-  }).join('') || `<tr><td colspan="7" class="empty">No products found</td></tr>`;
-}
-
-function setTierEdit(productId, tier, value) {
-  if (!tierEdits[productId]) tierEdits[productId] = {};
-  tierEdits[productId][tier] = value ? parseFloat(value) : null;
-}
-
-function filterProducts() {
-  renderProductTiers(document.getElementById('productSearch').value);
-}
-
-async function saveAllTiers() {
-  const status = document.getElementById('tierSaveStatus');
-  status.textContent = 'Saving...';
-  status.className = 'save-status';
-  let saved = 0, errors = 0;
-  for (const [productId, prices] of Object.entries(tierEdits)) {
-    if (prices.premium == null && prices.budget == null) continue;
-    const body = {};
-    if (prices.premium != null) body.premium = prices.premium;
-    if (prices.budget != null) body.budget = prices.budget;
-    const r = await api(`/api/pricing/tiers/${productId}`, { method: 'PUT', body: JSON.stringify(body) });
-    if (r.id) saved++;
-    else errors++;
-  }
-  tierEdits = {};
-  if (errors === 0) {
-    status.textContent = `✓ Saved ${saved} product(s)`;
-    status.className = 'save-status saved';
-  } else {
-    status.textContent = `⚠ ${saved} saved, ${errors} errors`;
-    status.className = 'save-status error';
-  }
-  await init();
-  setTimeout(() => { status.textContent = ''; }, 3000);
-}
-
-function renderLocationTiers(filter = '') {
-  const body = document.getElementById('locationTierBody');
-  const locs = locations.filter(l => l.name.toLowerCase().includes(filter.toLowerCase()));
-  body.innerHTML = locs.map(l => {
-    const tier = l.pricing_tier || 'standard';
-    const oc = overrides.filter(o => o.location_id === l.id).length;
-    const machineCount = (l.machines || []).length;
-    return `<tr>
-      <td><strong>${l.name}</strong></td>
-      <td style="color:#888;font-size:0.8rem">${l.type || '—'}</td>
-      <td style="color:#888">${machineCount}</td>
-      <td>
-        <select class="tier-select" onchange="setLocationTier(${l.id}, this.value)">
-          <option value="standard" ${tier==='standard'?'selected':''}>Standard</option>
-          <option value="premium" ${tier==='premium'?'selected':''}>💎 Premium</option>
-          <option value="budget" ${tier==='budget'?'selected':''}>💙 Budget</option>
+    <!-- OVERRIDES -->
+    <div class="section" id="tab-overrides">
+      <div class="search-row">
+        <select id="overrideLocFilter" onchange="renderOverrides()">
+          <option value="">All locations</option>
         </select>
-      </td>
-      <td>${oc > 0 ? `<span class="override-tag">${oc} override${oc>1?'s':''}</span>` : '<span style="color:#444">—</span>'}</td>
-    </tr>`;
-  }).join('') || `<tr><td colspan="5" class="empty">No locations found</td></tr>`;
-}
+        <button class="btn btn-primary btn-sm" onclick="toggleAddPanel()">+ Add Override</button>
+      </div>
 
-function filterLocations() {
-  renderLocationTiers(document.getElementById('locationSearch').value);
-}
+      <div class="panel" id="addPanel" style="display:none">
+        <h3>Add Price Override</h3>
+        <div class="form-group"><label>Location</label><select id="ovLoc"><option value="">Select location...</option></select></div>
+        <div class="form-group"><label>Product</label><select id="ovProd"><option value="">Select product...</option></select></div>
+        <div class="form-group"><label>Override Price ($)</label><input type="number" id="ovPrice" step="0.05" placeholder="e.g. 2.50"></div>
+        <div class="form-group"><label>Note (optional)</label><input type="text" id="ovNote" placeholder="e.g. Negotiated rate"></div>
+        <div class="form-actions">
+          <button class="btn btn-primary btn-sm" onclick="saveOverride()">Save Override</button>
+          <button class="btn btn-sm" onclick="toggleAddPanel()">Cancel</button>
+        </div>
+      </div>
 
-async function setLocationTier(locationId, tier) {
-  await api(`/api/pricing/location/${locationId}/tier`, { method: 'PUT', body: JSON.stringify({ tier }) });
-  const loc = locations.find(l => l.id === locationId);
-  if (loc) loc.pricing_tier = tier;
-  // Update summary stats
-  await init();
-}
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Location</th>
+              <th>Product</th>
+              <th>Standard</th>
+              <th>Override Price</th>
+              <th>Diff</th>
+              <th>Note</th>
+              <th>Updated</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="overrideBody"></tbody>
+        </table>
+      </div>
+    </div>
 
-function renderOverrides(filter = '') {
-  const body = document.getElementById('overridesBody');
-  let filtered = overrides;
-  if (filter) filtered = overrides.filter(o => o.location_id === parseInt(filter));
-  if (!filtered.length) {
-    body.innerHTML = `<tr><td colspan="8" class="empty">No overrides yet. Add one above.</td></tr>`;
-    return;
-  }
-  body.innerHTML = filtered.map(o => {
-    const stdProduct = products.find(p => p.id === o.product_id);
-    const std = stdProduct?.standard || 0;
-    const diff = o.price - std;
-    const diffStr = diff === 0 ? '—' : (diff > 0 ? `<span style="color:#34d399">+$${diff.toFixed(2)}</span>` : `<span style="color:#f87171">-$${Math.abs(diff).toFixed(2)}</span>`);
-    const dateStr = o.updated_at ? new Date(o.updated_at).toLocaleDateString() : '—';
-    return `<tr>
-      <td><strong>${o.location_name}</strong></td>
-      <td>${o.product_name}</td>
-      <td class="cost">$${std.toFixed(2)}</td>
-      <td><strong class="price-input override" style="display:inline-block;padding:4px 8px;border-radius:6px;">$${o.price.toFixed(2)}</strong></td>
-      <td>${diffStr}</td>
-      <td style="color:#888;font-size:0.8rem">${o.note || '—'}</td>
-      <td style="color:#555;font-size:0.75rem">${dateStr}</td>
-      <td><button class="btn btn-danger btn-sm" onclick="deleteOverride(${o.location_id},${o.product_id})">✕</button></td>
-    </tr>`;
-  }).join('');
-}
+    <!-- PREVIEW -->
+    <div class="section" id="tab-preview">
+      <div class="search-row">
+        <select id="previewLoc" onchange="loadPreview()"><option value="">Select location to preview...</option></select>
+        <span id="previewTierBadge"></span>
+      </div>
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Unit Cost</th>
+              <th>Standard</th>
+              <th>Effective Price</th>
+              <th>Source</th>
+              <th>Margin</th>
+            </tr>
+          </thead>
+          <tbody id="previewBody"></tbody>
+        </table>
+      </div>
+    </div>
 
-function filterOverrides() {
-  renderOverrides(document.getElementById('overrideLocationFilter').value);
-}
+  </div>
 
-function populateSelects() {
-  // Override location filter
-  const locFilter = document.getElementById('overrideLocationFilter');
-  const locsSorted = [...locations].sort((a,b)=>a.name.localeCompare(b.name));
-  locFilter.innerHTML = '<option value="">All locations</option>' + locsSorted.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+  <script>
+    let products = [], locations = [], overrides = [], summary = {};
+    let tierEdits = {};
 
-  // Add override selects
-  const ol = document.getElementById('overrideLocation');
-  ol.innerHTML = '<option value="">Select location...</option>' + locsSorted.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+    async function api(path, opts = {}) {
+      const r = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+      return r.json();
+    }
 
-  const op = document.getElementById('overrideProduct');
-  const prodsSorted = [...products].sort((a,b)=>a.name.localeCompare(b.name));
-  op.innerHTML = '<option value="">Select product...</option>' + prodsSorted.map(p => `<option value="${p.id}">${p.name} (std $${(p.standard||0).toFixed(2)})</option>`).join('');
+    function showTab(name, btn) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + name).classList.add('active');
+      btn.classList.add('active');
+    }
 
-  // Preview location
-  const pl = document.getElementById('previewLocation');
-  pl.innerHTML = '<option value="">Select a location to preview prices...</option>' + locsSorted.map(l => `<option value="${l.id}">${l.name} [${l.pricing_tier||'standard'}]</option>`).join('');
-}
+    async function init() {
+      [summary, locations, overrides] = await Promise.all([
+        api('/api/pricing/summary'),
+        api('/api/locations'),
+        api('/api/pricing/overrides')
+      ]);
+      products = summary.products || [];
+      const tiers = summary.location_tiers || {};
 
-function showAddOverride() {
-  document.getElementById('addOverrideForm').style.display = 'block';
-}
+      document.getElementById('statProducts').textContent = products.length;
+      document.getElementById('statStandard').textContent = (tiers.standard || 0) + (tiers.unset || 0);
+      document.getElementById('statPremium').textContent = tiers.premium || 0;
+      document.getElementById('statBudget').textContent = tiers.budget || 0;
+      document.getElementById('statOverrides').textContent = summary.total_overrides || 0;
 
-async function saveOverride() {
-  const loc = parseInt(document.getElementById('overrideLocation').value);
-  const prod = parseInt(document.getElementById('overrideProduct').value);
-  const price = parseFloat(document.getElementById('overridePrice').value);
-  const note = document.getElementById('overrideNote').value;
-  if (!loc || !prod || isNaN(price)) return alert('Fill in all required fields');
-  await api('/api/pricing/overrides', { method: 'POST', body: JSON.stringify({ location_id: loc, product_id: prod, price, note }) });
-  document.getElementById('addOverrideForm').style.display = 'none';
-  document.getElementById('overridePrice').value = '';
-  document.getElementById('overrideNote').value = '';
-  await init();
-}
+      renderProducts();
+      renderLocations();
+      renderOverrides();
+      populateSelects();
+    }
 
-async function deleteOverride(locationId, productId) {
-  if (!confirm('Remove this price override?')) return;
-  await api('/api/pricing/overrides', { method: 'DELETE', body: JSON.stringify({ location_id: locationId, product_id: productId }) });
-  await init();
-}
+    function marginBadge(margin) {
+      if (margin >= 50) return `<span class="badge badge-success">${margin}%</span>`;
+      if (margin >= 30) return `<span class="badge badge-warn">${margin}%</span>`;
+      return `<span class="badge badge-danger">${margin}%</span>`;
+    }
 
-async function loadPreview() {
-  const locId = document.getElementById('previewLocation').value;
-  if (!locId) return;
-  const data = await api(`/api/pricing/location/${locId}`);
-  const badge = document.getElementById('previewTierBadge');
-  const tierColors = { standard: '#888', premium: '#a78bfa', budget: '#67e8f9' };
-  const tier = data.pricing_tier || 'standard';
-  badge.innerHTML = `<span class="tier-badge tier-${tier}">${tier === 'premium' ? '💎' : tier === 'budget' ? '💙' : '📦'} ${tier}</span>`;
+    function renderProducts(filter = '') {
+      const f = filter.toLowerCase();
+      const rows = products
+        .filter(p => p.name.toLowerCase().includes(f))
+        .map(p => {
+          const prem = tierEdits[p.id]?.premium ?? p.premium ?? '';
+          const budg = tierEdits[p.id]?.budget ?? p.budget ?? '';
+          const oc = p.override_count || 0;
+          return `<tr>
+            <td><strong>${p.name}</strong></td>
+            <td class="mono muted">$${(p.cost_price || 0).toFixed(2)}</td>
+            <td class="mono"><strong>$${(p.standard || 0).toFixed(2)}</strong></td>
+            <td><input class="price-input" type="number" step="0.05" value="${prem}"
+              placeholder="$${((p.standard || 0) * 1.18).toFixed(2)}"
+              onchange="setTierEdit(${p.id},'premium',this.value)"></td>
+            <td><input class="price-input" type="number" step="0.05" value="${budg}"
+              placeholder="$${((p.standard || 0) * 0.90).toFixed(2)}"
+              onchange="setTierEdit(${p.id},'budget',this.value)"></td>
+            <td>${marginBadge(p.margin_standard)}</td>
+            <td>${oc > 0 ? `<span class="badge badge-warn">${oc}</span>` : '<span class="muted">—</span>'}</td>
+          </tr>`;
+        }).join('');
+      document.getElementById('productBody').innerHTML = rows ||
+        '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No products found</td></tr>';
+    }
 
-  const body = document.getElementById('previewBody');
-  body.innerHTML = (data.prices || []).map(p => {
-    const margin = p.price && p.cost_price ? Math.round(((p.price - p.cost_price) / p.price) * 100) : 0;
-    const isOverride = p.source === 'override';
-    const isDiff = p.price !== p.standard_price;
-    return `<tr>
-      <td>${p.product_name}</td>
-      <td class="cost">$${(p.cost_price||0).toFixed(2)}</td>
-      <td>$${(p.standard_price||0).toFixed(2)}</td>
-      <td><strong style="${isOverride ? 'color:#fbbf24' : isDiff ? 'color:#a78bfa' : ''}">$${(p.price||0).toFixed(2)}</strong></td>
-      <td style="font-size:0.75rem;color:#888">${isOverride ? '⚡ override' : p.source === 'premium' ? '💎 premium' : p.source === 'budget' ? '💙 budget' : '📦 standard'}</td>
-      <td><span class="margin-badge ${marginClass(margin)}">${margin}%</span></td>
-    </tr>`;
-  }).join('');
-}
+    function setTierEdit(id, tier, val) {
+      if (!tierEdits[id]) tierEdits[id] = {};
+      tierEdits[id][tier] = val ? parseFloat(val) : null;
+    }
 
-init();
-</script>
+    async function saveAllTiers() {
+      const notice = document.getElementById('saveNotice');
+      notice.textContent = 'Saving...'; notice.className = 'save-notice'; notice.style.display = '';
+      let saved = 0, errs = 0;
+      for (const [id, prices] of Object.entries(tierEdits)) {
+        const body = {};
+        if (prices.premium != null) body.premium = prices.premium;
+        if (prices.budget != null) body.budget = prices.budget;
+        if (!Object.keys(body).length) continue;
+        const r = await api(`/api/pricing/tiers/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+        r.id ? saved++ : errs++;
+      }
+      tierEdits = {};
+      notice.textContent = errs === 0 ? `✓ Saved ${saved} product(s)` : `⚠ ${saved} saved, ${errs} errors`;
+      notice.className = errs === 0 ? 'save-notice' : 'save-notice error';
+      setTimeout(() => { notice.style.display = 'none'; }, 3000);
+      await init();
+    }
+
+    function renderLocations(filter = '') {
+      const f = filter.toLowerCase();
+      const rows = locations
+        .filter(l => l.name && l.name.toLowerCase().includes(f))
+        .map(l => {
+          const tier = l.pricing_tier || 'standard';
+          const oc = overrides.filter(o => o.location_id === l.id).length;
+          return `<tr>
+            <td><strong>${l.name}</strong></td>
+            <td class="muted" style="font-size:0.8rem">${l.type || '—'}</td>
+            <td>
+              <select class="tier-select" onchange="setLocationTier(${l.id}, this.value)">
+                <option value="standard" ${tier === 'standard' ? 'selected' : ''}>📦 Standard</option>
+                <option value="premium" ${tier === 'premium' ? 'selected' : ''}>💎 Premium</option>
+                <option value="budget" ${tier === 'budget' ? 'selected' : ''}>💙 Budget</option>
+              </select>
+            </td>
+            <td>${oc > 0 ? `<span class="badge badge-warn">${oc} override${oc > 1 ? 's' : ''}</span>` : '<span class="muted">—</span>'}</td>
+          </tr>`;
+        }).join('');
+      document.getElementById('locationBody').innerHTML = rows ||
+        '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted)">No locations found</td></tr>';
+    }
+
+    async function setLocationTier(locId, tier) {
+      await api(`/api/pricing/location/${locId}/tier`, { method: 'PUT', body: JSON.stringify({ tier }) });
+      const l = locations.find(x => x.id === locId);
+      if (l) l.pricing_tier = tier;
+      await init();
+    }
+
+    function renderOverrides() {
+      const filterVal = document.getElementById('overrideLocFilter').value;
+      let filtered = overrides;
+      if (filterVal) filtered = overrides.filter(o => o.location_id === parseInt(filterVal));
+      if (!filtered.length) {
+        document.getElementById('overrideBody').innerHTML =
+          '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--muted)">No overrides yet. Add one above.</td></tr>';
+        return;
+      }
+      document.getElementById('overrideBody').innerHTML = filtered.map(o => {
+        const std = products.find(p => p.id === o.product_id)?.standard || 0;
+        const diff = o.price - std;
+        const diffStr = diff === 0 ? '—'
+          : diff > 0 ? `<span style="color:var(--warn)">+$${diff.toFixed(2)}</span>`
+          : `<span style="color:var(--success)">-$${Math.abs(diff).toFixed(2)}</span>`;
+        return `<tr>
+          <td><strong>${o.location_name}</strong></td>
+          <td>${o.product_name}</td>
+          <td class="mono muted">$${std.toFixed(2)}</td>
+          <td><strong class="mono override-val" style="color:var(--warn)">$${o.price.toFixed(2)}</strong></td>
+          <td>${diffStr}</td>
+          <td class="muted" style="font-size:0.8rem">${o.note || '—'}</td>
+          <td class="muted" style="font-size:0.75rem">${o.updated_at ? new Date(o.updated_at).toLocaleDateString() : '—'}</td>
+          <td><button class="btn btn-danger btn-sm" onclick="deleteOverride(${o.location_id},${o.product_id})">Remove</button></td>
+        </tr>`;
+      }).join('');
+    }
+
+    function populateSelects() {
+      const locs = [...locations].sort((a, b) => a.name.localeCompare(b.name));
+      const prods = [...products].sort((a, b) => a.name.localeCompare(b.name));
+
+      document.getElementById('overrideLocFilter').innerHTML =
+        '<option value="">All locations</option>' +
+        locs.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+
+      document.getElementById('ovLoc').innerHTML =
+        '<option value="">Select location...</option>' +
+        locs.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+
+      document.getElementById('ovProd').innerHTML =
+        '<option value="">Select product...</option>' +
+        prods.map(p => `<option value="${p.id}">${p.name} (std $${(p.standard || 0).toFixed(2)})</option>`).join('');
+
+      document.getElementById('previewLoc').innerHTML =
+        '<option value="">Select location to preview...</option>' +
+        locs.map(l => `<option value="${l.id}">${l.name} [${l.pricing_tier || 'standard'}]</option>`).join('');
+    }
+
+    function toggleAddPanel() {
+      const p = document.getElementById('addPanel');
+      p.style.display = p.style.display === 'none' ? '' : 'none';
+    }
+
+    async function saveOverride() {
+      const loc = parseInt(document.getElementById('ovLoc').value);
+      const prod = parseInt(document.getElementById('ovProd').value);
+      const price = parseFloat(document.getElementById('ovPrice').value);
+      const note = document.getElementById('ovNote').value;
+      if (!loc || !prod || isNaN(price)) return alert('Location, product and price are required.');
+      await api('/api/pricing/overrides', { method: 'POST', body: JSON.stringify({ location_id: loc, product_id: prod, price, note }) });
+      document.getElementById('addPanel').style.display = 'none';
+      document.getElementById('ovPrice').value = '';
+      document.getElementById('ovNote').value = '';
+      await init();
+    }
+
+    async function deleteOverride(locId, prodId) {
+      if (!confirm('Remove this price override?')) return;
+      await api('/api/pricing/overrides', { method: 'DELETE', body: JSON.stringify({ location_id: locId, product_id: prodId }) });
+      await init();
+    }
+
+    async function loadPreview() {
+      const locId = document.getElementById('previewLoc').value;
+      if (!locId) return;
+      const data = await api(`/api/pricing/location/${locId}`);
+      const tier = data.pricing_tier || 'standard';
+      const tierLabel = tier === 'premium' ? '💎 Premium' : tier === 'budget' ? '💙 Budget' : '📦 Standard';
+      document.getElementById('previewTierBadge').innerHTML =
+        `<span class="badge ${tier === 'premium' ? 'badge-purple' : tier === 'budget' ? 'badge-success' : 'badge-muted'}">${tierLabel}</span>`;
+
+      document.getElementById('previewBody').innerHTML = (data.prices || []).map(p => {
+        const margin = p.price && p.cost_price ? Math.round(((p.price - p.cost_price) / p.price) * 100) : 0;
+        const srcClass = p.source === 'override' ? 'override' : p.source === 'premium' ? 'premium' : p.source === 'budget' ? 'budget' : '';
+        const srcLabel = p.source === 'override' ? '⚡ override' : p.source === 'premium' ? '💎 premium' : p.source === 'budget' ? '💙 budget' : '📦 standard';
+        return `<tr>
+          <td><strong>${p.product_name}</strong></td>
+          <td class="mono muted">$${(p.cost_price || 0).toFixed(2)}</td>
+          <td class="mono muted">$${(p.standard_price || 0).toFixed(2)}</td>
+          <td class="mono"><strong ${p.source !== 'standard' && p.source !== 'standard_fallback' ? 'style="color:var(--warn)"' : ''}>$${(p.price || 0).toFixed(2)}</strong></td>
+          <td><span class="source-tag ${srcClass}">${srcLabel}</span></td>
+          <td>${marginBadge(margin)}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    init();
+  </script>
 </body>
 </html>
