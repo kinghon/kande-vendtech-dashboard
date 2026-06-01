@@ -785,6 +785,7 @@
       <button class="tab-btn" data-tab="spoilage" onclick="switchTab('spoilage', this)">🗑️ Spoilage</button>
       <button class="tab-btn" data-tab="pulllist" onclick="switchTab('pulllist', this)">❌ Pull List</button>
       <button class="tab-btn" data-tab="picklist" onclick="switchTab('picklist', this)">📋 Pick List</button>
+      <button class="tab-btn" data-tab="pricing" onclick="switchTab('pricing', this); loadPricingTab()">💰 Pricing</button>
     </div>
 
     <!-- Inventory Tab -->
@@ -1172,6 +1173,132 @@
     <div id="picklistGrid"></div>
     <div id="picklistEmpty" style="display:none;text-align:center;padding:40px;color:var(--muted);">📋 No pick lists yet. Create one to get started.</div>
   </div>
+
+  <!-- ===== PRICING TAB ===== -->
+  <div id="tab-pricing" class="tab-content" style="display:none;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <div style="font-size:0.85rem;color:var(--muted)">Set tier prices per product, assign location tiers, and manage location-specific overrides.</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-primary" onclick="savePricingTiers()">💾 Save Tier Prices</button>
+        <span id="pricingSaveNotice" style="font-size:0.8rem;display:none"></span>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;">
+      <div class="stat-card"><div class="value accent" id="pstat-products">—</div><div class="label">Products</div></div>
+      <div class="stat-card"><div class="value" id="pstat-standard">—</div><div class="label">Standard Locs</div></div>
+      <div class="stat-card"><div class="value purple" id="pstat-premium">—</div><div class="label">Premium Locs</div></div>
+      <div class="stat-card"><div class="value accent" id="pstat-budget">—</div><div class="label">Budget Locs</div></div>
+      <div class="stat-card"><div class="value warn" id="pstat-overrides">—</div><div class="label">Overrides</div></div>
+    </div>
+
+    <!-- Sub-tabs -->
+    <div class="tab-bar" style="margin-bottom:16px;">
+      <button class="tab-btn active" id="ptab-btn-tiers" onclick="showPricingSubtab('tiers',this)">📦 Product Tier Prices</button>
+      <button class="tab-btn" id="ptab-btn-locations" onclick="showPricingSubtab('locations',this)">📍 Location Tiers</button>
+      <button class="tab-btn" id="ptab-btn-overrides" onclick="showPricingSubtab('overrides',this)">⚡ Overrides</button>
+      <button class="tab-btn" id="ptab-btn-preview" onclick="showPricingSubtab('preview',this)">👁 Preview</button>
+    </div>
+
+    <!-- Product Tier Prices -->
+    <div id="ptab-tiers">
+      <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
+        <input type="text" placeholder="Search products..." style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;width:240px;" oninput="renderPricingProducts(this.value)">
+        <span style="font-size:0.8rem;color:var(--muted)">Standard = current sell price. Enter Premium &amp; Budget prices, then save.</span>
+      </div>
+      <div class="table-container">
+        <table class="data-table" style="min-width:700px;">
+          <thead><tr>
+            <th style="text-align:left">Product</th>
+            <th>Unit Cost</th>
+            <th>Standard</th>
+            <th>Premium Price</th>
+            <th>Budget Price</th>
+            <th>Margin</th>
+            <th>Overrides</th>
+          </tr></thead>
+          <tbody id="ptierBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Location Tiers -->
+    <div id="ptab-locations" style="display:none">
+      <div style="margin-bottom:14px;">
+        <input type="text" placeholder="Search locations..." style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;width:240px;" oninput="renderPricingLocations(this.value)">
+      </div>
+      <div class="table-container">
+        <table class="data-table" style="min-width:500px;">
+          <thead><tr>
+            <th style="text-align:left">Location</th>
+            <th style="text-align:left">Type</th>
+            <th>Pricing Tier</th>
+            <th>Overrides</th>
+          </tr></thead>
+          <tbody id="plocBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Overrides -->
+    <div id="ptab-overrides" style="display:none">
+      <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
+        <select id="povLocFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;" onchange="renderPricingOverrides()"><option value="">All locations</option></select>
+        <button class="btn btn-primary btn-sm" onclick="togglePricingAddPanel()">+ Add Override</button>
+      </div>
+      <div id="povAddPanel" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;max-width:480px;margin-bottom:16px;">
+        <div style="font-weight:700;margin-bottom:12px;font-size:0.9rem;">Add Price Override</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <select id="povLoc" style="padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;"><option value="">Select location...</option></select>
+          <select id="povProd" style="padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;"><option value="">Select product...</option></select>
+          <input type="number" id="povPrice" step="0.05" placeholder="Override price (e.g. 2.50)" style="padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;">
+          <input type="text" id="povNote" placeholder="Note (e.g. Negotiated rate)" style="padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;">
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary btn-sm" onclick="savePricingOverride()">Save</button>
+            <button class="btn btn-sm" onclick="togglePricingAddPanel()">Cancel</button>
+          </div>
+        </div>
+      </div>
+      <div class="table-container">
+        <table class="data-table" style="min-width:700px;">
+          <thead><tr>
+            <th style="text-align:left">Location</th>
+            <th style="text-align:left">Product</th>
+            <th>Standard</th>
+            <th>Override</th>
+            <th>Diff</th>
+            <th style="text-align:left">Note</th>
+            <th>Updated</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="povBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Preview -->
+    <div id="ptab-preview" style="display:none">
+      <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap;">
+        <select id="ppreviewLoc" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;" onchange="loadPricingPreview()"><option value="">Select location to preview...</option></select>
+        <span id="ppreviewBadge"></span>
+      </div>
+      <div class="table-container">
+        <table class="data-table" style="min-width:600px;">
+          <thead><tr>
+            <th style="text-align:left">Product</th>
+            <th>Cost</th>
+            <th>Standard</th>
+            <th>Effective Price</th>
+            <th>Source</th>
+            <th>Margin</th>
+          </tr></thead>
+          <tbody id="ppreviewBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <!-- ===== END PRICING TAB ===== -->
 
   <!-- Pick List Modal -->
   <div class="modal-overlay" id="picklistModal" style="align-items:center;justify-content:center;">
@@ -4611,6 +4738,217 @@
   }
 
   document.getElementById('plTemplateModal')?.addEventListener('click', e => { if (e.target.id==='plTemplateModal') e.target.style.display='none'; });
+</script>
+<script>
+// ===== PRICING TAB =====
+let pricingData = { products: [], locations: [], overrides: [], tierEdits: {}, loaded: false };
+
+async function loadPricingTab() {
+  if (pricingData.loaded) return;
+  const [summary, locs, ovs] = await Promise.all([
+    fetch('/api/pricing/summary').then(r => r.json()),
+    fetch('/api/locations').then(r => r.json()),
+    fetch('/api/pricing/overrides').then(r => r.json())
+  ]);
+  pricingData.products = summary.products || [];
+  pricingData.locations = locs || [];
+  pricingData.overrides = ovs || [];
+  pricingData.loaded = true;
+  const tiers = summary.location_tiers || {};
+  document.getElementById('pstat-products').textContent = pricingData.products.length;
+  document.getElementById('pstat-standard').textContent = (tiers.standard || 0) + (tiers.unset || 0);
+  document.getElementById('pstat-premium').textContent = tiers.premium || 0;
+  document.getElementById('pstat-budget').textContent = tiers.budget || 0;
+  document.getElementById('pstat-overrides').textContent = summary.total_overrides || 0;
+  renderPricingProducts();
+  renderPricingLocations();
+  renderPricingOverrides();
+  populatePricingSelects();
+}
+
+async function reloadPricingTab() {
+  pricingData.loaded = false;
+  await loadPricingTab();
+}
+
+function showPricingSubtab(name, btn) {
+  ['tiers','locations','overrides','preview'].forEach(t => {
+    document.getElementById('ptab-' + t).style.display = 'none';
+    const b = document.getElementById('ptab-btn-' + t);
+    if (b) b.classList.remove('active');
+  });
+  document.getElementById('ptab-' + name).style.display = '';
+  btn.classList.add('active');
+}
+
+function pMarginBadge(m) {
+  const cls = m >= 50 ? 'badge-success' : m >= 30 ? 'badge-warn' : 'badge-danger';
+  return `<span class="badge ${cls}">${m}%</span>`;
+}
+
+function renderPricingProducts(filter = '') {
+  const f = filter.toLowerCase();
+  const rows = pricingData.products
+    .filter(p => p.name.toLowerCase().includes(f))
+    .map(p => {
+      const prem = pricingData.tierEdits[p.id]?.premium ?? p.premium ?? '';
+      const budg = pricingData.tierEdits[p.id]?.budget ?? p.budget ?? '';
+      const oc = p.override_count || 0;
+      return `<tr>
+        <td style="text-align:left"><strong>${p.name}</strong></td>
+        <td style="text-align:center;font-family:monospace;color:var(--muted)">$${(p.cost_price||0).toFixed(2)}</td>
+        <td style="text-align:center;font-family:monospace"><strong>$${(p.standard||0).toFixed(2)}</strong></td>
+        <td style="text-align:center">
+          <input type="number" step="0.05" value="${prem}" placeholder="$${((p.standard||0)*1.18).toFixed(2)}"
+            style="width:90px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;font-family:monospace;text-align:right;"
+            onchange="pricingData.tierEdits[${p.id}]=pricingData.tierEdits[${p.id}]||{};pricingData.tierEdits[${p.id}].premium=parseFloat(this.value)||null">
+        </td>
+        <td style="text-align:center">
+          <input type="number" step="0.05" value="${budg}" placeholder="$${((p.standard||0)*0.9).toFixed(2)}"
+            style="width:90px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;font-family:monospace;text-align:right;"
+            onchange="pricingData.tierEdits[${p.id}]=pricingData.tierEdits[${p.id}]||{};pricingData.tierEdits[${p.id}].budget=parseFloat(this.value)||null">
+        </td>
+        <td style="text-align:center">${pMarginBadge(p.margin_standard)}</td>
+        <td style="text-align:center">${oc > 0 ? `<span class="badge badge-warn">${oc}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+      </tr>`;
+    }).join('');
+  document.getElementById('ptierBody').innerHTML = rows ||
+    '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No products</td></tr>';
+}
+
+async function savePricingTiers() {
+  const notice = document.getElementById('pricingSaveNotice');
+  notice.style.display = ''; notice.style.color = 'var(--muted)'; notice.textContent = 'Saving...';
+  let saved = 0, errs = 0;
+  for (const [id, prices] of Object.entries(pricingData.tierEdits)) {
+    const body = {};
+    if (prices.premium != null) body.premium = prices.premium;
+    if (prices.budget != null) body.budget = prices.budget;
+    if (!Object.keys(body).length) continue;
+    const r = await fetch(`/api/pricing/tiers/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }).then(r=>r.json());
+    r.id ? saved++ : errs++;
+  }
+  pricingData.tierEdits = {};
+  notice.textContent = errs === 0 ? `✓ Saved ${saved} product(s)` : `⚠ ${saved} saved, ${errs} errors`;
+  notice.style.color = errs === 0 ? 'var(--success)' : 'var(--hot)';
+  setTimeout(() => { notice.style.display = 'none'; }, 3000);
+  await reloadPricingTab();
+}
+
+function renderPricingLocations(filter = '') {
+  const f = filter.toLowerCase();
+  const rows = pricingData.locations
+    .filter(l => l.name && l.name.toLowerCase().includes(f))
+    .map(l => {
+      const tier = l.pricing_tier || 'standard';
+      const oc = pricingData.overrides.filter(o => o.location_id === l.id).length;
+      return `<tr>
+        <td style="text-align:left"><strong>${l.name}</strong></td>
+        <td style="text-align:left;color:var(--muted);font-size:0.8rem">${l.type||'—'}</td>
+        <td style="text-align:center">
+          <select style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;" onchange="setPricingLocationTier(${l.id},this.value)">
+            <option value="standard" ${tier==='standard'?'selected':''}>📦 Standard</option>
+            <option value="premium" ${tier==='premium'?'selected':''}>💎 Premium</option>
+            <option value="budget" ${tier==='budget'?'selected':''}>💙 Budget</option>
+          </select>
+        </td>
+        <td style="text-align:center">${oc>0?`<span class="badge badge-warn">${oc} override${oc>1?'s':''}</span>`:'<span style="color:var(--muted)">—</span>'}</td>
+      </tr>`;
+    }).join('');
+  document.getElementById('plocBody').innerHTML = rows ||
+    '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted)">No locations</td></tr>';
+}
+
+async function setPricingLocationTier(locId, tier) {
+  await fetch(`/api/pricing/location/${locId}/tier`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({tier}) });
+  const l = pricingData.locations.find(x => x.id === locId);
+  if (l) l.pricing_tier = tier;
+  await reloadPricingTab();
+}
+
+function renderPricingOverrides() {
+  const filterVal = parseInt(document.getElementById('povLocFilter').value) || null;
+  let ovs = filterVal ? pricingData.overrides.filter(o => o.location_id === filterVal) : pricingData.overrides;
+  if (!ovs.length) {
+    document.getElementById('povBody').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--muted)">No overrides yet.</td></tr>';
+    return;
+  }
+  document.getElementById('povBody').innerHTML = ovs.map(o => {
+    const std = pricingData.products.find(p => p.id === o.product_id)?.standard || 0;
+    const diff = o.price - std;
+    const diffStr = diff === 0 ? '—' : diff > 0 ? `<span style="color:var(--warn)">+$${diff.toFixed(2)}</span>` : `<span style="color:var(--success)">-$${Math.abs(diff).toFixed(2)}</span>`;
+    return `<tr>
+      <td style="text-align:left"><strong>${o.location_name}</strong></td>
+      <td style="text-align:left">${o.product_name}</td>
+      <td style="text-align:center;font-family:monospace;color:var(--muted)">$${std.toFixed(2)}</td>
+      <td style="text-align:center;font-family:monospace;color:var(--warn)"><strong>$${o.price.toFixed(2)}</strong></td>
+      <td style="text-align:center">${diffStr}</td>
+      <td style="color:var(--muted);font-size:0.8rem">${o.note||'—'}</td>
+      <td style="text-align:center;color:var(--muted);font-size:0.75rem">${o.updated_at?new Date(o.updated_at).toLocaleDateString():'—'}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deletePricingOverride(${o.location_id},${o.product_id})">Remove</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function populatePricingSelects() {
+  const locs = [...pricingData.locations].sort((a,b)=>a.name.localeCompare(b.name));
+  const prods = [...pricingData.products].sort((a,b)=>a.name.localeCompare(b.name));
+  const locOpts = locs.map(l=>`<option value="${l.id}">${l.name}</option>`).join('');
+  const prodOpts = prods.map(p=>`<option value="${p.id}">${p.name} (std $${(p.standard||0).toFixed(2)})</option>`).join('');
+  document.getElementById('povLocFilter').innerHTML = '<option value="">All locations</option>' + locOpts;
+  document.getElementById('povLoc').innerHTML = '<option value="">Select location...</option>' + locOpts;
+  document.getElementById('povProd').innerHTML = '<option value="">Select product...</option>' + prodOpts;
+  document.getElementById('ppreviewLoc').innerHTML = '<option value="">Select location to preview...</option>' +
+    locs.map(l=>`<option value="${l.id}">${l.name} [${l.pricing_tier||'standard'}]</option>`).join('');
+}
+
+function togglePricingAddPanel() {
+  const p = document.getElementById('povAddPanel');
+  p.style.display = p.style.display === 'none' ? '' : 'none';
+}
+
+async function savePricingOverride() {
+  const loc = parseInt(document.getElementById('povLoc').value);
+  const prod = parseInt(document.getElementById('povProd').value);
+  const price = parseFloat(document.getElementById('povPrice').value);
+  const note = document.getElementById('povNote').value;
+  if (!loc || !prod || isNaN(price)) return alert('Location, product and price required.');
+  await fetch('/api/pricing/overrides', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({location_id:loc,product_id:prod,price,note}) });
+  document.getElementById('povAddPanel').style.display = 'none';
+  document.getElementById('povPrice').value = '';
+  document.getElementById('povNote').value = '';
+  await reloadPricingTab();
+}
+
+async function deletePricingOverride(locId, prodId) {
+  if (!confirm('Remove this override?')) return;
+  await fetch('/api/pricing/overrides', { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({location_id:locId,product_id:prodId}) });
+  await reloadPricingTab();
+}
+
+async function loadPricingPreview() {
+  const locId = document.getElementById('ppreviewLoc').value;
+  if (!locId) return;
+  const data = await fetch(`/api/pricing/location/${locId}`).then(r=>r.json());
+  const tier = data.pricing_tier || 'standard';
+  const tierLabel = tier==='premium'?'💎 Premium':tier==='budget'?'💙 Budget':'📦 Standard';
+  const badgeCls = tier==='premium'?'badge-purple':tier==='budget'?'badge-success':'badge-muted';
+  document.getElementById('ppreviewBadge').innerHTML = `<span class="badge ${badgeCls}">${tierLabel}</span>`;
+  document.getElementById('ppreviewBody').innerHTML = (data.prices||[]).map(p => {
+    const margin = p.price && p.cost_price ? Math.round(((p.price - p.cost_price)/p.price)*100) : 0;
+    const srcLabel = p.source==='override'?'⚡ override':p.source==='premium'?'💎 premium':p.source==='budget'?'📘 budget':'📦 standard';
+    const priceStyle = (p.source !== 'standard' && p.source !== 'standard_fallback') ? 'color:var(--warn)' : '';
+    return `<tr>
+      <td style="text-align:left"><strong>${p.product_name}</strong></td>
+      <td style="text-align:center;font-family:monospace;color:var(--muted)">$${(p.cost_price||0).toFixed(2)}</td>
+      <td style="text-align:center;font-family:monospace;color:var(--muted)">$${(p.standard_price||0).toFixed(2)}</td>
+      <td style="text-align:center;font-family:monospace"><strong style="${priceStyle}">$${(p.price||0).toFixed(2)}</strong></td>
+      <td style="text-align:center;font-size:0.78rem;color:var(--muted)">${srcLabel}</td>
+      <td style="text-align:center">${pMarginBadge(margin)}</td>
+    </tr>`;
+  }).join('');
+}
+// ===== END PRICING TAB =====
 </script>
 </body>
 </html>
