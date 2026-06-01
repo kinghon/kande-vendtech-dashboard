@@ -94,16 +94,16 @@
     .prospect-card.intalks { border-left: 4px solid var(--intalks); }
     .prospect-card.warm { border-left: 4px solid var(--warm); }
     .prospect-card.opening-soon { border-left: 4px solid #38b2ac; background: rgba(56,178,172,0.08); }
-    .prospect-card.stale { border-left: 4px solid var(--hot); background: rgba(229,62,62,0.08); opacity: 0.85; }
+    .prospect-card.stale { border-left: 4px solid #a0aec0; background: rgba(160,174,192,0.06); opacity: 0.85; }
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
     .prospect-card.expanded { border-color: var(--accent); cursor: default; }
 
-    .prospect-summary { padding: 16px; }
-    .prospect-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 8px; flex-wrap: wrap; }
+    .prospect-summary { padding: 8px 12px; }
+    .prospect-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; gap: 6px; flex-wrap: wrap; }
     .prospect-name { flex: 1; min-width: 60%; }
     .contact-field-label { display: none; padding-left: 2px; }
     .contact-field { gap: 2px; }
-    .prospect-name { font-size: 1.1rem; font-weight: 600; }
+    .prospect-name { font-size: 0.9rem; font-weight: 600; }
     .prospect-badge {
       padding: 4px 10px; border-radius: 12px; font-size: 0.7rem;
       font-weight: 600; text-transform: uppercase;
@@ -137,7 +137,7 @@
     .legend-dot { width: 6px; height: 6px; border-radius: 50%; }
     .address-link { color: var(--accent); text-decoration: none; }
     .address-link:hover { text-decoration: underline; }
-    .prospect-meta { font-size: 0.85rem; color: var(--muted); }
+    .prospect-meta { font-size: 0.75rem; color: var(--muted); }
 
     /* Route Planner */
     .route-planner-section { background: var(--card); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 16px; overflow: visible; }
@@ -1255,7 +1255,8 @@
               <span class="saved-indicator" id="saved-${p.id}">✓ Saved</span>
               <div class="badge-row" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                 ${p.management_company ? `<span style="font-size:0.7rem;font-weight:600;color:#6b7280;background:rgba(107,114,128,0.1);padding:2px 8px;border-radius:4px;border:1px solid rgba(107,114,128,0.2);">🏢 ${esc(p.management_company)}</span>` : ''}
-                <select class="status-select" onclick="event.stopPropagation()" onchange="setStatus(${p.id}, this.value)" style="padding:4px 10px;border-radius:12px;font-size:0.7rem;font-weight:700;cursor:pointer;border:none;background:${p.priority === 'hot' ? 'rgba(229,62,62,0.15)' : p.priority === 'intalks' ? 'rgba(139,92,246,0.15)' : p.priority === 'warm' ? 'rgba(234,179,8,0.15)' : 'rgba(49,130,206,0.15)'};color:${p.priority === 'hot' ? 'var(--hot)' : p.priority === 'intalks' ? 'var(--intalks)' : p.priority === 'warm' ? 'var(--warm)' : 'var(--accent)'};">
+                ${(p.status === 'signed') ? `<span style="padding:4px 10px;border-radius:12px;font-size:0.7rem;font-weight:700;background:rgba(56,161,105,0.15);color:var(--success);">✅ Signed</span>` : (p.status === 'closed') ? `<span style="padding:4px 10px;border-radius:12px;font-size:0.7rem;font-weight:700;background:rgba(160,174,192,0.15);color:#718096;">⛔ Stale</span>` : ''}
+                <select class="status-select" onclick="event.stopPropagation()" onchange="setStatus(${p.id}, this.value)" style="padding:4px 10px;border-radius:12px;font-size:0.7rem;font-weight:700;cursor:pointer;border:none;display:${(p.status === 'signed' || p.status === 'closed') ? 'none' : 'inline-block'};background:${p.priority === 'hot' ? 'rgba(229,62,62,0.15)' : p.priority === 'intalks' ? 'rgba(139,92,246,0.15)' : p.priority === 'warm' ? 'rgba(234,179,8,0.15)' : 'rgba(49,130,206,0.15)'};color:${p.priority === 'hot' ? 'var(--hot)' : p.priority === 'intalks' ? 'var(--intalks)' : p.priority === 'warm' ? 'var(--warm)' : 'var(--accent)'};">
                   <option value="hot" ${p.priority === 'hot' ? 'selected' : ''}>🔥 HOT</option>
                   <option value="intalks" ${p.priority === 'intalks' ? 'selected' : ''}>💬 IN TALKS</option>
                   <option value="warm" ${p.priority === 'warm' ? 'selected' : ''}>🟡 WARM</option>
@@ -1283,9 +1284,9 @@
               ${p.address ? ' • <a href="https://www.google.com/maps/search/' + encodeURIComponent(p.address) + '" target="_blank" class="address-link" onclick="event.stopPropagation()">📍 ' + p.address + '</a>' : ''}
               ${p.subsidy_amount ? ' • <span style="color:#276749;font-weight:600;">💰 $' + parseFloat(p.subsidy_amount).toFixed(2) + '/mo subsidy</span>' : ''}</span>
             </div>
-            ${filterBoxActivities(p.activities).length ? `<div style="display:flex;justify-content:flex-start;gap:4px;flex-wrap:wrap;margin-top:6px;">
-              ${groupActivitiesByDate(filterBoxActivities(p.activities)).slice(0, 8).map(([date, acts]) => `<span onclick="event.stopPropagation(); showActivityPopup(${p.id}, '${date}')" style="cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;min-width:54px;height:54px;border-radius:8px;font-size:0.7rem;background:rgba(49,130,206,0.08);color:var(--accent);border:1px solid rgba(49,130,206,0.15);transition:all 0.15s;" onmouseover="this.style.background='rgba(49,130,206,0.15)'" onmouseout="this.style.background='rgba(49,130,206,0.08)'"><span style="font-size:16px;">${acts.map(a => actIcon(a.type)).join('')}</span><span style="opacity:0.7;font-size:0.65rem;">${date}</span></span>`).join('')}
-              ${groupActivitiesByDate(filterBoxActivities(p.activities)).length > 8 ? `<span style="min-width:54px;height:54px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;color:var(--muted);background:var(--bg);border:1px solid var(--border);">+${groupActivitiesByDate(filterBoxActivities(p.activities)).length - 8}</span>` : ''}
+            ${filterBoxActivities(p.activities).length ? `<div style="display:flex;justify-content:flex-start;gap:3px;flex-wrap:wrap;margin-top:3px;">
+              ${groupActivitiesByDate(filterBoxActivities(p.activities)).slice(0, 8).map(([date, acts]) => `<span onclick="event.stopPropagation(); showActivityPopup(${p.id}, '${date}')" style="cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;min-width:36px;height:36px;border-radius:6px;font-size:0.6rem;background:rgba(49,130,206,0.08);color:var(--accent);border:1px solid rgba(49,130,206,0.15);transition:all 0.15s;" onmouseover="this.style.background='rgba(49,130,206,0.15)'" onmouseout="this.style.background='rgba(49,130,206,0.08)'"><span style="font-size:11px;">${acts.map(a => actIcon(a.type)).join('')}</span><span style="opacity:0.7;font-size:0.55rem;">${date}</span></span>`).join('')}
+              ${groupActivitiesByDate(filterBoxActivities(p.activities)).length > 8 ? `<span style="min-width:36px;height:36px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;color:var(--muted);background:var(--bg);border:1px solid var(--border);">+${groupActivitiesByDate(filterBoxActivities(p.activities)).length - 8}</span>` : ''}
             </div>` : ''}
             ${(p.contacts?.length || p.primary_contact) ? `<div style="margin-top:4px;font-size:0.85rem;">
               ${p.contacts?.length ? p.contacts.map(c => `<span style="color:var(--text);">${c.is_primary ? '⭐ ' : ''}${titleCase(c.name)}</span>${c.phone ? ' <a href="tel:' + c.phone + '" style="color:var(--accent);font-size:0.8rem;" onclick="event.stopPropagation()">' + c.phone + '</a>' : ''}${c.email ? ' <a href="mailto:' + c.email + '" style="color:var(--accent);font-size:0.8rem;" onclick="event.stopPropagation()">' + c.email + '</a>' : ''}`).join(' · ') : titleCase(p.primary_contact || '')}
