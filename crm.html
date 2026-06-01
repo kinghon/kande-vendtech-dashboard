@@ -491,7 +491,7 @@
         <option value="other">📦 Other</option>
       </select>
       <select id="sortSelect" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:0.9rem;cursor:pointer;" onchange="currentSort=this.value;renderProspects()">
-        <option value="default">Sort: Priority</option>
+        <option value="default">Sort: Next Follow Up</option>
         <option value="mgmt_company">Sort: Mgmt Company</option>
         <option value="name">Sort: Name A-Z</option>
         <option value="newest">Sort: Newest</option>
@@ -1230,7 +1230,13 @@
           if (currentSort === 'newest') {
             return new Date(b.created_at) - new Date(a.created_at);
           }
-          // default: priority order
+          // default: soonest follow-up date first, no date goes to bottom
+          const aDate = a.next_action_date || a.follow_up_date || '';
+          const bDate = b.next_action_date || b.follow_up_date || '';
+          if (aDate && !bDate) return -1;
+          if (!aDate && bDate) return 1;
+          if (aDate && bDate) return aDate.localeCompare(bDate);
+          // Both no date: fall back to priority
           const priorityOrder = { hot: 1, intalks: 2, warm: 3, normal: 4 };
           return (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4);
         });
