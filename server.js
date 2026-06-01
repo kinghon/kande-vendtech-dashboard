@@ -587,6 +587,9 @@ app.get('/api/prospects/staging', (req, res) => {
 });
 
 app.get('/api/prospects', (req, res) => {
+  // Allow programmatic access via hardcoded API key (same pattern as /api/maps/discover)
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey && apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
   const includeStaging = req.query.include_staging === 'true';
   const allProspects = includeStaging
     ? db.prospects
