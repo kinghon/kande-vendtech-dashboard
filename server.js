@@ -29514,6 +29514,64 @@ app.post('/api/maps/place-photos', express.json(), async (req, res) => {
   }
 });
 
+// -- POST /api/maps/visual-audit — Get both place photos + street view for a location --
+app.post('/api/maps/visual-audit', express.json(), async (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+    if (!GOOGLE_PLACES_API_KEY) return res.status(503).json({ error: 'GOOGLE_PLACES_API_KEY not configured' });
+
+    const { placeId, lat, lng, maxPhotos = 4 } = req.body || {};
+    if (!placeId && !(lat && lng)) return res.status(400).json({ error: 'placeId or lat/lng required' });
+
+    const results = { placePhotos: [], streetViewUrl: null, streetViewAvailable: false };
+
+    // 1. Place photos from Google Places API
+    if (placeId) {
+      try {
+        const placeRes = await fetch(`${PLACES_BASE}/places/${placeId}?fields=photos`, {
+          headers: { 'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY, 'X-Goog-FieldMask': 'photos' }
+        });
+        const placeData = await placeRes.json();
+        const photos = (placeData.photos || []).slice(0, maxPhotos);
+        for (const photo of photos) {
+          const mediaUrl = `${PLACES_BASE}/${photo.name}/media?key=${GOOGLE_PLACES_API_KEY}&maxHeightPx=800&maxWidthPx=800&skipHttpRedirect=true`;
+          const mediaRes = await fetch(mediaUrl);
+          const mediaData = await mediaRes.json();
+          if (mediaData.photoUri) results.placePhotos.push(mediaData.photoUri);
+        }
+      } catch (e) { console.error('Place photos error:', e.message); }
+    }
+
+    // 2. Street View Static API — check availability then get image URL
+    const location = (lat && lng) ? `${lat},${lng}` : null;
+    if (location) {
+      try {
+        // Check if street view is available at this location
+        const metaUrl = `https://maps.googleapis.com/maps/api/streetview/metadata?location=${location}&key=${GOOGLE_PLACES_API_KEY}`;
+        const metaRes = await fetch(metaUrl);
+        const meta = await metaRes.json();
+        if (meta.status === 'OK') {
+          results.streetViewAvailable = true;
+          // Return multiple headings for better coverage
+          results.streetViewUrls = [0, 90, 180].map(heading =>
+            `https://maps.googleapis.com/maps/api/streetview?size=800x600&location=${location}&fov=90&heading=${heading}&pitch=0&key=${GOOGLE_PLACES_API_KEY}`
+          );
+          results.streetViewUrl = results.streetViewUrls[0];
+        } else {
+          results.streetViewAvailable = false;
+          results.streetViewStatus = meta.status;
+        }
+      } catch (e) { console.error('Street view error:', e.message); }
+    }
+
+    res.json({ ok: true, placeId, location, ...results });
+  } catch (err) {
+    console.error('Visual audit error:', err.message);
+    res.status(500).json({ error: 'Visual audit failed', details: err.message });
+  }
+});
+
 // -- Maps Lead Scoring --
 
 // Score a prospect/place based on Maps signals (0-100)
