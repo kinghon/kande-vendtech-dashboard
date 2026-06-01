@@ -496,6 +496,7 @@
         <option value="mgmt_company">Sort: Mgmt Company</option>
         <option value="name">Sort: Name A-Z</option>
         <option value="newest">Sort: Newest</option>
+        <option value="last_interaction">Sort: Last Interaction (New to Old)</option>
       </select>
       <input type="text" class="search-input" id="search" placeholder="Search prospects...">
     </div>
@@ -1238,6 +1239,18 @@
           }
           if (currentSort === 'newest') {
             return new Date(b.created_at) - new Date(a.created_at);
+          }
+          if (currentSort === 'last_interaction') {
+            const getLastInt = p => {
+              const acts = (p.activities||[]).filter(a=>['pop-in','call','email','meeting','note'].includes(a.type));
+              const emails = (p.email_tracking||[]).map(e=>e.last_event_at||e.sent_at).filter(Boolean);
+              const all = [...acts.map(a=>a.created_at||a.date||''), ...emails].filter(Boolean).sort().reverse();
+              return all[0] || '';
+            };
+            const aLast = getLastInt(a), bLast = getLastInt(b);
+            if (aLast && !bLast) return -1;
+            if (!aLast && bLast) return 1;
+            return bLast.localeCompare(aLast);
           }
           // default: soonest FUTURE follow-up date first, then by priority
           const today = new Date().toISOString().split('T')[0];
