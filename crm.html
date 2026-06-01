@@ -94,6 +94,7 @@
     .prospect-card.intalks { border-left: 4px solid var(--intalks); }
     .prospect-card.warm { border-left: 4px solid var(--warm); }
     .prospect-card.opening-soon { border-left: 4px solid #38b2ac; background: rgba(56,178,172,0.08); }
+    .prospect-card.signed { background: rgba(56,161,105,0.08); border-left: 4px solid var(--success); }
     .prospect-card.stale { border-left: 4px solid #a0aec0; background: rgba(160,174,192,0.06); opacity: 0.85; }
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
     .prospect-card.expanded { border-color: var(--accent); cursor: default; }
@@ -472,14 +473,14 @@
     <div class="filters">
       <button class="filter-btn active" data-filter="all">All</button>
       <button class="filter-btn" data-filter="hot">🔥 Hot</button>
-      <button class="filter-btn" data-filter="intalks">💬 In Talks</button>
+      
       <button class="filter-btn" data-filter="warm">🟠 Warm</button>
       <button class="filter-btn" data-filter="new">🆕 New</button>
       <button class="filter-btn" data-filter="opening_soon">🏗️ Opening Soon</button>
       <button class="filter-btn" data-filter="signed">✅ Signed</button>
       <button class="filter-btn" data-filter="closed">⛔ Stale</button>
       <button class="filter-btn" data-filter="followup">📋 Needs Action</button>
-      <button class="filter-btn" data-filter="reopened" style="border-color:var(--hot);">📬 Re-opened</button>
+      
       <button class="filter-btn" data-filter="newlyadded">✨ Newly Added</button>
       <select id="typeFilter" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:0.9rem;cursor:pointer;">
         <option value="all">All Types</option>
@@ -1215,6 +1216,8 @@
       } else {
         filtered.sort((a, b) => {
           // Always keep closed/stale at bottom
+          if (a.status === 'signed' && b.status !== 'signed') return 1;
+          if (a.status !== 'signed' && b.status === 'signed') return -1;
           if (a.status === 'closed' && b.status !== 'closed') return 1;
           if (a.status !== 'closed' && b.status === 'closed') return -1;
           if (currentSort === 'mgmt_company') {
@@ -1252,7 +1255,7 @@
       const hasMore = paged.length < totalCount;
 
       document.getElementById('prospectList').innerHTML = paged.map(p => `
-        <div class="prospect-card ${p.priority} ${p.status === 'closed' ? 'stale' : ''} ${p.status === 'opening_soon' ? 'opening-soon' : ''} ${expandedId === p.id ? 'expanded' : ''}" id="card-${p.id}">
+        <div class="prospect-card ${p.priority} ${p.status === 'signed' ? 'signed' : ''} ${p.status === 'closed' ? 'stale' : ''} ${p.status === 'opening_soon' ? 'opening-soon' : ''} ${expandedId === p.id ? 'expanded' : ''}" id="card-${p.id}">
           <div class="prospect-summary" onclick="toggleExpand(${p.id})">
             <div class="prospect-header">
               <div class="prospect-name">${p.name}${(() => { const ro = getRecentOpens(p); if (!ro) return ''; const urgency = ro.ageDays <= 2 ? '#e53e3e' : ro.ageDays <= 5 ? '#dd6b20' : '#718096'; const callFlag = ro.totalAdjusted >= 3 && !ro.anyReplied ? ' <span style="font-size:0.7rem;font-weight:800;color:#e53e3e;background:rgba(229,62,62,0.12);padding:2px 6px;border-radius:4px;animation:pulse 2s infinite;">📞 CALL</span>' : ''; return ` <span style="font-size:0.75rem;font-weight:700;color:${urgency};">📬 ${ro.totalAdjusted} open${ro.totalAdjusted > 1 ? 's' : ''}</span>${callFlag}`; })()}${p.status === 'closed' && p.stale_reason ? ` <span style="font-size:0.8rem;color:var(--hot);">⛔ ${esc(p.stale_reason)}</span>` : ''}</div>
