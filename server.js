@@ -25857,6 +25857,67 @@ app.post('/api/sandstar/sales/batch', (req, res) => {
 });
 
 
+// POST /api/sandstar/auth — store Sandstar token from sync script
+app.post('/api/sandstar/auth', express.json(), (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+  const { token, organSn } = req.body;
+  if (!token) return res.status(400).json({ error: 'token required' });
+  db.sandstar_token = token;
+  if (organSn) db.sandstar_org = organSn;
+  saveDB(db);
+  res.json({ ok: true });
+});
+
+// GET /api/sandstar/completed-restocks — fetch completed replenishments from Sandstar ops (status=3, logged by Dennis)
+// Calls Sandstar API directly using stored auth token
+app.get('/api/sandstar/completed-restocks', async (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+
+    // Use cached Sandstar token if available, otherwise return empty
+    const token = db.sandstar_token;
+    if (!token) return res.json([]);
+
+    const MACHINES = [
+      { id: 128002, name: 'ARK 28 PRO C-2914' },
+      { id: 127763, name: 'VRK All In Aviation Academy' },
+      { id: 127761, name: 'VRK Regus 3753 Howard Hughes Pkwy' }
+    ];
+
+    const results = [];
+    for (const machine of MACHINES) {
+      // Status 3 = completed restock logged in Sandstar ops
+      for (const status of [2, 3]) {
+        const resp = await fetch('https://webapi-us.sandstar.com/goods/v2/findReplenishment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-token': token, 'app-scope': '12', 'organSn': db.sandstar_org || '001020' },
+          body: JSON.stringify({ freezerId: String(machine.id), status })
+        });
+        const data = await resp.json();
+        const d = data.data || {};
+        if (d.id && (d.createtime || d.beginTime)) {
+          results.push({
+            machine_id: machine.id,
+            machine_name: machine.name,
+            replenishment_id: d.id,
+            status: d.status,
+            date: (d.beginTime || d.createtime || '').split(' ')[0],
+            restocked_at: d.beginTime || d.createtime,
+            created_at: d.createtime,
+            items: [] // Sandstar API doesn't return item detail for completed plans
+          });
+        }
+      }
+    }
+    res.json(results);
+  } catch (err) {
+    console.error('completed-restocks error:', err.message);
+    res.json([]);
+  }
+});
+
 // GET /api/sandstar/restock-events — restock history auto-detected from inventory deltas
 app.get('/api/sandstar/restock-events', (req, res) => {
   let events = db.sandstar_restock_events || [];

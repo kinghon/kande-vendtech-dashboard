@@ -4961,12 +4961,30 @@ async function loadRestockHistory() {
   if (rhData.loaded) return;
   document.getElementById('rhBody').innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted)">Loading restock history...</div>';
 
-  // Primary source: Sandstar inventory delta detection
+  // Source 1: Sandstar completed replenishments (status=3, logged by Dennis in ops site)
+  const sandstarRestocks = await fetch('/api/sandstar/completed-restocks').then(r=>r.json()).catch(()=>[]);
+
+  // Source 2: Inventory delta events (auto-detected going forward)
   const restockData = await fetch('/api/sandstar/restock-events').then(r=>r.json()).catch(()=>({grouped:[],events:[]}));
-  const grouped = restockData.grouped || [];
+  const deltaGrouped = restockData.grouped || [];
+
+  // Merge both sources
+  const allGrouped = [
+    ...sandstarRestocks.map(r => ({
+      machine_id: r.machine_id,
+      machine_name: r.machine_name,
+      date: r.date,
+      restocked_at: r.restocked_at,
+      source: 'sandstar-ops',
+      items: r.items || []
+    })),
+    ...deltaGrouped.map(g => ({ ...g, source: 'auto-detected' }))
+  ].sort((a, b) => new Date(b.restocked_at) - new Date(a.restocked_at));
+
+  const grouped = allGrouped;
 
   if (!grouped.length) {
-    document.getElementById('rhBody').innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);"><div style="font-size:1.5rem;margin-bottom:8px;">📭</div>No restock history yet.<br><span style="font-size:0.8rem;">History is auto-detected when Sandstar syncs after Dennis restocks a machine.</span></div>';
+    document.getElementById('rhBody').innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);"><div style="font-size:1.5rem;margin-bottom:8px;">📭</div>No restock history yet.<br><span style="font-size:0.8rem;">Restocks logged by Dennis in the Sandstar ops site will appear here automatically.</span></div>';
     document.getElementById('rhCount').textContent = '0 restock events';
     rhData.loaded = true;
     return;
