@@ -1281,13 +1281,7 @@
                   <option value="signed" ${p.status === 'signed' ? 'selected' : ''}>🖊️ SIGNED</option>
                   <option value="stale" ${p.status === 'closed' ? 'selected' : ''}>⛔ STALE</option>
                 </select>
-                <select class="next-action-select" onclick="event.stopPropagation()" onchange="setNextAction(${p.id}, this.value)" style="padding:4px 8px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);">
-                  <option value="" selected>Set Next Followup</option>
-                  <option value="Pop In">🚶 Pop In</option>
-                  <option value="Call">📞 Call</option>
-                  <option value="Email">📧 Email</option>
-                  <option value="Other">📝 Other</option>
-                </select>
+                <button onclick="event.stopPropagation(); toggleExpand(${p.id})" style="padding:4px 12px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;border:1px solid var(--accent);background:rgba(49,130,206,0.08);color:var(--accent);">📅 Set Next Followup</button>
 
                 ${isInRoute(p.id) ? `<span style="padding:4px 10px;border-radius:6px;font-size:0.75rem;font-weight:600;background:rgba(56,161,105,0.15);color:var(--success);border:1px solid rgba(56,161,105,0.3);">✓ In Route</span>` : `<button onclick="event.stopPropagation(); addToRoute(${p.id});" style="padding:4px 10px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;border:1px solid var(--success);background:rgba(56,161,105,0.1);color:var(--success);">🗺️ + Route</button>`}
               </div>
@@ -1330,6 +1324,22 @@
 
       return `
         <div class="prospect-detail" style="display:block;">
+          <!-- Schedule Follow Up -->
+          <div style="background:rgba(49,130,206,0.05);border:1px solid rgba(49,130,206,0.2);border-radius:10px;padding:12px;margin-bottom:12px;">
+            <div style="font-size:0.8rem;font-weight:700;color:var(--accent);margin-bottom:10px;">📅 Schedule Follow Up</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+              <select id="fuType-${p.id}" onclick="event.stopPropagation()" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:0.82rem;background:var(--card);color:var(--text);">
+                <option value="Pop In">🚶 Pop In</option>
+                <option value="Call">📞 Call</option>
+                <option value="Email">📧 Email</option>
+                <option value="Meeting">📅 Meeting</option>
+                <option value="Other">📝 Other</option>
+              </select>
+              <input type="date" id="fuDate-${p.id}" onclick="event.stopPropagation()" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:0.82rem;background:var(--card);color:var(--text);" value="${p.next_action_date || ''}">
+              <button onclick="event.stopPropagation(); saveFollowUp(${p.id})" style="padding:6px 14px;border-radius:6px;font-size:0.82rem;font-weight:600;cursor:pointer;border:none;background:var(--accent);color:#fff;">Save</button>
+              ${p.next_action_date ? `<button onclick="event.stopPropagation(); clearFollowUp(${p.id})" style="padding:6px 10px;border-radius:6px;font-size:0.82rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);">Clear</button>` : ''}
+            </div>
+          </div>
           <!-- Activities -->
           <div class="activities-section">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -1513,6 +1523,27 @@
       }
       renderProspects();
       renderTodoList();
+    }
+
+    function saveFollowUp(id) {
+      const type = document.getElementById('fuType-'+id)?.value || '';
+      const date = document.getElementById('fuDate-'+id)?.value || '';
+      if (!type) return;
+      const p = prospects.find(x => x.id === id);
+      if (p) { p.next_action = type; p.next_action_date = date; p.needs_action = true; p.next_action_added = new Date().toISOString(); }
+      fetch(`/api/prospects/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ next_action: type, next_action_date: date, needs_action: true, next_action_added: new Date().toISOString() }) });
+      renderProspects();
+      expandedId = id;
+      renderProspects();
+    }
+
+    function clearFollowUp(id) {
+      const p = prospects.find(x => x.id === id);
+      if (p) { p.next_action = ''; p.next_action_date = ''; p.needs_action = false; }
+      fetch(`/api/prospects/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ next_action: '', next_action_date: '', needs_action: false }) });
+      renderProspects();
+      expandedId = id;
+      renderProspects();
     }
 
     function setNextAction(id, action) {
