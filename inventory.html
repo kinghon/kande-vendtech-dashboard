@@ -5006,24 +5006,25 @@ async function loadRestockHistory() {
   // 2. Legacy restocks (simpler — items may be in req.body.items array)
   if (Array.isArray(legacyRestocks)) {
     legacyRestocks.forEach(r => {
-      if (events.find(e => e.id === `re-${r.id}`)) return; // skip if already covered
       const itemList = Array.isArray(r.items) ? r.items : [];
       events.push({
         id: `lr-${r.id}`,
         machine_id: r.machine_id,
         machine_name: machineLookup[r.machine_id] || r.machine_name || `Machine #${r.machine_id}`,
-        date: (r.restock_date || r.created_at || '').split('T')[0],
-        datetime: r.restock_date || r.created_at,
-        items_loaded: itemList.filter(i=>(i.qty||i.qty_added||0)>0).length,
+        date: (r.scheduled_date || r.restock_date || r.created_at || '').split('T')[0],
+        datetime: r.scheduled_date || r.restock_date || r.created_at,
+        status: r.status || 'pending',
+        items_loaded: itemList.length,
         product_cost: r.total_cost || 0,
-        source: 'legacy',
+        source: r.auto_generated ? 'planned' : 'manual',
         items: itemList.map(i => ({
           name: i.product_name || i.name || '?',
+          qty_needed: i.qty_needed || i.qty || 0,
           qty_added: i.qty || i.qty_added || 0,
-          qty_removed: i.qty_removed || 0,
+          qty_current: i.qty_current || 0,
           unit_cost: i.unit_cost || i.cost || 0,
           slot: i.slot || ''
-        })).filter(i => i.qty_added > 0)
+        }))
       });
     });
   }
@@ -5100,14 +5101,25 @@ function renderRestockHistory() {
 
   const html = events.map(e => {
     const hasItems = e.items && e.items.length > 0;
-    const itemRows = hasItems ? e.items.map(i => `
+    const isPlan = e.source === 'planned';
+    const statusBadge = isPlan
+      ? `<span class="badge badge-warn">Planned</span>`
+      : e.status === 'completed' ? `<span class="badge badge-success">Completed</span>` : '';
+
+    const itemRows = hasItems ? e.items.map(i => {
+      const qty = i.qty_added || i.qty_needed || 0;
+      const qtyStr = isPlan
+        ? `<span style="color:var(--muted)">${qty} needed</span>`
+        : `<span style="color:var(--success)">+${qty}</span>`;
+      return `
       <tr style="background:#fafbfc;">
         <td style="padding:5px 12px 5px 40px;font-size:0.82rem;color:var(--text);">${i.name}</td>
-        <td style="text-align:center;font-size:0.82rem;font-family:monospace;color:var(--success);">${i.qty_added > 0 ? '+'+i.qty_added : '—'}</td>
-        <td style="text-align:center;font-size:0.82rem;font-family:monospace;color:var(--hot);">${i.qty_removed > 0 ? '-'+i.qty_removed : '—'}</td>
+        <td style="text-align:center;font-size:0.82rem;font-family:monospace;">${qtyStr}</td>
+        <td style="text-align:center;font-size:0.82rem;font-family:monospace;color:var(--muted);">${i.qty_current != null ? i.qty_current : '—'}</td>
         <td style="text-align:center;font-size:0.82rem;font-family:monospace;color:var(--muted);">${i.unit_cost > 0 ? '$'+i.unit_cost.toFixed(2) : '—'}</td>
         <td style="text-align:center;font-size:0.78rem;color:var(--muted);">${i.slot || '—'}</td>
-      </tr>`).join('') : '';
+      </tr>`;
+    }).join('') : '';
 
     const totalCost = e.product_cost > 0 ? `$${e.product_cost.toFixed(2)}` : '—';
     const timeStr = e.datetime ? new Date(e.datetime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
@@ -5120,18 +5132,18 @@ function renderRestockHistory() {
             <div style="font-weight:700;font-size:0.9rem;">${e.machine_name}</div>
             <div style="font-size:0.75rem;color:var(--muted);">${e.date}${timeStr?' · '+timeStr:''}</div>
           </div>
-          <div style="margin-left:auto;display:flex;gap:16px;align-items:center;">
-            ${e.items_loaded > 0 ? `<span class="badge badge-success">${e.items_loaded} item${e.items_loaded!==1?'s':''} loaded</span>` : ''}
+          <div style="margin-left:auto;display:flex;gap:10px;align-items:center;">
+            ${statusBadge}
+            ${e.items_loaded > 0 ? `<span class="badge badge-muted">${e.items_loaded} item${e.items_loaded!==1?'s':''}</span>` : ''}
             ${totalCost !== '—' ? `<span style="font-size:0.82rem;font-family:monospace;color:var(--muted);">Cost: ${totalCost}</span>` : ''}
-            <span style="font-size:0.72rem;color:var(--muted);background:#edf2f7;padding:2px 8px;border-radius:6px;">${e.source}</span>
           </div>
         </div>
         <div style="display:${hasItems?'':'none'};border-top:1px solid var(--border);">
           <table style="width:100%;border-collapse:collapse;">
             <thead><tr style="background:#edf2f7;">
               <th style="padding:6px 12px 6px 40px;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;text-align:left;">Product</th>
-              <th style="text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;padding:6px 12px;">Added</th>
-              <th style="text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;padding:6px 12px;">Removed</th>
+              <th style="text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;padding:6px 12px;">Qty</th>
+              <th style="text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;padding:6px 12px;">Current Stock</th>
               <th style="text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;padding:6px 12px;">Unit Cost</th>
               <th style="text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;padding:6px 12px;">Slot</th>
             </tr></thead>
