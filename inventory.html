@@ -780,7 +780,7 @@
       <button class="tab-btn" data-tab="orders" onclick="switchTab('orders', this)">📋 Inventory Orders</button>
       <button class="tab-btn" data-tab="expiration" onclick="switchTab('expiration', this)">📅 Expiration</button>
       <button class="tab-btn" data-tab="history" onclick="switchTab('history', this)">📜 Inventory History</button>
-      <button class="tab-btn" data-tab="categories" onclick="switchTab('categories', this)">🏷️ Categories</button>
+
       <button class="tab-btn" data-tab="warehouse" onclick="switchTab('warehouse', this)">🏭 Warehouse</button>
       <button class="tab-btn" data-tab="spoilage" onclick="switchTab('spoilage', this)">🗑️ Spoilage</button>
       <button class="tab-btn" data-tab="pulllist" onclick="switchTab('pulllist', this)">❌ Pull List</button>
@@ -791,6 +791,8 @@
 
     <!-- Inventory Tab -->
     <div id="tab-inventory" class="tab-content">
+      <!-- Category cards inline -->
+      <div class="category-cards" id="categoryCards" style="margin-bottom:16px;"></div>
       <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
         <button class="btn btn-primary" onclick="openAddProduct()">+ Add Item</button>
       </div>
@@ -969,28 +971,7 @@
       </div>
     </div>
 
-    <!-- Categories Tab -->
-    <div id="tab-categories" class="tab-content" style="display:none;">
-      <div class="category-cards" id="categoryCards"></div>
-      <h3 style="margin:20px 0 12px;font-size:1rem;">Category Products</h3>
-      <div class="table-container">
-        <table class="data-table" id="categoryTable">
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th>SKU</th>
-              <th>Stock</th>
-              <th>Status</th>
-              <th>Sell Price</th>
-              <th>Margin</th>
-            </tr>
-          </thead>
-          <tbody id="categoryTableBody"></tbody>
-        </table>
-        <div class="mobile-cards" id="categoryMobileCards"></div>
       </div>
-    </div>
-  </div>
 
   <!-- Warehouse Tab -->
   <div id="tab-warehouse" class="tab-content" style="display:none;">
@@ -3388,7 +3369,13 @@
 
     function selectCategory(cat) {
       selectedCategory = cat;
+      // Update the main category filter dropdown and re-render inventory
+      const filter = document.getElementById('categoryFilter');
+      if (filter) { filter.value = cat; }
       renderCategories();
+      renderInventory();
+      // Scroll to inventory table
+      document.querySelector('.filters-bar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     // ===== UNIT COST =====
