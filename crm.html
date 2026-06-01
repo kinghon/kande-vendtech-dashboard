@@ -965,6 +965,12 @@
     }
 
     function completeTodo(id, actionType) {
+      // Auto-switch new → active on first touchpoint from todo
+      const tp = prospects.find(p => p.id === id);
+      if (tp && tp.status === 'new' && ['Pop In','Call','Email'].includes(actionType)) {
+        tp.status = 'active';
+        fetch(`/api/prospects/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status: 'active' }) });
+      }
       const p = prospects.find(pr => pr.id === id);
       if (!p) return;
       
@@ -1267,11 +1273,12 @@
               <div class="badge-row" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${p.management_company ? `<span style="font-size:0.7rem;font-weight:600;color:#6b7280;background:rgba(107,114,128,0.1);padding:2px 8px;border-radius:4px;border:1px solid rgba(107,114,128,0.2);">🏢 ${esc(p.management_company)}</span>` : ''}
                 
                 <select class="status-select" onclick="event.stopPropagation()" onchange="setStatus(${p.id}, this.value)" style="padding:4px 10px;border-radius:12px;font-size:0.7rem;font-weight:700;cursor:pointer;border:none;background:${p.status === 'signed' ? 'rgba(56,161,105,0.15)' : p.status === 'closed' ? 'rgba(160,174,192,0.15)' : p.priority === 'hot' ? 'rgba(229,62,62,0.15)' : p.priority === 'intalks' ? 'rgba(139,92,246,0.15)' : p.priority === 'warm' ? 'rgba(234,179,8,0.15)' : 'rgba(49,130,206,0.15)'};color:${p.status === 'signed' ? 'var(--success)' : p.status === 'closed' ? '#718096' : p.priority === 'hot' ? 'var(--hot)' : p.priority === 'intalks' ? 'var(--intalks)' : p.priority === 'warm' ? 'var(--warm)' : 'var(--accent)'};">
+                  <option value="new" ${(!p.priority || p.priority === 'new' || p.priority === 'normal') && p.status === 'new' && p.status !== 'signed' && p.status !== 'closed' ? 'selected' : ''}>🆕 NEW</option>
+                  <option value="active" ${p.status === 'active' && p.priority !== 'hot' && p.priority !== 'intalks' && p.priority !== 'warm' && p.status !== 'signed' && p.status !== 'closed' ? 'selected' : ''}>✅ ACTIVE</option>
                   <option value="hot" ${p.priority === 'hot' && p.status !== 'signed' && p.status !== 'closed' ? 'selected' : ''}>🔥 HOT</option>
-                  <option value="intalks" ${p.priority === 'intalks' && p.status !== 'signed' && p.status !== 'closed' ? 'selected' : ''}>📋 CONTRACT PENDING</option>
                   <option value="warm" ${p.priority === 'warm' && p.status !== 'signed' && p.status !== 'closed' ? 'selected' : ''}>🟡 WARM</option>
-                  <option value="new" ${(!p.priority || p.priority === 'new' || p.priority === 'normal') && p.status !== 'signed' && p.status !== 'closed' ? 'selected' : ''}>🆕 NEW</option>
-                  <option value="signed" ${p.status === 'signed' ? 'selected' : ''}>✅ SIGNED</option>
+                  <option value="intalks" ${p.priority === 'intalks' && p.status !== 'signed' && p.status !== 'closed' ? 'selected' : ''}>📋 CONTRACT PENDING</option>
+                  <option value="signed" ${p.status === 'signed' ? 'selected' : ''}>🖊️ SIGNED</option>
                   <option value="stale" ${p.status === 'closed' ? 'selected' : ''}>⛔ STALE</option>
                 </select>
                 <select class="next-action-select" onclick="event.stopPropagation()" onchange="setNextAction(${p.id}, this.value)" style="padding:4px 8px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);">
@@ -1496,6 +1503,9 @@
       } else if (value === 'stale') {
         p.status = p.status === 'closed' ? 'active' : 'closed';
         fetch(`/api/prospects/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status: p.status }) });
+      } else if (value === 'active') {
+        p.status = 'active'; p.priority = p.priority || 'new';
+        fetch(`/api/prospects/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status: 'active' }) });
       } else {
         p.priority = value;
         if (p.status === 'signed' || p.status === 'closed') p.status = 'active';
@@ -2055,6 +2065,16 @@
         });
       }
       
+      // Auto-switch new → active on first touchpoint
+      const actType = data.type;
+      if (['pop-in','call','email'].includes(actType)) {
+        const ap = prospects.find(x => x.id === parseInt(pid));
+        if (ap && ap.status === 'new') {
+          ap.status = 'active';
+          await fetch(`/api/prospects/${pid}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status: 'active' }) });
+        }
+      }
+
       closeActivityModal();
       // Refresh the expanded card
       expandedId = parseInt(pid);
