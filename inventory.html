@@ -786,6 +786,7 @@
       <button class="tab-btn" data-tab="pulllist" onclick="switchTab('pulllist', this)">❌ Pull List</button>
       <button class="tab-btn" data-tab="picklist" onclick="switchTab('picklist', this)">📋 Pick List</button>
       <button class="tab-btn" data-tab="pricing" onclick="switchTab('pricing', this); loadPricingTab()">💰 Pricing</button>
+      <button class="tab-btn" data-tab="restock-history" onclick="switchTab('restock-history', this); loadRestockHistory()">📋 Restock History</button>
     </div>
 
     <!-- Inventory Tab -->
@@ -1299,6 +1300,22 @@
     </div>
   </div>
   <!-- ===== END PRICING TAB ===== -->
+
+  <!-- ===== RESTOCK HISTORY TAB ===== -->
+  <div id="tab-restock-history" class="tab-content" style="display:none;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+      <select id="rhMachineFilter" style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;min-width:220px;" onchange="filterRestockHistory()">
+        <option value="">All machines</option>
+      </select>
+      <input type="date" id="rhFrom" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;" onchange="filterRestockHistory()">
+      <span style="color:var(--muted);font-size:0.85rem;">to</span>
+      <input type="date" id="rhTo" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;" onchange="filterRestockHistory()">
+      <button class="btn btn-sm" onclick="clearRhFilters()">Clear</button>
+      <span id="rhCount" style="font-size:0.8rem;color:var(--muted);margin-left:auto;"></span>
+    </div>
+    <div id="rhBody"></div>
+  </div>
+  <!-- ===== END RESTOCK HISTORY TAB ===== -->
 
   <!-- Pick List Modal -->
   <div class="modal-overlay" id="picklistModal" style="align-items:center;justify-content:center;">
@@ -4949,6 +4966,197 @@ async function loadPricingPreview() {
   }).join('');
 }
 // ===== END PRICING TAB =====
+
+// ===== RESTOCK HISTORY TAB =====
+let rhData = { events: [], machines: [], loaded: false };
+
+async function loadRestockHistory() {
+  if (rhData.loaded) return;
+  document.getElementById('rhBody').innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted)">Loading restock history...</div>';
+
+  // Pull from all three sources in parallel
+  const [machines, fleetMachines, restockEvents, restockItems, legacyRestocks, machineSystemHistory] = await Promise.all([
+    fetch('/api/machines').then(r=>r.json()).catch(()=>[]),
+    fetch('/api/fleet/machines').then(r=>r.json()).catch(()=>[]),
+    fetch('/api/restock-events').then(r=>r.json()).catch(()=>[]),
+    fetch('/api/restock-items').then(r=>r.json()).catch(()=>[]),
+    fetch('/api/restocks').then(r=>r.json()).catch(()=>[]),
+    fetch('/api/machine-system/restock-history?limit=500').then(r=>r.json()).catch(()=>[])
+  ]);
+
+  // Normalize all machines into one lookup
+  const machineLookup = {};
+  (machines||[]).forEach(m => { machineLookup[m.id] = m.name || m.machine_id || `Machine #${m.id}`; });
+  ((fleetMachines||[]).machines || fleetMachines||[]).forEach(m => { machineLookup[m.id] = m.name || m.location_name || `Machine #${m.id}`; });
+
+  // Normalize restock events (primary source — fleet system)
+  const events = [];
+
+  // 1. restockEvents (fleet) — richest data
+  if (Array.isArray(restockEvents)) {
+    restockEvents.forEach(e => {
+      const items = (Array.isArray(restockItems) ? restockItems : []).filter(i => i.restock_id === e.id);
+      events.push({
+        id: `re-${e.id}`,
+        machine_id: e.machine_id,
+        machine_name: machineLookup[e.machine_id] || e.machine_name || `Machine #${e.machine_id}`,
+        date: (e.started_at || e.created_at || '').split('T')[0],
+        datetime: e.started_at || e.created_at,
+        items_loaded: e.items_loaded || items.filter(i=>i.qty_added>0).length,
+        product_cost: e.product_cost || 0,
+        source: 'fleet',
+        items: items.map(i => ({
+          name: i.product_name || i.name || `Product #${i.product_id}`,
+          qty_added: i.qty_added || 0,
+          qty_removed: i.qty_removed || 0,
+          unit_cost: i.unit_cost || 0,
+          slot: i.slot_label || i.slot_id || ''
+        })).filter(i => i.qty_added > 0 || i.qty_removed > 0)
+      });
+    });
+  }
+
+  // 2. Legacy restocks (simpler — items may be in req.body.items array)
+  if (Array.isArray(legacyRestocks)) {
+    legacyRestocks.forEach(r => {
+      if (events.find(e => e.id === `re-${r.id}`)) return; // skip if already covered
+      const itemList = Array.isArray(r.items) ? r.items : [];
+      events.push({
+        id: `lr-${r.id}`,
+        machine_id: r.machine_id,
+        machine_name: machineLookup[r.machine_id] || r.machine_name || `Machine #${r.machine_id}`,
+        date: (r.restock_date || r.created_at || '').split('T')[0],
+        datetime: r.restock_date || r.created_at,
+        items_loaded: itemList.filter(i=>(i.qty||i.qty_added||0)>0).length,
+        product_cost: r.total_cost || 0,
+        source: 'legacy',
+        items: itemList.map(i => ({
+          name: i.product_name || i.name || '?',
+          qty_added: i.qty || i.qty_added || 0,
+          qty_removed: i.qty_removed || 0,
+          unit_cost: i.unit_cost || i.cost || 0,
+          slot: i.slot || ''
+        })).filter(i => i.qty_added > 0)
+      });
+    });
+  }
+
+  // 3. Machine system history (slot-level, group by machine+date)
+  if (Array.isArray(machineSystemHistory) && machineSystemHistory.length) {
+    const grouped = {};
+    machineSystemHistory.forEach(h => {
+      const key = `${h.machine_id}_${(h.created_at||'').split('T')[0]}`;
+      if (!grouped[key]) grouped[key] = { machine_id: h.machine_id, date: (h.created_at||'').split('T')[0], datetime: h.created_at, items: [] };
+      grouped[key].items.push({ name: h.product_name || `Product #${h.product_id}`, qty_added: h.qty_added || 0, qty_removed: 0, unit_cost: 0, slot: h.slot_label || '' });
+    });
+    Object.values(grouped).forEach(g => {
+      const dupKey = events.find(e => e.machine_id === g.machine_id && e.date === g.date);
+      if (dupKey) return;
+      events.push({
+        id: `ms-${g.machine_id}-${g.date}`,
+        machine_id: g.machine_id,
+        machine_name: machineLookup[g.machine_id] || `Machine #${g.machine_id}`,
+        date: g.date,
+        datetime: g.datetime,
+        items_loaded: g.items.filter(i=>i.qty_added>0).length,
+        product_cost: 0,
+        source: 'machine-system',
+        items: g.items.filter(i=>i.qty_added>0)
+      });
+    });
+  }
+
+  // Sort newest first
+  events.sort((a,b) => new Date(b.datetime||b.date) - new Date(a.datetime||a.date));
+
+  // Populate machine filter
+  const allMachines = [...new Set(events.map(e=>e.machine_id).filter(Boolean))]
+    .map(id => ({ id, name: machineLookup[id] || `Machine #${id}` }))
+    .sort((a,b)=>a.name.localeCompare(b.name));
+
+  const sel = document.getElementById('rhMachineFilter');
+  sel.innerHTML = '<option value="">All machines</option>' +
+    allMachines.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+
+  rhData.events = events;
+  rhData.machines = allMachines;
+  rhData.loaded = true;
+
+  renderRestockHistory();
+}
+
+function clearRhFilters() {
+  document.getElementById('rhMachineFilter').value = '';
+  document.getElementById('rhFrom').value = '';
+  document.getElementById('rhTo').value = '';
+  renderRestockHistory();
+}
+
+function filterRestockHistory() { renderRestockHistory(); }
+
+function renderRestockHistory() {
+  const machineId = parseInt(document.getElementById('rhMachineFilter').value) || null;
+  const from = document.getElementById('rhFrom').value;
+  const to = document.getElementById('rhTo').value;
+
+  let events = rhData.events;
+  if (machineId) events = events.filter(e => e.machine_id === machineId);
+  if (from) events = events.filter(e => e.date >= from);
+  if (to) events = events.filter(e => e.date <= to);
+
+  document.getElementById('rhCount').textContent = `${events.length} restock event${events.length!==1?'s':''}${machineId||from||to?' (filtered)':''}`;
+
+  if (!events.length) {
+    document.getElementById('rhBody').innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">No restock events found.</div>';
+    return;
+  }
+
+  const html = events.map(e => {
+    const hasItems = e.items && e.items.length > 0;
+    const itemRows = hasItems ? e.items.map(i => `
+      <tr style="background:#fafbfc;">
+        <td style="padding:5px 12px 5px 40px;font-size:0.82rem;color:var(--text);">${i.name}</td>
+        <td style="text-align:center;font-size:0.82rem;font-family:monospace;color:var(--success);">${i.qty_added > 0 ? '+'+i.qty_added : '—'}</td>
+        <td style="text-align:center;font-size:0.82rem;font-family:monospace;color:var(--hot);">${i.qty_removed > 0 ? '-'+i.qty_removed : '—'}</td>
+        <td style="text-align:center;font-size:0.82rem;font-family:monospace;color:var(--muted);">${i.unit_cost > 0 ? '$'+i.unit_cost.toFixed(2) : '—'}</td>
+        <td style="text-align:center;font-size:0.78rem;color:var(--muted);">${i.slot || '—'}</td>
+      </tr>`).join('') : '';
+
+    const totalCost = e.product_cost > 0 ? `$${e.product_cost.toFixed(2)}` : '—';
+    const timeStr = e.datetime ? new Date(e.datetime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
+
+    return `
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:14px;padding:12px 16px;cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none';this.querySelector('.rh-arrow').textContent=this.nextElementSibling.style.display===''?'▼':'►';">
+          <span class="rh-arrow" style="color:var(--muted);font-size:0.7rem;">${hasItems ? '▼' : '►'}</span>
+          <div>
+            <div style="font-weight:700;font-size:0.9rem;">${e.machine_name}</div>
+            <div style="font-size:0.75rem;color:var(--muted);">${e.date}${timeStr?' · '+timeStr:''}</div>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:16px;align-items:center;">
+            ${e.items_loaded > 0 ? `<span class="badge badge-success">${e.items_loaded} item${e.items_loaded!==1?'s':''} loaded</span>` : ''}
+            ${totalCost !== '—' ? `<span style="font-size:0.82rem;font-family:monospace;color:var(--muted);">Cost: ${totalCost}</span>` : ''}
+            <span style="font-size:0.72rem;color:var(--muted);background:#edf2f7;padding:2px 8px;border-radius:6px;">${e.source}</span>
+          </div>
+        </div>
+        <div style="display:${hasItems?'':'none'};border-top:1px solid var(--border);">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead><tr style="background:#edf2f7;">
+              <th style="padding:6px 12px 6px 40px;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;text-align:left;">Product</th>
+              <th style="text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;padding:6px 12px;">Added</th>
+              <th style="text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;padding:6px 12px;">Removed</th>
+              <th style="text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;padding:6px 12px;">Unit Cost</th>
+              <th style="text-align:center;font-size:0.7rem;text-transform:uppercase;color:var(--muted);font-weight:700;padding:6px 12px;">Slot</th>
+            </tr></thead>
+            <tbody>${itemRows || '<tr><td colspan="5" style="text-align:center;padding:12px;color:var(--muted);font-size:0.82rem;">No item detail recorded</td></tr>'}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('rhBody').innerHTML = html;
+}
+// ===== END RESTOCK HISTORY TAB =====
 </script>
 </body>
 </html>
