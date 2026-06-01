@@ -25856,12 +25856,57 @@ app.post('/api/sandstar/sales/batch', (req, res) => {
   res.json({ imported, skipped, total: (db.sandstar_sales || []).length });
 });
 
+
+// GET /api/sandstar/restock-events — restock history auto-detected from inventory deltas
+app.get('/api/sandstar/restock-events', (req, res) => {
+  let events = db.sandstar_restock_events || [];
+  if (req.query.machine_id) events = events.filter(e => String(e.machine_id) === String(req.query.machine_id));
+  events = events.sort((a, b) => new Date(b.restocked_at) - new Date(a.restocked_at));
+  const grouped = {};
+  events.forEach(e => {
+    const date = e.restocked_at.split('T')[0];
+    const key = `${e.machine_id}_${date}`;
+    if (!grouped[key]) grouped[key] = { machine_id: e.machine_id, machine_name: e.machine_name, date, restocked_at: e.restocked_at, items: [] };
+    grouped[key].items.push({ product_name: e.product_name, qty_added: e.qty_added, qty_before: e.qty_before, qty_after: e.qty_after, lane_no: e.lane_no });
+  });
+  res.json({ events, grouped: Object.values(grouped).sort((a, b) => new Date(b.date) - new Date(a.date)) });
+});
+
 app.post('/api/sandstar/inventory/batch', (req, res) => {
   const { inventory } = req.body;
   if (!Array.isArray(inventory) || inventory.length === 0) {
     return res.status(400).json({ error: 'inventory array required' });
   }
   if (!db.sandstar_inventory) db.sandstar_inventory = [];
+  if (!db.sandstar_restock_events) db.sandstar_restock_events = [];
+
+  // Detect restocks from inventory delta before overwriting
+  const syncedAt = new Date().toISOString();
+  for (const inv of inventory) {
+    const existing = (db.sandstar_inventory || []).find(
+      e => e.sandstar_machine_id === inv.sandstar_machine_id &&
+           (e.lane_no === inv.lane_no || e.product_barcode === inv.product_barcode)
+    );
+    if (existing && existing.current_quantity != null && inv.current_quantity != null) {
+      const delta = parseInt(inv.current_quantity) - parseInt(existing.current_quantity);
+      if (delta > 0) {
+        db.sandstar_restock_events.push({
+          id: nextId(),
+          machine_id: inv.sandstar_machine_id,
+          machine_name: inv.machine_name || existing.machine_name || '',
+          product_name: inv.product_name || existing.product_name || '',
+          product_barcode: inv.product_barcode || '',
+          lane_no: inv.lane_no || '',
+          qty_before: parseInt(existing.current_quantity),
+          qty_after: parseInt(inv.current_quantity),
+          qty_added: delta,
+          restocked_at: syncedAt,
+          detected_by: 'inventory_delta'
+        });
+      }
+    }
+  }
+
 
   // Upsert: replace all records for machines that appear in this batch,
   // keep others. This avoids stale data from machines not in the latest sync.

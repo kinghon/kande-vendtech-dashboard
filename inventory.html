@@ -4961,15 +4961,52 @@ async function loadRestockHistory() {
   if (rhData.loaded) return;
   document.getElementById('rhBody').innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted)">Loading restock history...</div>';
 
-  // Pull from all three sources in parallel
-  const [machines, fleetMachines, restockEvents, restockItems, legacyRestocks, machineSystemHistory] = await Promise.all([
-    fetch('/api/machines').then(r=>r.json()).catch(()=>[]),
-    fetch('/api/fleet/machines').then(r=>r.json()).catch(()=>[]),
-    fetch('/api/restock-events').then(r=>r.json()).catch(()=>[]),
-    fetch('/api/restock-items').then(r=>r.json()).catch(()=>[]),
-    fetch('/api/restocks').then(r=>r.json()).catch(()=>[]),
-    fetch('/api/machine-system/restock-history?limit=500').then(r=>r.json()).catch(()=>[])
-  ]);
+  // Primary source: Sandstar inventory delta detection
+  const restockData = await fetch('/api/sandstar/restock-events').then(r=>r.json()).catch(()=>({grouped:[],events:[]}));
+  const grouped = restockData.grouped || [];
+
+  if (!grouped.length) {
+    document.getElementById('rhBody').innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);"><div style="font-size:1.5rem;margin-bottom:8px;">📭</div>No restock history yet.<br><span style="font-size:0.8rem;">History is auto-detected when Sandstar syncs after Dennis restocks a machine.</span></div>';
+    document.getElementById('rhCount').textContent = '0 restock events';
+    rhData.loaded = true;
+    return;
+  }
+
+  // Populate machine filter
+  const machineIds = [...new Set(grouped.map(g => g.machine_id))];
+  const machineLookup = {};
+  grouped.forEach(g => { machineLookup[g.machine_id] = g.machine_name; });
+  const sel = document.getElementById('rhMachineFilter');
+  sel.innerHTML = '<option value="">All machines</option>' +
+    machineIds.map(id => `<option value="${id}">${machineLookup[id] || 'Machine '+id}</option>`).join('');
+
+  rhData.events = grouped.map(g => ({
+    id: `ss-${g.machine_id}-${g.date}`,
+    machine_id: g.machine_id,
+    machine_name: g.machine_name,
+    date: g.date,
+    datetime: g.restocked_at,
+    status: 'completed',
+    items_loaded: g.items.length,
+    product_cost: 0,
+    source: 'sandstar',
+    items: g.items.map(i => ({
+      name: i.product_name,
+      qty_added: i.qty_added,
+      qty_before: i.qty_before,
+      qty_after: i.qty_after,
+      unit_cost: 0,
+      slot: i.lane_no || ''
+    }))
+  }));
+  rhData.machines = machineIds.map(id => ({ id, name: machineLookup[id] }));
+  rhData.loaded = true;
+
+  renderRestockHistory();
+  return; // Sandstar delta data loaded — skip legacy sources below
+
+  // Legacy placeholder — no longer needed
+  const machines = [], fleetMachines = [], restockEvents = [], restockItems = [], legacyRestocks = [], machineSystemHistory = [];
 
   // Normalize all machines into one lookup
   const machineLookup = {};
