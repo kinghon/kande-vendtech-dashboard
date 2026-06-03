@@ -2645,7 +2645,7 @@
       markers.clearLayers();
       const typeFilter = document.getElementById('typeFilter')?.value || 'all';
       const search = (document.getElementById('search')?.value || '').toLowerCase().trim();
-      prospects
+      const visible = prospects
         .filter(p => p.lat && p.lng && p.status !== 'closed')
         .filter(p => typeFilter === 'all' || normalizeTypeGlobal(p.property_type) === typeFilter)
         .filter(p => {
@@ -2663,8 +2663,13 @@
           if (currentFilter === 'followup') return p.needs_action;
           if (currentFilter === 'opening_soon') return p.status === 'opening_soon';
           return true;
-        })
-        .forEach(p => addMarker(p));
+        });
+      visible.forEach(p => addMarker(p));
+      // Auto-zoom to fit filtered results when search is active
+      if (search && visible.length > 0 && visible.length <= 20) {
+        const latlngs = visible.map(p => [p.lat, p.lng]);
+        map.fitBounds(latlngs, { padding: [50, 50], maxZoom: visible.length === 1 ? 15 : 13 });
+      }
     }
 
     // ── User location star marker ─────────────────────
