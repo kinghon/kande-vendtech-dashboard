@@ -2648,7 +2648,22 @@
       prospects
         .filter(p => p.lat && p.lng && p.status !== 'closed')
         .filter(p => typeFilter === 'all' || normalizeTypeGlobal(p.property_type) === typeFilter)
-        .filter(p => !search || (p.name || '').toLowerCase().includes(search) || (p.address || '').toLowerCase().includes(search) || (p.property_type || '').toLowerCase().includes(search))
+        .filter(p => {
+          if (!search) return true;
+          const fields = [p.name, p.address, p.property_type, p.units, p.phone, p.hours, p.notes, p.kurtis_notes, p.primary_contact, p.stale_reason];
+          const contactText = (p.contacts || []).map(c => [c.name, c.role, c.phone, c.email].join(' ')).join(' ');
+          const activityText = (p.activities || []).map(a => [a.type, a.description, a.outcome, a.next_action].join(' ')).join(' ');
+          return [...fields, contactText, activityText].filter(Boolean).join(' ').toLowerCase().includes(search);
+        })
+        .filter(p => {
+          if (currentFilter === 'hot') return p.priority === 'hot';
+          if (currentFilter === 'warm') return p.priority === 'warm';
+          if (currentFilter === 'new') return p.status === 'new';
+          if (currentFilter === 'signed') return p.status === 'signed';
+          if (currentFilter === 'followup') return p.needs_action;
+          if (currentFilter === 'opening_soon') return p.status === 'opening_soon';
+          return true;
+        })
         .forEach(p => addMarker(p));
     }
 
