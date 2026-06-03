@@ -321,7 +321,10 @@ if (db.todos.length === 0) {
 // Server-side geocoding
 async function geocodeAddress(address) {
   try {
-    const q = encodeURIComponent(address + ', Las Vegas, NV');
+    // Don't append city/state if address already contains them
+    const hasCity = /las vegas|henderson|north las vegas|boulder city|mesquite|sparks|reno/i.test(address);
+    const hasState = /,\s*(NV|Nevada|CO|Colorado|IL|Illinois|CA|California)\b/i.test(address);
+    const q = encodeURIComponent((hasCity || hasState) ? address : address + ', Las Vegas, NV');
     const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1`, {
       headers: { 'User-Agent': 'KandeVendTech-CRM/1.0' }
     });
