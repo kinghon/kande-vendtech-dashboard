@@ -26100,6 +26100,8 @@ app.get('/api/sandstar/summary', (req, res) => {
   pacificWeekStartDate.setDate(pacificWeekStartDate.getDate() - pacificDow);
   const weekStartStr = pacificWeekStartDate.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
   const monthStartStr = todayStr.slice(0, 7) + '-01';
+  // Cap week to month start so "This Week" never bleeds into the prior month
+  const effectiveWeekStartStr = weekStartStr < monthStartStr ? monthStartStr : weekStartStr;
 
   const total_revenue = sales.reduce((s, r) => s + (r.amount || 0), 0);
   const total_transactions = sales.length;
@@ -26109,7 +26111,7 @@ app.get('/api/sandstar/summary', (req, res) => {
     .reduce((s, r) => s + (r.amount || 0), 0);
 
   const revenue_this_week = sales
-    .filter(s => (s.sale_date || '') >= weekStartStr)
+    .filter(s => (s.sale_date || '') >= effectiveWeekStartStr)
     .reduce((s, r) => s + (r.amount || 0), 0);
 
   const revenue_this_month = sales
@@ -30347,6 +30349,7 @@ app.get('/api/sandstar/summary', (req, res) => {
   pacificWeekStartDate2.setDate(pacificWeekStartDate2.getDate() - pacificNow2.getDay());
   const weekStartStr2 = pacificWeekStartDate2.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
   const monthStartStr2 = todayStr.slice(0, 7) + '-01';
+  const effectiveWeekStartStr2 = weekStartStr2 < monthStartStr2 ? monthStartStr2 : weekStartStr2;
 
   const total_revenue = sales.reduce((s, r) => s + (r.amount || 0), 0);
   const total_transactions = sales.length;
@@ -30356,7 +30359,7 @@ app.get('/api/sandstar/summary', (req, res) => {
     .reduce((s, r) => s + (r.amount || 0), 0);
 
   const revenue_this_week = sales
-    .filter(s => (s.sale_date || '') >= weekStartStr2)
+    .filter(s => (s.sale_date || '') >= effectiveWeekStartStr2)
     .reduce((s, r) => s + (r.amount || 0), 0);
 
   const revenue_this_month = sales
