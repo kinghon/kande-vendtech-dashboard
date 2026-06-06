@@ -26093,9 +26093,13 @@ app.get('/api/sandstar/summary', (req, res) => {
   const productSales = allValidSales
     .filter(s => !periodCutoff || !s.sale_date || new Date(s.sale_date) >= periodCutoff)
     .filter(s => !machineFilter || s.machine_name === machineFilter);
-  const weekStart = new Date(now);
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  // Compute week/month boundaries in Pacific time (sale_date stored as Pacific YYYY-MM-DD strings)
+  const pacificNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+  const pacificDow = pacificNow.getDay();
+  const pacificWeekStartDate = new Date(pacificNow);
+  pacificWeekStartDate.setDate(pacificWeekStartDate.getDate() - pacificDow);
+  const weekStartStr = pacificWeekStartDate.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  const monthStartStr = todayStr.slice(0, 7) + '-01';
 
   const total_revenue = sales.reduce((s, r) => s + (r.amount || 0), 0);
   const total_transactions = sales.length;
@@ -26105,11 +26109,11 @@ app.get('/api/sandstar/summary', (req, res) => {
     .reduce((s, r) => s + (r.amount || 0), 0);
 
   const revenue_this_week = sales
-    .filter(s => new Date(s.sale_date) >= weekStart)
+    .filter(s => (s.sale_date || '') >= weekStartStr)
     .reduce((s, r) => s + (r.amount || 0), 0);
 
   const revenue_this_month = sales
-    .filter(s => new Date(s.sale_date) >= monthStart)
+    .filter(s => (s.sale_date || '') >= monthStartStr)
     .reduce((s, r) => s + (r.amount || 0), 0);
 
   // Top products (uses period-filtered productSales)
@@ -30336,10 +30340,13 @@ app.get('/api/sandstar/summary', (req, res) => {
   // Exclude $0 / no-charge transactions from all stats
   const sales = allSales.filter(s => s.amount && s.amount > 0);
   const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
-  const weekStart = new Date(now);
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  // Compute week/month boundaries in Pacific time (sale_date stored as Pacific YYYY-MM-DD strings)
+  const pacificNow2 = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+  const pacificWeekStartDate2 = new Date(pacificNow2);
+  pacificWeekStartDate2.setDate(pacificWeekStartDate2.getDate() - pacificNow2.getDay());
+  const weekStartStr2 = pacificWeekStartDate2.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  const monthStartStr2 = todayStr.slice(0, 7) + '-01';
 
   const total_revenue = sales.reduce((s, r) => s + (r.amount || 0), 0);
   const total_transactions = sales.length;
@@ -30349,11 +30356,11 @@ app.get('/api/sandstar/summary', (req, res) => {
     .reduce((s, r) => s + (r.amount || 0), 0);
 
   const revenue_this_week = sales
-    .filter(s => new Date(s.sale_date) >= weekStart)
+    .filter(s => (s.sale_date || '') >= weekStartStr2)
     .reduce((s, r) => s + (r.amount || 0), 0);
 
   const revenue_this_month = sales
-    .filter(s => new Date(s.sale_date) >= monthStart)
+    .filter(s => (s.sale_date || '') >= monthStartStr2)
     .reduce((s, r) => s + (r.amount || 0), 0);
 
   // Top products
