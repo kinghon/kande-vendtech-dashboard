@@ -10411,7 +10411,7 @@ app.get('/api/operations/dashboard', (req, res) => {
     .reduce((s, r) => s + (r.amount || 0), 0);
 
   // Week/month revenue
-  const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - (weekStart.getDay() + 6) % 7); // Monday start
   const monthStart = new Date(); monthStart.setDate(1);
   const weekRevenue = (db.revenue || []).filter(r => {
     const d = r.date || (r.created_at || '').split('T')[0];
@@ -16378,7 +16378,7 @@ app.get('/api/tasks/stats', (req, res) => {
   
   // This week stats
   const weekStart = new Date(now);
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  weekStart.setDate(weekStart.getDate() - (weekStart.getDay() + 6) % 7); // Monday start
   const weekStartStr = weekStart.toISOString().split('T')[0];
   const completedThisWeek = tasks.filter(t => {
     if (!t.completed_at) return false;
@@ -17559,7 +17559,7 @@ app.get('/api/calendar/stats', (req, res) => {
   const now = new Date();
   const today = now.toISOString().split('T')[0];
   const weekStart = new Date(now);
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  weekStart.setDate(weekStart.getDate() - (weekStart.getDay() + 6) % 7); // Monday start
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 6);
   
@@ -19305,7 +19305,7 @@ app.get('/api/machines/:id/sales/summary', (req, res) => {
     switch (groupBy) {
       case 'week':
         const weekStart = new Date(date);
-        weekStart.setDate(date.getDate() - date.getDay());
+        weekStart.setDate(date.getDate() - (date.getDay() + 6) % 7); // Monday start
         key = weekStart.toISOString().split('T')[0];
         break;
       case 'month':
@@ -26095,7 +26095,7 @@ app.get('/api/sandstar/summary', (req, res) => {
     .filter(s => !machineFilter || s.machine_name === machineFilter);
   // Compute week/month boundaries in Pacific time (sale_date stored as Pacific YYYY-MM-DD strings)
   const pacificNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-  const pacificDow = pacificNow.getDay();
+  const pacificDow = (pacificNow.getDay() + 6) % 7; // Monday=0, Sunday=6
   const pacificWeekStartDate = new Date(pacificNow);
   pacificWeekStartDate.setDate(pacificWeekStartDate.getDate() - pacificDow);
   const weekStartStr = pacificWeekStartDate.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
@@ -30346,7 +30346,7 @@ app.get('/api/sandstar/summary', (req, res) => {
   // Compute week/month boundaries in Pacific time (sale_date stored as Pacific YYYY-MM-DD strings)
   const pacificNow2 = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
   const pacificWeekStartDate2 = new Date(pacificNow2);
-  pacificWeekStartDate2.setDate(pacificWeekStartDate2.getDate() - pacificNow2.getDay());
+  pacificWeekStartDate2.setDate(pacificWeekStartDate2.getDate() - (pacificNow2.getDay() + 6) % 7); // Monday start
   const weekStartStr2 = pacificWeekStartDate2.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
   const monthStartStr2 = todayStr.slice(0, 7) + '-01';
   const effectiveWeekStartStr2 = weekStartStr2 < monthStartStr2 ? monthStartStr2 : weekStartStr2;
