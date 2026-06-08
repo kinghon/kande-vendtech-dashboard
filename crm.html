@@ -766,7 +766,8 @@
         const isRepPopin = (a) => {
           if (!['pop-in','pop_in'].includes(a.type)) return false;
           if (a.rep) return a.rep.toLowerCase() === repLower;
-          return (a.description || '').toLowerCase().includes(repLower);
+          // No rep assigned — all historical pop-ins default to Jordan
+          return repLower === 'jordan';
         };
         const locationPopins = prospects.filter(p => (p.activities || []).some(a => isRepPopin(a))).length;
         const totalPopins = prospects.reduce((sum, p) => sum + (p.activities || []).filter(a => isRepPopin(a)).length, 0);
