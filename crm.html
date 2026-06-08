@@ -3108,19 +3108,17 @@
 
     function prospectMatchesRep(p, rep) {
       if (!rep || rep === 'all') return true;
-      // Check geographic zone first
+      // Geography is the source of truth
       const z = getProspectZone(p);
-      const inMyZone = (rep === 'Jordan' && z && z.name === 'Central') ||
-                       (rep === 'Stuart'  && z && z.name === 'West')    ||
-                       (rep === 'Vanessa' && z && z.name === 'East');
-      // Jordan also owns pop-in locations regardless of zone
-      const hasPopIn = rep === 'Jordan' && (p.activities || []).some(function(a) {
-        return a.type === 'pop-in' || a.type === 'pop_in' || (a.description && /pop.?in/i.test(a.description));
-      });
-      // If it's in this rep's geographic zone, always show it
-      if (inMyZone || hasPopIn) return true;
-      // Not in this rep's zone — only show if explicitly assigned to this rep
-      if (p.assigned_rep === rep) return true;
+      if (rep === 'Stuart')  return z && z.name === 'West';
+      if (rep === 'Vanessa') return z && z.name === 'East';
+      if (rep === 'Jordan') {
+        if (z && z.name === 'Central') return true;
+        // Jordan also owns the 199 pop-in locations regardless of zone
+        return (p.activities || []).some(function(a) {
+          return a.type === 'pop-in' || a.type === 'pop_in';
+        });
+      }
       return false;
     }
 
