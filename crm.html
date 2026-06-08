@@ -802,6 +802,17 @@
         };
         const locationPopins = prospects.filter(p => (p.activities || []).some(a => isRepPopin(a))).length;
         const totalPopins = prospects.reduce((sum, p) => sum + (p.activities || []).filter(a => isRepPopin(a)).length, 0);
+        // Pop-ins this week (Mon–Sun)
+        const now = new Date();
+        const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...
+        const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        const monday = new Date(now); monday.setDate(now.getDate() + mondayOffset); monday.setHours(0,0,0,0);
+        const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6); sunday.setHours(23,59,59,999);
+        const weekPopins = prospects.reduce((sum, p) => sum + (p.activities || []).filter(a => {
+          if (!isRepPopin(a)) return false;
+          const d = new Date(a.date || a.created_at);
+          return d >= monday && d <= sunday;
+        }).length, 0);
         return `
           <div style="text-align:center;padding:8px 16px;border-radius:10px;background:var(--card);border:1px solid var(--border);cursor:pointer;flex:1;min-width:0;" onclick="filterBySigned()">
             <div style="font-size:0.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">${rep}</div>
@@ -813,6 +824,8 @@
             <div style="font-size:0.65rem;color:var(--muted);margin-top:1px;">Location Pop-ins</div>
             <div style="font-size:1rem;font-weight:700;color:var(--accent);line-height:1;margin-top:4px;">${totalPopins}</div>
             <div style="font-size:0.65rem;color:var(--muted);margin-top:1px;">Total Pop-ins</div>
+            <div style="font-size:1.2rem;font-weight:800;color:#f59e0b;line-height:1;margin-top:6px;">${weekPopins}</div>
+            <div style="font-size:0.65rem;color:var(--muted);margin-top:1px;">Pop-ins This Week</div>
           </div>`;
       }).join('');
     }
