@@ -335,7 +335,19 @@ if (db.todos.length === 0) {
 // Server-side geocoding
 async function geocodeAddress(address) {
   try {
-    // Don't append city/state if address already contains them
+    // Prefer Google Geocoding API when key is available (much better for LV addresses)
+    if (GOOGLE_PLACES_API_KEY) {
+      const hasCity = /las vegas|henderson|north las vegas|boulder city/i.test(address);
+      const hasState = /,\s*(NV|Nevada)\b/i.test(address);
+      const q = encodeURIComponent((hasCity || hasState) ? address : address + ', Las Vegas, NV');
+      const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${q}&key=${GOOGLE_PLACES_API_KEY}`);
+      const data = await res.json();
+      if (data.results && data.results[0]) {
+        const loc = data.results[0].geometry.location;
+        return { lat: loc.lat, lng: loc.lng };
+      }
+    }
+    // Fallback: Nominatim
     const hasCity = /las vegas|henderson|north las vegas|boulder city|mesquite|sparks|reno/i.test(address);
     const hasState = /,\s*(NV|Nevada|CO|Colorado|IL|Illinois|CA|California)\b/i.test(address);
     const q = encodeURIComponent((hasCity || hasState) ? address : address + ', Las Vegas, NV');
@@ -26548,12 +26560,28 @@ app.post('/api/admin/geocode-missing', async (req, res) => {
         .replace(/\s+/g, ' ').trim();
       if (!addr || addr.length < 8) { results.skipped++; continue; }
       try {
-        await sleep(1100);
-        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(addr)}`;
-        const resp = await fetch(url, { headers: { 'User-Agent': 'KandeVendTech-CRM/1.0' } });
-        const data = await resp.json();
-        if (data && data.length > 0) {
-          const lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon);
+        await sleep(300);
+        let lat, lng;
+        if (GOOGLE_PLACES_API_KEY) {
+          const hasCity = /las vegas|henderson|north las vegas/i.test(addr);
+          const hasState = /,\s*(NV|Nevada)\b/i.test(addr);
+          const q = encodeURIComponent((hasCity || hasState) ? addr : addr + ', Las Vegas, NV');
+          const resp = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${q}&key=${GOOGLE_PLACES_API_KEY}`);
+          const data = await resp.json();
+          if (data.results && data.results[0]) {
+            lat = data.results[0].geometry.location.lat;
+            lng = data.results[0].geometry.location.lng;
+          }
+        }
+        if (!lat) {
+          // Fallback: Nominatim
+          await sleep(800);
+          const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(addr)}`;
+          const resp = await fetch(url, { headers: { 'User-Agent': 'KandeVendTech-CRM/1.0' } });
+          const data = await resp.json();
+          if (data && data.length > 0) { lat = parseFloat(data[0].lat); lng = parseFloat(data[0].lon); }
+        }
+        if (lat && lng) {
           await pgPool.query('UPDATE prospects SET lat=$1, lng=$2 WHERE id=$3', [lat, lng, p.id]);
           results.geocoded++;
         } else {
