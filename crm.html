@@ -387,7 +387,7 @@
         <div id="legendBody">
           <div style="margin-top:4px;"></div>
           <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div> 🟢 Stuart (West)</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#cc0000"></div> 🔴 Jordan (Central / Pop-ins)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#cc0000"></div> 🔴 Jordan (Central)</div>
           <div class="legend-item"><div class="legend-dot" style="background:#0044cc"></div> 🔵 Vanessa (East)</div>
           <div class="legend-item"><div class="legend-dot" style="background:#1a202c"></div> ⬛ Strip/Fremont</div>
           <div class="legend-item"><div class="legend-dot" style="background:#ec4899"></div> 💗 Signed</div>
@@ -2838,11 +2838,6 @@
       }
       // Black dot locations (Strip hotels/casinos) have no rep — manually assigned
       if (isStripHotel(p) && isInStripFremont(p)) return null;
-      // If Jordan has popped this location, show Jordan as rep regardless of geographic zone
-      const hasPopIn = (p.activities || []).some(function(a) {
-        return a.type === 'pop-in' || a.type === 'pop_in' || (a.description && /pop.?in/i.test(a.description));
-      });
-      if (hasPopIn) return ZONES.find(function(z) { return z.name === 'Central'; }) || null;
       if (!p.lat || !p.lng) return null;
       const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
       for (let i = 0; i < ZONES.length; i++) {
