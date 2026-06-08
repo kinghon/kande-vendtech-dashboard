@@ -504,9 +504,29 @@
       }
     }
 
+    /* ── Rep login state ─────────────────────────────── */
+    var currentRep = null; // 'jordan' | 'stuart' | 'vanessa' | null (admin)
+
     /* ── Load prospects ──────────────────────────────── */
     async function loadProspects() {
       try {
+        // Check who is logged in
+        try {
+          var authRes = await fetch('/api/auth/status');
+          if (authRes.ok) {
+            var authData = await authRes.json();
+            currentRep = authData.rep || null; // 'jordan' | 'stuart' | 'vanessa' | null
+            if (currentRep) {
+              // Show territory badge
+              var repNames = { jordan: 'Jordan (Central)', stuart: 'Stuart (West)', vanessa: 'Vanessa (East)' };
+              var repColors = { jordan: '#e53e3e', stuart: '#22c55e', vanessa: '#3182ce' };
+              var badge = document.createElement('div');
+              badge.style.cssText = 'position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:1000;background:' + (repColors[currentRep]||'#3182ce') + ';color:#fff;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,0.3);pointer-events:none;';
+              badge.textContent = '📍 ' + (repNames[currentRep] || currentRep) + ' view';
+              document.getElementById('map').appendChild(badge);
+            }
+          }
+        } catch(e) { /* auth check failed, show all */ }
         await loadRevenueData();
         var res = await fetch('/api/prospects');
         prospects = await res.json();
@@ -552,6 +572,18 @@
         var p = prospects[i];
         if (!p.lat || !p.lng) continue;
         if (p.status === 'closed') continue;
+        // Rep territory filter — reps only see their own region
+        if (currentRep) {
+          var pRegion = getRegion(p.lat, p.lng);
+          if (currentRep === 'jordan') {
+            // Jordan sees Central + any prospect with a pop-in activity
+            var hasPopIn = (p.activities || []).some(function(a) {
+              return a.type === 'pop-in' || a.type === 'pop_in' || (a.description && /pop.?in/i.test(a.description));
+            });
+            if (!hasPopIn && pRegion !== 'jordan') continue;
+          } else if (currentRep === 'stuart' && pRegion !== 'stuart') continue;
+          else if (currentRep === 'vanessa' && pRegion !== 'vanessa') continue;
+        }
         if (activeTypeFilter !== 'all' && getTypeCategory(p) !== activeTypeFilter) continue;
 
         var color = getMarkerColor(p);
@@ -665,6 +697,15 @@
           if (revFilter !== tier) return false;
         }
         if (activeTypeFilter !== 'all' && getTypeCategory(p) !== activeTypeFilter) return false;
+        // Rep territory filter
+        if (currentRep) {
+          var pReg = getRegion(p.lat, p.lng);
+          if (currentRep === 'jordan') {
+            var hasPI = (p.activities || []).some(function(a) { return a.type === 'pop-in' || a.type === 'pop_in' || (a.description && /pop.?in/i.test(a.description)); });
+            if (!hasPI && pReg !== 'jordan') return false;
+          } else if (currentRep === 'stuart' && pReg !== 'stuart') return false;
+          else if (currentRep === 'vanessa' && pReg !== 'vanessa') return false;
+        }
         return true;
       });
 
