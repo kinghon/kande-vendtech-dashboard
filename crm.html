@@ -504,6 +504,13 @@
       <button class="filter-btn" data-filter="signed">✅ Signed</button>
       <button class="filter-btn" data-filter="closed">⛔ Stale</button>
       <button class="filter-btn" data-filter="followup">📋 Needs Action</button>
+      <select id="repFilterBar" onchange="setRepRegionFilter(this.value)" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:0.9rem;cursor:pointer;">
+        <option value="all">👤 All Reps</option>
+        <option value="Kurtis">👤 Kurtis</option>
+        <option value="Jordan">👤 Jordan</option>
+        <option value="Stuart">👤 Stuart</option>
+        <option value="Vanessa">👤 Vanessa</option>
+      </select>
       <select id="sortSelect" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:0.9rem;cursor:pointer;" onchange="currentSort=this.value;renderProspects()">
         <option value="touchpoints">Sort: Most Touchpoints</option>
         <option value="default">Sort: Next Follow Up</option>
@@ -3093,8 +3100,10 @@
 
     function setRepRegionFilter(val) {
       currentRepFilter = val;
-      const dropdown = document.getElementById('repRegionFilter');
-      if (dropdown) dropdown.value = val;
+      const d1 = document.getElementById('repRegionFilter');
+      const d2 = document.getElementById('repFilterBar');
+      if (d1) d1.value = val;
+      if (d2) d2.value = val;
       currentPage = 1;
       renderProspects();
       geocodeAndPlot();
