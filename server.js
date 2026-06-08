@@ -26517,6 +26517,46 @@ app.post('/api/mileage-log', async (req, res) => {
   }
 });
 
+// POST /api/admin/geocode-missing — server-side batch geocode all prospects with no lat/lng
+app.post('/api/admin/geocode-missing', async (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const { rows: prospects } = await pgPool.query(
+      `SELECT id, name, address FROM prospects WHERE (lat IS NULL OR lng IS NULL OR lat = 0 OR lng = 0) AND address IS NOT NULL AND address != '' AND address NOT ILIKE '%multiple location%' AND address NOT ILIKE '%tbd%' AND address NOT ILIKE '%exact address%' AND address NOT ILIKE '%no address%' AND length(address) > 10 LIMIT 300`
+    );
+    const results = { geocoded: 0, skipped: 0, failed: [], total: prospects.length };
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    for (const p of prospects) {
+      let addr = p.address
+        .replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '')
+        .replace(/39oo/gi, '3900').replace(/89o19/gi, '89019')
+        .replace(/^(NEC|NWC|SEC|SWC|SW Corner|NW Corner|SE Corner|Near |Corner of )/i, '')
+        .replace(/ between .*/i, '').replace(/ west of .*/i, '')
+        .replace(/\s+/g, ' ').trim();
+      if (!addr || addr.length < 8) { results.skipped++; continue; }
+      try {
+        await sleep(1100);
+        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(addr)}`;
+        const resp = await fetch(url, { headers: { 'User-Agent': 'KandeVendTech-CRM/1.0' } });
+        const data = await resp.json();
+        if (data && data.length > 0) {
+          const lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon);
+          await pgPool.query('UPDATE prospects SET lat=$1, lng=$2 WHERE id=$3', [lat, lng, p.id]);
+          results.geocoded++;
+        } else {
+          results.failed.push({ id: p.id, name: p.name, reason: 'no result', addr });
+        }
+      } catch (e) {
+        results.failed.push({ id: p.id, name: p.name, reason: e.message });
+      }
+    }
+    res.json(results);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🤖 Kande VendTech Dashboard running at http://localhost:${PORT}`);
 
