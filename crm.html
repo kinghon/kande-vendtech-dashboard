@@ -2055,6 +2055,7 @@
         if (sf) sf.style.display = currentFilter === 'newlyadded' ? 'flex' : 'none';
         if (currentFilter !== 'newlyadded') currentSourceFilter = 'all';
         renderProspects();
+        geocodeAndPlot();
       });
     });
 
@@ -2899,8 +2900,9 @@
       markers.clearLayers();
       const typeFilter = document.getElementById('typeFilter')?.value || 'all';
       const search = (document.getElementById('search')?.value || '').toLowerCase().trim();
+      const showClosed = (currentFilter === 'closed');
       const visible = prospects
-        .filter(p => p.lat && p.lng && p.status !== 'closed')
+        .filter(p => p.lat && p.lng && (showClosed || p.status !== 'closed'))
         .filter(p => typeFilter === 'all' || normalizeTypeGlobal(p.property_type) === typeFilter)
         .filter(p => {
           if (!search) return true;
@@ -2916,6 +2918,18 @@
           if (currentFilter === 'signed') return p.status === 'signed';
           if (currentFilter === 'followup') return p.needs_action;
           if (currentFilter === 'opening_soon') return p.status === 'opening_soon';
+          if (currentFilter === 'closed') return p.status === 'closed' || p.status === 'stale';
+          if (currentFilter === 'intalks') {
+            if (p.priority === 'intalks') return true;
+            const hasPopIn = (p.activities || []).some(a => a.type === 'pop-in' || a.type === 'pop_in' || (a.description && /pop.?in/i.test(a.description)));
+            const hasReply = (p.email_tracking || []).some(e => e.was_replied === true);
+            return hasPopIn || hasReply;
+          }
+          if (currentFilter === 'newlyadded') {
+            const added = new Date(p.created_at);
+            const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
+            return added >= cutoff;
+          }
           return true;
         });
       visible.forEach(p => addMarker(p));
