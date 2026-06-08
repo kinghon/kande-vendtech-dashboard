@@ -2775,20 +2775,23 @@
       return /hotel|casino|motel|resort|suites|lodg|hospitality|inn/.test(t);
     }
 
+    function isInStripFremont(p) {
+      if (!p.lat || !p.lng) return false;
+      const z = ZONES.find(function(z) { return z.name === 'Strip/Fremont'; });
+      return z ? pointInPolygon(parseFloat(p.lat), parseFloat(p.lng), z.coords) : false;
+    }
+
     function getMarkerColor(p) {
       if (p.blocked) return '__blocked__';
       if (isInRoute(p.id)) return markerColors.inRoute;
       // Signed = pink
       if (p.status === 'signed') return '#ec4899';
-      // Strip/Fremont = black ONLY for hotels/casinos in that zone
-      if (isHotelCasino(p)) {
-        const zone = getProspectZone(p);
-        if (zone && zone.name === 'Strip/Fremont') return '#1a202c';
-      }
+      // Strip/Fremont = black ONLY for hotels/casinos in that corridor (checked directly, not via zone priority)
+      if (isHotelCasino(p) && isInStripFremont(p)) return '#1a202c';
       // Jordan's popped locations override zone — always red
       const hasPopIn = (p.activities || []).some(function(a) { return a.type === 'pop-in'; });
       if (hasPopIn) return '#cc0000';
-      // Color by zone (skip Strip/Fremont for non-hotels — fall through to underlying zone)
+      // Color by zone (skip Strip/Fremont — non-hotels use underlying West/Central/East zones)
       if (p.lat && p.lng) {
         const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
         for (let i = 0; i < ZONES.length; i++) {
