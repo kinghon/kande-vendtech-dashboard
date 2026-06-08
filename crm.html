@@ -497,6 +497,7 @@
         <option value="other">📦 Other</option>
       </select>
       <select id="sortSelect" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:0.9rem;cursor:pointer;" onchange="currentSort=this.value;renderProspects()">
+        <option value="touchpoints">Sort: Most Touchpoints</option>
         <option value="default">Sort: Next Follow Up</option>
         <option value="mgmt_company">Sort: Mgmt Company</option>
         <option value="name">Sort: Name A-Z</option>
@@ -694,7 +695,7 @@
     let prospects = [];
     let expandedId = null;
     let currentFilter = 'all';
-    let currentSort = 'default';
+    let currentSort = 'touchpoints';
     let currentSourceFilter = 'all'; // for Newly Added sub-filter
     let currentPage = 1;
     const PAGE_SIZE = 25;
@@ -1177,8 +1178,8 @@
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       document.querySelector('[data-filter="all"]').classList.add('active');
       document.getElementById('typeFilter').value = 'all';
-      document.getElementById('sortSelect').value = 'default';
-      currentSort = 'default';
+      document.getElementById('sortSelect').value = 'touchpoints';
+      currentSort = 'touchpoints';
       document.getElementById('search').value = '';
       
       // Ensure prospect is visible by expanding page far enough
@@ -1291,6 +1292,14 @@
           if (a.status !== 'signed' && b.status === 'signed') return -1;
           if (a.status === 'closed' && b.status !== 'closed') return 1;
           if (a.status !== 'closed' && b.status === 'closed') return -1;
+          if (currentSort === 'touchpoints') {
+            const aTp = (a.activities||[]).filter(x=>['pop-in','call','email'].includes(x.type)).length;
+            const bTp = (b.activities||[]).filter(x=>['pop-in','call','email'].includes(x.type)).length;
+            if (bTp !== aTp) return bTp - aTp;
+            // secondary: priority
+            const po = { hot:1, intalks:2, warm:3, normal:4 };
+            return (po[a.priority]||4) - (po[b.priority]||4);
+          }
           if (currentSort === 'mgmt_company') {
             const ma = (a.management_company || '').toLowerCase();
             const mb = (b.management_company || '').toLowerCase();
