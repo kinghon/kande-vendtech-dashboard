@@ -334,9 +334,7 @@
       <div style="display:flex;align-items:center;gap:12px;">
         <img src="/logo.png" alt="Kande VendTech" style="height:56px;">
         <h1>Sales CRM</h1>
-        <div id="signedCounter" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:12px;background:var(--success);color:#fff;font-size:1.2rem;font-weight:700;cursor:pointer;" onclick="document.querySelector('[data-filter=signed]').click()">
-          ✅ <span id="signedCount">0</span> Signed
-        </div>
+        <div id="repCounters" style="display:inline-flex;gap:8px;"></div>
       </div>
       <div class="header-actions">
         <button class="btn btn-primary" onclick="showAddModal()">+ New Prospect</button>
@@ -721,7 +719,7 @@
       document.getElementById('statActive').textContent = s.active;
       document.getElementById('statFollowup').textContent = s.needsFollowup;
       document.getElementById('statWeek').textContent = s.thisWeek;
-      document.getElementById('signedCount').textContent = s.signed || 0;
+      // signedCount replaced by rep counters
     }
 
     async function loadProspects() {
@@ -734,6 +732,30 @@
       renderProspects();
       renderTodoList();
       renderCompletedToday();
+      renderRepCounters();
+    }
+
+    function renderRepCounters() {
+      const reps = ['Jordan', 'Kurtis', 'Stuart', 'Vanessa'];
+      const container = document.getElementById('repCounters');
+      if (!container) return;
+      container.innerHTML = reps.map(rep => {
+        const repLower = rep.toLowerCase();
+        const signed = prospects.filter(p => p.status === 'signed' && (p.signed_by || '').toLowerCase().includes(repLower)).length;
+        const popins = prospects.filter(p => (p.activities || []).some(a => a.type === 'pop-in' && (a.rep || a.description || '').toLowerCase().includes(repLower))).length;
+        return `
+          <div style="text-align:center;padding:8px 14px;border-radius:10px;background:var(--card);border:1px solid var(--border);cursor:pointer;min-width:72px;" onclick="filterBySigned()">
+            <div style="font-size:0.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;">${rep}</div>
+            <div style="font-size:1.4rem;font-weight:800;color:var(--success);line-height:1;">${signed}</div>
+            <div style="font-size:0.65rem;color:var(--muted);margin-top:2px;">signed</div>
+            <div style="font-size:1rem;font-weight:700;color:var(--accent);line-height:1;margin-top:4px;">${popins}</div>
+            <div style="font-size:0.65rem;color:var(--muted);margin-top:1px;">pop-ins</div>
+          </div>`;
+      }).join('');
+    }
+
+    function filterBySigned() {
+      document.querySelector('[data-filter=signed]')?.click();
     }
 
     let todoExpanded = false;
