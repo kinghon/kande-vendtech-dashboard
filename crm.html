@@ -587,6 +587,16 @@
             </select>
           </div>
           <div class="form-group">
+            <label class="form-label">Rep</label>
+            <select class="form-select" id="activityRep">
+              <option value="">— select rep —</option>
+              <option value="Jordan">Jordan</option>
+              <option value="Kurtis">Kurtis</option>
+              <option value="Stuart">Stuart</option>
+              <option value="Vanessa">Vanessa</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label class="form-label">Date of Activity</label>
             <input type="date" class="form-input" id="activityDate">
           </div>
@@ -745,11 +755,13 @@
         const repLower = rep.toLowerCase();
         const signed = prospects.filter(p => p.status === 'signed' && (p.signed_by || '').toLowerCase().includes(repLower)).length;
         const negotiations = prospects.filter(p => p.priority === 'intalks' && p.status !== 'signed' && p.status !== 'closed' && (p.contract_rep || '').toLowerCase().includes(repLower)).length;
-        // Jordan did all pop-ins; Kurtis always —; others 0 until rep tracking added
-        const popinCount = rep === 'Jordan'
-          ? prospects.filter(p => (p.activities || []).some(a => a.type === 'pop-in')).length
-          : 0;
-        const popinDisplay = rep === 'Kurtis' ? '—' : popinCount;
+        const isRepPopin = (a) => {
+          if (!['pop-in','pop_in'].includes(a.type)) return false;
+          if (a.rep) return a.rep.toLowerCase() === repLower;
+          return (a.description || '').toLowerCase().includes(repLower);
+        };
+        const locationPopins = prospects.filter(p => (p.activities || []).some(a => isRepPopin(a))).length;
+        const totalPopins = prospects.reduce((sum, p) => sum + (p.activities || []).filter(a => isRepPopin(a)).length, 0);
         return `
           <div style="text-align:center;padding:8px 16px;border-radius:10px;background:var(--card);border:1px solid var(--border);cursor:pointer;flex:1;min-width:0;" onclick="filterBySigned()">
             <div style="font-size:0.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">${rep}</div>
@@ -757,8 +769,10 @@
             <div style="font-size:0.65rem;color:var(--muted);margin-top:1px;">Locations Signed</div>
             <div style="font-size:1rem;font-weight:700;color:#8b5cf6;line-height:1;margin-top:6px;">${negotiations}</div>
             <div style="font-size:0.65rem;color:var(--muted);margin-top:1px;">Contract Pending</div>
-            <div style="font-size:1rem;font-weight:700;color:var(--accent);line-height:1;margin-top:6px;">${popinDisplay}</div>
-            <div style="font-size:0.65rem;color:var(--muted);margin-top:1px;">Pop-ins</div>
+            <div style="font-size:1rem;font-weight:700;color:var(--accent);line-height:1;margin-top:6px;">${locationPopins}</div>
+            <div style="font-size:0.65rem;color:var(--muted);margin-top:1px;">Location Pop-ins</div>
+            <div style="font-size:1rem;font-weight:700;color:var(--accent);line-height:1;margin-top:4px;">${totalPopins}</div>
+            <div style="font-size:0.65rem;color:var(--muted);margin-top:1px;">Total Pop-ins</div>
           </div>`;
       }).join('');
     }
@@ -2101,6 +2115,7 @@
       document.getElementById('activityType').value = a.type;
       document.getElementById('activityTitle').textContent = `Edit ${a.type.charAt(0).toUpperCase() + a.type.slice(1)}`;
       document.getElementById('activityDate').value = a.activity_date || (a.created_at ? a.created_at.split('T')[0] : '');
+      document.getElementById('activityRep').value = a.rep || '';
       document.getElementById('activityDesc').value = a.description || '';
       document.getElementById('activityOutcome').value = a.outcome || '';
       document.getElementById('nextAction').value = a.next_action || '';
@@ -2130,6 +2145,7 @@
       const data = {
         type: document.getElementById('activityType').value,
         activity_date: document.getElementById('activityDate').value,
+        rep: document.getElementById('activityRep').value || null,
         description: document.getElementById('activityDesc').value,
         outcome: document.getElementById('activityOutcome').value,
         next_action: nextAction,
