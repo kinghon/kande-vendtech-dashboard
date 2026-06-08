@@ -742,7 +742,10 @@
       container.innerHTML = reps.map(rep => {
         const repLower = rep.toLowerCase();
         const signed = prospects.filter(p => p.status === 'signed' && (p.signed_by || '').toLowerCase().includes(repLower)).length;
-        const popins = prospects.filter(p => (p.activities || []).some(a => a.type === 'pop-in' && (a.rep || a.description || '').toLowerCase().includes(repLower))).length;
+        // Jordan did all pop-ins; others are 0 until rep tracking is added
+        const popins = rep === 'Jordan'
+          ? prospects.filter(p => (p.activities || []).some(a => a.type === 'pop-in')).length
+          : 0;
         return `
           <div style="text-align:center;padding:8px 14px;border-radius:10px;background:var(--card);border:1px solid var(--border);cursor:pointer;min-width:72px;" onclick="filterBySigned()">
             <div style="font-size:0.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;">${rep}</div>
