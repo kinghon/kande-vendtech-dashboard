@@ -371,13 +371,10 @@
       <div id="miniMap"></div>
       <div class="map-legend">
         <div class="legend-title">Status</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#e53e3e"></div> 🔥 Hot</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#eab308"></div> 🟡 Warm</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#3182ce"></div> 🆕 New</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#ffffff;border:2px solid #38a169"></div> ✅ Signed</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#a0aec0"></div> ⛔ Stale</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#805ad5"></div> 📋 Needs Action</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#38a169"></div> 🚶 Pop In Needed</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div> 🟢 Stuart (West)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#cc0000"></div> 🔴 Jordan (Central / Pop-ins)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#0044cc"></div> 🔵 Vanessa (East)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#a0aec0"></div> ⬜ No Zone</div>
         <div class="legend-item"><div class="legend-dot" style="background:#22c55e;border:2px solid #fff;box-shadow:0 0 4px #22c55e;"></div> 🟢 In Route</div>
       </div>
     </div>
@@ -2274,7 +2271,18 @@
     const markerColors = { hot: '#e53e3e', intalks: '#8b5cf6', warm: '#eab308', signed: '#ffffff', new: '#3182ce', closed: '#a0aec0', popIn: '#38a169', inRoute: '#22c55e' };
     startLocationTracking();
 
-    // -- Territory Zones (preliminary draft) --
+    // -- Point-in-polygon helper --
+    function pointInPolygon(lat, lng, polygon) {
+      let inside = false;
+      for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const xi = polygon[i][0], yi = polygon[i][1];
+        const xj = polygon[j][0], yj = polygon[j][1];
+        if (((yi > lng) !== (yj > lng)) && (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi)) inside = !inside;
+      }
+      return inside;
+    }
+
+    // -- Territory Zones --
     const ZONES = [
       { name:'West', label:'WEST (Summerlin / Spring Valley / SW)', color:'#22c55e',
         coords:[
@@ -2743,17 +2751,20 @@
     }
 
     function getMarkerColor(p) {
-      // In Route = bright green with glow effect (checked first)
       if (p.blocked) return '__blocked__';
       if (isInRoute(p.id)) return markerColors.inRoute;
-      // Pop In Needed = green (check next_action for pop in variations)
-      if (p.next_action && p.next_action.toLowerCase().includes('pop in')) return markerColors.popIn;
-      if (p.status === 'signed') return markerColors.signed;
-      if (p.priority === 'hot') return markerColors.hot;
-      if (p.priority === 'intalks') return markerColors.intalks || '#8b5cf6';
-      if (p.priority === 'warm') return markerColors.warm;
-      if (p.status === 'closed') return markerColors.closed;
-      return markerColors.new;
+      // Rep/zone coloring: West=Stuart(green), Central=Jordan(red), East=Vanessa(blue)
+      // Jordan's popped locations override zone — always red
+      const hasPopIn = (p.activities || []).some(function(a) { return a.type === 'pop-in'; });
+      if (hasPopIn) return '#cc0000';
+      // Color by zone
+      if (p.lat && p.lng) {
+        const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
+        for (let i = 0; i < ZONES.length; i++) {
+          if (pointInPolygon(lat, lng, ZONES[i].coords)) return ZONES[i].color;
+        }
+      }
+      return '#a0aec0'; // outside zones or no coords
     }
 
     function normalizeTypeGlobal(type) {
