@@ -2896,6 +2896,13 @@
       // Jordan's popped locations override zone — always red
       const hasPopIn = (p.activities || []).some(function(a) { return a.type === 'pop-in'; });
       if (hasPopIn) return '#cc0000';
+      // Strip/Fremont non-hotel, no manual rep assignment → grey (unassigned)
+      if (!p.assigned_rep && isInStripFremont(p)) return '#a0aec0';
+      // Honor manual rep assignment color
+      if (p.assigned_rep && REP_ZONE_MAP[p.assigned_rep]) {
+        const z = ZONES.find(function(z) { return z.name === REP_ZONE_MAP[p.assigned_rep]; });
+        if (z) return z.color;
+      }
       // Color by zone (skip Strip/Fremont — non-hotels use underlying West/Central/East zones)
       if (p.lat && p.lng) {
         const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
