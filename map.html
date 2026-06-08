@@ -175,6 +175,7 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     .legend-title { font-weight: 600; font-size: 11px; color: #718096; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .region-label-tooltip { background: rgba(0,0,0,0.7); color: #fff; border: none; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
     .legend-group { margin-bottom: 6px; }
     .legend-item { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
     .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
@@ -306,11 +307,19 @@
           <div class="legend-item"><div class="legend-dot" style="background:#e53e3e"></div> 🔥 Hot</div>
           <div class="legend-item"><div class="legend-dot" style="background:#eab308"></div> 🟡 Warm</div>
           <div class="legend-item"><div class="legend-dot" style="background:#3182ce"></div> 🆕 New</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#ffffff;border:2px solid #38a169"></div> ✅ Signed</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#ec4899;border:2px solid #fff"></div> ✅ Signed</div>
           <div class="legend-item"><div class="legend-dot" style="background:#a0aec0"></div> ⛔ Stale</div>
           <div class="legend-item"><div class="legend-dot" style="background:#805ad5"></div> 📋 Needs Action</div>
           <div class="legend-item"><div class="legend-dot" style="background:#38a169"></div> 🚶 Pop In Needed</div>
           <div class="legend-item"><div class="legend-dot" style="background:#22c55e;border:2px solid #fff;box-shadow:0 0 4px #22c55e;"></div> 🟢 In Route</div>
+        </div>
+        <div class="legend-group" style="margin-top:10px;">
+          <div class="legend-title">Territories</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div> 🟢 Stuart (West)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#e53e3e"></div> 🔴 Jordan (Central)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#3182ce"></div> 🔵 Vanessa (East)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#1a202c"></div> ⬛ Strip/Fremont</div>
+          <div style="font-size:10px;color:#718096;margin-top:4px;">Border = exclusive expired</div>
         </div>
       </div>
       <div class="loading-overlay" id="loadingOverlay">
@@ -336,6 +345,33 @@
     const REV_HIGH = 400;
     const REV_MED  = 200;
 
+    /* ── Region definitions ─────────────────────────── */
+    var REGIONS = {
+      strip:   { name: 'Strip/Fremont', color: '#1a202c', label: 'Strip/Fremont' },
+      stuart:  { name: 'Stuart',  color: '#22c55e', label: 'Stuart (West)'   },
+      jordan:  { name: 'Jordan',  color: '#e53e3e', label: 'Jordan (Central)' },
+      vanessa: { name: 'Vanessa', color: '#3182ce', label: 'Vanessa (East)'  }
+    };
+
+    // Strip/Fremont bounding box (Las Vegas Blvd corridor + downtown)
+    var STRIP_BOUNDS = { minLat: 36.06, maxLat: 36.20, minLng: -115.19, maxLng: -115.12 };
+
+    function getRegion(lat, lng) {
+      if (!lat || !lng) return null;
+      // Strip/Fremont wins if inside the casino corridor
+      if (lat >= STRIP_BOUNDS.minLat && lat <= STRIP_BOUNDS.maxLat &&
+          lng >= STRIP_BOUNDS.minLng && lng <= STRIP_BOUNDS.maxLng) return 'strip';
+      // West/Central/East split by longitude
+      if (lng < -115.22) return 'stuart';
+      if (lng > -115.07) return 'vanessa';
+      return 'jordan';
+    }
+
+    function isExclusiveExpired(p) {
+      if (!p.exclusive_expiration_date) return false;
+      return new Date(p.exclusive_expiration_date) < new Date();
+    }
+
     /* ── Marker helpers ──────────────────────────────── */
     function createIcon(color, size) {
       size = size || 28;
@@ -345,6 +381,18 @@
         iconSize: [size, size],
         iconAnchor: [size/2, size/2],
         popupAnchor: [0, -(size/2 + 2)]
+      });
+    }
+
+    function createIconWithBorder(color, borderColor, size) {
+      size = size || 28;
+      // outer ring = region color, inner dot = prospect color
+      return L.divIcon({
+        className: 'custom-marker',
+        html: '<div style="width:'+(size+8)+'px;height:'+(size+8)+'px;border-radius:50%;background:'+borderColor+';display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.5);"><div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:'+color+';border:2px solid #fff;"></div></div>',
+        iconSize: [size+8, size+8],
+        iconAnchor: [(size+8)/2, (size+8)/2],
+        popupAnchor: [0, -((size+8)/2 + 2)]
       });
     }
 
@@ -368,7 +416,7 @@
     }
 
     /* Fallback: color by priority (for prospects without revenue data) */
-    var priorityColors = { hot: '#e53e3e', warm: '#eab308', normal: '#3182ce', signed: '#38a169', closed: '#a0aec0' };
+    var priorityColors = { hot: '#e53e3e', warm: '#eab308', normal: '#3182ce', signed: '#ec4899', closed: '#a0aec0' };
     var ROUTE_COLOR = '#22c55e';
 
     function getMarkerColor(p) {
@@ -382,12 +430,11 @@
       // Needs action = purple
       if (p.needs_action) return '#805ad5';
 
-      // If signed and has revenue data, color by revenue tier
-      var revColor = getRevenueColor(p.id);
-      if (revColor && p.status === 'signed') return revColor;
+      // Signed = always pink
+      if (p.status === 'signed') return '#ec4899';
 
       // Default: priority-based
-      var key = p.status === 'signed' ? 'signed' : p.status === 'closed' ? 'closed' : (p.priority || 'normal');
+      var key = p.status === 'closed' ? 'closed' : (p.priority || 'normal');
       return priorityColors[key] || '#3182ce';
     }
 
@@ -406,6 +453,27 @@
     L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
       attribution: '© Google Maps', maxZoom: 20
     }).addTo(map);
+
+    /* ── Territory region overlays ─────────────────────── */
+    var regionOverlays = [
+      { key: 'stuart',  bounds: [[36.00, -115.55], [36.45, -115.22]] },
+      { key: 'jordan',  bounds: [[36.00, -115.22], [36.45, -115.07]] },
+      { key: 'vanessa', bounds: [[36.00, -115.07], [36.45, -114.90]] },
+      { key: 'strip',   bounds: [[36.06, -115.19], [36.20, -115.12]] }
+    ];
+    regionOverlays.forEach(function(r) {
+      var region = REGIONS[r.key];
+      L.rectangle(r.bounds, {
+        color: region.color,
+        weight: 2,
+        opacity: 0.6,
+        fill: true,
+        fillColor: region.color,
+        fillOpacity: 0.04,
+        dashArray: r.key === 'strip' ? '4 4' : '8 6',
+        interactive: false
+      }).addTo(map).bindTooltip(region.label, { permanent: false, direction: 'center', className: 'region-label-tooltip' });
+    });
 
     /* ── Load revenue data ───────────────────────────── */
     async function loadRevenueData() {
@@ -489,9 +557,17 @@
         var color = getMarkerColor(p);
         var revTier = getRevenueTier(p.id);
         var rev = prospectRevenue[p.id];
-        var icon = createIcon(color);
+        // If exclusive expired, wrap in region-colored border ring
+        var icon;
+        if (isExclusiveExpired(p)) {
+          var regionKey = getRegion(p.lat, p.lng);
+          var borderColor = regionKey ? REGIONS[regionKey].color : '#718096';
+          icon = createIconWithBorder(color, borderColor);
+        } else {
+          icon = createIcon(color);
+        }
 
-        var tagLabels = { hot: '🔥 Hot', warm: '🟡 Warm', normal: '🆕 New', signed: '✅ Signed', closed: '⛔ Stale' };
+        var tagLabels = { hot: '🔥 Hot', warm: '🟡 Warm', normal: '🆕 New', signed: '💗 Signed', closed: '⛔ Stale' };
         var priority = p.status === 'signed' ? 'signed' : p.status === 'closed' ? 'closed' : (p.priority || 'normal');
 
         var revBadge = '';
@@ -509,6 +585,18 @@
           '</div>' +
           '<div class="popup-title">' + p.name + '</div>' +
           '<div class="popup-type">' + (p.property_type || '') + '</div>' +
+          (function() {
+            var rk = getRegion(p.lat, p.lng);
+            var rInfo = rk ? REGIONS[rk] : null;
+            var expDate = p.exclusive_expiration_date;
+            var expStr = '';
+            if (expDate) {
+              var expired = isExclusiveExpired(p);
+              expStr = '<div style="font-size:10px;margin-bottom:4px;padding:2px 8px;border-radius:8px;display:inline-block;background:' + (expired ? 'rgba(239,68,68,0.12)' : 'rgba(234,179,8,0.12)') + ';color:' + (expired ? '#dc2626' : '#ca8a04') + ';font-weight:600;">🔒 Excl. ' + (expired ? 'EXPIRED' : 'Exp ' + expDate) + '</div> ';
+            }
+            var regionStr = rInfo ? '<div style="font-size:10px;margin-bottom:4px;padding:2px 8px;border-radius:8px;display:inline-block;background:rgba(0,0,0,0.08);color:' + rInfo.color + ';font-weight:600;border:1px solid ' + rInfo.color + ';">🗺 ' + rInfo.label + '</div>' : '';
+            return (expStr || regionStr) ? '<div style="margin-bottom:5px;">' + regionStr + (regionStr && expStr ? ' ' : '') + expStr + '</div>' : '';
+          })() +
           '<div class="popup-address">📍 ' + p.address + '</div>' +
           (p.primary_contact ? '<div class="popup-contact"><strong>Contact:</strong> ' + p.primary_contact + '</div>' : '') +
           (p.phone ? '<div class="popup-contact">📞 <a href="tel:' + p.phone + '" style="color:#3182ce;">' + p.phone + '</a></div>' : '') +
