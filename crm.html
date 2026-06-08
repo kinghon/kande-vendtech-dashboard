@@ -2928,15 +2928,14 @@
         const z = ZONES.find(function(z) { return z.name === REP_ZONE_MAP[p.assigned_rep]; });
         if (z) return z.color;
       }
-      // Color by zone (skip Strip/Fremont — non-hotels use underlying West/Central/East zones)
+      // Color by simple longitude split (fallback for anything without assigned_rep)
       if (p.lat && p.lng) {
-        const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
-        for (let i = 0; i < ZONES.length; i++) {
-          if (ZONES[i].name === 'Strip/Fremont') continue;
-          if (pointInPolygon(lat, lng, ZONES[i].coords)) return ZONES[i].color;
-        }
+        const lng = parseFloat(p.lng);
+        if (lng < -115.22) return '#22c55e'; // Stuart (West)
+        if (lng > -115.13) return '#0044cc'; // Vanessa (East)
+        return '#cc0000'; // Jordan (Central)
       }
-      return '#a0aec0';
+      return '#a0aec0'; // truly no location data
     }
 
     function normalizeTypeGlobal(type) {
