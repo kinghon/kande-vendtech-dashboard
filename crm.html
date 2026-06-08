@@ -343,8 +343,9 @@
         <h1>Sales CRM</h1>
       </div>
       <div id="repCounters" style="display:flex;gap:8px;flex:1;justify-content:center;"></div>
-      <div class="header-actions" style="flex-shrink:0;">
+      <div class="header-actions" style="flex-shrink:0;display:flex;gap:8px;align-items:center;">
         <button class="btn btn-primary" onclick="showAddModal()">+ New Prospect</button>
+        <button onclick="logout()" style="padding:8px 14px;border-radius:8px;border:1px solid #e2e8f0;background:transparent;color:var(--muted);font-size:0.85rem;font-weight:600;cursor:pointer;" onmouseover="this.style.background='#fee2e2';this.style.color='#dc2626';this.style.borderColor='#fca5a5'" onmouseout="this.style.background='transparent';this.style.color='var(--muted)';this.style.borderColor='#e2e8f0'">Sign Out</button>
       </div>
     </div>
 
@@ -2121,6 +2122,11 @@
       } catch (e) {
         alert('❌ Sync failed: ' + e.message);
       }
+    }
+
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
     }
 
     function showAddModal() {
