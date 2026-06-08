@@ -2832,10 +2832,6 @@
     const REP_ZONE_MAP = { Jordan: 'Central', Stuart: 'West', Vanessa: 'East', Kurtis: 'Central' };
 
     function getProspectZone(p) {
-      // Manual override takes top priority
-      if (p.assigned_rep && REP_ZONE_MAP[p.assigned_rep]) {
-        return ZONES.find(function(z) { return z.name === REP_ZONE_MAP[p.assigned_rep]; }) || null;
-      }
       // Black dot locations (Strip hotels/casinos) have no rep — manually assigned
       if (isStripHotel(p) && isInStripFremont(p)) return null;
       // If Jordan has popped this location, show as Jordan regardless of geographic zone
@@ -2843,6 +2839,7 @@
         return a.type === 'pop-in' || a.type === 'pop_in' || (a.description && /pop.?in/i.test(a.description));
       });
       if (hasPopIn) return ZONES.find(function(z) { return z.name === 'Central'; }) || null;
+      // Fall back to geographic zone
       if (!p.lat || !p.lng) return null;
       const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
       for (let i = 0; i < ZONES.length; i++) {
@@ -2923,14 +2920,14 @@
       // Jordan's popped locations override zone — always red
       const hasPopIn = (p.activities || []).some(function(a) { return a.type === 'pop-in'; });
       if (hasPopIn) return '#cc0000';
-      // Honor manual rep assignment color
-      if (p.assigned_rep && REP_ZONE_MAP[p.assigned_rep]) {
-        const z = ZONES.find(function(z) { return z.name === REP_ZONE_MAP[p.assigned_rep]; });
-        if (z) return z.color;
-      }
-      // Color by simple longitude split (fallback for anything without assigned_rep)
+      // Color by geographic zone (polygon-based)
       if (p.lat && p.lng) {
-        const lng = parseFloat(p.lng);
+        const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
+        for (let i = 0; i < ZONES.length; i++) {
+          if (ZONES[i].name === 'Strip/Fremont') continue;
+          if (pointInPolygon(lat, lng, ZONES[i].coords)) return ZONES[i].color;
+        }
+        // Outside all polygons — longitude fallback
         if (lng < -115.22) return '#22c55e'; // Stuart (West)
         if (lng > -115.13) return '#0044cc'; // Vanessa (East)
         return '#cc0000'; // Jordan (Central)
