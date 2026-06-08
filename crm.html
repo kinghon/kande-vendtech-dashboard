@@ -1149,7 +1149,17 @@
       else if (currentFilter === 'warm') filtered = filtered.filter(p => p.priority === 'warm');
       else if (currentFilter === 'new') filtered = filtered.filter(p => p.status === 'new');
       else if (currentFilter === 'opening_soon') filtered = filtered.filter(p => p.status === 'opening_soon');
-      else if (currentFilter === 'signed') filtered = filtered.filter(p => p.status === 'signed');
+      else if (currentFilter === 'signed') {
+        filtered = filtered.filter(p => p.status === 'signed');
+        filtered = filtered.slice().sort((a, b) => {
+          const da = a.install_date || '';
+          const db = b.install_date || '';
+          if (!da && !db) return 0;
+          if (!da) return 1;
+          if (!db) return -1;
+          return db.localeCompare(da); // newest first
+        });
+      }
       else if (currentFilter === 'closed') filtered = filtered.filter(p => p.status === 'closed' || p.status === 'stale');
       else if (currentFilter === 'newlyadded') {
         const aiSources = ['scout-research','scout-maps','scout-web'];
