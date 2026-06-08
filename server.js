@@ -26519,8 +26519,6 @@ app.post('/api/mileage-log', async (req, res) => {
 
 // POST /api/admin/geocode-missing — server-side batch geocode all prospects with no lat/lng
 app.post('/api/admin/geocode-missing', async (req, res) => {
-  const apiKey = req.headers['x-api-key'];
-  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
   try {
     const { rows: prospects } = await pgPool.query(
       `SELECT id, name, address FROM prospects WHERE (lat IS NULL OR lng IS NULL OR lat = 0 OR lng = 0) AND address IS NOT NULL AND address != '' AND address NOT ILIKE '%multiple location%' AND address NOT ILIKE '%tbd%' AND address NOT ILIKE '%exact address%' AND address NOT ILIKE '%no address%' AND length(address) > 10 LIMIT 300`
