@@ -2770,9 +2770,54 @@
       return null;
     }
 
-    function isHotelCasino(p) {
-      const t = (p.property_type || '').toLowerCase();
-      return /hotel|casino|motel|resort|suites|lodg|hospitality|inn/.test(t);
+    // Exact start-of-name matching — avoids false positives from substring collisions
+    const STRIP_HOTELS = [
+      'aria resort','bellagio','caesars palace',
+      'circa resort','circa sportsbook',
+      'circus circus',
+      'delano las vegas',
+      'elara by hilton',
+      'encore at wynn',
+      'excalibur hotel',
+      'flamingo las vegas hotel',
+      'fontainebleau las vegas',
+      'four seasons hotels and resorts',
+      'golden nugget',
+      'grand hyatt at mgm',
+      'hard rock las vegas',
+      "harrah's las vegas",
+      'hilton grand vacations club on the las vegas strip',
+      'horseshoe las vegas',
+      'luxor hotel',
+      'mandalay bay',
+      'nobu hotel',
+      'new york-new york',
+      'oyo oasis motel',
+      'paris las vegas',
+      'park mgm',
+      'planet hollywood resort',
+      'resorts world las vegas',
+      'signature at mgm',
+      'the cosmopolitan of las vegas',
+      'the palazzo at the venetian',
+      'the strat hotel',
+      'the venetian resort las vegas',
+      'treasure island (ti)',
+      'trump international hotel',
+      'vanderpump hotel',
+      'vdara hotel',
+      'virgin hotels las vegas',
+      'w las vegas',
+      'waldorf astoria las vegas',
+      'wynn las vegas'
+    ];
+
+    function isStripHotel(p) {
+      const name = (p.name || '').toLowerCase().trim();
+      // startsWith matching — prevents e.g. 'w las vegas' hitting 'fashion show las vegas'
+      return STRIP_HOTELS.some(function(h) {
+        return name === h || name.startsWith(h + ' ') || name.startsWith(h + ',') || name.startsWith(h + '(') || name.startsWith(h + '&');
+      });
     }
 
     function isInStripFremont(p) {
@@ -2786,8 +2831,8 @@
       if (isInRoute(p.id)) return markerColors.inRoute;
       // Signed = pink
       if (p.status === 'signed') return '#ec4899';
-      // Strip/Fremont = black ONLY for hotels/casinos in that corridor (checked directly, not via zone priority)
-      if (isHotelCasino(p) && isInStripFremont(p)) return '#1a202c';
+      // Strip/Fremont = black ONLY for the major named hotels/casinos
+      if (isStripHotel(p) && isInStripFremont(p)) return '#1a202c';
       // Jordan's popped locations override zone — always red
       const hasPopIn = (p.activities || []).some(function(a) { return a.type === 'pop-in'; });
       if (hasPopIn) return '#cc0000';
