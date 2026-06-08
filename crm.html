@@ -1561,14 +1561,15 @@
             </div>
           </div>
 
-          <!-- Kurtis Notes -->
+          <!-- Kurtis Notes — hidden from reps -->
+          ${currentRep === null ? `
           <div class="notes-box kurtis">
             <label class="kurtis">👤 Kurtis Notes</label>
             <div style="position:relative;">
               <button onclick="addTimestampedNote(${p.id},'kurtis_notes')" style="position:absolute;top:6px;left:6px;font-size:0.7rem;padding:2px 8px;background:#805ad5;color:white;border:none;border-radius:4px;cursor:pointer;z-index:1;">+ Add Entry</button>
               <textarea id="kurtis_notes-${p.id}" onchange="updateField(${p.id},'kurtis_notes',this.value)" oninput="autoResize(this)" onfocus="autoResize(this)" style="padding-top:30px;">${esc(p.kurtis_notes || '')}</textarea>
             </div>
-          </div>
+          </div>` : ''}
 
           <!-- Contacts (inline editable) -->
           <div class="detail-section" style="margin-top:12px;">
@@ -2079,7 +2080,9 @@
         hour: '2-digit', minute: '2-digit', hour12: true
       });
       
-      const entry = `[${timestamp}] `;
+      // Include rep name if logged in as a rep
+      const repLabel = currentRep ? ' - ' + currentRep.charAt(0).toUpperCase() + currentRep.slice(1) : '';
+      const entry = `[${timestamp}${repLabel}] `;
       const existingText = textarea.value;
       textarea.value = entry + (existingText ? '\n\n' + existingText : '');
       textarea.focus();
