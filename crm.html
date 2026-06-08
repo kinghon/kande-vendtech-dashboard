@@ -901,7 +901,7 @@
       }
 
       // Include prospects with next_action OR where follow_up_date has passed (excluding stale/signed)
-      const withActions = prospects.filter(p => {
+      let withActions = prospects.filter(p => {
         if (p.status === 'closed' || p.status === 'signed') return false;
         // Show if needs_action is set with a next_action (user explicitly flagged it)
         if (p.needs_action && p.next_action) return true;
@@ -919,6 +919,11 @@
           p._isFollowUp = true;
         }
       });
+
+      // Filter by rep region
+      if (currentRepFilter !== 'all') {
+        withActions = withActions.filter(p => prospectMatchesRep(p, currentRepFilter));
+      }
       
       // Update count badge
       document.getElementById('todoCount').textContent = withActions.length > 0 ? `(${withActions.length})` : '';
@@ -1281,6 +1286,11 @@
         });
       } else {
         filtered.sort((a, b) => {
+          // Contract Pending always at the top
+          const aCP = a.priority === 'intalks' && a.status !== 'signed' && a.status !== 'closed';
+          const bCP = b.priority === 'intalks' && b.status !== 'signed' && b.status !== 'closed';
+          if (aCP && !bCP) return -1;
+          if (!aCP && bCP) return 1;
           // Always keep blocked at very bottom, then closed/stale
           if (a.blocked && !b.blocked) return 1;
           if (!a.blocked && b.blocked) return -1;
