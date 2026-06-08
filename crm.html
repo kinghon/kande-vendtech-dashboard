@@ -742,16 +742,17 @@
       container.innerHTML = reps.map(rep => {
         const repLower = rep.toLowerCase();
         const signed = prospects.filter(p => p.status === 'signed' && (p.signed_by || '').toLowerCase().includes(repLower)).length;
-        // Jordan did all pop-ins; others are 0 until rep tracking is added
-        const popins = rep === 'Jordan'
+        // Jordan did all pop-ins; Kurtis is always —; others 0 until rep tracking added
+        const popinsVal = rep === 'Jordan'
           ? prospects.filter(p => (p.activities || []).some(a => a.type === 'pop-in')).length
-          : 0;
+          : null;
+        const popins = popinsVal;
         return `
           <div style="text-align:center;padding:8px 14px;border-radius:10px;background:var(--card);border:1px solid var(--border);cursor:pointer;min-width:72px;" onclick="filterBySigned()">
             <div style="font-size:0.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;">${rep}</div>
             <div style="font-size:1.4rem;font-weight:800;color:var(--success);line-height:1;">${signed}</div>
             <div style="font-size:0.65rem;color:var(--muted);margin-top:2px;">signed</div>
-            <div style="font-size:1rem;font-weight:700;color:var(--accent);line-height:1;margin-top:4px;">${popins}</div>
+            <div style="font-size:1rem;font-weight:700;color:var(--accent);line-height:1;margin-top:4px;">${rep === 'Kurtis' ? '—' : popins ?? 0}</div>
             <div style="font-size:0.65rem;color:var(--muted);margin-top:1px;">pop-ins</div>
           </div>`;
       }).join('');
