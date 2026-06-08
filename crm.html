@@ -2273,6 +2273,48 @@
     const markers = L.layerGroup().addTo(map);
     const markerColors = { hot: '#e53e3e', intalks: '#8b5cf6', warm: '#eab308', signed: '#ffffff', new: '#3182ce', closed: '#a0aec0', popIn: '#38a169', inRoute: '#22c55e' };
     startLocationTracking();
+
+    // -- Territory Zones (preliminary draft) --
+    const ZONES = [
+      { name:'West', label:'WEST (Summerlin / Spring Valley / SW)', color:'#cc00cc',
+        coords:[[36.28,-115.45],[36.28,-115.20],[36.12,-115.20],[36.05,-115.20],[35.97,-115.22],[35.93,-115.28],[35.93,-115.45]] },
+      { name:'Central', label:'CENTRAL (Strip / Paradise / S. Highlands)', color:'#cc0000',
+        coords:[[36.28,-115.20],[36.28,-115.13],[35.93,-115.13],[35.93,-115.22],[35.97,-115.22],[36.05,-115.20],[36.12,-115.20]] },
+      { name:'East', label:'EAST (Henderson / Green Valley / Lake LV)', color:'#0044cc',
+        coords:[[36.28,-115.13],[36.28,-114.88],[35.93,-114.88],[35.93,-115.13]] }
+    ];
+    let territoriesVisible = true;
+    const territoryLayers = [];
+    function drawTerritories() {
+      territoryLayers.forEach(function(l){ try{ map.removeLayer(l); }catch(e){} });
+      territoryLayers.length = 0;
+      if (!territoriesVisible) return;
+      ZONES.forEach(function(z) {
+        var poly = L.polygon(z.coords, { color:z.color, weight:2.5, opacity:0.9, fillColor:z.color, fillOpacity:0.07, dashArray:'8,5' }).addTo(map);
+        var center = poly.getBounds().getCenter();
+        var lbl = L.marker(center, {
+          icon: L.divIcon({ className:'', html:'<div style="color:'+z.color+';font-weight:900;font-size:0.8rem;text-align:center;text-shadow:0 0 4px #fff,0 0 4px #fff,0 0 4px #fff;pointer-events:none;white-space:nowrap;">'+z.label+'</div>', iconAnchor:[80,10], iconSize:[160,20] }),
+          interactive:false, zIndexOffset:-500
+        }).addTo(map);
+        territoryLayers.push(poly, lbl);
+      });
+    }
+    drawTerritories();
+    var zoneToggle = L.control({ position:'topright' });
+    zoneToggle.onAdd = function() {
+      var btn = L.DomUtil.create('button');
+      btn.innerHTML = 'Zones';
+      btn.style.cssText = 'padding:5px 10px;font-size:0.72rem;font-weight:700;background:#fff;border:1px solid #cbd5e0;border-radius:6px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,0.15);color:#2d3748;margin-top:4px;';
+      L.DomEvent.on(btn, 'click', function(e) {
+        L.DomEvent.stopPropagation(e);
+        territoriesVisible = !territoriesVisible;
+        btn.style.opacity = territoriesVisible ? '1' : '0.4';
+        drawTerritories();
+      });
+      return btn;
+    };
+    zoneToggle.addTo(map);
+
     let routeLayer = null;
     let routeStops = JSON.parse(localStorage.getItem('vendtech_route') || '[]');
     let routePlannerExpanded = false;
