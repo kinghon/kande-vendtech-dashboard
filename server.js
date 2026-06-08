@@ -5421,11 +5421,11 @@ app.get('/api/smart-machines-stats', (req, res) => {
 });
 
 // ===== PAGE ROUTES =====
-app.get('/crm/map', (req, res) => res.sendFile(path.join(__dirname, 'map.html')));
+app.get('/crm/map', (req, res) => res.redirect('/crm'));
 app.get('/crm', (req, res) => res.sendFile(path.join(__dirname, 'crm.html')));
 app.get('/prospect/:id', (req, res) => res.sendFile(path.join(__dirname, 'prospect-detail.html')));
 app.get('/activities', (req, res) => res.sendFile(path.join(__dirname, 'activities.html')));
-app.get('/map', (req, res) => res.sendFile(path.join(__dirname, 'map.html')));
+app.get('/map', (req, res) => res.redirect('/crm'));
 app.get('/machines', (req, res) => res.redirect('/locations'));
 app.get('/locations', (req, res) => res.sendFile(path.join(__dirname, 'locations.html')));
 app.get('/inventory', (req, res) => res.sendFile(path.join(__dirname, 'inventory.html')));
