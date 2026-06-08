@@ -1210,6 +1210,30 @@ app.delete('/api/collections/:id', (req, res) => {
 });
 
 // ===== ADMIN HEALTH CHECK =====
+app.post('/api/admin/geocode-db', async (req, res) => {
+  const missing = db.prospects.filter(p => p.address && p.address.trim() && (!p.lat || !p.lng) &&
+    !/multiple locations|exact address tbd|tbd$|no address/i.test(p.address));
+  res.json({ started: true, total: missing.length });
+  // Run async in background
+  (async () => {
+    let ok = 0, fail = 0;
+    for (const p of missing) {
+      let addr = p.address
+        .replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '')
+        .replace(/^(NEC|NWC|SEC|SWC|SW Corner|NW Corner|SE Corner|Near |Corner of )/i, '')
+        .replace(/ between .*/i, '').replace(/ west of .*/i, '')
+        .replace(/\s+/g, ' ').trim();
+      if (!addr || addr.length < 8) { fail++; continue; }
+      const coords = await geocodeAddress(addr);
+      if (coords) { p.lat = coords.lat; p.lng = coords.lng; ok++; }
+      else fail++;
+      await new Promise(r => setTimeout(r, 300));
+    }
+    saveDB(db);
+    console.log(`geocode-db: ${ok} geocoded, ${fail} failed out of ${missing.length}`);
+  })();
+});
+
 app.get('/api/admin/health-check', (req, res) => {
   const prospects = db.prospects || [];
   const missingName = prospects.filter(p => !p.name || !p.name.trim()).length;
