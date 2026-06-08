@@ -1306,7 +1306,7 @@
             </div>
 
             ${(p.contacts?.length || p.primary_contact) ? `<div style="margin-top:4px;font-size:0.85rem;">
-              ${p.contacts?.length ? p.contacts.map(c => `<span style="color:var(--text);">${c.is_primary ? '⭐ ' : ''}${titleCase(c.name)}</span>${c.phone ? ' <a href="tel:' + c.phone + '" style="color:var(--accent);font-size:0.8rem;" onclick="event.stopPropagation()">' + c.phone + '</a>' : ''}${c.email ? ' <a href="mailto:' + c.email + '" style="color:var(--accent);font-size:0.8rem;" onclick="event.stopPropagation()">' + c.email + '</a>' : ''}`).join(' · ') : titleCase(p.primary_contact || '')}
+              ${p.contacts?.length ? p.contacts.map(c => `<span style="color:var(--text);">${c.is_primary ? '⭐ ' : ''}${titleCase(c.name)}</span>${p.status === 'signed' ? `<span style="margin-left:6px;font-size:0.75rem;color:var(--success);font-weight:600;">✍️ ${c.signed_by || '<span style=\'color:var(--muted)\'>—</span>'}</span> <span style="font-size:0.75rem;color:var(--muted);">📅 ${c.install_date || '—'}</span>` : ''}${c.phone ? ' <a href="tel:' + c.phone + '" style="color:var(--accent);font-size:0.8rem;" onclick="event.stopPropagation()">' + c.phone + '</a>' : ''}${c.email ? ' <a href="mailto:' + c.email + '" style="color:var(--accent);font-size:0.8rem;" onclick="event.stopPropagation()">' + c.email + '</a>' : ''}`).join(' · ') : titleCase(p.primary_contact || '')}
             </div>` : ''}
           </div>
           ${expandedId === p.id ? renderDetail(p) : ''}
@@ -1453,21 +1453,26 @@
           <!-- Contacts (inline editable) -->
           <div class="detail-section" style="margin-top:12px;">
             <div class="detail-section-title">Contacts</div>
-            ${contacts.length ? `<div class="contact-grid-header" style="display:grid;grid-template-columns:2fr 2fr 1.5fr 3fr 2fr auto;gap:8px;margin-bottom:6px;align-items:center;">
+            ${contacts.length ? `<div class="contact-grid-header" style="display:grid;grid-template-columns:${p.status === 'signed' ? '2fr 2fr 1.5fr 3fr 2fr 1.5fr 1.5fr auto' : '2fr 2fr 1.5fr 3fr 2fr auto'};gap:8px;margin-bottom:6px;align-items:center;">
               <span class="field-label">Name</span>
               <span class="field-label">Role</span>
               <span class="field-label">Phone</span>
               <span class="field-label">Email</span>
               <span class="field-label">Favorite snack</span>
+              ${p.status === 'signed' ? '<span class="field-label" style="color:var(--success);">✍️ Signed By</span><span class="field-label" style="color:var(--success);">📅 Install Date</span>' : ''}
               <span></span>
             </div>` : ''}
             ${contacts.map((c, ci) => `
-              <div class="contact-card contact-grid-row" style="display:grid;grid-template-columns:2fr 2fr 1.5fr 3fr 2fr auto;gap:8px;align-items:center;">
+              <div class="contact-card contact-grid-row" style="display:grid;grid-template-columns:${p.status === 'signed' ? '2fr 2fr 1.5fr 3fr 2fr 1.5fr 1.5fr auto' : '2fr 2fr 1.5fr 3fr 2fr auto'};gap:8px;align-items:center;">
                 <div class="field-group contact-field"><label class="field-label contact-field-label">Name</label><input class="field-input" value="${esc(c.name)}" placeholder="Name" style="font-weight:600;width:100%;" onchange="updateContact(${p.id},${c.id},'name',this.value)"></div>
                 <div class="field-group contact-field"><label class="field-label contact-field-label">Role</label><input class="field-input" value="${esc(c.role || '')}" placeholder="Role" style="font-size:0.8rem;width:100%;" onchange="updateContact(${p.id},${c.id},'role',this.value)"></div>
                 <div class="field-group contact-field"><label class="field-label contact-field-label">Phone</label><input class="field-input" value="${esc(c.phone || '')}" placeholder="Phone" style="width:100%;" onchange="updateContact(${p.id},${c.id},'phone',this.value)"></div>
                 <div class="field-group contact-field"><label class="field-label contact-field-label">Email</label><input class="field-input" value="${esc(c.email || '')}" placeholder="Email" style="width:100%;" onchange="updateContact(${p.id},${c.id},'email',this.value)"></div>
                 <div class="field-group contact-field"><label class="field-label contact-field-label">Favorite snack</label><input class="field-input" value="${esc(c.favorite_snack || '')}" placeholder="e.g. Doritos" style="width:100%;" onchange="updateContact(${p.id},${c.id},'favorite_snack',this.value)"></div>
+                ${p.status === 'signed' ? `
+                <div class="field-group contact-field"><label class="field-label contact-field-label" style="color:var(--success);">✍️ Signed By</label><input class="field-input" value="${esc(c.signed_by || '')}" placeholder="Who signed" style="width:100%;" onchange="updateContact(${p.id},${c.id},'signed_by',this.value)"></div>
+                <div class="field-group contact-field"><label class="field-label contact-field-label" style="color:var(--success);">📅 Install Date</label><input class="field-input" type="date" value="${esc(c.install_date || '')}" style="width:100%;" onchange="updateContact(${p.id},${c.id},'install_date',this.value)"></div>
+                ` : ''}
                 <button class="contact-delete" style="background:none;border:none;color:var(--hot);cursor:pointer;font-size:14px;" onclick="deleteContact(${p.id},${c.id})" title="Remove contact">✕</button>
               </div>
             `).join('')}
