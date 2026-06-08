@@ -374,8 +374,11 @@
         <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div> 🟢 Stuart (West)</div>
         <div class="legend-item"><div class="legend-dot" style="background:#cc0000"></div> 🔴 Jordan (Central / Pop-ins)</div>
         <div class="legend-item"><div class="legend-dot" style="background:#0044cc"></div> 🔵 Vanessa (East)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#1a202c"></div> ⬛ Strip/Fremont</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ec4899"></div> 💗 Signed</div>
         <div class="legend-item"><div class="legend-dot" style="background:#a0aec0"></div> ⬜ No Zone</div>
         <div class="legend-item"><div class="legend-dot" style="background:#22c55e;border:2px solid #fff;box-shadow:0 0 4px #22c55e;"></div> 🟢 In Route</div>
+        <div class="legend-item" style="color:#718096;font-size:10px;">Colored border = excl. expired</div>
       </div>
     </div>
 
@@ -2308,6 +2311,9 @@
       },
       { name:'East', label:'Vanessa', color:'#0044cc',
         coords:[[36.40,-115.13],[36.40,-114.88],[35.82,-114.88],[35.82,-115.13]]
+      },
+      { name:'Strip/Fremont', label:'Strip/Fremont', color:'#1a202c',
+        coords:[[36.20,-115.19],[36.20,-115.12],[36.06,-115.12],[36.06,-115.19]]
       }
     ];
     let territoriesVisible = true;
@@ -2750,20 +2756,31 @@
       return routeStops.some(s => s.prospectId === prospectId);
     }
 
+    function isExclusiveExpired(p) {
+      if (!p.exclusive_expiration_date) return false;
+      return new Date(p.exclusive_expiration_date) < new Date();
+    }
+
+    function getProspectZone(p) {
+      if (!p.lat || !p.lng) return null;
+      const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
+      for (let i = 0; i < ZONES.length; i++) {
+        if (pointInPolygon(lat, lng, ZONES[i].coords)) return ZONES[i];
+      }
+      return null;
+    }
+
     function getMarkerColor(p) {
       if (p.blocked) return '__blocked__';
       if (isInRoute(p.id)) return markerColors.inRoute;
-      // Rep/zone coloring: West=Stuart(green), Central=Jordan(red), East=Vanessa(blue)
+      // Signed = pink
+      if (p.status === 'signed') return '#ec4899';
       // Jordan's popped locations override zone — always red
       const hasPopIn = (p.activities || []).some(function(a) { return a.type === 'pop-in'; });
       if (hasPopIn) return '#cc0000';
       // Color by zone
-      if (p.lat && p.lng) {
-        const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
-        for (let i = 0; i < ZONES.length; i++) {
-          if (pointInPolygon(lat, lng, ZONES[i].coords)) return ZONES[i].color;
-        }
-      }
+      const zone = getProspectZone(p);
+      if (zone) return zone.color;
       return '#a0aec0'; // outside zones or no coords
     }
 
@@ -2909,12 +2926,22 @@
         });
         return;
       }
+      // After exclusive expiration date: stroke = region color
+      let strokeColor = '#fff';
+      let strokeWeight = 2;
+      if (inRoute) { strokeColor = '#fff'; strokeWeight = 3; }
+      else if (isExclusiveExpired(p)) {
+        const zone = getProspectZone(p);
+        if (zone) { strokeColor = zone.color; strokeWeight = 4; }
+      } else if (p.status === 'signed') {
+        strokeColor = '#be185d'; strokeWeight = 2;
+      }
       const m = L.circleMarker([p.lat, p.lng], {
         renderer: mapRenderer,
         radius: inRoute ? 10 : 8,
         fillColor: color,
-        color: inRoute ? '#fff' : (p.status === 'signed' ? '#38a169' : '#fff'),
-        weight: inRoute ? 3 : 2,
+        color: strokeColor,
+        weight: strokeWeight,
         opacity: 1,
         fillOpacity: 0.9
       }).addTo(markers);
@@ -2933,6 +2960,7 @@
           <strong style="font-size:14px;">${p.name}</strong><br>
           <span style="color:#3182ce;font-size:12px;">${p.property_type || ''}</span><br>
           ${reviewLine}
+          ${(() => { const z = getProspectZone(p); const exp = p.exclusive_expiration_date; const expired = isExclusiveExpired(p); const zBadge = z ? `<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;background:rgba(0,0,0,0.08);color:${z.color};border:1px solid ${z.color};">${z.label}</span> ` : ''; const eBadge = exp ? `<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;background:${expired?'rgba(220,38,38,0.1)':'rgba(234,179,8,0.1)'};color:${expired?'#dc2626':'#ca8a04'};">🔒 ${expired?'EXPIRED':'Excl. Exp '+exp}</span>` : ''; return (zBadge||eBadge) ? `<div style="margin-bottom:4px;">${zBadge}${eBadge}</div>` : ''; })()}
           <span style="color:#718096;font-size:12px;">📍 ${p.address || ''}</span><br>
           <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
             <a href="#" onclick="event.preventDefault();openFromTodo(${p.id});return false;" style="padding:4px 10px;background:#3182ce;color:#fff;border-radius:6px;font-size:11px;text-decoration:none;">View Details</a>
