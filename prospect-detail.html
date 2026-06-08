@@ -102,8 +102,12 @@
     .contact-list { display: flex; flex-direction: column; gap: 12px; }
     .contact-card { padding: 14px; background: #fafbfc; border-radius: 8px; border: 1px solid var(--border); }
     .contact-card.primary { border-left: 3px solid var(--accent); background: rgba(59,130,246,0.04); }
-    .contact-name { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .contact-name { font-weight: 600; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .contact-role { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+    .signed-field { display: inline-flex; align-items: center; gap: 4px; font-size: 0.78rem; font-weight: 400; color: var(--muted); }
+    .signed-field label { white-space: nowrap; color: var(--success); font-weight: 600; }
+    .signed-field input { font-size: 0.78rem; padding: 2px 6px; border: 1px solid var(--border); border-radius: 4px; background: #fff; width: auto; min-width: 90px; max-width: 160px; }
+    .signed-field input:focus { outline: none; border-color: var(--success); box-shadow: 0 0 0 2px rgba(56,161,105,0.15); }
     .contact-links { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
     .contact-link { font-size: 0.85rem; color: var(--accent); text-decoration: none; display: flex; align-items: center; gap: 4px; }
     .contact-link:hover { text-decoration: underline; }
@@ -512,6 +516,20 @@
                       <div class="contact-card ${c.is_primary ? 'primary' : ''}">
                         <div class="contact-name">
                           ${c.is_primary ? '⭐ ' : ''}${esc(c.name)}
+                          ${prospect.status === 'signed' ? `
+                            <span class="signed-field">
+                              <label>✍️ Signed by</label>
+                              <input type="text" value="${esc(c.signed_by || '')}" placeholder="Who signed"
+                                onblur="saveContactField(${c.id}, 'signed_by', this.value)"
+                                onclick="event.stopPropagation()">
+                            </span>
+                            <span class="signed-field">
+                              <label>📅 Install date</label>
+                              <input type="date" value="${esc(c.install_date || '')}"
+                                onchange="saveContactField(${c.id}, 'install_date', this.value)"
+                                onclick="event.stopPropagation()">
+                            </span>
+                          ` : ''}
                         </div>
                         ${c.role ? `<div class="contact-role">${esc(c.role)}</div>` : ''}
                         <div class="contact-links">
@@ -814,6 +832,18 @@
       const email = prompt('Email:');
       
       saveContact({ name, role, phone, email });
+    }
+
+    async function saveContactField(contactId, field, value) {
+      try {
+        await fetch(`/api/contacts/${contactId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [field]: value })
+        });
+      } catch (err) {
+        console.error('Error saving contact field:', err);
+      }
     }
 
     async function saveContact(contact) {

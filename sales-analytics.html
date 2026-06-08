@@ -427,7 +427,7 @@
         dailyDates.forEach(d => {
           const date = new Date(d + 'T12:00:00');
           const weekStart = new Date(date);
-          weekStart.setDate(date.getDate() - date.getDay());
+          weekStart.setDate(date.getDate() - (date.getDay() + 6) % 7); // Monday start
           weeks[d] = weekStart.toISOString().split('T')[0];
         });
         const weekKeys = [...new Set(Object.values(weeks))].sort();
@@ -540,7 +540,7 @@
         dailyData.forEach(d => {
           const date = new Date(d.date + 'T12:00:00');
           const weekStart = new Date(date);
-          weekStart.setDate(date.getDate() - date.getDay());
+          weekStart.setDate(date.getDate() - (date.getDay() + 6) % 7); // Monday start
           const key = weekStart.toISOString().split('T')[0];
           if (!weeks[key]) { weeks[key] = 0; weekTxns[key] = 0; }
           weeks[key] += d.revenue;
@@ -587,7 +587,7 @@
         } else if (chartView === 'week') {
           const wks = {};
           m.daily.forEach(d => {
-            const dt = new Date(d.date + 'T12:00:00'); const ws = new Date(dt); ws.setDate(dt.getDate()-dt.getDay());
+            const dt = new Date(d.date + 'T12:00:00'); const ws = new Date(dt); ws.setDate(dt.getDate()-(dt.getDay()+6)%7); // Monday start
             const k = ws.toISOString().split('T')[0]; wks[k] = (wks[k]||0) + d.revenue;
           });
           mValues = Object.values(wks);

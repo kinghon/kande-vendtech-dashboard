@@ -349,3 +349,125 @@ Insights extracted from Vendingpreneurs YouTube channel for Kande VendTech.
 - [ ] Build a pricing playbook: standard pricing, high-traffic surge pricing, and expiration discount tiers
 - [ ] Track shrinkage before/after implementing dynamic pricing — target 20-30% reduction
 - [ ] Market this feature to locations: "Our machines automatically discount items before they expire — less waste, more savings"
+
+---
+
+## 2026-06-01 — Batch Scrape (8 videos)
+
+### 26. How She Learned to Delegate (`OAunO_iGuME`)
+**Key Takeaways:**
+- **Letting go of control is the hardest part of scaling.** The operator (a young female business owner) struggled to hand keys to her restocker because "it's my business, it's my reputation."
+- **Aesthetics matter more than you think.** Her restocker initially threw candy bars in randomly — learning that "all the candy bars need to be facing the same direction" was a major client-expectation insight.
+- **Brand = presentation.** A 21-year-old student restocker doesn't intuitively understand why presentation matters; the operator had to teach that her brand is "really important."
+- **You can't scale if you don't delegate.** "I have so much control right now, but I cannot continue to have this control forever." This is the scaling bottleneck every solo operator hits.
+
+**Kande Action Items:**
+- [ ] Create a restocking SOP with visual standards (product facing, organization, cleanliness)
+- [ ] Document brand presentation guidelines for anyone restocking on our behalf
+- [ ] Build a training checklist for new restockers before they go solo
+- [ ] Accept that delegation quality will have a learning curve — build feedback loops, not micromanagement
+
+---
+
+### 27. Check These Three Things Before Every Major Move (`diAWHSGRvco`)
+**Key Takeaways:**
+- **Four green lights before any major move:** (1) Baseline expenses covered, (2) 3-6 months runway, (3) Pipeline strong, (4) All three = optionality.
+- **Optionality is the goal.** When your basics are covered and you have runway, every decision is made from strength, not desperation.
+- **Don't make moves from scarcity.** If expenses aren't covered and runway is thin, you're forced into bad decisions. Fix the foundation first.
+
+**Kande Action Items:**
+- [ ] Before any expansion (new machine, new market, new hire), run the "four green lights" checklist
+- [ ] Maintain a 3-6 month operational cash reserve as a hard rule
+- [ ] Build pipeline health metrics into our monthly review so we know it's "strong" before making moves
+
+---
+
+### 28. Who Cares About the Price of Advil? (`VXsZdQPxCao`)
+**Key Takeaways:**
+- **People don't buy on price — they buy on value.** "I'm not buying the Jordans because they're cheap. I'm buying the Jordans because they make me jump higher."
+- **Advil isn't purchased for low cost — it's purchased for pain relief.** The value proposition is the outcome, not the price point.
+- **This applies to vending location sales.** Don't pitch price; pitch outcomes: happier employees, reduced break-time travel, convenience, healthier options.
+
+**Kande Action Items:**
+- [ ] Reframe all sales conversations around outcomes, not price
+- [ ] Update pitch deck to lead with value (employee satisfaction, retention, convenience) before mentioning cost
+- [ ] Train sales team: "We're not selling cheap snacks — we're selling workplace convenience and employee satisfaction"
+- [ ] Apply this to product pricing too: premium products (protein shakes, Fairlife) command premium prices because the value is clear
+
+---
+
+### 29. Same Building… More Than Double Revenue? (`wq1LD27cWvc`)
+**Key Takeaways:**
+- **Same building, same traffic, same people — $1,200 vs $2,500/month.** The only variable was the machine.
+- **This confirms the upgrade thesis.** A modern smart machine in the exact same location can more than double revenue without changing anything else.
+- **The bottleneck is the machine, not the location.** If you're underperforming, the first question isn't "is this location bad?" — it's "is this machine maximizing this location?"
+
+**Kande Action Items:**
+- [ ] Use this exact case study in our pitch: "Same building, more than double the revenue — just by upgrading the machine"
+- [ ] For existing locations with traditional machines, build an upgrade proposal showing the revenue delta
+- [ ] Track "revenue per location before/after upgrade" as a core KPI
+- [ ] This is a powerful objection handler: "Your location isn't the problem — your machine is"
+
+---
+
+### 30. The Problem With Car Washes? (`EqH1IvBGqQw`)
+**Key Takeaways:**
+- **Car washes have strong margins and recession resilience, but massive capital barriers.** Self-serve: $150K-$500K. In-bay automatic: $250K-$700K per bay. Conveyor tunnel: $1-3M.
+- **Vending has dramatically lower barriers to entry.** A smart vending machine costs a fraction of even the cheapest car wash setup.
+- **Revenue potential per location is comparable or better.** Car washes generate $80K-$2M annually per location — but require massive upfront capital. Vending machines can generate strong returns with 10-50x less capital.
+- **Vending is the accessible path to automated income.** Car washes are for people who already have $500K+; vending is for operators who want to start now with $10K-$30K.
+
+**Kande Action Items:**
+- [ ] Use car wash capital requirements as a comparison in our "why vending?" content
+- [ ] Create a "vending vs. other automated businesses" comparison guide for prospects
+- [ ] Emphasize the low barrier to entry in our marketing: "Start generating automated income with 1/20th the capital of a car wash"
+- [ ] For investor conversations, position vending as "car wash economics without car wash capital requirements"
+
+---
+
+### 31. 9 No's and 1 Yes? (`8S9RRfeK1GY`)
+**Key Takeaways:**
+- **Reframing rejection:** "If we get 10 people and nine out of 10 say no, that would seem like a failure. Or you could say, I got one out of 10 and look at it as a success."
+- **Being your own backstop is motivating.** "You got nobody else covering your ass... that feeling will motivate you."
+- **The mentality of ownership drives success.** When it's 100% on you, the pressure becomes fuel. "I got to make this happen or nobody else is."
+- **Sales is a numbers game with a mindset multiplier.** The operators who succeed aren't just making more calls — they're seeing each "no" as progress toward the "yes."
+
+**Kande Action Items:**
+- [ ] Build rejection reframing into sales team training — celebrate the 1 in 10, don't mourn the 9
+- [ ] Create a daily/weekly outreach target: "10 conversations = 1 opportunity" — make the math visible
+- [ ] Cultivate the "own backstop" mentality in our team — autonomy + accountability = motivation
+- [ ] Track and celebrate "no's" as leading indicators, not failures
+
+---
+
+### 32. After Losing Money, He Needed This… (`zefzPe_Uw3M`)
+**Key Takeaways:**
+- **Origin story: medical device sales rep (20 years) + stay-at-home mom (logistics/billing background, 10 years at home).** Classic "visionary + operator" pairing.
+- **Airport smart cooler as inspiration.** Saw tap-to-pay, camera-vision kiosk at Charlotte airport and thought "there's got to be a way we can monetize this."
+- **Previous business failure informed the pivot.** Lost money on a house flip in 2021. This time, they're choosing a model with lower capital risk and faster cash flow.
+- **The trigger moment:** Company withheld his July 2024 commission check ("they told me I made too much money"). He had no money and vowed "I'm not going to be caught with my pants around my ankles ever again."
+- **Social media drove the decision.** Had been following Vendingpreneurs on Twitter/X for a while — content marketing works.
+
+**Kande Action Items:**
+- [ ] Use this story archetype in our content: "What if your worst financial moment became your best business decision?"
+- [ ] Emphasize the "airport experience" when pitching smart vending — tap, grab, go, camera sees everything
+- [ ] Create a "partnership model" pitch for couples/family teams: visionary + operator = powerful combo
+- [ ] Build content around "career insurance" — vending as the antidote to employer unpredictability
+- [ ] Document our own origin story and use it in marketing (website, social, pitch decks)
+
+---
+
+### 33. One of His Best Sellers Is Local? (`uqPzclokGeo`)
+**Key Takeaways:**
+- **Top seller: White Monster** (confirms the energy drink thesis from previous videos).
+- **Local products create differentiation and connection.** A "caramel cookie waffle" made locally — "people out here love it."
+- **"You can sell whatever you want in these machines."** The flexibility of modern vending means you're not limited to national brands.
+- **Local = pride + loyalty.** When people see a local product in the machine, it signals the operator cares about the community. It becomes a conversation piece.
+- **This operator is proud of selling local.** "I'm just more proud of, I guess, that we sell this." That's brand-building through product curation.
+
+**Kande Action Items:**
+- [ ] Identify 2-3 local Las Vegas products (snacks, drinks, treats) to stock in our machines
+- [ ] Create a "local favorites" section in our product mix — market it as "curated for your community"
+- [ ] Use local products as a differentiator in location pitches: "We stock local favorites your employees will actually get excited about"
+- [ ] Build relationships with local food/beverage producers for exclusive vending partnerships
+- [ ] Track local product sales separately — measure the "community connection" ROI

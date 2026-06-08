@@ -321,7 +321,10 @@ if (db.todos.length === 0) {
 // Server-side geocoding
 async function geocodeAddress(address) {
   try {
-    const q = encodeURIComponent(address + ', Las Vegas, NV');
+    // Don't append city/state if address already contains them
+    const hasCity = /las vegas|henderson|north las vegas|boulder city|mesquite|sparks|reno/i.test(address);
+    const hasState = /,\s*(NV|Nevada|CO|Colorado|IL|Illinois|CA|California)\b/i.test(address);
+    const q = encodeURIComponent((hasCity || hasState) ? address : address + ', Las Vegas, NV');
     const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1`, {
       headers: { 'User-Agent': 'KandeVendTech-CRM/1.0' }
     });
@@ -10408,7 +10411,7 @@ app.get('/api/operations/dashboard', (req, res) => {
     .reduce((s, r) => s + (r.amount || 0), 0);
 
   // Week/month revenue
-  const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - (weekStart.getDay() + 6) % 7); // Monday start
   const monthStart = new Date(); monthStart.setDate(1);
   const weekRevenue = (db.revenue || []).filter(r => {
     const d = r.date || (r.created_at || '').split('T')[0];
@@ -16375,7 +16378,7 @@ app.get('/api/tasks/stats', (req, res) => {
   
   // This week stats
   const weekStart = new Date(now);
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  weekStart.setDate(weekStart.getDate() - (weekStart.getDay() + 6) % 7); // Monday start
   const weekStartStr = weekStart.toISOString().split('T')[0];
   const completedThisWeek = tasks.filter(t => {
     if (!t.completed_at) return false;
@@ -17556,7 +17559,7 @@ app.get('/api/calendar/stats', (req, res) => {
   const now = new Date();
   const today = now.toISOString().split('T')[0];
   const weekStart = new Date(now);
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  weekStart.setDate(weekStart.getDate() - (weekStart.getDay() + 6) % 7); // Monday start
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 6);
   
@@ -19302,7 +19305,7 @@ app.get('/api/machines/:id/sales/summary', (req, res) => {
     switch (groupBy) {
       case 'week':
         const weekStart = new Date(date);
-        weekStart.setDate(date.getDate() - date.getDay());
+        weekStart.setDate(date.getDate() - (date.getDay() + 6) % 7); // Monday start
         key = weekStart.toISOString().split('T')[0];
         break;
       case 'month':
@@ -26090,9 +26093,15 @@ app.get('/api/sandstar/summary', (req, res) => {
   const productSales = allValidSales
     .filter(s => !periodCutoff || !s.sale_date || new Date(s.sale_date) >= periodCutoff)
     .filter(s => !machineFilter || s.machine_name === machineFilter);
-  const weekStart = new Date(now);
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  // Compute week/month boundaries in Pacific time (sale_date stored as Pacific YYYY-MM-DD strings)
+  const pacificNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+  const pacificDow = (pacificNow.getDay() + 6) % 7; // Monday=0, Sunday=6
+  const pacificWeekStartDate = new Date(pacificNow);
+  pacificWeekStartDate.setDate(pacificWeekStartDate.getDate() - pacificDow);
+  const weekStartStr = pacificWeekStartDate.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  const monthStartStr = todayStr.slice(0, 7) + '-01';
+  // Cap week to month start so "This Week" never bleeds into the prior month
+  const effectiveWeekStartStr = weekStartStr < monthStartStr ? monthStartStr : weekStartStr;
 
   const total_revenue = sales.reduce((s, r) => s + (r.amount || 0), 0);
   const total_transactions = sales.length;
@@ -26102,11 +26111,11 @@ app.get('/api/sandstar/summary', (req, res) => {
     .reduce((s, r) => s + (r.amount || 0), 0);
 
   const revenue_this_week = sales
-    .filter(s => new Date(s.sale_date) >= weekStart)
+    .filter(s => (s.sale_date || '') >= effectiveWeekStartStr)
     .reduce((s, r) => s + (r.amount || 0), 0);
 
   const revenue_this_month = sales
-    .filter(s => new Date(s.sale_date) >= monthStart)
+    .filter(s => (s.sale_date || '') >= monthStartStr)
     .reduce((s, r) => s + (r.amount || 0), 0);
 
   // Top products (uses period-filtered productSales)
@@ -30333,10 +30342,14 @@ app.get('/api/sandstar/summary', (req, res) => {
   // Exclude $0 / no-charge transactions from all stats
   const sales = allSales.filter(s => s.amount && s.amount > 0);
   const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
-  const weekStart = new Date(now);
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  // Compute week/month boundaries in Pacific time (sale_date stored as Pacific YYYY-MM-DD strings)
+  const pacificNow2 = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+  const pacificWeekStartDate2 = new Date(pacificNow2);
+  pacificWeekStartDate2.setDate(pacificWeekStartDate2.getDate() - (pacificNow2.getDay() + 6) % 7); // Monday start
+  const weekStartStr2 = pacificWeekStartDate2.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  const monthStartStr2 = todayStr.slice(0, 7) + '-01';
+  const effectiveWeekStartStr2 = weekStartStr2 < monthStartStr2 ? monthStartStr2 : weekStartStr2;
 
   const total_revenue = sales.reduce((s, r) => s + (r.amount || 0), 0);
   const total_transactions = sales.length;
@@ -30346,11 +30359,11 @@ app.get('/api/sandstar/summary', (req, res) => {
     .reduce((s, r) => s + (r.amount || 0), 0);
 
   const revenue_this_week = sales
-    .filter(s => new Date(s.sale_date) >= weekStart)
+    .filter(s => (s.sale_date || '') >= effectiveWeekStartStr2)
     .reduce((s, r) => s + (r.amount || 0), 0);
 
   const revenue_this_month = sales
-    .filter(s => new Date(s.sale_date) >= monthStart)
+    .filter(s => (s.sale_date || '') >= monthStartStr2)
     .reduce((s, r) => s + (r.amount || 0), 0);
 
   // Top products

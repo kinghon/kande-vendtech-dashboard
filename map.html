@@ -587,7 +587,7 @@
         var revLabel = rev != null ? fmtMoney(rev) + '/mo' : '';
         var revClass = tier === 'high' ? 'high' : tier === 'medium' ? 'medium' : tier === 'low' ? 'low' : '';
 
-        return '<div class="select-lead" onclick="toggleRouteStop(' + p.id + ')">' +
+        return '<div class="select-lead" onclick="panToLead(' + p.id + ')" style="cursor:pointer;">' +
           '<input type="checkbox" ' + (inRoute ? 'checked' : '') + ' onclick="event.stopPropagation();toggleRouteStop(' + p.id + ')">' +
           '<div style="flex:1;">' +
             '<div class="select-lead-name">' + p.name + '</div>' +
@@ -596,6 +596,21 @@
           (revLabel ? '<span class="select-lead-rev ' + revClass + '">' + revLabel + '</span>' : '') +
         '</div>';
       }).join('');
+
+      // Auto-zoom to fit filtered results when search is active and returns few results
+      if (search && filtered.length > 0 && filtered.length <= 20) {
+        var latlngs = filtered.filter(function(p) { return p.lat && p.lng; }).map(function(p) { return [p.lat, p.lng]; });
+        if (latlngs.length > 0) {
+          map.fitBounds(latlngs, { padding: [50, 50], maxZoom: filtered.length === 1 ? 15 : 13 });
+        }
+      }
+    }
+
+    function panToLead(prospectId) {
+      var p = prospects.find(function(x) { return x.id === prospectId; });
+      if (!p || !p.lat || !p.lng) return;
+      map.setView([p.lat, p.lng], 15);
+      if (markers[prospectId]) { markers[prospectId].openPopup(); }
     }
 
     function filterRouteLeads() { renderRouteLeadsList(); }

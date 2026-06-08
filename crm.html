@@ -237,6 +237,11 @@
       display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap;
       padding-top: 12px; border-top: 1px solid var(--border);
     }
+    .prospect-card.blocked-permanently { opacity: 0.55; border-left: 4px solid #1a1a1a; }
+    .block-btn { position:absolute; top:8px; right:8px; padding:3px 8px; font-size:0.65rem; font-weight:700; border-radius:6px; border:1px solid #1a1a1a; background:rgba(0,0,0,0.07); color:#1a1a1a; cursor:pointer; z-index:2; }
+    .block-btn:hover { background:#1a1a1a; color:#fff; }
+    .block-btn.unblock { border-color:#718096; background:rgba(113,128,150,0.1); color:#718096; }
+    .block-btn.unblock:hover { background:#718096; color:#fff; }
     .action-btn {
       padding: 8px 14px; background: var(--card); border: 1px solid var(--border);
       border-radius: 8px; color: var(--text); cursor: pointer; font-size: 0.85rem;
@@ -314,7 +319,9 @@
     @media (max-width: 600px) {
       .field-grid { grid-template-columns: 1fr; }
       .form-row { grid-template-columns: 1fr; }
-      .header { flex-direction: column; align-items: flex-start; }
+      .header { flex-direction: row; flex-wrap: wrap; align-items: center; }
+      #repCounters { gap: 4px; }
+      #repCounters > div { padding: 4px 8px !important; font-size: 0.8rem; }
       .badge-row { margin-left: 0 !important; }
       .contact-grid-header { display: none !important; }
       .contact-grid-row { grid-template-columns: 1fr !important; }
@@ -331,15 +338,12 @@
 <body>
   <div class="app">
     <div class="header">
-      <div style="display:flex;align-items:center;gap:12px;">
+      <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
         <img src="/logo.png" alt="Kande VendTech" style="height:56px;">
         <h1>Sales CRM</h1>
-        <div id="signedCounter" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:12px;background:var(--success);color:#fff;font-size:1.2rem;font-weight:700;cursor:pointer;" onclick="document.querySelector('[data-filter=signed]').click()">
-          ✅ <span id="signedCount">0</span> Signed
-        </div>
       </div>
-      <div class="header-actions">
-        <a href="/crm/map" class="btn btn-secondary" style="border-color:var(--accent);color:var(--accent);">🚗 Route Planner</a>
+      <div id="repCounters" style="display:flex;gap:8px;flex:1;justify-content:center;"></div>
+      <div class="header-actions" style="flex-shrink:0;">
         <button class="btn btn-primary" onclick="showAddModal()">+ New Prospect</button>
       </div>
     </div>
@@ -489,9 +493,11 @@
         <option value="healthcare">⚕️ Healthcare</option>
         <option value="industrial">🏭 Industrial/Warehouse</option>
         <option value="office">🏢 Office/Business</option>
+        <option value="hotels">🏨 Hotels/Casinos</option>
         <option value="other">📦 Other</option>
       </select>
       <select id="sortSelect" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:0.9rem;cursor:pointer;" onchange="currentSort=this.value;renderProspects()">
+        <option value="touchpoints">Sort: Most Touchpoints</option>
         <option value="default">Sort: Next Follow Up</option>
         <option value="mgmt_company">Sort: Mgmt Company</option>
         <option value="name">Sort: Name A-Z</option>
@@ -537,6 +543,7 @@
                 <option value="Healthcare">⚕️ Healthcare</option>
                 <option value="Industrial/Warehouse">🏭 Industrial/Warehouse</option>
                 <option value="Office/Business">🏢 Office/Business</option>
+                <option value="Hotels">🏨 Hotels/Casinos</option>
                 <option value="Other">📦 Other</option>
               </select>
             </div>
@@ -585,6 +592,16 @@
               <option value="call">📞 Call</option>
               <option value="pop-in">🚶 Pop-in</option>
               <option value="email">📧 Email</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Rep</label>
+            <select class="form-select" id="activityRep">
+              <option value="">— select rep —</option>
+              <option value="Jordan">Jordan</option>
+              <option value="Kurtis">Kurtis</option>
+              <option value="Stuart">Stuart</option>
+              <option value="Vanessa">Vanessa</option>
             </select>
           </div>
           <div class="form-group">
@@ -678,7 +695,7 @@
     let prospects = [];
     let expandedId = null;
     let currentFilter = 'all';
-    let currentSort = 'default';
+    let currentSort = 'touchpoints';
     let currentSourceFilter = 'all'; // for Newly Added sub-filter
     let currentPage = 1;
     const PAGE_SIZE = 25;
@@ -722,7 +739,7 @@
       document.getElementById('statActive').textContent = s.active;
       document.getElementById('statFollowup').textContent = s.needsFollowup;
       document.getElementById('statWeek').textContent = s.thisWeek;
-      document.getElementById('signedCount').textContent = s.signed || 0;
+      // signedCount replaced by rep counters
     }
 
     async function loadProspects() {
@@ -735,6 +752,42 @@
       renderProspects();
       renderTodoList();
       renderCompletedToday();
+      renderRepCounters();
+    }
+
+    function renderRepCounters() {
+      const reps = ['Jordan', 'Stuart', 'Vanessa', 'Kurtis'];
+      const container = document.getElementById('repCounters');
+      if (!container) return;
+      container.innerHTML = reps.map(rep => {
+        const repLower = rep.toLowerCase();
+        const signed = prospects.filter(p => p.status === 'signed' && (p.signed_by || '').toLowerCase().includes(repLower)).length;
+        const negotiations = prospects.filter(p => p.priority === 'intalks' && p.status !== 'signed' && p.status !== 'closed' && (p.contract_rep || '').toLowerCase().includes(repLower)).length;
+        const isRepPopin = (a) => {
+          if (!['pop-in','pop_in'].includes(a.type)) return false;
+          if (a.rep) return a.rep.toLowerCase() === repLower;
+          // No rep assigned — all historical pop-ins default to Jordan
+          return repLower === 'jordan';
+        };
+        const locationPopins = prospects.filter(p => (p.activities || []).some(a => isRepPopin(a))).length;
+        const totalPopins = prospects.reduce((sum, p) => sum + (p.activities || []).filter(a => isRepPopin(a)).length, 0);
+        return `
+          <div style="text-align:center;padding:8px 16px;border-radius:10px;background:var(--card);border:1px solid var(--border);cursor:pointer;flex:1;min-width:0;" onclick="filterBySigned()">
+            <div style="font-size:0.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">${rep}</div>
+            <div style="font-size:1.5rem;font-weight:800;color:var(--success);line-height:1;">${signed}</div>
+            <div style="font-size:0.65rem;color:var(--muted);margin-top:1px;">Locations Signed</div>
+            <div style="font-size:1rem;font-weight:700;color:#8b5cf6;line-height:1;margin-top:6px;">${negotiations}</div>
+            <div style="font-size:0.65rem;color:var(--muted);margin-top:1px;">Contracts Pending</div>
+            <div style="font-size:1rem;font-weight:700;color:var(--accent);line-height:1;margin-top:6px;">${locationPopins}</div>
+            <div style="font-size:0.65rem;color:var(--muted);margin-top:1px;">Location Pop-ins</div>
+            <div style="font-size:1rem;font-weight:700;color:var(--accent);line-height:1;margin-top:4px;">${totalPopins}</div>
+            <div style="font-size:0.65rem;color:var(--muted);margin-top:1px;">Total Pop-ins</div>
+          </div>`;
+      }).join('');
+    }
+
+    function filterBySigned() {
+      document.querySelector('[data-filter=signed]')?.click();
     }
 
     let todoExpanded = false;
@@ -1126,8 +1179,8 @@
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       document.querySelector('[data-filter="all"]').classList.add('active');
       document.getElementById('typeFilter').value = 'all';
-      document.getElementById('sortSelect').value = 'default';
-      currentSort = 'default';
+      document.getElementById('sortSelect').value = 'touchpoints';
+      currentSort = 'touchpoints';
       document.getElementById('search').value = '';
       
       // Ensure prospect is visible by expanding page far enough
@@ -1150,7 +1203,17 @@
       else if (currentFilter === 'warm') filtered = filtered.filter(p => p.priority === 'warm');
       else if (currentFilter === 'new') filtered = filtered.filter(p => p.status === 'new');
       else if (currentFilter === 'opening_soon') filtered = filtered.filter(p => p.status === 'opening_soon');
-      else if (currentFilter === 'signed') filtered = filtered.filter(p => p.status === 'signed');
+      else if (currentFilter === 'signed') {
+        filtered = filtered.filter(p => p.status === 'signed');
+        filtered = filtered.slice().sort((a, b) => {
+          const da = a.install_date || '';
+          const db = b.install_date || '';
+          if (!da && !db) return 0;
+          if (!da) return 1;
+          if (!db) return -1;
+          return db.localeCompare(da); // newest first
+        });
+      }
       else if (currentFilter === 'closed') filtered = filtered.filter(p => p.status === 'closed' || p.status === 'stale');
       else if (currentFilter === 'newlyadded') {
         const aiSources = ['scout-research','scout-maps','scout-web'];
@@ -1199,11 +1262,12 @@
       // Normalize property type (combine apartment/condo variants)
       function normalizeType(type) {
         const t = (type || '').toLowerCase();
-        if (t.includes('apartment') || t.includes('condo') || t.includes('high-rise')) return 'apartments_condos';
-        if (t.includes('assisted') || t.includes('nursing') || t.includes('retirement') || t.includes('memory') || t.includes('ccrc') || t.includes('skilled')) return 'senior_living';
-        if (t.includes('hospital') || t.includes('healthcare') || t.includes('urgent') || t.includes('radiology') || t.includes('xray')) return 'healthcare';
-        if (t.includes('warehouse') || t.includes('logistics') || t.includes('manufacturing')) return 'industrial';
-        if (t.includes('office') || t.includes('business')) return 'office';
+        if (t.includes('apartment') || t.includes('condo') || t.includes('high-rise') || t.includes('multifamily') || t.includes('residential')) return 'apartments_condos';
+        if (t.includes('senior') || t.includes('assisted') || t.includes('nursing') || t.includes('retirement') || t.includes('memory') || t.includes('ccrc') || t.includes('skilled') || t.includes('elder')) return 'senior_living';
+        if (t.includes('health') || t.includes('medical') || t.includes('clinic') || t.includes('hospital') || t.includes('dental') || t.includes('urgent') || t.includes('dialysis') || t.includes('radiology')) return 'healthcare';
+        if (t.includes('warehouse') || t.includes('industrial') || t.includes('logistics') || t.includes('manufacturing') || t.includes('distribution')) return 'industrial';
+        if (t.includes('office') || t.includes('corporate') || t.includes('business') || t.includes('cowork')) return 'office';
+        if (t.includes('hotel') || t.includes('casino') || t.includes('motel') || t.includes('resort') || t.includes('suites') || t.includes('lodg') || t.includes('hospitality') || t.includes('gaming')) return 'hotels';
         return 'other';
       }
 
@@ -1222,11 +1286,21 @@
         });
       } else {
         filtered.sort((a, b) => {
-          // Always keep closed/stale at bottom
+          // Always keep blocked at very bottom, then closed/stale
+          if (a.blocked && !b.blocked) return 1;
+          if (!a.blocked && b.blocked) return -1;
           if (a.status === 'signed' && b.status !== 'signed') return 1;
           if (a.status !== 'signed' && b.status === 'signed') return -1;
           if (a.status === 'closed' && b.status !== 'closed') return 1;
           if (a.status !== 'closed' && b.status === 'closed') return -1;
+          if (currentSort === 'touchpoints') {
+            const aTp = (a.activities||[]).filter(x=>['pop-in','call','email'].includes(x.type)).length;
+            const bTp = (b.activities||[]).filter(x=>['pop-in','call','email'].includes(x.type)).length;
+            if (bTp !== aTp) return bTp - aTp;
+            // secondary: priority
+            const po = { hot:1, intalks:2, warm:3, normal:4 };
+            return (po[a.priority]||4) - (po[b.priority]||4);
+          }
           if (currentSort === 'mgmt_company') {
             const ma = (a.management_company || '').toLowerCase();
             const mb = (b.management_company || '').toLowerCase();
@@ -1279,7 +1353,7 @@
         <div class="prospect-card ${p.priority} ${p.status === 'signed' ? 'signed' : ''} ${p.status === 'closed' ? 'stale' : ''} ${p.status === 'opening_soon' ? 'opening-soon' : ''} ${expandedId === p.id ? 'expanded' : ''}" id="card-${p.id}">
           <div class="prospect-summary" onclick="toggleExpand(${p.id})">
             <div class="prospect-header">
-              <div class="prospect-name">${p.name}${(() => { const ro = getRecentOpens(p); if (!ro) return ''; const urgency = ro.ageDays <= 2 ? '#e53e3e' : ro.ageDays <= 5 ? '#dd6b20' : '#718096'; const callFlag = ro.totalAdjusted >= 3 && !ro.anyReplied ? ' <span style="font-size:0.7rem;font-weight:800;color:#e53e3e;background:rgba(229,62,62,0.12);padding:2px 6px;border-radius:4px;animation:pulse 2s infinite;">📞 CALL</span>' : ''; return ` <span style="font-size:0.75rem;font-weight:700;color:${urgency};">📬 ${ro.totalAdjusted} open${ro.totalAdjusted > 1 ? 's' : ''}</span>${callFlag}`; })()}${p.status === 'closed' && p.stale_reason ? ` <span style="font-size:0.8rem;color:var(--hot);">⛔ ${esc(p.stale_reason)}</span>` : ''}</div>
+              <div class="prospect-name" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">${p.name}${(() => { const ro = getRecentOpens(p); if (!ro) return ''; const urgency = ro.ageDays <= 2 ? '#e53e3e' : ro.ageDays <= 5 ? '#dd6b20' : '#718096'; const callFlag = ro.totalAdjusted >= 3 && !ro.anyReplied ? ' <span style="font-size:0.7rem;font-weight:800;color:#e53e3e;background:rgba(229,62,62,0.12);padding:2px 6px;border-radius:4px;animation:pulse 2s infinite;">📞 CALL</span>' : ''; return ` <span style="font-size:0.75rem;font-weight:700;color:${urgency};">📬 ${ro.totalAdjusted} open${ro.totalAdjusted > 1 ? 's' : ''}</span>${callFlag}`; })()}${p.status === 'closed' && p.stale_reason ? ` <span style="font-size:0.8rem;color:var(--hot);">⛔ ${esc(p.stale_reason)}</span>` : ''}${p.status === 'signed' ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.78rem;font-weight:400;" onclick="event.stopPropagation()"><span style="color:var(--success);font-weight:600;">Sold</span><input type="text" value="${esc(p.signed_by||'')}" placeholder="Name" style="font-size:0.78rem;padding:2px 6px;border:1px solid var(--border);border-radius:4px;width:120px;font-weight:400;" onblur="updateProspectField(${p.id},'signed_by',this.value)" onclick="event.stopPropagation()"></span><span style="display:inline-flex;align-items:center;gap:4px;font-size:0.78rem;font-weight:400;" onclick="event.stopPropagation()"><span style="color:var(--success);font-weight:600;">Date Installed</span><input type="date" value="${esc(p.install_date||'')}" style="font-size:0.78rem;padding:2px 6px;border:1px solid var(--border);border-radius:4px;font-weight:400;" onchange="updateProspectField(${p.id},'install_date',this.value)" onclick="event.stopPropagation()"></span>` : ''}${p.priority === 'intalks' && p.status !== 'signed' && p.status !== 'closed' ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.78rem;font-weight:400;" onclick="event.stopPropagation()"><span style="color:#8b5cf6;font-weight:600;">Rep</span><select style="font-size:0.78rem;padding:2px 6px;border:1px solid var(--border);border-radius:4px;font-weight:400;background:var(--card);color:var(--text);" onchange="updateProspectField(${p.id},'contract_rep',this.value)" onclick="event.stopPropagation()"><option value="">— assign —</option><option value="Jordan" ${(p.contract_rep||'')==='Jordan'?'selected':''}>Jordan</option><option value="Kurtis" ${(p.contract_rep||'')==='Kurtis'?'selected':''}>Kurtis</option><option value="Stuart" ${(p.contract_rep||'')==='Stuart'?'selected':''}>Stuart</option><option value="Vanessa" ${(p.contract_rep||'')==='Vanessa'?'selected':''}>Vanessa</option></select></span>` : ''}</div>
               <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:1px;">${(() => { const tp = (p.activities||[]).filter(a=>['pop-in','call','email'].includes(a.type)).length; return tp > 0 ? `<span style="font-size:0.8rem;font-weight:700;color:#fff;background:var(--hot);padding:1px 8px;border-radius:6px;">${tp} touchpoint${tp!==1?'s':''}</span>` : ''; })()}${(() => { const raw = p.next_action_date || p.follow_up_date || ''; const today = new Date().toISOString().split('T')[0]; const isFuture = raw && raw >= today; const label = p.next_action || 'Follow Up'; const dateStr = isFuture ? (() => { const [y,m,d] = raw.split('-'); return m+'/'+d+'/'+y.slice(2); })() : 'NONE'; return `<span style="font-size:0.8rem;font-weight:700;color:${isFuture ? 'var(--hot)' : 'var(--muted)'};">Next Follow Up (${esc(label)}): ${dateStr}</span>`; })()}</div>
               <div>${(() => { const acts = (p.activities||[]).filter(a=>['pop-in','call','email','meeting','note'].includes(a.type)); const emails = (p.email_tracking||[]).map(e=>e.last_event_at||e.sent_at).filter(Boolean); const allDates = [...acts.map(a=>a.created_at||a.date||''), ...emails].filter(Boolean).sort().reverse(); const last = allDates[0]; if (!last) return ''; const d = new Date(last); const fmt = (d.getMonth()+1)+'/'+(d.getDate())+'/'+String(d.getFullYear()).slice(2); return `<span style="font-size:0.78rem;font-weight:600;color:var(--text);">Last Interaction: ${fmt}</span>`; })()}</div>
               <span class="saved-indicator" id="saved-${p.id}">✓ Saved</span>
@@ -1294,7 +1368,7 @@
                   <option value="signed" ${p.status === 'signed' ? 'selected' : ''}>🖊️ SIGNED</option>
                   <option value="stale" ${p.status === 'closed' ? 'selected' : ''}>⛔ STALE</option>
                 </select>
-                <button onclick="event.stopPropagation(); toggleExpand(${p.id})" style="padding:4px 12px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;border:1px solid var(--accent);background:rgba(49,130,206,0.08);color:var(--accent);">📅 Set Next Followup</button>
+                <button onclick="event.stopPropagation(); toggleExpand(${p.id})" style="padding:4px 12px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;border:1px solid var(--accent);background:rgba(49,130,206,0.08);color:var(--accent);">Set Next Follow Up</button>
 
                 ${isInRoute(p.id) ? `<span style="padding:4px 10px;border-radius:6px;font-size:0.75rem;font-weight:600;background:rgba(56,161,105,0.15);color:var(--success);border:1px solid rgba(56,161,105,0.3);">✓ In Route</span>` : `<button onclick="event.stopPropagation(); addToRoute(${p.id});" style="padding:4px 10px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;border:1px solid var(--success);background:rgba(56,161,105,0.1);color:var(--success);">🗺️ + Route</button>`}
               </div>
@@ -1307,7 +1381,7 @@
             </div>
 
             ${(p.contacts?.length || p.primary_contact) ? `<div style="margin-top:4px;font-size:0.85rem;">
-              ${p.contacts?.length ? p.contacts.map(c => `<span style="color:var(--text);">${c.is_primary ? '⭐ ' : ''}${titleCase(c.name)}</span>${c.phone ? ' <a href="tel:' + c.phone + '" style="color:var(--accent);font-size:0.8rem;" onclick="event.stopPropagation()">' + c.phone + '</a>' : ''}${c.email ? ' <a href="mailto:' + c.email + '" style="color:var(--accent);font-size:0.8rem;" onclick="event.stopPropagation()">' + c.email + '</a>' : ''}`).join(' · ') : titleCase(p.primary_contact || '')}
+              ${p.contacts?.length ? p.contacts.map(c => `<span style="color:var(--text);">${c.is_primary ? '⭐ ' : ''}${titleCase(c.name)}</span>${p.status === 'signed' ? `<span style="margin-left:6px;font-size:0.75rem;color:var(--success);font-weight:600;">✍️ ${c.signed_by || '<span style=\'color:var(--muted)\'>—</span>'}</span> <span style="font-size:0.75rem;color:var(--muted);">📅 ${c.install_date || '—'}</span>` : ''}${c.phone ? ' <a href="tel:' + c.phone + '" style="color:var(--accent);font-size:0.8rem;" onclick="event.stopPropagation()">' + c.phone + '</a>' : ''}${c.email ? ' <a href="mailto:' + c.email + '" style="color:var(--accent);font-size:0.8rem;" onclick="event.stopPropagation()">' + c.email + '</a>' : ''}`).join(' · ') : titleCase(p.primary_contact || '')}
             </div>` : ''}
           </div>
           ${expandedId === p.id ? renderDetail(p) : ''}
@@ -1339,7 +1413,7 @@
         <div class="prospect-detail" style="display:block;">
           <!-- Schedule Next Followup -->
           <div style="background:rgba(49,130,206,0.05);border:1px solid rgba(49,130,206,0.2);border-radius:10px;padding:12px;margin-bottom:12px;">
-            <div style="font-size:0.8rem;font-weight:700;color:var(--accent);margin-bottom:10px;">📅 Schedule Next Followup</div>
+            <div style="font-size:0.8rem;font-weight:700;color:var(--accent);margin-bottom:10px;">Set Next Follow Up</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
               <select id="fuType-${p.id}" onclick="event.stopPropagation()" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:0.82rem;background:var(--card);color:var(--text);">
                 <option value="Pop In">🚶 Pop In</option>
@@ -1401,6 +1475,7 @@
                     {v: 'Healthcare', l: '⚕️ Healthcare'},
                     {v: 'Industrial/Warehouse', l: '🏭 Industrial/Warehouse'},
                     {v: 'Office/Business', l: '🏢 Office/Business'},
+                    {v: 'Hotels', l: '🏨 Hotels/Casinos'},
                     {v: 'Other', l: '📦 Other'}
                   ].map(t =>
                     `<option value="${t.v}" ${toCanonicalType(p.property_type) === t.v ? 'selected' : ''}>${t.l}</option>`
@@ -1454,21 +1529,26 @@
           <!-- Contacts (inline editable) -->
           <div class="detail-section" style="margin-top:12px;">
             <div class="detail-section-title">Contacts</div>
-            ${contacts.length ? `<div class="contact-grid-header" style="display:grid;grid-template-columns:2fr 2fr 1.5fr 3fr 2fr auto;gap:8px;margin-bottom:6px;align-items:center;">
+            ${contacts.length ? `<div class="contact-grid-header" style="display:grid;grid-template-columns:${p.status === 'signed' ? '2fr 2fr 1.5fr 3fr 2fr 1.5fr 1.5fr auto' : '2fr 2fr 1.5fr 3fr 2fr auto'};gap:8px;margin-bottom:6px;align-items:center;">
               <span class="field-label">Name</span>
               <span class="field-label">Role</span>
               <span class="field-label">Phone</span>
               <span class="field-label">Email</span>
               <span class="field-label">Favorite snack</span>
+              ${p.status === 'signed' ? '<span class="field-label" style="color:var(--success);">✍️ Signed By</span><span class="field-label" style="color:var(--success);">📅 Install Date</span>' : ''}
               <span></span>
             </div>` : ''}
             ${contacts.map((c, ci) => `
-              <div class="contact-card contact-grid-row" style="display:grid;grid-template-columns:2fr 2fr 1.5fr 3fr 2fr auto;gap:8px;align-items:center;">
+              <div class="contact-card contact-grid-row" style="display:grid;grid-template-columns:${p.status === 'signed' ? '2fr 2fr 1.5fr 3fr 2fr 1.5fr 1.5fr auto' : '2fr 2fr 1.5fr 3fr 2fr auto'};gap:8px;align-items:center;">
                 <div class="field-group contact-field"><label class="field-label contact-field-label">Name</label><input class="field-input" value="${esc(c.name)}" placeholder="Name" style="font-weight:600;width:100%;" onchange="updateContact(${p.id},${c.id},'name',this.value)"></div>
                 <div class="field-group contact-field"><label class="field-label contact-field-label">Role</label><input class="field-input" value="${esc(c.role || '')}" placeholder="Role" style="font-size:0.8rem;width:100%;" onchange="updateContact(${p.id},${c.id},'role',this.value)"></div>
                 <div class="field-group contact-field"><label class="field-label contact-field-label">Phone</label><input class="field-input" value="${esc(c.phone || '')}" placeholder="Phone" style="width:100%;" onchange="updateContact(${p.id},${c.id},'phone',this.value)"></div>
                 <div class="field-group contact-field"><label class="field-label contact-field-label">Email</label><input class="field-input" value="${esc(c.email || '')}" placeholder="Email" style="width:100%;" onchange="updateContact(${p.id},${c.id},'email',this.value)"></div>
                 <div class="field-group contact-field"><label class="field-label contact-field-label">Favorite snack</label><input class="field-input" value="${esc(c.favorite_snack || '')}" placeholder="e.g. Doritos" style="width:100%;" onchange="updateContact(${p.id},${c.id},'favorite_snack',this.value)"></div>
+                ${p.status === 'signed' ? `
+                <div class="field-group contact-field"><label class="field-label contact-field-label" style="color:var(--success);">✍️ Signed By</label><input class="field-input" value="${esc(c.signed_by || '')}" placeholder="Who signed" style="width:100%;" onchange="updateContact(${p.id},${c.id},'signed_by',this.value)"></div>
+                <div class="field-group contact-field"><label class="field-label contact-field-label" style="color:var(--success);">📅 Install Date</label><input class="field-input" type="date" value="${esc(c.install_date || '')}" style="width:100%;" onchange="updateContact(${p.id},${c.id},'install_date',this.value)"></div>
+                ` : ''}
                 <button class="contact-delete" style="background:none;border:none;color:var(--hot);cursor:pointer;font-size:14px;" onclick="deleteContact(${p.id},${c.id})" title="Remove contact">✕</button>
               </div>
             `).join('')}
@@ -1851,6 +1931,16 @@
       el.style.height = el.scrollHeight + 'px';
     }
 
+    function updateProspectField(prospectId, field, value) {
+      const p = prospects.find(x => x.id === prospectId);
+      if (p) p[field] = value;
+      fetch(`/api/prospects/${prospectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value })
+      });
+    }
+
     function updateContact(prospectId, contactId, field, value) {
       const p = prospects.find(p => p.id === prospectId);
       if (p?.contacts) {
@@ -1980,7 +2070,7 @@
     }
     document.getElementById('search').addEventListener('input', () => {
       clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(() => { currentPage = 1; renderProspects(); }, 300);
+      searchTimeout = setTimeout(() => { currentPage = 1; renderProspects(); geocodeAndPlot(); }, 300);
     });
     document.getElementById('typeFilter').addEventListener('change', () => { currentPage = 1; renderProspects(); geocodeAndPlot(); });
 
@@ -2046,6 +2136,7 @@
       document.getElementById('activityType').value = a.type;
       document.getElementById('activityTitle').textContent = `Edit ${a.type.charAt(0).toUpperCase() + a.type.slice(1)}`;
       document.getElementById('activityDate').value = a.activity_date || (a.created_at ? a.created_at.split('T')[0] : '');
+      document.getElementById('activityRep').value = a.rep || '';
       document.getElementById('activityDesc').value = a.description || '';
       document.getElementById('activityOutcome').value = a.outcome || '';
       document.getElementById('nextAction').value = a.next_action || '';
@@ -2075,6 +2166,7 @@
       const data = {
         type: document.getElementById('activityType').value,
         activity_date: document.getElementById('activityDate').value,
+        rep: document.getElementById('activityRep').value || null,
         description: document.getElementById('activityDesc').value,
         outcome: document.getElementById('activityOutcome').value,
         next_action: nextAction,
@@ -2182,7 +2274,7 @@
     const markerColors = { hot: '#e53e3e', intalks: '#8b5cf6', warm: '#eab308', signed: '#ffffff', new: '#3182ce', closed: '#a0aec0', popIn: '#38a169', inRoute: '#22c55e' };
     startLocationTracking();
 
-    // -- Territory Zones --
+    // -- Territory Zones (preliminary draft) --
     const ZONES = [
       { name:'West', label:'WEST (Summerlin / Spring Valley / SW)', color:'#22c55e',
         coords:[
@@ -2652,6 +2744,7 @@
 
     function getMarkerColor(p) {
       // In Route = bright green with glow effect (checked first)
+      if (p.blocked) return '__blocked__';
       if (isInRoute(p.id)) return markerColors.inRoute;
       // Pop In Needed = green (check next_action for pop in variations)
       if (p.next_action && p.next_action.toLowerCase().includes('pop in')) return markerColors.popIn;
@@ -2670,6 +2763,7 @@
       if (t.includes('health') || t.includes('medical') || t.includes('clinic') || t.includes('hospital') || t.includes('dental') || t.includes('urgent') || t.includes('dialysis')) return 'healthcare';
       if (t.includes('warehouse') || t.includes('industrial') || t.includes('logistics') || t.includes('manufacturing') || t.includes('distribution')) return 'industrial';
       if (t.includes('office') || t.includes('corporate') || t.includes('business') || t.includes('cowork') || t.includes('call center')) return 'office';
+      if (t.includes('hotel') || t.includes('casino') || t.includes('motel') || t.includes('resort') || t.includes('suites') || t.includes('lodg')) return 'hotels';
       return 'other';
     }
 
@@ -2681,6 +2775,7 @@
       if (/health|medical|clinic|hospital|dental|urgent care|dialysis|rehab|behavioral|trauma|va med/.test(t)) return 'Healthcare';
       if (/industrial|warehouse|distribution|manufacturing|logistics|fulfillment|sorting|mail process|package/.test(t)) return 'Industrial/Warehouse';
       if (/office|corporate|business|cowork|call center|high.traffic/.test(t)) return 'Office/Business';
+      if (/hotel|motel|inn|resort|suites|lodg|hospitality/.test(t)) return 'Hotels/Casinos';
       if (!t) return '';
       return 'Other';
     }
@@ -2705,10 +2800,32 @@
     function geocodeAndPlot() {
       markers.clearLayers();
       const typeFilter = document.getElementById('typeFilter')?.value || 'all';
-      prospects
+      const search = (document.getElementById('search')?.value || '').toLowerCase().trim();
+      const visible = prospects
         .filter(p => p.lat && p.lng && p.status !== 'closed')
         .filter(p => typeFilter === 'all' || normalizeTypeGlobal(p.property_type) === typeFilter)
-        .forEach(p => addMarker(p));
+        .filter(p => {
+          if (!search) return true;
+          const fields = [p.name, p.address, p.property_type, p.units, p.phone, p.hours, p.notes, p.kurtis_notes, p.primary_contact, p.stale_reason];
+          const contactText = (p.contacts || []).map(c => [c.name, c.role, c.phone, c.email].join(' ')).join(' ');
+          const activityText = (p.activities || []).map(a => [a.type, a.description, a.outcome, a.next_action].join(' ')).join(' ');
+          return [...fields, contactText, activityText].filter(Boolean).join(' ').toLowerCase().includes(search);
+        })
+        .filter(p => {
+          if (currentFilter === 'hot') return p.priority === 'hot';
+          if (currentFilter === 'warm') return p.priority === 'warm';
+          if (currentFilter === 'new') return p.status === 'new';
+          if (currentFilter === 'signed') return p.status === 'signed';
+          if (currentFilter === 'followup') return p.needs_action;
+          if (currentFilter === 'opening_soon') return p.status === 'opening_soon';
+          return true;
+        });
+      visible.forEach(p => addMarker(p));
+      // Auto-zoom to fit filtered results when search is active
+      if (search && visible.length > 0 && visible.length <= 20) {
+        const latlngs = visible.map(p => [p.lat, p.lng]);
+        map.fitBounds(latlngs, { padding: [50, 50], maxZoom: visible.length === 1 ? 15 : 13 });
+      }
     }
 
     // ── User location star marker ─────────────────────
@@ -2735,6 +2852,21 @@
     }
 
     // ── Set Pop-In action ─────────────────────────────
+
+    async function blockProspect(id, block) {
+      const p = prospects.find(pr => pr.id === id);
+      if (!p) return;
+      if (block && !confirm('Block this location permanently? It will move to the bottom of the list and be marked on the map.')) return;
+      p.blocked = block;
+      await fetch('/api/prospects/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blocked: block })
+      });
+      renderProspects();
+      geocodeAndPlot();
+    }
+
     async function setPopIn(id) {
       try {
         await fetch(`/api/prospects/${id}`, {
@@ -2753,6 +2885,19 @@
     function addMarker(p) {
       const color = getMarkerColor(p);
       const inRoute = isInRoute(p.id);
+      if (color === '__blocked__') {
+        const blockedIcon = L.divIcon({
+          className: '',
+          html: '<div style="width:18px;height:18px;border-radius:50%;background:#1a1a1a;border:2px solid #fff;display:flex;align-items:center;justify-content:center;transform:translate(-50%,-50%);"><span style=\"color:#fff;font-size:10px;font-weight:900;line-height:1;\">✕</span></div>',
+          iconSize: [18, 18],
+          iconAnchor: [9, 9]
+        });
+        const m = L.marker([p.lat, p.lng], { icon: blockedIcon }).addTo(markers);
+        m.on('click', function() {
+          m.bindPopup('<strong>' + p.name + '</strong><br><span style="color:#718096;font-size:12px;">🚫 Blocked permanently</span><br><button onclick="blockProspect(' + p.id + ',false)" style="margin-top:6px;padding:4px 10px;background:#4a5568;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;">Unblock</button>').openPopup();
+        });
+        return;
+      }
       const m = L.circleMarker([p.lat, p.lng], {
         renderer: mapRenderer,
         radius: inRoute ? 10 : 8,
