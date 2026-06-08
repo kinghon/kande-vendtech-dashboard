@@ -3104,6 +3104,9 @@
 
     function prospectMatchesRep(p, rep) {
       if (!rep || rep === 'all') return true;
+      // Explicit assignment always wins — if someone changed the rep, honor it
+      if (p.assigned_rep) return p.assigned_rep === rep;
+      // No explicit assignment — fall back to geography + pop-in rule
       if (rep === 'Jordan') {
         const hasPopIn = (p.activities || []).some(function(a) {
           return a.type === 'pop-in' || a.type === 'pop_in' || (a.description && /pop.?in/i.test(a.description));
