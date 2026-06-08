@@ -2839,8 +2839,9 @@
       // Black dot locations (Strip hotels/casinos) have no rep — manually assigned
       if (isStripHotel(p) && isInStripFremont(p)) return null;
       // If Jordan has popped this location, show as Jordan regardless of geographic zone
+      // Strict type check only — matches getMarkerColor to prevent green dot bleed
       const hasPopIn = (p.activities || []).some(function(a) {
-        return a.type === 'pop-in' || a.type === 'pop_in' || (a.description && /pop.?in/i.test(a.description));
+        return a.type === 'pop-in' || a.type === 'pop_in';
       });
       if (hasPopIn) return ZONES.find(function(z) { return z.name === 'Central'; }) || null;
       // Fall back to geographic zone
@@ -3116,10 +3117,8 @@
       if (rep === 'Vanessa') return z && z.name === 'East';
       if (rep === 'Jordan') {
         if (z && z.name === 'Central') return true;
-        // Jordan also owns his 199 pop-in locations regardless of zone
-        return (p.activities || []).some(function(a) {
-          return a.type === 'pop-in' || a.type === 'pop_in';
-        });
+        // Jordan also owns his pop-in locations regardless of zone (strict type check)
+        return (p.activities || []).some(function(a) { return a.type === 'pop-in' || a.type === 'pop_in'; });
       }
       return false;
     }
