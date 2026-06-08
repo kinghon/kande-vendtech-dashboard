@@ -786,7 +786,8 @@
     }
 
     function renderRepCounters() {
-      const reps = ['Jordan', 'Stuart', 'Vanessa', 'Kurtis'];
+      // Reps see only their own card; Kurtis/admin sees all 4
+      const reps = currentRep ? [currentRep.charAt(0).toUpperCase() + currentRep.slice(1)] : ['Jordan', 'Stuart', 'Vanessa', 'Kurtis'];
       const container = document.getElementById('repCounters');
       if (!container) return;
       container.innerHTML = reps.map(rep => {
@@ -1561,13 +1562,13 @@
             </div>
           </div>
 
-          <!-- Kurtis Notes — hidden from reps -->
-          ${currentRep === null ? `
+          <!-- Kurtis Notes — editable for admin, read-only for reps -->
+          ${p.kurtis_notes || currentRep === null ? `
           <div class="notes-box kurtis">
             <label class="kurtis">👤 Kurtis Notes</label>
             <div style="position:relative;">
-              <button onclick="addTimestampedNote(${p.id},'kurtis_notes')" style="position:absolute;top:6px;left:6px;font-size:0.7rem;padding:2px 8px;background:#805ad5;color:white;border:none;border-radius:4px;cursor:pointer;z-index:1;">+ Add Entry</button>
-              <textarea id="kurtis_notes-${p.id}" onchange="updateField(${p.id},'kurtis_notes',this.value)" oninput="autoResize(this)" onfocus="autoResize(this)" style="padding-top:30px;">${esc(p.kurtis_notes || '')}</textarea>
+              ${currentRep === null ? `<button onclick="addTimestampedNote(${p.id},'kurtis_notes')" style="position:absolute;top:6px;left:6px;font-size:0.7rem;padding:2px 8px;background:#805ad5;color:white;border:none;border-radius:4px;cursor:pointer;z-index:1;">+ Add Entry</button>` : ''}
+              <textarea id="kurtis_notes-${p.id}" ${currentRep !== null ? 'readonly style="padding:10px;background:#f8f5ff;color:#4a4a4a;cursor:default;"' : 'onchange="updateField(' + p.id + ',\'kurtis_notes\',this.value)" oninput="autoResize(this)" onfocus="autoResize(this)" style="padding-top:30px;"'}>${esc(p.kurtis_notes || '')}</textarea>
             </div>
           </div>` : ''}
 
@@ -3107,20 +3108,20 @@
 
     function prospectMatchesRep(p, rep) {
       if (!rep || rep === 'all') return true;
-      // Explicit assignment always wins — if someone changed the rep, honor it
-      if (p.assigned_rep) return p.assigned_rep === rep;
-      // No explicit assignment — fall back to geography + pop-in rule
-      if (rep === 'Jordan') {
-        const hasPopIn = (p.activities || []).some(function(a) {
-          return a.type === 'pop-in' || a.type === 'pop_in' || (a.description && /pop.?in/i.test(a.description));
-        });
-        if (hasPopIn) return true;
-        const z = getProspectZone(p);
-        return z && z.name === 'Central';
-      }
-      if (rep === 'Stuart') { const z = getProspectZone(p); return z && z.name === 'West'; }
-      if (rep === 'Vanessa') { const z = getProspectZone(p); return z && z.name === 'East'; }
-      return true;
+      // Check geographic zone first
+      const z = getProspectZone(p);
+      const inMyZone = (rep === 'Jordan' && z && z.name === 'Central') ||
+                       (rep === 'Stuart'  && z && z.name === 'West')    ||
+                       (rep === 'Vanessa' && z && z.name === 'East');
+      // Jordan also owns pop-in locations regardless of zone
+      const hasPopIn = rep === 'Jordan' && (p.activities || []).some(function(a) {
+        return a.type === 'pop-in' || a.type === 'pop_in' || (a.description && /pop.?in/i.test(a.description));
+      });
+      // If it's in this rep's geographic zone, always show it
+      if (inMyZone || hasPopIn) return true;
+      // Not in this rep's zone — only show if explicitly assigned to this rep
+      if (p.assigned_rep === rep) return true;
+      return false;
     }
 
     function setRepRegionFilter(val) {
