@@ -19,15 +19,21 @@ const PORT = process.env.PORT || 3000;
 
 // Admin password from environment (set in Railway)
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'kande2026';
-const VALID_PASSWORDS = [ADMIN_PASSWORD, process.env.SALES_PASSWORD || 'jvending1#'];
+const REP_PASSWORDS = {
+  stuart:  process.env.STUART_PASSWORD  || 'stuart',
+  vanessa: process.env.VANESSA_PASSWORD || 'vanessa',
+  jordan:  process.env.JORDAN_PASSWORD  || 'jordan'
+};
+const VALID_PASSWORDS = [ADMIN_PASSWORD, process.env.SALES_PASSWORD || 'jvending1#', ...Object.values(REP_PASSWORDS)];
 
 // Generate session tokens
 // Sessions persisted to DB so they survive deploys
 function getActiveSessions() {
   if (!db.sessions) db.sessions = {};
-  // Clean expired sessions (older than 14 days)
+  // Clean expired sessions (older than 30 days)
   const now = Date.now();
-  for (const [token, created] of Object.entries(db.sessions)) {
+  for (const [token, entry] of Object.entries(db.sessions)) {
+    const created = typeof entry === 'object' ? entry.created : entry;
     if (now - created > 30 * 24 * 60 * 60 * 1000) delete db.sessions[token];
   }
   return db.sessions;
@@ -142,13 +148,16 @@ app.post('/api/auth/login', (req, res) => {
   if (VALID_PASSWORDS.includes(password)) {
     const token = generateToken();
     const sessions = getActiveSessions();
-    sessions[token] = Date.now();
+    // Identify which rep is logging in
+    const repEntry = Object.entries(REP_PASSWORDS).find(([, pw]) => pw === password);
+    const rep = repEntry ? repEntry[0] : null; // 'jordan' | 'stuart' | 'vanessa' | null (admin)
+    sessions[token] = { created: Date.now(), rep };
     saveDB(db);
     
-    // Set cookie (24 hours)
+    // Set cookie (30 days)
     res.setHeader('Set-Cookie', `vendtech_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${30 * 24 * 60 * 60}`);
     loginAttempts.delete(ip); // Clear attempts on success
-    res.json({ success: true });
+    res.json({ success: true, rep });
   } else {
     // Track failed attempt
     const current = loginAttempts.get(ip);
@@ -192,7 +201,12 @@ app.post('/api/auth/logout', (req, res) => {
 
 // Check auth status
 app.get('/api/auth/status', (req, res) => {
-  res.json({ authenticated: true }); // If we get here, we're authenticated (middleware passed)
+  const cookies = parseCookies(req);
+  const sessionToken = cookies['vendtech_session'];
+  const sessions = getActiveSessions();
+  const entry = sessionToken ? sessions[sessionToken] : null;
+  const rep = entry && typeof entry === 'object' ? entry.rep : null;
+  res.json({ authenticated: true, rep }); // rep: 'jordan'|'stuart'|'vanessa'|null
 });
 
 // Health check endpoint (public, for monitoring)

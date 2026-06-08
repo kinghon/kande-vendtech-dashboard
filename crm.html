@@ -368,6 +368,15 @@
     </div>
 
     <div class="map-container">
+      <!-- Rep Region Filter Dropdown -->
+      <div style="position:absolute;top:10px;right:50px;z-index:1000;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:4px 8px;box-shadow:0 2px 8px rgba(0,0,0,0.12);">
+        <select id="repRegionFilter" onchange="setRepRegionFilter(this.value)" style="border:none;background:transparent;font-size:13px;font-weight:600;color:#1a202c;cursor:pointer;outline:none;padding:2px 4px;">
+          <option value="all">🗺️ All Regions</option>
+          <option value="Stuart">🟢 Stuart</option>
+          <option value="Jordan">🔴 Jordan</option>
+          <option value="Vanessa">🔵 Vanessa</option>
+        </select>
+      </div>
       <div id="miniMap"></div>
       <div class="map-legend">
         <div class="legend-title">Status</div>
@@ -690,6 +699,8 @@
     let prospects = [];
     let expandedId = null;
     let currentFilter = 'all';
+    let currentRep = null;       // 'jordan' | 'stuart' | 'vanessa' | null (admin)
+    let currentRepFilter = 'all'; // active region dropdown value
     let currentSort = 'touchpoints';
     let currentSourceFilter = 'all'; // for Newly Added sub-filter
     let currentPage = 1;
@@ -724,6 +735,19 @@
     let saveTimers = {};
 
     async function loadData() {
+      // Load current rep identity
+      try {
+        const authRes = await fetch('/api/auth/status');
+        const authData = await authRes.json();
+        currentRep = authData.rep || null;
+        // Auto-set region filter for rep logins
+        if (currentRep) {
+          const repMap = { jordan: 'Jordan', stuart: 'Stuart', vanessa: 'Vanessa' };
+          currentRepFilter = repMap[currentRep] || 'all';
+          const dropdown = document.getElementById('repRegionFilter');
+          if (dropdown) dropdown.value = currentRepFilter;
+        }
+      } catch(e) {}
       await Promise.all([loadStats(), loadProspects()]);
     }
 
@@ -1276,6 +1300,9 @@
       if (typeFilter !== 'all') {
         filtered = filtered.filter(p => normalizeType(p.property_type) === typeFilter);
       }
+
+      // Rep region filter
+      if (currentRepFilter !== 'all') filtered = filtered.filter(p => prospectMatchesRep(p, currentRepFilter));
 
       // Always sort stale to bottom; if re-opened filter, sort by most recent open
       if (currentFilter === 'reopened') {
@@ -3033,6 +3060,31 @@
           ${popInBtn}
         </div>
       `).openPopup();
+    }
+
+    function prospectMatchesRep(p, rep) {
+      if (!rep || rep === 'all') return true;
+      if (rep === 'Jordan') {
+        const hasPopIn = (p.activities || []).some(function(a) {
+          return a.type === 'pop-in' || a.type === 'pop_in' || (a.description && /pop.?in/i.test(a.description));
+        });
+        if (hasPopIn) return true;
+        const z = getProspectZone(p);
+        return z && z.name === 'Central';
+      }
+      if (rep === 'Stuart') { const z = getProspectZone(p); return z && z.name === 'West'; }
+      if (rep === 'Vanessa') { const z = getProspectZone(p); return z && z.name === 'East'; }
+      return true;
+    }
+
+    function setRepRegionFilter(val) {
+      currentRepFilter = val;
+      const dropdown = document.getElementById('repRegionFilter');
+      if (dropdown) dropdown.value = val;
+      currentPage = 1;
+      renderProspects();
+      geocodeAndPlot();
+      renderTodoList();
     }
 
     function addMarker(p) {
