@@ -379,17 +379,23 @@
         </select>
       </div>
       <div id="miniMap"></div>
-      <div class="map-legend">
-        <div class="legend-title">Status</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div> 🟢 Stuart (West)</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#cc0000"></div> 🔴 Jordan (Central / Pop-ins)</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#0044cc"></div> 🔵 Vanessa (East)</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#1a202c"></div> ⬛ Strip/Fremont</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#ec4899"></div> 💗 Signed</div>
-        <div class="legend-item"><div style="width:12px;height:12px;border-radius:50%;background:#ec4899;display:inline-flex;align-items:center;justify-content:center;"><span style="color:#fff;font-size:8px;line-height:1;">★</span></div>&nbsp;⭐ Contract Pending</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#a0aec0"></div> ⬜ No Zone</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#22c55e;border:2px solid #fff;box-shadow:0 0 4px #22c55e;"></div> 🟢 In Route</div>
-        <div class="legend-item" style="color:#718096;font-size:10px;">Colored border = excl. expired</div>
+      <div class="map-legend" id="mapLegend">
+        <div onclick="toggleLegend()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
+          <div class="legend-title" style="margin-bottom:0;">Legend</div>
+          <span id="legendArrow" style="font-size:9px;color:#718096;margin-left:6px;">&#9660;</span>
+        </div>
+        <div id="legendBody">
+          <div style="margin-top:4px;"></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div> 🟢 Stuart (West)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#cc0000"></div> 🔴 Jordan (Central / Pop-ins)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#0044cc"></div> 🔵 Vanessa (East)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#1a202c"></div> ⬛ Strip/Fremont</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#ec4899"></div> 💗 Signed</div>
+          <div class="legend-item"><div style="width:12px;height:12px;border-radius:50%;background:#ec4899;display:inline-flex;align-items:center;justify-content:center;"><span style="color:#fff;font-size:8px;line-height:1;">★</span></div>&nbsp;⭐ Contract Pending</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#a0aec0"></div> ⬜ No Zone</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#22c55e;border:2px solid #fff;box-shadow:0 0 4px #22c55e;"></div> 🟢 In Route</div>
+          <div class="legend-item" style="color:#718096;font-size:10px;">Colored border = excl. expired</div>
+        </div>
       </div>
     </div>
 
@@ -2126,6 +2132,23 @@
       } catch (e) {
         alert('❌ Sync failed: ' + e.message);
       }
+    }
+
+    // Legend toggle — collapsed by default on mobile
+    (function() {
+      const isMobile = window.innerWidth <= 768;
+      const body = document.getElementById('legendBody');
+      const arrow = document.getElementById('legendArrow');
+      if (body && isMobile) { body.style.display = 'none'; if (arrow) arrow.innerHTML = '&#9654;'; }
+    })();
+
+    function toggleLegend() {
+      const body = document.getElementById('legendBody');
+      const arrow = document.getElementById('legendArrow');
+      if (!body) return;
+      const collapsed = body.style.display === 'none';
+      body.style.display = collapsed ? 'block' : 'none';
+      if (arrow) arrow.innerHTML = collapsed ? '&#9660;' : '&#9654;';
     }
 
     async function logout() {
