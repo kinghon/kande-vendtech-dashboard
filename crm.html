@@ -237,6 +237,11 @@
       display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap;
       padding-top: 12px; border-top: 1px solid var(--border);
     }
+    .prospect-card.blocked-permanently { opacity: 0.55; border-left: 4px solid #1a1a1a; }
+    .block-btn { position:absolute; top:8px; right:8px; padding:3px 8px; font-size:0.65rem; font-weight:700; border-radius:6px; border:1px solid #1a1a1a; background:rgba(0,0,0,0.07); color:#1a1a1a; cursor:pointer; z-index:2; }
+    .block-btn:hover { background:#1a1a1a; color:#fff; }
+    .block-btn.unblock { border-color:#718096; background:rgba(113,128,150,0.1); color:#718096; }
+    .block-btn.unblock:hover { background:#718096; color:#fff; }
     .action-btn {
       padding: 8px 14px; background: var(--card); border: 1px solid var(--border);
       border-radius: 8px; color: var(--text); cursor: pointer; font-size: 0.85rem;
@@ -1279,7 +1284,9 @@
         });
       } else {
         filtered.sort((a, b) => {
-          // Always keep closed/stale at bottom
+          // Always keep blocked at very bottom, then closed/stale
+          if (a.blocked && !b.blocked) return 1;
+          if (!a.blocked && b.blocked) return -1;
           if (a.status === 'signed' && b.status !== 'signed') return 1;
           if (a.status !== 'signed' && b.status === 'signed') return -1;
           if (a.status === 'closed' && b.status !== 'closed') return 1;
@@ -2666,6 +2673,7 @@
 
     function getMarkerColor(p) {
       // In Route = bright green with glow effect (checked first)
+      if (p.blocked) return '__blocked__';
       if (isInRoute(p.id)) return markerColors.inRoute;
       // Pop In Needed = green (check next_action for pop in variations)
       if (p.next_action && p.next_action.toLowerCase().includes('pop in')) return markerColors.popIn;
@@ -2773,6 +2781,21 @@
     }
 
     // ── Set Pop-In action ─────────────────────────────
+
+    async function blockProspect(id, block) {
+      const p = prospects.find(pr => pr.id === id);
+      if (!p) return;
+      if (block && !confirm('Block this location permanently? It will move to the bottom of the list and be marked on the map.')) return;
+      p.blocked = block;
+      await fetch('/api/prospects/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blocked: block })
+      });
+      renderProspects();
+      geocodeAndPlot();
+    }
+
     async function setPopIn(id) {
       try {
         await fetch(`/api/prospects/${id}`, {
@@ -2791,6 +2814,19 @@
     function addMarker(p) {
       const color = getMarkerColor(p);
       const inRoute = isInRoute(p.id);
+      if (color === '__blocked__') {
+        const blockedIcon = L.divIcon({
+          className: '',
+          html: '<div style="width:18px;height:18px;border-radius:50%;background:#1a1a1a;border:2px solid #fff;display:flex;align-items:center;justify-content:center;transform:translate(-50%,-50%);"><span style=\"color:#fff;font-size:10px;font-weight:900;line-height:1;\">✕</span></div>',
+          iconSize: [18, 18],
+          iconAnchor: [9, 9]
+        });
+        const m = L.marker([p.lat, p.lng], { icon: blockedIcon }).addTo(markers);
+        m.on('click', function() {
+          m.bindPopup('<strong>' + p.name + '</strong><br><span style="color:#718096;font-size:12px;">🚫 Blocked permanently</span><br><button onclick="blockProspect(' + p.id + ',false)" style="margin-top:6px;padding:4px 10px;background:#4a5568;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;">Unblock</button>').openPopup();
+        });
+        return;
+      }
       const m = L.circleMarker([p.lat, p.lng], {
         renderer: mapRenderer,
         radius: inRoute ? 10 : 8,
