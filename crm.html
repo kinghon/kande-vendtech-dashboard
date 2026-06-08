@@ -314,7 +314,9 @@
     @media (max-width: 600px) {
       .field-grid { grid-template-columns: 1fr; }
       .form-row { grid-template-columns: 1fr; }
-      .header { flex-direction: column; align-items: flex-start; }
+      .header { flex-direction: row; flex-wrap: wrap; align-items: center; }
+      #repCounters { gap: 4px; }
+      #repCounters > div { padding: 4px 8px !important; font-size: 0.8rem; }
       .badge-row { margin-left: 0 !important; }
       .contact-grid-header { display: none !important; }
       .contact-grid-row { grid-template-columns: 1fr !important; }
@@ -331,12 +333,12 @@
 <body>
   <div class="app">
     <div class="header">
-      <div style="display:flex;align-items:center;gap:12px;">
+      <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
         <img src="/logo.png" alt="Kande VendTech" style="height:56px;">
         <h1>Sales CRM</h1>
-        <div id="repCounters" style="display:inline-flex;gap:8px;"></div>
       </div>
-      <div class="header-actions">
+      <div id="repCounters" style="display:flex;gap:8px;flex:1;justify-content:center;"></div>
+      <div class="header-actions" style="flex-shrink:0;">
         <button class="btn btn-primary" onclick="showAddModal()">+ New Prospect</button>
       </div>
     </div>
@@ -742,18 +744,21 @@
       container.innerHTML = reps.map(rep => {
         const repLower = rep.toLowerCase();
         const signed = prospects.filter(p => p.status === 'signed' && (p.signed_by || '').toLowerCase().includes(repLower)).length;
-        // Jordan did all pop-ins; Kurtis is always —; others 0 until rep tracking added
-        const popinsVal = rep === 'Jordan'
+        const negotiations = prospects.filter(p => p.priority === 'intalks' && p.status !== 'signed' && p.status !== 'closed').length;
+        // Jordan did all pop-ins; Kurtis always —; others 0 until rep tracking added
+        const popinCount = rep === 'Jordan'
           ? prospects.filter(p => (p.activities || []).some(a => a.type === 'pop-in')).length
-          : null;
-        const popins = popinsVal;
+          : 0;
+        const popinDisplay = rep === 'Kurtis' ? '—' : popinCount;
         return `
-          <div style="text-align:center;padding:8px 14px;border-radius:10px;background:var(--card);border:1px solid var(--border);cursor:pointer;min-width:72px;" onclick="filterBySigned()">
-            <div style="font-size:0.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;">${rep}</div>
-            <div style="font-size:1.4rem;font-weight:800;color:var(--success);line-height:1;">${signed}</div>
-            <div style="font-size:0.65rem;color:var(--muted);margin-top:2px;">signed</div>
-            <div style="font-size:1rem;font-weight:700;color:var(--accent);line-height:1;margin-top:4px;">${rep === 'Kurtis' ? '—' : popins ?? 0}</div>
-            <div style="font-size:0.65rem;color:var(--muted);margin-top:1px;">pop-ins</div>
+          <div style="text-align:center;padding:8px 16px;border-radius:10px;background:var(--card);border:1px solid var(--border);cursor:pointer;flex:1;min-width:0;" onclick="filterBySigned()">
+            <div style="font-size:0.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">${rep}</div>
+            <div style="font-size:1.5rem;font-weight:800;color:var(--success);line-height:1;">${signed}</div>
+            <div style="font-size:0.65rem;color:var(--muted);margin-top:1px;">Locations Signed</div>
+            <div style="font-size:1rem;font-weight:700;color:#8b5cf6;line-height:1;margin-top:6px;">${negotiations}</div>
+            <div style="font-size:0.65rem;color:var(--muted);margin-top:1px;">In Negotiations</div>
+            <div style="font-size:1rem;font-weight:700;color:var(--accent);line-height:1;margin-top:6px;">${popinDisplay}</div>
+            <div style="font-size:0.65rem;color:var(--muted);margin-top:1px;">Pop-ins</div>
           </div>`;
       }).join('');
     }
