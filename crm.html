@@ -3108,13 +3108,15 @@
 
     function prospectMatchesRep(p, rep) {
       if (!rep || rep === 'all') return true;
+      // Manual rep assignment overrides geography (e.g. Kurtis explicitly moved a location)
+      if (p.assigned_rep) return p.assigned_rep === rep;
       // Geography is the source of truth
       const z = getProspectZone(p);
       if (rep === 'Stuart')  return z && z.name === 'West';
       if (rep === 'Vanessa') return z && z.name === 'East';
       if (rep === 'Jordan') {
         if (z && z.name === 'Central') return true;
-        // Jordan also owns the 199 pop-in locations regardless of zone
+        // Jordan also owns his 199 pop-in locations regardless of zone
         return (p.activities || []).some(function(a) {
           return a.type === 'pop-in' || a.type === 'pop_in';
         });
