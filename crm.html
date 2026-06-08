@@ -376,6 +376,7 @@
         <div class="legend-item"><div class="legend-dot" style="background:#0044cc"></div> 🔵 Vanessa (East)</div>
         <div class="legend-item"><div class="legend-dot" style="background:#1a202c"></div> ⬛ Strip/Fremont</div>
         <div class="legend-item"><div class="legend-dot" style="background:#ec4899"></div> 💗 Signed</div>
+        <div class="legend-item"><div style="width:12px;height:12px;border-radius:50%;background:#ec4899;display:inline-flex;align-items:center;justify-content:center;"><span style="color:#fff;font-size:8px;line-height:1;">★</span></div>&nbsp;⭐ Contract Pending</div>
         <div class="legend-item"><div class="legend-dot" style="background:#a0aec0"></div> ⬜ No Zone</div>
         <div class="legend-item"><div class="legend-dot" style="background:#22c55e;border:2px solid #fff;box-shadow:0 0 4px #22c55e;"></div> 🟢 In Route</div>
         <div class="legend-item" style="color:#718096;font-size:10px;">Colored border = excl. expired</div>
@@ -2266,7 +2267,7 @@
     }).addTo(map);
 
     const markers = L.layerGroup().addTo(map);
-    const markerColors = { hot: '#e53e3e', intalks: '#8b5cf6', warm: '#eab308', signed: '#ffffff', new: '#3182ce', closed: '#a0aec0', popIn: '#38a169', inRoute: '#22c55e' };
+    const markerColors = { hot: '#e53e3e', intalks: '#ec4899', warm: '#eab308', signed: '#ffffff', new: '#3182ce', closed: '#a0aec0', popIn: '#38a169', inRoute: '#22c55e' };
     startLocationTracking();
 
     // -- Point-in-polygon helper --
@@ -2993,6 +2994,33 @@
       } catch(e) { alert('Failed to set pop-in action'); }
     }
 
+    function buildAndOpenPopup(m, p) {
+      const ir = isInRoute(p.id);
+      const hasPopIn = p.next_action && p.next_action.toLowerCase().includes('pop in');
+      const routeBtn = ir
+        ? `<button onclick="event.preventDefault();toggleRouteFromMap(${p.id});" style="padding:4px 10px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;font-size:11px;cursor:pointer;">✓ In Route</button>`
+        : `<button onclick="event.preventDefault();toggleRouteFromMap(${p.id});" style="padding:4px 10px;background:#dcfce7;color:#16a34a;border:1px solid #86efac;border-radius:6px;font-size:11px;cursor:pointer;">🗺️ Add to Route</button>`;
+      const popInBtn = hasPopIn
+        ? `<span style="padding:4px 10px;background:#fef3c7;color:#d97706;border:1px solid #fcd34d;border-radius:6px;font-size:11px;">🚶 Pop In Set</span>`
+        : `<button onclick="event.preventDefault();setPopIn(${p.id});" style="padding:4px 10px;background:#f59e0b;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;">🚶 Pop In Needed</button>`;
+      const reviewLine = p.google_review_count ? `<span style="color:#718096;font-size:12px;">⭐ ${p.google_rating || '—'} · ${Number(p.google_review_count).toLocaleString()} reviews</span><br>` : '';
+      const contractBadge = (p.priority === 'intalks' && p.status !== 'signed' && p.status !== 'closed')
+        ? `<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;background:rgba(236,72,153,0.12);color:#ec4899;border:1px solid #ec4899;">⭐ Contract Pending</span> `
+        : '';
+      m.bindPopup(`
+        <strong style="font-size:14px;">${p.name}</strong><br>
+        <span style="color:#3182ce;font-size:12px;">${p.property_type || ''}</span><br>
+        ${reviewLine}
+        ${(() => { const z = getProspectZone(p); const exp = p.exclusive_expiration_date; const expired = isExclusiveExpired(p); const zBadge = z ? `<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;background:rgba(0,0,0,0.08);color:${z.color};border:1px solid ${z.color};">${z.label}</span> ` : ''; const eBadge = exp ? `<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;background:${expired?'rgba(220,38,38,0.1)':'rgba(234,179,8,0.1)'};color:${expired?'#dc2626':'#ca8a04'};">🔒 ${expired?'EXPIRED':'Excl. Exp '+exp}</span>` : ''; return (contractBadge||zBadge||eBadge) ? `<div style="margin-bottom:4px;">${contractBadge}${zBadge}${eBadge}</div>` : ''; })()}
+        <span style="color:#718096;font-size:12px;">📍 ${p.address || ''}</span><br>
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+          <a href="#" onclick="event.preventDefault();openFromTodo(${p.id});return false;" style="padding:4px 10px;background:#3182ce;color:#fff;border-radius:6px;font-size:11px;text-decoration:none;">View Details</a>
+          ${routeBtn}
+          ${popInBtn}
+        </div>
+      `).openPopup();
+    }
+
     function addMarker(p) {
       const color = getMarkerColor(p);
       const inRoute = isInRoute(p.id);
@@ -3007,6 +3035,19 @@
         m.on('click', function() {
           m.bindPopup('<strong>' + p.name + '</strong><br><span style="color:#718096;font-size:12px;">🚫 Blocked permanently</span><br><button onclick="blockProspect(' + p.id + ',false)" style="margin-top:6px;padding:4px 10px;background:#4a5568;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;">Unblock</button>').openPopup();
         });
+        return;
+      }
+      // Contract Pending (intalks) = pink dot with white star
+      if (p.priority === 'intalks' && p.status !== 'signed' && p.status !== 'closed' && !inRoute) {
+        const starIcon = L.divIcon({
+          className: '',
+          html: '<div style="width:22px;height:22px;border-radius:50%;background:#ec4899;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;"><span style="color:#fff;font-size:13px;line-height:1;">★</span></div>',
+          iconSize: [22, 22],
+          iconAnchor: [11, 11],
+          popupAnchor: [0, -13]
+        });
+        const m = L.marker([p.lat, p.lng], { icon: starIcon }).addTo(markers);
+        m.on('click', function() { buildAndOpenPopup(m, p); });
         return;
       }
       // After exclusive expiration date: stroke = region color
@@ -3029,29 +3070,7 @@
         fillOpacity: 0.9
       }).addTo(markers);
       // Lazy popup — only generate HTML when clicked
-      m.on('click', function() {
-        const ir = isInRoute(p.id);
-        const hasPopIn = p.next_action && p.next_action.toLowerCase().includes('pop in');
-        const routeBtn = ir 
-          ? `<button onclick="event.preventDefault();toggleRouteFromMap(${p.id});" style="padding:4px 10px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;font-size:11px;cursor:pointer;">✓ In Route</button>`
-          : `<button onclick="event.preventDefault();toggleRouteFromMap(${p.id});" style="padding:4px 10px;background:#dcfce7;color:#16a34a;border:1px solid #86efac;border-radius:6px;font-size:11px;cursor:pointer;">🗺️ Add to Route</button>`;
-        const popInBtn = hasPopIn
-          ? `<span style="padding:4px 10px;background:#fef3c7;color:#d97706;border:1px solid #fcd34d;border-radius:6px;font-size:11px;">🚶 Pop In Set</span>`
-          : `<button onclick="event.preventDefault();setPopIn(${p.id});" style="padding:4px 10px;background:#f59e0b;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;">🚶 Pop In Needed</button>`;
-        const reviewLine = p.google_review_count ? `<span style="color:#718096;font-size:12px;">⭐ ${p.google_rating || '—'} · ${Number(p.google_review_count).toLocaleString()} reviews</span><br>` : '';
-        m.bindPopup(`
-          <strong style="font-size:14px;">${p.name}</strong><br>
-          <span style="color:#3182ce;font-size:12px;">${p.property_type || ''}</span><br>
-          ${reviewLine}
-          ${(() => { const z = getProspectZone(p); const exp = p.exclusive_expiration_date; const expired = isExclusiveExpired(p); const zBadge = z ? `<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;background:rgba(0,0,0,0.08);color:${z.color};border:1px solid ${z.color};">${z.label}</span> ` : ''; const eBadge = exp ? `<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;background:${expired?'rgba(220,38,38,0.1)':'rgba(234,179,8,0.1)'};color:${expired?'#dc2626':'#ca8a04'};">🔒 ${expired?'EXPIRED':'Excl. Exp '+exp}</span>` : ''; return (zBadge||eBadge) ? `<div style="margin-bottom:4px;">${zBadge}${eBadge}</div>` : ''; })()}
-          <span style="color:#718096;font-size:12px;">📍 ${p.address || ''}</span><br>
-          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
-            <a href="#" onclick="event.preventDefault();openFromTodo(${p.id});return false;" style="padding:4px 10px;background:#3182ce;color:#fff;border-radius:6px;font-size:11px;text-decoration:none;">View Details</a>
-            ${routeBtn}
-            ${popInBtn}
-          </div>
-        `).openPopup();
-      });
+      m.on('click', function() { buildAndOpenPopup(m, p); });
     }
 
     function toggleRouteFromMap(id) {
