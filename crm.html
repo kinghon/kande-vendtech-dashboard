@@ -2759,6 +2759,8 @@
     }
 
     function getProspectZone(p) {
+      // Black dot locations (Strip hotels/casinos) have no rep — manually assigned
+      if (isStripHotel(p) && isInStripFremont(p)) return null;
       // If Jordan has popped this location, show Jordan as rep regardless of geographic zone
       const hasPopIn = (p.activities || []).some(function(a) {
         return a.type === 'pop-in' || a.type === 'pop_in' || (a.description && /pop.?in/i.test(a.description));
