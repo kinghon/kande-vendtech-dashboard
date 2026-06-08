@@ -2758,6 +2758,11 @@
     }
 
     function getProspectZone(p) {
+      // If Jordan has popped this location, show Jordan as rep regardless of geographic zone
+      const hasPopIn = (p.activities || []).some(function(a) {
+        return a.type === 'pop-in' || a.type === 'pop_in' || (a.description && /pop.?in/i.test(a.description));
+      });
+      if (hasPopIn) return ZONES.find(function(z) { return z.name === 'Central'; }) || null;
       if (!p.lat || !p.lng) return null;
       const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
       for (let i = 0; i < ZONES.length; i++) {
