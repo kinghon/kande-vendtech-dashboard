@@ -2770,18 +2770,33 @@
       return null;
     }
 
+    function isHotelCasino(p) {
+      const t = (p.property_type || '').toLowerCase();
+      return /hotel|casino|motel|resort|suites|lodg|hospitality|inn/.test(t);
+    }
+
     function getMarkerColor(p) {
       if (p.blocked) return '__blocked__';
       if (isInRoute(p.id)) return markerColors.inRoute;
       // Signed = pink
       if (p.status === 'signed') return '#ec4899';
+      // Strip/Fremont = black ONLY for hotels/casinos in that zone
+      if (isHotelCasino(p)) {
+        const zone = getProspectZone(p);
+        if (zone && zone.name === 'Strip/Fremont') return '#1a202c';
+      }
       // Jordan's popped locations override zone — always red
       const hasPopIn = (p.activities || []).some(function(a) { return a.type === 'pop-in'; });
       if (hasPopIn) return '#cc0000';
-      // Color by zone
-      const zone = getProspectZone(p);
-      if (zone) return zone.color;
-      return '#a0aec0'; // outside zones or no coords
+      // Color by zone (skip Strip/Fremont for non-hotels — fall through to underlying zone)
+      if (p.lat && p.lng) {
+        const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
+        for (let i = 0; i < ZONES.length; i++) {
+          if (ZONES[i].name === 'Strip/Fremont') continue;
+          if (pointInPolygon(lat, lng, ZONES[i].coords)) return ZONES[i].color;
+        }
+      }
+      return '#a0aec0';
     }
 
     function normalizeTypeGlobal(type) {
