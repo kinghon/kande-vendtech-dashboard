@@ -3180,8 +3180,9 @@
         return;
       }
       // After exclusive expiration date: stroke = region color
-      let strokeColor = '#fff';
-      let strokeWeight = 2;
+      const hasPopIn = (p.activities || []).some(function(a) { return a.type === 'pop-in' || a.type === 'pop_in'; });
+      let strokeColor = hasPopIn ? '#000' : '#fff';
+      let strokeWeight = hasPopIn ? 2.5 : 2;
       if (inRoute) { strokeColor = '#fff'; strokeWeight = 3; }
       else if (isExclusiveExpired(p)) {
         const zone = getProspectZone(p);
