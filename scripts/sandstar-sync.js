@@ -8,8 +8,8 @@ const https  = require('https');
 const fs     = require('fs');
 const { execSync } = require('child_process');
 
-const SANDSTAR_EMAIL = 'kurtis.hon@gmail.com';
-const SANDSTAR_PASS  = 'kurtis123';
+const SANDSTAR_EMAIL = 'kurtis@kandevendtech.com';
+const SANDSTAR_PASS  = 'kurtis123####';
 const SANDSTAR_ORG   = '001020';
 const SANDSTAR_SCOPE = '12';
 const SANDSTAR_API   = 'https://webapi-us.sandstar.com';
@@ -42,6 +42,7 @@ function dashApi(method, path, body, cookies) {
       hostname: 'vend.kandedash.com', port: 443, path, method,
       headers: {
         'Content-Type': 'application/json',
+        'x-api-key': 'kande2026',
         'Cookie': Object.entries(cookies || {}).map(([k,v]) => `${k}=${v}`).join('; '),
         ...(data ? { 'Content-Length': Buffer.byteLength(data) } : {})
       }
