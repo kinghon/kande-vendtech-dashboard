@@ -362,10 +362,43 @@ async function geocodeAddress(address) {
   return null;
 }
 
+// Zone definitions (mirrors crm.html ZONES)
+const TERRITORY_ZONES = [
+  { name: 'West', rep: 'Stuart',
+    coords: [[36.40,-115.45],[36.40,-115.370],[36.36,-115.340],[36.33,-115.315],[36.30,-115.285],[36.27,-115.255],[36.23,-115.210],[36.20,-115.180],[36.173,-115.156],[36.167,-115.160],[36.155,-115.161],[36.14,-115.165],[36.12,-115.170],[36.09,-115.178],[36.065,-115.181],[36.03,-115.181],[36.00,-115.175],[35.93,-115.168],[35.93,-115.45]] },
+  { name: 'Central', rep: 'Jordan',
+    coords: [[36.40,-115.370],[36.40,-115.13],[35.82,-115.13],[35.82,-115.22],[35.85,-115.27],[35.93,-115.28],[35.93,-115.168],[36.00,-115.175],[36.03,-115.181],[36.065,-115.181],[36.09,-115.178],[36.12,-115.170],[36.14,-115.165],[36.155,-115.161],[36.167,-115.160],[36.173,-115.156],[36.20,-115.180],[36.23,-115.210],[36.27,-115.255],[36.30,-115.285],[36.33,-115.315],[36.36,-115.340]] },
+  { name: 'East', rep: 'Vanessa',
+    coords: [[36.40,-115.13],[36.40,-114.88],[35.82,-114.88],[35.82,-115.13]] }
+];
+function pointInPolygonServer(lat, lng, coords) {
+  let inside = false;
+  for (let i = 0, j = coords.length - 1; i < coords.length; j = i++) {
+    const xi = coords[i][0], yi = coords[i][1], xj = coords[j][0], yj = coords[j][1];
+    if (((yi > lng) !== (yj > lng)) && (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi)) inside = !inside;
+  }
+  return inside;
+}
+function getRepForCoords(lat, lng) {
+  for (const z of TERRITORY_ZONES) {
+    if (pointInPolygonServer(lat, lng, z.coords)) return z.rep;
+  }
+  return null;
+}
+
 async function geocodeProspect(prospect) {
   if (!prospect.address || (prospect.lat && prospect.lng)) return false;
   const coords = await geocodeAddress(prospect.address);
-  if (coords) { prospect.lat = coords.lat; prospect.lng = coords.lng; return true; }
+  if (coords) {
+    prospect.lat = coords.lat;
+    prospect.lng = coords.lng;
+    // Auto-assign rep based on zone if not already assigned
+    if (!prospect.assigned_rep) {
+      const rep = getRepForCoords(coords.lat, coords.lng);
+      if (rep) prospect.assigned_rep = rep;
+    }
+    return true;
+  }
   return false;
 }
 
@@ -1225,8 +1258,14 @@ app.post('/api/admin/geocode-db', async (req, res) => {
         .replace(/\s+/g, ' ').trim();
       if (!addr || addr.length < 8) { fail++; continue; }
       const coords = await geocodeAddress(addr);
-      if (coords) { p.lat = coords.lat; p.lng = coords.lng; ok++; }
-      else fail++;
+      if (coords) {
+        p.lat = coords.lat; p.lng = coords.lng;
+        if (!p.assigned_rep) {
+          const rep = getRepForCoords(coords.lat, coords.lng);
+          if (rep) p.assigned_rep = rep;
+        }
+        ok++;
+      } else fail++;
       await new Promise(r => setTimeout(r, 300));
     }
     saveDB(db);
