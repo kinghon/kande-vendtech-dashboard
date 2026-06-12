@@ -26563,6 +26563,53 @@ app.get('/api/sandstar/alerts', (req, res) => {
 // ===== END SANDSTAR ROUTES =====
 // ===== END API COSTS =====
 
+// ===== MILEAGE CALCULATE =====
+app.post('/api/mileage-calculate', async (req, res) => {
+  // addresses: array of address strings [start, ...stops, end]
+  const { addresses } = req.body;
+  if (!Array.isArray(addresses) || addresses.length < 2) {
+    return res.status(400).json({ error: 'Need at least 2 addresses' });
+  }
+  try {
+    // Geocode all addresses via Nominatim (server-side, no CORS issues)
+    const geocoded = await Promise.all(addresses.map(async (addr) => {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&limit=1`;
+      const r = await fetch(url, { headers: { 'User-Agent': 'KandeVendTech/1.0' } });
+      const d = await r.json();
+      if (!d || !d.length) throw new Error(`Could not find: ${addr}`);
+      return { addr, lat: parseFloat(d[0].lat), lng: parseFloat(d[0].lon), label: d[0].display_name };
+    }));
+
+    // Calculate route via OSRM (server-side)
+    const coordStr = geocoded.map(c => `${c.lng},${c.lat}`).join(';');
+    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coordStr}?overview=full&steps=false&annotations=false`;
+    const osrmRes = await fetch(osrmUrl);
+    const osrmData = await osrmRes.json();
+
+    if (!osrmData.routes || !osrmData.routes[0]) {
+      return res.status(500).json({ error: 'Could not calculate route — check that addresses are valid driving locations' });
+    }
+
+    const route = osrmData.routes[0];
+    const totalMiles = route.distance / 1609.34;
+    const cost = totalMiles * 0.725;
+    const hrs = Math.floor(route.duration / 3600);
+    const mins = Math.floor((route.duration % 3600) / 60);
+    const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins} min`;
+
+    const legs = route.legs.map((leg, i) => ({
+      from: geocoded[i].addr,
+      to: geocoded[i + 1].addr,
+      legMiles: parseFloat((leg.distance / 1609.34).toFixed(2)),
+      durationMin: Math.round(leg.duration / 60)
+    }));
+
+    res.json({ ok: true, totalMiles: parseFloat(totalMiles.toFixed(2)), cost: parseFloat(cost.toFixed(2)), timeStr, legs, geocoded });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ===== MILEAGE LOG =====
 app.post('/api/mileage-log', async (req, res) => {
   const { staff_name, date, start, stops, end, legs, total_miles, drive_time, total_cost, cost, location_count, loc_count } = req.body;

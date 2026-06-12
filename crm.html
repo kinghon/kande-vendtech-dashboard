@@ -2747,36 +2747,34 @@
       const startVal = document.getElementById('mcStart').value.trim();
       const endVal = document.getElementById('mcEnd').value.trim();
       if (!startVal) { alert('Enter a start address'); return; }
-      if (mcStops.length === 0 && !endVal) { alert('Add at least one stop, or enter an end address'); return; }
+      if (mcStops.length === 0 && !endVal) { alert('Add at least one stop or an end address'); return; }
+      const btn = document.querySelector('#mcPanel .btn-optimize');
+      const origText = btn.textContent;
+      btn.textContent = '⏳ Calculating...';
+      btn.disabled = true;
       document.getElementById('mcResults').style.display = 'none';
       document.getElementById('mcLogRow').style.display = 'none';
       document.getElementById('mcGmapsBtn').style.display = 'none';
       try {
         const allAddrs = [startVal, ...mcStops, endVal || startVal];
-        const coords = await Promise.all(allAddrs.map(mcGeocode));
-        const coordStr = coords.map(c => `${c.lng},${c.lat}`).join(';');
-        const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${coordStr}?overview=full&steps=true&annotations=false`);
-        const data = await res.json();
-        if (!data.routes || !data.routes[0]) throw new Error('No route found');
-        const route = data.routes[0];
-        const totalMiles = (route.distance / 1609.34);
-        const cost = totalMiles * 0.725;
-        const hrs = Math.floor(route.duration / 3600);
-        const mins = Math.floor((route.duration % 3600) / 60);
-        const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins} min`;
-        const locCount = mcStops.length;
-        let legsHtml = '';
-        let cumMiles = 0;
-        const legData = [];
-        route.legs.forEach((leg, i) => {
-          const legMiles = leg.distance / 1609.34;
-          cumMiles += legMiles;
-          const fromLabel = i === 0 ? 'Start' : mcStops[i - 1];
-          const toLabel = i < mcStops.length ? mcStops[i] : (endVal || 'Return');
-          legData.push({ from: allAddrs[i], to: allAddrs[i+1], legMiles, cumMiles });
-          legsHtml += `<div class="mc-leg">${i+1}. ${toLabel.substring(0,35)}... — ${legMiles.toFixed(1)} mi</div>`;
+        const resp = await fetch('/api/mileage-calculate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': 'kande2026' },
+          body: JSON.stringify({ addresses: allAddrs })
         });
-        mcLastRoute = { allAddrs, coords, totalMiles, cost, timeStr, locCount, legData };
+        const data = await resp.json();
+        if (!data.ok) throw new Error(data.error || 'Calculation failed');
+        const { totalMiles, cost, timeStr, legs } = data;
+        const locCount = mcStops.length;
+        let cumMiles = 0;
+        let legsHtml = '';
+        const legData = [];
+        legs.forEach((leg, i) => {
+          cumMiles += leg.legMiles;
+          legsHtml += `<div class="mc-leg">${i+1}. ${leg.to.substring(0,45)} — ${leg.legMiles.toFixed(1)} mi</div>`;
+          legData.push({ from: leg.from, to: leg.to, legMiles: leg.legMiles, cumMiles: parseFloat(cumMiles.toFixed(2)) });
+        });
+        mcLastRoute = { allAddrs, totalMiles, cost, timeStr, locCount, legData };
         document.getElementById('mcResults').style.display = 'block';
         document.getElementById('mcResults').innerHTML =
           `<div style="margin-bottom:8px;">
@@ -2788,9 +2786,14 @@
         document.getElementById('mcLogRow').style.display = 'flex';
         document.getElementById('mcGmapsBtn').style.display = 'inline-flex';
       } catch(e) {
-        alert('Error: ' + e.message);
+        document.getElementById('mcResults').style.display = 'block';
+        document.getElementById('mcResults').innerHTML = `<div style="color:#fca5a5;padding:6px 0;">❌ ${e.message}</div>`;
+      } finally {
+        btn.textContent = origText;
+        btn.disabled = false;
       }
     }
+
 
     function mcOpenGmaps() {
       if (!mcLastRoute) return;
