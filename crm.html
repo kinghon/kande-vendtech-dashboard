@@ -2744,10 +2744,17 @@
     }
 
     async function mcCalculate() {
-      const startVal = document.getElementById('mcStart').value.trim();
+      // Fall back to route planner inputs if mileage panel inputs are empty
+      const mcStartInput = document.getElementById('mcStart').value.trim();
+      const routeStartInput = document.getElementById('startAddress').value.trim();
+      const startVal = mcStartInput || routeStartInput;
       const endVal = document.getElementById('mcEnd').value.trim();
-      if (!startVal) { alert('Enter a start address'); return; }
-      if (mcStops.length === 0 && !endVal) { alert('Add at least one stop or an end address'); return; }
+
+      // Use route planner stops if no stops added directly to mileage calc
+      const stopsToUse = mcStops.length > 0 ? mcStops : routeStops.map(s => s.address || s.name);
+
+      if (!startVal) { alert('Enter a start address (above the Calculate Mileage button)'); return; }
+      if (stopsToUse.length === 0 && !endVal) { alert('Add at least one stop or an end address'); return; }
       const btn = document.querySelector('#mcPanel .btn-optimize');
       const origText = btn.textContent;
       btn.textContent = '⏳ Calculating...';
@@ -2756,7 +2763,7 @@
       document.getElementById('mcLogRow').style.display = 'none';
       document.getElementById('mcGmapsBtn').style.display = 'none';
       try {
-        const allAddrs = [startVal, ...mcStops, endVal || startVal];
+        const allAddrs = [startVal, ...stopsToUse, endVal || startVal];
         const resp = await fetch('/api/mileage-calculate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-api-key': 'kande2026' },
@@ -2765,7 +2772,7 @@
         const data = await resp.json();
         if (!data.ok) throw new Error(data.error || 'Calculation failed');
         const { totalMiles, cost, timeStr, legs } = data;
-        const locCount = mcStops.length;
+        const locCount = stopsToUse.length;
         let cumMiles = 0;
         let legsHtml = '';
         const legData = [];
