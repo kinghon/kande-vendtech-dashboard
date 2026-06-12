@@ -26573,7 +26573,7 @@ app.post('/api/mileage-calculate', async (req, res) => {
   try {
     // Geocode all addresses via Nominatim (server-side, no CORS issues)
     const geocoded = await Promise.all(addresses.map(async (addr) => {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&limit=1`;
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&limit=1&countrycodes=us&viewbox=-116.5,37.0,-114.0,35.0&bounded=0`;
       const r = await fetch(url, { headers: { 'User-Agent': 'KandeVendTech/1.0' } });
       const d = await r.json();
       if (!d || !d.length) throw new Error(`Could not find: ${addr}`);
