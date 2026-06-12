@@ -2776,9 +2776,13 @@
         let cumMiles = 0;
         let legsHtml = '';
         const legData = [];
+        const startLabel = allAddrs[0].split(',')[0];
         legs.forEach((leg, i) => {
           cumMiles += leg.legMiles;
-          legsHtml += `<div class="mc-leg">${i+1}. ${leg.to.substring(0,45)} — ${leg.legMiles.toFixed(1)} mi</div>`;
+          const isReturn = i === legs.length - 1 && leg.to === allAddrs[0];
+          const toLabel = isReturn ? `Return to ${startLabel}` : leg.to.split(',')[0];
+          const fromLabel = i === 0 ? `Start: ${startLabel}` : `Stop ${i}`;
+          legsHtml += `<div class="mc-leg"><span style="opacity:0.6;font-size:0.75rem;">${fromLabel}</span> → <strong>${toLabel}</strong> — ${leg.legMiles.toFixed(1)} mi</div>`;
           legData.push({ from: leg.from, to: leg.to, legMiles: leg.legMiles, cumMiles: parseFloat(cumMiles.toFixed(2)) });
         });
         mcLastRoute = { allAddrs, totalMiles, cost, timeStr, locCount, legData };
@@ -2787,7 +2791,7 @@
           `<div style="margin-bottom:8px;">
             <span class="mc-stat"><strong>${totalMiles.toFixed(1)}</strong> mi</span>
             <span class="mc-stat"><strong>${timeStr}</strong></span>
-            <span class="mc-stat"><strong>$${cost.toFixed(2)}</strong> reimbursement</span>
+            <span class="mc-stat"><strong>$${cost.toFixed(2)}</strong> @ $0.70/mi</span>
             <span class="mc-stat"><strong>${locCount}</strong> stops</span>
           </div>${legsHtml}`;
         document.getElementById('mcLogRow').style.display = 'flex';

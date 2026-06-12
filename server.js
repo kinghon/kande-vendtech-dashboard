@@ -26592,7 +26592,7 @@ app.post('/api/mileage-calculate', async (req, res) => {
 
     const route = osrmData.routes[0];
     const totalMiles = route.distance / 1609.34;
-    const cost = totalMiles * 0.725;
+    const cost = totalMiles * 0.70; // IRS 2025 rate
     const hrs = Math.floor(route.duration / 3600);
     const mins = Math.floor((route.duration % 3600) / 60);
     const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins} min`;
@@ -26617,7 +26617,7 @@ app.post('/api/mileage-log', async (req, res) => {
 
   const { execSync } = require('child_process');
   const today = date || new Date().toISOString().slice(0, 10);
-  const reimbursement = cost || total_cost || (total_miles * 0.725);
+  const reimbursement = cost || total_cost || (total_miles * 0.70); // IRS 2025 rate
   const stopList = Array.isArray(stops) ? stops : [];
   const stopCount = loc_count || location_count || stopList.length;
 
