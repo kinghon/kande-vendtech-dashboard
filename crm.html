@@ -2658,11 +2658,13 @@
     function openInGoogleMaps() {
       if (routeStops.length === 0) { alert('Add some stops first!'); return; }
       const startAddr = document.getElementById('startAddress').value.trim();
-      const waypoints = routeStops.map(s => `${s.lat},${s.lng}`);
-      const origin = startAddr ? encodeURIComponent(startAddr) : waypoints.shift();
-      const destination = waypoints.pop() || origin;
+      // Use address strings so Google Maps shows location names instead of "Dropped pin"
+      const stopAddrs = routeStops.map(s => encodeURIComponent(s.address || s.name));
+      const origin = encodeURIComponent(startAddr || routeStops[0].address || routeStops[0].name);
+      const destination = startAddr ? encodeURIComponent(startAddr) : stopAddrs[stopAddrs.length - 1];
+      const middle = startAddr ? stopAddrs : stopAddrs.slice(0, -1);
       let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving`;
-      if (waypoints.length > 0) url += `&waypoints=${waypoints.join('|')}`;
+      if (middle.length > 0) url += `&waypoints=${middle.join('|')}`;
       window.open(url, '_blank');
     }
 
