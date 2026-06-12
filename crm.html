@@ -2565,124 +2565,68 @@
     }
 
     async function optimizeRoute() {
-      if (routeStops.length < 2) return;
+      if (routeStops.length < 1) return;
+      const startAddr = document.getElementById('startAddress').value.trim();
+      if (!startAddr) { alert('Enter a starting location first — it\'s required for optimization'); return; }
+
       const btn = document.getElementById('btnOptimize');
       btn.disabled = true;
       btn.textContent = '⏳ Optimizing...';
 
       try {
-        let coords = [];
-        const startAddr = document.getElementById('startAddress').value.trim();
-        if (startAddr) {
-          try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(startAddr)}&limit=1&countrycodes=us&viewbox=-116.5,37.0,-114.0,35.0&bounded=0`);
-            const data = await res.json();
-            if (data.length > 0) coords.push(`${data[0].lon},${data[0].lat}`);
-          } catch(e) {}
-        }
-        routeStops.forEach(s => { if (s.lat && s.lng) coords.push(`${s.lng},${s.lat}`); });
-        
-        if (coords.length < 2) {
-          alert('Need at least 2 stops with coordinates.');
-          btn.disabled = false;
-          btn.textContent = '🧠 Optimize Route';
-          return;
-        }
+        // Server-side TSP optimization via OSRM trip service
+        const resp = await fetch('/api/optimize-route', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': 'kande2026' },
+          body: JSON.stringify({ startAddress: startAddr, stops: routeStops })
+        });
+        const data = await resp.json();
+        if (!data.ok) throw new Error(data.error || 'Optimization failed');
 
-        // Try OSRM API first, fallback to straight lines if it fails
-        let routeData = null;
-        
-        try {
-          const routeUrl = `https://router.project-osrm.org/route/v1/driving/${coords.join(';')}?overview=full&geometries=geojson`;
-          const osrmAbort = new AbortController();
-          const osrmTimeout = setTimeout(() => osrmAbort.abort(), 10000);
-          const routeRes = await fetch(routeUrl, { signal: osrmAbort.signal });
-          clearTimeout(osrmTimeout);
-          const routeJson = await routeRes.json();
-          if (routeJson.code === 'Ok' && routeJson.routes && routeJson.routes[0]) {
-            routeData = routeJson.routes[0];
-          }
-        } catch(e) { console.log('OSRM API failed:', e); }
+        // Reorder routeStops in place to match optimized order
+        routeStops.length = 0;
+        data.optimizedStops.forEach(s => routeStops.push(s));
+        localStorage.setItem('vendtech_route', JSON.stringify(routeStops));
 
-        // Clear existing route layer if any
+        // Re-render the stop list with new order
+        renderRouteStops();
+
+        // Draw route on map
         if (routeLayer) map.removeLayer(routeLayer);
-        
-        // Create a layer group for route line + numbered markers
         routeLayer = L.layerGroup().addTo(map);
-        
-        if (routeData) {
-          // Draw route polyline from API
-          const routeCoords = routeData.geometry.coordinates.map(c => [c[1], c[0]]);
+
+        if (data.routeGeometry && data.routeGeometry.coordinates) {
+          const routeCoords = data.routeGeometry.coordinates.map(c => [c[1], c[0]]);
           L.polyline(routeCoords, { color: '#22c55e', weight: 5, opacity: 0.8 }).addTo(routeLayer);
-          
-          document.getElementById('summaryDistance').textContent = (routeData.distance / 1609.34).toFixed(1) + ' mi';
-          document.getElementById('summaryTime').textContent = Math.round(routeData.duration / 60) + ' min';
-        } else {
-          // Fallback: draw straight lines between stops
-          const lineCoords = routeStops.map(s => [s.lat, s.lng]);
-          L.polyline(lineCoords, { color: '#22c55e', weight: 4, opacity: 0.7, dashArray: '10, 10' }).addTo(routeLayer);
-          
-          // Estimate distance (straight line)
-          let totalDist = 0;
-          for (let i = 1; i < routeStops.length; i++) {
-            const from = L.latLng(routeStops[i-1].lat, routeStops[i-1].lng);
-            const to = L.latLng(routeStops[i].lat, routeStops[i].lng);
-            totalDist += from.distanceTo(to);
-          }
-          document.getElementById('summaryDistance').textContent = '~' + (totalDist / 1609.34).toFixed(1) + ' mi';
-          document.getElementById('summaryTime').textContent = '~' + Math.round(totalDist / 1609.34 * 2) + ' min';
         }
-        
-        // Add numbered markers for each stop (always works)
+
+        // Numbered markers in optimized order
         routeStops.forEach((stop, i) => {
-          const numberedIcon = L.divIcon({
+          const icon = L.divIcon({
             className: '',
             html: `<div style="width:28px;height:28px;border-radius:50%;background:#22c55e;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff;">${i + 1}</div>`,
-            iconSize: [28, 28],
-            iconAnchor: [14, 14]
+            iconSize: [28, 28], iconAnchor: [14, 14]
           });
-          L.marker([stop.lat, stop.lng], { icon: numberedIcon })
+          L.marker([stop.lat, stop.lng], { icon })
             .bindPopup(`<strong>Stop ${i + 1}: ${stop.name}</strong><br><span style="color:#666;font-size:12px;">${stop.address || ''}</span>`)
             .addTo(routeLayer);
         });
-        
-        map.fitBounds(routeLayer.getBounds(), { padding: [40, 40] });
-        
+
+        if (routeLayer.getLayers().length > 0) map.fitBounds(routeLayer.getBounds(), { padding: [40, 40] });
+
         document.getElementById('summaryStops').textContent = routeStops.length;
+        document.getElementById('summaryDistance').textContent = data.totalMiles.toFixed(1) + ' mi';
+        document.getElementById('summaryTime').textContent = data.timeStr;
         document.getElementById('routeSummary').style.display = 'block';
+
       } catch(e) {
-        console.error('Route optimization failed:', e);
-        // Still show stops with straight lines even on error
-        if (routeLayer) map.removeLayer(routeLayer);
-        routeLayer = L.layerGroup().addTo(map);
-        
-        const lineCoords = routeStops.map(s => [s.lat, s.lng]);
-        L.polyline(lineCoords, { color: '#22c55e', weight: 4, opacity: 0.7, dashArray: '10, 10' }).addTo(routeLayer);
-        
-        routeStops.forEach((stop, i) => {
-          const numberedIcon = L.divIcon({
-            className: '',
-            html: `<div style="width:28px;height:28px;border-radius:50%;background:#22c55e;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff;">${i + 1}</div>`,
-            iconSize: [28, 28],
-            iconAnchor: [14, 14]
-          });
-          L.marker([stop.lat, stop.lng], { icon: numberedIcon })
-            .bindPopup(`<strong>Stop ${i + 1}: ${stop.name}</strong><br><span style="color:#666;font-size:12px;">${stop.address || ''}</span>`)
-            .addTo(routeLayer);
-        });
-        
-        if (routeStops.length > 0) {
-          map.fitBounds(routeLayer.getBounds(), { padding: [40, 40] });
-        }
-        document.getElementById('summaryStops').textContent = routeStops.length;
-        document.getElementById('summaryDistance').textContent = '—';
-        document.getElementById('summaryTime').textContent = '—';
-        document.getElementById('routeSummary').style.display = 'block';
+        alert('Optimization failed: ' + e.message);
       } finally {
         btn.disabled = routeStops.length < 2;
         btn.textContent = '🧠 Optimize Route';
       }
     }
+
 
     function openInGoogleMaps() {
       if (routeStops.length === 0) { alert('Add some stops first!'); return; }

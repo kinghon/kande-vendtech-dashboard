@@ -26563,6 +26563,63 @@ app.get('/api/sandstar/alerts', (req, res) => {
 // ===== END SANDSTAR ROUTES =====
 // ===== END API COSTS =====
 
+// ===== ROUTE OPTIMIZE =====
+app.post('/api/optimize-route', async (req, res) => {
+  // startAddress: string (required)
+  // stops: [{lat, lng, name, address, prospectId, ...}]
+  const { startAddress, stops } = req.body;
+  if (!startAddress) return res.status(400).json({ error: 'startAddress is required' });
+  if (!Array.isArray(stops) || stops.length < 1) return res.status(400).json({ error: 'Need at least 1 stop' });
+
+  try {
+    // Geocode start address
+    const geoUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(startAddress)}&limit=1&countrycodes=us&viewbox=-116.5,37.0,-114.0,35.0&bounded=0`;
+    const geoRes = await fetch(geoUrl, { headers: { 'User-Agent': 'KandeVendTech/1.0' } });
+    const geoData = await geoRes.json();
+    if (!geoData || !geoData.length) return res.status(400).json({ error: `Could not geocode start address: ${startAddress}` });
+    const startCoord = { lat: parseFloat(geoData[0].lat), lng: parseFloat(geoData[0].lon) };
+
+    // Build coords: start first, then all stops
+    const allCoords = [
+      `${startCoord.lng},${startCoord.lat}`,
+      ...stops.map(s => `${s.lng},${s.lat}`)
+    ];
+
+    // OSRM trip service — solves TSP, keeps start first, round trip
+    const tripUrl = `https://router.project-osrm.org/trip/v1/driving/${allCoords.join(';')}?roundtrip=true&source=first&geometries=geojson&overview=full`;
+    const tripRes = await fetch(tripUrl);
+    const tripData = await tripRes.json();
+
+    if (tripData.code !== 'Ok' || !tripData.trips || !tripData.trips[0]) {
+      return res.status(500).json({ error: 'Route optimization failed — check that stops have valid coordinates' });
+    }
+
+    const trip = tripData.trips[0];
+    const waypoints = tripData.waypoints; // waypoints[i].waypoint_index = optimized position
+
+    // Reorder stops by optimized order (skip waypoints[0] = start)
+    const stopWaypoints = waypoints.slice(1).map((w, i) => ({ originalIndex: i, optimizedPos: w.waypoint_index }));
+    stopWaypoints.sort((a, b) => a.optimizedPos - b.optimizedPos);
+    const optimizedStops = stopWaypoints.map(w => stops[w.originalIndex]);
+
+    const totalMiles = trip.distance / 1609.34;
+    const hrs = Math.floor(trip.duration / 3600);
+    const mins = Math.floor((trip.duration % 3600) / 60);
+    const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins} min`;
+
+    res.json({
+      ok: true,
+      optimizedStops,
+      routeGeometry: trip.geometry,
+      totalMiles: parseFloat(totalMiles.toFixed(2)),
+      timeStr,
+      startCoord
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ===== MILEAGE CALCULATE =====
 app.post('/api/mileage-calculate', async (req, res) => {
   // addresses: array of address strings [start, ...stops, end]
