@@ -415,8 +415,10 @@
         </div>
         <div id="mcPanel">
           <div class="mc-row">
-            <input type="text" id="mcStart" placeholder="Start address...">
-            <input type="text" id="mcEnd" placeholder="End address (optional, defaults to round trip)">
+            <input type="text" id="mcStart" placeholder="Start address..." autocomplete="street-address" style="flex:1;">
+          </div>
+          <div class="mc-row">
+            <input type="text" id="mcEnd" placeholder="End address (leave blank = round trip)" autocomplete="street-address" style="flex:1;">
           </div>
           <div class="mc-row">
             <input type="text" id="mcStopInput" placeholder="Add a stop address..." onkeydown="if(event.key==='Enter')mcAddStop()">
@@ -441,8 +443,7 @@
       </div>
       <div class="route-planner-content" id="routePlannerContent">
         <div class="route-start-row">
-          <input type="text" id="startAddress" placeholder="Starting location (optional)">
-          <button onclick="useCurrentLocation()" title="Use current location">📍</button>
+          <input type="text" id="startAddress" placeholder="Starting location (optional)" autocomplete="street-address">
         </div>
         <div class="route-stops-list" id="routeStopsList">
           <div style="color:var(--muted);font-size:0.85rem;padding:8px;">No stops added yet. Click + Route on prospects to add.</div>
@@ -2359,7 +2360,7 @@
 
     const markers = L.layerGroup().addTo(map);
     const markerColors = { hot: '#e53e3e', intalks: '#ec4899', warm: '#eab308', signed: '#ffffff', new: '#3182ce', closed: '#a0aec0', popIn: '#38a169', inRoute: '#22c55e' };
-    startLocationTracking();
+    // startLocationTracking(); // disabled
 
     // -- Point-in-polygon helper --
     function pointInPolygon(lat, lng, polygon) {
@@ -2545,13 +2546,7 @@
     }
 
     function useCurrentLocation() {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(pos => {
-          document.getElementById('startAddress').value = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
-        }, () => {
-          document.getElementById('startAddress').placeholder = 'Could not detect — enter address';
-        });
-      }
+      // location feature disabled
     }
 
     async function addCustomStop() {
@@ -3042,28 +3037,7 @@
       }
     }
 
-    // ── User location star marker ─────────────────────
-    let userMarker = null;
-
-    function startLocationTracking() {
-      if (!navigator.geolocation) return;
-      const starIcon = L.divIcon({
-        className: '',
-        html: `<div style="font-size:28px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));transform:translate(-50%,-50%);">⭐</div>`,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14]
-      });
-      navigator.geolocation.watchPosition(pos => {
-        const latlng = [pos.coords.latitude, pos.coords.longitude];
-        if (!userMarker) {
-          userMarker = L.marker(latlng, { icon: starIcon, zIndexOffset: 1000 })
-            .addTo(map)
-            .bindPopup('<strong>📍 You are here</strong>');
-        } else {
-          userMarker.setLatLng(latlng);
-        }
-      }, null, { enableHighAccuracy: true, maximumAge: 10000 });
-    }
+    // ── User location star marker — disabled ──────────
 
     // ── Set Pop-In action ─────────────────────────────
 
