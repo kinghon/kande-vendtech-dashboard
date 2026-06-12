@@ -2474,16 +2474,24 @@
       const container = document.getElementById('routeStopsList');
       const btn = document.getElementById('btnOptimize');
       btn.disabled = routeStops.length < 2;
-      document.getElementById('routeStopCount').textContent = routeStops.length > 0 ? `(${routeStops.length} stops)` : '';
+      document.getElementById('routeStopCount').textContent = routeStops.length > 0 ? `(${routeStops.length} stop${routeStops.length !== 1 ? 's' : ''})` : '';
 
       if (routeStops.length === 0) {
         container.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:8px;">No stops added yet. Click + Route on prospects to add.</div>';
-        // Collapse when empty
         setRouteExpanded(false);
       } else {
-        container.innerHTML = routeStops.map((s, i) => `
+        const startAddr = document.getElementById('startAddress').value.trim();
+        const startRow = startAddr ? `
+          <div class="route-stop" style="background:rgba(34,197,94,0.07);">
+            <div class="stop-number">1</div>
+            <div class="stop-info">
+              <div class="stop-name" style="font-weight:700;">${startAddr}</div>
+              <div class="stop-address" style="color:var(--success);font-size:0.72rem;">Starting location</div>
+            </div>
+          </div>` : '';
+        const stopRows = routeStops.map((s, i) => `
           <div class="route-stop">
-            <div class="stop-number">${i + 1}</div>
+            <div class="stop-number">${startAddr ? i + 2 : i + 1}</div>
             <div class="stop-info">
               <div class="stop-name">${s.name}</div>
               <div class="stop-address">${s.address || ''}</div>
@@ -2491,7 +2499,15 @@
             <button class="stop-remove" onclick="removeRouteStop(${i})">✕</button>
           </div>
         `).join('');
-        // Always expand when there are stops
+        const returnRow = startAddr ? `
+          <div class="route-stop" style="background:rgba(34,197,94,0.07);">
+            <div class="stop-number">${routeStops.length + 2}</div>
+            <div class="stop-info">
+              <div class="stop-name" style="font-weight:700;">${startAddr}</div>
+              <div class="stop-address" style="color:var(--success);font-size:0.72rem;">Return to start</div>
+            </div>
+          </div>` : '';
+        container.innerHTML = startRow + stopRows + returnRow;
         setRouteExpanded(true);
       }
       localStorage.setItem('vendtech_route', JSON.stringify(routeStops));
