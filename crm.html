@@ -2594,7 +2594,10 @@
         
         try {
           const routeUrl = `https://router.project-osrm.org/route/v1/driving/${coords.join(';')}?overview=full&geometries=geojson`;
-          const routeRes = await fetch(routeUrl);
+          const osrmAbort = new AbortController();
+          const osrmTimeout = setTimeout(() => osrmAbort.abort(), 10000);
+          const routeRes = await fetch(routeUrl, { signal: osrmAbort.signal });
+          clearTimeout(osrmTimeout);
           const routeJson = await routeRes.json();
           if (routeJson.code === 'Ok' && routeJson.routes && routeJson.routes[0]) {
             routeData = routeJson.routes[0];
@@ -2675,9 +2678,10 @@
         document.getElementById('summaryDistance').textContent = '—';
         document.getElementById('summaryTime').textContent = '—';
         document.getElementById('routeSummary').style.display = 'block';
+      } finally {
+        btn.disabled = routeStops.length < 2;
+        btn.textContent = '🧠 Optimize Route';
       }
-      btn.disabled = routeStops.length < 2;
-      btn.textContent = '🧠 Optimize Route';
     }
 
     function openInGoogleMaps() {
