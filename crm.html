@@ -394,7 +394,7 @@
           <div class="legend-item"><div style="width:12px;height:12px;border-radius:50%;background:#ec4899;display:inline-flex;align-items:center;justify-content:center;"><span style="color:#fff;font-size:8px;line-height:1;">★</span></div>&nbsp;⭐ Contract Pending</div>
           <div class="legend-item"><div class="legend-dot" style="background:#a0aec0"></div> ⬜ No Zone</div>
           <div class="legend-item"><div class="legend-dot" style="background:#22c55e;border:2px solid #fff;box-shadow:0 0 4px #22c55e;"></div> 🟢 In Route</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#cc0000;border:1.5px solid #000;"></div> Black border = popped in</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#64748b;border:2px solid #000;"></div> Black border = popped in</div>
           <div class="legend-item" style="color:#718096;font-size:10px;">Colored border = excl. expired</div>
         </div>
       </div>
@@ -2849,12 +2849,6 @@
     function getProspectZone(p) {
       // Black dot locations (Strip hotels/casinos) have no rep — manually assigned
       if (isStripHotel(p) && isInStripFremont(p)) return null;
-      // If Jordan has popped this location, show as Jordan regardless of geographic zone
-      // Strict type check only — matches getMarkerColor to prevent green dot bleed
-      const hasPopIn = (p.activities || []).some(function(a) {
-        return a.type === 'pop-in' || a.type === 'pop_in';
-      });
-      if (hasPopIn) return ZONES.find(function(z) { return z.name === 'Central'; }) || null;
       // Fall back to geographic zone
       if (!p.lat || !p.lng) return null;
       const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
@@ -2933,10 +2927,8 @@
       if (p.status === 'signed') return '#ec4899';
       // Strip/Fremont = black ONLY for the major named hotels/casinos
       if (isStripHotel(p) && isInStripFremont(p)) return '#1a202c';
-      // Jordan's popped locations override zone — always red
-      const hasPopIn = (p.activities || []).some(function(a) { return a.type === 'pop-in' || a.type === 'pop_in'; });
-      if (hasPopIn) return '#cc0000';
       // Color by geographic zone (polygon-based)
+      // Note: pop-in status shown via black outer ring in addMarker, not fill color
       if (p.lat && p.lng) {
         const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
         for (let i = 0; i < ZONES.length; i++) {
