@@ -2849,15 +2849,7 @@
     function getProspectZone(p) {
       // Black dot locations (Strip hotels/casinos) have no rep — manually assigned
       if (isStripHotel(p) && isInStripFremont(p)) return null;
-      // If location has been popped in, zone attribution follows the popping rep
-      const popIns = (p.activities || []).filter(function(a) { return a.type === 'pop-in' || a.type === 'pop_in'; });
-      if (popIns.length > 0) {
-        const sorted = popIns.slice().sort(function(a, b) { return new Date(b.date || b.created_at) - new Date(a.date || a.created_at); });
-        const popRep = (sorted[0].rep || '').toLowerCase();
-        const repZoneName = popRep === 'stuart' ? 'West' : popRep === 'vanessa' ? 'East' : 'Central';
-        return ZONES.find(function(z) { return z.name === repZoneName; }) || null;
-      }
-      // Fall back to geographic zone
+      // Zone is always geographic — used for filtering/display, independent of who popped it
       if (!p.lat || !p.lng) return null;
       const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
       for (let i = 0; i < ZONES.length; i++) {
