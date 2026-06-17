@@ -401,15 +401,26 @@
       });
 
       let html = '';
+      const REP_COLORS = { Jordan: '#cc0000', Stuart: '#22c55e', Vanessa: '#0044cc', Kurtis: '#805ad5' };
+
       sorted.forEach(([pid, group]) => {
         const uid = pid + '-' + (autoExpand ? 'r' : Math.random().toString(36).slice(2,6));
         const eventSummary = summarizeEvents(group.events);
         const mostRecent = group.events[0].timestamp;
 
+        // Derive rep for this location: assigned_rep > most recent activity rep
+        const p = prospects[parseInt(pid)];
+        const repName = (p && p.assigned_rep) || group.events.find(e => e.rep)?.rep || '';
+        const repColor = REP_COLORS[repName] || '';
+        const repBadge = repName && repColor
+          ? `<span onclick="event.stopPropagation()" style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:10px;background:${repColor}22;color:${repColor};border:1px solid ${repColor}55;white-space:nowrap;">👤 ${repName}</span>`
+          : '';
+
         html += `<div class="location-group ${autoExpand ? 'open' : ''}" id="loc-${uid}">
           <div class="location-header" onclick="toggleLocation('${uid}')">
-            <div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
               <span class="location-name">${esc(group.name)}</span>
+              ${repBadge}
               <a href="/prospect/${pid}" onclick="event.stopPropagation()" style="font-size:0.72rem;font-weight:600;padding:2px 9px;border-radius:8px;background:#ebf4ff;color:#2b6cb0;border:1px solid #bee3f8;text-decoration:none;white-space:nowrap;">View Details →</a>
               <span class="location-meta">${group.propertyType || ''} · ${getTimeAgo(mostRecent)}</span>
             </div>
