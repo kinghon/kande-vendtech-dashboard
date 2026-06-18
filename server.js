@@ -1006,7 +1006,16 @@ app.delete('/api/contacts/:id', (req, res) => {
 // ===== ACTIVITIES API =====
 app.post('/api/prospects/:id/activities', (req, res) => {
   const prospect_id = parseInt(req.params.id);
-  const activity = { id: nextId(), prospect_id, ...req.body, created_at: new Date().toISOString() };
+  // Auto-inject rep from session if not provided by client
+  let sessionRep = req.body.rep || null;
+  if (!sessionRep) {
+    const cookies = parseCookies(req);
+    const sessionToken = cookies['vendtech_session'];
+    const sessions = getActiveSessions();
+    const entry = sessionToken ? sessions[sessionToken] : null;
+    sessionRep = entry && typeof entry === 'object' ? entry.rep : null;
+  }
+  const activity = { id: nextId(), prospect_id, ...req.body, rep: sessionRep || req.body.rep || null, created_at: new Date().toISOString() };
   db.activities.push(activity);
   const prospect = db.prospects.find(p => p.id === prospect_id);
   if (prospect) {
