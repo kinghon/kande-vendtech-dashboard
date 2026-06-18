@@ -472,7 +472,7 @@
                 <span class="event-badge ${e.badgeClass}">${e.label}</span>
                 ${esc(e.text)}
               </div>
-              <div class="event-time">${e.timestamp.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} · ${getTimeAgo(e.timestamp)}</div>
+              <div class="event-time">${getTimeAgo(e.timestamp)}</div>
             </div>
             <div class="event-actions" style="display:flex;gap:6px;flex-shrink:0;">
               <button onclick="editActivity(${e.id}, '${esc(e.text).replace(/'/g, "\\'")}', '${e.type}')" style="padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;cursor:pointer;font-size:0.7rem;color:#718096;" title="Edit">✏️</button>
@@ -497,15 +497,11 @@
     }
 
     function getTimeAgo(date) {
-      const diff = Date.now() - date.getTime();
-      const mins = Math.floor(diff / 60000);
-      if (mins < 1) return 'just now';
-      if (mins < 60) return mins + 'm ago';
-      const hours = Math.floor(mins / 60);
-      if (hours < 24) return hours + 'h ago';
-      const days = Math.floor(hours / 24);
-      if (days === 1) return 'yesterday';
-      return days + 'd ago';
+      return date.toLocaleString('en-US', {
+        timeZone: 'America/Los_Angeles',
+        month: 'short', day: 'numeric', year: '2-digit',
+        hour: 'numeric', minute: '2-digit', hour12: true
+      });
     }
 
     function esc(s) {
