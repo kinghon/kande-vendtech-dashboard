@@ -1000,6 +1000,13 @@
       displayActions.sort((a, b) => {
         if (a._isFollowUp && !b._isFollowUp) return 1;
         if (!a._isFollowUp && b._isFollowUp) return -1;
+        // When filtering Stuart or Vanessa, push Jordan-assigned items to bottom
+        if (currentRepFilter === 'Stuart' || currentRepFilter === 'Vanessa') {
+          const aIsJordan = (a.assigned_rep === 'Jordan') || (!a.assigned_rep && (getProspectZone(a)||{}).name === 'Central');
+          const bIsJordan = (b.assigned_rep === 'Jordan') || (!b.assigned_rep && (getProspectZone(b)||{}).name === 'Central');
+          if (aIsJordan && !bIsJordan) return 1;
+          if (!aIsJordan && bIsJordan) return -1;
+        }
         const typeSort = (actionOrder[a.next_action] || 99) - (actionOrder[b.next_action] || 99);
         if (typeSort !== 0) return typeSort;
         // Within same action type: newest next_action_added first
@@ -3127,8 +3134,8 @@
       if (p.assigned_rep) return p.assigned_rep === rep;
       // Geography is the source of truth
       const z = getProspectZone(p);
-      if (rep === 'Stuart')  return z && z.name === 'West';
-      if (rep === 'Vanessa') return z && z.name === 'East';
+      if (rep === 'Stuart')  return (z && z.name === 'West') && !(p.assigned_rep && p.assigned_rep !== 'Stuart');
+      if (rep === 'Vanessa') return (z && z.name === 'East') && !(p.assigned_rep && p.assigned_rep !== 'Vanessa');
       if (rep === 'Jordan') {
         if (z && z.name === 'Central') return true;
         // Jordan also owns his pop-in locations regardless of zone (strict type check)
