@@ -208,11 +208,16 @@ app.get('/api/auth/sessions', (req, res) => {
   const rep = entry && typeof entry === 'object' ? entry.rep : null;
   if (rep !== null) return res.status(403).json({ error: 'Admin only' });
   const now = Date.now();
-  const list = Object.entries(sessions).map(([token, e]) => ({
-    rep: e.rep || '(admin)',
-    created: new Date(e.created).toISOString(),
-    age_min: Math.round((now - e.created) / 60000)
-  }));
+  const list = Object.entries(sessions).map(([token, e]) => {
+    const created = e && typeof e === 'object' ? e.created : null;
+    const rep = e && typeof e === 'object' ? (e.rep || '(admin)') : '(legacy)';
+    const dt = created ? new Date(created) : null;
+    return {
+      rep,
+      created: dt && !isNaN(dt) ? dt.toISOString() : 'unknown',
+      age_min: created ? Math.round((now - created) / 60000) : null
+    };
+  });
   res.json(list);
 });
 
