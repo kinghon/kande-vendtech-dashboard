@@ -199,6 +199,25 @@ app.post('/api/auth/logout', (req, res) => {
   res.json({ success: true });
 });
 
+// Purge all legacy sessions (admin only)
+app.post('/api/auth/purge-legacy-sessions', (req, res) => {
+  const cookies = parseCookies(req);
+  const sessionToken = cookies['vendtech_session'];
+  const sessions = getActiveSessions();
+  const entry = sessionToken ? sessions[sessionToken] : null;
+  const rep = entry && typeof entry === 'object' ? entry.rep : null;
+  if (rep !== null) return res.status(403).json({ error: 'Admin only' });
+  let removed = 0;
+  for (const [token, e] of Object.entries(sessions)) {
+    if (!e || typeof e !== 'object' || !e.created) {
+      delete sessions[token];
+      removed++;
+    }
+  }
+  saveDB(db);
+  res.json({ removed, remaining: Object.keys(sessions).length });
+});
+
 // List all active sessions (admin only)
 app.get('/api/auth/sessions', (req, res) => {
   const cookies = parseCookies(req);
