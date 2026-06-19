@@ -199,6 +199,23 @@ app.post('/api/auth/logout', (req, res) => {
   res.json({ success: true });
 });
 
+// List all active sessions (admin only)
+app.get('/api/auth/sessions', (req, res) => {
+  const cookies = parseCookies(req);
+  const sessionToken = cookies['vendtech_session'];
+  const sessions = getActiveSessions();
+  const entry = sessionToken ? sessions[sessionToken] : null;
+  const rep = entry && typeof entry === 'object' ? entry.rep : null;
+  if (rep !== null) return res.status(403).json({ error: 'Admin only' });
+  const now = Date.now();
+  const list = Object.entries(sessions).map(([token, e]) => ({
+    rep: e.rep || '(admin)',
+    created: new Date(e.created).toISOString(),
+    age_min: Math.round((now - e.created) / 60000)
+  }));
+  res.json(list);
+});
+
 // Check auth status
 app.get('/api/auth/status', (req, res) => {
   const cookies = parseCookies(req);
