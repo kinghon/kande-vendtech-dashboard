@@ -2207,8 +2207,10 @@
     function closeModal() { document.getElementById('prospectModal').classList.remove('active'); }
 
     async function addProspect() {
+      const nameVal = document.getElementById('addName').value.trim();
+      if (!nameVal) { alert('Name is required.'); return; }
       const data = {
-        name: titleCase(document.getElementById('addName').value.trim()),
+        name: titleCase(nameVal),
         property_type: document.getElementById('addPropertyType').value,
         units: document.getElementById('addUnits').value,
         address: titleCase(document.getElementById('addAddress').value.trim()),
@@ -2216,12 +2218,31 @@
         hours: document.getElementById('addHours').value,
         status: 'new', priority: 'normal', notes: '', kurtis_notes: '', source: 'manual'
       };
-      await fetch('/api/prospects', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      closeModal();
-      loadData();
+      // Auto-assign to logged-in rep so the new prospect stays visible under their filter
+      if (currentRep) {
+        data.assigned_rep = currentRep.charAt(0).toUpperCase() + currentRep.slice(1);
+      }
+      try {
+        const res = await fetch('/api/prospects', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(data)
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert('Failed to save prospect: ' + (err.error || res.status));
+          return;
+        }
+        const created = await res.json();
+        // Inject directly so it's visible immediately (geocoding is async; filter would hide it otherwise)
+        if (!prospects.some(p => p.id === created.id)) prospects.unshift(created);
+        closeModal();
+        renderProspects();
+        renderRepCounters();
+        loadStats();
+      } catch(e) {
+        alert('Network error saving prospect: ' + e.message);
+      }
     }
 
     // Activity
