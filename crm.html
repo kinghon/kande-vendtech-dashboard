@@ -3167,17 +3167,21 @@
 
     function prospectMatchesRep(p, rep) {
       if (!rep || rep === 'all') return true;
-      // Manual rep assignment overrides geography (e.g. Kurtis explicitly moved a location)
+      // 1. Manual rep assignment overrides everything
       if (p.assigned_rep) return p.assigned_rep === rep;
-      // Geography is the source of truth
-      const z = getProspectZone(p);
-      if (rep === 'Stuart')  return (z && z.name === 'West') && !(p.assigned_rep && p.assigned_rep !== 'Stuart');
-      if (rep === 'Vanessa') return (z && z.name === 'East') && !(p.assigned_rep && p.assigned_rep !== 'Vanessa');
-      if (rep === 'Jordan') {
-        if (z && z.name === 'Central') return true;
-        // Jordan also owns his pop-in locations regardless of zone (strict type check)
-        return (p.activities || []).some(function(a) { return a.type === 'pop-in' || a.type === 'pop_in'; });
+      // 2. Pop-in rep takes precedence over geography (consistent with getProspectZoneBadge)
+      //    This prevents e.g. Jade Apartments (West zone) from showing under Stuart when Jordan visited it
+      const popIns = (p.activities || []).filter(function(a) { return a.type === 'pop-in' || a.type === 'pop_in'; });
+      if (popIns.length > 0) {
+        const sorted = popIns.slice().sort(function(a, b) { return new Date(b.date || b.created_at) - new Date(a.date || a.created_at); });
+        const popRep = (sorted[0].rep || 'jordan').toLowerCase();
+        return popRep === rep.toLowerCase();
       }
+      // 3. Geography is the fallback (no pop-ins yet)
+      const z = getProspectZone(p);
+      if (rep === 'Stuart')  return !!(z && z.name === 'West');
+      if (rep === 'Vanessa') return !!(z && z.name === 'East');
+      if (rep === 'Jordan')  return !!(z && z.name === 'Central');
       return false;
     }
 
