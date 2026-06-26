@@ -28,92 +28,64 @@
 
 ## From VP Weekly Transcript (March 25, 2026)
 
-### HIGH-IMPACT: Revenue Benchmarks
-- **Hotel doing $20K/month** — Tom's hotel location pacing at $20K/month, stocking 4 days/week. Previously reported at $18K. Growth continues.
-- **VendHub/VendMarket launch** — VendHub's product marketplace (VendMarket) is now live, mimicking Amazon-like experience. Red Bull products added alongside Vistar. Multiple suppliers in one checkout. Goal: 5-15 suppliers including Pepsi, Coke.
+### Revenue Benchmarks
+- **Michael Deese**: 8 units in March 2025 → 25 units by March 2026 (1 year goal achieved)
+- **Kevin & Caitlin Willsie**: 1-year anniversary March 26, 2026 — first sale was Red Bull, $50 day one
+- **Calen Gerstenberger**: Revenue growing but monthly profit NOT growing proportionally — scaling cashflow trap
 
-### HIGH-IMPACT: Supplier/Industry Changes
-- **Coke 20% layoff + AI restructuring** — Coca-Cola went through 20% layoffs, some jobs eliminated entirely due to AI. VP's Coke account contact changing. New person assigned, 4-6 week transition period. Could affect account support for all operators.
-- **Red Bull via USG enrollment** — Red Bull ordering now available through VendMarket. Requires USG ID + commercial address. Quarterly enrollment cycles. VendHub auto-enrolls eligible operators.
+### Equipment
+- **Castle readers > Pax on SandStar** — Matt Sievers reports Castle works better
+- **SandStar now offers multiple processor options** — not just WeVend
+- **HAHA direct order: Affirm 0% for 6 months** — first couple machines only
 
-### MEDIUM: Platform Updates
-- **Live VP event planned** — Vendingpreneurs planning an in-person/virtual event, possibly around NAMA timing.
-- **AI + Vending panel** — VP putting together a panel discussion on how operators are using AI in vending. Timing: before or shortly after NAMA.
+### Competitor Intel
+- **Madison Graves actively operating in Las Vegas** with HAHA machines (white interior)
+  - 3-location deal in progress, one already placed since last year
+  - **Kande impact: Direct competitor in our market. Accelerate pop-ins and close pending deals.**
 
-# VP Community New Insights — 2026-03-31
+### Financing Warning
+- **Predatory financing: 3% MONTHLY interest rate** — one financier approved operator at 3% monthly (= 36% APR!). Operator caught it but others might not.
+- **Takeaway:** Watch for monthly vs annual rate tricks. Avoid any financing over 15% APR.
 
-## From Community Posts (Connect & Discuss + What Would You Do feeds)
+### NSF Certification Update (Corrects Previous Intel)
+- **EZEgo IS NSF/ANSI 7 certified** (confirmed by Zach Iniguez)
+- **SandStar Taste GDM and Haha Pro** also believed to be NSF certified
+- Our incoming Sandstar VRK may NOT be NSF certified, but the Taste GDM is
+- **Kande impact:** If targeting hospitals/corporate with strict compliance, prioritize Taste GDM or EZEgo models
 
-### 🔴 HIGH-IMPACT: Product Data (March Top Sellers)
-- **March top 10 reported by operator (Manuelle Duvall):**
-  1. Smuckers Uncrustables (Grape/Wheat)
-  2. Coca-Cola Original 20oz
-  (rest truncated in preview)
-- **Zach Iniguez's top 3:** Monster Zero, Starbucks Mocha Frap, Hershey's Cookies & Cream Dipped Pretzels
-- **Lenny & Larry's cookies** being explored by operators for variety in cookies category
-- **Hershey's Dipped Pretzels** confirmed as strong seller by multiple operators
-- **Takeaway:** Uncrustables remain #1 across community. Monster Zero and Starbucks Fraps are consistent top sellers. Dipped pretzels = emerging hit.
+### 365 Acquiring Cantaloupe
+- Deal under antitrust review, pushed to June 2026
+- If approved, operations will consolidate — expect service disruptions
+- **Kande impact:** Reduces competition in smart cooler space. Less negotiating leverage on fees long-term.
 
-### 🔴 HIGH-IMPACT: Profit Margins Not Scaling (Q1 Numbers)
-- **Operator reporting revenue growing but monthly profit NOT growing** — looking for cashflow management best practices
-- Seeking to connect with other operators on margin optimization
-- **Takeaway:** Common scaling trap. As revenue grows, COGS + restocking labor + equipment costs can outpace revenue growth. Need to watch our own margins closely as we scale.
+## From VP Weekly Transcript (March 26, 2026)
 
-### 🔴 HIGH-IMPACT: Equipment Comparison — Sandstar Models
-- **Sandstar Taste CVM27 (7-shelf) vs CVM27 (6-shelf) vs VRK vs EZEgo** — ~$1K price difference between Taste CVM(7-shelf) and VRK/EZEgo
-- Operators with multiple Sandstar models being asked for comparison
-- **Takeaway:** Track pricing differentials for equipment planning. Extra shelf = more SKU capacity but at premium.
-
-### 🔴 HIGH-IMPACT: Hiring/Staffing Benchmark
-- **Operator paying stocker $20/location via Zelle** — uses own van, training going well
-- Key concern: how to formalize (W-2 vs 1099), insurance when using personal vehicle
-- Insurance specialist Michael Bonk (from Jan 14 VP Weekly call) covers vehicle liability when hiring operators with own cars
-- **Takeaway:** $20/location is the community benchmark for restocking labor. Must address insurance/liability before hiring. Budget $20-25/location for stocker labor.
-
-### 🔴 HIGH-IMPACT: Contract Strategy
-- **Operator LOST a deal at 200+ unit mid-rise because they had a contract** — PM reviewed contract and backed out
-- Community split: some say always use contract, others advocate "handshake + simple agreement" for smaller/first deals
-- **Property requesting $2K renovation cost** — 300+ unit luxury apartment wants operator to cover renovation to prep machine space
-- **Auto-renewal clauses** — operators discussing whether to include auto-renewal in contracts (renew annually on executed date vs resign every X years)
-- **First contract must-haves** — community discussion on essential clauses for first contracts with manufacturers
-- **Takeaway:** Contract can be a deal-killer at some luxury properties. Consider having a "light" version (1-page simple agreement) for prospects who balk at full contracts. NEVER pay $2K+ renovation costs — counter with "we provide the equipment at no cost, you provide the space ready."
-
-### 🟡 SIGNIFICANT: Equipment & Operations
-- **SOLATO gelato machine** — alternative to full freezer unit for ice cream. Good for locations where full freezer not justified
-- **WeVend claims daily fund disbursement** — vs 365/MicroMart which are weekly. Cash flow advantage if true.
+### Location Strategy
 - **HAHA Mini between gym and mail room** — first contract at 100-unit luxury mid-rise + adjacent 40-unit property. High-traffic placement strategy confirmed.
 - **Stockwell 2.0 vs Starter Market** for limited-space 300-unit apartments
-- **HAHA adjustable drawers** from Amazon (not OEM) — cameras still detect products through drawers
-- **Costco online tax exempt** — requires submission after purchase for refund, not at time of purchase. Some operators reporting issues.
+
+### Operations
+- **HAHA adjustable drawers from Amazon** — cameras still detect products through drawers
+- **Costco online tax exempt** — requires submission after purchase for refund, not at time of purchase
 - **BLUENOTE AI notetaking app** — free CRM-integrated transcription for field visits
-- **12-gallon Husky bins** recommended for restocking supply transport (waterproof, stackable, fits 20oz bottles perfectly)
+- **12-gallon Husky bins** recommended for restocking supply transport
 
-### 🟡 SIGNIFICANT: Revenue Benchmarks & Growth
-- **8 units → 25 units in one year** (Michael Deese) — goal achieved March 2026
-- **6 new locations in 2 weeks** — experienced operator showing exponential growth compounds
-- **First machine stocked** — 4-4.5 hours for first stock, expected faster on second
-- **Sandstar #3 installed** — first purchase made during setup (Brown Sugar Legendary Pastry, then Sour Skittles)
-- **Kevin & Caitlin Willsie 1-year anniversary** — first sale was Red Bull, $50 day one, March 26 2025 start date
-
-### 🟡 SIGNIFICANT: Sales Tactics
-- **Pop-In Strategy Playbook** shared by community member — AI-compiled but not endorsed by Modern Amenities
+### Sales Tactics
+- **Pop-In Strategy Playbook** shared by community member
 - **Gift basket for first follow-up meeting** — creative touch for closing
-- **Pepsi direct purchase: 1-800-963-2424** — for operators wanting to buy direct from Pepsi
-- **Florida VP network forming** — operators connecting to share leads across FL locations
-- **Atlanta leads being shared** — Hall County (Oakwood, Gainesville) — operator passing leads to community
+- **Pepsi direct purchase: 1-800-963-2424**
+
+## From VP Weekly Transcript (March 27, 2026)
+
+### Product Recommendations
+- **SOLATO gelato machine** — alternative to full freezer unit for ice cream
+- **WeVend claims daily fund disbursement** — vs 365/MicroMart weekly. Cash flow advantage if true.
+
+## 2026-04-03 Daily Scrape
 
 ### 🔴 HIGH-IMPACT: Financing Warning
 - **Predatory financing: 3% MONTHLY interest rate** — one financier approved operator for large credit at 3% monthly (= 36% APR!). Operator caught it but others might not.
 - **Takeaway:** If we ever consider financing, watch for monthly vs annual rate tricks. Avoid any financing over 15% APR.
-
-### ✅ Logged Only (No Alert)
-- HAHA shelf zip ties, screen brightness, anti-theft door plate, spec sheets, planogram tools
-- Canva planogram struggles, credit card processor comparisons
-- KY operating license questions, Vero Beach FL VP networking
-- VendHub account creation questions
-- Open market vs closed machine format debates
-
-## 2026-04-03 Daily Scrape
 
 ### 🔴 HIGH-IMPACT: 365 Acquiring Cantaloupe — Antitrust Review
 - **365 Retail Markets is acquiring Cantaloupe** — deal was supposed to close in 2025 but is now under antitrust review, pushed to June 2026.
@@ -169,3 +141,45 @@
 - No new posts or video replays could be scraped today
 - **Action needed:** Kurtis needs to re-login to the community in the OpenClaw browser profile to refresh cookies, OR access through the mobile app and export new cookies
 
+## 2026-05-14 — Scrape Status
+
+**Mighty Networks session STILL expired.** Community landing page continues to block access. Scraper redirected to `https://community.vendingpreneurs.com/landing?from=...` with "Sign In" and Fillout form.
+
+- Daily scrapes since 2026-04-04 have all returned 0 posts
+- No new video replays could be checked
+- Telegram alert sent to VendTech group
+- **Action needed:** Fresh login required to restore cookie-based access
+
+## 2026-05-16 — Scrape Status
+
+**Mighty Networks session STILL expired.** Same as previous reports. Browser lands on "We Created Our Own Platform / It's Happening" landing page with "Sign In" button and Fillout form. Cookies in `/tmp/mighty-cookies.json` are present but no longer grant authenticated access.
+
+- Daily scrape returned 0 posts (empty JSON written)
+- Video check returned 0 posts, 0 videos
+- **Action needed:** Kurtis needs to log into the Vendingpreneurs community via Chrome/OpenClaw browser to refresh session cookies. The `_session_id` cookie at `community.vendingpreneurs.com` is the key one that needs renewal.
+
+---
+
+## 2026-06-02 — Scrape Status
+
+**Mighty Networks session STILL expired.** Same blocked state since 2026-04-04 (nearly 2 months).
+
+- Browser lands on landing page: "We Created Our Own Platform / It's Happening" with "Sign In" button
+- Redirect URL: `https://community.vendingpreneurs.com/landing?from=https%3A%2F%2Fcommunity.vendingpreneurs.com%2Fspaces%2F21685660%2Ffeed`
+- Daily scrape returned 0 posts (empty `{}` JSON written)
+- Cookie `/tmp/mighty-cookies.json` exists with 13 cookies including `_session_id`, but session is no longer valid
+- Telegram alert sent to VendTech group
+- **Action needed:** Fresh login via Chrome to renew session cookies. The community may have migrated to a new platform.
+
+---
+
+## 2026-05-21 — Scrape Status
+
+**Mighty Networks session STILL expired.** Same blocked state since 2026-04-04.
+
+- Browser lands on landing page: "We Created Our Own Platform / It's Happening" with "Sign In" button
+- Redirect URL: `https://community.vendingpreneurs.com/landing?from=https%3A%2F%2Fcommunity.vendingpreneurs.com%2Fspaces%2F21685660%2Ffeed`
+- Daily scrape returned 0 posts (empty `{}` JSON written)
+- Cookie `/tmp/mighty-cookies.json` exists with 13 cookies including `_session_id`, but session is no longer valid
+- **Action needed:** Fresh login via Chrome to renew session cookies. Run `node ~/clawd/scripts/mighty-login-save-cookies.js` after logging in.
+- Telegram alert sent to VendTech group with instructions

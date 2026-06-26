@@ -30,11 +30,16 @@ const VALID_PASSWORDS = [ADMIN_PASSWORD, process.env.SALES_PASSWORD || 'jvending
 // Sessions persisted to DB so they survive deploys
 function getActiveSessions() {
   if (!db.sessions) db.sessions = {};
-  // Clean expired sessions (older than 30 days)
+  // Clean expired sessions and normalize rep capitalization
   const now = Date.now();
   for (const [token, entry] of Object.entries(db.sessions)) {
     const created = typeof entry === 'object' ? entry.created : entry;
-    if (now - created > 30 * 24 * 60 * 60 * 1000) delete db.sessions[token];
+    if (now - created > 30 * 24 * 60 * 60 * 1000) {
+      delete db.sessions[token];
+    } else if (typeof entry === 'object' && entry.rep && entry.rep !== entry.rep.charAt(0).toUpperCase() + entry.rep.slice(1)) {
+      // Normalize lowercase rep names (jordan → Jordan) from old sessions
+      entry.rep = entry.rep.charAt(0).toUpperCase() + entry.rep.slice(1);
+    }
   }
   return db.sessions;
 }
@@ -150,7 +155,8 @@ app.post('/api/auth/login', (req, res) => {
     const sessions = getActiveSessions();
     // Identify which rep is logging in
     const repEntry = Object.entries(REP_PASSWORDS).find(([, pw]) => pw === password);
-    const rep = repEntry ? repEntry[0] : null; // 'jordan' | 'stuart' | 'vanessa' | null (admin)
+    const rawRep = repEntry ? repEntry[0] : null; // 'jordan' | 'stuart' | 'vanessa' | null (admin)
+    const rep = rawRep ? rawRep.charAt(0).toUpperCase() + rawRep.slice(1) : null; // Capitalize: 'Jordan' | 'Stuart' | 'Vanessa'
     sessions[token] = { created: Date.now(), rep };
     saveDB(db);
     
@@ -1054,9 +1060,12 @@ app.post('/api/prospects/:id/activities', (req, res) => {
     const sessionToken = cookies['vendtech_session'];
     const sessions = getActiveSessions();
     const entry = sessionToken ? sessions[sessionToken] : null;
-    sessionRep = entry && typeof entry === 'object' ? entry.rep : null;
+    const rawRep = entry && typeof entry === 'object' ? entry.rep : null;
+    sessionRep = rawRep ? rawRep.charAt(0).toUpperCase() + rawRep.slice(1) : null;
   }
-  const activity = { id: nextId(), prospect_id, ...req.body, rep: sessionRep || req.body.rep || null, created_at: new Date().toISOString() };
+  // Also capitalize rep if passed directly in body (normalize case)
+  const bodyRep = req.body.rep ? req.body.rep.charAt(0).toUpperCase() + req.body.rep.slice(1) : null;
+  const activity = { id: nextId(), prospect_id, ...req.body, rep: sessionRep || bodyRep || null, created_at: new Date().toISOString() };
   db.activities.push(activity);
   const prospect = db.prospects.find(p => p.id === prospect_id);
   if (prospect) {

@@ -214,3 +214,10 @@
 - **Remote/hybrid work is a hidden landmine** — a 100-person office with 3-day hybrid = ~60 effective customers. Always ask before proposing.
 - **Medical/healthcare is consistently strong** — steady traffic, captive audience, full parking lots.
 - **Kande takeaway:** Add parking lot assessment and WFH cadence questions to Jordan's prospecting script as mandatory pre-qualifiers. These filter bad locations fast, before wasting proposal time.
+
+## Vendingpreneurs: Community Access Lost (2026-06-02)
+- **Mighty Networks session expired since 2026-04-04** — nearly 2 months of no new community data. Cookies in `/tmp/mighty-cookies.json` no longer grant authenticated access.
+- **Community page changed** — now shows "We Created Our Own Platform / It's Happening" with a Fillout form instead of direct Mighty Networks feed access.
+- **No new posts, no new video replays** since last successful scrape on 2026-03-30 (510 posts captured).
+- **Action needed:** Kurtis needs to re-login to the Vendingpreneurs community to assess whether it has migrated to a new platform or if the authentication flow has changed. The iOS/Android apps may still work via Mighty Networks backend.
+- **Kande takeaway:** All existing playbook insights remain valid. No new intel to integrate until access is restored. Prioritize re-establishing community access or finding alternative intel sources (e.g., direct operator relationships, other communities, NAMA events).

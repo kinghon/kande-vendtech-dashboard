@@ -10,11 +10,15 @@ EXIT_CODE=$?
 if echo "$RESULT" | grep -q "DRAFTED:"; then
   echo "$RESULT"
   exit 0  # Drafts created — LLM should report to Kurtis
+elif echo "$RESULT" | grep -q "NO_EMAIL:"; then
+  echo "$RESULT"
+  exit 0  # Missing emails — alert Kurtis to add them
 elif echo "$RESULT" | grep -q "No new draft targets"; then
   exit 1  # Nothing to do
 elif [ $EXIT_CODE -ne 0 ]; then
-  echo "EMAIL0_FAIL: $RESULT"
-  exit 0  # Error — escalate to LLM
+  # Log the error but do NOT escalate to LLM — Kimi writing drafts from scratch breaks format
+  echo "[auto-draft-email0] ERROR: $RESULT" >> /Users/kurtishon/clawd/logs/auto-draft-email0-errors.log
+  exit 1
 else
   exit 1  # Default: nothing notable
 fi
