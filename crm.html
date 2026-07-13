@@ -2989,6 +2989,8 @@
     function getMarkerColor(p) {
       if (p.blocked) return '__blocked__';
       if (isInRoute(p.id)) return markerColors.inRoute;
+      // Stale/closed = dark gray (always shown as small dot)
+      if (p.status === 'closed') return '__stale__';
       // Signed = pink
       if (p.status === 'signed') return '#ec4899';
       // Strip/Fremont = black ONLY for the major named hotels/casinos
@@ -3064,7 +3066,7 @@
       const search = (document.getElementById('search')?.value || '').toLowerCase().trim();
       const showClosed = (currentFilter === 'closed');
       const visible = prospects
-        .filter(p => p.lat && p.lng && (showClosed || p.status !== 'closed'))
+        .filter(p => p.lat && p.lng)
         .filter(p => typeFilter === 'all' || normalizeTypeGlobal(p.property_type) === typeFilter)
         .filter(p => {
           if (!search) return true;
@@ -3200,6 +3202,18 @@
     function addMarker(p) {
       const color = getMarkerColor(p);
       const inRoute = isInRoute(p.id);
+      if (color === '__stale__') {
+        const staleIcon = L.divIcon({
+          className: '',
+          html: '<div style="width:10px;height:10px;border-radius:50%;background:#4a5568;border:1.5px solid #fff;opacity:0.55;"></div>',
+          iconSize: [10, 10],
+          iconAnchor: [5, 5],
+          popupAnchor: [0, -7]
+        });
+        const m = L.marker([p.lat, p.lng], { icon: staleIcon }).addTo(markers);
+        m.on('click', function() { buildAndOpenPopup(m, p); });
+        return;
+      }
       if (color === '__blocked__') {
         const blockedIcon = L.divIcon({
           className: '',
