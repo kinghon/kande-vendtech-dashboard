@@ -1293,7 +1293,6 @@
         });
       }
       else if (currentFilter === 'closed') filtered = filtered.filter(p => p.status === 'closed' || p.status === 'stale');
-      if (currentSort === 'no_touchpoints') filtered = filtered.filter(p => !(p.activities||[]).some(x => ['pop-in','pop_in','call','email'].includes(x.type)));
       else if (currentFilter === 'newlyadded') {
         const aiSources = ['scout-research','scout-maps','scout-web'];
         const manualSources = ['manual','field'];
@@ -1304,6 +1303,11 @@
       }
       else if (currentFilter === 'followup') filtered = filtered.filter(p => p.needs_action);
       else if (currentFilter === 'reopened') filtered = filtered.filter(p => getRecentOpens(p) !== null);
+
+      // No Touchpoints Yet — filter independently of currentFilter
+      if (currentSort === 'no_touchpoints') {
+        filtered = filtered.filter(p => !(p.activities||[]).some(x => ['pop-in','pop_in','call','email'].includes(x.type)));
+      }
 
       if (search) {
         filtered = filtered.filter(p => {
