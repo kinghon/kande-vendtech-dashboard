@@ -8,8 +8,8 @@ const https  = require('https');
 const fs     = require('fs');
 const { execSync } = require('child_process');
 
-const SANDSTAR_EMAIL = 'kurtis.hon@gmail.com';
-const SANDSTAR_PASS  = 'lanie123';
+const SANDSTAR_EMAIL = 'kurtis@kandevendtech.com';
+const SANDSTAR_PASS  = 'kurtis123####';
 const SANDSTAR_ORG   = '001020';
 const SANDSTAR_SCOPE = '12';
 const SANDSTAR_API   = 'https://webapi-us.sandstar.com';
@@ -42,6 +42,7 @@ function dashApi(method, path, body, cookies) {
       hostname: 'vend.kandedash.com', port: 443, path, method,
       headers: {
         'Content-Type': 'application/json',
+        'x-api-key': 'kande2026',
         'Cookie': Object.entries(cookies || {}).map(([k,v]) => `${k}=${v}`).join('; '),
         ...(data ? { 'Content-Length': Buffer.byteLength(data) } : {})
       }
@@ -151,7 +152,7 @@ function dashApi(method, path, body, cookies) {
         const h = { 'Content-Type': 'application/json', 'x-token': localStorage.getItem('token'), 'app-scope': scope, 'organSn': org };
         const res = await fetch(`${api}/order/v2/findOrderInfoList`, {
           method: 'POST', headers: h,
-          body: JSON.stringify({ pageNum: pn, pageSize: ps, zoneId: 'US/Pacific', startTime: ts, endTime: te })
+          body: JSON.stringify({ page: pn, pageNum: pn, pageSize: ps, commStatus: 10, phaseList: '3,4,5', zoneId: 'US/Pacific', startTime: ts, endTime: te })
         });
         return res.json();
       }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE, pn: todayPageNum, ps: 100, ts: todayStart, te: todayEnd });
@@ -164,7 +165,7 @@ function dashApi(method, path, body, cookies) {
       todayPageNum++;
       if (todayPageNum > 20) break;
     }
-    const getAmt = o => parseFloat(o.paymentAmount || o.tradeAmount || o.orderAmount || o.statPaymentAmount || o.statOrderAmount || o.totalMoney || 0);
+    const getAmt = o => { const settled = parseFloat(o.statPaymentAmount || o.statOrderAmount || 0); if (settled > 0) return settled; const gross = parseFloat(o.paymentAmount || o.tradeAmount || o.orderAmount || o.totalMoney || 0); const refund = parseFloat(o.afterSalePaymentAmount || o.afterSaleTradeAmount || 0); return Math.max(0, gross - refund); };
     const completedTodayApi = todayApiOrders.filter(o => o.phase >= 2 || getAmt(o) > 0);
     const todayApiRevenue = completedTodayApi.reduce((s, o) => s + getAmt(o), 0);
     log(`Today API fetch: ${completedTodayApi.length} completed orders, $${todayApiRevenue.toFixed(2)}`);
@@ -182,7 +183,7 @@ function dashApi(method, path, body, cookies) {
         const res = await fetch(`${api}/order/v2/findOrderInfoList`, {
           method: 'POST',
           headers: h,
-          body: JSON.stringify({ pageNum, pageSize, zoneId: 'US/Pacific' })
+          body: JSON.stringify({ page: pageNum, pageNum, pageSize, commStatus: 10, phaseList: '3,4,5', zoneId: 'US/Pacific' })
         });
         return res.json();
       }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE, pageNum, pageSize });
@@ -213,6 +214,7 @@ function dashApi(method, path, body, cookies) {
         log('  No goods field in list response — will fetch order details per order');
         log(`  Available item-like fields: ${GOODS_FIELDS.filter(f => f in sample).join(', ')}`);
       }
+
     }
 
     // 3. Pull machines
@@ -310,65 +312,96 @@ function dashApi(method, path, body, cookies) {
     }));
 
     // 5. Filter completed orders BEFORE browser.close() so we can fetch detail
-    const getOrderAmount = o => o.paymentAmount || o.tradeAmount || o.orderAmount || o.statPaymentAmount || o.statOrderAmount || o.totalMoney || 0;
+    const getOrderAmount = o => { const settled = parseFloat(o.statPaymentAmount || o.statOrderAmount || 0); if (settled > 0) return settled; const gross = parseFloat(o.paymentAmount || o.tradeAmount || o.orderAmount || o.totalMoney || 0); const refund = parseFloat(o.afterSalePaymentAmount || o.afterSaleTradeAmount || 0); return Math.max(0, gross - refund); };
     const completedOrders = allOrders.filter(o =>
       o.phase >= 2 || getOrderAmount(o) > 0
     );
     log(`Orders: ${allOrders.length} total, ${completedOrders.length} completed/importable`);
 
-    // 5b. Fetch order details for orders missing goods data — MUST happen before browser.close()
-    const ordersNeedingDetail = completedOrders.filter(o => {
-      const goods = o.goods || o.goodsList || o.orderGoodsList || o.itemList || o.goodsInfoList || o.finalItemList || o.orderItemList || o.algorItemList || o.businessItemList || o.manualItemList || [];
-      return goods.length === 0;
-    });
+    // 5b. Fetch order details for orders missing goods data using direct Node.js HTTP
+    const ITEM_FIELDS = ['orderItemList','finalItemList','algorItemList','businessItemList','manualItemList','goods','goodsList','orderGoodsList','itemList','goodsInfoList'];
+    const getGoods = (obj) => {
+      // Check top-level and nested under 'order' sub-object
+      for (const source of [obj, obj?.order || {}]) {
+        const found = ITEM_FIELDS.reduce((acc, f) => acc.length > 0 ? acc : (Array.isArray(source[f]) ? source[f] : []), []);
+        if (found.length > 0) return found;
+      }
+      return [];
+    };
+    const ordersNeedingDetail = completedOrders.filter(o => getGoods(o).length === 0);
+
     if (ordersNeedingDetail.length > 0) {
-      log(`Fetching order details for ${Math.min(ordersNeedingDetail.length, 200)} orders missing goods data...`);
+      log(`Fetching item details for ${Math.min(ordersNeedingDetail.length, 200)} orders via direct HTTP...`);
+
+      // Use token already captured from localStorage
+      const headers = {
+        'Content-Type': 'application/json',
+        'x-token': token,
+        'app-scope': SANDSTAR_SCOPE,
+        'organSn': SANDSTAR_ORG,
+      };
+
+      // Discover which endpoint works
       const DETAIL_ENDPOINTS = [
-        '/order/v2/getOrderInfo',
+        '/order/getOrderDetail',
         '/order/v2/getOrderDetail',
         '/order/findOrderDetail',
+        '/order/getOrderInfo',
+        '/order/v2/getOrderInfo',
+        '/order/queryOrderDetail',
+        '/order/v2/queryOrderDetail',
+        '/order/orderDetail',
+        '/recognitionresult/getByOrderNo',
+        '/order/getGoodsByOrderNo',
       ];
-      // Probe which endpoint works using first order
+
       let detailEndpoint = null;
       const probeOrder = ordersNeedingDetail[0];
       for (const ep of DETAIL_ENDPOINTS) {
-        const probeRes = await page.evaluate(async ({ api, org, scope, ep, orderNo }) => {
-          const h = { 'Content-Type': 'application/json', 'x-token': localStorage.getItem('token'), 'app-scope': scope, 'organSn': org };
-          try {
-            const r = await fetch(`${api}${ep}`, { method: 'POST', headers: h, body: JSON.stringify({ orderNo }) });
-            return r.json();
-          } catch(e) { return { error: e.message }; }
-        }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE, ep, orderNo: probeOrder.orderNo });
-        const probeData = probeRes?.data || probeRes?.result || {};
-        const probeGoods = probeData.goods || probeData.goodsList || probeData.orderGoodsList || probeData.itemList || probeData.goodsInfoList || probeData.finalItemList || probeData.orderItemList || probeData.algorItemList || probeData.businessItemList || probeData.manualItemList || [];
-        log(`  Detail probe ${ep}: ${JSON.stringify(Object.keys(probeData)).substring(0,100)} | goods: ${probeGoods.length}`);
-        if (probeGoods.length > 0 || Object.keys(probeData).length > 2) {
-          detailEndpoint = ep;
-          // Merge goods into probe order
-          probeOrder.goods = probeGoods.length > 0 ? probeGoods : probeOrder.goods;
-          if (probeGoods.length > 0) log(`  Using ${ep} — found ${probeGoods.length} goods items in probe order`);
-          break;
-        }
+        try {
+          const r = await fetch(`${SANDSTAR_API}${ep}`, { method: 'POST', headers, body: JSON.stringify({ orderNo: probeOrder.orderNo, id: probeOrder.id, organSn: SANDSTAR_ORG }) });
+          const text = await r.text();
+          if (!text || r.status === 404) { log(`  ${ep}: 404`); continue; }
+          const j = JSON.parse(text);
+          if (j?.status === 404 || j?.error) { log(`  ${ep}: error ${j?.status || j?.error}`); continue; }
+          const d = j?.data || j?.result || j || {};
+          const goods = getGoods(d);
+          log(`  ${ep}: status=${r.status} keys=${Object.keys(d).join(',').substring(0,120)} goods=${goods.length}`);
+          if (goods.length > 0) {
+            detailEndpoint = ep;
+            probeOrder.goods = goods;
+            log(`  ✓ Using ${ep} — found ${goods.length} items`);
+            break;
+          } else if (Object.keys(d).length >= 2 && !d.error && !d.status) {
+            detailEndpoint = ep;
+            log(`  Using ${ep} as fallback — order keys: ${JSON.stringify(Object.keys(d.order || {})).substring(0,200)}`);
+            log(`  order.finalItemList: ${JSON.stringify((d.order||{}).finalItemList || []).substring(0,200)}`);
+            log(`  order.orderItemList: ${JSON.stringify((d.order||{}).orderItemList || []).substring(0,200)}`);
+            log(`  order.algorItemList: ${JSON.stringify((d.order||{}).algorItemList || []).substring(0,200)}`);
+
+            break;
+          }
+        } catch(e) { log(`  ${ep}: ${e.message}`); }
       }
-      if (detailEndpoint && ordersNeedingDetail.length > 1) {
-        // Fetch detail for remaining orders in batches
-        const toFetch = ordersNeedingDetail.slice(1, 200);
-        log(`  Fetching details for ${toFetch.length} more orders via ${detailEndpoint}...`);
+
+      if (detailEndpoint) {
+        const toFetch = ordersNeedingDetail.slice(probeOrder.goods?.length > 0 ? 1 : 0, 200);
+        log(`  Fetching ${toFetch.length} orders via ${detailEndpoint}...`);
+        let gotItems = 0;
         for (const order of toFetch) {
-          const detRes = await page.evaluate(async ({ api, org, scope, ep, orderNo }) => {
-            const h = { 'Content-Type': 'application/json', 'x-token': localStorage.getItem('token'), 'app-scope': scope, 'organSn': org };
-            try {
-              const r = await fetch(`${api}${ep}`, { method: 'POST', headers: h, body: JSON.stringify({ orderNo }) });
-              return r.json();
-            } catch(e) { return null; }
-          }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE, ep: detailEndpoint, orderNo: order.orderNo });
-          const detData = detRes?.data || detRes?.result || {};
-          const detGoods = detData.goods || detData.goodsList || detData.orderGoodsList || detData.itemList || detData.goodsInfoList || detData.finalItemList || detData.orderItemList || detData.algorItemList || detData.businessItemList || detData.manualItemList || [];
-          if (detGoods.length > 0) order.goods = detGoods;
+          try {
+            const r = await fetch(`${SANDSTAR_API}${detailEndpoint}`, { method: 'POST', headers, body: JSON.stringify({ orderNo: order.orderNo, id: order.id, organSn: SANDSTAR_ORG }) });
+            const j = await r.json().catch(() => null);
+            if (!j) continue;
+            const d = j?.data || j?.result || j || {};
+            const goods = getGoods(d);
+            if (goods.length > 0) { order.goods = goods; gotItems++; }
+          } catch(e) { /* skip */ }
         }
-        log(`  Order detail fetch complete`);
-      } else if (!detailEndpoint) {
-        log('  No working detail endpoint found — items will remain empty');
+        log(`  Done — got items for ${gotItems} orders`);
+      } else {
+        log(`  No working detail endpoint found — items will remain empty`);
+        log(`  NOTE: Check if token expired or if Sandstar changed their API`);
       }
     }
 
@@ -384,6 +417,8 @@ function dashApi(method, path, body, cookies) {
     // Find new orders (not yet synced)
     const newOrders = completedOrders.filter(o => !state.syncedOrderNos?.includes(o.orderNo));
     log(`New orders to import: ${newOrders.length}`);
+
+
 
     // 6. Push to dashboard
     const dashCookies = {};
@@ -446,8 +481,9 @@ function dashApi(method, path, body, cookies) {
         sandstar_order_no: order.orderNo,
         machine_name: order.freezerName,
         machine_id: order.freezerId,
-        amount: order.paymentAmount || order.tradeAmount || order.orderAmount || order.statPaymentAmount || order.statOrderAmount || order.totalMoney || 0,
-        items: [],
+        amount: (() => { const s = parseFloat(order.statPaymentAmount || order.statOrderAmount || 0); if (s > 0) return s; const g = parseFloat(order.paymentAmount || order.tradeAmount || order.orderAmount || order.totalMoney || 0); const r = parseFloat(order.afterSalePaymentAmount || order.afterSaleTradeAmount || 0); return Math.max(0, g - r); })(),
+        item_qty: parseInt(order.statQty || order.allQty || 0),
+        items: (getGoods(order)).map(g => ({ name: g.goodsName || g.productName || g.name || g.goodsCn || g.skuName || '', qty: g.goodsNum || g.quantity || g.qty || g.num || g.count || 1, price: g.payPrice || g.goodsPrice || g.price || g.unitPrice || g.salePrice || g.amount || 0, spec: g.goodsSpec || '', barcode: g.barcode || '' })),
         sale_date: order.closeTime || order.phaseChangeTime || order.createTime || new Date().toISOString(),
         pay_method: order.payName || '',
         phase: order.phase || 2
@@ -463,8 +499,9 @@ function dashApi(method, path, body, cookies) {
         sandstar_order_no: order.orderNo,
         machine_name: order.freezerName,
         machine_id: order.freezerId,
-        amount: order.paymentAmount || order.tradeAmount || order.orderAmount || order.statPaymentAmount || order.statOrderAmount || order.totalMoney || 0,
-        items: (order.goods || order.goodsList || order.orderGoodsList || order.itemList || order.goodsInfoList || order.finalItemList || order.orderItemList || order.algorItemList || order.businessItemList || order.manualItemList || []).map(g => ({ name: g.goodsName || g.productName || g.name || g.goodsCn || '', qty: g.goodsNum || g.quantity || g.qty || g.num || 1, price: g.goodsPrice || g.price || g.unitPrice || g.salePrice || 0 })),
+        amount: (() => { const s = parseFloat(order.statPaymentAmount || order.statOrderAmount || 0); if (s > 0) return s; const g = parseFloat(order.paymentAmount || order.tradeAmount || order.orderAmount || order.totalMoney || 0); const r = parseFloat(order.afterSalePaymentAmount || order.afterSaleTradeAmount || 0); return Math.max(0, g - r); })(),
+        item_qty: parseInt(order.statQty || order.allQty || 0),
+        items: (getGoods(order)).map(g => ({ name: g.goodsName || g.productName || g.name || g.goodsCn || g.skuName || '', qty: g.goodsNum || g.quantity || g.qty || g.num || g.count || 1, price: g.payPrice || g.goodsPrice || g.price || g.unitPrice || g.salePrice || g.amount || 0, spec: g.goodsSpec || '', barcode: g.barcode || '' })),
         sale_date: order.closeTime || order.phaseChangeTime || order.createTime || new Date().toISOString(),
         pay_method: order.payName || '',
         phase: order.phase || 2

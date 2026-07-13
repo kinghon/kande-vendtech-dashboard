@@ -520,6 +520,7 @@
         <option value="name">Sort: Name A-Z</option>
         <option value="newest">Sort: Newest</option>
         <option value="last_interaction">Sort: Last Interaction (New to Old)</option>
+        <option value="no_touchpoints">Sort: No Touchpoints Yet</option>
       </select>
       <input type="text" class="search-input" id="search" placeholder="Search prospects...">
     </div>
@@ -1407,6 +1408,13 @@
           }
           if (currentSort === 'newest') {
             return new Date(b.created_at) - new Date(a.created_at);
+          }
+          if (currentSort === 'no_touchpoints') {
+            const aHas = (a.activities||[]).some(x=>['pop-in','pop_in','call','email'].includes(x.type));
+            const bHas = (b.activities||[]).some(x=>['pop-in','pop_in','call','email'].includes(x.type));
+            if (!aHas && bHas) return -1;
+            if (aHas && !bHas) return 1;
+            return (a.name||'').localeCompare(b.name||'');
           }
           if (currentSort === 'last_interaction') {
             const getLastInt = p => {

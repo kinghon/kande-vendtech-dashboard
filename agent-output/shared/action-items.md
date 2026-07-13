@@ -1,67 +1,67 @@
-# Action Items — Week of May 18, 2026
+# Action Items — June 3, 2026
 
-*Updated by Clawd standup — Monday, May 18, 2026*
+*Updated by Clawd standup — Wednesday, June 3, 2026*
 
 ---
 
-## 🔴 EMERGENCY — Revenue Conversations Going Cold
+## EMERGENCY — Day 3 of Zero Progress
+
+Every critical action from June 2 remains undone. This is an execution emergency.
 
 | # | Action | Owner | Why urgent |
 |---|--------|-------|-----------|
-| 1 | **Call Allegro at La Entrada TODAY.** 25 opens, zero reply. Hottest lead in CRM. | Kurtis/Jordan | Medical office, 93% leased, Tier A. Phone call breaks the stall. |
-| 2 | **Call Regus TODAY.** Replied May 12. Six days old now. | Kurtis/Jordan | Live revenue conversation going cold. Delivery scheduled 5/12. Confirm status. |
-| 3 | **Call Carnegie Heights TODAY.** Hard close May 21. Three days left. | Kurtis/Jordan | Only negotiating deal. Set final meeting with Jeannie Anderson or move to stalled. |
-| 4 | **Call Jade Apartments TODAY.** 35 opens, signed, legal review pending 9+ weeks. | Kurtis/Jordan | Get a yes/no or set a hard deadline. |
+| 1 | **Fix Mixmax sync TODAY.** Day 25 outage. | Kurtis | All pipeline intelligence is guesswork. |
+| 2 | **Call Carnegie Heights TODAY.** 54+ days stuck. | Kurtis/Jordan | Only deal in negotiating. Call Makenna Simmons. |
+| 3 | **Call Cushman & Wakefield TODAY.** Replied Feb 26, 97 days stale. | Jordan | Warm lead being actively abandoned. |
+| 4 | **Call Lone Mountain TODAY.** Replied Mar 11, 84 days stale. | Jordan | Another warm lead dying. |
+| 5 | **Call Dune/WestCorp TODAY.** Andrea Vasquez wants to expand. 24 properties. | Jordan | Portfolio play that could change the quarter. |
+| 6 | **Phone blitz top 10 stale proposals.** Siegel Select, High Line, Lyric, Maverick, Aviator, Desert Radiology, Empire, Marlowe, Domain, Society. | Jordan | 2,132 stale leads. Lowest-hanging fruit. |
+| 7 | **Log at least 5 activities TODAY.** 77 days of zero. | Jordan | Any activity is better than none. |
+| 8 | **Follow up 15 replied leads.** Ainsley, PDS Health, Aspire, Adomni, Castile, EVO, Fine Management, Lone Mountain, Allure, Railroad Pass, Avenue5/Volare, Avenue5/Allegro, Positano/Ovation, Siegel Select, PDS Health/Adler. | Jordan | Fastest path to signed deals. |
 
 ---
 
-## 🔴 CRITICAL — Outreach Capacity
+## Systems-Critical (This Week)
 
-| # | Action | Owner | Why urgent |
-|---|--------|-------|-----------|
-| 5 | **Phone blitz top 10 stale proposals.** Siegel Select, Aspire, EVO, Henderson Health, Ovation, High Line, Lyric, Dune, PDS Health. | Jordan | 46 proposals in flight, most stale. Phone or in-person only. |
-| 6 | **Verify Piper's 9 blogs from May 13 are published.** | Kurtis | Written but may not be live. Content sitting unused. |
-| 7 | **Get Ralph back on rescue sprint.** The agent shipped May 17. 6 items to attempt this week. | Kurtis | Ralph proved it can ship. Do not lose momentum. |
+| # | Action | Owner | Due |
+|---|--------|-------|-----|
+| 9 | **Decide on Ralph.** 28 days silent. Build 6 items or deprioritize. | Kurtis | Today |
+| 10 | **Decide on Mary.** 80+ days offline. Restore or plan July restart. | Kurtis | Today |
+| 11 | **Build health-check + failover layer.** Agent monitoring, manual fallback, persistent rules. | Kurtis | June 4 |
+| 12 | **Process 42 scout leads.** Enrich and add to outreach queue. | Scout + Relay | June 4 |
+| 13 | **Weaponize Piper's content.** Reference blogs in outreach to WestCorp, Ovation, medical offices. | Relay + Piper | June 4 |
+| 14 | **Find decision makers for 6 score-95 hospitals.** MountainView, Summerlin, Spring Valley, Southern Hills, Centennial Hills, Henderson. | Scout | June 5 |
 
 ---
 
-## 🟠 Agent Execution
+## Ongoing
 
 ### Scout
-- [ ] **Produce dormant-triage-2026-05-18.md TODAY.** Overdue since May 12. Higher ROI than new lead discovery.
-- [ ] **STOP Sunday scanning until categories fixed.** Use Sunday for dormant triage instead.
-- [ ] **Shift from discovery to monitoring.** Market is saturated. 1 new lead per day is expected.
-- [ ] **Prioritize finding emails for 46 proposal-stage prospects.** Before finding new leads.
-- [ ] **Tag Allegro as `channel: call_first`.** Route directly to call sheet.
-- [ ] **Continue hotel/extended stay sweeps on weekdays.** Add as permanent rotation category.
+- [ ] Shift from discovery to enrichment. 0-2 new leads/day expected.
+- [ ] Find emails for 45 proposal-stage prospects.
+- [ ] Qualify 42 new scout leads from last 7 days (LV.net, CallCenterUSA, Pierce, Valley Health, Fresenius, Red Rock Pointe, Grand Montecito, etc.).
+- [ ] Fix Sunday search queries. "New construction" returns homes. Try "new apartment construction" or "new senior living opening."
 
 ### Relay
-- [ ] **Route Allegro to Jordan as CRITICAL.** 25 opens = immediate phone call.
-- [ ] **Route Regus to Jordan as CRITICAL.** 6 days stale = emergency follow-up.
-- [ ] **Batch 50 hot leads by geography for Jordan's call sheet.** Filter to recent activity only (May 1+).
-- [ ] **Set Carnegie Heights close date.** May 21. Move to stalled if no sign.
-- [ ] **Archive or re-engage 64 stale leads.** Do not let them clutter the pipeline.
+- [ ] Route 599 decision-maker-found prospects to Jordan's call sheet.
+- [ ] Target Village at St Rose (82,863 sq ft medical office, 93% leased).
+- [ ] Re-engage Allure Las Vegas Condos (hottest by opens, 37+ days stale).
 
 ### Piper
-- [ ] **Ship long-form blogs when unblocked.** Burst pattern is acceptable. Publish immediately upon delivery.
-- [ ] **Draft medical office building content.** For Allegro and Village at St Rose outreach.
-
-### Ralph
-- [ ] **Resume rescue sprint.** 6 items: bounce auto-flag, 72-hour reply escalation, call outcome badge, proposal nudge cron, school schema + call_first routing, engagement-alerts API fix.
-
-### Mary
-- [ ] **DECISION NEEDED.** Day 59 offline. Accept manual coverage and plan July restart.
+- [ ] Continue daily social posts.
+- [ ] Coordinate with Relay to attach/reference specific blogs in outreach.
 
 ---
 
-## 📊 Week of May 18 — Success Metrics
+## Week of June 2-3 — Success Metrics
 
-- [ ] Allegro called today (hottest lead, 25 opens).
-- [ ] Regus called today (replied May 12, now 6 days old).
-- [ ] Carnegie Heights closed or moved to stalled by May 21.
-- [ ] Jade Apartments called today (35 opens, legal review pending).
-- [ ] 5+ call outcomes logged (phone blitz executed).
-- [ ] Piper's 9 May 13 blogs published.
-- [ ] Dormant triage file produced (Scout, 6 days overdue).
-- [ ] Ralph rescue sprint resumed (6 items attempted).
-- [ ] Mary decision made (manual coverage or July restart).
+- [ ] Mixmax sync fixed or alternative found.
+- [ ] Carnegie Heights called (54+ days stuck).
+- [ ] 5+ call outcomes logged (end 77-day stoppage).
+- [ ] 15 replied leads followed up.
+- [ ] 10+ stale leads contacted.
+- [ ] Ralph decision made (build or deprioritize).
+- [ ] Mary decision made (restore or July restart).
+- [ ] 42 scout leads processed.
+- [ ] Piper blogs referenced in 3+ outreach emails.
+- [ ] Health-check layer built (agent monitoring, activity-zero alert).
