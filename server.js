@@ -1023,6 +1023,33 @@ app.delete('/api/prospects/:id', (req, res) => {
   res.json({ success: true });
 });
 
+// ===== PROSPECT PHOTOS API =====
+app.get('/api/prospects/:id/photos', (req, res) => {
+  const id = parseInt(req.params.id);
+  const photos = (db.prospect_photos || []).filter(ph => ph.prospect_id === id)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  res.json(photos);
+});
+
+app.post('/api/prospects/:id/photos', (req, res) => {
+  if (!db.prospect_photos) db.prospect_photos = [];
+  const id = parseInt(req.params.id);
+  const { data, filename, rep } = req.body;
+  if (!data) return res.status(400).json({ error: 'No photo data' });
+  const photo = { id: nextId(), prospect_id: id, data, filename: filename || 'photo.jpg', rep: rep || null, created_at: new Date().toISOString() };
+  db.prospect_photos.push(photo);
+  saveDB(db);
+  res.json(photo);
+});
+
+app.delete('/api/prospects/:id/photos/:photoId', (req, res) => {
+  if (!db.prospect_photos) db.prospect_photos = [];
+  const photoId = parseInt(req.params.photoId);
+  db.prospect_photos = db.prospect_photos.filter(ph => ph.id !== photoId);
+  saveDB(db);
+  res.json({ success: true });
+});
+
 // ===== CONTACTS API =====
 app.post('/api/prospects/:id/contacts', (req, res) => {
   const prospect_id = parseInt(req.params.id);
