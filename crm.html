@@ -3097,7 +3097,8 @@
       if (p.status === 'signed') return '#ec4899';
       // Strip/Fremont = black ONLY for the major named hotels/casinos
       if (isStripHotel(p) && isInStripFremont(p)) return '#1a202c';
-      // If any pop-ins exist, fill = the popping rep's color
+      // assigned_rep takes priority for dot color; fall back to most recent pop-in rep
+      if (p.assigned_rep) return getRepColor(p.assigned_rep) || '#cc0000';
       const popIns = (p.activities || []).filter(function(a) { return a.type === 'pop-in' || a.type === 'pop_in'; });
       if (popIns.length > 0) {
         const sorted = popIns.slice().sort(function(a, b) { return new Date(b.date || b.created_at) - new Date(a.date || a.created_at); });
