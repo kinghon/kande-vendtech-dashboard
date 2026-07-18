@@ -319,6 +319,11 @@
 
           <div class="legend-item"><div class="legend-dot" style="background:#3182ce"></div> 🔵 Vanessa (East)</div>
           <div class="legend-item"><div class="legend-dot" style="background:#1a202c"></div> ⬛ Strip/Fremont</div>
+          <div class="legend-item" style="margin-top:6px;">
+            <div style="width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid #94a3b8;box-shadow:0 0 0 2px #1a202c;flex-shrink:0;"></div>
+            ↩ Transition Pending
+          </div>
+          <div class="legend-item"><div class="legend-dot" style="background:#94a3b8;"></div> ⬜ Unassigned</div>
           <div style="font-size:10px;color:#718096;margin-top:4px;">Border = exclusive expired</div>
         </div>
       </div>
@@ -381,6 +386,26 @@
         iconSize: [size, size],
         iconAnchor: [size/2, size/2],
         popupAnchor: [0, -(size/2 + 2)]
+      });
+    }
+
+    function getRepColor(repName) {
+      var repColors = { Jordan: '#e53e3e', Stuart: '#22c55e', Vanessa: '#3182ce' };
+      return repColors[repName] || '#94a3b8';
+    }
+
+    // Triple-ring icon: white outer → dark box-shadow → dark border → rep color dot
+    // Signals "transitioned from Jordan; new rep hasn't popped in yet"
+    function createTransitionIcon(repColor, size) {
+      size = size || 28;
+      return L.divIcon({
+        className: 'custom-marker',
+        html: '<div style="width:'+(size+10)+'px;height:'+(size+10)+'px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,0.6);">'+
+              '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:'+repColor+';border:3px solid #1a202c;"></div>'+
+              '</div>',
+        iconSize: [size+10, size+10],
+        iconAnchor: [(size+10)/2, (size+10)/2],
+        popupAnchor: [0, -((size+10)/2 + 2)]
       });
     }
 
@@ -591,8 +616,25 @@
         var rev = prospectRevenue[p.id];
         // If exclusive expired, wrap in region-colored border ring
         var icon;
-        if (isExclusiveExpired(p)) {
-          var regionKey = getRegion(p.lat, p.lng);
+        var regionKey = getRegion(p.lat, p.lng);
+        if (regionKey === 'jordan') {
+          // Former Jordan territory — re-color by assigned_rep
+          var assignedRep = p.assigned_rep;
+          if (assignedRep && assignedRep !== 'Jordan') {
+            var repDotColor = getRepColor(assignedRep);
+            var newRepPopped = (p.activities || []).some(function(a) {
+              return a.rep === assignedRep && (a.type === 'pop-in' || a.type === 'pop_in' || (a.description && /pop.?in/i.test(a.description)));
+            });
+            if (newRepPopped) {
+              icon = createIcon(repDotColor);
+            } else {
+              icon = createTransitionIcon(repDotColor);
+            }
+          } else {
+            // Unassigned in Jordan zone — neutral gray
+            icon = createIcon('#94a3b8');
+          }
+        } else if (isExclusiveExpired(p)) {
           var borderColor = regionKey ? REGIONS[regionKey].color : '#718096';
           icon = createIconWithBorder(color, borderColor);
         } else {
