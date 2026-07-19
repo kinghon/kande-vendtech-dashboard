@@ -2531,32 +2531,14 @@
       return inside;
     }
 
-    // -- Territory Zones --
+    // -- Territory Zones -- (Central/Jordan removed; West+East expanded to cover former Central)
+    // Split longitude: -115.175 (midpoint of former Jordan zone)
     const ZONES = [
       { name:'West', label:'Stuart', color:'#22c55e',
-        coords:[
-          [36.40,-115.45],[36.40,-115.370],
-          [36.36,-115.340],[36.33,-115.315],[36.30,-115.285],[36.27,-115.255],
-          [36.23,-115.210],[36.20,-115.180],[36.173,-115.156],
-          [36.167,-115.160],[36.155,-115.161],[36.14,-115.165],
-          [36.12,-115.170],[36.09,-115.178],[36.065,-115.181],
-          [36.03,-115.181],[36.00,-115.175],[35.93,-115.168],
-          [35.93,-115.45]
-        ]
-      },
-      { name:'Central', label:'Jordan', color:'#cc0000', labelAt:[36.10,-115.155],
-        coords:[
-          [36.40,-115.370],[36.40,-115.13],
-          [35.82,-115.13],[35.82,-115.22],[35.85,-115.27],[35.93,-115.28],
-          [35.93,-115.168],[36.00,-115.175],[36.03,-115.181],[36.065,-115.181],
-          [36.09,-115.178],[36.12,-115.170],[36.14,-115.165],
-          [36.155,-115.161],[36.167,-115.160],[36.173,-115.156],
-          [36.20,-115.180],[36.23,-115.210],[36.27,-115.255],
-          [36.30,-115.285],[36.33,-115.315],[36.36,-115.340]
-        ]
+        coords:[[36.40,-115.45],[36.40,-115.175],[35.82,-115.175],[35.82,-115.45]]
       },
       { name:'East', label:'Vanessa', color:'#0044cc',
-        coords:[[36.40,-115.13],[36.40,-114.88],[35.82,-114.88],[35.82,-115.13]]
+        coords:[[36.40,-115.175],[36.40,-114.88],[35.82,-114.88],[35.82,-115.175]]
       },
       { name:'Strip/Fremont', label:'Strip/Fremont', color:'#1a202c',
         coords:[[36.20,-115.19],[36.20,-115.12],[36.06,-115.12],[36.06,-115.19]]
@@ -2570,7 +2552,6 @@
       if (!territoriesVisible) return;
       ZONES.forEach(function(z) {
         if (z.name === 'Strip/Fremont') return; // black dotted outline hidden per Kurtis
-        if (z.name === 'Central') return; // Jordan's territory removed
         var poly = L.polygon(z.coords, { color:z.color, weight:2.5, opacity:0.9, fillColor:z.color, fillOpacity:0.07, dashArray:'8,5' }).addTo(map);
         var center = z.labelAt ? L.latLng(z.labelAt[0], z.labelAt[1]) : poly.getBounds().getCenter();
         var lbl = L.marker(center, {
@@ -3120,9 +3101,8 @@
           }
         }
         // Outside all polygons — longitude fallback
-        if (lng < -115.22) return '#22c55e'; // Stuart (West)
-        if (lng > -115.13) return '#0044cc'; // Vanessa (East)
-        return '#94a3b8'; // former Jordan (Central) — gray
+        if (lng < -115.175) return '#22c55e'; // Stuart
+        return '#0044cc'; // Vanessa
       }
       return '#a0aec0'; // truly no location data
     }
@@ -3308,11 +3288,16 @@
       renderTodoList();
     }
 
+    // Former Jordan territory bounding box (lng -115.22 to -115.13)
+    function isFormerJordanZone(p) {
+      if (!p.lat || !p.lng) return false;
+      const lng = parseFloat(p.lng);
+      return lng > -115.22 && lng < -115.13;
+    }
     function isTransitionPending(p) {
       const assignedRep = p.assigned_rep;
       if (!assignedRep || assignedRep === 'Jordan') return false;
-      const zone = getProspectZone(p);
-      if (!zone || zone.name !== 'Central') return false;
+      if (!isFormerJordanZone(p)) return false;
       return !(p.activities || []).some(function(a) {
         return (a.type === 'pop-in' || a.type === 'pop_in') && a.rep === assignedRep;
       });
@@ -3365,7 +3350,7 @@
         const repColor = getRepColor(p.assigned_rep) || '#94a3b8';
         const transIcon = L.divIcon({
           className: '',
-          html: '<div style="width:18px;height:18px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.45);"><div style="width:12px;height:12px;border-radius:50%;background:' + repColor + ';border:2px solid #1a202c;"></div></div>',
+          html: '<div style="width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 5px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;"><div style="width:11px;height:11px;border-radius:50%;background:' + repColor + ';"></div></div>',
           iconSize: [18, 18],
           iconAnchor: [9, 9],
           popupAnchor: [0, -11]
