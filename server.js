@@ -294,18 +294,19 @@ function saveDB(db) {
 
 let db = loadDB();
 
-// Auto-restore from backup if DB is empty (e.g. after volume corruption)
+// Auto-restore from backup if DB is missing products or prospects
 try {
   const backupPath = path.join(__dirname, 'restore-backup.json');
   console.log('[restore] Checking backup at:', backupPath, '| exists:', fs.existsSync(backupPath));
-  console.log('[restore] Current prospects count:', (db.prospects||[]).length);
-  if (fs.existsSync(backupPath) && (db.prospects||[]).length === 0) {
+  console.log('[restore] Current prospects:', (db.prospects||[]).length, '| products:', (db.products||[]).length);
+  const needsRestore = (db.prospects||[]).length === 0 || (db.products||[]).length === 0;
+  if (fs.existsSync(backupPath) && needsRestore) {
     const backup = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
-    console.log('[restore] Backup prospects:', (backup.prospects||[]).length);
-    if (backup.prospects && backup.prospects.length > 0) {
+    console.log('[restore] Backup prospects:', (backup.prospects||[]).length, '| products:', (backup.products||[]).length);
+    if ((backup.prospects && backup.prospects.length > 0) || (backup.products && backup.products.length > 0)) {
       Object.assign(db, backup);
       saveDB(db);
-      console.log('[restore] ✅ Restored', db.prospects.length, 'prospects from backup');
+      console.log('[restore] ✅ Restored from backup — prospects:', db.prospects.length, '| products:', db.products.length);
     }
   }
 } catch(e) { console.error('[restore] Failed:', e.message, e.stack); }
