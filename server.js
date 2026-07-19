@@ -294,6 +294,21 @@ function saveDB(db) {
 
 let db = loadDB();
 
+// Auto-restore from backup if DB is empty (e.g. after volume corruption)
+if (!db.prospects || db.prospects.length === 0) {
+  try {
+    const backupPath = path.join(__dirname, 'restore-backup.json');
+    if (fs.existsSync(backupPath)) {
+      const backup = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
+      if (backup.prospects && backup.prospects.length > 0) {
+        Object.assign(db, backup);
+        saveDB(db);
+        console.log('[restore] Auto-restored from restore-backup.json:', db.prospects.length, 'prospects');
+      }
+    }
+  } catch(e) { console.error('[restore] Failed to auto-restore:', e.message); }
+}
+
 // Ensure new collections exist
 if (!db.machines) db.machines = [];
 if (!db.locations) db.locations = [];
