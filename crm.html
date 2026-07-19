@@ -3348,14 +3348,15 @@
       // Transition-pending: former Jordan territory, assigned to new rep, new rep hasn't popped in
       if (!inRoute && isTransitionPending(p)) {
         const repColor = getRepColor(p.assigned_rep) || '#94a3b8';
-        const transIcon = L.divIcon({
-          className: '',
-          html: '<div style="width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;"><div style="width:16px;height:16px;border-radius:50%;background:' + repColor + ';opacity:0.9;"></div></div>',
-          iconSize: [20, 20],
-          iconAnchor: [10, 10],
-          popupAnchor: [0, -12]
-        });
-        const m = L.marker([p.lat, p.lng], { icon: transIcon }).addTo(markers);
+        const m = L.circleMarker([p.lat, p.lng], {
+          renderer: mapRenderer,
+          radius: 8,
+          fillColor: repColor,
+          color: '#fff',
+          weight: 4,
+          opacity: 1,
+          fillOpacity: 0.9
+        }).addTo(markers);
         m.on('click', function() { buildAndOpenPopup(m, p); });
         return;
       }
