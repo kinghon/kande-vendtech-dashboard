@@ -320,7 +320,7 @@
           <div class="legend-item"><div class="legend-dot" style="background:#3182ce"></div> 🔵 Vanessa (East)</div>
           <div class="legend-item"><div class="legend-dot" style="background:#1a202c"></div> ⬛ Strip/Fremont</div>
           <div class="legend-item" style="margin-top:6px;">
-            <div style="width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid #94a3b8;box-shadow:0 0 0 2px #1a202c;flex-shrink:0;"></div>
+            <div style="width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid #94a3b8;box-shadow:0 0 0 2px #fff;flex-shrink:0;"></div>
             ↩ Transition Pending
           </div>
           <div class="legend-item"><div class="legend-dot" style="background:#94a3b8;"></div> ⬜ Unassigned</div>
@@ -393,14 +393,14 @@
       return repColors[repName] || '#94a3b8';
     }
 
-    // Triple-ring icon: white outer → dark box-shadow → dark border → rep color dot
+    // Triple-ring icon: white outer → white border → rep color dot
     // Signals "transitioned from Jordan; new rep hasn't popped in yet"
     function createTransitionIcon(repColor, size) {
       size = size || 28;
       return L.divIcon({
         className: 'custom-marker',
-        html: '<div style="width:'+(size+10)+'px;height:'+(size+10)+'px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,0.6);">'+
-              '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:'+repColor+';border:3px solid #1a202c;"></div>'+
+        html: '<div style="width:'+(size+10)+'px;height:'+(size+10)+'px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,0.4);">'+
+              '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:'+repColor+';border:3px solid #fff;"></div>'+
               '</div>',
         iconSize: [size+10, size+10],
         iconAnchor: [(size+10)/2, (size+10)/2],
@@ -658,6 +658,7 @@
           '</div>' +
           '<div class="popup-title">' + p.name + '</div>' +
           '<div class="popup-type">' + (p.property_type || '') + '</div>' +
+          (p.assigned_rep ? '<div style="font-size:10px;margin-bottom:4px;padding:2px 8px;border-radius:8px;display:inline-block;background:rgba(49,130,206,0.08);color:#3182ce;font-weight:600;">👤 ' + p.assigned_rep + '</div>' : '') +
           (function() {
             var rk = getRegion(p.lat, p.lng);
             var rInfo = rk ? REGIONS[rk] : null;
