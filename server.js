@@ -1329,6 +1329,19 @@ app.delete('/api/collections/:id', (req, res) => {
 });
 
 // ===== ADMIN HEALTH CHECK =====
+// TEMP restore endpoint — remove after use
+app.post('/api/admin/restore-db', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026' && !VALID_PASSWORDS.includes(apiKey)) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const data = req.body;
+    if (!data || !data.prospects) return res.status(400).json({ error: 'Missing prospects array' });
+    Object.assign(db, data);
+    saveDB(db);
+    res.json({ ok: true, prospects: db.prospects.length, activities: (db.activities||[]).length });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.post('/api/admin/geocode-db', async (req, res) => {
   const missing = db.prospects.filter(p => p.address && p.address.trim() && (!p.lat || !p.lng) &&
     !/multiple locations|exact address tbd|tbd$|no address/i.test(p.address));
