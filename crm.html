@@ -394,7 +394,7 @@
           <div class="legend-item"><div style="width:12px;height:12px;border-radius:50%;background:#ec4899;display:inline-flex;align-items:center;justify-content:center;"><span style="color:#fff;font-size:8px;line-height:1;">★</span></div>&nbsp;⭐ Contract Pending</div>
           <div class="legend-item"><div class="legend-dot" style="background:#22c55e;border:2px solid #000;"></div> Black border = popped in</div>
           <div class="legend-item"><div style="width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid #ccc;display:flex;align-items:center;justify-content:center;"><div style="width:7px;height:7px;border-radius:50%;background:#22c55e;border:1px solid #fff;"></div></div>&nbsp;&#8617; Transition pending</div>
-          <div class="legend-item" style="color:#718096;font-size:10px;">Colored border = excl. expired</div>
+
         </div>
       </div>
     </div>
@@ -1465,7 +1465,7 @@
               <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:1px;">${(() => { const tp = (p.activities||[]).filter(a=>['pop-in','call','email'].includes(a.type)).length; return tp > 0 ? `<span style="font-size:0.8rem;font-weight:700;color:#fff;background:var(--hot);padding:1px 8px;border-radius:6px;">${tp} touchpoint${tp!==1?'s':''}</span>` : ''; })()}${(() => { const raw = p.next_action_date || p.follow_up_date || ''; const today = new Date().toISOString().split('T')[0]; const isFuture = raw && raw >= today; const label = p.next_action || 'Follow Up'; const dateStr = isFuture ? (() => { const [y,m,d] = raw.split('-'); return m+'/'+d+'/'+y.slice(2); })() : 'NONE'; return `<span style="font-size:0.8rem;font-weight:700;color:${isFuture ? 'var(--hot)' : 'var(--muted)'};">Next Follow Up (${esc(label)}): ${dateStr}</span>`; })()}</div>
               <div>${(() => { const acts = (p.activities||[]).filter(a=>['pop-in','call','email','meeting','note'].includes(a.type)); const emails = (p.email_tracking||[]).map(e=>e.last_event_at||e.sent_at).filter(Boolean); const allDates = [...acts.map(a=>a.created_at||a.date||''), ...emails].filter(Boolean).sort().reverse(); const last = allDates[0]; if (!last) return ''; const d = new Date(last); const fmt = (d.getMonth()+1)+'/'+(d.getDate())+'/'+String(d.getFullYear()).slice(2); return `<span style="font-size:0.78rem;font-weight:600;color:var(--text);">Last Interaction: ${fmt}</span>`; })()}</div>
               <span class="saved-indicator" id="saved-${p.id}">✓ Saved</span>
-              <div class="badge-row" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${p.management_company ? `<span style="font-size:0.7rem;font-weight:600;color:#6b7280;background:rgba(107,114,128,0.1);padding:2px 8px;border-radius:4px;border:1px solid rgba(107,114,128,0.2);">🏢 ${esc(p.management_company)}</span>` : ''}${p.exclusive_expiration_date ? (() => { const expired = isExclusiveExpired(p); const d = p.exclusive_expiration_date; const [y,m,dd] = d.split('-'); const fmt = m+'/'+dd+'/'+y.slice(2); return `<span style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:4px;background:${expired ? 'rgba(220,38,38,0.1)' : 'rgba(234,179,8,0.1)'};color:${expired ? '#dc2626' : '#ca8a04'};border:1px solid ${expired ? '#fca5a5' : '#fcd34d'};">🔒 Excl. ${expired ? 'EXPIRED' : 'Exp '+fmt}</span>`; })() : ''}
+              <div class="badge-row" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${p.management_company ? `<span style="font-size:0.7rem;font-weight:600;color:#6b7280;background:rgba(107,114,128,0.1);padding:2px 8px;border-radius:4px;border:1px solid rgba(107,114,128,0.2);">🏢 ${esc(p.management_company)}</span>` : ''}
                 
                 <select class="status-select" onclick="event.stopPropagation()" onchange="setStatus(${p.id}, this.value)" style="padding:4px 10px;border-radius:12px;font-size:0.7rem;font-weight:700;cursor:pointer;border:none;background:${p.status === 'signed' ? 'rgba(56,161,105,0.15)' : p.status === 'closed' ? 'rgba(160,174,192,0.15)' : p.priority === 'hot' ? 'rgba(229,62,62,0.15)' : p.priority === 'intalks' ? 'rgba(139,92,246,0.15)' : p.priority === 'warm' ? 'rgba(234,179,8,0.15)' : 'rgba(49,130,206,0.15)'};color:${p.status === 'signed' ? 'var(--success)' : p.status === 'closed' ? '#718096' : p.priority === 'hot' ? 'var(--hot)' : p.priority === 'intalks' ? 'var(--intalks)' : p.priority === 'warm' ? 'var(--warm)' : 'var(--accent)'};">
                   <option value="new" ${(!p.priority || p.priority === 'new' || p.priority === 'normal') && p.status === 'new' && p.status !== 'signed' && p.status !== 'closed' ? 'selected' : ''}>🆕 NEW</option>
@@ -2967,10 +2967,7 @@
       return routeStops.some(s => s.prospectId === prospectId);
     }
 
-    function isExclusiveExpired(p) {
-      if (!p.exclusive_expiration_date) return false;
-      return new Date(p.exclusive_expiration_date) < new Date();
-    }
+    function isExclusiveExpired(p) { return false; }
 
     const REP_ZONE_MAP = { Jordan: 'Central', Stuart: 'West', Vanessa: 'East', Kurtis: 'Central' };
 
@@ -3246,7 +3243,7 @@
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;"><strong style="font-size:14px;">${p.name}</strong>${tpBadge}</div>
         <span style="color:#3182ce;font-size:12px;">${p.property_type || ''}</span><br>
         ${reviewLine}
-        ${(() => { const z = getProspectZoneBadge(p); const exp = p.exclusive_expiration_date; const expired = isExclusiveExpired(p); const zBadge = z ? `<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;background:rgba(0,0,0,0.08);color:${z.color};border:1px solid ${z.color};">${z.label}</span> ` : ''; const eBadge = exp ? `<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;background:${expired?'rgba(220,38,38,0.1)':'rgba(234,179,8,0.1)'};color:${expired?'#dc2626':'#ca8a04'};">🔒 ${expired?'EXPIRED':'Excl. Exp '+exp}</span>` : ''; const repC = getRepColor(p.assigned_rep); const repBadge = p.assigned_rep ? `<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;background:${repC?repC+'22':'rgba(49,130,206,0.1)'};color:${repC||'#3182ce'};border:1px solid ${repC||'#3182ce'};">👤 ${p.assigned_rep}</span> ` : ''; return (contractBadge||repBadge||zBadge||eBadge) ? `<div style="margin-bottom:4px;">${contractBadge}${repBadge}${zBadge}${eBadge}</div>` : ''; })()}
+        ${(() => { const z = getProspectZoneBadge(p); const exp = p.exclusive_expiration_date; const expired = isExclusiveExpired(p); const zBadge = z ? `<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;background:rgba(0,0,0,0.08);color:${z.color};border:1px solid ${z.color};">${z.label}</span> ` : ''; const eBadge = ''; const repC = getRepColor(p.assigned_rep); const repBadge = p.assigned_rep ? `<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;background:${repC?repC+'22':'rgba(49,130,206,0.1)'};color:${repC||'#3182ce'};border:1px solid ${repC||'#3182ce'};">👤 ${p.assigned_rep}</span> ` : ''; return (contractBadge||repBadge||zBadge||eBadge) ? `<div style="margin-bottom:4px;">${contractBadge}${repBadge}${zBadge}${eBadge}</div>` : ''; })()}
         <span style="color:#718096;font-size:12px;">📍 ${p.address || ''}</span><br>
         <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
           <a href="#" onclick="event.preventDefault();openFromTodo(${p.id});return false;" style="padding:4px 10px;background:#3182ce;color:#fff;border-radius:6px;font-size:11px;text-decoration:none;">View Details</a>
@@ -3365,15 +3362,11 @@
         m.on('click', function() { buildAndOpenPopup(m, p); });
         return;
       }
-      // After exclusive expiration date: stroke = region color
       const hasPopIn = (p.activities || []).some(function(a) { return a.type === 'pop-in' || a.type === 'pop_in'; });
       let strokeColor = '#fff';
       let strokeWeight = 2;
       if (inRoute) { strokeColor = '#fff'; strokeWeight = 3; }
-      else if (isExclusiveExpired(p)) {
-        const zone = getProspectZone(p);
-        if (zone) { strokeColor = zone.color; strokeWeight = 4; }
-      } else if (p.status === 'signed') {
+      else if (p.status === 'signed') {
         strokeColor = '#be185d'; strokeWeight = 2;
       }
       // Black ring only if a non-Jordan rep has popped in — Jordan is no longer active
