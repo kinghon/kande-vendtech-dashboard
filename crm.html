@@ -3114,8 +3114,10 @@
         const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
         for (let i = 0; i < ZONES.length; i++) {
           if (ZONES[i].name === 'Strip/Fremont') continue;
-          if (ZONES[i].name === 'Central') return '#94a3b8'; // former Jordan zone — gray
-          if (pointInPolygon(lat, lng, ZONES[i].coords)) return ZONES[i].color;
+          if (pointInPolygon(lat, lng, ZONES[i].coords)) {
+            if (ZONES[i].name === 'Central') return '#94a3b8'; // former Jordan zone — gray
+            return ZONES[i].color;
+          }
         }
         // Outside all polygons — longitude fallback
         if (lng < -115.22) return '#22c55e'; // Stuart (West)
@@ -3363,10 +3365,10 @@
         const repColor = getRepColor(p.assigned_rep) || '#94a3b8';
         const transIcon = L.divIcon({
           className: '',
-          html: '<div style="width:28px;height:28px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.45);"><div style="width:20px;height:20px;border-radius:50%;background:' + repColor + ';border:2.5px solid #1a202c;"></div></div>',
-          iconSize: [28, 28],
-          iconAnchor: [14, 14],
-          popupAnchor: [0, -16]
+          html: '<div style="width:18px;height:18px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.45);"><div style="width:12px;height:12px;border-radius:50%;background:' + repColor + ';border:2px solid #1a202c;"></div></div>',
+          iconSize: [18, 18],
+          iconAnchor: [9, 9],
+          popupAnchor: [0, -11]
         });
         const m = L.marker([p.lat, p.lng], { icon: transIcon }).addTo(markers);
         m.on('click', function() { buildAndOpenPopup(m, p); });
