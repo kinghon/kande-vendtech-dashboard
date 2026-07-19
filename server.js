@@ -8241,7 +8241,7 @@ function getBriefingCutoff(period) {
 }
 
 // GET /api/briefing?period=daily|weekly
-app.get('/api/briefing', '/api/diag', (req, res) => {
+app.get('/api/briefing', (req, res) => {
   const period = req.query.period === 'weekly' ? 'weekly' : 'daily';
   const cutoff = getBriefingCutoff(period);
   const cutoffISO = cutoff.toISOString();
