@@ -185,55 +185,53 @@ LATEST_FILE="$VEND_BACKUP_DIR/vend-full-latest.json"
 ORDERS_LATEST="$VEND_BACKUP_DIR/order-receipts-latest.json"
 ORDERS_ARCHIVE="$VEND_BACKUP_DIR/archive/orders-${BACKUP_DATE}.json"
 
-# Authenticate
-AUTH=$(curl -s -c /tmp/kande-backup-cookies.txt \
-  -X POST "https://vend.kandedash.com/api/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{"password":"kande2026"}' 2>/dev/null)
-
-if echo "$AUTH" | grep -q '"success":true'; then
-  log "  ✅ Authenticated to vend.kandedash.com"
-
-  # Pull full export (all collections)
-  FULL_JSON=$(curl -s -b /tmp/kande-backup-cookies.txt \
-    "https://vend.kandedash.com/api/export/json" 2>/dev/null)
-
-  if [ -n "$FULL_JSON" ] && echo "$FULL_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f\"products:{len(d.get('products',[]))}, orders:{len(d.get('order_receipts',[]))}, prospects:{len(d.get('prospects',[]))}, sales:{len(d.get('sales',[]))}\")" 2>/dev/null; then
-    SUMMARY=$(echo "$FULL_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f\"products:{len(d.get('products',[]))}, orders:{len(d.get('order_receipts',[]))}, prospects:{len(d.get('prospects',[]))}, finances:{len(d.get('finances',[]))}\")" 2>/dev/null)
-    
-    echo "$FULL_JSON" > "$FULL_BACKUP_FILE"
-    echo "$FULL_JSON" > "$LATEST_FILE"
-    log "  📦 Full export: $SUMMARY"
-
-    # Also write order-receipts standalone files for quick access
-    echo "$FULL_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps(d.get('order_receipts',[]), indent=2))" > "$ORDERS_LATEST"
-    cp "$ORDERS_LATEST" "$ORDERS_ARCHIVE"
-    log "  📋 Order receipts extracted separately"
-
-    if ! $DRY_RUN; then
-      # Upload full backup — keep ALL of them forever (no retention limit — critical financial data)
-      rclone copy "$FULL_BACKUP_FILE" "$GDRIVE_REMOTE/vend-full-backups/" 2>> "$LOG_FILE" \
-        && log "  ✅ Full backup → Drive/vend-full-backups/" \
-        || log "  ⚠ Failed to upload full backup"
-
-      # Upload order receipts standalone — no retention limit
-      rclone copy "$ORDERS_ARCHIVE" "$GDRIVE_REMOTE/order-receipts/" 2>> "$LOG_FILE" || true
-      rclone copy "$ORDERS_LATEST" "$GDRIVE_REMOTE/order-receipts/" 2>> "$LOG_FILE" || true
-      log "  ✅ Orders → Drive/order-receipts/"
-
-      # Upload latest as always-fresh reference
-      rclone copy "$LATEST_FILE" "$GDRIVE_REMOTE/vend-full-backups/" 2>> "$LOG_FILE" || true
-
-      DRIVE_COUNT=$(rclone ls "$GDRIVE_REMOTE/vend-full-backups/" 2>/dev/null | wc -l | tr -d ' ')
-      log "  Total full backups on Drive: $DRIVE_COUNT"
-    fi
-  else
-    log "  ⚠ Full export failed or empty — server may still be deploying"
-  fi
-
-  rm -f /tmp/kande-backup-cookies.txt
+# Pull from both domains in case they differ — use whichever has more prospects
+FULL_JSON_V=$(curl -s -H "x-api-key: kande2026" "https://vend.kandedash.com/api/export/json" 2>/dev/null)
+FULL_JSON_S=$(curl -s -H "x-api-key: kande2026" "https://sales.kandedash.com/api/export/json" 2>/dev/null)
+COUNT_V=$(echo "$FULL_JSON_V" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('prospects',[])))" 2>/dev/null || echo 0)
+COUNT_S=$(echo "$FULL_JSON_S" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('prospects',[])))" 2>/dev/null || echo 0)
+if [ "$COUNT_S" -gt "$COUNT_V" ] 2>/dev/null; then
+  FULL_JSON="$FULL_JSON_S"
+  log "  Using sales.kandedash.com ($COUNT_S prospects > $COUNT_V)"
 else
-  log "  ⚠ Auth failed — skipping production data backup"
+  FULL_JSON="$FULL_JSON_V"
+  log "  Using vend.kandedash.com ($COUNT_V prospects)"
+fi
+
+if [ -n "$FULL_JSON" ] && echo "$FULL_JSON" | python3 -c "import json,sys; json.load(sys.stdin)" 2>/dev/null; then
+  SUMMARY=$(echo "$FULL_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f\"products:{len(d.get('products',[]))}, orders:{len(d.get('order_receipts',[]))}, prospects:{len(d.get('prospects',[]))}, finances:{len(d.get('finances',[]))}\")" 2>/dev/null) || true
+  echo "$FULL_JSON" > "$FULL_BACKUP_FILE"
+  echo "$FULL_JSON" > "$LATEST_FILE"
+  log "  📦 Full export: $SUMMARY"
+
+  echo "$FULL_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps(d.get('order_receipts',[]), indent=2))" > "$ORDERS_LATEST"
+  cp "$ORDERS_LATEST" "$ORDERS_ARCHIVE"
+  log "  📋 Order receipts extracted separately"
+
+  if ! $DRY_RUN; then
+    rclone copy "$FULL_BACKUP_FILE" "$GDRIVE_REMOTE/vend-full-backups/" 2>> "$LOG_FILE" \
+      && log "  ✅ Full backup → Drive/vend-full-backups/" \
+      || log "  ⚠ Failed to upload full backup"
+
+    rclone copy "$ORDERS_ARCHIVE" "$GDRIVE_REMOTE/order-receipts/" 2>> "$LOG_FILE" || true
+    rclone copy "$ORDERS_LATEST" "$GDRIVE_REMOTE/order-receipts/" 2>> "$LOG_FILE" || true
+    log "  ✅ Orders → Drive/order-receipts/"
+
+    rclone copy "$LATEST_FILE" "$GDRIVE_REMOTE/vend-full-backups/" 2>> "$LOG_FILE" || true
+
+    # Also save a separate dated activities-only backup so field activity is never lost
+    echo "$FULL_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps({'exported_at':d.get('exported_at'),'activities':d.get('activities',[]),'prospects_count':len(d.get('prospects',[]))}, indent=2))" \
+      > "/tmp/activities-${BACKUP_DATE}.json" 2>/dev/null
+    rclone copy "/tmp/activities-${BACKUP_DATE}.json" "$GDRIVE_REMOTE/activities-backups/" 2>> "$LOG_FILE" \
+      && log "  ✅ Activities backup → Drive/activities-backups/" \
+      || log "  ⚠ Activities backup upload failed"
+    rm -f "/tmp/activities-${BACKUP_DATE}.json"
+
+    DRIVE_COUNT=$(rclone ls "$GDRIVE_REMOTE/vend-full-backups/" 2>/dev/null | wc -l | tr -d ' ')
+    log "  Total full backups on Drive: $DRIVE_COUNT"
+  fi
+else
+  log "  ⚠ Auth/export failed — API returned empty or invalid JSON"
 fi
 
 

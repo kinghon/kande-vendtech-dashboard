@@ -289,7 +289,10 @@ function saveDB(db) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
-  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+  // Atomic write: write to temp file then rename so a crash mid-write never corrupts the DB
+  const tmpFile = DB_FILE + '.tmp';
+  fs.writeFileSync(tmpFile, JSON.stringify(db, null, 2));
+  fs.renameSync(tmpFile, DB_FILE);
 }
 
 let db = loadDB();
@@ -301,6 +304,12 @@ try {
   console.log('[restore] Current prospects:', (db.prospects||[]).length, '| products:', (db.products||[]).length);
   const needsRestore = (db.prospects||[]).length === 0 || (db.products||[]).length === 0;
   if (fs.existsSync(backupPath) && needsRestore) {
+    // Preserve any corrupted DB file BEFORE overwriting — might be partially recoverable
+    if (fs.existsSync(DB_FILE)) {
+      const corruptPath = DB_FILE + '.corrupted-' + Date.now();
+      fs.copyFileSync(DB_FILE, corruptPath);
+      console.log('[restore] ⚠️ Saved corrupted DB to:', corruptPath);
+    }
     const backup = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
     console.log('[restore] Backup prospects:', (backup.prospects||[]).length, '| products:', (backup.products||[]).length);
     if ((backup.prospects && backup.prospects.length > 0) || (backup.products && backup.products.length > 0)) {
