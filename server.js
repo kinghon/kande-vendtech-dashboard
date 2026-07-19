@@ -84,7 +84,7 @@ function sanitizeObject(obj) {
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
   // Allow these paths without auth
-  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/auth/refresh', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status', '/api/agents/model-status', '/api/memory/db-list', '/api/memory/db-read', '/api/memory/db-search', '/api/memory/sync', '/digital', '/api/mission-control/tasks/bulk-sync', '/onboard', '/api/digital/onboard', '/clients', '/scout-intel', '/competitor-intel', '/api/competitor-intel', '/ocs', '/api/pipeline/engagement-alerts', '/api/digital/gmb/batch-score', '/account-tiers', '/api/pipeline/account-tiers', '/api/crm/status-diff', '/api/monitoring', '/api/jobs/sentinel', '/api/briefing', '/api/agents/cron-sync', '/api/agents/model-sync'];
+  const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/auth/refresh', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status', '/api/agents/model-status', '/api/memory/db-list', '/api/memory/db-read', '/api/memory/db-search', '/api/memory/sync', '/digital', '/api/mission-control/tasks/bulk-sync', '/onboard', '/api/digital/onboard', '/clients', '/scout-intel', '/competitor-intel', '/api/competitor-intel', '/ocs', '/api/pipeline/engagement-alerts', '/api/digital/gmb/batch-score', '/account-tiers', '/api/pipeline/account-tiers', '/api/crm/status-diff', '/api/monitoring', '/api/jobs/sentinel', '/api/briefing', '/api/diag', '/api/agents/cron-sync', '/api/agents/model-sync'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
     return next();
   }
@@ -1345,6 +1345,20 @@ app.delete('/api/collections/:id', (req, res) => {
 });
 
 // ===== ADMIN HEALTH CHECK =====
+// TEMP diagnostic endpoint — remove after use
+app.get('/api/diag', (req, res) => {
+  const backupPath = path.join(__dirname, 'restore-backup.json');
+  res.json({
+    dirname: __dirname,
+    backupExists: fs.existsSync(backupPath),
+    backupSize: fs.existsSync(backupPath) ? fs.statSync(backupPath).size : 0,
+    dbProspects: (db.prospects||[]).length,
+    dbFile: DB_FILE,
+    dbFileExists: fs.existsSync(DB_FILE),
+    dbFileSize: fs.existsSync(DB_FILE) ? fs.statSync(DB_FILE).size : 0
+  });
+});
+
 // TEMP restore endpoint — remove after use
 app.post('/api/admin/restore-db', (req, res) => {
   const apiKey = req.headers['x-api-key'];
@@ -8227,7 +8241,7 @@ function getBriefingCutoff(period) {
 }
 
 // GET /api/briefing?period=daily|weekly
-app.get('/api/briefing', (req, res) => {
+app.get('/api/briefing', '/api/diag', (req, res) => {
   const period = req.query.period === 'weekly' ? 'weekly' : 'daily';
   const cutoff = getBriefingCutoff(period);
   const cutoffISO = cutoff.toISOString();
