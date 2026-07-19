@@ -295,19 +295,20 @@ function saveDB(db) {
 let db = loadDB();
 
 // Auto-restore from backup if DB is empty (e.g. after volume corruption)
-if (!db.prospects || db.prospects.length === 0) {
-  try {
-    const backupPath = path.join(__dirname, 'restore-backup.json');
-    if (fs.existsSync(backupPath)) {
-      const backup = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
-      if (backup.prospects && backup.prospects.length > 0) {
-        Object.assign(db, backup);
-        saveDB(db);
-        console.log('[restore] Auto-restored from restore-backup.json:', db.prospects.length, 'prospects');
-      }
+try {
+  const backupPath = path.join(__dirname, 'restore-backup.json');
+  console.log('[restore] Checking backup at:', backupPath, '| exists:', fs.existsSync(backupPath));
+  console.log('[restore] Current prospects count:', (db.prospects||[]).length);
+  if (fs.existsSync(backupPath) && (db.prospects||[]).length === 0) {
+    const backup = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
+    console.log('[restore] Backup prospects:', (backup.prospects||[]).length);
+    if (backup.prospects && backup.prospects.length > 0) {
+      Object.assign(db, backup);
+      saveDB(db);
+      console.log('[restore] ✅ Restored', db.prospects.length, 'prospects from backup');
     }
-  } catch(e) { console.error('[restore] Failed to auto-restore:', e.message); }
-}
+  }
+} catch(e) { console.error('[restore] Failed:', e.message, e.stack); }
 
 // Ensure new collections exist
 if (!db.machines) db.machines = [];
