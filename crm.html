@@ -393,7 +393,7 @@
           <div class="legend-item"><div class="legend-dot" style="background:#ec4899"></div> 💗 Signed</div>
           <div class="legend-item"><div style="width:12px;height:12px;border-radius:50%;background:#ec4899;display:inline-flex;align-items:center;justify-content:center;"><span style="color:#fff;font-size:8px;line-height:1;">★</span></div>&nbsp;⭐ Contract Pending</div>
           <div class="legend-item"><div class="legend-dot" style="background:#22c55e;border:2px solid #000;"></div> Black border = popped in</div>
-          <div class="legend-item"><div style="width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid #ccc;display:flex;align-items:center;justify-content:center;"><div style="width:7px;height:7px;border-radius:50%;background:#22c55e;border:1px solid #fff;"></div></div>&nbsp;&#8617; Transition pending</div>
+
 
         </div>
       </div>
@@ -3293,14 +3293,7 @@
       const lng = parseFloat(p.lng);
       return lng > -115.22 && lng < -115.13;
     }
-    function isTransitionPending(p) {
-      const assignedRep = p.assigned_rep;
-      if (!assignedRep || assignedRep === 'Jordan') return false;
-      if (!isFormerJordanZone(p)) return false;
-      return !(p.activities || []).some(function(a) {
-        return (a.type === 'pop-in' || a.type === 'pop_in') && a.rep === assignedRep;
-      });
-    }
+    function isTransitionPending(p) { return false; } // Jordan transition complete — all locations now assigned
 
     function addMarker(p) {
       const color = getMarkerColor(p);
@@ -3348,21 +3341,7 @@
         m.on('click', function() { buildAndOpenPopup(m, p); });
         return;
       }
-      // Transition-pending: former Jordan territory, assigned to new rep, new rep hasn't popped in
-      if (!inRoute && isTransitionPending(p)) {
-        const repColor = getRepColor(p.assigned_rep) || '#94a3b8';
-        const m = L.circleMarker([p.lat, p.lng], {
-          renderer: mapRenderer,
-          radius: 8,
-          fillColor: repColor,
-          color: '#fff',
-          weight: 4,
-          opacity: 1,
-          fillOpacity: 0.9
-        }).addTo(markers);
-        m.on('click', function() { buildAndOpenPopup(m, p); });
-        return;
-      }
+
       const hasPopIn = (p.activities || []).some(function(a) { return a.type === 'pop-in' || a.type === 'pop_in'; });
       let strokeColor = '#fff';
       let strokeWeight = 2;
