@@ -761,10 +761,19 @@
         currentRep = authData.rep || null;
         // Auto-set region filter for rep logins
         if (currentRep) {
-          const repMap = { jordan: 'Jordan', stuart: 'Stuart', vanessa: 'Vanessa' };
-          currentRepFilter = repMap[currentRep] || 'all';
-          const dropdown = document.getElementById('repRegionFilter');
-          if (dropdown) dropdown.value = currentRepFilter;
+          // authData.rep is already capitalized ('Stuart', 'Vanessa', 'Jordan')
+          currentRepFilter = currentRep; // e.g. 'Stuart'
+          // Lock both filter dropdowns — reps cannot switch to another territory
+          const lockDropdown = (el) => {
+            if (!el) return;
+            el.value = currentRepFilter;
+            el.disabled = true;
+            el.style.pointerEvents = 'none';
+            el.style.opacity = '0.6';
+            el.style.cursor = 'not-allowed';
+          };
+          lockDropdown(document.getElementById('repRegionFilter'));
+          lockDropdown(document.getElementById('repFilterBar'));
         }
       } catch(e) {}
       await Promise.all([loadStats(), loadProspects()]);
@@ -3278,6 +3287,8 @@
     }
 
     function setRepRegionFilter(val) {
+      // Reps are locked to their own territory — ignore filter changes
+      if (currentRep !== null) return;
       currentRepFilter = val;
       const d1 = document.getElementById('repRegionFilter');
       const d2 = document.getElementById('repFilterBar');
