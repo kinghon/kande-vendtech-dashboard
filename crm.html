@@ -497,6 +497,7 @@
         <option value="industrial">🏭 Industrial/Warehouse</option>
         <option value="office">🏢 Office/Business</option>
         <option value="hotels">🏨 Hotels/Casinos</option>
+        <option value="schools">🎓 Schools</option>
         <option value="other">📦 Other</option>
       </select>
       <button class="filter-btn active" data-filter="all">All</button>
@@ -557,6 +558,7 @@
                 <option value="Industrial/Warehouse">🏭 Industrial/Warehouse</option>
                 <option value="Office/Business">🏢 Office/Business</option>
                 <option value="Hotels">🏨 Hotels/Casinos</option>
+                <option value="Schools">🎓 Schools</option>
                 <option value="Other">📦 Other</option>
               </select>
             </div>
@@ -761,10 +763,19 @@
         currentRep = authData.rep || null;
         // Auto-set region filter for rep logins
         if (currentRep) {
-          const repMap = { jordan: 'Jordan', stuart: 'Stuart', vanessa: 'Vanessa' };
-          currentRepFilter = repMap[currentRep] || 'all';
-          const dropdown = document.getElementById('repRegionFilter');
-          if (dropdown) dropdown.value = currentRepFilter;
+          // authData.rep is already capitalized ('Stuart', 'Vanessa', 'Jordan')
+          currentRepFilter = currentRep; // e.g. 'Stuart'
+          // Lock both filter dropdowns — reps cannot switch to another territory
+          const lockDropdown = (el) => {
+            if (!el) return;
+            el.value = currentRepFilter;
+            el.disabled = true;
+            el.style.pointerEvents = 'none';
+            el.style.opacity = '0.6';
+            el.style.cursor = 'not-allowed';
+          };
+          lockDropdown(document.getElementById('repRegionFilter'));
+          lockDropdown(document.getElementById('repFilterBar'));
         }
       } catch(e) {}
       await Promise.all([loadStats(), loadProspects()]);
@@ -1352,6 +1363,7 @@
         if (t.includes('warehouse') || t.includes('industrial') || t.includes('logistics') || t.includes('manufacturing') || t.includes('distribution')) return 'industrial';
         if (t.includes('office') || t.includes('corporate') || t.includes('business') || t.includes('cowork')) return 'office';
         if (t.includes('hotel') || t.includes('casino') || t.includes('motel') || t.includes('resort') || t.includes('suites') || t.includes('lodg') || t.includes('hospitality') || t.includes('gaming')) return 'hotels';
+        if (t.includes('school') || t.includes('k-12') || t.includes('elementary') || t.includes('charter') || t.includes('academy') || t.includes('university') || t.includes('college') || t.includes('campus')) return 'schools';
         return 'other';
       }
 
@@ -1585,6 +1597,7 @@
                     {v: 'Industrial/Warehouse', l: '🏭 Industrial/Warehouse'},
                     {v: 'Office/Business', l: '🏢 Office/Business'},
                     {v: 'Hotels', l: '🏨 Hotels/Casinos'},
+                    {v: 'Schools', l: '🎓 Schools'},
                     {v: 'Other', l: '📦 Other'}
                   ].map(t =>
                     `<option value="${t.v}" ${toCanonicalType(p.property_type) === t.v ? 'selected' : ''}>${t.l}</option>`
@@ -3112,6 +3125,7 @@
       if (t.includes('warehouse') || t.includes('industrial') || t.includes('logistics') || t.includes('manufacturing') || t.includes('distribution')) return 'industrial';
       if (t.includes('office') || t.includes('corporate') || t.includes('business') || t.includes('cowork') || t.includes('call center')) return 'office';
       if (t.includes('hotel') || t.includes('casino') || t.includes('motel') || t.includes('resort') || t.includes('suites') || t.includes('lodg')) return 'hotels';
+      if (t.includes('school') || t.includes('k-12') || t.includes('elementary') || t.includes('charter') || t.includes('academy') || t.includes('university') || t.includes('college') || t.includes('campus')) return 'schools';
       return 'other';
     }
 
@@ -3278,6 +3292,8 @@
     }
 
     function setRepRegionFilter(val) {
+      // Reps are locked to their own territory — ignore filter changes
+      if (currentRep !== null) return;
       currentRepFilter = val;
       const d1 = document.getElementById('repRegionFilter');
       const d2 = document.getElementById('repFilterBar');

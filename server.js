@@ -21,8 +21,8 @@ const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'kande2026';
 const REP_PASSWORDS = {
   stuart:  process.env.STUART_PASSWORD  || 'stuart',
-  vanessa: process.env.VANESSA_PASSWORD || 'vanessa',
-  jordan:  process.env.JORDAN_PASSWORD  || 'jordan'
+  vanessa: process.env.VANESSA_PASSWORD || 'vanessa'
+  // jordan removed — no longer with company
 };
 const VALID_PASSWORDS = [ADMIN_PASSWORD, process.env.SALES_PASSWORD || 'jvending1#', ...Object.values(REP_PASSWORDS)];
 
@@ -436,13 +436,12 @@ async function geocodeAddress(address) {
 }
 
 // Zone definitions (mirrors crm.html ZONES)
+// Jordan is no longer with the company — Central zone split: west half → Stuart, east half → Vanessa
 const TERRITORY_ZONES = [
   { name: 'West', rep: 'Stuart',
-    coords: [[36.40,-115.45],[36.40,-115.370],[36.36,-115.340],[36.33,-115.315],[36.30,-115.285],[36.27,-115.255],[36.23,-115.210],[36.20,-115.180],[36.173,-115.156],[36.167,-115.160],[36.155,-115.161],[36.14,-115.165],[36.12,-115.170],[36.09,-115.178],[36.065,-115.181],[36.03,-115.181],[36.00,-115.175],[35.93,-115.168],[35.93,-115.45]] },
-  { name: 'Central', rep: 'Jordan',
-    coords: [[36.40,-115.370],[36.40,-115.13],[35.82,-115.13],[35.82,-115.22],[35.85,-115.27],[35.93,-115.28],[35.93,-115.168],[36.00,-115.175],[36.03,-115.181],[36.065,-115.181],[36.09,-115.178],[36.12,-115.170],[36.14,-115.165],[36.155,-115.161],[36.167,-115.160],[36.173,-115.156],[36.20,-115.180],[36.23,-115.210],[36.27,-115.255],[36.30,-115.285],[36.33,-115.315],[36.36,-115.340]] },
+    coords: [[36.40,-115.45],[36.40,-115.145],[35.82,-115.145],[35.82,-115.45]] },
   { name: 'East', rep: 'Vanessa',
-    coords: [[36.40,-115.13],[36.40,-114.88],[35.82,-114.88],[35.82,-115.13]] }
+    coords: [[36.40,-115.145],[36.40,-114.88],[35.82,-114.88],[35.82,-115.145]] }
 ];
 function pointInPolygonServer(lat, lng, coords) {
   let inside = false;
@@ -16123,6 +16122,15 @@ app.get('/settings', (req, res) => {
 });
 
 // ===== EXPORT API =====
+// Raw DB dump — full data.json for disaster recovery (admin only)
+app.get('/api/backup/raw-db', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', `attachment; filename=data-${new Date().toISOString().split('T')[0]}.json`);
+  res.send(JSON.stringify(db, null, 2));
+});
+
 app.get('/api/export/:type', (req, res) => {
   const type = req.params.type;
   
@@ -16149,6 +16157,7 @@ app.get('/api/export/:type', (req, res) => {
       prospects: db.prospects || [],
       contacts: db.contacts || [],
       activities: db.activities || [],
+      prospect_photos: db.prospect_photos || [],
       touchpoints: db.touchpoints || [],
       contracts: db.contracts || [],
       clients: db.clients || [],
@@ -16169,7 +16178,37 @@ app.get('/api/export/:type', (req, res) => {
       emailTemplates: db.emailTemplates || [],
       emailSequences: db.emailSequences || [],
       emailSends: db.emailSends || [],
-      // Photos (base64 stored in DB)
+      // Previously missing — added for full DR coverage
+      proposals: db.proposals || [],
+      price_history: db.price_history || [],
+      price_overrides: db.price_overrides || [],
+      expiration_records: db.expiration_records || [],
+      sandstar_inventory: db.sandstar_inventory || [],
+      sandstar_machines: db.sandstar_machines || [],
+      sandstar_sales: db.sandstar_sales || [],
+      sandstar_restock_events: db.sandstar_restock_events || [],
+      sandstar_org: db.sandstar_org || null,
+      competitors: db.competitors || [],
+      documents: db.documents || [],
+      goals: db.goals || [],
+      expenses: db.expenses || [],
+      bundles: db.bundles || [],
+      campaigns: db.campaigns || [],
+      drivers: db.drivers || [],
+      referrals: db.referrals || [],
+      testimonials: db.testimonials || [],
+      notifications: db.notifications || [],
+      pull_list: db.pull_list || [],
+      picklist_templates: db.picklist_templates || [],
+      inventory_deployments: db.inventory_deployments || [],
+      fresh_food_restocks: db.fresh_food_restocks || [],
+      spoilage_log: db.spoilage_log || [],
+      transactions: db.transactions || [],
+      divisions: db.divisions || [],
+      departments: db.departments || [],
+      collections: db.collections || [],
+      content: db.content || [],
+      // Photos (base64 stored in DB) — critical for pop-in recovery
       prospect_photos: db.prospect_photos || []
     };
     res.setHeader('Content-Type', 'application/json');

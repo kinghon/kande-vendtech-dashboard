@@ -185,18 +185,20 @@ LATEST_FILE="$VEND_BACKUP_DIR/vend-full-latest.json"
 ORDERS_LATEST="$VEND_BACKUP_DIR/order-receipts-latest.json"
 ORDERS_ARCHIVE="$VEND_BACKUP_DIR/archive/orders-${BACKUP_DATE}.json"
 
-# Pull from both domains in case they differ — use whichever has more prospects
-FULL_JSON_V=$(curl -s -H "x-api-key: kande2026" "https://vend.kandedash.com/api/export/json" 2>/dev/null)
-FULL_JSON_S=$(curl -s -H "x-api-key: kande2026" "https://sales.kandedash.com/api/export/json" 2>/dev/null)
-COUNT_V=$(echo "$FULL_JSON_V" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('prospects',[])))" 2>/dev/null || echo 0)
-COUNT_S=$(echo "$FULL_JSON_S" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('prospects',[])))" 2>/dev/null || echo 0)
-if [ "$COUNT_S" -gt "$COUNT_V" ] 2>/dev/null; then
-  FULL_JSON="$FULL_JSON_S"
-  log "  Using sales.kandedash.com ($COUNT_S prospects > $COUNT_V)"
-else
-  FULL_JSON="$FULL_JSON_V"
-  log "  Using vend.kandedash.com ($COUNT_V prospects)"
-fi
+# Authenticated export via Python helper (curl cookie auth is unreliable on Railway)
+FULL_JSON=$(python3 /Users/kurtishon/clawd/kande-vendtech/scripts/crm-export.py 2>>"$LOG_FILE")
+COUNT=$(echo "$FULL_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('prospects',[])))" 2>/dev/null || echo 0)
+log "  Using sales.kandedash.com ($COUNT prospects)"
+
+
+
+
+
+
+
+
+
+
 
 if [ -n "$FULL_JSON" ] && echo "$FULL_JSON" | python3 -c "import json,sys; json.load(sys.stdin)" 2>/dev/null; then
   SUMMARY=$(echo "$FULL_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f\"products:{len(d.get('products',[]))}, orders:{len(d.get('order_receipts',[]))}, prospects:{len(d.get('prospects',[]))}, finances:{len(d.get('finances',[]))}\")" 2>/dev/null) || true
@@ -236,7 +238,37 @@ fi
 
 
 # =============================================================================
-# STEP 7: Kande-Business-Data — dedicated files per data type
+# STEP 7: Raw DB dump — complete data.json for exact crash recovery
 # =============================================================================
-log "📊 Step 7: Exporting business data files to Kande-Business-Data..."
+log "🗄️  Step 7: Raw DB dump (full disaster recovery copy)..."
+RAW_DB_FILE="$VEND_ARCHIVE_DIR/raw-db-${BACKUP_DATE}.json"
+RAW_DB_LATEST="$VEND_BACKUP_DIR/raw-db-latest.json"
+
+if python3 /Users/kurtishon/clawd/kande-vendtech/scripts/crm-export.py --raw-db "$RAW_DB_FILE" 2>>"$LOG_FILE"; then
+  cp "$RAW_DB_FILE" "$RAW_DB_LATEST"
+  log "  ✅ Raw DB saved locally"
+
+  if ! $DRY_RUN; then
+    rclone copy "$RAW_DB_FILE" "$GDRIVE_REMOTE/raw-db-backups/" 2>>"$LOG_FILE" \
+      && log "  ✅ Raw DB → Drive/raw-db-backups/" \
+      || log "  ⚠ Raw DB Drive upload failed"
+
+    # Keep restore-backup.json in git repo fresh so Railway can auto-restore on volume wipe
+    RESTORE_BACKUP="/Users/kurtishon/clawd/kande-vendtech/restore-backup.json"
+    cp "$RAW_DB_FILE" "$RESTORE_BACKUP"
+    cd /Users/kurtishon/clawd/kande-vendtech
+    git add restore-backup.json
+    git diff --cached --quiet || git commit -m "chore: daily restore-backup refresh ${BACKUP_DATE}" && git push origin main 2>>"$LOG_FILE" \
+      && log "  ✅ restore-backup.json pushed to git" \
+      || log "  ⚠ git push failed (non-fatal)"
+    cd - > /dev/null
+  fi
+else
+  log "  ⚠ Raw DB dump failed"
+fi
+
+# =============================================================================
+# STEP 8: Kande-Business-Data — dedicated files per data type
+# =============================================================================
+log "📊 Step 8: Exporting business data files to Kande-Business-Data..."
 bash /Users/kurtishon/clawd/scripts/export-business-data.sh || log "  ⚠ Business data export had errors (non-fatal)"
