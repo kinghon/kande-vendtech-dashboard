@@ -185,18 +185,20 @@ LATEST_FILE="$VEND_BACKUP_DIR/vend-full-latest.json"
 ORDERS_LATEST="$VEND_BACKUP_DIR/order-receipts-latest.json"
 ORDERS_ARCHIVE="$VEND_BACKUP_DIR/archive/orders-${BACKUP_DATE}.json"
 
-# Pull from both domains in case they differ — use whichever has more prospects
-FULL_JSON_V=$(curl -s -H "x-api-key: kande2026" "https://vend.kandedash.com/api/export/json" 2>/dev/null)
-FULL_JSON_S=$(curl -s -H "x-api-key: kande2026" "https://sales.kandedash.com/api/export/json" 2>/dev/null)
-COUNT_V=$(echo "$FULL_JSON_V" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('prospects',[])))" 2>/dev/null || echo 0)
-COUNT_S=$(echo "$FULL_JSON_S" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('prospects',[])))" 2>/dev/null || echo 0)
-if [ "$COUNT_S" -gt "$COUNT_V" ] 2>/dev/null; then
-  FULL_JSON="$FULL_JSON_S"
-  log "  Using sales.kandedash.com ($COUNT_S prospects > $COUNT_V)"
-else
-  FULL_JSON="$FULL_JSON_V"
-  log "  Using vend.kandedash.com ($COUNT_V prospects)"
-fi
+# Authenticated export via Python helper (curl cookie auth is unreliable on Railway)
+FULL_JSON=$(python3 /Users/kurtishon/clawd/kande-vendtech/scripts/crm-export.py 2>>"$LOG_FILE")
+COUNT=$(echo "$FULL_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('prospects',[])))" 2>/dev/null || echo 0)
+log "  Using sales.kandedash.com ($COUNT prospects)"
+
+
+
+
+
+
+
+
+
+
 
 if [ -n "$FULL_JSON" ] && echo "$FULL_JSON" | python3 -c "import json,sys; json.load(sys.stdin)" 2>/dev/null; then
   SUMMARY=$(echo "$FULL_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f\"products:{len(d.get('products',[]))}, orders:{len(d.get('order_receipts',[]))}, prospects:{len(d.get('prospects',[]))}, finances:{len(d.get('finances',[]))}\")" 2>/dev/null) || true

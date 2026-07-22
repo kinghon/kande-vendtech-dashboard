@@ -16148,6 +16148,7 @@ app.get('/api/export/:type', (req, res) => {
       prospects: db.prospects || [],
       contacts: db.contacts || [],
       activities: db.activities || [],
+      prospect_photos: db.prospect_photos || [],
       touchpoints: db.touchpoints || [],
       contracts: db.contracts || [],
       clients: db.clients || [],

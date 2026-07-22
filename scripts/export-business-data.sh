@@ -31,19 +31,11 @@ trap "rm -rf '$TMP' '$COOKIE'" EXIT
 
 log "📊 Business data export starting ($BACKUP_DATE)..."
 
-# Authenticate
-AUTH=$(curl -s -c "$COOKIE" \
-  -X POST "https://vend.kandedash.com/api/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{"password":"kande2026"}' 2>/dev/null)
-
-if ! echo "$AUTH" | grep -q '"success":true'; then
-  log "  ✗ Auth failed — aborting"; exit 1
+# Pull full export via Python helper (reliable session auth)
+log "  Fetching full export from sales.kandedash.com..."
+if ! python3 /Users/kurtishon/clawd/kande-vendtech/scripts/crm-export.py "$TMP/full.json" 2>&1 | tee -a "$LOG_FILE" | grep -q "prospects:"; then
+  log "  ✗ Export failed — aborting"; exit 1
 fi
-
-# Pull full export
-log "  Fetching full export from vend.kandedash.com..."
-curl -s -b "$COOKIE" "https://vend.kandedash.com/api/export/json" > "$TMP/full.json" 2>/dev/null
 
 if [ ! -s "$TMP/full.json" ]; then
   log "  ✗ Empty response — aborting"; exit 1
