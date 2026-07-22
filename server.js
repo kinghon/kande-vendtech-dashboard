@@ -21,8 +21,8 @@ const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'kande2026';
 const REP_PASSWORDS = {
   stuart:  process.env.STUART_PASSWORD  || 'stuart',
-  vanessa: process.env.VANESSA_PASSWORD || 'vanessa',
-  jordan:  process.env.JORDAN_PASSWORD  || 'jordan'
+  vanessa: process.env.VANESSA_PASSWORD || 'vanessa'
+  // jordan removed — no longer with company
 };
 const VALID_PASSWORDS = [ADMIN_PASSWORD, process.env.SALES_PASSWORD || 'jvending1#', ...Object.values(REP_PASSWORDS)];
 
@@ -436,13 +436,12 @@ async function geocodeAddress(address) {
 }
 
 // Zone definitions (mirrors crm.html ZONES)
+// Jordan is no longer with the company — Central zone split: west half → Stuart, east half → Vanessa
 const TERRITORY_ZONES = [
   { name: 'West', rep: 'Stuart',
-    coords: [[36.40,-115.45],[36.40,-115.370],[36.36,-115.340],[36.33,-115.315],[36.30,-115.285],[36.27,-115.255],[36.23,-115.210],[36.20,-115.180],[36.173,-115.156],[36.167,-115.160],[36.155,-115.161],[36.14,-115.165],[36.12,-115.170],[36.09,-115.178],[36.065,-115.181],[36.03,-115.181],[36.00,-115.175],[35.93,-115.168],[35.93,-115.45]] },
-  { name: 'Central', rep: 'Jordan',
-    coords: [[36.40,-115.370],[36.40,-115.13],[35.82,-115.13],[35.82,-115.22],[35.85,-115.27],[35.93,-115.28],[35.93,-115.168],[36.00,-115.175],[36.03,-115.181],[36.065,-115.181],[36.09,-115.178],[36.12,-115.170],[36.14,-115.165],[36.155,-115.161],[36.167,-115.160],[36.173,-115.156],[36.20,-115.180],[36.23,-115.210],[36.27,-115.255],[36.30,-115.285],[36.33,-115.315],[36.36,-115.340]] },
+    coords: [[36.40,-115.45],[36.40,-115.145],[35.82,-115.145],[35.82,-115.45]] },
   { name: 'East', rep: 'Vanessa',
-    coords: [[36.40,-115.13],[36.40,-114.88],[35.82,-114.88],[35.82,-115.13]] }
+    coords: [[36.40,-115.145],[36.40,-114.88],[35.82,-114.88],[35.82,-115.145]] }
 ];
 function pointInPolygonServer(lat, lng, coords) {
   let inside = false;
