@@ -16207,11 +16207,27 @@ app.get('/api/export/:type', (req, res) => {
       divisions: db.divisions || [],
       departments: db.departments || [],
       collections: db.collections || [],
-      content: db.content || []
+      content: db.content || [],
+      // Photos (base64 stored in DB) — critical for pop-in recovery
+      prospect_photos: db.prospect_photos || []
     };
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', `attachment; filename=vendtech-backup-${new Date().toISOString().split('T')[0]}.json`);
     return res.send(JSON.stringify(exportData, null, 2));
+  }
+
+  if (type === 'raw') {
+    // Full raw DB dump — every key, nothing excluded
+    // Used by automated backups to guarantee 100% coverage
+    const rawExport = {
+      exported_at: new Date().toISOString(),
+      version: '2.0.0',
+      settings: loadSettings(),
+      db: db
+    };
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename=vendtech-raw-${new Date().toISOString().split('T')[0]}.json`);
+    return res.send(JSON.stringify(rawExport));
   }
   
   // CSV exports
