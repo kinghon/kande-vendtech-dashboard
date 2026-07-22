@@ -238,7 +238,37 @@ fi
 
 
 # =============================================================================
-# STEP 7: Kande-Business-Data — dedicated files per data type
+# STEP 7: Raw DB dump — complete data.json for exact crash recovery
 # =============================================================================
-log "📊 Step 7: Exporting business data files to Kande-Business-Data..."
+log "🗄️  Step 7: Raw DB dump (full disaster recovery copy)..."
+RAW_DB_FILE="$VEND_ARCHIVE_DIR/raw-db-${BACKUP_DATE}.json"
+RAW_DB_LATEST="$VEND_BACKUP_DIR/raw-db-latest.json"
+
+if python3 /Users/kurtishon/clawd/kande-vendtech/scripts/crm-export.py --raw-db "$RAW_DB_FILE" 2>>"$LOG_FILE"; then
+  cp "$RAW_DB_FILE" "$RAW_DB_LATEST"
+  log "  ✅ Raw DB saved locally"
+
+  if ! $DRY_RUN; then
+    rclone copy "$RAW_DB_FILE" "$GDRIVE_REMOTE/raw-db-backups/" 2>>"$LOG_FILE" \
+      && log "  ✅ Raw DB → Drive/raw-db-backups/" \
+      || log "  ⚠ Raw DB Drive upload failed"
+
+    # Keep restore-backup.json in git repo fresh so Railway can auto-restore on volume wipe
+    RESTORE_BACKUP="/Users/kurtishon/clawd/kande-vendtech/restore-backup.json"
+    cp "$RAW_DB_FILE" "$RESTORE_BACKUP"
+    cd /Users/kurtishon/clawd/kande-vendtech
+    git add restore-backup.json
+    git diff --cached --quiet || git commit -m "chore: daily restore-backup refresh ${BACKUP_DATE}" && git push origin main 2>>"$LOG_FILE" \
+      && log "  ✅ restore-backup.json pushed to git" \
+      || log "  ⚠ git push failed (non-fatal)"
+    cd - > /dev/null
+  fi
+else
+  log "  ⚠ Raw DB dump failed"
+fi
+
+# =============================================================================
+# STEP 8: Kande-Business-Data — dedicated files per data type
+# =============================================================================
+log "📊 Step 8: Exporting business data files to Kande-Business-Data..."
 bash /Users/kurtishon/clawd/scripts/export-business-data.sh || log "  ⚠ Business data export had errors (non-fatal)"

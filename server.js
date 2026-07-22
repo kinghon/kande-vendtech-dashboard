@@ -16122,6 +16122,15 @@ app.get('/settings', (req, res) => {
 });
 
 // ===== EXPORT API =====
+// Raw DB dump — full data.json for disaster recovery (admin only)
+app.get('/api/backup/raw-db', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', `attachment; filename=data-${new Date().toISOString().split('T')[0]}.json`);
+  res.send(JSON.stringify(db, null, 2));
+});
+
 app.get('/api/export/:type', (req, res) => {
   const type = req.params.type;
   
@@ -16168,7 +16177,37 @@ app.get('/api/export/:type', (req, res) => {
       todos: db.todos || [],
       emailTemplates: db.emailTemplates || [],
       emailSequences: db.emailSequences || [],
-      emailSends: db.emailSends || []
+      emailSends: db.emailSends || [],
+      // Previously missing — added for full DR coverage
+      proposals: db.proposals || [],
+      price_history: db.price_history || [],
+      price_overrides: db.price_overrides || [],
+      expiration_records: db.expiration_records || [],
+      sandstar_inventory: db.sandstar_inventory || [],
+      sandstar_machines: db.sandstar_machines || [],
+      sandstar_sales: db.sandstar_sales || [],
+      sandstar_restock_events: db.sandstar_restock_events || [],
+      sandstar_org: db.sandstar_org || null,
+      competitors: db.competitors || [],
+      documents: db.documents || [],
+      goals: db.goals || [],
+      expenses: db.expenses || [],
+      bundles: db.bundles || [],
+      campaigns: db.campaigns || [],
+      drivers: db.drivers || [],
+      referrals: db.referrals || [],
+      testimonials: db.testimonials || [],
+      notifications: db.notifications || [],
+      pull_list: db.pull_list || [],
+      picklist_templates: db.picklist_templates || [],
+      inventory_deployments: db.inventory_deployments || [],
+      fresh_food_restocks: db.fresh_food_restocks || [],
+      spoilage_log: db.spoilage_log || [],
+      transactions: db.transactions || [],
+      divisions: db.divisions || [],
+      departments: db.departments || [],
+      collections: db.collections || [],
+      content: db.content || []
     };
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', `attachment; filename=vendtech-backup-${new Date().toISOString().split('T')[0]}.json`);
