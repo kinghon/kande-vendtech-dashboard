@@ -9,8 +9,8 @@ Exits 0 on success, 1 on failure.
 import urllib.request, json, http.cookiejar, sys, os
 
 CRM      = "https://sales.kandedash.com"
-PASSWORD = "***"
-API_KEY  = "***"
+PASSWORD = "kande2026"
+API_KEY  = "kande2026"
 
 jar = http.cookiejar.CookieJar()
 opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))

@@ -24,7 +24,7 @@ const REP_PASSWORDS = {
   vanessa: process.env.VANESSA_PASSWORD || 'vanessa'
   // jordan removed — no longer with company
 };
-const VALID_PASSWORDS = [ADMIN_PASSWORD, process.env.SALES_PASSWORD || 'jvending1#', ...Object.values(REP_PASSWORDS)];
+const VALID_PASSWORDS = [ADMIN_PASSWORD, process.env.SALES_PASSWORD || 'kande2026', ...Object.values(REP_PASSWORDS)];
 
 // Generate session tokens
 // Sessions persisted to DB so they survive deploys
