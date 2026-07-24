@@ -388,11 +388,12 @@
           <div style="margin-top:4px;"></div>
           <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div> 🟢 Stuart (West)</div>
           <div class="legend-item"><div class="legend-dot" style="background:#94a3b8"></div> ⬜ Unassigned</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#0044cc"></div> 🔵 Vanessa (East)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#60a5fa"></div> 🔵 Vanessa (East)</div>
           <div class="legend-item"><div class="legend-dot" style="background:#1a202c"></div> ⬛ Strip/Fremont</div>
           <div class="legend-item"><div class="legend-dot" style="background:#ec4899"></div> 💗 Signed</div>
           <div class="legend-item"><div style="width:12px;height:12px;border-radius:50%;background:#ec4899;display:inline-flex;align-items:center;justify-content:center;"><span style="color:#fff;font-size:8px;line-height:1;">★</span></div>&nbsp;⭐ Contract Pending</div>
           <div class="legend-item"><div class="legend-dot" style="background:#22c55e;border:2px solid #000;"></div> Black border = popped in</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#4a5568;width:5px;height:5px;opacity:0.55;"></div> 🔘 Stale</div>
 
 
         </div>
@@ -2550,7 +2551,7 @@
       { name:'West', label:'Stuart', color:'#22c55e',
         coords:[[36.40,-115.45],[36.40,-115.175],[35.82,-115.175],[35.82,-115.45]]
       },
-      { name:'East', label:'Vanessa', color:'#0044cc',
+      { name:'East', label:'Vanessa', color:'#60a5fa',
         coords:[[36.40,-115.175],[36.40,-114.88],[35.82,-114.88],[35.82,-115.175]]
       },
       { name:'Strip/Fremont', label:'Strip/Fremont', color:'#1a202c',
@@ -3001,7 +3002,7 @@
       if (!repName) return null;
       const r = repName.toLowerCase();
       if (r === 'stuart')  return '#22c55e';
-      if (r === 'vanessa') return '#0044cc';
+      if (r === 'vanessa') return '#60a5fa';
       if (r === 'jordan')  return '#cc0000';
       if (r === 'kurtis')  return '#7c3aed';
       return '#718096';
@@ -3097,7 +3098,7 @@
         const sorted = popIns.slice().sort(function(a, b) { return new Date(b.date || b.created_at) - new Date(a.date || a.created_at); });
         const popRep = (sorted[0].rep || '').toLowerCase();
         if (popRep === 'stuart') return '#22c55e';
-        if (popRep === 'vanessa') return '#0044cc';
+        if (popRep === 'vanessa') return '#60a5fa';
         // Jordan/unassigned historical pop-in — fall through to geographic zone
       }
       // Color by geographic zone (polygon-based)
@@ -3112,7 +3113,7 @@
         }
         // Outside all polygons — longitude fallback
         if (lng < -115.175) return '#22c55e'; // Stuart
-        return '#0044cc'; // Vanessa
+        return '#60a5fa'; // Vanessa
       }
       return '#a0aec0'; // truly no location data
     }
@@ -3343,14 +3344,15 @@
       }
       // Contract Pending (intalks) = pink dot with white star
       if (p.priority === 'intalks' && p.status !== 'signed' && p.status !== 'closed' && !inRoute) {
-        // Only show black ring if a non-Jordan rep has popped in (Jordan is no longer active)
-        const intalksHasPopIn = (p.activities || []).some(function(a) {
-          const rep = (a.rep || '').toLowerCase();
-          return (a.type === 'pop-in' || a.type === 'pop_in') && rep && rep !== 'jordan';
+        // Black ring = any activity after June 1, 2026
+        const JUNE1_2026_intalks = new Date('2026-06-01T00:00:00Z').getTime();
+        const intalksContactedAfterJune1 = (p.activities || []).some(function(a) {
+          const ts = a.timestamp || a.created_at || '';
+          return ts && new Date(ts).getTime() >= JUNE1_2026_intalks;
         });
         const starIcon = L.divIcon({
           className: '',
-          html: `<div style="width:22px;height:22px;border-radius:50%;background:#ec4899;border:2.5px solid ${intalksHasPopIn ? '#000' : '#fff'};box-shadow:0 2px 6px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;"><span style="color:#fff;font-size:13px;line-height:1;">★</span></div>`,
+          html: `<div style="width:22px;height:22px;border-radius:50%;background:#ec4899;border:2.5px solid ${intalksContactedAfterJune1 ? '#000' : '#fff'};box-shadow:0 2px 6px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;"><span style="color:#fff;font-size:13px;line-height:1;">★</span></div>`,
           iconSize: [22, 22],
           iconAnchor: [11, 11],
           popupAnchor: [0, -13]
@@ -3360,19 +3362,19 @@
         return;
       }
 
-      const hasPopIn = (p.activities || []).some(function(a) { return a.type === 'pop-in' || a.type === 'pop_in'; });
       let strokeColor = '#fff';
       let strokeWeight = 2;
       if (inRoute) { strokeColor = '#fff'; strokeWeight = 3; }
       else if (p.status === 'signed') {
         strokeColor = '#be185d'; strokeWeight = 2;
       }
-      // Black ring only if a non-Jordan rep has popped in — Jordan is no longer active
-      const effectivePopIn = (p.activities || []).some(function(a) {
-        const rep = (a.rep || '').toLowerCase();
-        return (a.type === 'pop-in' || a.type === 'pop_in') && rep && rep !== 'jordan';
+      // Black ring = any activity/note added after June 1, 2026 (signals location has been contacted)
+      const JUNE1_2026 = new Date('2026-06-01T00:00:00Z').getTime();
+      const contactedAfterJune1 = (p.activities || []).some(function(a) {
+        const ts = a.timestamp || a.created_at || '';
+        return ts && new Date(ts).getTime() >= JUNE1_2026;
       });
-      if (effectivePopIn) { strokeColor = '#000'; strokeWeight = 2.5; }
+      if (contactedAfterJune1) { strokeColor = '#000'; strokeWeight = 2.5; }
       const m = L.circleMarker([p.lat, p.lng], {
         renderer: mapRenderer,
         radius: inRoute ? 10 : 8,

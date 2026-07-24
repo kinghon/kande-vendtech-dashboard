@@ -4,6 +4,9 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 
+// ===== ENV VARS — declared early so geocodeAddress/geocodeAll can use them at startup =====
+const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY || '';
+
 const app = express();
 
 // ===== SECURITY HEADERS (Helmet-style) =====
@@ -8944,7 +8947,7 @@ app.get('/api/reports/weekly', (req, res) => {
 
 // ===== APOLLO.IO PROSPECTING INTEGRATION =====
 const APOLLO_API_KEY = process.env.APOLLO_API_KEY || '';
-const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY || '';
+// GOOGLE_PLACES_API_KEY declared at top of file to avoid TDZ error on startup geocoding
 const APOLLO_BASE = 'https://api.apollo.io/v1';
 
 // Generic Apollo proxy helper
