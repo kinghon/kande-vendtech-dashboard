@@ -30232,12 +30232,10 @@ app.post('/api/maps/nearby-sweep', express.json(), async (req, res) => {
         const r2 = await fetch(`${PLACES_BASE}/places:searchNearby`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY, 'X-Goog-FieldMask': PLACES_FIELD_MASK },
-          body: JSON.stringify({
-            includedTypes: placeTypes,
-            excludedTypes: ['rv_park', 'campground', 'mobile_home_park', 'trailer_park'],
-            maxResultCount: 20,
-            locationRestriction: { circle: { center, radius: 6000 } }
-          })
+          body: JSON.stringify(Object.assign(
+            { includedTypes: placeTypes, maxResultCount: 20, locationRestriction: { circle: { center, radius: 6000 } } },
+            placeTypes.includes('lodging') ? { excludedTypes: ['rv_park', 'campground', 'mobile_home_park'] } : {}
+          ))
         });
         const text = await r2.text();
         let data; try { data = JSON.parse(text); } catch { continue; }
