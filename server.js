@@ -29808,8 +29808,8 @@ function checkPlacesRateLimit() {
   const now = Date.now();
   // Remove calls older than 60 seconds
   while (placesCallLog.length > 0 && now - placesCallLog[0] > 60000) placesCallLog.shift();
-  if (placesCallLog.length >= 50) {
-    throw new Error('Rate limit exceeded: max 50 Google Places API calls per minute');
+  if (placesCallLog.length >= 500) {
+    throw new Error('Rate limit exceeded: max 500 Google Places API calls per minute');
   }
   placesCallLog.push(now);
 }
