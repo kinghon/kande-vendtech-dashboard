@@ -30201,6 +30201,86 @@ app.post('/api/maps/discover', express.json(), async (req, res) => {
   }
 });
 
+// -- POST /api/maps/nearby-sweep — Grid-based nearby search by place type --
+// Uses Places Nearby Search (not text search) to find EVERY location of a given type.
+// Covers LV metro with a 5x5 grid of overlapping circles.
+app.post('/api/maps/nearby-sweep', express.json(), async (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+    if (!GOOGLE_PLACES_API_KEY) return res.status(503).json({ error: 'GOOGLE_PLACES_API_KEY not configured' });
+
+    const { placeTypes = ['lodging'], addToCRM = false, minRating = 0, minReviews = 0 } = req.body || {};
+
+    // 5x5 grid at ~10km spacing covers ~50km x 50km over LV metro
+    const GRID = [];
+    for (const dlat of [-2, -1, 0, 1, 2]) {
+      for (const dlng of [-2, -1, 0, 1, 2]) {
+        GRID.push({ latitude: 36.1699 + dlat * 0.09, longitude: -115.1398 + dlng * 0.09 });
+      }
+    }
+
+    const prospects = db.prospects || [];
+    const allFound = [];
+    const seen = new Set();
+    let existingMatches = 0;
+
+    for (const center of GRID) {
+      try {
+        await new Promise(r => setTimeout(r, 150));
+        checkPlacesRateLimit();
+        const r2 = await fetch(`${PLACES_BASE}/places:searchNearby`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY, 'X-Goog-FieldMask': PLACES_FIELD_MASK },
+          body: JSON.stringify({ includedTypes: placeTypes, maxResultCount: 20, locationRestriction: { circle: { center, radius: 6000 } } })
+        });
+        const text = await r2.text();
+        let data; try { data = JSON.parse(text); } catch { continue; }
+        for (const place of (data.places || [])) {
+          const norm = normalizePlace(place);
+          if (seen.has(norm.placeId)) continue;
+          seen.add(norm.placeId);
+          if (minRating && (norm.rating || 0) < minRating) continue;
+          if (minReviews && (norm.reviewCount || 0) < minReviews) continue;
+          if (matchesExistingProspect(place, prospects)) { existingMatches++; }
+          else { allFound.push({ ...norm, discoveredAt: new Date().toISOString() }); }
+        }
+      } catch (err) {
+        if (err.message.includes('Rate limit')) break;
+        console.error('nearby-sweep grid error:', err.message);
+      }
+    }
+
+    let added = 0;
+    if (addToCRM && allFound.length > 0) {
+      const propType = placeTypes.includes('lodging') ? 'hotel' : placeTypes.includes('hospital') ? 'medical' : 'other';
+      for (const lead of allFound) {
+        try {
+          const prospect = {
+            id: nextId(), name: lead.name, address: lead.address, phone: lead.phone || '',
+            google_place_id: lead.placeId, google_rating: lead.rating, google_review_count: lead.reviewCount,
+            maps_business_status: lead.businessStatus, lat: lead.lat, lng: lead.lng,
+            source: 'scout-maps', status: 'new', priority: 'normal', qual_status: 'approved',
+            qual_gate_score: 6, qual_gate_tier: 'A', property_type: propType,
+            notes: `Nearby sweep: ${placeTypes.join(', ')}`,
+            created_at: new Date().toISOString(), updated_at: new Date().toISOString()
+          };
+          db.prospects.push(prospect);
+          await geocodeProspect(prospect);
+          added++;
+        } catch (e) { /* skip */ }
+      }
+      if (added > 0) saveDB(db);
+    }
+
+    console.log(`Nearby sweep [${placeTypes.join(',')}]: ${allFound.length} new, ${existingMatches} existing, ${added} added`);
+    res.json({ ok: true, newLeads: allFound, newLeadCount: allFound.length, existingMatches, added, placeTypes });
+  } catch (err) {
+    console.error('nearby-sweep error:', err.message);
+    res.status(500).json({ error: 'Nearby sweep failed', details: err.message });
+  }
+});
+
 // -- POST /api/maps/place-photos — Get Google Places photos for a place --
 app.post('/api/maps/place-photos', express.json(), async (req, res) => {
   try {
