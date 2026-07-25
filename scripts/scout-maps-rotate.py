@@ -20,6 +20,10 @@ BATCH_SIZE  = 3  # category groups per run
 CATEGORY_GROUPS = [
     # Residential
     {"name": "apartment_complexes",     "categories": ["apartment complexes Las Vegas NV", "apartment complexes Henderson NV", "luxury apartments Las Vegas", "apartment communities North Las Vegas"]},
+    {"name": "apartments_south_lv",     "categories": ["apartments 89123 Las Vegas", "apartments 89119 Las Vegas", "apartments Spring Valley Las Vegas 89103", "apartments 89118 Las Vegas"]},
+    {"name": "apartments_summerlin",    "categories": ["apartments Summerlin Las Vegas 89144", "apartments 89135 Las Vegas", "apartments west Las Vegas 89117", "luxury apartments Summerlin NV"]},
+    {"name": "apartments_north_lv",     "categories": ["apartments North Las Vegas 89030", "apartments North Las Vegas 89081", "apartment communities 89086 Las Vegas"]},
+    {"name": "apartments_henderson",    "categories": ["apartments Henderson 89002", "apartments Green Valley Henderson 89014", "apartments Henderson 89074", "luxury apartments Henderson NV"]},
     {"name": "senior_living",           "categories": ["senior living Las Vegas NV", "assisted living Henderson NV", "independent living Las Vegas", "memory care Las Vegas", "retirement communities Las Vegas"]},
     {"name": "condos_highrise",         "categories": ["condominiums Las Vegas NV", "high rise condos Las Vegas", "condo communities Henderson NV"]},
 
@@ -48,6 +52,10 @@ CATEGORY_GROUPS = [
 
     # Hospitality & Leisure
     {"name": "hotels",                  "categories": ["hotels Las Vegas NV", "hotels Henderson NV", "extended stay Las Vegas", "motels Las Vegas"]},
+    {"name": "hotels_south_strip",      "categories": ["hotels south Las Vegas Blvd 89123", "hotels near airport Las Vegas 89119", "hotels Spring Valley Las Vegas 89103", "hotels 89118 Las Vegas"]},
+    {"name": "hotels_summerlin_west",   "categories": ["hotels Summerlin Las Vegas 89144", "hotels west Las Vegas 89117", "hotels Red Rock Las Vegas", "hotels 89135 Las Vegas"]},
+    {"name": "hotels_north_downtown",   "categories": ["hotels North Las Vegas 89030", "hotels downtown Fremont Street Las Vegas", "hotels 89101 Las Vegas", "hotels Aliante Las Vegas"]},
+    {"name": "hotels_henderson_east",   "categories": ["hotels Henderson 89002", "hotels Green Valley Henderson NV", "hotels east Las Vegas 89121", "hotels Henderson 89074"]},
     {"name": "gyms_fitness",            "categories": ["gyms Las Vegas NV", "fitness centers Henderson NV", "health clubs Las Vegas", "CrossFit Las Vegas", "Planet Fitness Las Vegas"]},
     {"name": "sports_recreation",       "categories": ["sports facilities Las Vegas NV", "recreation centers Henderson NV", "athletic clubs Las Vegas", "stadiums Las Vegas"]},
 
