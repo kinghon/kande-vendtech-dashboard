@@ -29932,7 +29932,7 @@ function smartMatchConfidence(prospect, mapsPlace) {
   if (prospect.lat && prospect.lng && norm.lat && norm.lng) {
     const dist = geoDistanceMeters(prospect.lat, prospect.lng, norm.lat, norm.lng);
     if (dist <= 100) { score = 95; method = 'geo-exact'; }
-    else if (dist <= 200) { score = 85; method = 'geo-close'; }
+    else if (dist <= 200) { score = 75; method = 'geo-close'; }  // lowered: require name match below to reach 80 threshold
     else if (dist <= 500) { score = 60; method = 'geo-nearby'; }
     else if (dist <= 1000) { score = 30; method = 'geo-far'; }
     // Boost if name also matches
