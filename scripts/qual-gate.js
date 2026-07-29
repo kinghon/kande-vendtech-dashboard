@@ -62,11 +62,16 @@ function qualifyLead(data) {
   // Check 1: Maps existence + operational status
   const mapsStatus = (data.maps_business_status || '').toUpperCase();
   const hasPlaceId = !!(data.google_place_id || data.maps_place_id);
+  const browserScouted = ['maps-browser-scout', 'maps-grid-scout'].includes(data.source);
   if (hasPlaceId && mapsStatus === 'OPERATIONAL') {
     score += 2;
     reasons.push('Maps: operational');
   } else if (hasPlaceId) {
+    score += 1;
     reasons.push(`Maps: exists but status=${mapsStatus || 'unknown'}`);
+  } else if (browserScouted) {
+    score += 2;
+    reasons.push('Maps: found via browser scout');
   } else {
     reasons.push('Maps: no place_id');
   }
