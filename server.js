@@ -30201,6 +30201,46 @@ app.post('/api/maps/discover', express.json(), async (req, res) => {
   }
 });
 
+// -- POST /api/maps/grid-sweep — Single grid square sweep, no type filter --
+// Called by maps-grid-scout.py to avoid needing the API key locally.
+// Returns raw place results for a given lat/lng center + radius.
+app.post('/api/maps/grid-sweep', express.json(), async (req, res) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+    if (!GOOGLE_PLACES_API_KEY) return res.status(503).json({ error: 'GOOGLE_PLACES_API_KEY not configured' });
+
+    const { lat, lng, radius = 700 } = req.body || {};
+    if (!lat || !lng) return res.status(400).json({ error: 'lat and lng required' });
+
+    await new Promise(r => setTimeout(r, 100));
+    checkPlacesRateLimit();
+
+    const r2 = await fetch(`${PLACES_BASE}/places:searchNearby`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+        'X-Goog-FieldMask': PLACES_FIELD_MASK
+      },
+      body: JSON.stringify({
+        maxResultCount: 20,
+        locationRestriction: { circle: { center: { latitude: lat, longitude: lng }, radius } }
+      })
+    });
+
+    const text = await r2.text();
+    let data; try { data = JSON.parse(text); } catch { return res.status(502).json({ error: 'Bad API response' }); }
+    if (!r2.ok) return res.status(502).json({ error: data });
+
+    const places = (data.places || []).map(p => normalizePlace(p));
+    res.json({ places, count: places.length });
+  } catch (err) {
+    console.error('grid-sweep error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // -- POST /api/maps/nearby-sweep — Grid-based nearby search by place type --
 // Uses Places Nearby Search (not text search) to find EVERY location of a given type.
 // Covers LV metro with a 5x5 grid of overlapping circles.
