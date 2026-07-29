@@ -66,16 +66,23 @@ function qualifyLead(data) {
     'atm', 'parking lot', 'parking garage',
     'photography', 'photographer', 'tutoring', 'notary',
     'pool service', 'lawn care', 'landscaping', 'plumbing', 'handyman', 'cleaning service',
+    // Retail that sells own food/drinks — not vending targets
+    'grocery', 'supermarket', 'drug store', 'pharmacy', 'liquor store', 'dollar store',
+    'convenience', 'gas station', 'fuel station',
   ];
   const REJECT_NAME_PATTERNS = [
     'elementary school', 'middle school', 'christian academy', 'church', 'mosque', 'temple',
     '7-eleven', 'burger king', 'mcdonald', 'subway', 'sonic drive', 'panda express',
     'starbucks', 'taco bell', 'wendy', 'jack in the box',
     'disc golf', 'trailhead', 'pedestrian bridge', ' park',
-    // Big box retail — already have their own food service
-    'costco', 'walmart', 'sam\'s club', 'target ', 'home depot', 'lowe\'s', 'albertsons',
-    'smith\'s food', 'kroger', 'whole foods', 'trader joe', 'walgreens', 'cvs pharmacy',
-  ];
+    // Big box retail / grocery / drug — sell their own food/drinks
+    'costco', 'walmart', 'sam\'s club', 'target store', 'home depot', 'lowe\'s',
+    'albertsons', 'smith\'s food', 'kroger', 'whole foods', 'trader joe',
+    'walgreens', 'cvs pharmacy', 'rite aid', 'dollar general', 'dollar tree', 'family dollar',
+    'circle k', 'shell gas', 'chevron', 'arco ', '76 gas', 'sinclair gas',
+    'ross dress', 'tj maxx', 'marshalls', 'burlington coat',
+    'vons ', 'smiths ', 'raleys',
+   ];
   if (REJECT_TYPES.some(t => category.includes(t))) {
     return { tier: 'D', score: 0, reason: `Category rejected: ${category}`, bypass: false };
   }
@@ -116,10 +123,14 @@ function qualifyLead(data) {
     reasons.push('Maps: no place_id');
   }
 
-  // Check 2: Rating + review count quality
+  // Check 2: Rating + review count — proxy for 100+ employees/customers
+  // Low review count = tiny operation, not worth visiting
   const rating = parseFloat(data.google_rating) || 0;
   const reviewCount = parseInt(data.google_review_count) || 0;
-  if (rating >= 3.5 && reviewCount >= 5) {
+  if (reviewCount < 10) {
+    return { tier: 'D', score: 0, reason: `Too small: only ${reviewCount} reviews (min 10)`, bypass: false };
+  }
+  if (rating >= 3.0 && reviewCount >= 10) {
     score += 2;
     reasons.push(`Rating: ${rating} (${reviewCount} reviews)`);
   } else {
