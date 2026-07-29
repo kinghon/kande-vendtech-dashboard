@@ -47,8 +47,45 @@ function qualifyLead(data) {
   // Bypass for trusted sources — no Maps data needed
   const source = (data.source || '').toLowerCase();
   const kurtisNotes = (data.kurtis_notes || '').trim();
-  if (['manual', 'referral', 'glm-scout', 'field', 'scout-research', 'scout-maps', 'scout-web'].includes(source) || kurtisNotes) {
+  if (['manual', 'referral', 'field'].includes(source) || kurtisNotes) {
     return { tier: 'A', score: 6, reason: `${source || 'manual'} source bypass`, bypass: true };
+  }
+
+  // Business type filter — reject categories that will never be vending targets
+  const category = (data.category || data.property_type || '').toLowerCase();
+  const name = (data.name || '').toLowerCase();
+  const address = (data.address || '').toLowerCase();
+  const REJECT_TYPES = [
+    'church', 'temple', 'mosque', 'synagogue', 'religious', 'worship',
+    'elementary school', 'middle school', 'high school', 'k-12', 'christian academy',
+    'park', 'trail', 'trailhead', 'pedestrian bridge', 'disc golf',
+    'fast food', 'restaurant', 'pizza', 'burger', 'taco', 'sandwich', 'sushi', 'bakeshop',
+    'bar ', 'nightclub', 'lounge',
+    'gas station', 'convenience store', '7-eleven', 'circle k',
+    'hair salon', 'nail salon', 'beauty salon', 'barbershop',
+    'atm', 'parking lot', 'parking garage',
+    'photography', 'photographer', 'tutoring', 'notary',
+    'pool service', 'lawn care', 'landscaping', 'plumbing', 'handyman', 'cleaning service',
+  ];
+  const REJECT_NAME_PATTERNS = [
+    'elementary school', 'middle school', 'christian academy', 'church', 'mosque', 'temple',
+    '7-eleven', 'burger king', 'mcdonald', 'subway', 'sonic drive', 'panda express',
+    'starbucks', 'taco bell', 'wendy', 'jack in the box',
+    'disc golf', 'trailhead', 'pedestrian bridge', ' park',
+  ];
+  if (REJECT_TYPES.some(t => category.includes(t))) {
+    return { tier: 'D', score: 0, reason: `Category rejected: ${category}`, bypass: false };
+  }
+  if (REJECT_NAME_PATTERNS.some(p => name.includes(p))) {
+    return { tier: 'D', score: 0, reason: `Name rejected: ${name}`, bypass: false };
+  }
+  // Reject residential addresses (home-based businesses)
+  const RESIDENTIAL_PATTERNS = [/\bdr\b/i, /\bct\b/i, /\bave\b/i, /\bln\b/i];
+  const COMMERCIAL_KEYWORDS = ['ste', 'suite', 'floor', 'unit #', 'blvd', 'pkwy', 'rd', 'industrial', 'commerce', 'executive', 'raiders way', 'bermuda', 'jet stream', 'sunset rd', 'decatur', 'flamingo', 'sahara', 'spring mountain', 'charleston', 'maryland', 'eastern', 'pecos', 'losee', 'cheyenne', 'craig', 'ann rd', 'warm springs', 'russell', 'windmill', 'horizon ridge', 'st rose', 'green valley'];
+  const hasCommercialAddress = COMMERCIAL_KEYWORDS.some(k => address.includes(k));
+  const looksResidential = !hasCommercialAddress && address.match(/\d+ [A-Z][a-z]+ (Dr|Ct|Ln|Way|St|Ave|Pl|Cir),/);
+  if (looksResidential) {
+    return { tier: 'D', score: 0, reason: `Residential address rejected`, bypass: false };
   }
   // Blocklist check — permanently banned Tier C/D locations
   const blockCheck = isBlocked(data);
