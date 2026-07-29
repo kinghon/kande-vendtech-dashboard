@@ -72,6 +72,9 @@ function qualifyLead(data) {
     '7-eleven', 'burger king', 'mcdonald', 'subway', 'sonic drive', 'panda express',
     'starbucks', 'taco bell', 'wendy', 'jack in the box',
     'disc golf', 'trailhead', 'pedestrian bridge', ' park',
+    // Big box retail — already have their own food service
+    'costco', 'walmart', 'sam\'s club', 'target ', 'home depot', 'lowe\'s', 'albertsons',
+    'smith\'s food', 'kroger', 'whole foods', 'trader joe', 'walgreens', 'cvs pharmacy',
   ];
   if (REJECT_TYPES.some(t => category.includes(t))) {
     return { tier: 'D', score: 0, reason: `Category rejected: ${category}`, bypass: false };
