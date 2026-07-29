@@ -829,6 +829,19 @@ app.post('/api/prospects', (req, res) => {
     }
   }
 
+  // Dedup check — reject if name+address already exists (any status, including closed)
+  const incomingName = (req.body.name || '').toLowerCase().trim();
+  const incomingAddr = normalizeAddr(req.body.address || '');
+  const duplicate = db.prospects.find(p => {
+    const pName = (p.name || '').toLowerCase().trim();
+    const pAddr = normalizeAddr(p.address || '');
+    if (pName === incomingName) return true;
+    if (incomingAddr.length > 8 && pAddr.length > 8 && incomingAddr === pAddr) return true;
+    if (req.body.google_place_id && p.google_place_id && req.body.google_place_id === p.google_place_id) return true;
+    return false;
+  });
+  if (duplicate) return res.status(409).json({ error: 'Duplicate prospect', existing_id: duplicate.id, existing_status: duplicate.status });
+
   const qual_status = qualResult.bypass ? 'approved' : 'approved';
   const prospect = { id: nextId(), ...req.body, source: normalizeSource(req.body.source), status: req.body.status || 'new', priority: req.body.priority || 'normal', qual_status, qual_gate_score: qualResult.score, qual_gate_tier: qualResult.tier, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
   db.prospects.push(prospect);
