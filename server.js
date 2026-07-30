@@ -835,7 +835,14 @@ app.post('/api/prospects', (req, res) => {
   const duplicate = db.prospects.find(p => {
     const pName = (p.name || '').toLowerCase().trim();
     const pAddr = normalizeAddr(p.address || '');
-    if (pName === incomingName) return true;
+    // Name match only counts as duplicate if addresses also match (or both have no address)
+    // This allows different branches of the same company (e.g. Desert Radiology - Centra Point vs Desert Radiology - Henderson)
+    if (pName === incomingName) {
+      const bothHaveAddr = incomingAddr.length > 8 && pAddr.length > 8;
+      if (!bothHaveAddr) return true; // no addresses to differentiate — flag it
+      if (incomingAddr === pAddr) return true; // same name + same address = duplicate
+      return false; // same name but different address = different location, allow it
+    }
     if (incomingAddr.length > 8 && pAddr.length > 8 && incomingAddr === pAddr) return true;
     if (req.body.google_place_id && p.google_place_id && req.body.google_place_id === p.google_place_id) return true;
     return false;
