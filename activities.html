@@ -172,7 +172,6 @@
     </div>
     <div class="controls" style="margin-top:8px;">
       <button class="rep-filter-btn active" data-rep="all" style="border-color:#cbd5e0;">👥 All Reps</button>
-      <button class="rep-filter-btn" data-rep="Jordan" style="border-color:#cc0000;color:#cc0000;">👤 Jordan</button>
       <button class="rep-filter-btn" data-rep="Stuart" style="border-color:#22c55e;color:#22c55e;">👤 Stuart</button>
       <button class="rep-filter-btn" data-rep="Vanessa" style="border-color:#0044cc;color:#0044cc;">👤 Vanessa</button>
       <button class="rep-filter-btn" data-rep="Kurtis" style="border-color:#805ad5;color:#805ad5;">👤 Kurtis</button>
@@ -185,15 +184,27 @@
 
   <script>
     let allEvents = [];
+    let photosByProspect = {}; // prospect_id -> [{data, rep, created_at, filename}]
     let prospects = {};
     let currentFilter = 'all';
     let currentRepFilter = 'all';
-    const REP_COLORS = { Jordan: '#cc0000', Stuart: '#22c55e', Vanessa: '#0044cc', Kurtis: '#805ad5' };
+    const REP_COLORS = { Stuart: '#22c55e', Vanessa: '#0044cc', Kurtis: '#805ad5' };
 
     async function init() {
       const pRes = await fetch('/api/prospects');
       const pList = await pRes.json();
       pList.forEach(p => prospects[p.id] = p);
+
+      // Load all photos for thumbnail display
+      try {
+        const photosRes = await fetch('/api/photos');
+        const allPhotos = await photosRes.json();
+        photosByProspect = {};
+        allPhotos.forEach(ph => {
+          if (!photosByProspect[ph.prospect_id]) photosByProspect[ph.prospect_id] = [];
+          photosByProspect[ph.prospect_id].push(ph);
+        });
+      } catch(e) { photosByProspect = {}; }
 
       // Build unified event list from all sources
       allEvents = [];
@@ -481,11 +492,22 @@
           const eRepColor = REP_COLORS[e.rep] || '';
           const repRowBg = eRepColor ? eRepColor + '1a' : '';
           const repRowBorder = eRepColor ? eRepColor + '55' : '';
+          // Find photos for this prospect/rep uploaded within 12 hours of this activity
+          const prospectPhotos = (photosByProspect[e.prospectId] || []).filter(ph => {
+            const diff = Math.abs(new Date(ph.created_at) - e.timestamp);
+            const sameRep = !e.rep || !ph.rep || ph.rep === e.rep;
+            return diff < 12 * 3600 * 1000 && sameRep;
+          });
+          const photoHtml = prospectPhotos.length ? `
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+              ${prospectPhotos.map(ph => `<a href="${ph.data}" target="_blank" title="${ph.filename || 'photo'} — ${ph.rep || ''}"><img src="${ph.data}" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;" /></a>`).join('')}
+            </div>` : '';
           html += `<div class="event-row" id="activity-row-${e.id}" style="${eRepColor ? 'background:'+repRowBg+';border-left:3px solid '+repRowBorder+';' : ''}">
             <div class="event-body">
               <div class="event-text">
                 <span class="event-badge ${e.badgeClass}">${e.label}</span>
                 ${esc(e.text)}
+                ${photoHtml}
               </div>
               <div class="event-time">${getTimeAgo(e.timestamp)}</div>
             </div>
@@ -543,7 +565,7 @@
         });
         btn.classList.add('active');
         const rep = btn.dataset.rep;
-        const repColors = { Jordan: '#cc0000', Stuart: '#22c55e', Vanessa: '#0044cc', Kurtis: '#805ad5' };
+        const repColors = { Stuart: '#22c55e', Vanessa: '#0044cc', Kurtis: '#805ad5' };
         if (rep !== 'all') btn.style.background = repColors[rep] + '18';
         currentRepFilter = rep;
         render();

@@ -1065,6 +1065,11 @@ app.delete('/api/prospects/:id', (req, res) => {
 });
 
 // ===== PROSPECT PHOTOS API =====
+// GET /api/photos — all prospect photos (for activity log thumbnails)
+app.get('/api/photos', (req, res) => {
+  res.json(db.prospect_photos || []);
+});
+
 app.get('/api/prospects/:id/photos', (req, res) => {
   const id = parseInt(req.params.id);
   const photos = (db.prospect_photos || []).filter(ph => ph.prospect_id === id)
