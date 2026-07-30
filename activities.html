@@ -195,16 +195,15 @@
       const pList = await pRes.json();
       pList.forEach(p => prospects[p.id] = p);
 
-      // Load all photos for thumbnail display
-      try {
-        const photosRes = await fetch('/api/photos');
-        const allPhotos = await photosRes.json();
+      // Load photos async — don't block page render
+      fetch('/api/photos').then(r => r.json()).then(allPhotos => {
         photosByProspect = {};
         allPhotos.forEach(ph => {
           if (!photosByProspect[ph.prospect_id]) photosByProspect[ph.prospect_id] = [];
           photosByProspect[ph.prospect_id].push(ph);
         });
-      } catch(e) { photosByProspect = {}; }
+        render(); // re-render once photos are loaded
+      }).catch(() => {});
 
       // Build unified event list from all sources
       allEvents = [];
