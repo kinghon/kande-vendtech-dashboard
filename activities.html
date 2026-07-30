@@ -499,7 +499,7 @@
           });
           const photoHtml = prospectPhotos.length ? `
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
-              ${prospectPhotos.map(ph => `<img src="${ph.data}" onclick="openPhotoLightbox('${ph.data.replace(/'/g,\"\\'\")}'  )" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;" title="Tap to view full size" />`).join('')}
+              ${prospectPhotos.map((ph,pi) => { window._actPhotos = window._actPhotos||[]; window._actPhotos.push(ph.data); const idx=window._actPhotos.length-1; return `<img src="${ph.data}" onclick="openPhotoLightbox(window._actPhotos[${idx}])" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;" title="Tap to view full size" />`; }).join('')}
             </div>` : '';
           html += `<div class="event-row" id="activity-row-${e.id}" style="${eRepColor ? 'background:'+repRowBg+';border-left:3px solid '+repRowBorder+';' : ''}">
             <div class="event-body">
