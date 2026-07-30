@@ -808,7 +808,11 @@
       if (!container) return;
       container.innerHTML = reps.map(rep => {
         const repLower = rep.toLowerCase();
-        const signed = prospects.filter(p => p.status === 'signed' && (p.signed_by || '').toLowerCase().includes(repLower)).length;
+        // Count signed by assigned_rep (primary), fall back to signed_by for backwards compat
+        const signed = prospects.filter(p => p.status === 'signed' && (
+          (p.assigned_rep || '').toLowerCase() === repLower ||
+          (!p.assigned_rep && (p.signed_by || '').toLowerCase().includes(repLower))
+        )).length;
         const negotiations = prospects.filter(p => p.priority === 'intalks' && p.status !== 'signed' && p.status !== 'closed' && ((p.assigned_rep || '').toLowerCase() === repLower || (p.contract_rep || '').toLowerCase() === repLower)).length;
         const isRepPopin = (a) => {
           if (!['pop-in','pop_in'].includes(a.type)) return false;
