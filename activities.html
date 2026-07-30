@@ -500,7 +500,7 @@
           });
           const photoHtml = prospectPhotos.length ? `
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
-              ${prospectPhotos.map(ph => `<a href="${ph.data}" target="_blank" title="${ph.filename || 'photo'} — ${ph.rep || ''}"><img src="${ph.data}" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;" /></a>`).join('')}
+              ${prospectPhotos.map(ph => `<img src="${ph.data}" onclick="openPhotoLightbox('${ph.data.replace(/'/g,\"\\'\")}'  )" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;" title="Tap to view full size" />`).join('')}
             </div>` : '';
           html += `<div class="event-row" id="activity-row-${e.id}" style="${eRepColor ? 'background:'+repRowBg+';border-left:3px solid '+repRowBorder+';' : ''}">
             <div class="event-body">
@@ -539,6 +539,14 @@
         month: 'short', day: 'numeric', year: 'numeric',
         hour: 'numeric', minute: '2-digit', hour12: true
       });
+    }
+
+    function openPhotoLightbox(src) {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;cursor:zoom-out;';
+      overlay.innerHTML = `<img src="${src}" style="max-width:100%;max-height:100%;border-radius:8px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,0.6);" />`;
+      overlay.addEventListener('click', () => overlay.remove());
+      document.body.appendChild(overlay);
     }
 
     function esc(s) {
