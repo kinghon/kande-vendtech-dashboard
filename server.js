@@ -29823,7 +29823,7 @@ app.get('/api/activities/enriched', (req, res) => {
 // Uses GOOGLE_PLACES_API_KEY env var (set in Railway).
 
 const PLACES_BASE = 'https://places.googleapis.com/v1';
-const PLACES_FIELD_MASK = 'places.displayName,places.formattedAddress,places.location,places.nationalPhoneNumber,places.rating,places.userRatingCount,places.id,places.types,places.websiteUri,places.businessStatus,places.regularOpeningHours';
+const PLACES_FIELD_MASK = 'places.displayName,places.formattedAddress,places.location,places.nationalPhoneNumber,places.rating,places.userRatingCount,places.id,places.types,places.primaryType,places.primaryTypeDisplayName,places.websiteUri,places.businessStatus,places.regularOpeningHours';
 const LV_CENTER = { latitude: 36.1699, longitude: -115.1398 };
 const LV_RADIUS_M = 50000;
 
@@ -29904,6 +29904,7 @@ function normalizePlace(place) {
     reviewCount: place.userRatingCount || 0,
     placeId: place.id || '',
     types: place.types || [],
+    category: place.primaryTypeDisplayName?.text || place.primaryType || (place.types && place.types[0]) || '',
     websiteUrl: place.websiteUri || '',
     businessStatus: place.businessStatus || '',
     openNow: place.regularOpeningHours?.openNow ?? null
