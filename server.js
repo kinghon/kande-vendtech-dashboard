@@ -30000,6 +30000,32 @@ function matchesExistingProspect(place, prospects) {
   return false;
 }
 
+// -- GET /api/maps/place-details — Get place details by place_id (for category enrichment) --
+app.get('/api/maps/place-details/:placeId', async (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+  if (!GOOGLE_PLACES_API_KEY) return res.status(503).json({ error: 'GOOGLE_PLACES_API_KEY not configured' });
+  const { placeId } = req.params;
+  try {
+    const url = `https://places.googleapis.com/v1/places/${placeId}`;
+    const r = await fetch(url, {
+      headers: {
+        'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+        'X-Goog-FieldMask': 'id,primaryType,primaryTypeDisplayName'
+      }
+    });
+    if (!r.ok) return res.status(r.status).json({ error: 'Places API error', status: r.status });
+    const data = await r.json();
+    res.json({
+      placeId,
+      category: data.primaryTypeDisplayName?.text || data.primaryType || '',
+      primaryType: data.primaryType || ''
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // -- GET /api/maps/status — Maps integration health check --
 app.get('/api/maps/status', (req, res) => {
   const apiKey = req.headers['x-api-key'];
