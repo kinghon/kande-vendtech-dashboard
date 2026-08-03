@@ -356,7 +356,10 @@ try {
         if (count > bestCount) { bestBackup = b; bestCount = count; }
       } catch(e) { console.error('[restore] Error reading', bp, e.message); }
     }
-    if (bestBackup && bestCount > 0) {
+    // Hard minimum — refuse to restore from any backup with fewer than 500 prospects
+    // This prevents accidentally restoring from a corrupt/partial/empty git backup
+    const MIN_RESTORE_COUNT = 500;
+    if (bestBackup && bestCount >= MIN_RESTORE_COUNT) {
       if (fs.existsSync(DB_FILE)) {
         const corruptPath = DB_FILE + '.corrupted-' + Date.now();
         fs.copyFileSync(DB_FILE, corruptPath);
