@@ -301,9 +301,21 @@ function saveDB(db) {
   const tmpFile = DB_FILE + '.tmp';
   fs.writeFileSync(tmpFile, JSON.stringify(db, null, 2));
   fs.renameSync(tmpFile, DB_FILE);
-  // Live backup — always keep an up-to-date copy on the volume
+  // Live backup — only update if prospect count is >= previous backup (prevents bulk-delete from wiping backup)
   try {
-    fs.writeFileSync(LIVE_BACKUP_FILE, JSON.stringify(db));
+    const currentCount = (db.prospects||[]).length;
+    let prevCount = 0;
+    if (fs.existsSync(LIVE_BACKUP_FILE)) {
+      try {
+        const prev = JSON.parse(fs.readFileSync(LIVE_BACKUP_FILE, 'utf8'));
+        prevCount = (prev.prospects||[]).length;
+      } catch(e) {}
+    }
+    if (currentCount >= prevCount) {
+      fs.writeFileSync(LIVE_BACKUP_FILE, JSON.stringify(db));
+    } else {
+      console.log(`[live-backup] Skipped — count dropped ${prevCount} → ${currentCount} (delete op, not overwriting backup)`);
+    }
   } catch(e) { /* non-fatal */ }
 }
 
