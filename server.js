@@ -305,7 +305,7 @@ try {
   const backupPath = path.join(__dirname, 'restore-backup.json');
   console.log('[restore] Checking backup at:', backupPath, '| exists:', fs.existsSync(backupPath));
   console.log('[restore] Current prospects:', (db.prospects||[]).length, '| products:', (db.products||[]).length);
-  const needsRestore = true; // FORCE-RESTORE: db was wiped 2026-08-02, always restore on this deploy
+  const needsRestore = (db.prospects||[]).length === 0 || (db.products||[]).length === 0;
   if (fs.existsSync(backupPath) && needsRestore) {
     // Preserve any corrupted DB file BEFORE overwriting — might be partially recoverable
     if (fs.existsSync(DB_FILE)) {
