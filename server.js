@@ -297,6 +297,18 @@ function saveDB(db) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
+  // Safety guard — refuse to write if prospect count dropped by more than 50 vs current file
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      const current = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+      const currentCount = (current.prospects||[]).length;
+      const newCount = (db.prospects||[]).length;
+      if (currentCount > 50 && newCount < currentCount - 50) {
+        console.error(`[saveDB] ⛔ BLOCKED — prospect count would drop ${currentCount} → ${newCount}. Refusing to write.`);
+        return;
+      }
+    }
+  } catch(e) { /* if we can't read current, allow write */ }
   // Atomic write: write to temp file then rename so a crash mid-write never corrupts the DB
   const tmpFile = DB_FILE + '.tmp';
   fs.writeFileSync(tmpFile, JSON.stringify(db, null, 2));
