@@ -338,8 +338,12 @@ try {
   const backupPath = path.join(__dirname, 'restore-backup.json');
   console.log('[restore] Checking backup at:', backupPath, '| exists:', fs.existsSync(backupPath));
   console.log('[restore] Current prospects:', (db.prospects||[]).length, '| products:', (db.products||[]).length);
-  const needsRestore = (db.prospects||[]).length === 0 || (db.products||[]).length === 0;
-  if (needsRestore) {
+  const currentProspects = (db.prospects||[]).length;
+  const currentProducts = (db.products||[]).length;
+  const needsRestore = currentProspects === 0 || currentProducts === 0;
+  // Hard guard: never restore if volume already has healthy data (prevents forced overwrites via code deploys)
+  const volumeHealthy = currentProspects >= 50;
+  if (needsRestore && !volumeHealthy) {
     // Prefer live volume backup (most recent) over git backup if it has more prospects
     let bestBackup = null;
     let bestCount = 0;
