@@ -286,6 +286,11 @@ function loadDB() {
   };
 }
 
+// Live backup path — on Railway volume, persists across restarts
+const LIVE_BACKUP_FILE = process.env.RAILWAY_ENVIRONMENT
+  ? '/data/restore-backup-live.json'
+  : path.join(__dirname, 'data', 'restore-backup-live.json');
+
 function saveDB(db) {
   // Ensure the directory exists (for local development)
   const dir = path.dirname(DB_FILE);
@@ -296,6 +301,10 @@ function saveDB(db) {
   const tmpFile = DB_FILE + '.tmp';
   fs.writeFileSync(tmpFile, JSON.stringify(db, null, 2));
   fs.renameSync(tmpFile, DB_FILE);
+  // Live backup — always keep an up-to-date copy on the volume
+  try {
+    fs.writeFileSync(LIVE_BACKUP_FILE, JSON.stringify(db));
+  } catch(e) { /* non-fatal */ }
 }
 
 let db = loadDB();
@@ -306,19 +315,28 @@ try {
   console.log('[restore] Checking backup at:', backupPath, '| exists:', fs.existsSync(backupPath));
   console.log('[restore] Current prospects:', (db.prospects||[]).length, '| products:', (db.products||[]).length);
   const needsRestore = (db.prospects||[]).length === 0 || (db.products||[]).length === 0;
-  if (fs.existsSync(backupPath) && needsRestore) {
-    // Preserve any corrupted DB file BEFORE overwriting — might be partially recoverable
-    if (fs.existsSync(DB_FILE)) {
-      const corruptPath = DB_FILE + '.corrupted-' + Date.now();
-      fs.copyFileSync(DB_FILE, corruptPath);
-      console.log('[restore] ⚠️ Saved corrupted DB to:', corruptPath);
+  if (needsRestore) {
+    // Prefer live volume backup (most recent) over git backup if it has more prospects
+    let bestBackup = null;
+    let bestCount = 0;
+    for (const bp of [LIVE_BACKUP_FILE, backupPath]) {
+      try {
+        if (!fs.existsSync(bp)) continue;
+        const b = JSON.parse(fs.readFileSync(bp, 'utf8'));
+        const count = (b.prospects||[]).length;
+        console.log(`[restore] Candidate ${bp}: ${count} prospects`);
+        if (count > bestCount) { bestBackup = b; bestCount = count; }
+      } catch(e) { console.error('[restore] Error reading', bp, e.message); }
     }
-    const backup = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
-    console.log('[restore] Backup prospects:', (backup.prospects||[]).length, '| products:', (backup.products||[]).length);
-    if ((backup.prospects && backup.prospects.length > 0) || (backup.products && backup.products.length > 0)) {
-      Object.assign(db, backup);
+    if (bestBackup && bestCount > 0) {
+      if (fs.existsSync(DB_FILE)) {
+        const corruptPath = DB_FILE + '.corrupted-' + Date.now();
+        fs.copyFileSync(DB_FILE, corruptPath);
+        console.log('[restore] ⚠️ Saved corrupted DB to:', corruptPath);
+      }
+      Object.assign(db, bestBackup);
       saveDB(db);
-      console.log('[restore] ✅ Restored from backup — prospects:', db.prospects.length, '| products:', db.products.length);
+      console.log('[restore] ✅ Restored from best backup — prospects:', db.prospects.length, '| products:', db.products.length);
     }
   }
 } catch(e) { console.error('[restore] Failed:', e.message, e.stack); }
