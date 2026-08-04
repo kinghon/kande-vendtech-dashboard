@@ -3253,9 +3253,13 @@
 
         if (res.ok) {
           closeModal('editProductModal');
-          await loadProducts();
-          inventory[productId] = { stock, reorder_point, expiration_date };
-          renderAll();
+          try {
+            await loadProducts();
+            if (inventory) inventory[productId] = { stock, reorder_point, expiration_date };
+            renderAll();
+          } catch (renderErr) {
+            console.error('Render error after update:', renderErr);
+          }
           showToast(`Updated ${name}`);
         } else {
           alert('Failed to update product');
