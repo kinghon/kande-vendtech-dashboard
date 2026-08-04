@@ -3186,11 +3186,16 @@
 
         if (res.ok) {
           closeModal('addProductModal');
-          await loadProducts();
-          if (stock > 0) {
-            addHistoryEntry(products[products.length - 1].id, 'received', stock, 'Initial stock');
+          try {
+            await loadProducts();
+            const newProduct = products.find(p => p.name === name) || products[products.length - 1];
+            if (stock > 0 && newProduct) {
+              addHistoryEntry(newProduct.id, 'received', stock, 'Initial stock');
+            }
+            renderAll();
+          } catch (renderErr) {
+            console.error('Render error after add:', renderErr);
           }
-          renderAll();
           showToast(`Added ${name}`);
         } else {
           alert('Failed to add product');
