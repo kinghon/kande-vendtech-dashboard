@@ -12,7 +12,7 @@ import json, sys, urllib.request, datetime, os
 
 STATE_FILE  = "/Users/kurtishon/clawd/logs/scout-rotate-state.json"
 OUTPUT_DIR  = "/Users/kurtishon/clawd/agent-output/scout"
-CRM_BASE    = "https://sales.kandedash.com"
+CRM_BASE    = "https://vend.kandedash.com"
 CRM_KEY     = "kande2026"
 BATCH_SIZE  = 3  # category groups per run
 
@@ -23,6 +23,8 @@ CATEGORY_GROUPS = [
     {"name": "apartments_south_lv",     "categories": ["apartments 89123 Las Vegas", "apartments 89119 Las Vegas", "apartments Spring Valley Las Vegas 89103", "apartments 89118 Las Vegas"]},
     {"name": "apartments_summerlin",    "categories": ["apartments Summerlin Las Vegas 89144", "apartments 89135 Las Vegas", "apartments west Las Vegas 89117", "luxury apartments Summerlin NV"]},
     {"name": "apartments_north_lv",     "categories": ["apartments North Las Vegas 89030", "apartments North Las Vegas 89081", "apartment communities 89086 Las Vegas"]},
+    {"name": "apartments_nw_lv",        "categories": ["apartments 89128 Las Vegas NV", "apartments 89108 Las Vegas NV", "apartments 89130 Las Vegas NV", "apartments NW Las Vegas 89166"]},
+    {"name": "apartments_west_lv",      "categories": ["apartments 89107 Las Vegas NV", "apartments 89117 Las Vegas NV", "apartments 89146 Las Vegas NV", "apartments 89145 Las Vegas NV"]},
     {"name": "apartments_henderson",    "categories": ["apartments Henderson 89002", "apartments Green Valley Henderson 89014", "apartments Henderson 89074", "luxury apartments Henderson NV"]},
     {"name": "senior_living",           "categories": ["senior living Las Vegas NV", "assisted living Henderson NV", "independent living Las Vegas", "memory care Las Vegas", "retirement communities Las Vegas"]},
     {"name": "condos_highrise",         "categories": ["condominiums Las Vegas NV", "high rise condos Las Vegas", "condo communities Henderson NV"]},

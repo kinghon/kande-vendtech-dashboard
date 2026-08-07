@@ -6,7 +6,7 @@ Usage:
   python3 crm-export.py --raw-db [output_file] # raw data.json dump (DR copy)
 Exits 0 on success, 1 on failure.
 """
-import urllib.request, json, http.cookiejar, sys, os
+import urllib.request, json, http.cookiejar, sys, os, time
 
 CRM      = "https://sales.kandedash.com"
 PASSWORD = "kande2026"
@@ -23,10 +23,24 @@ out_file = args[0] if args else None
 try:
     if raw_mode:
         # Raw DB dump — uses API key, no session needed
+        # Retry up to 3 times with backoff (Railway can 502 transiently on cold wake)
         req = urllib.request.Request(f"{CRM}/api/backup/raw-db",
             headers={'x-api-key': API_KEY, 'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=60) as r:
-            data = r.read()
+        data = None
+        for attempt in range(3):
+            try:
+                with urllib.request.urlopen(req, timeout=90) as r:
+                    data = r.read()
+                break
+            except Exception as e:
+                if attempt < 2:
+                    wait = 15 * (attempt + 1)
+                    print(f"Attempt {attempt+1} failed ({e}), retrying in {wait}s...", file=sys.stderr)
+                    time.sleep(wait)
+                else:
+                    raise
+        if data is None:
+            raise RuntimeError("All retry attempts failed")
         parsed = json.loads(data)
         prospects = len(parsed.get('prospects', []))
         activities = len(parsed.get('activities', []))
