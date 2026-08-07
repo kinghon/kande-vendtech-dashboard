@@ -130,7 +130,11 @@ function qualifyLead(data) {
   if (reviewCount < 10) {
     return { tier: 'D', score: 0, reason: `Too small: only ${reviewCount} reviews (min 10)`, bypass: false };
   }
-  if (rating >= 3.0 && reviewCount >= 10) {
+  // Hard floor: rating must be >= 3.5 regardless of phone/contact presence
+  if (rating > 0 && rating < 3.5 && reviewCount >= 10) {
+    return { tier: 'D', score: 0, reason: `Rating too low: ${rating}★ (min 3.5★)`, bypass: false };
+  }
+  if (rating >= 3.5 && reviewCount >= 10) {
     score += 2;
     reasons.push(`Rating: ${rating} (${reviewCount} reviews)`);
   } else {
