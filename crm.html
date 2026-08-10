@@ -1472,8 +1472,9 @@
       }
 
       const totalCount = filtered.length;
-      const paged = filtered.slice(0, currentPage * PAGE_SIZE);
-      const hasMore = paged.length < totalCount;
+      const activeSearch = document.getElementById('search').value.trim().length > 0;
+      const paged = activeSearch ? filtered : filtered.slice(0, currentPage * PAGE_SIZE);
+      const hasMore = !activeSearch && paged.length < totalCount;
 
       document.getElementById('prospectList').innerHTML = paged.map(p => `
         <div class="prospect-card ${p.priority} ${p.status === 'signed' ? 'signed' : ''} ${p.status === 'closed' ? 'stale' : ''} ${p.status === 'opening_soon' ? 'opening-soon' : ''} ${expandedId === p.id ? 'expanded' : ''}" id="card-${p.id}">
