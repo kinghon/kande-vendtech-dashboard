@@ -1200,6 +1200,105 @@ app.post('/api/prospects/:id/activities', (req, res) => {
   if (prospect) {
     if (req.body.outcome === 'interested') prospect.priority = 'hot';
     else if (req.body.outcome === 'not_interested') prospect.status = 'closed';
+
+    // ── Smart note parsing ──────────────────────────────────────────────────
+    const noteText = (req.body.description || req.body.notes || '').toLowerCase();
+    if (noteText) {
+      // 1. Detect "not interested" → stale unless a follow-up date is also set
+      const notInterestedPhrases = ['not interested', 'no interest', 'not interested at this time', 'not a good fit', 'passed', 'no thanks', 'declined', 'not looking', 'happy with current', 'has a vendor', 'already has a vendor', 'under contract'];
+      const isNotInterested = notInterestedPhrases.some(ph => noteText.includes(ph));
+
+      // 2. Try to extract a follow-up date from the note text
+      let parsedFollowUpDate = null;
+      let parsedFollowUpAction = null;
+
+      // Pattern: "follow up in X days/weeks/months"
+      const relMatch = noteText.match(/follow\s*(?:up)?\s*(?:in|after)\s*(\d+)\s*(day|week|month|year)s?/i);
+      if (relMatch) {
+        const num = parseInt(relMatch[1]);
+        const unit = relMatch[2].toLowerCase();
+        const d = new Date();
+        if (unit === 'day') d.setDate(d.getDate() + num);
+        else if (unit === 'week') d.setDate(d.getDate() + num * 7);
+        else if (unit === 'month') d.setMonth(d.getMonth() + num);
+        else if (unit === 'year') d.setFullYear(d.getFullYear() + num);
+        parsedFollowUpDate = d.toISOString().split('T')[0];
+        parsedFollowUpAction = 'Follow up';
+      }
+
+      // Pattern: "follow up on/by/around [date]" or "call/email back [date]"
+      if (!parsedFollowUpDate) {
+        const months = { january:0,february:1,march:2,april:3,may:4,june:5,july:6,august:7,september:8,october:9,november:10,december:11,jan:0,feb:1,mar:2,apr:3,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11 };
+        const absMatch = noteText.match(/(?:follow\s*up|call\s*back|reach\s*out|check\s*back|try\s*again|contact)\s*(?:on|by|around|in|after|next)?\s*([a-z]+)\s*(\d{1,2})(?:st|nd|rd|th)?(?:[,\s]*(\d{4}))?/i);
+        if (absMatch) {
+          const mon = months[absMatch[1].toLowerCase()];
+          const day = parseInt(absMatch[2]);
+          const year = absMatch[3] ? parseInt(absMatch[3]) : new Date().getFullYear();
+          if (mon !== undefined && day >= 1 && day <= 31) {
+            const d = new Date(year, mon, day);
+            // If date already passed this year, bump to next year
+            if (d < new Date() && !absMatch[3]) d.setFullYear(d.getFullYear() + 1);
+            parsedFollowUpDate = d.toISOString().split('T')[0];
+            parsedFollowUpAction = 'Follow up';
+          }
+        }
+      }
+
+      // Pattern: "next [month name]" or "in [month name]"
+      if (!parsedFollowUpDate) {
+        const months = { january:0,february:1,march:2,april:3,may:4,june:5,july:6,august:7,september:8,october:9,november:10,december:11,jan:0,feb:1,mar:2,apr:3,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11 };
+        const nextMonthMatch = noteText.match(/(?:next|in)\s+(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\b/i);
+        if (nextMonthMatch) {
+          const mon = months[nextMonthMatch[1].toLowerCase()];
+          const d = new Date();
+          d.setDate(1);
+          d.setMonth(mon);
+          if (d <= new Date()) d.setFullYear(d.getFullYear() + 1);
+          parsedFollowUpDate = d.toISOString().split('T')[0];
+          parsedFollowUpAction = 'Follow up';
+        }
+      }
+
+      // Apply parsed follow-up date to prospect
+      if (parsedFollowUpDate) {
+        prospect.next_action_date = parsedFollowUpDate;
+        prospect.next_action = parsedFollowUpAction || prospect.next_action || 'Follow up';
+        // Log it as a system activity so it's visible in the timeline
+        db.activities.push({
+          id: nextId(), prospect_id,
+          type: 'status-change',
+          description: `📅 Follow-up auto-set to ${parsedFollowUpDate} (detected from note)`,
+          created_at: new Date().toISOString()
+        });
+      }
+
+      // Apply not-interested → stale (only if no follow-up date was set or already exists)
+      if (isNotInterested && prospect.status !== 'signed') {
+        const hasFollowUp = parsedFollowUpDate || prospect.next_action_date;
+        if (hasFollowUp) {
+          // Has a follow-up — mark cold but don't stale
+          prospect.priority = 'normal';
+          db.activities.push({
+            id: nextId(), prospect_id,
+            type: 'status-change',
+            description: '🧊 Marked cold — not interested but follow-up date set',
+            created_at: new Date().toISOString()
+          });
+        } else {
+          // No follow-up — mark stale
+          prospect.status = 'closed';
+          prospect.stale_reason = 'Not interested';
+          db.activities.push({
+            id: nextId(), prospect_id,
+            type: 'status-change',
+            description: '⛔ Auto-marked stale — note indicated not interested',
+            created_at: new Date().toISOString()
+          });
+        }
+      }
+    }
+    // ── End smart note parsing ──────────────────────────────────────────────
+
     prospect.updated_at = new Date().toISOString();
   }
   saveDB(db);
