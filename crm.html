@@ -1080,7 +1080,8 @@
             <span style="font-size:0.85rem;font-weight:600;cursor:pointer;" onclick="openProspectModal(${p.id})">${esc(p.name)}</span>
             ${action ? `<span style="font-size:0.76rem;color:var(--muted);margin-left:6px;">${esc(action)}</span>` : ''}
           </div>
-          ${currentRep === null && p.assigned_rep ? `<span style="font-size:0.72rem;color:var(--muted);white-space:nowrap;">${esc(p.assigned_rep)}</span>` : ''}
+          ${currentRep === null && p.assigned_rep ? `<span style="font-size:0.72rem;color:var(--muted);white-space:nowrap;margin-right:4px;">${esc(p.assigned_rep)}</span>` : ''}
+          <button onclick="event.stopPropagation();completeFollowUp(${p.id})" title="Mark complete" style="flex-shrink:0;padding:3px 10px;font-size:0.72rem;font-weight:700;border-radius:6px;border:1px solid var(--success);background:rgba(56,161,105,0.12);color:var(--success);cursor:pointer;white-space:nowrap;">✓ Done</button>
         </div>`;
       }).join('');
     }
@@ -2326,6 +2327,22 @@
     function autoResize(el) {
       el.style.height = 'auto';
       el.style.height = el.scrollHeight + 'px';
+    }
+
+    function completeFollowUp(prospectId) {
+      const p = prospects.find(x => x.id === prospectId);
+      if (!p) return;
+      p.next_action_date = '';
+      p.follow_up_date = '';
+      p.next_action = '';
+      p.needs_action = false;
+      fetch(`/api/prospects/${prospectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ next_action_date: '', follow_up_date: '', next_action: '', needs_action: false })
+      });
+      renderFollowUps();
+      renderFollowUpCount();
     }
 
     function updateProspectField(prospectId, field, value) {
