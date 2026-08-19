@@ -1337,13 +1337,15 @@
           ).join(' ').toLowerCase();
           return nameText.includes(search) || addressText.includes(search) || mgmtText.includes(search) || contactText.includes(search);
         });
-        // Sort: name matches first, then address matches
+        // Sort: 1) name match + no touchpoints, 2) name match + has touchpoints, 3) address/other matches
         filtered = filtered.slice().sort((a, b) => {
           const aName = (a.name || '').toLowerCase().includes(search);
           const bName = (b.name || '').toLowerCase().includes(search);
-          if (aName && !bName) return -1;
-          if (!aName && bName) return 1;
-          return 0;
+          const aTouch = (a.activity_count || 0) > 0;
+          const bTouch = (b.activity_count || 0) > 0;
+          const aTier = aName ? (aTouch ? 1 : 0) : 2;
+          const bTier = bName ? (bTouch ? 1 : 0) : 2;
+          return aTier - bTier;
         });
       }
 
