@@ -6036,17 +6036,30 @@ app.get('/lead-review', (req, res) => res.sendFile(path.join(__dirname, 'lead-re
 // ===== TODOS API =====
 app.get('/todos', (req, res) => res.sendFile(path.join(__dirname, 'todos.html')));
 
+app.delete('/api/todos/all', requireAuth, (req, res) => {
+  db.todos = [];
+  saveDB(db);
+  res.json({ ok: true });
+});
+
 app.get('/api/todos', (req, res) => {
   res.json(db.todos || []);
 });
 
 app.post('/api/todos', (req, res) => {
-  if (!req.body.title || !req.body.title.trim()) {
+  // Support both legacy generic todos and new prospect-linked todos
+  const prospectId = req.body.prospect_id ? parseInt(req.body.prospect_id) : null;
+  let title = req.body.title || '';
+  if (!title.trim() && prospectId) {
+    const p = db.prospects.find(pr => pr.id === prospectId);
+    title = p ? p.name : 'Untitled';
+  }
+  if (!title.trim()) {
     return res.status(400).json({ error: 'title is required' });
   }
   const todo = {
     id: nextId(),
-    title: req.body.title || 'Untitled',
+    title: title,
     description: req.body.description || '',
     category: req.body.category || 'Other',
     priority: req.body.priority || 'medium',
@@ -6055,6 +6068,9 @@ app.post('/api/todos', (req, res) => {
     completed: false,
     completed_at: null,
     notes: req.body.notes || '',
+    prospect_id: prospectId,
+    rep: req.body.rep || null,
+    added_by: req.body.added_by || null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };

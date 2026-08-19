@@ -885,7 +885,7 @@
       const el = document.getElementById('statReopened');
       if (el) el.textContent = reopenedCount;
       renderProspects();
-      renderTodoList();
+      await renderTodoList();
       renderFollowUpCount();
       renderCompletedToday();
       renderRepCounters();
@@ -1156,8 +1156,16 @@
       renderTodoList();
     }
 
-    function renderTodoList() {
+    async function renderTodoList() {
       const today = new Date().toISOString().split('T')[0];
+      
+      // Fetch API todos
+      let apiTodos = [];
+      try {
+        const res = await fetch('/api/todos');
+        apiTodos = await res.json();
+      } catch(e) {}
+      apiTodos = apiTodos.filter(t => !t.completed && t.prospect_id);
       
       // Only show manually-worked prospects (has at least one manual activity logged)
       const MANUAL_ACT_TYPES = new Set(['call','pop-in','pop_in','email','note','other','meeting','visit']);
@@ -1188,34 +1196,56 @@
           p._isFollowUp = true;
         }
       });
-
-      // Filter by rep region
-      if (currentRepFilter !== 'all') {
-        withActions = withActions.filter(p => prospectMatchesRep(p, currentRepFilter));
+      
+      // Merge API todos as synthetic prospect items
+      const apiItems = apiTodos.map(t => {
+        const p = prospects.find(pr => pr.id === t.prospect_id);
+        return {
+          _fromApi: true,
+          _todoId: t.id,
+          id: t.prospect_id,
+          name: p ? p.name : t.title,
+          next_action: t.title || 'To-Do',
+          rep: t.rep || (p ? p.assigned_rep : null),
+          assigned_rep: t.rep || (p ? p.assigned_rep : null),
+          property_type: p ? p.property_type : '',
+          status: p ? p.status : 'new',
+          priority: p ? p.priority : 'normal',
+          next_action_date: t.due_date,
+          address: p ? p.address : '',
+          lat: p ? p.lat : null,
+          lng: p ? p.lng : null,
+          activities: p ? p.activities : [],
+        };
+      });
+      
+      // Combine prospect-based and API-based items
+      let allItems = [...withActions, ...apiItems];
+      
+      // Rep filtering: when logged in as rep, only show their items
+      if (currentRep) {
+        const repName = currentRep.charAt(0).toUpperCase() + currentRep.slice(1);
+        allItems = allItems.filter(item => {
+          const itemRep = (item.rep || item.assigned_rep || '');
+          return itemRep.toLowerCase() === repName.toLowerCase();
+        });
       }
       
       // Update count badge
-      document.getElementById('todoCount').textContent = withActions.length > 0 ? `(${withActions.length})` : '';
+      document.getElementById('todoCount').textContent = allItems.length > 0 ? `(${allItems.length})` : '';
 
       // Apply search filter
       const todoSearchEl = document.getElementById('todoSearch');
       const todoQuery = todoSearchEl ? todoSearchEl.value.toLowerCase().trim() : '';
-      const displayActions = todoQuery
-        ? withActions.filter(p => (p.name || '').toLowerCase().includes(todoQuery) || (p.next_action || '').toLowerCase().includes(todoQuery) || (p.property_type || '').toLowerCase().includes(todoQuery))
-        : withActions;
+      let displayItems = todoQuery
+        ? allItems.filter(p => (p.name || '').toLowerCase().includes(todoQuery) || (p.next_action || '').toLowerCase().includes(todoQuery) || (p.property_type || '').toLowerCase().includes(todoQuery))
+        : allItems;
       
       // Sort: action type first (Pop In → Call → Email → Other), then newest-added first within each type
       const actionOrder = {'Pop In': 1, 'Call': 2, 'Email': 3};
-      displayActions.sort((a, b) => {
+      displayItems.sort((a, b) => {
         if (a._isFollowUp && !b._isFollowUp) return 1;
         if (!a._isFollowUp && b._isFollowUp) return -1;
-        // When filtering Stuart or Vanessa, push Jordan-assigned items to bottom
-        if (currentRepFilter === 'Stuart' || currentRepFilter === 'Vanessa') {
-          const aIsJordan = (a.assigned_rep === 'Jordan') || (!a.assigned_rep && (getProspectZone(a)||{}).name === 'Central');
-          const bIsJordan = (b.assigned_rep === 'Jordan') || (!b.assigned_rep && (getProspectZone(b)||{}).name === 'Central');
-          if (aIsJordan && !bIsJordan) return 1;
-          if (!aIsJordan && bIsJordan) return -1;
-        }
         const typeSort = (actionOrder[a.next_action] || 99) - (actionOrder[b.next_action] || 99);
         if (typeSort !== 0) return typeSort;
         // Within same action type: newest next_action_added first
@@ -1224,7 +1254,7 @@
         return bDate - aDate;
       });
       
-      if (displayActions.length === 0) {
+      if (displayItems.length === 0) {
         document.getElementById('todoList').innerHTML = todoQuery
           ? '<div style="color:var(--muted);font-size:0.9rem;">🔍 No matching tasks</div>'
           : '<div style="color:var(--muted);font-size:0.9rem;">✅ No pending actions</div>';
@@ -1244,14 +1274,15 @@
         return 'background:rgba(128,90,213,0.15);color:#805ad5;border:1px solid rgba(128,90,213,0.3);';
       };
       
-      document.getElementById('todoList').innerHTML = displayActions.map(p => {
+      const renderItem = (p) => {
         const isFollowUp = p._isFollowUp;
         const displayAction = isFollowUp ? 'Follow up?' : p.next_action;
+        const isApi = p._fromApi;
         return `
         <div class="todo-item" style="position:relative;display:flex;align-items:center;gap:5px;padding:4px 8px;padding-bottom:20px;background:var(--bg);border-radius:6px;border:1px solid ${isFollowUp ? 'rgba(16,185,129,0.3)' : 'var(--border)'};flex-wrap:wrap;">
-          <input type="checkbox" onclick="completeTodo(${p.id}, '${isFollowUp ? 'Follow up' : p.next_action}')" style="width:14px;height:14px;cursor:pointer;">
+          <input type="checkbox" onclick="${isApi ? `completeApiTodo(${p._todoId})` : `completeTodo(${p.id}, '${isFollowUp ? 'Follow up' : p.next_action}')`}" style="width:14px;height:14px;cursor:pointer;">
           <span style="font-size:0.85rem;">${actionIcon(p.next_action, isFollowUp)}</span>
-          <span style="font-weight:600;font-size:0.82rem;color:var(--accent);cursor:pointer;text-decoration:underline;" onclick="openFromTodo(${p.id})">${esc(p.name)}</span>
+          <span style="font-weight:600;font-size:0.82rem;color:var(--accent);cursor:pointer;text-decoration:underline;" onclick="openProspectModal(${p.id})">${esc(p.name)}</span>
           ${p.property_type ? `<span style="font-size:0.65rem;color:var(--muted);background:var(--border);padding:1px 4px;border-radius:3px;">${esc(p.property_type)}</span>` : ''}
           <span class="prospect-badge badge-${getBadgeClass(p)}" style="font-size:0.65rem;padding:2px 8px;">${getBadgeLabel(p)}</span>
           <span style="font-size:0.8rem;color:var(--muted);">${isFollowUp ? 'Follow up?' : 'Action Needed:'}</span>
@@ -1264,9 +1295,49 @@
             ? `<span style="padding:6px 12px;border-radius:12px;font-size:0.75rem;font-weight:600;background:rgba(56,161,105,0.15);color:var(--success);">✓ In Route</span>`
             : `<button class="todo-route-btn" ontouchstart="this.classList.add('tapped')" onclick="event.stopPropagation(); event.preventDefault(); addToRoute(${p.id}); return false;" title="Add to Route Planner" style="padding:3px 8px;border-radius:6px;font-size:0.72rem;font-weight:600;cursor:pointer;border:1px solid var(--success);background:rgba(56,161,105,0.15);color:var(--success);-webkit-tap-highlight-color:transparent;touch-action:manipulation;">+ Route</button>
             <button ontouchstart="" onclick="event.stopPropagation(); mcAddStopFromTodo(${JSON.stringify(p.address || p.name).replace(/"/g,'&quot;')});" title="Add to Mileage Calculator" style="padding:3px 8px;border-radius:6px;font-size:0.72rem;font-weight:600;cursor:pointer;border:1px solid #7b2cbf;background:rgba(123,44,191,0.1);color:#7b2cbf;-webkit-tap-highlight-color:transparent;touch-action:manipulation;">+ Miles</button>`}
-          <button class="todo-delete-btn" onclick="event.stopPropagation(); removeTodo(${p.id})" title="Remove from to-do list" style="padding:2px 6px;border-radius:4px;font-size:0.7rem;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);margin-left:4px;">✕</button>
+          <button class="todo-delete-btn" onclick="event.stopPropagation(); ${isApi ? `deleteApiTodo(${p._todoId})` : `removeTodo(${p.id})`}" title="Remove from to-do list" style="padding:2px 6px;border-radius:4px;font-size:0.7rem;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);margin-left:4px;">✕</button>
         </div>
-      `}).join('');
+      `;
+      };
+      
+      if (currentRep === null) {
+        // Admin: group by rep
+        const reps = ['Stuart', 'Vanessa'];
+        let html = '';
+        reps.forEach(rep => {
+          const repItems = displayItems.filter(item => {
+            const itemRep = (item.rep || item.assigned_rep || '');
+            return itemRep.toLowerCase() === rep.toLowerCase();
+          });
+          if (repItems.length > 0) {
+            html += `<div style="font-size:0.9rem;font-weight:700;color:var(--text);margin:12px 0 8px;padding-bottom:4px;border-bottom:2px solid var(--border);">📋 ${rep}'s To-Do <span style="font-size:0.8rem;color:var(--muted);font-weight:500;">(${repItems.length})</span></div>`;
+            html += repItems.map(renderItem).join('');
+          }
+        });
+        // Unassigned items
+        const unassigned = displayItems.filter(item => {
+          const r = (item.rep || item.assigned_rep || '');
+          return !r || !reps.some(rep => rep.toLowerCase() === r.toLowerCase());
+        });
+        if (unassigned.length > 0) {
+          html += `<div style="font-size:0.9rem;font-weight:700;color:var(--text);margin:12px 0 8px;padding-bottom:4px;border-bottom:2px solid var(--border);">📋 Unassigned To-Do <span style="font-size:0.8rem;color:var(--muted);font-weight:500;">(${unassigned.length})</span></div>`;
+          html += unassigned.map(renderItem).join('');
+        }
+        document.getElementById('todoList').innerHTML = html;
+      } else {
+        document.getElementById('todoList').innerHTML = displayItems.map(renderItem).join('');
+      }
+    }
+
+    async function completeApiTodo(todoId) {
+      await fetch(`/api/todos/${todoId}/complete`, { method: 'PUT' });
+      renderTodoList();
+    }
+
+    async function deleteApiTodo(todoId) {
+      if (!confirm('Remove this to-do item?')) return;
+      await fetch(`/api/todos/${todoId}`, { method: 'DELETE' });
+      renderTodoList();
     }
 
     // addToRoute is defined in the map section below - this stub calls it
@@ -1450,6 +1521,33 @@
 
     function openFromTodo(id) {
       openProspectModal(id);
+    }
+
+    async function addToTodo(prospectId) {
+      // Determine which rep this location belongs to
+      const p = prospects.find(pr => pr.id === prospectId);
+      if (!p) return;
+
+      // If logged in as rep, add to their own list
+      // If admin, add to the assigned rep's list (or prompt)
+      const repName = currentRep
+        ? currentRep.charAt(0).toUpperCase() + currentRep.slice(1)
+        : (p.assigned_rep || 'Stuart'); // admin: use assigned rep
+
+      const res = await fetch('/api/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prospect_id: prospectId, rep: repName, added_by: currentRep || 'admin' })
+      });
+      if (res.ok) {
+        renderTodoList();
+        // Brief flash on button
+        const btn = event.target;
+        if (btn) {
+          btn.textContent = '✓ Added';
+          setTimeout(() => btn.textContent = '+ To-Do', 1500);
+        }
+      }
     }
 
     function renderProspects() {
@@ -1658,6 +1756,7 @@
                   <option value="stale" ${p.status === 'closed' ? 'selected' : ''}>⛔ STALE</option>
                 </select>
                 <button onclick="event.stopPropagation(); toggleExpand(${p.id})" style="padding:4px 12px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;border:1px solid var(--accent);background:rgba(49,130,206,0.08);color:var(--accent);">Set Next Follow Up</button>
+                <button onclick="event.stopPropagation();addToTodo(${p.id})" style="padding:4px 12px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;border:1px solid #805ad5;background:rgba(128,90,216,0.08);color:#805ad5;">+ To-Do</button>
 
                 ${isInRoute(p.id) ? `<span style="padding:4px 10px;border-radius:6px;font-size:0.75rem;font-weight:600;background:rgba(56,161,105,0.15);color:var(--success);border:1px solid rgba(56,161,105,0.3);">✓ In Route</span>` : `<button onclick="event.stopPropagation(); addToRoute(${p.id});" style="padding:4px 10px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;border:1px solid var(--success);background:rgba(56,161,105,0.1);color:var(--success);">🗺️ + Route</button>`}
                 ${p.lat && p.lng ? `<button onclick="event.stopPropagation(); showOnMap(${p.id});" style="padding:4px 10px;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;border:1px solid #805ad5;background:rgba(128,90,213,0.1);color:#805ad5;">📍 See on Map</button>` : ''}
@@ -3459,6 +3558,7 @@
           <a href="#" onclick="event.preventDefault();map.closePopup();openProspectModal(${p.id});return false;" style="padding:4px 10px;background:#3182ce;color:#fff;border-radius:6px;font-size:11px;text-decoration:none;">View Details</a>
           ${routeBtn}
           ${popInBtn}
+          <button onclick="event.preventDefault();addToTodo(${p.id});" style="padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid #805ad5;background:rgba(128,90,216,0.08);color:#805ad5;">+ To-Do</button>
         </div>
       `).openPopup();
     }
