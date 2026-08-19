@@ -873,7 +873,7 @@
       } else {
         document.getElementById('statHot').textContent = s.hot;
         document.getElementById('statActive').textContent = s.active;
-        document.getElementById('statFollowup').textContent = prospects.filter(p => (p.next_action_date || p.follow_up_date) && p.status !== 'signed' && p.status !== 'closed').length;
+        document.getElementById('statFollowup').textContent = s.needsFollowup; // updated after prospects load
         document.getElementById('statContracts').textContent = s.intalks ?? prospects.filter(p => p.priority === 'intalks' && p.status !== 'signed' && p.status !== 'closed').length;
       }
       document.getElementById('statWeek').textContent = s.thisWeek;
@@ -894,6 +894,10 @@
       renderRepCounters();
       geocodeAndPlot();
       if (currentRep) loadStats(); // re-run stat cards now that prospects are loaded for rep filtering
+      // Update follow-up count now that prospects are loaded
+      const fuCount = prospects.filter(p => (p.next_action_date || p.follow_up_date) && p.status !== 'signed' && p.status !== 'closed').length;
+      const fuEl = document.getElementById('statFollowup');
+      if (fuEl) fuEl.textContent = fuCount;
     }
 
     function renderRepCounters() {
