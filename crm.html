@@ -1323,40 +1323,24 @@
       }
 
       if (search) {
+        // Name-first search: match on name/address/contacts only (not notes/activities)
+        // Sort so name matches appear before address-only matches
         filtered = filtered.filter(p => {
-          // Search all text fields
-          const fields = [
-            p.name,
-            p.address,
-            p.property_type,
-            p.units,
-            p.phone,
-            p.hours,
-            p.notes,
-            p.kurtis_notes,
-            p.primary_contact,
-            p.stale_reason,
-            p.management_company,
-            p.website,
-            p.contact_name,
-            p.enrich_notes,
-            p.next_action
-          ];
-          // Search contacts
-          const contactText = (p.contacts || []).map(c => 
-            [c.name, c.role, c.phone, c.email].join(' ')
-          ).join(' ');
-          // Search activities
-          const activityText = (p.activities || []).map(a => 
-            [a.type, a.description, a.outcome, a.next_action].join(' ')
-          ).join(' ');
-          
-          const allText = [...fields, contactText, activityText]
-            .filter(Boolean)
-            .join(' ')
-            .toLowerCase();
-          
-          return allText.includes(search);
+          const nameText = (p.name || '').toLowerCase();
+          const addressText = (p.address || '').toLowerCase();
+          const mgmtText = (p.management_company || '').toLowerCase();
+          const contactText = (p.contacts || []).map(c =>
+            [c.name, c.role, c.email].join(' ')
+          ).join(' ').toLowerCase();
+          return nameText.includes(search) || addressText.includes(search) || mgmtText.includes(search) || contactText.includes(search);
+        });
+        // Sort: name matches first, then address matches
+        filtered = filtered.slice().sort((a, b) => {
+          const aName = (a.name || '').toLowerCase().includes(search);
+          const bName = (b.name || '').toLowerCase().includes(search);
+          if (aName && !bName) return -1;
+          if (!aName && bName) return 1;
+          return 0;
         });
       }
 
