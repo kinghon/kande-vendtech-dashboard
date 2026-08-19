@@ -31,14 +31,22 @@ trap "rm -rf '$TMP' '$COOKIE'" EXIT
 
 log "📊 Business data export starting ($BACKUP_DATE)..."
 
-# Pull full export via Python helper (reliable session auth)
+# Pull full export via Python helper (reliable session auth) — retry up to 4x
 log "  Fetching full export from sales.kandedash.com..."
-if ! python3 /Users/kurtishon/clawd/kande-vendtech/scripts/crm-export.py "$TMP/full.json" 2>&1 | tee -a "$LOG_FILE" | grep -q "prospects:"; then
-  log "  ✗ Export failed — aborting"; exit 1
-fi
+EXPORT_OK=0
+for attempt in 1 2 3 4; do
+  if python3 /Users/kurtishon/clawd/kande-vendtech/scripts/crm-export.py "$TMP/full.json" 2>&1 | tee -a "$LOG_FILE" | grep -q "prospects:"; then
+    if [ -s "$TMP/full.json" ]; then
+      EXPORT_OK=1; break
+    fi
+  fi
+  log "  ✗ Export attempt $attempt failed — retrying in 30s"
+  rm -f "$TMP/full.json"
+  [ "$attempt" -lt 4 ] && sleep 30
+done
 
-if [ ! -s "$TMP/full.json" ]; then
-  log "  ✗ Empty response — aborting"; exit 1
+if [ "$EXPORT_OK" -eq 0 ]; then
+  log "  ✗ Export failed after 4 attempts — aborting"; exit 1
 fi
 
 # Generate the 3 data files from the export
