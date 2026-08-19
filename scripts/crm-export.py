@@ -48,23 +48,33 @@ try:
         total_keys = len(parsed.keys())
         print(f"raw-db: {total_keys} collections | prospects:{prospects} activities:{activities} photos:{photos}", file=sys.stderr)
     else:
-        # Session-based full export
-        req = urllib.request.Request(f"{CRM}/api/auth/login",
-            data=json.dumps({'password': PASSWORD}).encode(),
-            headers={'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0'})
-        with opener.open(req, timeout=15) as r:
-            result = json.loads(r.read())
-        if not result.get('success'):
-            print(f"Auth failed: {result}", file=sys.stderr)
-            sys.exit(1)
-
-        with opener.open(urllib.request.Request(f"{CRM}/api/export/json"), timeout=60) as r:
-            data = r.read()
-
-        parsed = json.loads(data)
-        if 'error' in parsed:
-            print(f"Export error: {parsed}", file=sys.stderr)
-            sys.exit(1)
+        # Session-based full export — retry up to 4x with backoff
+        data = None
+        for attempt in range(4):
+            try:
+                jar.clear()
+                req = urllib.request.Request(f"{CRM}/api/auth/login",
+                    data=json.dumps({'password': PASSWORD}).encode(),
+                    headers={'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0'})
+                with opener.open(req, timeout=20) as r:
+                    result = json.loads(r.read())
+                if not result.get('success'):
+                    raise RuntimeError(f"Auth failed: {result}")
+                with opener.open(urllib.request.Request(f"{CRM}/api/export/json"), timeout=90) as r:
+                    data = r.read()
+                parsed = json.loads(data)
+                if 'error' in parsed:
+                    raise RuntimeError(f"Export error: {parsed}")
+                break
+            except Exception as e:
+                if attempt < 3:
+                    wait = 20 * (attempt + 1)
+                    print(f"Attempt {attempt+1} failed ({e}), retrying in {wait}s...", file=sys.stderr)
+                    time.sleep(wait)
+                else:
+                    raise
+        if data is None:
+            raise RuntimeError("All retry attempts failed")
 
         prospects = len(parsed.get('prospects', []))
         activities = len(parsed.get('activities', []))
