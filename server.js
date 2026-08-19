@@ -3715,6 +3715,7 @@ app.get('/api/stats', (req, res) => {
   res.json({
     prospects: db.prospects.length,
     hot: db.prospects.filter(p => p.priority === 'hot').length,
+    intalks: db.prospects.filter(p => p.priority === 'intalks' && p.status !== 'signed' && p.status !== 'closed').length,
     active: db.prospects.filter(p => p.status === 'active' || p.status === 'new').length,
     signed: db.prospects.filter(p => p.status === 'signed').length,
     closed: db.prospects.filter(p => p.status === 'closed').length,
