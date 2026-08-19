@@ -1167,35 +1167,8 @@
       } catch(e) {}
       apiTodos = apiTodos.filter(t => !t.completed && t.prospect_id);
       
-      // Only show manually-worked prospects (has at least one manual activity logged)
-      const MANUAL_ACT_TYPES = new Set(['call','pop-in','pop_in','email','note','other','meeting','visit']);
-      function hasManualActivity(p) {
-        return (p.activities || []).some(a =>
-          MANUAL_ACT_TYPES.has((a.type||'').toLowerCase()) &&
-          a.source !== 'agent' &&
-          !/^Scout\b/i.test(a.description||'')
-        );
-      }
-
-      // Include prospects with next_action OR where follow_up_date has passed (excluding stale/signed)
-      let withActions = prospects.filter(p => {
-        if (p.status === 'closed' || p.status === 'signed') return false;
-        // Show if needs_action is set with a next_action (user explicitly flagged it)
-        if (p.needs_action && p.next_action) return true;
-        // Also show if manually sourced or has a real logged activity
-        const isManual = p.next_action_source === 'manual' || hasManualActivity(p);
-        if (isManual && p.next_action) return true;
-        // Check if follow-up is due
-        if (p.follow_up_date && p.follow_up_date <= today) return true;
-        return false;
-      });
-      
-      // For follow-up items without next_action, set a temporary action
-      withActions.forEach(p => {
-        if (!p.next_action && p.follow_up_date && p.follow_up_date <= today) {
-          p._isFollowUp = true;
-        }
-      });
+      // To-do list is now purely API-driven (rep-specific)
+      let withActions = [];
       
       // Merge API todos as synthetic prospect items
       const apiItems = apiTodos.map(t => {
