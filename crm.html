@@ -1775,11 +1775,11 @@
               </div>
               <div class="field-group">
                 <label class="field-label">Units</label>
-                <input class="field-input" value="${esc(p.units || '')}" onchange="updateField(${p.id},'units',this.value)" style="padding:6px 8px;font-size:0.85rem;">
+                <input class="field-input" value="${esc(p.units || '')}" oninput="updateField(${p.id},'units',this.value)" style="padding:6px 8px;font-size:0.85rem;">
               </div>
               <div class="field-group" style="grid-column:1/-1;">
                 <label class="field-label">Address</label>
-                <input class="field-input" value="${esc(p.address || '')}" onchange="updateField(${p.id},'address',this.value)" style="padding:6px 8px;font-size:0.85rem;">
+                <input class="field-input" value="${esc(p.address || '')}" oninput="updateField(${p.id},'address',this.value)" style="padding:6px 8px;font-size:0.85rem;">
               </div>
               <div class="field-group">
                 <label class="field-label">Hours</label>
@@ -2315,6 +2315,28 @@
       // Update local data
       const p = prospects.find(p => p.id === id);
       if (p) p[field] = value;
+
+      // If modal is open for this prospect, refresh the header
+      const modal = document.getElementById('prospectDetailModal');
+      if (modal && modal.classList.contains('open')) {
+        if (field === 'address') {
+          const titleEl = document.getElementById('prospectModalTitle');
+          if (titleEl) {
+            const sub = titleEl.querySelector('div:last-child');
+            if (sub && p) sub.textContent = `${p.property_type||''} ${value ? '· ' + value : ''}`;
+          }
+        }
+        if (field === 'name' && p) {
+          const titleEl = document.getElementById('prospectModalTitle');
+          if (titleEl) {
+            const strong = titleEl.querySelector('strong');
+            if (strong) strong.textContent = value;
+          }
+        }
+        // Flash saved indicator inside modal
+        const modalSaved = document.getElementById('modalSavedIndicator');
+        if (modalSaved) { modalSaved.style.opacity='1'; setTimeout(()=>modalSaved.style.opacity='0',1500); }
+      }
 
       // Debounce save
       clearTimeout(saveTimers[id]);
@@ -3789,6 +3811,7 @@
   <div id="prospectModalInner">
     <div id="prospectModalHeader">
       <div id="prospectModalTitle" style="flex:1;"></div>
+      <span id="modalSavedIndicator" style="font-size:0.75rem;color:#38a169;font-weight:600;opacity:0;transition:opacity 0.3s;">Saved ✓</span>
       <button id="prospectModalClose" onclick="closeProspectModal()">&#x2715;</button>
     </div>
     <div id="prospectModalBody"></div>
