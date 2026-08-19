@@ -523,7 +523,10 @@
         <option value="last_interaction">Sort: Last Interaction (New to Old)</option>
         <option value="no_touchpoints">Sort: No Touchpoints Yet</option>
       </select>
-      <input type="text" class="search-input" id="search" placeholder="Search prospects...">
+      <div style="position:relative;display:inline-block;">
+        <input type="text" class="search-input" id="search" placeholder="Search prospects..." style="padding-right:28px;">
+        <span id="searchClear" onclick="document.getElementById('search').value='';document.getElementById('search').dispatchEvent(new Event('input'));" style="display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:#999;font-size:16px;line-height:1;">&times;</span>
+      </div>
     </div>
 
 
@@ -2265,6 +2268,8 @@
     }
     document.getElementById('search').addEventListener('input', () => {
       clearTimeout(searchTimeout);
+      const hasVal = document.getElementById('search').value.length > 0;
+      document.getElementById('searchClear').style.display = hasVal ? 'block' : 'none';
       searchTimeout = setTimeout(() => { currentPage = 1; renderProspects(); geocodeAndPlot(); }, 300);
     });
     document.getElementById('typeFilter').addEventListener('change', () => { currentPage = 1; renderProspects(); geocodeAndPlot(); });
