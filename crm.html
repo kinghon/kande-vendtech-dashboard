@@ -1066,11 +1066,11 @@
     function renderFollowUps() {
       const today = new Date(); today.setHours(0,0,0,0);
       const items = getFollowUpItems();
-      if (items.length === 0) {
+      if (items.length === 0 && completedFollowUpMap.size === 0) {
         document.getElementById('followUpList').innerHTML = '<div style="padding:8px 4px;color:var(--muted);font-size:0.9rem;">No follow-ups set.</div>';
         return;
       }
-      document.getElementById('followUpList').innerHTML = items.map(p => {
+      const activeRows = items.map(p => {
         const d = p.next_action_date||p.follow_up_date;
         const info = followUpDateLabel(d, today);
         const action = p.next_action || '';
@@ -1083,7 +1083,21 @@
           ${currentRep === null && p.assigned_rep ? `<span style="font-size:0.72rem;color:var(--muted);white-space:nowrap;margin-right:4px;">${esc(p.assigned_rep)}</span>` : ''}
           <button onclick="event.stopPropagation();completeFollowUp(${p.id})" title="Mark complete" style="flex-shrink:0;padding:3px 10px;font-size:0.72rem;font-weight:700;border-radius:6px;border:1px solid var(--success);background:rgba(56,161,105,0.12);color:var(--success);cursor:pointer;white-space:nowrap;">✓ Done</button>
         </div>`;
-      }).join('');
+      });
+
+      const completedRows = [...completedFollowUpMap.entries()].map(([id, c]) => {
+        return `<div style="display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid var(--border);opacity:0.45;">
+          <div style="min-width:76px;font-size:0.78rem;font-weight:700;color:var(--muted);">Done</div>
+          <div style="flex:1;">
+            <span style="font-size:0.85rem;font-weight:600;text-decoration:line-through;color:var(--muted);">${esc(c.name)}</span>
+            ${c.action ? `<span style="font-size:0.76rem;color:var(--muted);margin-left:6px;">${esc(c.action)}</span>` : ''}
+          </div>
+          ${currentRep === null && c.assignedRep ? `<span style="font-size:0.72rem;color:var(--muted);white-space:nowrap;margin-right:4px;">${esc(c.assignedRep)}</span>` : ''}
+          <span style="flex-shrink:0;font-size:0.72rem;font-weight:700;color:var(--success);">✓ Done</span>
+        </div>`;
+      });
+
+      document.getElementById('followUpList').innerHTML = [...activeRows, ...completedRows].join('') || '<div style="padding:8px 4px;color:var(--muted);font-size:0.9rem;">No follow-ups set.</div>';
     }
 
     function toggleTodoList() {
@@ -2329,9 +2343,33 @@
       el.style.height = el.scrollHeight + 'px';
     }
 
+    // Track follow-ups completed today — stays visible until 11:59pm
+    const completedFollowUpMap = new Map(); // id → {name, date, action, assignedRep}
+
+    function scheduleFollowUpMidnightClear() {
+      const now = new Date();
+      const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 0, 0);
+      const msUntil = midnight - now;
+      if (msUntil > 0) {
+        setTimeout(() => {
+          completedFollowUpMap.clear();
+          renderFollowUps();
+          renderFollowUpCount();
+        }, msUntil);
+      }
+    }
+    scheduleFollowUpMidnightClear();
+
     function completeFollowUp(prospectId) {
       const p = prospects.find(x => x.id === prospectId);
       if (!p) return;
+      // Save display info before clearing
+      completedFollowUpMap.set(prospectId, {
+        name: p.name,
+        date: p.next_action_date || p.follow_up_date,
+        action: p.next_action || '',
+        assignedRep: p.assigned_rep || ''
+      });
       p.next_action_date = '';
       p.follow_up_date = '';
       p.next_action = '';
