@@ -1272,7 +1272,23 @@ app.post('/api/prospects/:id/activities', (req, res) => {
         });
       }
 
-      // Apply not-interested → stale (only if no follow-up date was set or already exists)
+      // 3. Auto-assign hot/warm priority based on pop-in note sentiment
+      const isPopIn = (req.body.type || '').toLowerCase().includes('pop') || (req.body.type || '').toLowerCase().includes('visit');
+      if (isPopIn && prospect.status !== 'signed' && prospect.status !== 'closed') {
+        const hotPhrases = ['interested', 'very interested', 'wants to move forward', 'loves it', 'let\'s do it', 'send contract', 'send proposal', 'wants a proposal', 'ready to sign', 'sign up', 'sounds good', 'great fit', 'yes', 'on board'];
+        const warmPhrases = ['maybe', 'possibly', 'might be interested', 'come back', 'check back', 'follow up', 'think about it', 'considering', 'needs to think', 'not sure yet', 'get back to us', 'will let us know', 'later', 'not now', 'busy right now', 'talk to management', 'needs approval'];
+        const isHot = hotPhrases.some(ph => noteText.includes(ph));
+        const isWarm = !isHot && warmPhrases.some(ph => noteText.includes(ph));
+        if (isHot && prospect.priority !== 'intalks') {
+          prospect.priority = 'hot';
+          db.activities.push({ id: nextId(), prospect_id, type: 'status-change', description: '🔥 Auto-marked Hot — pop-in note indicates interest', created_at: new Date().toISOString() });
+        } else if (isWarm && !['hot','intalks'].includes(prospect.priority)) {
+          prospect.priority = 'warm';
+          db.activities.push({ id: nextId(), prospect_id, type: 'status-change', description: '🟠 Auto-marked Warm — pop-in note indicates possible interest', created_at: new Date().toISOString() });
+        }
+      }
+
+      // 4. Apply not-interested → stale (only if no follow-up date was set or already exists)
       if (isNotInterested && prospect.status !== 'signed') {
         const hasFollowUp = parsedFollowUpDate || prospect.next_action_date;
         if (hasFollowUp) {
