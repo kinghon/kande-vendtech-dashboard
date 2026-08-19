@@ -187,7 +187,7 @@ app.get('/api/auth/refresh', (req, res) => {
   if (token && sessions[token]) {
     sessions[token] = Date.now(); // bump timestamp
     saveDB(db);
-    res.setHeader('Set-Cookie', `vendtech_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${30 * 24 * 60 * 60}`);
+    res.setHeader('Set-Cookie', `vendtech_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${21 * 24 * 60 * 60}`);
     return res.json({ ok: true });
   }
   res.status(401).json({ ok: false });
