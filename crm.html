@@ -1337,16 +1337,6 @@
           ).join(' ').toLowerCase();
           return nameText.includes(search) || addressText.includes(search) || mgmtText.includes(search) || contactText.includes(search);
         });
-        // Sort: 1) name match + no touchpoints, 2) name match + has touchpoints, 3) address/other matches
-        filtered = filtered.slice().sort((a, b) => {
-          const aName = (a.name || '').toLowerCase().includes(search);
-          const bName = (b.name || '').toLowerCase().includes(search);
-          const aTouch = (a.activity_count || 0) > 0;
-          const bTouch = (b.activity_count || 0) > 0;
-          const aTier = aName ? (aTouch ? 1 : 0) : 2;
-          const bTier = bName ? (bTouch ? 1 : 0) : 2;
-          return aTier - bTier;
-        });
       }
 
       // Normalize property type (combine apartment/condo variants)
@@ -1452,6 +1442,20 @@
           if (aDate && bDate) return aDate.localeCompare(bDate);
           const priorityOrder = { hot: 1, intalks: 2, warm: 3, normal: 4 };
           return (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4);
+        });
+      }
+
+      // Search sort: applied AFTER general sort so it takes priority as primary key
+      // 1) name match + no touchpoints, 2) name match + has touchpoints, 3) address/other matches
+      if (search) {
+        filtered = filtered.slice().sort((a, b) => {
+          const aName = (a.name || '').toLowerCase().includes(search);
+          const bName = (b.name || '').toLowerCase().includes(search);
+          const aTouch = (a.activity_count || 0) > 0;
+          const bTouch = (b.activity_count || 0) > 0;
+          const aTier = aName ? (aTouch ? 1 : 0) : 2;
+          const bTier = bName ? (bTouch ? 1 : 0) : 2;
+          return aTier - bTier;
         });
       }
 
