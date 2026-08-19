@@ -525,10 +525,17 @@
 
     <!-- Follow Ups Section -->
     <div id="followUpsSection" style="background:var(--card);border-radius:12px;overflow:hidden;margin-bottom:20px;border:1px solid #dd6b20;">
-      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:#dd6b20;padding:12px 16px;" onclick="toggleFollowUps()">
-        <h3 style="margin:0;font-size:1.1rem;color:#fff;">📅 Follow Ups <span id="followUpCount" style="font-size:0.85rem;color:rgba(255,255,255,0.8);font-weight:normal;"></span> <span id="followUpArrow" style="font-size:0.8rem;">▶</span></h3>
+      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:#dd6b20;padding:10px 16px;gap:10px;" onclick="toggleFollowUps()">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex:1;min-width:0;">
+          <h3 style="margin:0;font-size:1.1rem;color:#fff;white-space:nowrap;">📅 Follow Ups <span id="followUpCount" style="font-size:0.82rem;color:rgba(255,255,255,0.75);font-weight:normal;"></span></h3>
+          <div id="followUpTodayChips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+        </div>
+        <span id="followUpArrow" style="font-size:0.8rem;color:#fff;flex-shrink:0;">▶</span>
       </div>
-      <div id="followUpContent" style="display:none;padding:12px;">
+      <!-- Always-visible next 3 upcoming -->
+      <div id="followUpPreview" style="padding:8px 12px 4px;"></div>
+      <!-- Full list (expanded) -->
+      <div id="followUpContent" style="display:none;padding:0 12px 12px;">
         <div id="followUpList"></div>
       </div>
     </div>
@@ -953,17 +960,66 @@
       localStorage.setItem('completedToday', JSON.stringify(completedToday));
     }
     
-    function renderFollowUpCount() {
+    function getFollowUpItems() {
       const today = new Date(); today.setHours(0,0,0,0);
       const repName = currentRep ? currentRep.charAt(0).toUpperCase() + currentRep.slice(1) : null;
-      const items = prospects.filter(p => {
+      return prospects.filter(p => {
         const d = p.next_action_date || p.follow_up_date;
         if (!d || p.status === 'signed' || p.status === 'closed') return false;
         return repName ? (p.assigned_rep||'').toLowerCase() === repName.toLowerCase() : true;
-      });
-      const overdueCount = items.filter(p => new Date(p.next_action_date || p.follow_up_date) < today).length;
+      }).sort((a, b) => new Date(a.next_action_date||a.follow_up_date) - new Date(b.next_action_date||b.follow_up_date));
+    }
+
+    function followUpDateLabel(d, today) {
+      const date = new Date(d);
+      const diffDays = Math.round((date - today) / 86400000);
+      if (diffDays < 0) return { label: Math.abs(diffDays) + 'd overdue', color: '#e53e3e', overdue: true };
+      if (diffDays === 0) return { label: 'Today', color: '#fff', overdue: false };
+      if (diffDays === 1) return { label: 'Tomorrow', color: '#f6ad55', overdue: false };
+      return { label: date.toLocaleDateString('en-US', { month:'short', day:'numeric' }), color: 'var(--muted)', overdue: false };
+    }
+
+    function renderFollowUpCount() {
+      const today = new Date(); today.setHours(0,0,0,0);
+      const items = getFollowUpItems();
+      const overdueCount = items.filter(p => new Date(p.next_action_date||p.follow_up_date) < today).length;
       const countEl = document.getElementById('followUpCount');
       if (countEl) countEl.textContent = items.length > 0 ? `(${items.length}${overdueCount > 0 ? ', ' + overdueCount + ' overdue' : ''})` : '';
+
+      // Today chips in header
+      const todayItems = items.filter(p => {
+        const d = new Date(p.next_action_date||p.follow_up_date); d.setHours(0,0,0,0);
+        return d.getTime() === today.getTime();
+      });
+      const chipsEl = document.getElementById('followUpTodayChips');
+      if (chipsEl) {
+        chipsEl.innerHTML = todayItems.map(p =>
+          `<span onclick="event.stopPropagation();openProspectModal(${p.id})" style="font-size:0.75rem;font-weight:700;background:rgba(255,255,255,0.25);color:#fff;padding:2px 8px;border-radius:10px;cursor:pointer;white-space:nowrap;" title="${esc(p.next_action||'')}">📍 ${esc(p.name)}</span>`
+        ).join('');
+      }
+
+      // Preview: next 3 upcoming (not overdue)
+      const upcoming = items.filter(p => new Date(p.next_action_date||p.follow_up_date) >= today).slice(0, 3);
+      const previewEl = document.getElementById('followUpPreview');
+      if (previewEl) {
+        if (upcoming.length === 0) { previewEl.innerHTML = ''; }
+        else {
+          previewEl.innerHTML = upcoming.map(p => {
+            const d = p.next_action_date||p.follow_up_date;
+            const info = followUpDateLabel(d, today);
+            const action = p.next_action || '';
+            return `<div style="display:flex;align-items:center;gap:10px;padding:6px 4px;border-bottom:1px solid var(--border);">
+              <div style="min-width:76px;font-size:0.78rem;font-weight:700;color:${info.color === '#fff' ? '#dd6b20' : info.color};">${info.label}</div>
+              <div style="flex:1;">
+                <span style="font-size:0.85rem;font-weight:600;cursor:pointer;" onclick="openProspectModal(${p.id})">${esc(p.name)}</span>
+                ${action ? `<span style="font-size:0.76rem;color:var(--muted);margin-left:6px;">${esc(action)}</span>` : ''}
+              </div>
+              ${currentRep === null && p.assigned_rep ? `<span style="font-size:0.72rem;color:var(--muted);white-space:nowrap;">${esc(p.assigned_rep)}</span>` : ''}
+            </div>`;
+          }).join('');
+        }
+      }
+
       if (followUpsExpanded) renderFollowUps();
     }
 
@@ -976,65 +1032,23 @@
     }
 
     function renderFollowUps() {
-      const today = new Date();
-      today.setHours(0,0,0,0);
-      const repName = currentRep ? currentRep.charAt(0).toUpperCase() + currentRep.slice(1) : null;
-
-      let items = prospects.filter(p => {
-        const d = p.next_action_date || p.follow_up_date;
-        if (!d) return false;
-        if (p.status === 'signed' || p.status === 'closed') return false;
-        // Rep filter
-        if (repName) {
-          return (p.assigned_rep || '').toLowerCase() === repName.toLowerCase();
-        }
-        return true; // admin sees all
-      });
-
-      // Sort soonest first (overdue sorted oldest last so upcoming is front)
-      items = items.slice().sort((a, b) => {
-        const da = new Date(a.next_action_date || a.follow_up_date);
-        const db = new Date(b.next_action_date || b.follow_up_date);
-        return da - db;
-      });
-
-      const countEl = document.getElementById('followUpCount');
-      const overdueCount = items.filter(p => new Date(p.next_action_date || p.follow_up_date) < today).length;
-      countEl.textContent = items.length > 0 ? `(${items.length}${overdueCount > 0 ? ', ' + overdueCount + ' overdue' : ''})` : '';
-
+      const today = new Date(); today.setHours(0,0,0,0);
+      const items = getFollowUpItems();
       if (items.length === 0) {
-        document.getElementById('followUpList').innerHTML = '<div style="padding:12px;color:var(--muted);font-size:0.9rem;">No follow-ups set.</div>';
+        document.getElementById('followUpList').innerHTML = '<div style="padding:8px 4px;color:var(--muted);font-size:0.9rem;">No follow-ups set.</div>';
         return;
       }
-
       document.getElementById('followUpList').innerHTML = items.map(p => {
-        const d = p.next_action_date || p.follow_up_date;
-        const date = new Date(d);
-        const isOverdue = date < today;
-        const diffDays = Math.round((date - today) / 86400000);
-        let dateLabel, dateColor;
-        if (isOverdue) {
-          dateLabel = Math.abs(diffDays) === 0 ? 'Today' : `${Math.abs(diffDays)}d overdue`;
-          dateColor = '#e53e3e';
-        } else if (diffDays === 0) {
-          dateLabel = 'Today';
-          dateColor = '#dd6b20';
-        } else if (diffDays === 1) {
-          dateLabel = 'Tomorrow';
-          dateColor = '#dd6b20';
-        } else {
-          dateLabel = date.toLocaleDateString('en-US', { month:'short', day:'numeric' });
-          dateColor = 'var(--muted)';
-        }
-        const action = p.next_action || p.follow_up_action || '';
-        const rep = p.assigned_rep ? `<span style="font-size:0.72rem;color:var(--muted);">${p.assigned_rep}</span>` : '';
-        return `<div style="display:flex;align-items:center;gap:10px;padding:8px 6px;border-bottom:1px solid var(--border);" >
-          <div style="min-width:80px;font-size:0.8rem;font-weight:700;color:${dateColor};">${dateLabel}</div>
+        const d = p.next_action_date||p.follow_up_date;
+        const info = followUpDateLabel(d, today);
+        const action = p.next_action || '';
+        return `<div style="display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid var(--border);">
+          <div style="min-width:76px;font-size:0.78rem;font-weight:700;color:${info.overdue ? '#e53e3e' : info.color === '#fff' ? '#dd6b20' : info.color};">${info.label}</div>
           <div style="flex:1;">
-            <div style="font-size:0.88rem;font-weight:600;cursor:pointer;" onclick="openProspectModal(${p.id})">${esc(p.name)}</div>
-            ${action ? `<div style="font-size:0.78rem;color:var(--muted);">${esc(action)}</div>` : ''}
+            <span style="font-size:0.85rem;font-weight:600;cursor:pointer;" onclick="openProspectModal(${p.id})">${esc(p.name)}</span>
+            ${action ? `<span style="font-size:0.76rem;color:var(--muted);margin-left:6px;">${esc(action)}</span>` : ''}
           </div>
-          ${currentRep === null ? rep : ''}
+          ${currentRep === null && p.assigned_rep ? `<span style="font-size:0.72rem;color:var(--muted);white-space:nowrap;">${esc(p.assigned_rep)}</span>` : ''}
         </div>`;
       }).join('');
     }
