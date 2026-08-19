@@ -70,7 +70,15 @@
     .stat-value.warn { color: var(--warm); }
     .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
 
-    .filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filters { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .filter-selects-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .filter-selects-row select { width: 100%; box-sizing: border-box; }
+    .filter-btns-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .filter-btns-grid .filter-btn { width: 100%; text-align: center; }
+    .filter-btns-grid .filter-btn-full { grid-column: 1 / -1; }
+    .filters #sortSelect { width: 100%; box-sizing: border-box; }
+    .filters .search-wrap { position: relative; }
+    .filters .search-wrap input { width: 100%; box-sizing: border-box; }
     .filter-btn {
       padding: 8px 16px; background: var(--card); border: 1px solid var(--border);
       border-radius: 20px; color: var(--muted); cursor: pointer; font-size: 0.85rem;
@@ -566,30 +574,34 @@
     </div>
 
     <div class="filters">
-      <select id="repFilterBar" onchange="setRepRegionFilter(this.value)" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:0.9rem;cursor:pointer;">
-        <option value="all">👤 All Reps</option>
-        <option value="Kurtis">👤 Kurtis</option>
-        <option value="Stuart">👤 Stuart</option>
-        <option value="Vanessa">👤 Vanessa</option>
-      </select>
-      <select id="typeFilter" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:0.9rem;cursor:pointer;">
-        <option value="all">All Category Types</option>
-        <option value="apartments_condos">🏢 Apartments/Condos</option>
-        <option value="senior_living">🏥 Senior Living</option>
-        <option value="healthcare">⚕️ Healthcare</option>
-        <option value="industrial">🏭 Industrial/Warehouse</option>
-        <option value="office">🏢 Office/Business</option>
-        <option value="hotels">🏨 Hotels/Casinos</option>
-        <option value="schools">🎓 Schools</option>
-        <option value="other">📦 Other</option>
-      </select>
-      <button class="filter-btn active" data-filter="all">All</button>
-      <button class="filter-btn" data-filter="hot">🔥 Hot</button>
-      <button class="filter-btn" data-filter="warm">🟠 Warm</button>
-      <button class="filter-btn" data-filter="opening_soon">🏗️ Opening Soon</button>
-      <button class="filter-btn" data-filter="signed">✅ Signed</button>
-      <button class="filter-btn" data-filter="closed">⛔ Stale</button>
-      <button class="filter-btn" data-filter="followup">📋 Needs Action</button>
+      <div class="filter-selects-row">
+        <select id="repFilterBar" onchange="setRepRegionFilter(this.value)" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:0.9rem;cursor:pointer;">
+          <option value="all">👤 All Reps</option>
+          <option value="Kurtis">👤 Kurtis</option>
+          <option value="Stuart">👤 Stuart</option>
+          <option value="Vanessa">👤 Vanessa</option>
+        </select>
+        <select id="typeFilter" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:0.9rem;cursor:pointer;">
+          <option value="all">All Types</option>
+          <option value="apartments_condos">🏢 Apartments/Condos</option>
+          <option value="senior_living">🏥 Senior Living</option>
+          <option value="healthcare">⚕️ Healthcare</option>
+          <option value="industrial">🏭 Industrial</option>
+          <option value="office">🏢 Office</option>
+          <option value="hotels">🏨 Hotels/Casinos</option>
+          <option value="schools">🎓 Schools</option>
+          <option value="other">📦 Other</option>
+        </select>
+      </div>
+      <div class="filter-btns-grid">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="hot">🔥 Hot</button>
+        <button class="filter-btn" data-filter="warm">🟠 Warm</button>
+        <button class="filter-btn" data-filter="opening_soon">🏗️ Opening Soon</button>
+        <button class="filter-btn" data-filter="signed">✅ Signed</button>
+        <button class="filter-btn" data-filter="closed">⛔ Stale</button>
+        <button class="filter-btn filter-btn-full" data-filter="followup">📋 Needs Action</button>
+      </div>
       <select id="sortSelect" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:0.9rem;cursor:pointer;" onchange="currentSort=this.value;renderProspects();geocodeAndPlot()">
         <option value="touchpoints">Sort: Most Touchpoints</option>
         <option value="default">Sort: Next Follow Up</option>
@@ -599,7 +611,7 @@
         <option value="last_interaction">Sort: Last Interaction (New to Old)</option>
         <option value="no_touchpoints">Sort: No Touchpoints Yet</option>
       </select>
-      <div style="position:relative;display:inline-block;">
+      <div class="search-wrap">
         <input type="text" class="search-input" id="search" placeholder="Search prospects..." style="padding-right:28px;">
         <span id="searchClear" onclick="document.getElementById('search').value='';document.getElementById('search').dispatchEvent(new Event('input'));" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:#555;font-size:22px;font-weight:900;line-height:1;">&times;</span>
       </div>
