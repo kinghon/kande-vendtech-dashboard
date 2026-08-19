@@ -3558,15 +3558,18 @@
       let strokeWeight = 2;
       if (inRoute) { strokeColor = '#fff'; strokeWeight = 3; }
       else if (p.status === 'signed') {
-        strokeColor = '#be185d'; strokeWeight = 2;
+        // Ring = rep color (Vanessa=light blue, Stuart=green, Kurtis=default)
+        const repRingColor = getRepColor(p.assigned_rep) || '#be185d';
+        strokeColor = repRingColor; strokeWeight = 3;
+      } else {
+        // Black ring = any activity/note added after June 1, 2026 (signals location has been contacted)
+        const JUNE1_2026 = new Date('2026-06-01T00:00:00Z').getTime();
+        const contactedAfterJune1 = (p.activities || []).some(function(a) {
+          const ts = a.timestamp || a.created_at || '';
+          return ts && new Date(ts).getTime() >= JUNE1_2026;
+        });
+        if (contactedAfterJune1) { strokeColor = '#000'; strokeWeight = 2.5; }
       }
-      // Black ring = any activity/note added after June 1, 2026 (signals location has been contacted)
-      const JUNE1_2026 = new Date('2026-06-01T00:00:00Z').getTime();
-      const contactedAfterJune1 = (p.activities || []).some(function(a) {
-        const ts = a.timestamp || a.created_at || '';
-        return ts && new Date(ts).getTime() >= JUNE1_2026;
-      });
-      if (contactedAfterJune1) { strokeColor = '#000'; strokeWeight = 2.5; }
       const m = L.circleMarker([p.lat, p.lng], {
         renderer: mapRenderer,
         radius: inRoute ? 10 : 8,
