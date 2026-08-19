@@ -333,6 +333,63 @@
       .todo-delete-btn { position: absolute !important; bottom: 6px !important; right: 8px !important; margin: 0 !important; }
       .todo-spacer { display: none; }
     }
+  /* ── Prospect Detail Modal ─────────────────────────────── */
+  #prospectModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(2px);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  #prospectModal.open { display: flex; }
+  #prospectModalInner {
+    background: var(--card);
+    border-radius: 16px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.35);
+    width: 100%;
+    max-width: 760px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: modalIn 0.18s ease;
+  }
+  @keyframes modalIn {
+    from { opacity:0; transform: translateY(12px) scale(0.97); }
+    to   { opacity:1; transform: translateY(0) scale(1); }
+  }
+  #prospectModalHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    gap: 12px;
+  }
+  #prospectModalBody {
+    overflow-y: auto;
+    flex: 1;
+    padding: 16px 20px 20px;
+  }
+  #prospectModalBody .prospect-detail { display: block !important; }
+  #prospectModalClose {
+    background: none;
+    border: none;
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--muted);
+    cursor: pointer;
+    line-height: 1;
+    flex-shrink: 0;
+    padding: 0 4px;
+    transition: color 0.15s;
+  }
+  #prospectModalClose:hover { color: var(--text); }
   </style>
 </head>
 <body>
@@ -1267,20 +1324,7 @@
     }
 
     function openFromTodo(id) {
-      // Reset filters to show all
-      currentFilter = 'all';
-      currentPage = 1;
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      document.querySelector('[data-filter="all"]').classList.add('active');
-      document.getElementById('typeFilter').value = 'all';
-      document.getElementById('sortSelect').value = 'touchpoints';
-      currentSort = 'touchpoints';
-      document.getElementById('search').value = '';
-      
-      // Ensure prospect is visible by expanding page far enough
-      const idx = prospects.findIndex(p => p.id === id);
-      if (idx >= 0) { currentPage = Math.max(currentPage, Math.ceil((idx + 1) / PAGE_SIZE)); }
-      toggleExpand(id);
+      openProspectModal(id);
     }
 
     function renderProspects() {
@@ -1471,7 +1515,7 @@
 
       document.getElementById('prospectList').innerHTML = paged.map(p => `
         <div class="prospect-card ${p.priority} ${p.status === 'signed' ? 'signed' : ''} ${p.status === 'closed' ? 'stale' : ''} ${p.status === 'opening_soon' ? 'opening-soon' : ''} ${expandedId === p.id ? 'expanded' : ''}" id="card-${p.id}">
-          <div class="prospect-summary" onclick="toggleExpand(${p.id})">
+          <div class="prospect-summary" onclick="openProspectModal(${p.id})">
             <div class="prospect-header">
               <div class="prospect-name" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">${p.name}${(() => { const z = getProspectZoneBadge(p); if (currentRep === null) { const cur = (p.assigned_rep || (z ? z.label : '')); const repC = getRepColor(p.assigned_rep) || (z ? z.color : null); return `<select onclick="event.stopPropagation()" onchange="updateProspectField(${p.id},'assigned_rep',this.value);renderProspects();" style="font-size:0.72rem;font-weight:700;padding:1px 6px;border-radius:10px;border:1px solid ${repC || '#cbd5e0'};background:${repC ? repC+'22' : 'transparent'};color:${repC || '#718096'};cursor:pointer;outline:none;"><option value="">— unassigned —</option><option value="Kurtis" ${cur==='Kurtis'?'selected':''}>👤 Kurtis</option><option value="Stuart" ${cur==='Stuart'?'selected':''}>👤 Stuart</option><option value="Vanessa" ${cur==='Vanessa'?'selected':''}>👤 Vanessa</option></select>`; } return z ? ` <span style="font-size:0.72rem;font-weight:700;padding:1px 8px;border-radius:10px;background:${z.color}22;color:${z.color};border:1px solid ${z.color};white-space:nowrap;">👤 ${z.label}</span>` : ''; })()}${(() => { const ro = getRecentOpens(p); if (!ro) return ''; const urgency = ro.ageDays <= 2 ? '#e53e3e' : ro.ageDays <= 5 ? '#dd6b20' : '#718096'; const callFlag = ro.totalAdjusted >= 3 && !ro.anyReplied ? ' <span style="font-size:0.7rem;font-weight:800;color:#e53e3e;background:rgba(229,62,62,0.12);padding:2px 6px;border-radius:4px;animation:pulse 2s infinite;">📞 CALL</span>' : ''; return ` <span style="font-size:0.75rem;font-weight:700;color:${urgency};">📬 ${ro.totalAdjusted} open${ro.totalAdjusted > 1 ? 's' : ''}</span>${callFlag}`; })()}${p.status === 'closed' && p.stale_reason ? ` <span style="font-size:0.8rem;color:var(--hot);">⛔ ${esc(p.stale_reason)}</span>` : ''}${p.status === 'signed' && currentRep === null ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.78rem;font-weight:400;" onclick="event.stopPropagation()"><span style="color:var(--success);font-weight:600;">Sold</span><input type="text" value="${esc(p.signed_by||'')}" placeholder="Name" style="font-size:0.78rem;padding:2px 6px;border:1px solid var(--border);border-radius:4px;width:120px;font-weight:400;" onblur="updateProspectField(${p.id},'signed_by',this.value)" onclick="event.stopPropagation()"></span><span style="display:inline-flex;align-items:center;gap:4px;font-size:0.78rem;font-weight:400;" onclick="event.stopPropagation()"><span style="color:var(--success);font-weight:600;">Date Installed</span><input type="date" value="${esc(p.install_date||'')}" style="font-size:0.78rem;padding:2px 6px;border:1px solid var(--border);border-radius:4px;font-weight:400;" onchange="updateProspectField(${p.id},'install_date',this.value)" onclick="event.stopPropagation()"></span>` : ''}${p.priority === 'intalks' && p.status !== 'signed' && p.status !== 'closed' && currentRep === null ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.78rem;font-weight:400;" onclick="event.stopPropagation()"><span style="color:#8b5cf6;font-weight:600;">Rep</span><select style="font-size:0.78rem;padding:2px 6px;border:1px solid var(--border);border-radius:4px;font-weight:400;background:var(--card);color:var(--text);" onchange="updateProspectField(${p.id},'contract_rep',this.value)" onclick="event.stopPropagation()"><option value="">— assign —</option><option value="Kurtis" ${(p.contract_rep||'')==='Kurtis'?'selected':''}>Kurtis</option><option value="Stuart" ${(p.contract_rep||'')==='Stuart'?'selected':''}>Stuart</option><option value="Vanessa" ${(p.contract_rep||'')==='Vanessa'?'selected':''}>Vanessa</option></select></span>` : ''}</div>
               <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:1px;">${(() => { const tp = (p.activities||[]).filter(a=>['pop-in','call','email'].includes(a.type)).length; return tp > 0 ? `<span style="font-size:0.8rem;font-weight:700;color:#fff;background:var(--hot);padding:1px 8px;border-radius:6px;">${tp} touchpoint${tp!==1?'s':''}</span>` : ''; })()}${(() => { const raw = p.next_action_date || p.follow_up_date || ''; const today = new Date().toISOString().split('T')[0]; const isFuture = raw && raw >= today; const label = p.next_action || 'Follow Up'; const dateStr = isFuture ? (() => { const [y,m,d] = raw.split('-'); return m+'/'+d+'/'+y.slice(2); })() : 'NONE'; return `<span style="font-size:0.8rem;font-weight:700;color:${isFuture ? 'var(--hot)' : 'var(--muted)'};">Next Follow Up (${esc(label)}): ${dateStr}</span>`; })()}</div>
@@ -3265,7 +3309,7 @@
         const zBadge = (z && !p.assigned_rep) ? `<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;background:rgba(0,0,0,0.08);color:${z.color};border:1px solid ${z.color};">${z.label}</span> ` : ''; const eBadge = ''; const repC = getRepColor(p.assigned_rep); const repBadge = p.assigned_rep ? `<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;background:${repC?repC+'22':'rgba(49,130,206,0.1)'};color:${repC||'#3182ce'};border:1px solid ${repC||'#3182ce'};">👤 ${p.assigned_rep}</span> ` : ''; return (contractBadge||repBadge||zBadge||eBadge) ? `<div style="margin-bottom:4px;">${contractBadge}${repBadge}${zBadge}${eBadge}</div>` : ''; })()}
         <span style="color:#718096;font-size:12px;">📍 ${p.address || ''}</span><br>
         <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
-          <a href="#" onclick="event.preventDefault();openFromTodo(${p.id});return false;" style="padding:4px 10px;background:#3182ce;color:#fff;border-radius:6px;font-size:11px;text-decoration:none;">View Details</a>
+          <a href="#" onclick="event.preventDefault();map.closePopup();openProspectModal(${p.id});return false;" style="padding:4px 10px;background:#3182ce;color:#fff;border-radius:6px;font-size:11px;text-decoration:none;">View Details</a>
           ${routeBtn}
           ${popInBtn}
         </div>
@@ -3614,6 +3658,71 @@
       </div>
     </div>
   </div>
+
+<!-- Prospect Detail Modal -->
+<div id="prospectModal" onclick="if(event.target===this)closeProspectModal()">
+  <div id="prospectModalInner">
+    <div id="prospectModalHeader">
+      <div id="prospectModalTitle" style="flex:1;"></div>
+      <button id="prospectModalClose" onclick="closeProspectModal()">&#x2715;</button>
+    </div>
+    <div id="prospectModalBody"></div>
+  </div>
+</div>
+
+<script>
+async function openProspectModal(id) {
+  const modal = document.getElementById('prospectModal');
+  const body = document.getElementById('prospectModalBody');
+  const title = document.getElementById('prospectModalTitle');
+
+  // Show loading state immediately
+  body.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);">Loading…</div>';
+  title.innerHTML = '';
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  // Fetch fresh data
+  let p = prospects.find(pp => pp.id === id);
+  try {
+    const res = await fetch(`/api/prospects/${id}`);
+    p = await res.json();
+    // Update local cache
+    const idx = prospects.findIndex(pp => pp.id === id);
+    if (idx >= 0) prospects[idx] = p;
+  } catch(e) {}
+
+  if (!p) { body.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);">Not found</div>'; return; }
+
+  // Build header
+  const tpCount = (p.activities||[]).filter(a=>['pop-in','call','email'].includes(a.type)).length;
+  const tpBadge = tpCount > 0 ? `<span style="font-size:12px;font-weight:700;color:#fff;background:#e53e3e;padding:2px 8px;border-radius:6px;margin-left:8px;">${tpCount} touchpoint${tpCount!==1?'s':''}</span>` : '';
+  const priorityColors = { hot:'#e53e3e', warm:'#dd6b20', intalks:'#8b5cf6', normal:'var(--accent)' };
+  const priorityDot = `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${priorityColors[p.priority]||'var(--accent)'};margin-right:6px;"></span>`;
+  title.innerHTML = `
+    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
+      ${priorityDot}<strong style="font-size:1.1rem;">${p.name}</strong>${tpBadge}
+    </div>
+    <div style="font-size:0.82rem;color:var(--muted);margin-top:3px;">${p.property_type||''} ${p.address ? '· ' + p.address : ''}</div>
+  `;
+
+  // Render full detail panel
+  body.innerHTML = renderDetail(p);
+
+  // Post-render hooks
+  body.querySelectorAll('.notes-box textarea').forEach(t => autoResize(t));
+  loadProspectPhotos(id);
+}
+
+function closeProspectModal() {
+  document.getElementById('prospectModal').classList.remove('open');
+  document.body.style.overflow = '';
+  renderProspects(); // refresh list in background
+}
+
+// Close on Escape
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProspectModal(); });
+</script>
 
 </body>
 </html>
