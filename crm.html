@@ -859,10 +859,20 @@
     async function loadStats() {
       const res = await fetch('/api/stats');
       const s = await res.json();
-      document.getElementById('statHot').textContent = s.hot;
-      document.getElementById('statActive').textContent = s.active;
-      document.getElementById('statFollowup').textContent = s.needsFollowup;
-      document.getElementById('statContracts').textContent = s.intalks ?? prospects.filter(p => p.priority === 'intalks' && p.status !== 'signed' && p.status !== 'closed').length;
+      // If a rep is logged in, filter stat cards to their own prospects only
+      if (currentRep) {
+        const repName = currentRep.charAt(0).toUpperCase() + currentRep.slice(1);
+        const mine = prospects.filter(p => prospectMatchesRep(p, repName));
+        document.getElementById('statHot').textContent = mine.filter(p => p.priority === 'hot').length;
+        document.getElementById('statActive').textContent = mine.filter(p => p.status === 'active' || p.status === 'new').length;
+        document.getElementById('statFollowup').textContent = mine.filter(p => p.needs_action).length;
+        document.getElementById('statContracts').textContent = mine.filter(p => p.priority === 'intalks' && p.status !== 'signed' && p.status !== 'closed').length;
+      } else {
+        document.getElementById('statHot').textContent = s.hot;
+        document.getElementById('statActive').textContent = s.active;
+        document.getElementById('statFollowup').textContent = s.needsFollowup;
+        document.getElementById('statContracts').textContent = s.intalks ?? prospects.filter(p => p.priority === 'intalks' && p.status !== 'signed' && p.status !== 'closed').length;
+      }
       document.getElementById('statWeek').textContent = s.thisWeek;
       // signedCount replaced by rep counters
     }
@@ -880,6 +890,7 @@
       renderCompletedToday();
       renderRepCounters();
       geocodeAndPlot();
+      if (currentRep) loadStats(); // re-run stat cards now that prospects are loaded for rep filtering
     }
 
     function renderRepCounters() {
