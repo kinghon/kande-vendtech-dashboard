@@ -1040,11 +1040,13 @@
             const d = p.next_action_date||p.follow_up_date;
             const info = followUpDateLabel(d, today);
             const action = p.next_action || '';
+            const addedLabel = p.next_action_added ? (() => { const a = new Date(p.next_action_added); return `added ${(a.getMonth()+1).toString().padStart(2,'0')}/${a.getDate().toString().padStart(2,'0')}/${a.getFullYear()}`; })() : '';
             return `<div style="display:flex;align-items:center;gap:10px;padding:6px 4px;border-bottom:1px solid var(--border);">
               <div style="min-width:76px;font-size:0.78rem;font-weight:700;color:${info.color === '#fff' ? '#dd6b20' : info.color};">${info.label}</div>
               <div style="flex:1;">
                 <span style="font-size:0.85rem;font-weight:600;cursor:pointer;" onclick="openProspectModal(${p.id})">${esc(p.name)}</span>
                 ${action ? `<span style="font-size:0.76rem;color:var(--muted);margin-left:6px;">${esc(action)}</span>` : ''}
+                ${addedLabel ? `<span style="font-size:0.72rem;color:var(--muted);margin-left:8px;font-style:italic;">${addedLabel}</span>` : ''}
               </div>
               ${currentRep === null && p.assigned_rep ? `<span style="font-size:0.72rem;color:var(--muted);white-space:nowrap;">${esc(p.assigned_rep)}</span>` : ''}
             </div>`;
