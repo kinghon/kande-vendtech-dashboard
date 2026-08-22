@@ -4027,18 +4027,27 @@ function closeProspectModal() {
 // Close on Escape
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProspectModal(); });
 
-// Auto-open prospect from URL hash (e.g. /crm#prospect-123)
+// Auto-open prospect from URL hash (e.g. /crm#prospect-123) or ?prospect=ID (popup/iframe mode)
 (function() {
+  const params = new URLSearchParams(window.location.search);
+  const popupId = params.get('prospect');
   const hash = window.location.hash;
-  const match = hash && hash.match(/^#prospect-(\d+)$/);
-  if (match) {
-    const id = parseInt(match[1]);
-    // Wait for prospects to load, then open modal
+  const hashMatch = hash && hash.match(/^#prospect-(\d+)$/);
+  const targetId = popupId ? parseInt(popupId) : (hashMatch ? parseInt(hashMatch[1]) : null);
+
+  if (targetId) {
+    if (popupId) {
+      // Popup/iframe mode: hide everything except the modal
+      document.querySelector('.app').style.display = 'none';
+      const style = document.createElement('style');
+      style.textContent = '#prospectDetailModal { display:flex !important; position:fixed !important; top:0 !important; left:0 !important; right:0 !important; bottom:0 !important; background:#fff !important; } #prospectModalInner { max-width:100% !important; width:100% !important; height:100% !important; border-radius:0 !important; } #prospectModalClose { display:none; }';
+      document.head.appendChild(style);
+    }
     const tryOpen = setInterval(() => {
       if (prospects && prospects.length > 0) {
         clearInterval(tryOpen);
-        openProspectModal(id);
-        history.replaceState(null, '', '/crm');
+        openProspectModal(targetId);
+        if (!popupId) history.replaceState(null, '', '/crm');
       }
     }, 200);
     setTimeout(() => clearInterval(tryOpen), 10000);
