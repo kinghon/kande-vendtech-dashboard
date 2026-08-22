@@ -186,6 +186,27 @@
     let allEvents = [];
     let photosByProspect = {}; // prospect_id -> [{data, rep, created_at, filename}]
     let prospects = {};
+    let activeTodoProspectIds = new Set();
+
+    async function loadActiveTodos() {
+      try {
+        const res = await fetch('/api/todos');
+        const todos = await res.json();
+        activeTodoProspectIds = new Set(todos.filter(t => !t.completed && t.prospect_id).map(t => t.prospect_id));
+        refreshActivityTodoButtons();
+      } catch(e) {}
+    }
+
+    function refreshActivityTodoButtons() {
+      document.querySelectorAll('[data-todo-btn]').forEach(btn => {
+        const pid = parseInt(btn.dataset.todoBtn);
+        const inList = activeTodoProspectIds.has(pid);
+        btn.textContent = inList ? '✓ Added to Do List' : '+ To Do';
+        btn.style.background = inList ? 'rgba(22,163,74,0.15)' : 'rgba(234,88,12,0.08)';
+        btn.style.color = inList ? '#16a34a' : '#ea580c';
+        btn.style.borderColor = inList ? '#16a34a' : '#ea580c';
+      });
+    }
 
     function showToast(msg) {
       const existing = document.getElementById('actToast');
@@ -217,18 +238,8 @@
         body: JSON.stringify({ prospect_id: prospectId, rep: repName, added_by: 'admin' })
       });
       if (res.ok) {
-        if (btn) {
-          btn.textContent = '✓ Added to Do List';
-          btn.style.background = 'rgba(22,163,74,0.15)';
-          btn.style.color = '#16a34a';
-          btn.style.borderColor = '#16a34a';
-          setTimeout(() => {
-            btn.textContent = '+ To Do';
-            btn.style.background = 'rgba(234,88,12,0.08)';
-            btn.style.color = '#ea580c';
-            btn.style.borderColor = '#ea580c';
-          }, 3000);
-        }
+        activeTodoProspectIds.add(prospectId);
+        refreshActivityTodoButtons();
       }
     }
     let currentFilter = 'all';
@@ -239,6 +250,7 @@
       const pRes = await fetch('/api/prospects');
       const pList = await pRes.json();
       pList.forEach(p => prospects[p.id] = p);
+      loadActiveTodos();
 
       // Load photos async — don't block page render
       fetch('/api/photos').then(r => r.json()).then(allPhotos => {
@@ -493,7 +505,7 @@
               <span class="location-name">${esc(group.name)}</span>
               ${repBadge}
               <button onclick="event.stopPropagation();openProspectModal(${pid})" style="font-size:0.72rem;font-weight:600;padding:2px 9px;border-radius:8px;background:#ebf4ff;color:#2b6cb0;border:1px solid #bee3f8;cursor:pointer;white-space:nowrap;">View Details →</button>
-              <button onclick="event.stopPropagation();addToTodoFromActivity(${pid},this)" style="font-size:0.72rem;font-weight:600;padding:2px 9px;border-radius:8px;background:rgba(234,88,12,0.08);color:#ea580c;border:1px solid #ea580c;cursor:pointer;white-space:nowrap;">+ To Do</button>
+              <button data-todo-btn="${pid}" onclick="event.stopPropagation();addToTodoFromActivity(${pid},this)" style="font-size:0.72rem;font-weight:600;padding:2px 9px;border-radius:8px;background:${activeTodoProspectIds.has(parseInt(pid))?'rgba(22,163,74,0.15)':'rgba(234,88,12,0.08)'};color:${activeTodoProspectIds.has(parseInt(pid))?'#16a34a':'#ea580c'};border:1px solid ${activeTodoProspectIds.has(parseInt(pid))?'#16a34a':'#ea580c'};cursor:pointer;white-space:nowrap;">${activeTodoProspectIds.has(parseInt(pid))?'✓ Added to Do List':'+ To Do'}</button>
               <span class="location-meta">${group.propertyType || ''} · ${getTimeAgo(mostRecent)}</span>
             </div>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">

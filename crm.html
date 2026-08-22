@@ -806,6 +806,7 @@
 
   <script>
     let prospects = [];
+    let activeTodoProspectIds = new Set(); // prospect IDs currently in the active to-do list
     let expandedId = null;
     let currentFilter = 'all';
     let currentRep = null;       // 'jordan' | 'stuart' | 'vanessa' | null (admin)
@@ -1226,6 +1227,8 @@
         apiTodos = await res.json();
       } catch(e) {}
       apiTodos = apiTodos.filter(t => !t.completed && t.prospect_id);
+      activeTodoProspectIds = new Set(apiTodos.map(t => t.prospect_id));
+      refreshTodoButtons();
       
       // To-do list is now purely API-driven (rep-specific)
       let withActions = [];
@@ -1573,21 +1576,21 @@
         body: JSON.stringify({ prospect_id: prospectId, rep: repName, added_by: currentRep || 'admin' })
       });
       if (res.ok) {
+        activeTodoProspectIds.add(prospectId);
+        refreshTodoButtons();
         renderTodoList();
-        const btn = event.target;
-        if (btn) {
-          btn.textContent = '✓ Added to Do List';
-          btn.style.background = 'rgba(22,163,74,0.15)';
-          btn.style.color = '#16a34a';
-          btn.style.borderColor = '#16a34a';
-          setTimeout(() => {
-            btn.textContent = 'Add to To Do List';
-            btn.style.background = 'rgba(234,88,12,0.08)';
-            btn.style.color = '#ea580c';
-            btn.style.borderColor = '#ea580c';
-          }, 3000);
-        }
       }
+    }
+
+    function refreshTodoButtons() {
+      document.querySelectorAll('[data-todo-btn]').forEach(btn => {
+        const pid = parseInt(btn.dataset.todoBtn);
+        const inList = activeTodoProspectIds.has(pid);
+        btn.textContent = inList ? '✓ Added to Do List' : 'Add to To Do List';
+        btn.style.background = inList ? 'rgba(22,163,74,0.15)' : 'rgba(234,88,12,0.08)';
+        btn.style.color = inList ? '#16a34a' : '#ea580c';
+        btn.style.borderColor = inList ? '#16a34a' : '#ea580c';
+      });
     }
 
     function renderProspects() {
@@ -1797,7 +1800,7 @@
                 </select>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;margin-top:2px;">
                   <button onclick="event.stopPropagation(); toggleExpand(${p.id})" style="padding:6px 8px;border-radius:6px;font-size:0.73rem;font-weight:600;cursor:pointer;border:1px solid var(--accent);background:rgba(49,130,206,0.08);color:var(--accent);text-align:center;">Set Next Follow Up</button>
-                  <button onclick="event.stopPropagation();addToTodo(${p.id})" style="padding:6px 8px;border-radius:6px;font-size:0.73rem;font-weight:600;cursor:pointer;border:1px solid #ea580c;background:rgba(234,88,12,0.08);color:#ea580c;text-align:center;">Add to To Do List</button>
+                  <button data-todo-btn="${p.id}" onclick="event.stopPropagation();addToTodo(${p.id})" style="padding:6px 8px;border-radius:6px;font-size:0.73rem;font-weight:600;cursor:pointer;border:1px solid ${activeTodoProspectIds.has(p.id)?'#16a34a':'#ea580c'};background:${activeTodoProspectIds.has(p.id)?'rgba(22,163,74,0.15)':'rgba(234,88,12,0.08)'};color:${activeTodoProspectIds.has(p.id)?'#16a34a':'#ea580c'};text-align:center;">${activeTodoProspectIds.has(p.id)?'✓ Added to Do List':'Add to To Do List'}</button>
                   ${isInRoute(p.id) ? `<span style="padding:6px 8px;border-radius:6px;font-size:0.73rem;font-weight:600;background:rgba(56,161,105,0.15);color:var(--success);border:1px solid rgba(56,161,105,0.3);text-align:center;">✓ In Route</span>` : `<button onclick="event.stopPropagation(); addToRoute(${p.id});" style="padding:6px 8px;border-radius:6px;font-size:0.73rem;font-weight:600;cursor:pointer;border:1px solid var(--success);background:rgba(56,161,105,0.1);color:var(--success);text-align:center;">🗺️ + Route</button>`}
                   ${p.lat && p.lng ? `<button onclick="event.stopPropagation(); showOnMap(${p.id});" style="padding:6px 8px;border-radius:6px;font-size:0.73rem;font-weight:600;cursor:pointer;border:1px solid #805ad5;background:rgba(128,90,213,0.1);color:#805ad5;text-align:center;">📍 See on Map</button>` : '<div></div>'}
                 </div>
@@ -3637,7 +3640,7 @@
           <a href="#" onclick="event.preventDefault();map.closePopup();openProspectModal(${p.id});return false;" style="padding:4px 10px;background:#3182ce;color:#fff;border-radius:6px;font-size:11px;text-decoration:none;">View Details</a>
           ${routeBtn}
           ${popInBtn}
-          <button onclick="event.preventDefault();addToTodo(${p.id});" style="padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid #ea580c;background:rgba(234,88,12,0.08);color:#ea580c;">Add to To Do List</button>
+          <button data-todo-btn="${p.id}" onclick="event.preventDefault();addToTodo(${p.id});" style="padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid ${activeTodoProspectIds.has(p.id)?'#16a34a':'#ea580c'};background:${activeTodoProspectIds.has(p.id)?'rgba(22,163,74,0.15)':'rgba(234,88,12,0.08)'};color:${activeTodoProspectIds.has(p.id)?'#16a34a':'#ea580c'}">${activeTodoProspectIds.has(p.id)?'✓ Added to Do List':'Add to To Do List'}</button>
         </div>
       `).openPopup();
     }
