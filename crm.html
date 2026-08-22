@@ -1570,15 +1570,18 @@
       activeTodoProspectIds.add(prospectId);
       refreshTodoButtons();
 
-      const res = await fetch('/api/todos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prospect_id: prospectId, rep: repName, added_by: currentRep || 'admin' })
-      });
-      if (res.ok) {
+      const payload = JSON.stringify({ prospect_id: prospectId, rep: repName, added_by: currentRep || 'admin' });
+      let ok = false;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const res = await fetch('/api/todos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload });
+          if (res.ok) { ok = true; break; }
+        } catch(e) {}
+        await new Promise(r => setTimeout(r, 800));
+      }
+      if (ok) {
         renderTodoList();
       } else {
-        // Revert on failure
         activeTodoProspectIds.delete(prospectId);
         refreshTodoButtons();
       }
