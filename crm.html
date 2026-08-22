@@ -4026,6 +4026,24 @@ function closeProspectModal() {
 
 // Close on Escape
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProspectModal(); });
+
+// Auto-open prospect from URL hash (e.g. /crm#prospect-123)
+(function() {
+  const hash = window.location.hash;
+  const match = hash && hash.match(/^#prospect-(\d+)$/);
+  if (match) {
+    const id = parseInt(match[1]);
+    // Wait for prospects to load, then open modal
+    const tryOpen = setInterval(() => {
+      if (prospects && prospects.length > 0) {
+        clearInterval(tryOpen);
+        openProspectModal(id);
+        history.replaceState(null, '', '/crm');
+      }
+    }, 200);
+    setTimeout(() => clearInterval(tryOpen), 10000);
+  }
+})();
 </script>
 
 </body>
