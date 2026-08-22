@@ -232,13 +232,19 @@
       const repName = p.assigned_rep
         ? p.assigned_rep.charAt(0).toUpperCase() + p.assigned_rep.slice(1)
         : 'Stuart';
+
+      // Optimistic update — instant feedback
+      activeTodoProspectIds.add(prospectId);
+      refreshActivityTodoButtons();
+
       const res = await fetch('/api/todos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prospect_id: prospectId, rep: repName, added_by: 'admin' })
       });
-      if (res.ok) {
-        activeTodoProspectIds.add(prospectId);
+      if (!res.ok) {
+        // Revert on failure
+        activeTodoProspectIds.delete(prospectId);
         refreshActivityTodoButtons();
       }
     }

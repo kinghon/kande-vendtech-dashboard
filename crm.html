@@ -1560,15 +1560,15 @@
     }
 
     async function addToTodo(prospectId) {
-      // Determine which rep this location belongs to
       const p = prospects.find(pr => pr.id === prospectId);
       if (!p) return;
-
-      // If logged in as rep, add to their own list
-      // If admin, add to the assigned rep's list (or prompt)
       const repName = currentRep
         ? currentRep.charAt(0).toUpperCase() + currentRep.slice(1)
-        : (p.assigned_rep || 'Stuart'); // admin: use assigned rep
+        : (p.assigned_rep || 'Stuart');
+
+      // Optimistic update — instant feedback
+      activeTodoProspectIds.add(prospectId);
+      refreshTodoButtons();
 
       const res = await fetch('/api/todos', {
         method: 'POST',
@@ -1576,9 +1576,11 @@
         body: JSON.stringify({ prospect_id: prospectId, rep: repName, added_by: currentRep || 'admin' })
       });
       if (res.ok) {
-        activeTodoProspectIds.add(prospectId);
-        refreshTodoButtons();
         renderTodoList();
+      } else {
+        // Revert on failure
+        activeTodoProspectIds.delete(prospectId);
+        refreshTodoButtons();
       }
     }
 
