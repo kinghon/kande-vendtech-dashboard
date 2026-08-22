@@ -447,7 +447,7 @@
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
               <span class="location-name">${esc(group.name)}</span>
               ${repBadge}
-              <a href="/prospect/${pid}" onclick="event.stopPropagation()" style="font-size:0.72rem;font-weight:600;padding:2px 9px;border-radius:8px;background:#ebf4ff;color:#2b6cb0;border:1px solid #bee3f8;text-decoration:none;white-space:nowrap;">View Details →</a>
+              <button onclick="event.stopPropagation();openProspectModal(${pid})" style="font-size:0.72rem;font-weight:600;padding:2px 9px;border-radius:8px;background:#ebf4ff;color:#2b6cb0;border:1px solid #bee3f8;cursor:pointer;white-space:nowrap;">View Details →</button>
               <span class="location-meta">${group.propertyType || ''} · ${getTimeAgo(mostRecent)}</span>
             </div>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
@@ -655,6 +655,31 @@
     }
 
     init();
+
+    // Prospect detail modal (iframe)
+    function openProspectModal(id) {
+      const modal = document.getElementById('prospect-iframe-modal');
+      const iframe = document.getElementById('prospect-iframe');
+      iframe.src = '/prospect/' + id;
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+    function closeProspectModal() {
+      const modal = document.getElementById('prospect-iframe-modal');
+      modal.style.display = 'none';
+      document.getElementById('prospect-iframe').src = '';
+      document.body.style.overflow = '';
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProspectModal(); });
   </script>
+
+  <!-- Prospect detail iframe modal -->
+  <div id="prospect-iframe-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;padding:16px;">
+    <div style="position:relative;width:100%;max-width:900px;height:90vh;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+      <button onclick="closeProspectModal()" style="position:absolute;top:10px;right:14px;z-index:10;background:rgba(0,0,0,0.15);border:none;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;color:#333;line-height:1;">✕</button>
+      <iframe id="prospect-iframe" src="" style="width:100%;height:100%;border:none;"></iframe>
+    </div>
+  </div>
+
 </body>
 </html>
