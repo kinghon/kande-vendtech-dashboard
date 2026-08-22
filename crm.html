@@ -1195,6 +1195,27 @@
       renderTodoList();
     }
 
+    function showToast(msg) {
+      const existing = document.getElementById('crmToast');
+      if (existing) existing.remove();
+      const toast = document.createElement('div');
+      toast.id = 'crmToast';
+      toast.textContent = msg;
+      Object.assign(toast.style, {
+        position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)',
+        background: '#16a34a', color: '#fff', padding: '12px 24px',
+        borderRadius: '10px', fontSize: '15px', fontWeight: '600',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.25)', zIndex: '99999',
+        opacity: '0', transition: 'opacity 0.2s ease'
+      });
+      document.body.appendChild(toast);
+      requestAnimationFrame(() => toast.style.opacity = '1');
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
     async function renderTodoList() {
       const today = new Date().toISOString().split('T')[0];
       
@@ -1553,12 +1574,12 @@
       });
       if (res.ok) {
         renderTodoList();
-        // Brief flash on button
         const btn = event.target;
         if (btn) {
           btn.textContent = '✓ Added';
-          setTimeout(() => btn.textContent = 'Add to To Do List', 1500);
+          setTimeout(() => btn.textContent = 'Add to To Do List', 2000);
         }
+        showToast(`✅ Added to ${repName}'s to-do list`);
       }
     }
 
