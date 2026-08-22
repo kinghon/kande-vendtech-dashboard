@@ -1226,8 +1226,16 @@
         const res = await fetch('/api/todos');
         apiTodos = await res.json();
       } catch(e) {}
-      apiTodos = apiTodos.filter(t => !t.completed && t.prospect_id);
-      activeTodoProspectIds = new Set(apiTodos.map(t => t.prospect_id));
+      const nowPDT = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+      const todayStr = nowPDT.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }); // YYYY-MM-DD
+      const beforeMidnight = nowPDT.getHours() < 24; // always true but used for clarity
+      // Show: uncompleted todos + todos auto-completed today (until midnight PDT)
+      apiTodos = apiTodos.filter(t => t.prospect_id && (
+        !t.completed ||
+        (t.auto_completed_by === 'pop-in' && t.completed_at &&
+          new Date(t.completed_at).toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }) === todayStr)
+      ));
+      activeTodoProspectIds = new Set(apiTodos.filter(t => !t.completed).map(t => t.prospect_id));
       refreshTodoButtons();
       
       // To-do list is now purely API-driven (rep-specific)
@@ -1239,13 +1247,14 @@
         return {
           _fromApi: true,
           _todoId: t.id,
+          _autoCompleted: !!(t.completed && t.auto_completed_by === 'pop-in'),
           id: t.prospect_id,
           name: p ? p.name : t.title,
           next_action: t.title || 'To-Do',
           rep: t.rep || (p ? p.assigned_rep : null),
           assigned_rep: t.rep || (p ? p.assigned_rep : null),
           property_type: p ? p.property_type : '',
-          status: p ? p.status : 'new',
+          status: p ? p.status : 'normal',
           priority: p ? p.priority : 'normal',
           next_action_date: t.due_date,
           address: p ? p.address : '',
@@ -1314,11 +1323,13 @@
         const isFollowUp = p._isFollowUp;
         const displayAction = isFollowUp ? 'Follow up?' : p.next_action;
         const isApi = p._fromApi;
+        const isAutoCompleted = p._autoCompleted;
         return `
-        <div class="todo-item" style="position:relative;display:flex;align-items:center;gap:5px;padding:4px 8px;padding-bottom:20px;background:var(--bg);border-radius:6px;border:1px solid ${isFollowUp ? 'rgba(16,185,129,0.3)' : 'var(--border)'};flex-wrap:wrap;">
-          <input type="checkbox" onclick="${isApi ? `completeApiTodo(${p._todoId})` : `completeTodo(${p.id}, '${isFollowUp ? 'Follow up' : p.next_action}')`}" style="width:14px;height:14px;cursor:pointer;">
-          <span style="font-size:0.85rem;">${actionIcon(p.next_action, isFollowUp)}</span>
-          <span style="font-weight:600;font-size:0.82rem;color:var(--accent);cursor:pointer;text-decoration:underline;" onclick="openProspectModal(${p.id})">${esc(p.name)}</span>
+        <div class="todo-item" style="position:relative;display:flex;align-items:center;gap:5px;padding:4px 8px;padding-bottom:20px;background:${isAutoCompleted ? 'rgba(22,163,74,0.05)' : 'var(--bg)'};border-radius:6px;border:1px solid ${isAutoCompleted ? 'rgba(22,163,74,0.3)' : isFollowUp ? 'rgba(16,185,129,0.3)' : 'var(--border)'};flex-wrap:wrap;opacity:${isAutoCompleted ? '0.7' : '1'};">
+          ${isAutoCompleted ? '<span style="font-size:0.85rem;">✅</span>' : `<input type="checkbox" onclick="${isApi ? `completeApiTodo(${p._todoId})` : `completeTodo(${p.id}, '${isFollowUp ? 'Follow up' : p.next_action}')`}" style="width:14px;height:14px;cursor:pointer;">`}
+          <span style="font-size:0.85rem;">${isAutoCompleted ? '' : actionIcon(p.next_action, isFollowUp)}</span>
+          <span style="font-weight:600;font-size:0.82rem;color:${isAutoCompleted ? 'var(--muted)' : 'var(--accent)'};cursor:pointer;text-decoration:${isAutoCompleted ? 'line-through' : 'underline'};" onclick="openProspectModal(${p.id})">${esc(p.name)}</span>
+          ${isAutoCompleted ? '<span style="font-size:0.7rem;font-weight:600;padding:2px 7px;border-radius:6px;background:rgba(22,163,74,0.15);color:#16a34a;border:1px solid rgba(22,163,74,0.3);">✓ Visited</span>' : ''}
           ${p.property_type ? `<span style="font-size:0.65rem;color:var(--muted);background:var(--border);padding:1px 4px;border-radius:3px;">${esc(p.property_type)}</span>` : ''}
           ${getBadgeLabel(p) ? `<span class="prospect-badge badge-${getBadgeClass(p)}" style="font-size:0.65rem;padding:2px 8px;">${getBadgeLabel(p)}</span>` : ''}
           <span style="font-size:0.8rem;color:var(--muted);">${isFollowUp ? 'Follow up?' : 'Action Needed:'}</span>

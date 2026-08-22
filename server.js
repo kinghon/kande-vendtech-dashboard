@@ -1317,6 +1317,21 @@ app.post('/api/prospects/:id/activities', (req, res) => {
 
     prospect.updated_at = new Date().toISOString();
   }
+  // Auto-complete any active todos for this prospect when a pop-in is logged
+  const actType = (req.body.type || '').toLowerCase();
+  const isPopIn = actType.includes('pop') || actType.includes('visit') || actType.includes('pop in') || actType.includes('pop-in');
+  if (isPopIn && db.todos) {
+    const now = new Date().toISOString();
+    db.todos.forEach(t => {
+      if (!t.completed && t.prospect_id === prospect_id) {
+        t.completed = true;
+        t.completed_at = now;
+        t.status = 'completed';
+        t.auto_completed_by = 'pop-in';
+      }
+    });
+  }
+
   saveDB(db);
   res.json(activity);
 });
