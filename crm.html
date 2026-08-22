@@ -1252,7 +1252,7 @@
           _autoCompletedByPopIn: !!(t.completed && t.auto_completed_by === 'pop-in'),
           id: t.prospect_id,
           name: p ? p.name : t.title,
-          next_action: t.title || 'To-Do',
+          next_action: (t.title && t.title !== (p ? p.name : '')) ? t.title : 'Pop In Needed',
           rep: t.rep || (p ? p.assigned_rep : null),
           assigned_rep: t.rep || (p ? p.assigned_rep : null),
           property_type: p ? p.property_type : '',
@@ -1583,7 +1583,7 @@
       activeTodoProspectIds.add(prospectId);
       refreshTodoButtons();
 
-      const payload = JSON.stringify({ prospect_id: prospectId, rep: repName, added_by: currentRep || 'admin' });
+      const payload = JSON.stringify({ prospect_id: prospectId, rep: repName, added_by: currentRep || 'admin', title: 'Pop In Needed' });
       let ok = false;
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
