@@ -656,28 +656,111 @@
 
     init();
 
-    // Prospect detail modal (iframe)
-    function openProspectModal(id) {
-      const modal = document.getElementById('prospect-iframe-modal');
-      const iframe = document.getElementById('prospect-iframe');
-      iframe.src = '/prospect/' + id;
+    // Prospect detail modal (API-driven)
+    async function openProspectModal(id) {
+      const modal = document.getElementById('prospect-detail-modal');
+      const body = document.getElementById('prospect-modal-body');
+      body.innerHTML = '<div style="padding:40px;text-align:center;color:#718096;">Loading…</div>';
       modal.style.display = 'flex';
       document.body.style.overflow = 'hidden';
+
+      try {
+        const res = await fetch('/api/prospects/' + id);
+        const p = await res.json();
+        renderProspectModal(p);
+      } catch(e) {
+        body.innerHTML = '<div style="padding:40px;text-align:center;color:#e53e3e;">Failed to load prospect.</div>';
+      }
     }
+
+    function renderProspectModal(p) {
+      const body = document.getElementById('prospect-modal-body');
+      const title = document.getElementById('prospect-modal-title');
+      const priorityColors = { hot:'#e53e3e', warm:'#dd6b20', intalks:'#8b5cf6', normal:'#3182ce' };
+      const pColor = priorityColors[p.priority] || '#3182ce';
+      const acts = p.activities || [];
+      const contacts = p.contacts || [];
+
+      title.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${pColor};flex-shrink:0;"></span>
+          <strong style="font-size:1.15rem;">${esc(p.name)}</strong>
+          ${p.priority === 'hot' ? '<span style="font-size:0.78rem;font-weight:700;background:#e53e3e;color:#fff;padding:2px 8px;border-radius:6px;">🔥 HOT</span>' : ''}
+          ${p.priority === 'warm' ? '<span style="font-size:0.78rem;font-weight:700;background:#dd6b20;color:#fff;padding:2px 8px;border-radius:6px;">🌡 WARM</span>' : ''}
+          ${p.priority === 'intalks' ? '<span style="font-size:0.78rem;font-weight:700;background:#8b5cf6;color:#fff;padding:2px 8px;border-radius:6px;">💬 IN TALKS</span>' : ''}
+          <a href="/prospect/${p.id}" target="_blank" style="font-size:0.78rem;color:#3182ce;text-decoration:none;border:1px solid #bee3f8;padding:2px 8px;border-radius:6px;background:#ebf4ff;">Open full page ↗</a>
+        </div>
+        <div style="font-size:0.82rem;color:#718096;margin-top:4px;">${p.property_type || ''} ${p.address ? '· ' + p.address : ''} ${p.unit_count ? '· ' + p.unit_count + ' units' : ''}</div>
+      `;
+
+      const tpCount = acts.filter(a => ['pop-in','call','email'].includes(a.type)).length;
+      const lastAct = acts.length ? acts.sort((a,b) => new Date(b.created_at||b.timestamp) - new Date(a.created_at||a.timestamp))[0] : null;
+      const lastActText = lastAct ? new Date(lastAct.created_at||lastAct.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : 'None';
+
+      body.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;">
+          <div style="background:#f7fafc;border-radius:10px;padding:14px;text-align:center;">
+            <div style="font-size:1.6rem;font-weight:700;color:#2d3748;">${tpCount}</div>
+            <div style="font-size:0.75rem;color:#718096;">Touchpoints</div>
+          </div>
+          <div style="background:#f7fafc;border-radius:10px;padding:14px;text-align:center;">
+            <div style="font-size:1.6rem;font-weight:700;color:#2d3748;">${acts.length}</div>
+            <div style="font-size:0.75rem;color:#718096;">Total Activities</div>
+          </div>
+          <div style="background:#f7fafc;border-radius:10px;padding:14px;text-align:center;">
+            <div style="font-size:0.88rem;font-weight:600;color:#2d3748;">${lastActText}</div>
+            <div style="font-size:0.75rem;color:#718096;">Last Activity</div>
+          </div>
+        </div>
+
+        ${p.next_action ? `<div style="background:#fffbeb;border:1px solid #f6e05e;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.85rem;"><strong>Next action:</strong> ${esc(p.next_action)}</div>` : ''}
+        ${p.notes ? `<div style="background:#f0fff4;border:1px solid #9ae6b4;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.85rem;"><strong>Notes:</strong> ${esc(p.notes)}</div>` : ''}
+
+        ${contacts.length ? `
+          <div style="margin-bottom:16px;">
+            <div style="font-weight:700;font-size:0.85rem;color:#4a5568;margin-bottom:8px;">👤 Contacts</div>
+            ${contacts.map(c => `
+              <div style="padding:10px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:6px;font-size:0.82rem;">
+                <strong>${esc(c.name)}</strong>${c.title ? ` <span style="color:#718096;">(${esc(c.title)})</span>` : ''}
+                ${c.email ? `<br><a href="mailto:${esc(c.email)}" style="color:#3182ce;">${esc(c.email)}</a>` : ''}
+                ${c.phone ? ` · <a href="tel:${esc(c.phone)}" style="color:#3182ce;">${esc(c.phone)}</a>` : ''}
+              </div>`).join('')}
+          </div>` : ''}
+
+        ${acts.length ? `
+          <div>
+            <div style="font-weight:700;font-size:0.85rem;color:#4a5568;margin-bottom:8px;">📋 Activity Timeline</div>
+            ${acts.slice(0,10).map(a => {
+              const typeLabels = { 'pop-in':'🚶 Pop-in', call:'📞 Call', email:'📧 Email', note:'📝 Note' };
+              const label = typeLabels[a.type] || a.type;
+              const date = new Date(a.created_at||a.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+              return `<div style="padding:10px 12px;border-left:3px solid #e2e8f0;margin-bottom:8px;font-size:0.82rem;">
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+                  <span style="font-weight:600;">${label}</span>
+                  <span style="color:#a0aec0;font-size:0.75rem;">${date}</span>
+                </div>
+                <div style="color:#4a5568;">${esc(a.description||a.notes||'')}</div>
+              </div>`;
+            }).join('')}
+          </div>` : ''}
+      `;
+    }
+
     function closeProspectModal() {
-      const modal = document.getElementById('prospect-iframe-modal');
-      modal.style.display = 'none';
-      document.getElementById('prospect-iframe').src = '';
+      document.getElementById('prospect-detail-modal').style.display = 'none';
       document.body.style.overflow = '';
     }
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProspectModal(); });
   </script>
 
-  <!-- Prospect detail iframe modal -->
-  <div id="prospect-iframe-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;padding:16px;">
-    <div style="position:relative;width:100%;max-width:900px;height:90vh;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
-      <button onclick="closeProspectModal()" style="position:absolute;top:10px;right:14px;z-index:10;background:rgba(0,0,0,0.15);border:none;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;color:#333;line-height:1;">✕</button>
-      <iframe id="prospect-iframe" src="" style="width:100%;height:100%;border:none;"></iframe>
+  <!-- Prospect detail modal -->
+  <div id="prospect-detail-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)closeProspectModal()">
+    <div style="position:relative;width:100%;max-width:860px;max-height:90vh;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.4);display:flex;flex-direction:column;overflow:hidden;">
+      <div style="padding:20px 24px 16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+        <div id="prospect-modal-title" style="flex:1;"></div>
+        <button onclick="closeProspectModal()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:#a0aec0;padding:0 4px;line-height:1;">✕</button>
+      </div>
+      <div id="prospect-modal-body" style="overflow-y:auto;padding:20px 24px;"></div>
     </div>
   </div>
 
