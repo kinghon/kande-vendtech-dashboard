@@ -1317,7 +1317,7 @@
           <span style="font-size:0.85rem;">${actionIcon(p.next_action, isFollowUp)}</span>
           <span style="font-weight:600;font-size:0.82rem;color:var(--accent);cursor:pointer;text-decoration:underline;" onclick="openProspectModal(${p.id})">${esc(p.name)}</span>
           ${p.property_type ? `<span style="font-size:0.65rem;color:var(--muted);background:var(--border);padding:1px 4px;border-radius:3px;">${esc(p.property_type)}</span>` : ''}
-          <span class="prospect-badge badge-${getBadgeClass(p)}" style="font-size:0.65rem;padding:2px 8px;">${getBadgeLabel(p)}</span>
+          ${getBadgeLabel(p) ? `<span class="prospect-badge badge-${getBadgeClass(p)}" style="font-size:0.65rem;padding:2px 8px;">${getBadgeLabel(p)}</span>` : ''}
           <span style="font-size:0.8rem;color:var(--muted);">${isFollowUp ? 'Follow up?' : 'Action Needed:'}</span>
           <span style="padding:2px 7px;border-radius:6px;font-size:0.7rem;font-weight:600;${actionPillStyle(p.next_action, isFollowUp)}">${displayAction}</span>
           ${isFollowUp && p.last_completed_action ? `<span style="font-size:0.7rem;color:var(--muted);">Last: ${p.last_completed_action} on ${p.last_completed_date}</span>` : ''}
@@ -2006,16 +2006,14 @@
       if (p.priority === 'hot') return 'hot';
       if (p.priority === 'intalks') return 'intalks';
       if (p.priority === 'warm') return 'warm';
-      // Don't show signed/stale in badge - they have their own buttons
-      return 'new';
+      return '';
     }
 
     function getBadgeLabel(p) {
       if (p.priority === 'hot') return '🔥 Hot';
       if (p.priority === 'intalks') return '📋 Contract Pending';
       if (p.priority === 'warm') return '🟠 Warm';
-      // Don't show Signed/Stale in badge label - they have their own buttons
-      return '🆕 New';
+      return '';
     }
 
     function toggleNeedsAction(id) {
