@@ -186,6 +186,41 @@
     let allEvents = [];
     let photosByProspect = {}; // prospect_id -> [{data, rep, created_at, filename}]
     let prospects = {};
+
+    function showToast(msg) {
+      const existing = document.getElementById('actToast');
+      if (existing) existing.remove();
+      const toast = document.createElement('div');
+      toast.id = 'actToast';
+      toast.textContent = msg;
+      Object.assign(toast.style, {
+        position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)',
+        background: '#16a34a', color: '#fff', padding: '12px 24px',
+        borderRadius: '10px', fontSize: '15px', fontWeight: '600',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.25)', zIndex: '99999',
+        opacity: '0', transition: 'opacity 0.2s ease', pointerEvents: 'none'
+      });
+      document.body.appendChild(toast);
+      requestAnimationFrame(() => toast.style.opacity = '1');
+      setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+    }
+
+    async function addToTodoFromActivity(prospectId, btn) {
+      const p = prospects[prospectId];
+      if (!p) return;
+      const repName = p.assigned_rep
+        ? p.assigned_rep.charAt(0).toUpperCase() + p.assigned_rep.slice(1)
+        : 'Stuart';
+      const res = await fetch('/api/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prospect_id: prospectId, rep: repName, added_by: 'admin' })
+      });
+      if (res.ok) {
+        if (btn) { btn.textContent = '✓ Added'; setTimeout(() => btn.textContent = '+ To Do', 2000); }
+        showToast(`✅ Added to ${repName}'s to-do list`);
+      }
+    }
     let currentFilter = 'all';
     let currentRepFilter = 'all';
     const REP_COLORS = { Stuart: '#22c55e', Vanessa: '#0044cc', Kurtis: '#805ad5' };
@@ -448,6 +483,7 @@
               <span class="location-name">${esc(group.name)}</span>
               ${repBadge}
               <button onclick="event.stopPropagation();openProspectModal(${pid})" style="font-size:0.72rem;font-weight:600;padding:2px 9px;border-radius:8px;background:#ebf4ff;color:#2b6cb0;border:1px solid #bee3f8;cursor:pointer;white-space:nowrap;">View Details →</button>
+              <button onclick="event.stopPropagation();addToTodoFromActivity(${pid},this)" style="font-size:0.72rem;font-weight:600;padding:2px 9px;border-radius:8px;background:rgba(234,88,12,0.08);color:#ea580c;border:1px solid #ea580c;cursor:pointer;white-space:nowrap;">+ To Do</button>
               <span class="location-meta">${group.propertyType || ''} · ${getTimeAgo(mostRecent)}</span>
             </div>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
