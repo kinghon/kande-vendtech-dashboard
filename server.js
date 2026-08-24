@@ -2972,12 +2972,18 @@ app.post('/api/office-inventory/adjust', requireAuth, (req, res) => {
 
 // Fuzzy name matcher: normalize and find best office_inventory match
 function findOfficeInventoryMatch(productName) {
+  // Fresh-food keywords — prevent sandwiches/wraps from matching chips/drinks
+  const FRESH_FOOD_KW = ['sandwich', 'wrap', 'salad', 'sushi', 'burrito', 'bowl', 'biscuit', 'burger', 'sub', 'hero', 'grilled', 'panini', 'taco', 'hoagie'];
+  const productIsFresh = FRESH_FOOD_KW.some(k => productName.toLowerCase().includes(k));
   const inventory = db.office_inventory || [];
   const needleWords = productName.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 2);
   const needleFlat = productName.toLowerCase().replace(/[^a-z0-9]/g, '');
   let best = null;
   let bestScore = 0;
   for (const inv of inventory) {
+    const invIsFresh = FRESH_FOOD_KW.some(k => inv.name.toLowerCase().includes(k));
+    // Skip cross-category matches (fresh ↔ packaged)
+    if (productIsFresh !== invIsFresh) continue;
     const hayFlat = inv.name.toLowerCase().replace(/[^a-z0-9]/g, '');
     const hayWords = inv.name.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 2);
 

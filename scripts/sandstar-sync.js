@@ -253,8 +253,8 @@ function dashApi(method, path, body, cookies) {
       try {
         // Paginate through all pages
         let pageNum = 1;
-        let totalPages = 1;
         let pageRecords = [];
+        const requestedPageSize = ep.body?.pageSize || ep.body?.pageNum || 500;
         do {
           const bodyWithPage = { ...(ep.body || {}), pageNum };
           const result = await page.evaluate(async ({ api, org, scope, ep, body }) => {
@@ -267,14 +267,21 @@ function dashApi(method, path, body, cookies) {
           }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE, ep, body: bodyWithPage });
           const data = result?.data || {};
           const list = data.records || data.resultList || data.list || null;
-          if (!list || !Array.isArray(list)) break;
+          if (!list || !Array.isArray(list) || list.length === 0) break;
           pageRecords.push(...list);
-          // Calculate total pages from rowcount and pagesize
-          const rowcount = data.rowcount || list.length;
-          const pagesize = data.pagesize || 10;
-          totalPages = Math.ceil(rowcount / pagesize);
+          // Use actual returned count to determine if there are more pages
+          // Don't use data.pagesize (often null) — use the requested page size
+          const rowcount = data.rowcount || 0;
+          if (rowcount > 0) {
+            const totalPages = Math.ceil(rowcount / requestedPageSize);
+            if (pageNum >= totalPages) break;
+          } else {
+            // No rowcount — stop if we got fewer records than page size (last page)
+            if (list.length < requestedPageSize) break;
+          }
           pageNum++;
-        } while (pageNum <= totalPages);
+          if (pageNum > 20) break; // safety cap
+        } while (true);
 
         if (pageRecords.length > 0) {
           allInventoryRecords = pageRecords;
