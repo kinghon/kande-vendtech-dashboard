@@ -88,10 +88,17 @@
     }
 
     /* Item cards */
+    .inv-grid {
+      display: grid;
+      grid-template-columns: 1fr 36px 70px 46px 28px;
+      align-items: center;
+      gap: 0 6px;
+      padding: 0 10px;
+    }
     .item-card {
       background: var(--card); border: 1px solid var(--border);
-      border-radius: 8px; padding: 7px 10px; margin-bottom: 4px;
-      display: flex; align-items: center; gap: 8px;
+      border-radius: 8px; padding: 5px 0; margin-bottom: 4px;
+      flex-wrap: wrap;
     }
     .item-header { display: none; }
     .item-name { font-weight: 600; font-size: 0.82rem; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -317,12 +324,12 @@
     <div class="search-wrap">
       <input type="text" id="invSearch" placeholder="Search items..." oninput="renderInventory()">
     </div>
-    <div style="display:flex;align-items:center;padding:2px 10px 4px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);">
-      <span style="flex:1;">Item</span>
-      <span style="width:36px;text-align:center;">Dist</span>
-      <span style="width:70px;text-align:right;">Qty/Min</span>
-      <span style="width:46px;text-align:right;">Surplus</span>
-      <span style="width:28px;"></span>
+    <div class="inv-grid" style="padding-top:2px;padding-bottom:4px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);">
+      <span>Item</span>
+      <span style="text-align:center;">Dist</span>
+      <span style="text-align:right;">Qty/Min</span>
+      <span style="text-align:right;">Surplus</span>
+      <span></span>
     </div>
     <div id="inventoryList"></div>
   </div>
@@ -460,15 +467,15 @@
       ` : '';
       return `
         <div class="item-card" style="flex-wrap:wrap;">
-          <div class="item-name" onclick="if(!editingId)startEdit('${it.id}')" title="${esc(it.name)}">${esc(it.name)}</div>
-          <span class="dist-badge ${distClass(it.distributor)}" style="width:36px;text-align:center;flex-shrink:0;font-size:0.6rem;padding:1px 4px;">${esc((it.distributor||'').slice(0,3).toUpperCase())}</span>
-          <div style="width:70px;flex-shrink:0;text-align:right;cursor:pointer;" onclick="if(!editingId)startEdit('${it.id}')">
-            <span class="qty-num ${qtyClass}" style="font-size:0.88rem;font-weight:700;">${it.quantity}</span><span style="font-size:0.7rem;color:var(--muted);">/${it.min_qty}</span>
+          <div class="inv-grid" style="width:100%;cursor:pointer;" onclick="if(!editingId)startEdit('${it.id}')">
+            <div class="item-name" title="${esc(it.name)}">${esc(it.name)}</div>
+            <span class="dist-badge ${distClass(it.distributor)}" style="text-align:center;font-size:0.6rem;padding:1px 2px;display:block;">${esc((it.distributor||'').slice(0,3).toUpperCase())}</span>
+            <div style="text-align:right;">
+              <span class="qty-num ${qtyClass}">${it.quantity}</span><span style="font-size:0.7rem;color:var(--muted);">/${it.min_qty}</span>
+            </div>
+            <div style="text-align:right;"><span class="surplus ${surClass}">${surText}</span></div>
+            <button class="pick-btn" onclick="event.stopPropagation();quickPick('${it.id}')" style="padding:3px 0;font-size:0.75rem;text-align:center;width:100%;">+</button>
           </div>
-          <div style="width:46px;flex-shrink:0;text-align:right;">
-            <span class="surplus ${surClass}">${surText}</span>
-          </div>
-          <button class="pick-btn" onclick="quickPick('${it.id}')" style="width:28px;flex-shrink:0;padding:3px 0;font-size:0.75rem;text-align:center;">+</button>
           ${editHtml}
         </div>
       `;
