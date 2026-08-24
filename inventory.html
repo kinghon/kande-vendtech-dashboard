@@ -56,6 +56,7 @@
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
       margin-bottom: 12px;
     }
+    .summary-card.active { box-shadow: 0 0 0 2px var(--accent); }
     .summary-card {
       background: var(--card); border: 1px solid var(--border);
       border-radius: var(--radius); padding: 12px 8px; text-align: center;
@@ -309,14 +310,9 @@
   <!-- Tab: Inventory -->
   <div id="tab-inventory" class="tab-panel active">
     <div class="summary">
-      <div class="summary-card"><div class="num" id="sTotal">0</div><div class="lbl">Items</div></div>
-      <div class="summary-card low"><div class="num" id="sLow">0</div><div class="lbl">Low Stock</div></div>
-      <div class="summary-card out"><div class="num" id="sOut">0</div><div class="lbl">Out of Stock</div></div>
-    </div>
-    <div class="filters">
-      <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
-      <button class="filter-btn" data-filter="low" onclick="setFilter('low')">Low Stock</button>
-      <button class="filter-btn" data-filter="out" onclick="setFilter('out')">Out of Stock</button>
+      <div class="summary-card active" id="sc-all" onclick="setFilter('all')" style="cursor:pointer;"><div class="num" id="sTotal">0</div><div class="lbl">Items</div></div>
+      <div class="summary-card low" id="sc-low" onclick="setFilter('low')" style="cursor:pointer;"><div class="num" id="sLow">0</div><div class="lbl">Low Stock</div></div>
+      <div class="summary-card out" id="sc-out" onclick="setFilter('out')" style="cursor:pointer;"><div class="num" id="sOut">0</div><div class="lbl">Out of Stock</div></div>
     </div>
     <div class="search-wrap">
       <input type="text" id="invSearch" placeholder="Search items..." oninput="renderInventory()">
@@ -408,7 +404,7 @@
   // ---- Inventory ----
   function setFilter(m) {
     filterMode = m;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === m));
+    ['all','low','out'].forEach(k => document.getElementById('sc-'+k)?.classList.toggle('active', k === m));
     renderInventory();
   }
   function getSurplus(item) { return item.quantity - item.min_qty; }
