@@ -374,8 +374,8 @@
 <div id="replaceModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;padding:16px;">
   <div style="background:var(--card);border-radius:16px;padding:20px;width:100%;max-width:420px;">
     <div style="font-weight:700;font-size:1rem;margin-bottom:14px;">Add / Replace Item</div>
-    <label style="font-size:0.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">New Item Name</label>
-    <input id="newItemName" type="text" placeholder="e.g. Celsius Peach Vibe" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;margin-bottom:12px;">
+    <label style="font-size:0.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">New Item (from inventory)</label>
+    <select id="newItemSelect" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;margin-bottom:12px;"></select>
     <label style="font-size:0.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">Replace Which Item?</label>
     <select id="replaceTarget" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;margin-bottom:12px;"></select>
     <label style="font-size:0.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">Starting Quantity</label>
@@ -436,23 +436,24 @@
   }
 
   function openReplaceModal() {
-    const sel = document.getElementById('replaceTarget');
-    sel.innerHTML = inventory.map(i => `<option value="${esc(i.id)}">${esc(i.name)}</option>`).join('');
-    document.getElementById('newItemName').value = '';
+    const opts = inventory.map(i => `<option value="${esc(i.id)}">${esc(i.name)}</option>`).join('');
+    document.getElementById('newItemSelect').innerHTML = opts;
+    document.getElementById('replaceTarget').innerHTML = opts;
     document.getElementById('newItemQty').value = '0';
     document.getElementById('replaceModal').style.display = 'flex';
   }
   function closeReplaceModal() { document.getElementById('replaceModal').style.display = 'none'; }
   async function submitReplace() {
-    const name = document.getElementById('newItemName').value.trim();
+    const newId = document.getElementById('newItemSelect').value;
     const targetId = document.getElementById('replaceTarget').value;
     const qty = parseInt(document.getElementById('newItemQty').value) || 0;
-    if (!name || !targetId) { toast('Fill in all fields'); return; }
+    if (!newId || !targetId) { toast('Select both items'); return; }
+    const newItem = inventory.find(i => i.id === newId);
     const target = inventory.find(i => i.id === targetId);
-    if (!target) { toast('Item not found'); return; }
+    if (!newItem || !target) { toast('Item not found'); return; }
     try {
-      await api('PUT', `/api/office-inventory/${targetId}`, { ...target, name, quantity: qty });
-      toast(`✓ Replaced "${target.name}" with "${name}"`);
+      await api('PUT', `/api/office-inventory/${targetId}`, { ...target, name: newItem.name, quantity: qty });
+      toast(`✓ Replaced "${target.name}" with "${newItem.name}"`);
       closeReplaceModal();
       inventory = await api('GET', '/api/office-inventory');
       renderInventory();
@@ -681,6 +682,9 @@
     ` : '';
 
     return `
+      <div class="pl-actions" style="margin-bottom:8px;">
+        <button onclick="openReplaceModal()" style="width:100%;padding:8px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:0.8rem;font-weight:600;color:var(--text);cursor:pointer;">+ Add / Replace Item</button>
+      </div>
       ${missingHtml}
       <div class="pl-items">
         ${pl.items.map(it => {
@@ -710,9 +714,6 @@
       </div>
       <div class="pl-actions">
         <button class="delete-btn" onclick="deletePl('${pl.id}')">Delete</button>
-      </div>
-      <div class="pl-actions">
-        <button onclick="openReplaceModal()" style="width:100%;padding:8px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:0.8rem;font-weight:600;color:var(--text);cursor:pointer;">+ Add / Replace Item</button>
       </div>
     `;
   }
