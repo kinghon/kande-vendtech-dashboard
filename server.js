@@ -406,7 +406,7 @@ if (!db.revenue) db.revenue = [];
 if (!db.sandstar_sales) db.sandstar_sales = [];
 if (!db.sandstar_machines) db.sandstar_machines = [];
 // Always replace with canonical 8 machines (dedup/clean)
-if (!db._machinesSeededV4) {
+if (!db._machinesSeededV5) {
   db.sandstar_machines = [
     { id: '131520', sandstar_id: 131520, name: 'ARK Prelude At The Park', online: true },
     { id: '128836', sandstar_id: 128836, name: 'CVM13 Dig This', online: true },
@@ -417,7 +417,7 @@ if (!db._machinesSeededV4) {
     { id: '127763', sandstar_id: 127763, name: 'VRK All In Aviation', online: true },
     { id: '127761', sandstar_id: 127761, name: 'VRK Regus Suite 500', online: true },
   ];
-  db._machinesSeededV4 = true;
+  db._machinesSeededV5 = true;
   saveDB(db);
 }
 if (!db.micromarkets) db.micromarkets = [];
@@ -3083,7 +3083,7 @@ app.post('/api/pick-lists/refresh-all', requireAuth, (req, res) => {
       items,
       missing,
       status: 'draft',
-      synced_at: syncedAt,
+      synced_at: new Date().toISOString(),
       created_at: existingIdx >= 0 ? db.pick_lists[existingIdx].created_at : new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

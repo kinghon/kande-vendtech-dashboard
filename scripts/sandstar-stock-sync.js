@@ -21,7 +21,7 @@ const MACHINES = [
   { sandstar_id: 128794, name: 'VRK Regus Green Valley' },
   { sandstar_id: 128790, name: 'VRK The Watermark' },
   { sandstar_id: 128010, name: 'CVM13 Regus Suite 200' },
-  { sandstar_id: 127763, name: 'VRK All In Aviation' },
+  { sandstar_id: 127763, name: 'VRK All In Aviation' }, // must match machine name in DB
   { sandstar_id: 127761, name: 'VRK Regus Suite 500' },
 ];
 
