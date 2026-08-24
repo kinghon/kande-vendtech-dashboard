@@ -405,11 +405,16 @@ if (!db.competitorLocations) db.competitorLocations = [];
 if (!db.revenue) db.revenue = [];
 if (!db.sandstar_sales) db.sandstar_sales = [];
 if (!db.sandstar_machines) db.sandstar_machines = [];
-if (db.sandstar_machines.length === 0) {
+if (db.sandstar_machines.length < 8) {
   db.sandstar_machines = [
-    { id: '127763', sandstar_id: 127763, name: 'All In Aviation Academy', address: 'Henderson, NV', online: true },
-    { id: '127761', sandstar_id: 127761, name: 'VRK Regus Suite 500', address: '3753 Howard Hughes Pkwy, Las Vegas, NV', online: true },
-    { id: '128010', sandstar_id: 128010, name: 'CVM13 Regus Suite 200', address: 'Las Vegas, NV', online: true },
+    { id: '131520', sandstar_id: 131520, name: 'ARK Prelude At The Park', address: '01 E Lake Mead Pkwy, Henderson, NV 89015', online: true },
+    { id: '128836', sandstar_id: 128836, name: 'CVM13 Dig This', address: '800 W Roban Ave, Las Vegas, NV 89044', online: true },
+    { id: '128837', sandstar_id: 128837, name: 'CVM13 Regus Arroyo', address: '7455 Arroyo Crossing Pkwy #220, Las Vegas, NV 89113', online: true },
+    { id: '128794', sandstar_id: 128794, name: 'VRK Regus Green Valley', address: '170 S Green Valley Pkwy #300, Henderson, NV', online: true },
+    { id: '128790', sandstar_id: 128790, name: 'VRK The Watermark', address: '215 S Water St, Henderson, NV 89015', online: true },
+    { id: '128010', sandstar_id: 128010, name: 'CVM13 Regus Suite 200', address: '3753 Howard Hughes Pkwy #200, Las Vegas, NV', online: true },
+    { id: '127763', sandstar_id: 127763, name: 'VRK All In Aviation Academy', address: '1456 Jet Stream Dr, Henderson, NV', online: true },
+    { id: '127761', sandstar_id: 127761, name: 'VRK Regus Suite 500', address: '3753 Howard Hughes Pkwy #500, Las Vegas, NV', online: true },
   ];
   saveDB(db);
 }
