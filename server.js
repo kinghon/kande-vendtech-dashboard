@@ -406,18 +406,18 @@ if (!db.revenue) db.revenue = [];
 if (!db.sandstar_sales) db.sandstar_sales = [];
 if (!db.sandstar_machines) db.sandstar_machines = [];
 // Always replace with canonical 8 machines (dedup/clean)
-if (!db._machinesSeededV3) {
+if (!db._machinesSeededV4) {
   db.sandstar_machines = [
-    { id: '131520', sandstar_id: 131520, name: 'ARK Prelude At The Park', address: '01 E Lake Mead Pkwy, Henderson, NV 89015', online: true },
-    { id: '128836', sandstar_id: 128836, name: 'CVM13 Dig This', address: '800 W Roban Ave, Las Vegas, NV 89044', online: true },
-    { id: '128837', sandstar_id: 128837, name: 'CVM13 Regus Arroyo', address: '7455 Arroyo Crossing Pkwy #220, Las Vegas, NV 89113', online: true },
-    { id: '128794', sandstar_id: 128794, name: 'VRK Regus Green Valley', address: '170 S Green Valley Pkwy #300, Henderson, NV', online: true },
-    { id: '128790', sandstar_id: 128790, name: 'VRK The Watermark', address: '215 S Water St, Henderson, NV 89015', online: true },
-    { id: '128010', sandstar_id: 128010, name: 'CVM13 Regus Suite 200', address: '3753 Howard Hughes Pkwy #200, Las Vegas, NV', online: true },
-    { id: '127763', sandstar_id: 127763, name: 'VRK All In Aviation Academy', address: '1456 Jet Stream Dr, Henderson, NV', online: true },
-    { id: '127761', sandstar_id: 127761, name: 'VRK Regus Suite 500', address: '3753 Howard Hughes Pkwy #500, Las Vegas, NV', online: true },
+    { id: '131520', sandstar_id: 131520, name: 'ARK Prelude At The Park', online: true },
+    { id: '128836', sandstar_id: 128836, name: 'CVM13 Dig This', online: true },
+    { id: '128837', sandstar_id: 128837, name: 'CVM13 Regus Arroyo', online: true },
+    { id: '128794', sandstar_id: 128794, name: 'VRK Regus Green Valley', online: true },
+    { id: '128790', sandstar_id: 128790, name: 'VRK The Watermark', online: true },
+    { id: '128010', sandstar_id: 128010, name: 'CVM13 Regus Suite 200', online: true },
+    { id: '127763', sandstar_id: 127763, name: 'VRK All In Aviation', online: true },
+    { id: '127761', sandstar_id: 127761, name: 'VRK Regus Suite 500', online: true },
   ];
-  db._machinesSeededV3 = true;
+  db._machinesSeededV4 = true;
   saveDB(db);
 }
 if (!db.micromarkets) db.micromarkets = [];
@@ -2894,6 +2894,18 @@ app.post('/api/office-machines-reset', (req, res) => {
   saveDB(db);
   res.json({ ok: true, cleared: true });
 });
+// Receives live Sandstar stock pushed from Mac mini script
+app.post('/api/office-stock-sync', (req, res) => {
+  const { records } = req.body;
+  if (!Array.isArray(records)) return res.status(400).json({ error: 'records array required' });
+  db.office_sandstar_stock = records;
+  db.office_sandstar_stock_synced_at = new Date().toISOString();
+  saveDB(db);
+  res.json({ ok: true, count: records.length, synced_at: db.office_sandstar_stock_synced_at });
+});
+app.get('/api/office-stock', (req, res) => {
+  res.json({ records: db.office_sandstar_stock || [], synced_at: db.office_sandstar_stock_synced_at || null });
+});
 
 app.put('/api/office-inventory/:id', requireAuth, (req, res) => {
   const item = db.office_inventory.find(i => i.id === req.params.id);
@@ -3037,48 +3049,42 @@ app.post('/api/pick-lists/generate', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'machine_names array required' });
   }
 
+  const stock = db.office_sandstar_stock || [];
+  const syncedAt = db.office_sandstar_stock_synced_at || null;
   const items = [];
   const missing = [];
 
+  if (stock.length === 0) {
+    return res.status(503).json({
+      error: 'No Sandstar stock data available yet. Stock sync runs every 30 min from the Mac mini. Try again shortly.',
+      synced_at: null
+    });
+  }
+
   for (const mname of machine_names) {
-    // Find sandstar_id for this machine
-    const machineRecord = (db.sandstar_machines || []).find(m => m.name === mname);
-    const freezerId = machineRecord?.sandstar_id;
-    if (!freezerId) {
-      missing.push({ machine_name: mname, error: 'Machine not found in Sandstar' });
+    const machineRecs = stock.filter(r => r.machine_name === mname && (r.current_quantity || 0) < (r.capacity || 0));
+    if (!machineRecs.length) {
+      missing.push({ machine_name: mname, error: `No stock data for this machine (last sync: ${syncedAt || 'never'})` });
       continue;
     }
-
-    // Pull live stock from Sandstar
-    let liveItems = [];
-    try {
-      const { execSync } = require('child_process');
-      const out = execSync(`node /Users/kurtishon/clawd/scripts/sandstar-live-stock.js ${freezerId}`, { timeout: 120000 }).toString().trim();
-      const parsed = JSON.parse(out);
-      liveItems = parsed.items || [];
-    } catch (e) {
-      console.error(`[pick-list/generate] Live stock fetch failed for ${mname}:`, e.message);
-      missing.push({ machine_name: mname, error: 'Failed to fetch live Sandstar data: ' + e.message });
-      continue;
-    }
-
-    for (const rec of liveItems) {
-      if (!rec.needed || rec.needed <= 0) continue;
-      const match = findOfficeInventoryMatch(rec.name);
+    for (const rec of machineRecs) {
+      const needed = (rec.capacity || 0) - (rec.current_quantity || 0);
+      if (needed <= 0) continue;
+      const match = findOfficeInventoryMatch(rec.product_name);
       if (match) {
         items.push({
           id: match.id,
           name: match.name,
-          qty: rec.needed,
+          qty: needed,
           machine_name: mname,
-          sandstar_product_name: rec.name,
-          current_qty: rec.current,
+          sandstar_product_name: rec.product_name,
+          current_qty: rec.current_quantity,
           capacity: rec.capacity,
-          lane_no: rec.lane,
+          lane_no: rec.lane_no,
           checked: false
         });
       } else {
-        missing.push({ machine_name: mname, product_name: rec.name, needed: rec.needed });
+        missing.push({ machine_name: mname, product_name: rec.product_name, needed });
       }
     }
   }

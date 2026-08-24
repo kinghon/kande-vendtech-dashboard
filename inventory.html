@@ -573,7 +573,12 @@
       } else {
         toast(`Pick list created — no matching items found (${pl.missing?.length || 0} unmatched)`);
       }
-    } catch (e) { toast('Failed to generate pick list'); console.error(e); }
+    } catch (e) {
+      const msg = e.message || '';
+      if (msg.includes('503') || msg.includes('No Sandstar')) toast('Stock data not synced yet — try again in a few minutes');
+      else toast('Failed to generate pick list');
+      console.error(e);
+    }
     finally { btn.textContent = 'Generate Pick List'; renderMachineList(); }
   }
 
