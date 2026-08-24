@@ -2919,6 +2919,20 @@ app.get('/api/office-stock', (req, res) => {
   res.json({ records: db.office_sandstar_stock || [], synced_at: db.office_sandstar_stock_synced_at || null });
 });
 
+// Products in Sandstar machines not matched to any office inventory item
+app.get('/api/office-unmatched', (req, res) => {
+  const stock = db.office_sandstar_stock || [];
+  const seen = new Set();
+  const unmatched = [];
+  for (const rec of stock) {
+    if (!rec.product_name || seen.has(rec.product_name)) continue;
+    seen.add(rec.product_name);
+    const match = findOfficeInventoryMatch(rec.product_name);
+    if (!match) unmatched.push({ product_name: rec.product_name, picture: rec.picture || '' });
+  }
+  res.json(unmatched.sort((a, b) => a.product_name.localeCompare(b.product_name)));
+});
+
 app.put('/api/office-inventory/:id', requireAuth, (req, res) => {
   const item = db.office_inventory.find(i => i.id === req.params.id);
   if (!item) return res.status(404).json({ error: 'Item not found' });

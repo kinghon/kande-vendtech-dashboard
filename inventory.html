@@ -316,6 +316,11 @@
 
   <!-- Tab: Inventory -->
   <div id="tab-inventory" class="tab-panel active">
+    <!-- Not in spreadsheet section -->
+    <div id="unmatchedSection" style="display:none;margin-bottom:12px;background:var(--amber-light);border:1px solid var(--amber);border-radius:10px;padding:10px;">
+      <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#92400e;margin-bottom:6px;">⚠️ In machines but not in your spreadsheet</div>
+      <div id="unmatchedList" style="font-size:0.82rem;"></div>
+    </div>
     <div class="summary">
       <div class="summary-card active" id="sc-all" onclick="setFilter('all')" style="cursor:pointer;"><div class="num" id="sTotal">0</div><div class="lbl">Items</div></div>
       <div class="summary-card low" id="sc-low" onclick="setFilter('low')" style="cursor:pointer;"><div class="num" id="sLow">0</div><div class="lbl">Low Stock</div></div>
@@ -324,6 +329,7 @@
     <div class="search-wrap">
       <input type="text" id="invSearch" placeholder="Search items..." oninput="renderInventory()">
     </div>
+    <button onclick="openReplaceModal()" style="width:100%;margin-bottom:8px;padding:8px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:0.82rem;font-weight:600;color:var(--text);cursor:pointer;">+ Add / Replace Item</button>
     <div class="inv-grid" style="padding-top:2px;padding-bottom:4px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--muted);">
       <span>Item</span>
       <span style="text-align:center;">Dist</span>
@@ -365,6 +371,23 @@
 
 <div id="toast" class="toast"></div>
 
+<!-- Add/Replace Item Modal -->
+<div id="replaceModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:var(--card);border-radius:16px;padding:20px;width:100%;max-width:420px;">
+    <div style="font-weight:700;font-size:1rem;margin-bottom:14px;">Add / Replace Item</div>
+    <label style="font-size:0.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">New Item Name</label>
+    <input id="newItemName" type="text" placeholder="e.g. Celsius Peach Vibe" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;margin-bottom:12px;">
+    <label style="font-size:0.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">Replace Which Item?</label>
+    <select id="replaceTarget" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;margin-bottom:12px;"></select>
+    <label style="font-size:0.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">Starting Quantity</label>
+    <input id="newItemQty" type="number" min="0" value="0" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;margin-bottom:16px;">
+    <div style="display:flex;gap:8px;">
+      <button onclick="closeReplaceModal()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:0.9rem;cursor:pointer;">Cancel</button>
+      <button onclick="submitReplace()" style="flex:2;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;font-size:0.9rem;cursor:pointer;">Save</button>
+    </div>
+  </div>
+</div>
+
 <script>
   const API_BASE = '';
   let inventory = [];
@@ -393,7 +416,49 @@
       renderInventory();
       renderAddStock();
       renderPickLists();
+      loadUnmatched();
     } catch (e) { toast('Error loading data'); console.error(e); }
+  }
+
+  async function loadUnmatched() {
+    try {
+      const unmatched = await api('GET', '/api/office-unmatched');
+      const sec = document.getElementById('unmatchedSection');
+      const list = document.getElementById('unmatchedList');
+      if (!unmatched.length) { sec.style.display = 'none'; return; }
+      sec.style.display = 'block';
+      list.innerHTML = unmatched.map(u =>
+        `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(0,0,0,0.06);">
+          ${u.picture ? `<img src="${esc(u.picture)}" style="width:24px;height:24px;object-fit:cover;border-radius:4px;flex-shrink:0;">` : ''}
+          <span>${esc(u.product_name)}</span>
+        </div>`
+      ).join('');
+    } catch(e) {}
+  }
+
+  function openReplaceModal() {
+    const sel = document.getElementById('replaceTarget');
+    sel.innerHTML = inventory.map(i => `<option value="${esc(i.id)}">${esc(i.name)}</option>`).join('');
+    document.getElementById('newItemName').value = '';
+    document.getElementById('newItemQty').value = '0';
+    document.getElementById('replaceModal').style.display = 'flex';
+  }
+  function closeReplaceModal() { document.getElementById('replaceModal').style.display = 'none'; }
+  async function submitReplace() {
+    const name = document.getElementById('newItemName').value.trim();
+    const targetId = document.getElementById('replaceTarget').value;
+    const qty = parseInt(document.getElementById('newItemQty').value) || 0;
+    if (!name || !targetId) { toast('Fill in all fields'); return; }
+    const target = inventory.find(i => i.id === targetId);
+    if (!target) { toast('Item not found'); return; }
+    try {
+      await api('PUT', `/api/office-inventory/${targetId}`, { ...target, name, quantity: qty });
+      toast(`✓ Replaced "${target.name}" with "${name}"`);
+      closeReplaceModal();
+      inventory = await api('GET', '/api/office-inventory');
+      renderInventory();
+      loadUnmatched();
+    } catch(e) { toast('Save failed'); console.error(e); }
   }
 
   // ---- Tabs ----
