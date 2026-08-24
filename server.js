@@ -3020,8 +3020,12 @@ function gogSheetsGet(range) {
 
 function gogSheetsUpdate(range, value) {
   const { execSync } = require('child_process');
-  const jsonVal = JSON.stringify([[String(value)]]);
-  const cmd = `gog sheets update --account ${SHEET_ACCOUNT} --json ${SHEET_ID} "${range}" --values-json '${jsonVal}'`;
+  // gog sheets update <spreadsheetId> <range> <value>
+  // Negative numbers need -- separator to avoid being parsed as flags
+  const val = String(value);
+  const cmd = val.startsWith('-')
+    ? `gog sheets update --account ${SHEET_ACCOUNT} --json ${SHEET_ID} "${range}" -- "${val}"`
+    : `gog sheets update --account ${SHEET_ACCOUNT} --json ${SHEET_ID} "${range}" "${val}"`;
   return execSync(cmd, { encoding: 'utf8', timeout: 30000 });
 }
 
