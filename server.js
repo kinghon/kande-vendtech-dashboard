@@ -3018,15 +3018,26 @@ function gogSheetsGet(range) {
   return JSON.parse(out);
 }
 
-function gogSheetsUpdate(range, value) {
-  const { execSync } = require('child_process');
+const SHEET_AUDIT_LOG = '/Users/kurtishon/clawd/data/sheet-audit-log.jsonl';
+
+function gogSheetsUpdate(range, value, meta = {}) {
+  const { execSync, appendFileSync } = require('child_process');
+  const fs = require('fs');
   // gog sheets update <spreadsheetId> <range> <value>
-  // Negative numbers need -- separator to avoid being parsed as flags
   const val = String(value);
   const cmd = val.startsWith('-')
     ? `gog sheets update --account ${SHEET_ACCOUNT} --json ${SHEET_ID} "${range}" -- "${val}"`
     : `gog sheets update --account ${SHEET_ACCOUNT} --json ${SHEET_ID} "${range}" "${val}"`;
-  return execSync(cmd, { encoding: 'utf8', timeout: 30000 });
+  const result = execSync(cmd, { encoding: 'utf8', timeout: 30000 });
+  // Audit log
+  const entry = { ts: new Date().toISOString(), range, value: val, ...meta };
+  try { fs.appendFileSync(SHEET_AUDIT_LOG, JSON.stringify(entry) + '\n'); } catch(e) {}
+  // Also append to New Orders tab
+  try {
+    const logLine = `${entry.ts}|AUDIT|${meta.item||range}|${meta.old_qty??''}|${val}|${meta.source||'system'}`;
+    execSync(`gog sheets append --account ${SHEET_ACCOUNT} --json ${SHEET_ID} "New Orders!A1" "${logLine}"`, { encoding: 'utf8', timeout: 15000 });
+  } catch(e) {}
+  return result;
 }
 
 function gogSheetsAppend(range, values) {
@@ -3311,8 +3322,8 @@ app.put('/api/pick-lists/:id/finalize', requireAuth, (req, res) => {
         const inv = db.office_inventory.find(i => i.id === dit.id);
         const newQty = dit.new_qty;
         const newSurplus = newQty - (inv.min_qty || 0);
-        gogSheetsUpdate(`Inventory!C${row}`, newQty);
-        gogSheetsUpdate(`Inventory!B${row}`, newSurplus);
+        gogSheetsUpdate(`Inventory!C${row}`, newQty, { item: dit.name, old_qty: dit.old_qty, source: `pick-list:${list.label}` });
+        gogSheetsUpdate(`Inventory!B${row}`, newSurplus, { item: `${dit.name} (surplus)`, source: `pick-list:${list.label}` });
       } catch (e) {
         sheetErrors.push(`${dit.name}: sheet update failed — ${e.message}`);
       }
