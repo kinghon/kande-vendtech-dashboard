@@ -417,6 +417,84 @@ if (!db.inventory_deployments) db.inventory_deployments = [];
 if (!db.pull_list) db.pull_list = [];
 if (!db.spoilage_log) db.spoilage_log = [];
 if (!db.expiration_records) db.expiration_records = [];
+if (!db.office_inventory) db.office_inventory = [];
+if (!db.pick_lists) db.pick_lists = [];
+
+// Seed office inventory on first boot
+if (db.office_inventory.length === 0) {
+  const seedItems = [
+    {"name":"Airheads Xtreme","quantity":2,"min_qty":36,"distributor":"Vistar","size":"4.5oz","link":"https://www.vendhubhq.com/pantry/products/4aa438e4-9267-47fd-bd3c-3d17a336ba30"},
+    {"name":"Alani Pink Slush","quantity":24,"min_qty":72,"distributor":"Vistar","size":"12oz","link":"https://www.vendhubhq.com/pantry/products/7fe250e6-9a1c-4e7e-b860-617ee92f5910"},
+    {"name":"Alani Witches Brew","quantity":144,"min_qty":72,"distributor":"Costco","size":"12oz","link":""},
+    {"name":"Aquafina Water","quantity":120,"min_qty":72,"distributor":"Vistar","size":"20oz","link":"https://www.vendhubhq.com/pantry/products/91166bed-2cc0-4021-993a-806ab0158694"},
+    {"name":"Barebells Cookies and Cream","quantity":21,"min_qty":36,"distributor":"Vistar","size":"1.94oz","link":"https://www.vendhubhq.com/pantry/products/227a684f-5258-412e-82e1-1ed8cd1af366"},
+    {"name":"Bloom Summer Splash","quantity":106,"min_qty":48,"distributor":"Costco","size":"12oz","link":""},
+    {"name":"Canada Dry Ginger Ale","quantity":15,"min_qty":48,"distributor":"Vistar","size":"20oz","link":"https://www.vendhubhq.com/pantry/products/9a4f6576-bf05-4dba-9692-bf347bbe66f9"},
+    {"name":"Celsius Arctic Vibe","quantity":9,"min_qty":48,"distributor":"Vistar","size":"12oz","link":"https://www.vendhubhq.com/pantry/products/20ec8b91-68e0-4055-a163-1ad30bf29461"},
+    {"name":"Celsius Kiwi Guava","quantity":34,"min_qty":48,"distributor":"Vistar","size":"12oz","link":"https://www.vendhubhq.com/pantry/products/8078621d-0334-4c2b-8cf9-72c5f6c969d3"},
+    {"name":"Cheetos Crunchy","quantity":73,"min_qty":100,"distributor":"Vistar","size":"2oz","link":"https://www.vendhubhq.com/pantry/products/fe733489-6b94-4aef-87bb-e629fd43a027"},
+    {"name":"Cheetos Crunchy Flamin Hot","quantity":69,"min_qty":100,"distributor":"Vistar","size":"2oz","link":"https://www.vendhubhq.com/pantry/products/f0a0cbe9-7325-4bae-89b0-755890cfd227"},
+    {"name":"Cheez-It Original","quantity":56,"min_qty":100,"distributor":"Vistar","size":"2oz","link":"https://www.vendhubhq.com/pantry/products/546759ee-9a30-429e-8c8d-313d5c3a7f18"},
+    {"name":"Coca Cola Classic","quantity":60,"min_qty":72,"distributor":"Vistar","size":"20oz","link":"https://www.vendhubhq.com/pantry/products/4d1b9f4f-dfbe-4cf4-bec3-7e50357946b3"},
+    {"name":"Coca-Cola Zero Sugar","quantity":45,"min_qty":72,"distributor":"Vistar","size":"20oz","link":"https://www.vendhubhq.com/pantry/products/5d665625-6d05-424a-8ec4-20061faef8c6"},
+    {"name":"Coke Mexican","quantity":36,"min_qty":48,"distributor":"Costco","size":"12oz","link":""},
+    {"name":"Core Power Elite Chocolate","quantity":39,"min_qty":48,"distributor":"Amazon","size":"14oz","link":""},
+    {"name":"Diet Coke","quantity":30,"min_qty":48,"distributor":"Vistar","size":"20oz","link":"https://www.vendhubhq.com/pantry/products/381ea969-bdf6-439a-81f6-90f870440dad"},
+    {"name":"Dr Pepper","quantity":24,"min_qty":48,"distributor":"Vistar","size":"20oz","link":"https://www.vendhubhq.com/pantry/products/4d9a2802-58bc-46c7-aab0-d9935008b078"},
+    {"name":"Gatorade Cool Blue","quantity":24,"min_qty":48,"distributor":"Vistar","size":"20oz","link":"https://www.vendhubhq.com/pantry/products/b5d40cc1-4977-4286-bae3-c6def1239be3"},
+    {"name":"Gatorade Fruit Punch","quantity":77,"min_qty":48,"distributor":"Vistar","size":"20oz","link":"https://www.vendhubhq.com/pantry/products/0840f425-f2ac-4ffb-8b9f-73202f2954f6"},
+    {"name":"Gatorade Lemon Lime","quantity":17,"min_qty":48,"distributor":"Vistar","size":"20oz","link":"https://www.vendhubhq.com/pantry/products/2c7e562e-1cbb-46d0-afe7-8f33534e6fec"},
+    {"name":"Ghost Energy Orange Cream","quantity":12,"min_qty":48,"distributor":"Vistar","size":"16oz","link":"https://www.vendhubhq.com/pantry/products/2df10916-125f-408f-8222-1eec182c0e26"},
+    {"name":"Golden Island Korean BBQ Pork Jerky","quantity":65,"min_qty":35,"distributor":"Costco","size":"1.5oz","link":""},
+    {"name":"Grandma's Chocolate Chip Cookies","quantity":35,"min_qty":60,"distributor":"Vistar","size":"2.5oz","link":"https://www.vendhubhq.com/pantry/products/66c298b0-9d99-4c92-b5f2-c9d27d343984"},
+    {"name":"Hershey Pretzel Dipped C&C","quantity":22,"min_qty":36,"distributor":"Vistar","size":"4.25oz","link":"https://www.vendhubhq.com/pantry/products/c1dc5f26-8294-44c4-a68f-eabfdd0e93e2"},
+    {"name":"Jarrito Lime","quantity":63,"min_qty":48,"distributor":"Vistar","size":"17.7oz","link":"https://www.vendhubhq.com/pantry/products/e6b6274c-7add-4f78-95d5-84392c52f24a"},
+    {"name":"Jarritos Mandarin","quantity":48,"min_qty":48,"distributor":"Vistar","size":"17.7oz","link":"https://www.vendhubhq.com/pantry/products/37757248-fe9d-41c5-86c4-d21b6096a177"},
+    {"name":"Kars Cashews","quantity":135,"min_qty":100,"distributor":"Vistar","size":"1oz","link":"https://www.vendhubhq.com/pantry/products/0e3139be-43d4-4add-a3fd-5001732cfaeb"},
+    {"name":"Kettle Chips BBQ","quantity":8,"min_qty":36,"distributor":"Vistar","size":"2oz","link":"https://www.vendhubhq.com/pantry/products/3d905ac9-2447-480e-97a1-745af668f2f4"},
+    {"name":"Kettle Chips Salted","quantity":26,"min_qty":36,"distributor":"Vistar","size":"2oz","link":"https://www.vendhubhq.com/pantry/products/b1518fcb-3738-49a5-a195-145db1f1afae"},
+    {"name":"Kind Bar Dark Chocolate Nuts & Sea Salt","quantity":0,"min_qty":72,"distributor":"Vistar","size":"1.4oz","link":"https://www.vendhubhq.com/pantry/products/9fee7f54-ee49-4868-bbef-94c6ceedd136"},
+    {"name":"Kit Kat King Size","quantity":20,"min_qty":72,"distributor":"Vistar","size":"3oz","link":"https://www.vendhubhq.com/pantry/products/ed07e7e0-c9ce-480c-b216-5b9751d264e2"},
+    {"name":"Kodiak Oatmeal Chocolate Chip","quantity":12,"min_qty":24,"distributor":"Vistar","size":"2.12oz","link":"https://www.vendhubhq.com/pantry/products/aa4a37ff-8b03-4064-849a-bbeb3fd13f90"},
+    {"name":"M&M Peg Bag","quantity":0,"min_qty":0,"distributor":"Vistar","size":"5.3oz","link":"https://www.vendhubhq.com/pantry/products/f2e53fb5-30ae-4986-83ee-7da2fd51e324"},
+    {"name":"Mela Watermelon Water","quantity":4,"min_qty":24,"distributor":"Amazon","size":"11.15oz","link":"https://www.amazon.com/dp/B08WQ93XT3"},
+    {"name":"Monster Energy (Black)","quantity":47,"min_qty":48,"distributor":"Vistar","size":"16oz","link":"https://www.vendhubhq.com/pantry/products/60fbdc19-61b1-4c22-9e45-88dcc6252d1c"},
+    {"name":"Monster Energy Ultra Sunrise (Orange)","quantity":72,"min_qty":72,"distributor":"Costco","size":"16oz","link":""},
+    {"name":"Monster Energy Zero Sugar (White)","quantity":44,"min_qty":72,"distributor":"Vistar","size":"16oz","link":"https://www.vendhubhq.com/pantry/products/521b03fa-0ce0-4d2a-840e-a73189ce042a"},
+    {"name":"Mountain Dew","quantity":29,"min_qty":72,"distributor":"Vistar","size":"20oz","link":"https://www.vendhubhq.com/pantry/products/91a2b8b3-591d-4abe-a68c-acf8a3a9b43f"},
+    {"name":"Nerds Gummy Clusters 5oz","quantity":9,"min_qty":36,"distributor":"Vistar","size":"5oz","link":"https://www.vendhubhq.com/pantry/products/f2d9c8e5-b4d6-4b89-9ddc-66c1a488da8e"},
+    {"name":"Oasis Treasures Dubai Chocolate","quantity":23,"min_qty":24,"distributor":"Faire","size":"2.47oz","link":"https://www.faire.com/product/p_a2taw5gsbg"},
+    {"name":"Oreo King Size","quantity":7,"min_qty":36,"distributor":"Vistar","size":"3.22oz","link":"https://www.vendhubhq.com/pantry/products/15be1a91-36e0-43da-a7c6-ed1b523cc5b5"},
+    {"name":"Peanut M&M's","quantity":0,"min_qty":48,"distributor":"Vistar","size":"5.3oz","link":"https://www.vendhubhq.com/pantry/products/7b4882a7-6aeb-4cea-a011-e2f7f82d25e3"},
+    {"name":"Pure Leaf Unsweetened Black Tea w/ Lemon","quantity":24,"min_qty":48,"distributor":"Costco","size":"18.5oz","link":""},
+    {"name":"Pure Leaf Unsweetened Tea","quantity":0,"min_qty":48,"distributor":"Vistar","size":"18.5oz","link":"https://www.vendhubhq.com/pantry/products/bcfb0c20-63d7-446f-8f99-0f09736ab46f"},
+    {"name":"Red Bull Energy Drink","quantity":0,"min_qty":48,"distributor":"Amazon","size":"8.4oz","link":""},
+    {"name":"Red Bull Energy Drink White Peach","quantity":8,"min_qty":48,"distributor":"Amazon","size":"8.4oz","link":""},
+    {"name":"Red Bull Energy Drink White Peach Sugarfree","quantity":47,"min_qty":24,"distributor":"Amazon","size":"8.4oz","link":""},
+    {"name":"Reese's King Size","quantity":49,"min_qty":72,"distributor":"Vistar","size":"2.8oz","link":"https://www.vendhubhq.com/pantry/products/1b5d452d-d82c-43f3-9125-5f4ae3e3cdec"},
+    {"name":"Ruffles Cheddar and Sour Cream","quantity":37,"min_qty":48,"distributor":"Vistar","size":"2.125oz","link":"https://www.vendhubhq.com/pantry/products/d8d03ed0-cf6b-417e-8971-a82eba3cc81b"},
+    {"name":"San Pellegrino Sparkling Water","quantity":30,"min_qty":48,"distributor":"Vistar","size":"17oz","link":"https://www.vendhubhq.com/pantry/products/f816723d-c3bd-42e3-a7e5-cf7a43c1a933"},
+    {"name":"Smart Water","quantity":29,"min_qty":48,"distributor":"Vistar","size":"20oz","link":"https://www.vendhubhq.com/pantry/products/5aa3ba22-d9e3-4f6a-a9a6-269bd69791d3"},
+    {"name":"Snickers King Size","quantity":72,"min_qty":72,"distributor":"Vistar","size":"3.29oz","link":"https://www.vendhubhq.com/pantry/products/a4bfe13f-7e85-4df2-b85b-a9c7a07354cf"},
+    {"name":"Sprite","quantity":47,"min_qty":48,"distributor":"Vistar","size":"20oz","link":"https://www.vendhubhq.com/pantry/products/93d41fa5-aa76-446c-8e5f-3c4f3982ff3e"},
+    {"name":"Starbucks Cold Brew Nitro Black Unsweetened","quantity":10,"min_qty":24,"distributor":"Amazon","size":"9.6oz","link":""},
+    {"name":"Starbucks Frappuccino Mocha","quantity":16,"min_qty":24,"distributor":"Vistar","size":"9.5oz","link":"https://www.vendhubhq.com/pantry/products/efc7201b-e3b4-43ba-9454-e6ba5ade2d81"},
+    {"name":"Takis Fuego","quantity":94,"min_qty":100,"distributor":"Vistar","size":"2oz","link":"https://www.vendhubhq.com/pantry/products/1b491ff3-9d87-4a30-8a38-caab0e6a4ec4"},
+    {"name":"Trolli Peach","quantity":35,"min_qty":48,"distributor":"Vistar","size":"5oz","link":"https://www.vendhubhq.com/pantry/products/d8d59467-57b3-4c51-b892-1971b1149143"},
+    {"name":"Trolli Sour Brite Crawlers","quantity":36,"min_qty":48,"distributor":"Vistar","size":"5oz","link":"https://www.vendhubhq.com/pantry/products/f752e9bd-280b-41f3-b3e2-dd031c141514"},
+    {"name":"Twix Share Size","quantity":72,"min_qty":72,"distributor":"Vistar","size":"3.02oz","link":"https://www.vendhubhq.com/pantry/products/4591f646-a36a-42eb-8c45-7cb17eed0094"}
+  ];
+  seedItems.forEach(item => {
+    db.office_inventory.push({
+      id: crypto.randomUUID(),
+      ...item,
+      history: [],
+      created_at: new Date().toISOString()
+    });
+  });
+  saveDB(db);
+  console.log('Seeded office_inventory with', seedItems.length, 'items');
+}
 
 // Seed initial todos if empty
 if (db.todos.length === 0) {
@@ -556,6 +634,8 @@ app.use((req, res, next) => {
 app.get('/', (req, res) => {
   if (req.hostname.startsWith('sales')) {
     res.sendFile(path.join(__dirname, 'crm.html'));
+  } else if (req.hostname.startsWith('inventory')) {
+    res.sendFile(path.join(__dirname, 'inventory.html'));
   } else {
     res.sendFile(path.join(__dirname, 'home.html'));
   }
@@ -2786,6 +2866,104 @@ app.get('/api/inventory/audit', (req, res) => {
     checks,
     summary: `${warningCount} warning${warningCount !== 1 ? 's' : ''}, ${infoCount} info`
   });
+});
+
+// ===== OFFICE INVENTORY API =====
+app.get('/api/office-inventory', requireAuth, (req, res) => res.json(db.office_inventory || []));
+
+app.put('/api/office-inventory/:id', requireAuth, (req, res) => {
+  const item = db.office_inventory.find(i => i.id === req.params.id);
+  if (!item) return res.status(404).json({ error: 'Item not found' });
+  const { quantity, min_qty, distributor, size, link } = req.body;
+  if (typeof quantity === 'number') item.quantity = quantity;
+  if (typeof min_qty === 'number') item.min_qty = min_qty;
+  if (distributor !== undefined) item.distributor = distributor;
+  if (size !== undefined) item.size = size;
+  if (link !== undefined) item.link = link;
+  item.updated_at = new Date().toISOString();
+  saveDB(db);
+  res.json(item);
+});
+
+app.post('/api/office-inventory/adjust', requireAuth, (req, res) => {
+  const { id, delta, reason } = req.body;
+  if (!id || typeof delta !== 'number') return res.status(400).json({ error: 'id and delta required' });
+  const item = db.office_inventory.find(i => i.id === id);
+  if (!item) return res.status(404).json({ error: 'Item not found' });
+  const oldQty = item.quantity;
+  item.quantity = Math.max(0, item.quantity + delta);
+  if (!item.history) item.history = [];
+  item.history.push({
+    id: crypto.randomUUID(),
+    delta,
+    old_qty: oldQty,
+    new_qty: item.quantity,
+    reason: reason || (delta > 0 ? 'Stock added' : 'Stock removed'),
+    created_at: new Date().toISOString()
+  });
+  item.updated_at = new Date().toISOString();
+  saveDB(db);
+  res.json(item);
+});
+
+// ===== PICK LISTS API =====
+app.get('/api/pick-lists', requireAuth, (req, res) => res.json(db.pick_lists || []));
+
+app.post('/api/pick-lists', requireAuth, (req, res) => {
+  const { label, items } = req.body;
+  if (!label || !Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'label and items array required' });
+  }
+  const list = {
+    id: crypto.randomUUID(),
+    label,
+    items: items.map(it => ({ id: it.id, name: it.name, qty: it.qty || 1 })),
+    status: 'draft',
+    created_at: new Date().toISOString()
+  };
+  db.pick_lists.push(list);
+  saveDB(db);
+  res.json(list);
+});
+
+app.put('/api/pick-lists/:id/finalize', requireAuth, (req, res) => {
+  const list = db.pick_lists.find(l => l.id === req.params.id);
+  if (!list) return res.status(404).json({ error: 'Pick list not found' });
+  if (list.status === 'finalized') return res.status(400).json({ error: 'Already finalized' });
+  const errors = [];
+  for (const it of list.items) {
+    const inv = db.office_inventory.find(i => i.id === it.id);
+    if (!inv) { errors.push(`${it.name || it.id}: not found`); continue; }
+    if (inv.quantity < it.qty) { errors.push(`${inv.name}: only ${inv.quantity} available, need ${it.qty}`); }
+  }
+  if (errors.length) return res.status(400).json({ error: 'Insufficient stock', details: errors });
+  for (const it of list.items) {
+    const inv = db.office_inventory.find(i => i.id === it.id);
+    const oldQty = inv.quantity;
+    inv.quantity -= it.qty;
+    if (!inv.history) inv.history = [];
+    inv.history.push({
+      id: crypto.randomUUID(),
+      delta: -it.qty,
+      old_qty: oldQty,
+      new_qty: inv.quantity,
+      reason: `Pick list: ${list.label}`,
+      created_at: new Date().toISOString()
+    });
+    inv.updated_at = new Date().toISOString();
+  }
+  list.status = 'finalized';
+  list.finalized_at = new Date().toISOString();
+  saveDB(db);
+  res.json(list);
+});
+
+app.delete('/api/pick-lists/:id', requireAuth, (req, res) => {
+  const idx = db.pick_lists.findIndex(l => l.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Pick list not found' });
+  db.pick_lists.splice(idx, 1);
+  saveDB(db);
+  res.json({ ok: true });
 });
 
 // ===== PULL LIST API =====
