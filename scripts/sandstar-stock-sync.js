@@ -80,10 +80,11 @@ async function getStockForMachine(page, machine) {
     const name = item.goodsName || item.skuName || item.productName || item.name || '';
     if (!name) continue;
     if (!byProduct[name]) {
-      byProduct[name] = { current_quantity: 0, capacity: 0 };
+      byProduct[name] = { current_quantity: 0, capacity: 0, picture: item.picture || '' };
     }
     byProduct[name].current_quantity += item.stockRealtime ?? item.currentNum ?? 0;
     byProduct[name].capacity += item.capacity ?? item.stockInit ?? item.stockInitial ?? 0;
+    if (!byProduct[name].picture && item.picture) byProduct[name].picture = item.picture;
   }
   return Object.entries(byProduct).map(([product_name, totals]) => ({
     machine_name: machine.name,
@@ -91,6 +92,7 @@ async function getStockForMachine(page, machine) {
     product_name,
     current_quantity: totals.current_quantity,
     capacity: totals.capacity,
+    picture: totals.picture || '',
     synced_at: new Date().toISOString(),
   }));
 }

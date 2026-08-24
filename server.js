@@ -2977,13 +2977,15 @@ function findOfficeInventoryMatch(productName) {
       continue;
     }
 
-    // Word overlap scoring
+    // Word overlap scoring — F1-style: penalise unmatched needle words
     let wordMatches = 0;
     for (const nw of needleWords) {
       if (hayWords.some(hw => hw === nw || hw.includes(nw) || nw.includes(hw))) wordMatches++;
     }
-    const wordScore = wordMatches / Math.max(needleWords.length, hayWords.length, 1);
-    if (wordScore >= 0.5) {
+    const needleCoverage = wordMatches / Math.max(needleWords.length, 1); // how many needle words found in hay
+    const hayCoverage   = wordMatches / Math.max(hayWords.length, 1);     // how well hay explains needle
+    const wordScore = (needleCoverage + hayCoverage) / 2;                 // F1 — rewards specificity
+    if (wordScore >= 0.45) {
       const score = wordScore * 1000;
       if (score > bestScore) { bestScore = score; best = inv; }
     }
@@ -3079,7 +3081,7 @@ app.post('/api/pick-lists/refresh-all', requireAuth, (req, res) => {
       if (match) {
         items.push({ id: match.id, name: match.name, qty: needed, machine_name: mname,
           sandstar_product_name: rec.product_name, current_qty: rec.current_quantity,
-          capacity: rec.capacity, lane_no: rec.lane_no, checked: false });
+          capacity: rec.capacity, picture: rec.picture || '', checked: false });
       } else {
         missing.push({ machine_name: mname, product_name: rec.product_name, needed });
       }

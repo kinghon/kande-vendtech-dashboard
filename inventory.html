@@ -621,14 +621,17 @@
       <div class="pl-items">
         ${pl.items.map(it => {
           const inv = inventory.find(i => i.id === it.id);
-          const hasEnough = inv && inv.quantity >= it.qty;
+          const officeQty = inv ? inv.quantity : null;
+          const cantFulfill = officeQty !== null && officeQty === 0;
+          const thumb = it.picture ? `<img src="${esc(it.picture)}" style="width:28px;height:28px;object-fit:cover;border-radius:4px;flex-shrink:0;" onerror="this.style.display='none'">` : '';
           return `
             <div class="pl-item">
               <input type="checkbox" class="chk" ${it.checked ? 'checked' : ''}
                 onchange="togglePacked('${pl.id}', '${it.id}', this.checked)">
+              ${thumb}
               <span class="name">${esc(it.name)}</span>
               <span style="color:var(--muted);font-size:0.75rem;">${it.current_qty}/${it.capacity}</span>
-              <span class="need ${hasEnough ? '' : 'warn'}">need ${it.qty}</span>
+              <span class="need ${cantFulfill ? 'warn' : ''}">need ${it.qty}</span>
               ${it.packed_at ? `<span class="packed-at">Packed ${new Date(it.packed_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</span>` : ''}
             </div>
           `;
