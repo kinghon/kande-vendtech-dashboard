@@ -409,9 +409,31 @@
     if (!pic) return '';
     return pic.startsWith('http') ? pic : SANDSTAR_CDN + pic;
   }
+  function normName(s) {
+    return (s || '').toLowerCase()
+      .replace(/\(.*?\)/g, '')        // drop parentheticals: "(Black)", "(Orange)"
+      .replace(/[_\-]/g, ' ')         // underscores/hyphens -> space
+      .replace(/[^a-z0-9 ]/g, '')     // strip all other punctuation (handles curly apostrophes, commas, etc.)
+      .replace(/\s+/g, ' ').trim();
+  }
   function getStockPic(name) {
-    const r = stockData.find(s => s.product_name === name || s.product_name?.toLowerCase() === name?.toLowerCase());
-    return r ? getPicUrl(r.picture) : '';
+    const normInv = normName(name);
+    const invWords = normInv.split(' ').filter(Boolean);
+    let bestMatch = null, bestScore = 0;
+    for (const s of stockData) {
+      if (!s.picture) continue;
+      const normStock = normName(s.product_name);
+      // Exact match — done immediately
+      if (normStock === normInv) return getPicUrl(s.picture);
+      // Stock name starts with inv name (stock has a size suffix appended)
+      if (normStock.startsWith(normInv + ' ')) { bestMatch = s; bestScore = 1; continue; }
+      // Word overlap: what fraction of inventory words appear in stock name
+      const stockWordSet = new Set(normStock.split(' ').filter(Boolean));
+      const overlap = invWords.filter(w => stockWordSet.has(w)).length;
+      const score = invWords.length ? overlap / invWords.length : 0;
+      if (score >= 0.8 && score > bestScore) { bestMatch = s; bestScore = score; }
+    }
+    return bestMatch ? getPicUrl(bestMatch.picture) : '';
   }
   function thumbHtml(picUrl, size) {
     const s = size || 32;
