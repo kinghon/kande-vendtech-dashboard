@@ -74,15 +74,25 @@ async function getStockForMachine(page, machine) {
   
   }, { api: API, org: ORG, scope: SCOPE, freezerId: machine.sandstar_id });
 
-  return result.items.map(item => ({
+  // Aggregate by product name — sum current and capacity across all lanes
+  const byProduct = {};
+  for (const item of result.items) {
+    const name = item.goodsName || item.skuName || item.productName || item.name || '';
+    if (!name) continue;
+    if (!byProduct[name]) {
+      byProduct[name] = { current_quantity: 0, capacity: 0 };
+    }
+    byProduct[name].current_quantity += item.stockRealtime ?? item.currentNum ?? 0;
+    byProduct[name].capacity += item.capacity ?? item.stockInit ?? item.stockInitial ?? 0;
+  }
+  return Object.entries(byProduct).map(([product_name, totals]) => ({
     machine_name: machine.name,
     sandstar_machine_id: machine.sandstar_id,
-    product_name: item.goodsName || item.skuName || item.productName || item.name || '',
-    current_quantity: item.stockRealtime ?? item.currentNum ?? 0,
-    capacity: item.capacity ?? item.stockInit ?? item.stockInitial ?? 0,
-    lane_no: item.laneNo || item.lane || '',
+    product_name,
+    current_quantity: totals.current_quantity,
+    capacity: totals.capacity,
     synced_at: new Date().toISOString(),
-  })).filter(i => i.product_name);
+  }));
 }
 
 function post(path, body) {
