@@ -405,7 +405,8 @@ if (!db.competitorLocations) db.competitorLocations = [];
 if (!db.revenue) db.revenue = [];
 if (!db.sandstar_sales) db.sandstar_sales = [];
 if (!db.sandstar_machines) db.sandstar_machines = [];
-if (!db.sandstar_machines.some(m => m.sandstar_id === 131520)) {
+// Always replace with canonical 8 machines (dedup/clean)
+if (!db._machinesSeededV3) {
   db.sandstar_machines = [
     { id: '131520', sandstar_id: 131520, name: 'ARK Prelude At The Park', address: '01 E Lake Mead Pkwy, Henderson, NV 89015', online: true },
     { id: '128836', sandstar_id: 128836, name: 'CVM13 Dig This', address: '800 W Roban Ave, Las Vegas, NV 89044', online: true },
@@ -416,6 +417,7 @@ if (!db.sandstar_machines.some(m => m.sandstar_id === 131520)) {
     { id: '127763', sandstar_id: 127763, name: 'VRK All In Aviation Academy', address: '1456 Jet Stream Dr, Henderson, NV', online: true },
     { id: '127761', sandstar_id: 127761, name: 'VRK Regus Suite 500', address: '3753 Howard Hughes Pkwy #500, Las Vegas, NV', online: true },
   ];
+  db._machinesSeededV3 = true;
   saveDB(db);
 }
 if (!db.micromarkets) db.micromarkets = [];
