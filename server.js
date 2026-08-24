@@ -2886,6 +2886,7 @@ app.get('/api/inventory/audit', (req, res) => {
 
 // ===== OFFICE INVENTORY API =====
 app.get('/api/office-inventory', requireAuth, (req, res) => res.json(db.office_inventory || []));
+app.get('/api/office-machines', (req, res) => res.json(db.sandstar_machines || []));
 
 app.put('/api/office-inventory/:id', requireAuth, (req, res) => {
   const item = db.office_inventory.find(i => i.id === req.params.id);
