@@ -3031,34 +3031,54 @@ app.get('/api/sandstar/machines', requireAuth, (req, res) => {
 
 app.get('/api/pick-lists', requireAuth, (req, res) => res.json(db.pick_lists || []));
 
-app.post('/api/pick-lists/generate', requireAuth, (req, res) => {
+app.post('/api/pick-lists/generate', requireAuth, async (req, res) => {
   const { machine_names } = req.body;
   if (!Array.isArray(machine_names) || machine_names.length === 0) {
     return res.status(400).json({ error: 'machine_names array required' });
   }
-  const inv = db.sandstar_inventory || [];
+
   const items = [];
   const missing = [];
 
   for (const mname of machine_names) {
-    const machineRecs = inv.filter(r => r.machine_name === mname && (r.current_quantity || 0) < (r.capacity || 0));
-    for (const rec of machineRecs) {
-      const needed = (rec.capacity || 0) - (rec.current_quantity || 0);
-      const match = findOfficeInventoryMatch(rec.product_name);
+    // Find sandstar_id for this machine
+    const machineRecord = (db.sandstar_machines || []).find(m => m.name === mname);
+    const freezerId = machineRecord?.sandstar_id;
+    if (!freezerId) {
+      missing.push({ machine_name: mname, error: 'Machine not found in Sandstar' });
+      continue;
+    }
+
+    // Pull live stock from Sandstar
+    let liveItems = [];
+    try {
+      const { execSync } = require('child_process');
+      const out = execSync(`node /Users/kurtishon/clawd/scripts/sandstar-live-stock.js ${freezerId}`, { timeout: 120000 }).toString().trim();
+      const parsed = JSON.parse(out);
+      liveItems = parsed.items || [];
+    } catch (e) {
+      console.error(`[pick-list/generate] Live stock fetch failed for ${mname}:`, e.message);
+      missing.push({ machine_name: mname, error: 'Failed to fetch live Sandstar data: ' + e.message });
+      continue;
+    }
+
+    for (const rec of liveItems) {
+      if (!rec.needed || rec.needed <= 0) continue;
+      const match = findOfficeInventoryMatch(rec.name);
       if (match) {
         items.push({
           id: match.id,
           name: match.name,
-          qty: needed,
+          qty: rec.needed,
           machine_name: mname,
-          sandstar_product_name: rec.product_name,
-          current_qty: rec.current_quantity,
+          sandstar_product_name: rec.name,
+          current_qty: rec.current,
           capacity: rec.capacity,
-          lane_no: rec.lane_no,
+          lane_no: rec.lane,
           checked: false
         });
       } else {
-        missing.push({ machine_name: mname, product_name: rec.product_name, needed });
+        missing.push({ machine_name: mname, product_name: rec.name, needed: rec.needed });
       }
     }
   }

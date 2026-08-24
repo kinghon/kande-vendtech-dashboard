@@ -560,6 +560,9 @@
   }
   async function generatePickList() {
     if (selectedMachines.size === 0) return;
+    const btn = document.getElementById('genBtn');
+    btn.disabled = true;
+    btn.textContent = 'Fetching from Sandstar…';
     try {
       const pl = await api('POST', '/api/pick-lists/generate', {
         machine_names: Array.from(selectedMachines)
@@ -568,9 +571,13 @@
       selectedMachines = new Set();
       renderMachineList();
       renderPickLists();
-      toast(`Pick list created: ${pl.items.length} items`);
-      if (pl.missing?.length) toast(`${pl.missing.length} items not in office inventory`);
+      if (pl.items.length > 0) {
+        toast(`✓ Pick list created — ${pl.items.length} items to pack`);
+      } else {
+        toast(`Pick list created — no matching items found (${pl.missing?.length || 0} unmatched)`);
+      }
     } catch (e) { toast('Failed to generate pick list'); console.error(e); }
+    finally { btn.textContent = 'Generate Pick List'; renderMachineList(); }
   }
 
   function renderPickLists() {
