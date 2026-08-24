@@ -249,50 +249,56 @@ function dashApi(method, path, body, cookies) {
 
     let allInventoryRecords = [];
     let inventoryEndpointUsed = null;
+
+    // Helper: fetch inventory for one machine (or all if no freezerId)
+    async function fetchInvPage(ep, extraBody) {
+      const body = { ...(ep.body || {}), ...extraBody };
+      const result = await page.evaluate(async ({ api, org, scope, ep, body }) => {
+        const h = { 'Content-Type': 'application/json', 'x-token': localStorage.getItem('token'), 'app-scope': scope, 'organSn': org };
+        const res = ep.method === 'GET'
+          ? await fetch(`${api}${ep.path}`, { method: 'GET', headers: h })
+          : await fetch(`${api}${ep.path}`, { method: 'POST', headers: h, body: JSON.stringify(body) });
+        return res.json();
+      }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE, ep, body });
+      const data = result?.data || {};
+      return data.records || data.resultList || data.list || null;
+    }
+
+    // Discover working endpoint with a single probe (no freezerId)
     for (const ep of INVENTORY_ENDPOINTS) {
       try {
-        // Paginate through all pages
-        let pageNum = 1;
-        let pageRecords = [];
-        const requestedPageSize = ep.body?.pageSize || ep.body?.pageNum || 500;
-        do {
-          const bodyWithPage = { ...(ep.body || {}), pageNum };
-          const result = await page.evaluate(async ({ api, org, scope, ep, body }) => {
-            const h = { 'Content-Type': 'application/json', 'x-token': localStorage.getItem('token'), 'app-scope': scope, 'organSn': org };
-            const url = `${api}${ep.path}`;
-            const res = ep.method === 'GET'
-              ? await fetch(url, { method: 'GET', headers: h })
-              : await fetch(url, { method: 'POST', headers: h, body: JSON.stringify(body) });
-            return res.json();
-          }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE, ep, body: bodyWithPage });
-          const data = result?.data || {};
-          const list = data.records || data.resultList || data.list || null;
-          if (!list || !Array.isArray(list) || list.length === 0) break;
-          pageRecords.push(...list);
-          // Use actual returned count to determine if there are more pages
-          // Don't use data.pagesize (often null) — use the requested page size
-          const rowcount = data.rowcount || 0;
-          if (rowcount > 0) {
-            const totalPages = Math.ceil(rowcount / requestedPageSize);
-            if (pageNum >= totalPages) break;
-          } else {
-            // No rowcount — stop if we got fewer records than page size (last page)
-            if (list.length < requestedPageSize) break;
-          }
-          pageNum++;
-          if (pageNum > 20) break; // safety cap
-        } while (true);
-
-        if (pageRecords.length > 0) {
-          allInventoryRecords = pageRecords;
+        const probe = await fetchInvPage(ep, {});
+        if (probe && probe.length > 0) {
           inventoryEndpointUsed = ep.path;
-          log(`  Inventory endpoint OK: ${ep.method} ${ep.path} — ${pageRecords.length} records`);
+          log(`  Inventory endpoint: ${ep.method} ${ep.path} — probe OK (${probe.length} records per machine)`);
           break;
         }
-        log(`  Tried ${ep.method} ${ep.path} — no inventory records`);
+        log(`  Tried ${ep.method} ${ep.path} — no records`);
       } catch (e) {
         log(`  Tried ${ep.method} ${ep.path} — error: ${e.message}`);
       }
+    }
+
+    if (inventoryEndpointUsed) {
+      // Fetch per-machine using freezerId to get all machines' stock
+      const allMachines = machineData?.data?.resultList || [];
+      const workingEp = INVENTORY_ENDPOINTS.find(ep => ep.path === inventoryEndpointUsed);
+      for (const m of allMachines) {
+        try {
+          const recs = await fetchInvPage(workingEp, { freezerId: m.freezerId, pageSize: 500, pageNum: 1 });
+          if (recs && recs.length > 0) {
+            allInventoryRecords.push(...recs);
+            log(`  ${m.freezerName}: ${recs.length} stock records`);
+          } else {
+            log(`  ${m.freezerName}: no records`);
+          }
+        } catch (e) {
+          log(`  ${m.freezerName}: error — ${e.message}`);
+        }
+      }
+      log(`  Total inventory: ${allInventoryRecords.length} records across ${allMachines.length} machines`);
+    } else {
+      log('  No working inventory endpoint found');
     }
 
     if (allInventoryRecords.length === 0) {
