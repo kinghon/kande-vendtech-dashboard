@@ -405,7 +405,7 @@ if (!db.competitorLocations) db.competitorLocations = [];
 if (!db.revenue) db.revenue = [];
 if (!db.sandstar_sales) db.sandstar_sales = [];
 if (!db.sandstar_machines) db.sandstar_machines = [];
-if (db.sandstar_machines.length < 8) {
+if (!db.sandstar_machines.some(m => m.sandstar_id === 131520)) {
   db.sandstar_machines = [
     { id: '131520', sandstar_id: 131520, name: 'ARK Prelude At The Park', address: '01 E Lake Mead Pkwy, Henderson, NV 89015', online: true },
     { id: '128836', sandstar_id: 128836, name: 'CVM13 Dig This', address: '800 W Roban Ave, Las Vegas, NV 89044', online: true },
@@ -2887,6 +2887,11 @@ app.get('/api/inventory/audit', (req, res) => {
 // ===== OFFICE INVENTORY API =====
 app.get('/api/office-inventory', requireAuth, (req, res) => res.json(db.office_inventory || []));
 app.get('/api/office-machines', (req, res) => res.json(db.sandstar_machines || []));
+app.post('/api/office-machines-reset', (req, res) => {
+  db.sandstar_machines = [];
+  saveDB(db);
+  res.json({ ok: true, cleared: true });
+});
 
 app.put('/api/office-inventory/:id', requireAuth, (req, res) => {
   const item = db.office_inventory.find(i => i.id === req.params.id);
