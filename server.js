@@ -3105,6 +3105,12 @@ app.post('/api/pick-lists/refresh-all', requireAuth, (req, res) => {
     else db.pick_lists.push(list);
   }
 
+  // Remove stale pick lists whose machine no longer exists in current machine list
+  const validNames = new Set(machines.map(m => m.name));
+  db.pick_lists = db.pick_lists.filter(l =>
+    l.status === 'finalized' || validNames.has(l.machine_names?.[0]) || validNames.has(l.label)
+  );
+
   saveDB(db);
   res.json({ ok: true, synced_at: syncedAt, lists: db.pick_lists.filter(l => l.status !== 'finalized') });
 });
