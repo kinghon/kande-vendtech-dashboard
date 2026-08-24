@@ -3043,6 +3043,60 @@ app.get('/api/sandstar/machines', requireAuth, (req, res) => {
 
 app.get('/api/pick-lists', requireAuth, (req, res) => res.json(db.pick_lists || []));
 
+// Refresh all machine pick lists from cached Sandstar stock
+app.post('/api/pick-lists/refresh-all', requireAuth, (req, res) => {
+  const stock = db.office_sandstar_stock || [];
+  const syncedAt = db.office_sandstar_stock_synced_at || null;
+  const machines = db.sandstar_machines || [];
+
+  if (stock.length === 0) {
+    return res.status(503).json({ error: 'No stock data yet. Sync runs daily at 6am PT.' });
+  }
+
+  // For each machine, regenerate or update its pick list
+  for (const machine of machines) {
+    const mname = machine.name;
+    const machineRecs = stock.filter(r => r.machine_name === mname && (r.current_quantity || 0) < (r.capacity || 0));
+    const items = [];
+    const missing = [];
+
+    for (const rec of machineRecs) {
+      const needed = (rec.capacity || 0) - (rec.current_quantity || 0);
+      if (needed <= 0) continue;
+      const match = findOfficeInventoryMatch(rec.product_name);
+      if (match) {
+        items.push({ id: match.id, name: match.name, qty: needed, machine_name: mname,
+          sandstar_product_name: rec.product_name, current_qty: rec.current_quantity,
+          capacity: rec.capacity, lane_no: rec.lane_no, checked: false });
+      } else {
+        missing.push({ machine_name: mname, product_name: rec.product_name, needed });
+      }
+    }
+
+    // Find existing pick list for this machine (draft/active only) or create new
+    const existingIdx = (db.pick_lists || []).findIndex(l =>
+      l.machine_names?.[0] === mname && l.status !== 'finalized' && l.status !== 'rolled_back');
+    const list = {
+      id: existingIdx >= 0 ? db.pick_lists[existingIdx].id : crypto.randomUUID(),
+      label: mname,
+      machine_names: [mname],
+      items,
+      missing,
+      status: 'draft',
+      synced_at: syncedAt,
+      created_at: existingIdx >= 0 ? db.pick_lists[existingIdx].created_at : new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    if (!db.pick_lists) db.pick_lists = [];
+    if (existingIdx >= 0) db.pick_lists[existingIdx] = list;
+    else db.pick_lists.push(list);
+  }
+
+  saveDB(db);
+  res.json({ ok: true, synced_at: syncedAt, lists: db.pick_lists.filter(l => l.status !== 'finalized') });
+});
+
 app.post('/api/pick-lists/generate', requireAuth, async (req, res) => {
   const { machine_names } = req.body;
   if (!Array.isArray(machine_names) || machine_names.length === 0) {

@@ -357,15 +357,8 @@
   <!-- Tab: Pick Lists -->
   <div id="tab-picklists" class="tab-panel">
     <div id="pickListView">
-      <div style="margin-bottom:12px;">
-        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin-bottom:6px;">Select Location</div>
-        <div id="machineList"></div>
-        <button class="btn-primary" onclick="generatePickList()" id="genBtn" disabled style="margin-top:10px;">Generate Pick List</button>
-      </div>
-      <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px;">
-        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin-bottom:6px;">Pick Lists</div>
-        <div id="pickListsContainer"></div>
-      </div>
+      <button class="btn-primary" onclick="refreshAllPickLists()" id="refreshBtn" style="margin-bottom:12px;width:100%;">&#8635; Refresh Stock</button>
+      <div id="pickListsContainer"></div>
     </div>
   </div>
 </div>
@@ -408,7 +401,7 @@
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
     if (name === 'inventory') renderInventory();
-    if (name === 'picklists') { renderMachineList(); renderPickLists(); }
+    if (name === 'picklists') { renderPickLists(); if (!pickLists.length) refreshAllPickLists(); }
   }
 
   // ---- Inventory ----
@@ -537,55 +530,30 @@
   }
 
   // ---- Pick Lists (Machine-specific) ----
-  function renderMachineList() {
-    const el = document.getElementById('machineList');
-    if (!machines.length) { el.innerHTML = '<div class="empty">No machines found</div>'; return; }
-    el.innerHTML = machines.map(m => {
-      const key = m.name || m.machine_name;
-      const sel = selectedMachines.has(key);
-      return `<div class="machine-card ${sel ? 'selected' : ''}" onclick="toggleMachine('${esc(key)}')" style="padding:8px 10px;">
-        <input type="checkbox" ${sel ? 'checked' : ''} onclick="event.stopPropagation()" onchange="toggleMachine('${esc(key)}')">
-        <div class="machine-name" style="font-weight:600;font-size:0.85rem;">${esc(key)}</div>
-      </div>`;
-    }).join('');
-    document.getElementById('genBtn').disabled = selectedMachines.size === 0;
-  }
-  function toggleMachine(name) {
-    if (selectedMachines.has(name)) selectedMachines.delete(name);
-    else selectedMachines.add(name);
-    renderMachineList();
-  }
-  async function generatePickList() {
-    if (selectedMachines.size === 0) return;
-    const btn = document.getElementById('genBtn');
+  async function refreshAllPickLists() {
+    const btn = document.getElementById('refreshBtn');
     btn.disabled = true;
-    btn.textContent = 'Fetching from Sandstar…';
+    btn.textContent = '↻ Refreshing…';
     try {
-      const pl = await api('POST', '/api/pick-lists/generate', {
-        machine_names: Array.from(selectedMachines)
-      });
-      pickLists.push(pl);
-      selectedMachines = new Set();
-      renderMachineList();
+      const r = await api('POST', '/api/pick-lists/refresh-all');
+      pickLists = r.lists || pickLists;
       renderPickLists();
-      if (pl.items.length > 0) {
-        toast(`✓ Pick list created — ${pl.items.length} items to pack`);
-      } else {
-        toast(`Pick list created — no matching items found (${pl.missing?.length || 0} unmatched)`);
-      }
+      toast(`✓ All pick lists updated`);
     } catch (e) {
       const msg = e.message || '';
-      if (msg.includes('503') || msg.includes('No Sandstar')) toast('Stock data not synced yet — try again in a few minutes');
-      else toast('Failed to generate pick list');
+      if (msg.includes('503')) toast('No stock data yet — sync runs at 6am daily');
+      else toast('Refresh failed');
       console.error(e);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '↻ Refresh Stock';
     }
-    finally { btn.textContent = 'Generate Pick List'; renderMachineList(); }
   }
 
   function renderPickLists() {
     const el = document.getElementById('pickListsContainer');
-    const lists = [...pickLists].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    if (!lists.length) { el.innerHTML = '<div class="empty" style="color:var(--muted);font-size:0.85rem;padding:12px 0;">No pick lists yet — select a location above and tap Generate.</div>'; return; }
+    const lists = [...pickLists].sort((a, b) => (a.label||'').localeCompare(b.label||''));
+    if (!lists.length) { el.innerHTML = '<div class="empty" style="color:var(--muted);font-size:0.85rem;padding:12px 0;">Tap Refresh Stock to load pick lists.</div>'; return; }
 
     el.innerHTML = lists.map(pl => {
       const isExpanded = pl._expanded;
@@ -597,7 +565,7 @@
           <div class="pl-header" onclick="togglePl('${pl.id}')">
             <div>
               <div class="pl-title">${esc(pl.label)}</div>
-              <div class="pl-meta">${new Date(pl.created_at).toLocaleDateString()} · ${pl.items.length} items · ${packedCount}/${pl.items.length} packed</div>
+              <div class="pl-meta">${pl.items.length} items · ${packedCount}/${pl.items.length} packed · updated ${pl.synced_at ? new Date(pl.synced_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : 'never'}</div>
             </div>
           </div>
           ${isExpanded ? renderPlItems(pl) : ''}
