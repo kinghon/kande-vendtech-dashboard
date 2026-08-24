@@ -370,6 +370,11 @@
 
 <div id="toast" class="toast"></div>
 
+<!-- Lightbox -->
+<div id="lightbox" onclick="closeLightbox()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;align-items:center;justify-content:center;padding:24px;">
+  <img id="lightboxImg" src="" style="max-width:100%;max-height:90vh;border-radius:10px;object-fit:contain;">
+</div>
+
 <!-- Add/Replace Item Modal -->
 <div id="replaceModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;padding:16px;">
   <div style="background:var(--card);border-radius:16px;padding:20px;width:100%;max-width:420px;">
@@ -394,10 +399,32 @@
   let inventory = [];
   let pickLists = [];
   let machines = [];
+  let stockData = [];
   let selectedMachines = new Set();
   let filterMode = 'all';
   let editingId = null;
   let addStockHistory = [];
+  const SANDSTAR_CDN = 'https://image-us.sandstar.com/images/';
+  function getPicUrl(pic) {
+    if (!pic) return '';
+    return pic.startsWith('http') ? pic : SANDSTAR_CDN + pic;
+  }
+  function getStockPic(name) {
+    const r = stockData.find(s => s.product_name === name || s.product_name?.toLowerCase() === name?.toLowerCase());
+    return r ? getPicUrl(r.picture) : '';
+  }
+  function thumbHtml(picUrl, size) {
+    const s = size || 32;
+    if (!picUrl) return `<div style="width:${s}px;height:${s}px;flex-shrink:0;"></div>`;
+    return `<img src="${esc(picUrl)}" onclick="openLightbox(event,'${esc(picUrl)}')" style="width:${s}px;height:${s}px;object-fit:cover;border-radius:5px;flex-shrink:0;cursor:zoom-in;" onerror="this.style.display='none'">`;
+  }
+  function openLightbox(e, url) {
+    e.stopPropagation();
+    const lb = document.getElementById('lightbox');
+    document.getElementById('lightboxImg').src = url;
+    lb.style.display = 'flex';
+  }
+  function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
 
   function showApp() { loadData(); }
 
@@ -411,9 +438,13 @@
   }
   async function loadData() {
     try {
-      inventory = await api('GET', '/api/office-inventory');
-      pickLists = await api('GET', '/api/pick-lists');
-      machines = await api('GET', '/api/office-machines');
+      [inventory, pickLists, machines] = await Promise.all([
+        api('GET', '/api/office-inventory'),
+        api('GET', '/api/pick-lists'),
+        api('GET', '/api/office-machines'),
+      ]);
+      const stockRes = await api('GET', '/api/office-stock').catch(() => ({ records: [] }));
+      stockData = stockRes.records || [];
       renderInventory();
       renderAddStock();
       renderPickLists();
@@ -430,7 +461,7 @@
       sec.style.display = 'block';
       list.innerHTML = unmatched.map(u =>
         `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(0,0,0,0.06);">
-          ${u.picture ? `<img src="${esc(u.picture)}" style="width:24px;height:24px;object-fit:cover;border-radius:4px;flex-shrink:0;">` : ''}
+          ${u.picture ? `<img src="${esc(getPicUrl(u.picture))}" onclick="openLightbox(event,'${esc(getPicUrl(u.picture))}')" style="width:28px;height:28px;object-fit:cover;border-radius:4px;flex-shrink:0;cursor:zoom-in;">` : ''}
           <span>${esc(u.product_name)}</span>
         </div>`
       ).join('');
@@ -529,10 +560,11 @@
           <button class="cancel-btn" onclick="cancelEdit()">Cancel</button>
         </div>
       ` : '';
+      const pic = getStockPic(it.name);
       return `
         <div class="item-card" style="flex-wrap:wrap;">
           <div class="inv-grid" style="width:100%;cursor:pointer;" onclick="if(!editingId)startEdit('${it.id}')">
-            <div class="item-name" title="${esc(it.name)}">${esc(it.name)}</div>
+            <div class="item-name" style="display:flex;align-items:center;gap:6px;" title="${esc(it.name)}">${pic ? `<img src="${esc(pic)}" onclick="openLightbox(event,'${esc(pic)}')" style="width:28px;height:28px;object-fit:cover;border-radius:4px;flex-shrink:0;cursor:zoom-in;" onerror="this.style.display='none'">` : ''}<span>${esc(it.name)}</span></div>
             <span class="dist-badge ${distClass(it.distributor)}" style="text-align:center;font-size:0.6rem;padding:1px 2px;display:block;">${esc((it.distributor||'').slice(0,3).toUpperCase())}</span>
             <div style="text-align:right;">
               <span class="qty-num ${qtyClass}">${it.quantity}</span><span style="font-size:0.7rem;color:var(--muted);">/${it.min_qty}</span>
@@ -701,9 +733,8 @@
           const inv = inventory.find(i => i.id === it.id);
           const officeQty = inv ? inv.quantity : null;
           const cantFulfill = officeQty !== null && officeQty === 0;
-          const SANDSTAR_CDN = 'https://image-us.sandstar.com/images/';
-          const picUrl = it.picture ? (it.picture.startsWith('http') ? it.picture : SANDSTAR_CDN + it.picture) : '';
-          const thumb = picUrl ? `<img src="${esc(picUrl)}" style="width:28px;height:28px;object-fit:cover;border-radius:4px;flex-shrink:0;" onerror="this.style.display='none'">` : '<div style="width:28px;height:28px;flex-shrink:0;"></div>';
+          const picUrl = getPicUrl(it.picture);
+          const thumb = thumbHtml(picUrl, 32);
           return `
             <div class="pl-item">
               <input type="checkbox" class="chk" ${it.checked ? 'checked' : ''}
