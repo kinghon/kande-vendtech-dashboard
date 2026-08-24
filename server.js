@@ -86,6 +86,8 @@ function sanitizeObject(obj) {
 
 // Auth middleware - protect all routes except login and public API endpoints
 function requireAuth(req, res, next) {
+  // Inventory subdomain is open — Dennis uses it in the warehouse without a login
+  if (req.hostname && req.hostname.startsWith('inventory')) return next();
   // Allow these paths without auth
   const publicPaths = ['/login', '/login.html', '/api/auth/login', '/api/auth/logout', '/api/auth/refresh', '/api/health', '/logo.png', '/logo.jpg', '/favicon.ico', '/client-portal', '/api/client-portal', '/driver', '/api/driver', '/kande-sig-logo-sm.jpg', '/kande-sig-logo.jpg', '/email-lounge.jpg', '/email-machine.jpg', '/api/webhooks/instantly', '/KandeVendTech-Proposal.pdf', '/team', '/api/team/status', '/api/team/activity', '/api/team/learnings', '/api/digital', '/api/analytics', '/api/test', '/calendar', '/memory', '/tasks', '/content', '/api/cron/schedule', '/api/memory/list', '/api/memory/read', '/api/memory/search', '/api/tasks', '/api/content', '/api/mission-control/tasks', '/pb-crisis-recovery', '/api/pb', '/office', '/api/agents/live-status', '/api/agents/model-status', '/api/memory/db-list', '/api/memory/db-read', '/api/memory/db-search', '/api/memory/sync', '/digital', '/api/mission-control/tasks/bulk-sync', '/onboard', '/api/digital/onboard', '/clients', '/scout-intel', '/competitor-intel', '/api/competitor-intel', '/ocs', '/api/pipeline/engagement-alerts', '/api/digital/gmb/batch-score', '/account-tiers', '/api/pipeline/account-tiers', '/api/crm/status-diff', '/api/monitoring', '/api/jobs/sentinel', '/api/briefing', '/api/diag', '/api/agents/cron-sync', '/api/agents/model-sync'];
   if (publicPaths.some(p => req.path === p || req.path.startsWith(p))) {
@@ -419,6 +421,7 @@ if (!db.spoilage_log) db.spoilage_log = [];
 if (!db.expiration_records) db.expiration_records = [];
 if (!db.office_inventory) db.office_inventory = [];
 if (!db.pick_lists) db.pick_lists = [];
+if (!db.pick_list_history) db.pick_list_history = [];
 
 // Seed office inventory on first boot
 if (db.office_inventory.length === 0) {
@@ -2907,7 +2910,151 @@ app.post('/api/office-inventory/adjust', requireAuth, (req, res) => {
 });
 
 // ===== PICK LISTS API =====
+
+// Fuzzy name matcher: normalize and find best office_inventory match
+function findOfficeInventoryMatch(productName) {
+  const inventory = db.office_inventory || [];
+  const needleWords = productName.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 2);
+  const needleFlat = productName.toLowerCase().replace(/[^a-z0-9]/g, '');
+  let best = null;
+  let bestScore = 0;
+  for (const inv of inventory) {
+    const hayFlat = inv.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const hayWords = inv.name.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 2);
+
+    // Exact flat match
+    if (hayFlat === needleFlat) return inv;
+
+    // Contains check on flat strings
+    if (hayFlat.includes(needleFlat) || needleFlat.includes(hayFlat)) {
+      const score = Math.min(hayFlat.length, needleFlat.length);
+      if (score > bestScore) { bestScore = score; best = inv; }
+      continue;
+    }
+
+    // Word overlap scoring
+    let wordMatches = 0;
+    for (const nw of needleWords) {
+      if (hayWords.some(hw => hw === nw || hw.includes(nw) || nw.includes(hw))) wordMatches++;
+    }
+    const wordScore = wordMatches / Math.max(needleWords.length, hayWords.length, 1);
+    if (wordScore >= 0.5) {
+      const score = wordScore * 1000;
+      if (score > bestScore) { bestScore = score; best = inv; }
+    }
+  }
+  return best;
+}
+
+// Google Sheets helpers
+const SHEET_ID = '113SFpxVIZ49XrJ-_GMlAw6WqGWqet5WmYDS9ekal8wA';
+const SHEET_ACCOUNT = 'kurtis@kandevendtech.com';
+
+function gogSheetsGet(range) {
+  const { execSync } = require('child_process');
+  const cmd = `gog sheets get --account ${SHEET_ACCOUNT} --json ${SHEET_ID} "${range}"`;
+  const out = execSync(cmd, { encoding: 'utf8', timeout: 30000 });
+  return JSON.parse(out);
+}
+
+function gogSheetsUpdate(range, value) {
+  const { execSync } = require('child_process');
+  const jsonVal = JSON.stringify([[String(value)]]);
+  const cmd = `gog sheets update --account ${SHEET_ACCOUNT} --json ${SHEET_ID} "${range}" --values-json '${jsonVal}'`;
+  return execSync(cmd, { encoding: 'utf8', timeout: 30000 });
+}
+
+function gogSheetsAppend(range, values) {
+  const { execSync } = require('child_process');
+  const pipeVals = values.map(v => String(v).replace(/"/g, '\\"')).join('|');
+  const cmd = `gog sheets append --account ${SHEET_ACCOUNT} --json ${SHEET_ID} "${range}" "${pipeVals}"`;
+  return execSync(cmd, { encoding: 'utf8', timeout: 30000 });
+}
+
+// Build name -> row index from sheet
+function buildSheetRowMap() {
+  try {
+    const data = gogSheetsGet('Inventory!A:A');
+    const map = {};
+    (data.values || []).forEach((row, idx) => {
+      if (row[0] && idx > 0) map[row[0]] = idx + 1; // 1-based row number
+    });
+    return map;
+  } catch (e) {
+    console.error('Sheet row map error:', e.message);
+    return {};
+  }
+}
+
+app.get('/api/sandstar/machines', requireAuth, (req, res) => {
+  const inv = db.sandstar_inventory || [];
+  const machines = {};
+  for (const rec of inv) {
+    if (!rec.machine_name) continue;
+    const key = rec.machine_name;
+    if (!machines[key]) {
+      machines[key] = {
+        machine_name: rec.machine_name,
+        sandstar_machine_id: rec.sandstar_machine_id,
+        lane_count: 0,
+        items_below_cap: 0
+      };
+    }
+    machines[key].lane_count++;
+    if ((rec.current_quantity || 0) < (rec.capacity || 0)) {
+      machines[key].items_below_cap++;
+    }
+  }
+  res.json(Object.values(machines));
+});
+
 app.get('/api/pick-lists', requireAuth, (req, res) => res.json(db.pick_lists || []));
+
+app.post('/api/pick-lists/generate', requireAuth, (req, res) => {
+  const { machine_names } = req.body;
+  if (!Array.isArray(machine_names) || machine_names.length === 0) {
+    return res.status(400).json({ error: 'machine_names array required' });
+  }
+  const inv = db.sandstar_inventory || [];
+  const items = [];
+  const missing = [];
+
+  for (const mname of machine_names) {
+    const machineRecs = inv.filter(r => r.machine_name === mname && (r.current_quantity || 0) < (r.capacity || 0));
+    for (const rec of machineRecs) {
+      const needed = (rec.capacity || 0) - (rec.current_quantity || 0);
+      const match = findOfficeInventoryMatch(rec.product_name);
+      if (match) {
+        items.push({
+          id: match.id,
+          name: match.name,
+          qty: needed,
+          machine_name: mname,
+          sandstar_product_name: rec.product_name,
+          current_qty: rec.current_quantity,
+          capacity: rec.capacity,
+          lane_no: rec.lane_no,
+          checked: false
+        });
+      } else {
+        missing.push({ machine_name: mname, product_name: rec.product_name, needed });
+      }
+    }
+  }
+
+  const list = {
+    id: crypto.randomUUID(),
+    label: `Pick — ${machine_names.join(', ')}`,
+    machine_names,
+    items,
+    missing,
+    status: 'draft',
+    created_at: new Date().toISOString()
+  };
+  db.pick_lists.push(list);
+  saveDB(db);
+  res.json(list);
+});
 
 app.post('/api/pick-lists', requireAuth, (req, res) => {
   const { label, items } = req.body;
@@ -2917,7 +3064,16 @@ app.post('/api/pick-lists', requireAuth, (req, res) => {
   const list = {
     id: crypto.randomUUID(),
     label,
-    items: items.map(it => ({ id: it.id, name: it.name, qty: it.qty || 1 })),
+    machine_names: req.body.machine_names || [],
+    items: items.map(it => ({
+      id: it.id,
+      name: it.name,
+      qty: it.qty || 1,
+      machine_name: it.machine_name || '',
+      current_qty: it.current_qty || 0,
+      capacity: it.capacity || 0,
+      checked: false
+    })),
     status: 'draft',
     created_at: new Date().toISOString()
   };
@@ -2926,18 +3082,56 @@ app.post('/api/pick-lists', requireAuth, (req, res) => {
   res.json(list);
 });
 
+app.put('/api/pick-lists/:id/pack', requireAuth, (req, res) => {
+  const list = db.pick_lists.find(l => l.id === req.params.id);
+  if (!list) return res.status(404).json({ error: 'Pick list not found' });
+  if (list.status !== 'draft') return res.status(400).json({ error: 'Can only pack draft lists' });
+
+  const { packed_items } = req.body; // [{id, checked}]
+  if (!Array.isArray(packed_items)) {
+    return res.status(400).json({ error: 'packed_items array required' });
+  }
+
+  // Update checked state
+  for (const pi of packed_items) {
+    const item = list.items.find(it => it.id === pi.id);
+    if (item) {
+      item.checked = !!pi.checked;
+      if (item.checked && !item.packed_at) item.packed_at = new Date().toISOString();
+      if (!item.checked) delete item.packed_at;
+    }
+  }
+
+  // Check if all items are packed
+  const allPacked = list.items.length > 0 && list.items.every(it => it.checked);
+
+  saveDB(db);
+  res.json({ ...list, all_packed: allPacked });
+});
+
 app.put('/api/pick-lists/:id/finalize', requireAuth, (req, res) => {
   const list = db.pick_lists.find(l => l.id === req.params.id);
   if (!list) return res.status(404).json({ error: 'Pick list not found' });
   if (list.status === 'finalized') return res.status(400).json({ error: 'Already finalized' });
+  if (list.status === 'rolled_back') return res.status(400).json({ error: 'Already rolled back' });
+
+  // Only deduct checked items
+  const itemsToDeduct = list.items.filter(it => it.checked);
+  if (!itemsToDeduct.length) {
+    return res.status(400).json({ error: 'No items checked. Pack items first.' });
+  }
+
   const errors = [];
-  for (const it of list.items) {
+  for (const it of itemsToDeduct) {
     const inv = db.office_inventory.find(i => i.id === it.id);
-    if (!inv) { errors.push(`${it.name || it.id}: not found`); continue; }
+    if (!inv) { errors.push(`${it.name}: not found in office inventory`); continue; }
     if (inv.quantity < it.qty) { errors.push(`${inv.name}: only ${inv.quantity} available, need ${it.qty}`); }
   }
   if (errors.length) return res.status(400).json({ error: 'Insufficient stock', details: errors });
-  for (const it of list.items) {
+
+  // Deduct from office_inventory
+  const deductedItems = [];
+  for (const it of itemsToDeduct) {
     const inv = db.office_inventory.find(i => i.id === it.id);
     const oldQty = inv.quantity;
     inv.quantity -= it.qty;
@@ -2951,11 +3145,129 @@ app.put('/api/pick-lists/:id/finalize', requireAuth, (req, res) => {
       created_at: new Date().toISOString()
     });
     inv.updated_at = new Date().toISOString();
+    deductedItems.push({ id: it.id, name: inv.name, qty_deducted: it.qty, old_qty: oldQty, new_qty: inv.quantity });
   }
+
+  // Sync to Google Sheet
+  let sheetErrors = [];
+  let sheetRowMap = {};
+  try {
+    sheetRowMap = buildSheetRowMap();
+  } catch (e) {
+    sheetErrors.push(`Sheet row map failed: ${e.message}`);
+  }
+
+  for (const dit of deductedItems) {
+    const row = sheetRowMap[dit.name];
+    if (row) {
+      try {
+        const inv = db.office_inventory.find(i => i.id === dit.id);
+        const newQty = dit.new_qty;
+        const newSurplus = newQty - (inv.min_qty || 0);
+        gogSheetsUpdate(`Inventory!C${row}`, newQty);
+        gogSheetsUpdate(`Inventory!B${row}`, newSurplus);
+      } catch (e) {
+        sheetErrors.push(`${dit.name}: sheet update failed — ${e.message}`);
+      }
+    } else {
+      sheetErrors.push(`${dit.name}: not found in sheet`);
+    }
+  }
+
+  // Append to New Orders tab
+  const today = new Date().toISOString().split('T')[0];
+  for (const dit of deductedItems) {
+    try {
+      gogSheetsAppend('New Orders!A1', [today, list.label, list.machine_names?.join(', ') || '', dit.name, dit.qty_deducted]);
+    } catch (e) {
+      sheetErrors.push(`New Orders append failed for ${dit.name}: ${e.message}`);
+    }
+  }
+
+  // Mark finalized
   list.status = 'finalized';
   list.finalized_at = new Date().toISOString();
+  list.sheet_errors = sheetErrors.length ? sheetErrors : undefined;
+
+  // Record history for rollback
+  const historyRecord = {
+    id: crypto.randomUUID(),
+    picklist_id: list.id,
+    label: list.label,
+    completed_at: list.finalized_at,
+    items: deductedItems.map(d => ({
+      name: d.name,
+      qty_deducted: d.qty_deducted,
+      old_qty: d.old_qty,
+      new_qty: d.new_qty,
+      sheet_row: sheetRowMap[d.name] || null
+    }))
+  };
+  if (!db.pick_list_history) db.pick_list_history = [];
+  db.pick_list_history.push(historyRecord);
+
   saveDB(db);
-  res.json(list);
+  res.json({ ...list, sheet_synced: sheetErrors.length === 0, sheet_errors: sheetErrors });
+});
+
+app.post('/api/pick-lists/:id/rollback', requireAuth, (req, res) => {
+  const list = db.pick_lists.find(l => l.id === req.params.id);
+  if (!list) return res.status(404).json({ error: 'Pick list not found' });
+  if (list.status !== 'finalized') return res.status(400).json({ error: 'Only finalized lists can be rolled back' });
+
+  const historyRec = db.pick_list_history.find(h => h.picklist_id === list.id);
+  if (!historyRec) return res.status(404).json({ error: 'No history record found for rollback' });
+
+  const sheetErrors = [];
+  let sheetRowMap = {};
+  try { sheetRowMap = buildSheetRowMap(); } catch (e) { sheetErrors.push(`Sheet row map: ${e.message}`); }
+
+  for (const hit of historyRec.items) {
+    // Re-add to office_inventory
+    const inv = db.office_inventory.find(i => i.name === hit.name);
+    if (inv) {
+      const oldQty = inv.quantity;
+      inv.quantity = hit.old_qty;
+      if (!inv.history) inv.history = [];
+      inv.history.push({
+        id: crypto.randomUUID(),
+        delta: hit.qty_deducted,
+        old_qty: oldQty,
+        new_qty: inv.quantity,
+        reason: `Rollback: ${list.label}`,
+        created_at: new Date().toISOString()
+      });
+      inv.updated_at = new Date().toISOString();
+    }
+
+    // Revert sheet
+    const row = hit.sheet_row || sheetRowMap[hit.name];
+    if (row && inv) {
+      try {
+        const newSurplus = inv.quantity - (inv.min_qty || 0);
+        gogSheetsUpdate(`Inventory!C${row}`, inv.quantity);
+        gogSheetsUpdate(`Inventory!B${row}`, newSurplus);
+      } catch (e) {
+        sheetErrors.push(`${hit.name}: sheet revert failed — ${e.message}`);
+      }
+    }
+  }
+
+  // Append rollback row to New Orders
+  const today = new Date().toISOString().split('T')[0];
+  for (const hit of historyRec.items) {
+    try {
+      gogSheetsAppend('New Orders!A1', [today, `ROLLBACK: ${list.label}`, list.machine_names?.join(', ') || '', hit.name, -hit.qty_deducted]);
+    } catch (e) {
+      sheetErrors.push(`Rollback append failed: ${e.message}`);
+    }
+  }
+
+  list.status = 'rolled_back';
+  list.rolled_back_at = new Date().toISOString();
+  list.rollback_sheet_errors = sheetErrors.length ? sheetErrors : undefined;
+  saveDB(db);
+  res.json({ ...list, sheet_synced: sheetErrors.length === 0, sheet_errors: sheetErrors });
 });
 
 app.delete('/api/pick-lists/:id', requireAuth, (req, res) => {
