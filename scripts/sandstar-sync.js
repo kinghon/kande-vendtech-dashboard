@@ -8,7 +8,7 @@ const https  = require('https');
 const fs     = require('fs');
 const { execSync } = require('child_process');
 
-const SANDSTAR_EMAIL = 'kurtis@kandevendtech.com';
+const SANDSTAR_EMAIL = 'etang106@gmail.com';
 const SANDSTAR_PASS  = 'kurtis123####';
 const SANDSTAR_ORG   = '001020';
 const SANDSTAR_SCOPE = '12';
