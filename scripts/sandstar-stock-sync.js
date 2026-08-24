@@ -62,39 +62,24 @@ async function getStockForMachine(page, machine) {
 
   const result = await page.evaluate(async ({ api, org, scope, freezerId }) => {
     const token = localStorage.getItem('token');
+        // Use getGoodsAtShelvesByFreezerIdV2 — returns all slots with current/capacity
     const h = { 'Content-Type': 'application/json', 'x-token': token, 'app-scope': scope, 'organSn': org };
-    const path = '/stock/getFreezerStockForPage';
-    const allItems = [];
-    let pageNum = 1;
-    let total = null;
-    do {
-      try {
-        const r = await fetch(`${api}${path}`, { method: 'POST', headers: h, body: JSON.stringify({ pageNum, pageSize: 10, freezerId, organSn: org }) });
-        const d = await r.json();
-        const list = d?.data?.records || d?.data?.list || d?.data?.resultList || [];
-        if (total === null) total = d?.data?.total || d?.data?.rowcount || list.length;
-        if (!list.length) break;
-        allItems.push(...list);
-        pageNum++;
-      } catch (e) { break; }
-    } while (allItems.length < total && pageNum <= 20);
-    // Deduplicate by skuid (same product can appear on multiple pages)
-    const seen = new Set();
-    const unique = allItems.filter(i => {
-      const key = i.skuid || i.id || JSON.stringify({name: i.skuName||i.productName, s: i.stockRealtime});
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
+    const r = await fetch(`${api}/goods/v2/getGoodsAtShelvesByFreezerIdV2`, {
+      method: 'POST', headers: h,
+      body: JSON.stringify({ freezerId, organSn: org, pageNum: 1, pageSize: 200 })
     });
-    return { endpoint: path, items: unique };
+    const d = await r.json();
+    const list = d?.data?.resultList || [];
+    return { endpoint: '/goods/v2/getGoodsAtShelvesByFreezerIdV2', items: list };
+  
   }, { api: API, org: ORG, scope: SCOPE, freezerId: machine.sandstar_id });
 
   return result.items.map(item => ({
     machine_name: machine.name,
     sandstar_machine_id: machine.sandstar_id,
-    product_name: item.skuName || item.productName || item.name || item.goodsName || item.itemName || '',
-    current_quantity: item.stockRealtime ?? item.currentNum ?? item.currentQuantity ?? item.stock ?? 0,
-    capacity: item.stockInitial ?? item.capacity ?? item.maxQuantity ?? item.totalNum ?? 0,
+    product_name: item.goodsName || item.skuName || item.productName || item.name || '',
+    current_quantity: item.stockRealtime ?? item.currentNum ?? 0,
+    capacity: item.capacity ?? item.stockInit ?? item.stockInitial ?? 0,
     lane_no: item.laneNo || item.lane || '',
     synced_at: new Date().toISOString(),
   })).filter(i => i.product_name);
