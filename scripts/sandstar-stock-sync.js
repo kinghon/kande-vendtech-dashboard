@@ -63,24 +63,22 @@ async function getStockForMachine(page, machine) {
   const result = await page.evaluate(async ({ api, org, scope, freezerId }) => {
     const token = localStorage.getItem('token');
     const h = { 'Content-Type': 'application/json', 'x-token': token, 'app-scope': scope, 'organSn': org };
-
-    const endpoints = [
-      { path: '/stock/getFreezerStockForPage', body: { pageNum: 1, pageSize: 500, freezerId } },
-      { path: '/stock/getMerchantStockForPage', body: { pageNum: 1, pageSize: 500, freezerId, organSn: org } },
-      { path: '/replenishment/getReplenishmentList', body: { pageNum: 1, pageSize: 500, freezerId } },
-    ];
-
-    for (const ep of endpoints) {
+    const path = '/stock/getFreezerStockForPage';
+    const allItems = [];
+    let pageNum = 1;
+    let total = null;
+    do {
       try {
-        const r = await fetch(`${api}${ep.path}`, { method: 'POST', headers: h, body: JSON.stringify(ep.body) });
+        const r = await fetch(`${api}${path}`, { method: 'POST', headers: h, body: JSON.stringify({ pageNum, pageSize: 10, freezerId, organSn: org }) });
         const d = await r.json();
-        const list = d?.data?.records || d?.data?.list || d?.data?.resultList || (Array.isArray(d?.data) ? d.data : []);
-        if (Array.isArray(list) && list.length > 0) {
-          return { endpoint: ep.path, items: list };
-        }
-      } catch (e) {}
-    }
-    return { endpoint: 'none', items: [] };
+        const list = d?.data?.records || d?.data?.list || d?.data?.resultList || [];
+        if (total === null) total = d?.data?.total || d?.data?.rowcount || list.length;
+        if (!list.length) break;
+        allItems.push(...list);
+        pageNum++;
+      } catch (e) { break; }
+    } while (allItems.length < total && pageNum <= 20);
+    return { endpoint: path, items: allItems };
   }, { api: API, org: ORG, scope: SCOPE, freezerId: machine.sandstar_id });
 
   return result.items.map(item => ({
