@@ -405,6 +405,14 @@ if (!db.competitorLocations) db.competitorLocations = [];
 if (!db.revenue) db.revenue = [];
 if (!db.sandstar_sales) db.sandstar_sales = [];
 if (!db.sandstar_machines) db.sandstar_machines = [];
+if (db.sandstar_machines.length === 0) {
+  db.sandstar_machines = [
+    { id: '127763', sandstar_id: 127763, name: 'All In Aviation Academy', address: 'Henderson, NV', online: true },
+    { id: '127761', sandstar_id: 127761, name: 'VRK Regus Suite 500', address: '3753 Howard Hughes Pkwy, Las Vegas, NV', online: true },
+    { id: '128010', sandstar_id: 128010, name: 'CVM13 Regus Suite 200', address: 'Las Vegas, NV', online: true },
+  ];
+  saveDB(db);
+}
 if (!db.micromarkets) db.micromarkets = [];
 if (!db.smartMachines) db.smartMachines = [];
 if (!db.machineTelemetry) db.machineTelemetry = [];

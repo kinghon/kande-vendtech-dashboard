@@ -357,19 +357,16 @@
   <!-- Tab: Pick Lists -->
   <div id="tab-picklists" class="tab-panel">
     <div id="pickListView">
-      <button class="btn-primary" onclick="openMachineSelector()" style="margin-bottom:12px;">+ New Pick List</button>
-      <div id="pickListsContainer"></div>
+      <div style="margin-bottom:12px;">
+        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin-bottom:6px;">Select Location</div>
+        <div id="machineList"></div>
+        <button class="btn-primary" onclick="generatePickList()" id="genBtn" disabled style="margin-top:10px;">Generate Pick List</button>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px;">
+        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin-bottom:6px;">Pick Lists</div>
+        <div id="pickListsContainer"></div>
+      </div>
     </div>
-  </div>
-</div>
-
-<!-- Modal: Machine Selector -->
-<div id="machineModal" class="modal-overlay" onclick="if(event.target===this)closeMachineModal()">
-  <div class="modal" style="position:relative;">
-    <button class="modal-close" onclick="closeMachineModal()">&times;</button>
-    <h3>Select Machines</h3>
-    <div id="machineList"></div>
-    <button class="btn-primary" onclick="generatePickList()" id="genBtn" disabled>Generate Picklist</button>
   </div>
 </div>
 
@@ -411,7 +408,7 @@
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
     if (name === 'inventory') renderInventory();
-    if (name === 'picklists') renderPickLists();
+    if (name === 'picklists') { renderMachineList(); renderPickLists(); }
   }
 
   // ---- Inventory ----
@@ -540,26 +537,20 @@
   }
 
   // ---- Pick Lists (Machine-specific) ----
-  function openMachineSelector() {
-    selectedMachines = new Set();
-    renderMachineList();
-    document.getElementById('machineModal').classList.add('active');
-  }
-  function closeMachineModal() {
-    document.getElementById('machineModal').classList.remove('active');
-  }
   function renderMachineList() {
     const el = document.getElementById('machineList');
-    if (!machines.length) { el.innerHTML = '<div class="empty">No machines synced yet</div>'; return; }
-    el.innerHTML = machines.map(m => `
-      <div class="machine-card ${selectedMachines.has(m.machine_name) ? 'selected' : ''}" onclick="toggleMachine('${esc(m.machine_name)}')">
-        <input type="checkbox" ${selectedMachines.has(m.machine_name) ? 'checked' : ''} onclick="event.stopPropagation()">
+    if (!machines.length) { el.innerHTML = '<div class="empty">No machines found</div>'; return; }
+    el.innerHTML = machines.map(m => {
+      const key = m.name || m.machine_name;
+      const sel = selectedMachines.has(key);
+      return `<div class="machine-card ${sel ? 'selected' : ''}" onclick="toggleMachine('${esc(key)}')">
+        <input type="checkbox" ${sel ? 'checked' : ''} onclick="event.stopPropagation()" onchange="toggleMachine('${esc(key)}')">
         <div style="flex:1">
-          <div class="machine-name">${esc(m.machine_name)}</div>
-          <div class="machine-meta">${m.lane_count} lanes · ${m.items_below_cap} need restock</div>
+          <div class="machine-name" style="font-weight:600;font-size:0.88rem;">${esc(key)}</div>
+          ${m.address ? `<div style="font-size:0.72rem;color:var(--muted);">${esc(m.address)}</div>` : ''}
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
     document.getElementById('genBtn').disabled = selectedMachines.size === 0;
   }
   function toggleMachine(name) {
@@ -574,7 +565,8 @@
         machine_names: Array.from(selectedMachines)
       });
       pickLists.push(pl);
-      closeMachineModal();
+      selectedMachines = new Set();
+      renderMachineList();
       renderPickLists();
       toast(`Pick list created: ${pl.items.length} items`);
       if (pl.missing?.length) toast(`${pl.missing.length} items not in office inventory`);
@@ -584,7 +576,7 @@
   function renderPickLists() {
     const el = document.getElementById('pickListsContainer');
     const lists = [...pickLists].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    if (!lists.length) { el.innerHTML = '<div class="empty">No pick lists yet. Tap + New Pick List to start.</div>'; return; }
+    if (!lists.length) { el.innerHTML = '<div class="empty" style="color:var(--muted);font-size:0.85rem;padding:12px 0;">No pick lists yet — select a location above and tap Generate.</div>'; return; }
 
     el.innerHTML = lists.map(pl => {
       const isExpanded = pl._expanded;
