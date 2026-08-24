@@ -409,6 +409,10 @@
     if (!pic) return '';
     return pic.startsWith('http') ? pic : SANDSTAR_CDN + pic;
   }
+  const STOCK_ALIASES = {
+    'hershey pretzel dipped cc': 'hershey dipped cc',
+    'snickers king size': 'snickers share size',
+  };
   function normName(s) {
     return (s || '').toLowerCase()
       .replace(/\(.*?\)/g, '')        // drop parentheticals: "(Black)", "(Orange)"
@@ -417,7 +421,8 @@
       .replace(/\s+/g, ' ').trim();
   }
   function getStockPic(name) {
-    const normInv = normName(name);
+    let normInv = normName(name);
+    if (STOCK_ALIASES[normInv]) normInv = STOCK_ALIASES[normInv];
     const invWords = normInv.split(' ').filter(Boolean);
     let bestMatch = null, bestScore = 0;
     for (const s of stockData) {
