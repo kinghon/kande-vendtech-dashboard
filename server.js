@@ -3085,6 +3085,14 @@ app.post('/api/pick-lists/refresh-all', requireAuth, (req, res) => {
       }
     }
 
+    // Deduplicate items by office inventory id
+    const seenIds = new Set();
+    const dedupedItems = items.filter(it => {
+      if (seenIds.has(it.id)) return false;
+      seenIds.add(it.id);
+      return true;
+    });
+
     // Find existing pick list for this machine (draft/active only) or create new
     const existingIdx = (db.pick_lists || []).findIndex(l =>
       l.machine_names?.[0] === mname && l.status !== 'finalized' && l.status !== 'rolled_back');
@@ -3092,7 +3100,7 @@ app.post('/api/pick-lists/refresh-all', requireAuth, (req, res) => {
       id: existingIdx >= 0 ? db.pick_lists[existingIdx].id : crypto.randomUUID(),
       label: mname,
       machine_names: [mname],
-      items,
+      items: dedupedItems,
       missing,
       status: 'draft',
       synced_at: new Date().toISOString(),

@@ -78,7 +78,15 @@ async function getStockForMachine(page, machine) {
         pageNum++;
       } catch (e) { break; }
     } while (allItems.length < total && pageNum <= 20);
-    return { endpoint: path, items: allItems };
+    // Deduplicate by skuid (same product can appear on multiple pages)
+    const seen = new Set();
+    const unique = allItems.filter(i => {
+      const key = i.skuid || i.id || JSON.stringify({name: i.skuName||i.productName, s: i.stockRealtime});
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    return { endpoint: path, items: unique };
   }, { api: API, org: ORG, scope: SCOPE, freezerId: machine.sandstar_id });
 
   return result.items.map(item => ({
