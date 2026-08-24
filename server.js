@@ -2894,6 +2894,18 @@ app.post('/api/office-machines-reset', (req, res) => {
   saveDB(db);
   res.json({ ok: true, cleared: true });
 });
+app.post('/api/office-machines-fix', (req, res) => {
+  const fixes = {
+    127763: 'VRK All In Aviation',
+    127761: 'VRK Regus Suite 500',
+    128010: 'CVM13 Regus Suite 200',
+  };
+  (db.sandstar_machines || []).forEach(m => {
+    if (fixes[m.sandstar_id]) m.name = fixes[m.sandstar_id];
+  });
+  saveDB(db);
+  res.json({ ok: true, machines: db.sandstar_machines.map(m => ({id: m.sandstar_id, name: m.name})) });
+});
 // Receives live Sandstar stock pushed from Mac mini script
 app.post('/api/office-stock-sync', (req, res) => {
   const { records } = req.body;
