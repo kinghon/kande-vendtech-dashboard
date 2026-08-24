@@ -644,7 +644,7 @@
     const missingHtml = pl.missing?.length ? `
       <div class="missing-banner">
         <strong>${pl.missing.length} items not in office inventory:</strong>
-        ${pl.missing.map(m => `${esc(m.product_name)} (need ${m.needed})`).join(', ')}
+        ${pl.missing.filter(m => m.product_name).map(m => `${esc(m.product_name)}${m.needed ? ' (need '+m.needed+')' : ''}`).join(', ')}
       </div>
     ` : '';
 
@@ -732,13 +732,12 @@
   }
 
   async function deletePl(id) {
-    if (!confirm('Delete this pick list?')) return;
     try {
       await api('DELETE', `/api/pick-lists/${id}`);
       pickLists = pickLists.filter(l => l.id !== id);
       renderPickLists();
       toast('Deleted');
-    } catch (e) { toast('Delete failed'); }
+    } catch (e) { toast('Delete failed'); console.error(e); }
   }
 
   // ---- Toast ----
