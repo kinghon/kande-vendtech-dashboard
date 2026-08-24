@@ -379,7 +379,9 @@
     <label style="font-size:0.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">Replace Which Item?</label>
     <select id="replaceTarget" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;margin-bottom:12px;"></select>
     <label style="font-size:0.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">Starting Quantity</label>
-    <input id="newItemQty" type="number" min="0" value="0" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;margin-bottom:16px;">
+    <input id="newItemQty" type="number" min="0" value="0" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;margin-bottom:12px;">
+    <label style="font-size:0.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">Note (optional)</label>
+    <textarea id="replaceNote" placeholder="e.g. customer requested, seasonal swap..." rows="2" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;resize:none;margin-bottom:16px;"></textarea>
     <div style="display:flex;gap:8px;">
       <button onclick="closeReplaceModal()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:0.9rem;cursor:pointer;">Cancel</button>
       <button onclick="submitReplace()" style="flex:2;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;font-size:0.9rem;cursor:pointer;">Save</button>
@@ -438,8 +440,9 @@
   function openReplaceModal() {
     const opts = inventory.map(i => `<option value="${esc(i.id)}">${esc(i.name)}</option>`).join('');
     document.getElementById('newItemSelect').innerHTML = opts;
-    document.getElementById('replaceTarget').innerHTML = opts;
+    document.getElementById('replaceTarget').innerHTML = '<option value="">— None —</option>' + opts;
     document.getElementById('newItemQty').value = '0';
+    document.getElementById('replaceNote').value = '';
     document.getElementById('replaceModal').style.display = 'flex';
   }
   function closeReplaceModal() { document.getElementById('replaceModal').style.display = 'none'; }
@@ -447,13 +450,20 @@
     const newId = document.getElementById('newItemSelect').value;
     const targetId = document.getElementById('replaceTarget').value;
     const qty = parseInt(document.getElementById('newItemQty').value) || 0;
-    if (!newId || !targetId) { toast('Select both items'); return; }
+    const note = document.getElementById('replaceNote').value.trim();
+    if (!newId) { toast('Select a new item'); return; }
     const newItem = inventory.find(i => i.id === newId);
-    const target = inventory.find(i => i.id === targetId);
-    if (!newItem || !target) { toast('Item not found'); return; }
+    if (!newItem) { toast('Item not found'); return; }
     try {
-      await api('PUT', `/api/office-inventory/${targetId}`, { ...target, name: newItem.name, quantity: qty });
-      toast(`✓ Replaced "${target.name}" with "${newItem.name}"`);
+      if (targetId) {
+        const target = inventory.find(i => i.id === targetId);
+        if (!target) { toast('Target item not found'); return; }
+        await api('PUT', `/api/office-inventory/${targetId}`, { ...target, name: newItem.name, quantity: qty, note: note || undefined });
+        toast(`✓ Replaced "${target.name}" with "${newItem.name}"`);
+      } else {
+        await api('PUT', `/api/office-inventory/${newId}`, { ...newItem, quantity: qty, note: note || undefined });
+        toast(`✓ Updated "${newItem.name}"`);
+      }
       closeReplaceModal();
       inventory = await api('GET', '/api/office-inventory');
       renderInventory();
