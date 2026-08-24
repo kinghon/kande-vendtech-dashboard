@@ -27232,7 +27232,8 @@ app.post('/api/sandstar/machines/batch', (req, res) => {
   for (const m of machines) {
     const idx = db.sandstar_machines.findIndex(x => String(x.sandstar_id) === String(m.sandstar_id));
     if (idx !== -1) {
-      db.sandstar_machines[idx] = { ...db.sandstar_machines[idx], ...m, updated_at: new Date().toISOString() };
+      const existingName = db.sandstar_machines[idx].name;
+      db.sandstar_machines[idx] = { ...db.sandstar_machines[idx], ...m, name: existingName, updated_at: new Date().toISOString() };
     } else {
       db.sandstar_machines.push({ id: nextId(), ...m, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
     }
@@ -31800,7 +31801,8 @@ app.post('/api/sandstar/machines/batch', (req, res) => {
   for (const m of machines) {
     const idx = db.sandstar_machines.findIndex(x => String(x.sandstar_id) === String(m.sandstar_id));
     if (idx !== -1) {
-      db.sandstar_machines[idx] = { ...db.sandstar_machines[idx], ...m, updated_at: new Date().toISOString() };
+      const existingName = db.sandstar_machines[idx].name;
+      db.sandstar_machines[idx] = { ...db.sandstar_machines[idx], ...m, name: existingName, updated_at: new Date().toISOString() };
     } else {
       db.sandstar_machines.push({ id: nextId(), ...m, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
     }
