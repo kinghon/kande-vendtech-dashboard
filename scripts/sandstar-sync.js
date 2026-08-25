@@ -469,7 +469,7 @@ function dashApi(method, path, body, cookies) {
           machine_name: row.freezerName || row.machineName || row.equipmentName || '',
           product_barcode: row.barcode || row.goodsBarcode || row.skuid || '',
           product_name: row.goodsName || row.productName || row.name || '',
-          current_quantity: parseInt(row.stockRealtime ?? row.currentNum ?? row.stockNum ?? row.quantity ?? 0),
+          current_quantity: Math.max(0, parseInt(row.stockRealtime ?? row.currentNum ?? row.stockNum ?? row.quantity ?? 0)),
           capacity: parseInt(row.capacityNum || row.capacity || row.maxNum || 0),
           lane_no: row.laneNo || row.lane || row.position || row.sbbh || '',
           synced_at: new Date().toISOString()
@@ -582,7 +582,7 @@ function dashApi(method, path, body, cookies) {
         const officeStockRecords = allInventoryRecords.map(row => ({
           machine_name: row.freezerName || row.machineName || '',
           product_name: row.goodsName || row.productName || row.name || '',
-          current_quantity: parseInt(row.stockRealtime ?? row.currentNum ?? row.stockNum ?? row.quantity ?? 0),
+          current_quantity: Math.max(0, parseInt(row.stockRealtime ?? row.currentNum ?? row.stockNum ?? row.quantity ?? 0)),
           capacity: parseInt(row.capacityNum || row.stockInitial || row.capacity || row.maxNum || 0),
           picture: row.picture || '',
         })).filter(r => r.machine_name && r.product_name);
