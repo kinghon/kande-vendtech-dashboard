@@ -3008,8 +3008,7 @@ const SANDSTAR_ALIASES = {
   'golden island korean bbq pork jerky': 'Golden Island Korean BBQ Pork Jerky',
   'pure leaf unsweetened black tea w/ lemon flavor': 'Pure Leaf Unsweetened Black Tea w/ Lemon',
   'gatorade_cool_blue': 'Gatorade Cool Blue',
-  // NO_MATCH — these exist in Sandstar but have no matching office inventory item
-  'snickers candy bar': null,
+  'snickers candy bar': 'Snickers King Size',
 };
 
 function findOfficeInventoryMatch(productName) {
