@@ -426,29 +426,48 @@
       .replace(/[^a-z0-9 ]/g, '')     // strip all other punctuation (handles curly apostrophes, commas, etc.)
       .replace(/\s+/g, ' ').trim();
   }
-  const PIC_VARIANT_KW = ['white peach','zero sugar','zero','diet','light','sugarfree','sugar free','ultra','original','classic','regular','tropical','watermelon','strawberry','mango','coconut','lime','lemon','orange','grape','cherry','blueberry','raspberry','peach','passion fruit','kiwi','guava','pineapple','pink lemonade','citrus'];
-  function getPicVariant(n) { return PIC_VARIANT_KW.find(v => n.toLowerCase().includes(v)) || null; }
+  const PIC_VARIANT_KW = ['white peach','zero sugar','sugarfree','sugar free','zero','diet','light','ultra','original','classic','regular','tropical','watermelon','strawberry','mango','coconut','lime','lemon','orange','grape','cherry','blueberry','raspberry','peach','passion fruit','kiwi','guava','pineapple','pink lemonade','citrus'];
+  function getPicVariants(n) {
+    const lower = n.toLowerCase();
+    return PIC_VARIANT_KW.filter(v => lower.includes(v));
+  }
+  function variantScore(invName, stockName) {
+    // Returns a penalty 0–1: 1 = perfect match, 0 = mismatch
+    const inv = getPicVariants(invName);
+    const stock = getPicVariants(stockName);
+    if (inv.length === 0 && stock.length === 0) return 1;   // both plain
+    if (inv.length === 0 && stock.length > 0) return 0.1;  // inv plain, stock flavored — weak match only
+    if (inv.length > 0 && stock.length === 0) return 0.1;  // inv flavored, stock plain
+    // Both have variants — score by overlap
+    const invSet = new Set(inv), stockSet = new Set(stock);
+    const shared = inv.filter(v => stockSet.has(v)).length;
+    const total = new Set([...inv, ...stock]).size;
+    return shared / total; // 1 if identical, <1 if different flavors
+  }
   function getStockPic(name) {
     let normInv = normName(name);
     if (STOCK_ALIASES[normInv]) normInv = STOCK_ALIASES[normInv];
     const invWords = normInv.split(' ').filter(Boolean);
-    const invVariant = getPicVariant(name);
     let bestMatch = null, bestScore = 0;
     for (const s of stockData) {
       if (!s.picture) continue;
       const normStock = normName(s.product_name);
-      // Skip if variant mismatch — e.g. plain Red Bull shouldn't get White Peach image
-      const stockVariant = getPicVariant(s.product_name);
-      if (invVariant !== stockVariant) continue;
-      // Exact match — done immediately
+      const vs = variantScore(name, s.product_name);
+      if (vs === 0) continue; // completely incompatible variants
+      // Exact match with good variant score
       if (normStock === normInv) return getPicUrl(s.picture);
-      // Stock name starts with inv name + size suffix (only if variants match)
-      if (normStock.startsWith(normInv + ' ')) { bestMatch = s; bestScore = 1; continue; }
-      // Word overlap: what fraction of inventory words appear in stock name
+      // Stock starts with inv (size suffix) — weighted by variant score
+      if (normStock.startsWith(normInv + ' ')) {
+        const sc = vs * 10;
+        if (sc > bestScore) { bestMatch = s; bestScore = sc; }
+        continue;
+      }
+      // Word overlap weighted by variant score
       const stockWordSet = new Set(normStock.split(' ').filter(Boolean));
-      const overlap = invWords.filter(w => stockWordSet.has(w)).length;
-      const score = invWords.length ? overlap / invWords.length : 0;
-      if (score >= 0.8 && score > bestScore) { bestMatch = s; bestScore = score; }
+      const overlap = invWords.filter(w => stockWordSet.has(w) || stockWordSet.has(w.replace(/s$/,'')) || [...stockWordSet].some(sw => sw.includes(w) || w.includes(sw))).length;
+      const wordSc = invWords.length ? (overlap / invWords.length) : 0;
+      const sc = wordSc * vs;
+      if (wordSc >= 0.75 && sc > bestScore) { bestMatch = s; bestScore = sc; }
     }
     return bestMatch ? getPicUrl(bestMatch.picture) : '';
   }
