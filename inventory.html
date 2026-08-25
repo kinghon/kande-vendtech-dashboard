@@ -754,7 +754,9 @@
 
   function renderPickLists() {
     const el = document.getElementById('pickListsContainer');
-    const lists = [...pickLists].sort((a, b) => (a.label||'').localeCompare(b.label||''));
+    const lists = [...pickLists]
+      .filter(pl => pl.status !== 'finalized')
+      .sort((a, b) => (a.label||'').localeCompare(b.label||''));
     if (!lists.length) { el.innerHTML = '<div class="empty" style="color:var(--muted);font-size:0.85rem;padding:12px 0;">Tap Refresh Stock to load pick lists.</div>'; return; }
 
     el.innerHTML = lists.map(pl => {
