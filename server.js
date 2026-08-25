@@ -2976,9 +2976,12 @@ function findOfficeInventoryMatch(productName) {
   // Fresh-food keywords — prevent sandwiches/wraps from matching chips/drinks
   const FRESH_FOOD_KW = ['sandwich', 'wrap', 'salad', 'sushi', 'burrito', 'bowl', 'biscuit', 'burger', 'sub', 'hero', 'grilled', 'panini', 'taco', 'hoagie'];
   const productIsFresh = FRESH_FOOD_KW.some(k => productName.toLowerCase().includes(k));
+  // Sugarfree is a strict modifier — never match sugarfree ↔ non-sugarfree
+  const SUGARFREE_KW = ['sugar free', 'sugarfree', 'sugar-free', 'no sugar', 'zero sugar'];
+  const productIsSugarFree = SUGARFREE_KW.some(k => productName.toLowerCase().includes(k));
   // Variant exclusion groups — words in the same group are mutually exclusive
   const VARIANT_GROUPS = [
-    ['zero', 'diet', 'light', 'sugar free', 'sugarfree'],
+    ['zero', 'diet', 'light'],
     ['classic', 'original', 'regular'],
   ];
   const getVariantGroup = name => VARIANT_GROUPS.findIndex(g => g.some(v => name.toLowerCase().includes(v)));
@@ -2992,6 +2995,9 @@ function findOfficeInventoryMatch(productName) {
     const invIsFresh = FRESH_FOOD_KW.some(k => inv.name.toLowerCase().includes(k));
     // Skip cross-category matches (fresh ↔ packaged)
     if (productIsFresh !== invIsFresh) continue;
+    // Strict sugarfree check — never match sugarfree ↔ non-sugarfree in either direction
+    const invIsSugarFree = SUGARFREE_KW.some(k => inv.name.toLowerCase().includes(k));
+    if (productIsSugarFree !== invIsSugarFree) continue;
     // Skip conflicting variants (e.g. Classic ↔ Zero/Diet)
     const invVariant = getVariantGroup(inv.name);
     if (productVariant !== -1 && invVariant !== -1 && productVariant !== invVariant) continue;
