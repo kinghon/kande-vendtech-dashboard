@@ -3231,6 +3231,13 @@ app.get('/api/pick-list-history', requireAuth, (req, res) => {
   const history = (db.pick_list_history || []).slice().reverse(); // newest first
   res.json(history);
 });
+app.delete('/api/pick-list-history/:id', requireAuth, (req, res) => {
+  const before = (db.pick_list_history || []).length;
+  db.pick_list_history = (db.pick_list_history || []).filter(h => h.id !== req.params.id);
+  if (db.pick_list_history.length === before) return res.status(404).json({ error: 'Not found' });
+  saveDB(db);
+  res.json({ ok: true });
+});
 
 // Refresh all machine pick lists from cached Sandstar stock
 // Capacity overrides — persist real max quantities per machine+product across syncs
@@ -3474,6 +3481,16 @@ app.put('/api/pick-lists/:id/finalize', requireAuth, (req, res) => {
   if (!list) return res.status(404).json({ error: 'Pick list not found' });
   if (list.status === 'finalized') return res.status(400).json({ error: 'Already finalized' });
   if (list.status === 'rolled_back') return res.status(400).json({ error: 'Already rolled back' });
+
+  // Guard against double-submitting the same machine within 30 minutes
+  const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  const recentDupe = (db.pick_list_history || []).find(h =>
+    h.label === list.label && h.completed_at > thirtyMinAgo
+  );
+  if (recentDupe) {
+    const mins = Math.round((Date.now() - new Date(recentDupe.completed_at).getTime()) / 60000);
+    return res.status(400).json({ error: `Already submitted ${mins} min ago`, details: [`${list.label} was already submitted at ${new Date(recentDupe.completed_at).toLocaleTimeString()}`] });
+  }
 
   // Only deduct checked items
   const itemsToDeduct = list.items.filter(it => it.checked);
