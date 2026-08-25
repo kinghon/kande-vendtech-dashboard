@@ -754,9 +754,20 @@
 
   function renderPickLists() {
     const el = document.getElementById('pickListsContainer');
-    const lists = [...pickLists]
-      .filter(pl => pl.status !== 'finalized')
-      .sort((a, b) => (a.label||'').localeCompare(b.label||''));
+    // One entry per machine — prefer the newest/most-recent draft, fall back to most recently updated
+    const byMachine = {};
+    for (const pl of pickLists) {
+      const key = pl.label || pl.machine_names?.[0] || pl.id;
+      const existing = byMachine[key];
+      if (!existing) { byMachine[key] = pl; continue; }
+      // Prefer draft over finalized; within same status prefer more recently updated
+      const plIsDraft = pl.status === 'draft';
+      const exIsDraft = existing.status === 'draft';
+      if (plIsDraft && !exIsDraft) { byMachine[key] = pl; continue; }
+      if (!plIsDraft && exIsDraft) continue;
+      if ((pl.updated_at || pl.synced_at || '') > (existing.updated_at || existing.synced_at || '')) { byMachine[key] = pl; }
+    }
+    const lists = Object.values(byMachine).sort((a, b) => (a.label||'').localeCompare(b.label||''));
     if (!lists.length) { el.innerHTML = '<div class="empty" style="color:var(--muted);font-size:0.85rem;padding:12px 0;">Tap Refresh Stock to load pick lists.</div>'; return; }
 
     el.innerHTML = lists.map(pl => {
