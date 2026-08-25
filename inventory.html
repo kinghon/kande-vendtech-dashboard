@@ -809,7 +809,17 @@
         <button onclick="openReplaceModal('${pl.id}')" style="width:100%;padding:8px;background:#dcfce7;border:1px solid #86efac;border-radius:8px;font-size:0.8rem;font-weight:600;color:#166534;cursor:pointer;">+ Add / Replace Item</button>
       </div>
       <div class="pl-items">
-        ${pl.items.map(it => {
+        ${(() => {
+          // Build set of replaced product names (from manual items) — hide them from auto list
+          const replacedNames = new Set(
+            (pl.manual_items||[]).filter(m => m.replaces).map(m => m.replaces.toLowerCase().trim())
+          );
+          const isReplaced = it => {
+            const n = (it.sandstar_product_name||it.name||'').toLowerCase().trim();
+            return [...replacedNames].some(r => n.includes(r) || r.includes(n));
+          };
+          return pl.items.filter(it => !isReplaced(it));
+        })().map(it => {
           const inv = inventory.find(i => i.id === it.id);
           const officeQty = inv ? inv.quantity : null;
           const cantFulfill = officeQty !== null && officeQty === 0;
