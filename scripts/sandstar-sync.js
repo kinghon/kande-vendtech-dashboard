@@ -576,6 +576,77 @@ function dashApi(method, path, body, cookies) {
       log(`No changes — silent (${onlineCount}/${machineStatus.length} online, ${allOrders.length} total orders, ${completedOrders.length} completed)`);
     }
 
+    // Push normalized stock to office-stock-sync (what pick-lists actually read)
+    if (allInventoryRecords.length > 0) {
+      try {
+        const officeStockRecords = allInventoryRecords.map(row => ({
+          machine_name: row.freezerName || row.machineName || '',
+          product_name: row.goodsName || row.productName || row.name || '',
+          current_quantity: parseInt(row.stockRealtime ?? row.currentNum ?? row.stockNum ?? row.quantity ?? 0),
+          capacity: parseInt(row.capacityNum || row.stockInitial || row.capacity || row.maxNum || 0),
+          picture: row.picture || '',
+        })).filter(r => r.machine_name && r.product_name);
+        const officeStockRes = await dashApi('POST', '/api/office-stock-sync', { records: officeStockRecords }, dashCookies);
+        log(`Office stock sync: ${JSON.stringify(officeStockRes)}`);
+      } catch(e) { log(`Office stock sync failed: ${e.message}`); }
+    }
+
+    // Refresh pick lists from updated stock data
+    let pickListData = [];
+    try {
+      const plRefresh = await dashApi('POST', '/api/pick-lists/refresh-all', {}, dashCookies);
+      pickListData = plRefresh.lists || [];
+      const totalItems = pickListData.reduce((s, l) => s + (l.items || []).length, 0);
+      log(`Pick lists refreshed: ${pickListData.length} machines, ${totalItems} total items`);
+    } catch(e) { log(`Pick list refresh failed: ${e.message}`); }
+
+    // === POST-SYNC VALIDATION ===
+    // Check pick lists for known bad patterns and alert if found
+    const FRESH_KW = ['sandwich', 'wrap', 'salad', 'sushi', 'burrito', 'bowl', 'biscuit', 'burger', 'sub', 'hoagie', 'panini', 'taco'];
+    const isFresh = s => FRESH_KW.some(k => (s || '').toLowerCase().includes(k));
+    const validationIssues = [];
+    const machineRecordCounts = {};
+    allInventoryRecords.forEach(r => {
+      const mn = r.freezerName || r.machineName || 'unknown';
+      machineRecordCounts[mn] = (machineRecordCounts[mn] || 0) + 1;
+    });
+    // Check 1: machines missing from sync
+    const expectedMachines = (machineData?.data?.resultList || []).map(m => m.freezerName);
+    const syncedMachines = Object.keys(machineRecordCounts);
+    const missingFromSync = expectedMachines.filter(m => !syncedMachines.includes(m));
+    if (missingFromSync.length > 0) validationIssues.push(`⚠️ Machines missing from inventory sync: ${missingFromSync.join(', ')}`);
+    // Check 2: capacity=0 slots (broken slot data)
+    const zeroCap = allInventoryRecords.filter(r => !parseInt(r.capacityNum || r.stockInitial || r.capacity || 0));
+    if (zeroCap.length > 5) validationIssues.push(`⚠️ ${zeroCap.length} slots with capacity=0 (slot data may be stale)`);
+    // Check 3: cross-category mismatches in pick lists
+    const crossCatItems = [];
+    pickListData.forEach(pl => {
+      (pl.items || []).forEach(it => {
+        const sandstarFresh = isFresh(it.sandstar_product_name);
+        const nameFresh = isFresh(it.name);
+        if (sandstarFresh !== nameFresh) {
+          crossCatItems.push(`${pl.label}: "${it.sandstar_product_name}" → "${it.name}"`);
+        }
+      });
+    });
+    if (crossCatItems.length > 0) validationIssues.push(`⚠️ Cross-category match (sandwich↔snack):\n${crossCatItems.join('\n')}`);
+    // Check 4: negative quantities
+    const negQty = [];
+    pickListData.forEach(pl => {
+      (pl.items || []).forEach(it => {
+        if ((it.current_qty || 0) < 0) negQty.push(`${pl.label}: ${it.name} (${it.current_qty}/${it.capacity})`);
+      });
+    });
+    if (negQty.length > 0) validationIssues.push(`⚠️ Negative quantities:\n${negQty.join('\n')}`);
+
+    if (validationIssues.length > 0) {
+      const alertMsg = `🔍 Pick list validation issues (${new Date().toLocaleString('en-US', {timeZone:'America/Los_Angeles'})}):\n${validationIssues.join('\n\n')}`;
+      log(`VALIDATION ALERT: ${alertMsg}`);
+      sendTelegram(alertMsg);
+    } else {
+      log(`Validation OK — ${pickListData.length} machines, no issues found`);
+    }
+
     // Auto-generate pick list from machine inventory levels (below 50% capacity)
     try {
       const plRes = await dashApi('POST', '/api/restocks/auto-generate', {}, dashCookies);
