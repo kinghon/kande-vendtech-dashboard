@@ -265,56 +265,54 @@ function dashApi(method, path, body, cookies) {
       return { list, rowcount: data.rowcount || data.total || 0 };
     }
 
-    // Discover working endpoint + learn actual page size from probe
-    let apiPageSize = 10; // default; updated from probe response
-    for (const ep of INVENTORY_ENDPOINTS) {
+    // Use the correct per-machine endpoint: getGoodsAtShelvesByFreezerIdV2
+    // This returns ALL slots with current+capacity per machine (not just top-10 summary)
+    const allMachinesForInv = machineData?.data?.resultList || [];
+    for (const m of allMachinesForInv) {
       try {
-        const { list } = await fetchInvPage(ep, { pageSize: 500, pageNum: 1 });
-        if (list && list.length > 0) {
-          inventoryEndpointUsed = ep.path;
-          apiPageSize = list.length; // actual page size returned by API
-          log(`  Inventory endpoint: ${ep.method} ${ep.path} — probe OK (actual page size: ${apiPageSize})`);
-          break;
-        }
-        log(`  Tried ${ep.method} ${ep.path} — no records`);
-      } catch (e) {
-        log(`  Tried ${ep.method} ${ep.path} — error: ${e.message}`);
-      }
-    }
-
-    if (inventoryEndpointUsed) {
-      // Fetch ALL records across all machines without freezerId filter
-      // Use the actual page size the API returns to control pagination
-      const workingEp = INVENTORY_ENDPOINTS.find(ep => ep.path === inventoryEndpointUsed);
-      let pageNum = 1;
-      const seenIds = new Set();
-      let consecutiveEmpty = 0;
-      while (true) {
-        try {
-          const { list, rowcount } = await fetchInvPage(workingEp, { pageSize: 500, pageNum });
-          if (!list || list.length === 0) { consecutiveEmpty++; if (consecutiveEmpty >= 2) break; pageNum++; continue; }
-          consecutiveEmpty = 0;
-          let newCount = 0;
-          list.forEach(r => {
-            const uid = `${r.freezerId||''}|${r.id||r.skuid||''}|${r.sbbh||r.laneNo||''}`;
-            if (!seenIds.has(uid)) { seenIds.add(uid); allInventoryRecords.push(r); newCount++; }
+        // Navigate to replenishment page to set machine context
+        await page.goto(
+          `https://prod-ops-us.sandstar.com/#/pages/replenishment/page/current-stock-new?id=${m.freezerId}`,
+          { waitUntil: 'domcontentloaded', timeout: 30000 }
+        );
+        await page.waitForTimeout(2000);
+        const items = await page.evaluate(async ({ api, org, scope, freezerId }) => {
+          const token = localStorage.getItem('token');
+          const h = { 'Content-Type': 'application/json', 'x-token': token, 'app-scope': scope, 'organSn': org };
+          const r = await fetch(`${api}/goods/v2/getGoodsAtShelvesByFreezerIdV2`, {
+            method: 'POST', headers: h,
+            body: JSON.stringify({ freezerId, organSn: org, pageNum: 1, pageSize: 200 })
           });
-          log(`  Page ${pageNum}: ${list.length} records (+${newCount} new, ${allInventoryRecords.length} total)`);
-          // Stop if we have all records per rowcount, or page returned fewer than actual page size
-          if (rowcount > 0 && allInventoryRecords.length >= rowcount) break;
-          if (list.length < apiPageSize) break;
-          pageNum++;
-          if (pageNum > 100) { log('  Safety cap reached'); break; }
-        } catch(e) { log(`  Page ${pageNum} error: ${e.message}`); break; }
+          const d = await r.json();
+          return d?.data?.resultList || [];
+        }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE, freezerId: m.freezerId });
+        // Aggregate lanes by product name
+        const byProduct = {};
+        for (const item of items) {
+          const name = item.goodsName || item.skuName || item.productName || item.name || '';
+          if (!name) continue;
+          if (!byProduct[name]) byProduct[name] = { cur: 0, cap: 0, picture: item.picture || '' };
+          byProduct[name].cur += Math.max(0, parseInt(item.stockRealtime ?? item.currentNum ?? 0));
+          byProduct[name].cap += parseInt(item.capacity ?? item.stockInit ?? item.stockInitial ?? 0);
+          if (!byProduct[name].picture && item.picture) byProduct[name].picture = item.picture;
+        }
+        Object.entries(byProduct).forEach(([name, d]) => {
+          allInventoryRecords.push({
+            freezerId: m.freezerId,
+            freezerName: m.freezerName,
+            goodsName: name,
+            stockRealtime: d.cur,
+            capacityNum: d.cap,
+            picture: d.picture,
+          });
+        });
+        log(`  ${m.freezerName}: ${Object.keys(byProduct).length} products across ${items.length} slots`);
+      } catch(e) {
+        log(`  ${m.freezerName}: error — ${e.message}`);
       }
-      // Log per-machine breakdown
-      const byMachine = {};
-      allInventoryRecords.forEach(r => { const mn=r.freezerName||'?'; byMachine[mn]=(byMachine[mn]||0)+1; });
-      Object.entries(byMachine).forEach(([mn, cnt]) => log(`  ${mn}: ${cnt} records`));
-      log(`  Total inventory: ${allInventoryRecords.length} records across ${Object.keys(byMachine).length} machines`);
-    } else {
-      log('  No working inventory endpoint found');
     }
+    inventoryEndpointUsed = '/goods/v2/getGoodsAtShelvesByFreezerIdV2';
+    log(`  Total inventory: ${allInventoryRecords.length} product records across ${allMachinesForInv.length} machines`);
 
     if (allInventoryRecords.length === 0) {
       log('  No inventory endpoint returned data — skipping inventory sync');
