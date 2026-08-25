@@ -413,9 +413,9 @@ if (!db._machinesSeededV5) {
     { id: '128837', sandstar_id: 128837, name: 'CVM13 Regus Arroyo', online: true },
     { id: '128794', sandstar_id: 128794, name: 'VRK Regus Green Valley', online: true },
     { id: '128790', sandstar_id: 128790, name: 'VRK The Watermark', online: true },
-    { id: '128010', sandstar_id: 128010, name: 'CVM13 Regus Suite 200', online: true },
-    { id: '127763', sandstar_id: 127763, name: 'VRK All In Aviation', online: true },
-    { id: '127761', sandstar_id: 127761, name: 'VRK Regus Suite 500', online: true },
+    { id: '128010', sandstar_id: 128010, name: 'CVM13 Regus 3753 Howard Hughes Parkway, Suite 200', online: true },
+    { id: '127763', sandstar_id: 127763, name: 'VRK All In Aviation Academy', online: true },
+    { id: '127761', sandstar_id: 127761, name: 'VRK Regus 3753 Howard Hughes Parkway, Suite 500', online: true },
   ];
   db._machinesSeededV5 = true;
   saveDB(db);
@@ -2896,9 +2896,9 @@ app.post('/api/office-machines-reset', (req, res) => {
 });
 app.post('/api/office-machines-fix', (req, res) => {
   const fixes = {
-    127763: 'VRK All In Aviation',
-    127761: 'VRK Regus Suite 500',
-    128010: 'CVM13 Regus Suite 200',
+    127763: 'VRK All In Aviation Academy',
+    127761: 'VRK Regus 3753 Howard Hughes Parkway, Suite 500',
+    128010: 'CVM13 Regus 3753 Howard Hughes Parkway, Suite 200',
   };
   (db.sandstar_machines || []).forEach(m => {
     if (fixes[m.sandstar_id]) m.name = fixes[m.sandstar_id];
