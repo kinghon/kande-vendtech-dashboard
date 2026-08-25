@@ -250,7 +250,7 @@ function dashApi(method, path, body, cookies) {
     let allInventoryRecords = [];
     let inventoryEndpointUsed = null;
 
-    // Helper: fetch inventory for one machine (or all if no freezerId)
+    // Helper: fetch one page of inventory, returns { list, rowcount }
     async function fetchInvPage(ep, extraBody) {
       const body = { ...(ep.body || {}), ...extraBody };
       const result = await page.evaluate(async ({ api, org, scope, ep, body }) => {
@@ -261,16 +261,34 @@ function dashApi(method, path, body, cookies) {
         return res.json();
       }, { api: SANDSTAR_API, org: SANDSTAR_ORG, scope: SANDSTAR_SCOPE, ep, body });
       const data = result?.data || {};
-      return data.records || data.resultList || data.list || null;
+      const list = data.records || data.resultList || data.list || null;
+      return { list, rowcount: data.rowcount || data.total || 0 };
+    }
+
+    // Helper: fetch ALL pages for a given machine (handles pagination)
+    async function fetchAllMachineInv(ep, freezerId) {
+      const PAGE_SIZE = 100;
+      const all = [];
+      let pageNum = 1;
+      while (true) {
+        const { list, rowcount } = await fetchInvPage(ep, { freezerId, pageSize: PAGE_SIZE, pageNum });
+        if (!list || list.length === 0) break;
+        all.push(...list);
+        // Stop if we have all records or got fewer than a full page
+        if (all.length >= rowcount || list.length < PAGE_SIZE) break;
+        pageNum++;
+        if (pageNum > 50) break; // safety cap
+      }
+      return all;
     }
 
     // Discover working endpoint with a single probe (no freezerId)
     for (const ep of INVENTORY_ENDPOINTS) {
       try {
-        const probe = await fetchInvPage(ep, {});
-        if (probe && probe.length > 0) {
+        const { list } = await fetchInvPage(ep, {});
+        if (list && list.length > 0) {
           inventoryEndpointUsed = ep.path;
-          log(`  Inventory endpoint: ${ep.method} ${ep.path} — probe OK (${probe.length} records per machine)`);
+          log(`  Inventory endpoint: ${ep.method} ${ep.path} — probe OK (${list.length} records)`);
           break;
         }
         log(`  Tried ${ep.method} ${ep.path} — no records`);
@@ -280,13 +298,13 @@ function dashApi(method, path, body, cookies) {
     }
 
     if (inventoryEndpointUsed) {
-      // Fetch per-machine using freezerId to get all machines' stock
+      // Fetch ALL slots per-machine with full pagination
       const allMachines = machineData?.data?.resultList || [];
       const workingEp = INVENTORY_ENDPOINTS.find(ep => ep.path === inventoryEndpointUsed);
       for (const m of allMachines) {
         try {
-          const recs = await fetchInvPage(workingEp, { freezerId: m.freezerId, pageSize: 500, pageNum: 1 });
-          if (recs && recs.length > 0) {
+          const recs = await fetchAllMachineInv(workingEp, m.freezerId);
+          if (recs.length > 0) {
             allInventoryRecords.push(...recs);
             log(`  ${m.freezerName}: ${recs.length} stock records`);
           } else {
@@ -638,6 +656,60 @@ function dashApi(method, path, body, cookies) {
       });
     });
     if (negQty.length > 0) validationIssues.push(`⚠️ Negative quantities:\n${negQty.join('\n')}`);
+
+    // Check 5: cross-check pick list quantities against raw Sandstar data
+    // Build lookup: machine+productName → raw sandstar record
+    const rawLookup = {};
+    allInventoryRecords.forEach(r => {
+      const key = `${r.freezerName||''}|${(r.goodsName||r.productName||r.name||'').toLowerCase().trim()}`;
+      if (!rawLookup[key]) rawLookup[key] = r;
+    });
+    const qtyMismatches = [];
+    pickListData.forEach(pl => {
+      const mName = pl.label || pl.machine_names?.[0] || '';
+      (pl.items || []).forEach(it => {
+        const sp = (it.sandstar_product_name || '').toLowerCase().trim();
+        const key = `${mName}|${sp}`;
+        const raw = rawLookup[key];
+        if (!raw) return; // not in raw — skip (handled elsewhere)
+        const rawQty = Math.max(0, parseInt(raw.stockRealtime ?? raw.currentNum ?? 0));
+        const rawCap = parseInt(raw.capacityNum || raw.stockInitial || raw.capacity || 0);
+        if (Math.abs((it.current_qty || 0) - rawQty) > 1) {
+          qtyMismatches.push(`${mName}: ${it.name} — pick list=${it.current_qty} vs Sandstar=${rawQty}`);
+        }
+        if (rawCap > 0 && it.capacity !== rawCap) {
+          qtyMismatches.push(`${mName}: ${it.name} — capacity pick list=${it.capacity} vs Sandstar=${rawCap}`);
+        }
+      });
+    });
+    if (qtyMismatches.length > 0) validationIssues.push(`⚠️ Qty/capacity mismatch vs Sandstar raw:\n${qtyMismatches.join('\n')}`);
+
+    // Check 6: slots in Sandstar that are below capacity but missing from pick list
+    const sandstarNeedsRestock = {};
+    allInventoryRecords.forEach(r => {
+      const mn = r.freezerName || r.machineName || '';
+      const cur = Math.max(0, parseInt(r.stockRealtime ?? 0));
+      const cap = parseInt(r.capacityNum || r.stockInitial || 0);
+      if (cap > 0 && cur < cap) {
+        if (!sandstarNeedsRestock[mn]) sandstarNeedsRestock[mn] = [];
+        sandstarNeedsRestock[mn].push(r.goodsName || r.productName || r.name || '');
+      }
+    });
+    const pickListItems = {};
+    pickListData.forEach(pl => {
+      const mn = pl.label || pl.machine_names?.[0] || '';
+      pickListItems[mn] = new Set((pl.items || []).map(i => (i.sandstar_product_name || '').toLowerCase().trim()));
+    });
+    const missingFromPickList = [];
+    Object.entries(sandstarNeedsRestock).forEach(([mn, products]) => {
+      const plSet = pickListItems[mn] || new Set();
+      products.forEach(p => {
+        if (!plSet.has(p.toLowerCase().trim())) {
+          missingFromPickList.push(`${mn}: "${p}" (in Sandstar, not in pick list)`);
+        }
+      });
+    });
+    if (missingFromPickList.length > 0) validationIssues.push(`⚠️ Items below capacity in Sandstar but missing from pick list:\n${missingFromPickList.slice(0,10).join('\n')}${missingFromPickList.length > 10 ? `\n…+${missingFromPickList.length-10} more` : ''}`);
 
     if (validationIssues.length > 0) {
       const alertMsg = `🔍 Pick list validation issues (${new Date().toLocaleString('en-US', {timeZone:'America/Los_Angeles'})}):\n${validationIssues.join('\n\n')}`;
