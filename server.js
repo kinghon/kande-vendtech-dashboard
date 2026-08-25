@@ -2972,7 +2972,55 @@ app.post('/api/office-inventory/adjust', requireAuth, (req, res) => {
 // ===== PICK LISTS API =====
 
 // Fuzzy name matcher: normalize and find best office_inventory match
+// Permanent Sandstar → Office Inventory aliases (confirmed by Kurtis 2026-08-24)
+// Add new aliases here when Sandstar uses a different name than office inventory
+const SANDSTAR_ALIASES = {
+  'redbull energy drink': 'Red Bull Energy Drink',
+  'red bull energy drink, white peach, 12 fl. oz': 'Red Bull Energy Drink White Peach',
+  'coca-cola zero sugar': 'Coca-Cola Zero Sugar',
+  'diet coke': 'Diet Coke',
+  'sprite': 'Sprite',
+  'mountain_dew': 'Mountain Dew',
+  'celsius artic vibe 12 oz': 'Celsius Arctic Vibe',
+  'snickers share size': 'Snickers King Size',
+  'snickers share size ': 'Snickers King Size',
+  'hershey dipped c&c': 'Hershey Pretzel Dipped C&C',
+  "reese's": "Reese's King Size",
+  'monster energy ultra sunrise-ko': 'Monster Energy Ultra Sunrise (Orange)',
+  'monster energy zerosugar': 'Monster Energy Zero Sugar (White)',
+  'monster energy': 'Monster Energy (Black)',
+  'coke mexican 355 ml': 'Coke Mexican',
+  'jarritos mandarin 17.7oz': 'Jarritos Mandarin',
+  'kars cashews 1 oz': 'Kars Cashews',
+  'kind bar dark chocolate nuts & sea salt 1.4 oz.': 'Kind Bar Dark Chocolate Nuts & Sea Salt',
+  'twix share size 4 bars': 'Twix Share Size',
+  'nerds gummy clusters': 'Nerds Gummy Clusters 5oz',
+  'nerds gummy clusters rainbow': 'Nerds Gummy Clusters 5oz',
+  'san pellegrino sparkling natural mineral water 20 oz': 'San Pellegrino Sparkling Water',
+  'starbucks_frappuccino_mocha': 'Starbucks Frappuccino Mocha',
+  'trolli sour brite crawlers': 'Trolli Sour Brite Crawlers',
+  'cheetos crunchy flamin hot': 'Cheetos Crunchy Flamin Hot',
+  'core power elite chocolate': 'Core Power Elite Chocolate',
+  'smart water': 'Smart Water',
+  'cheez it original': 'Cheez-It Original',
+  'cheez-it - origina': 'Cheez-It Original',
+  'coca cola classic 20 oz bottle': 'Coca Cola Classic',
+  'golden island korean bbq pork jerky': 'Golden Island Korean BBQ Pork Jerky',
+  'pure leaf unsweetened black tea w/ lemon flavor': 'Pure Leaf Unsweetened Black Tea w/ Lemon',
+  'gatorade_cool_blue': 'Gatorade Cool Blue',
+  // NO_MATCH — these exist in Sandstar but have no matching office inventory item
+  'snickers candy bar': null,
+};
+
 function findOfficeInventoryMatch(productName) {
+  // Check permanent alias map first
+  const aliasKey = productName.toLowerCase().trim();
+  if (aliasKey in SANDSTAR_ALIASES) {
+    const target = SANDSTAR_ALIASES[aliasKey];
+    if (target === null) return null; // explicit no-match
+    const inv = (db.office_inventory || []).find(i => i.name === target);
+    if (inv) return inv;
+  }
   // Fresh-food keywords — prevent sandwiches/wraps from matching chips/drinks
   const FRESH_FOOD_KW = ['sandwich', 'wrap', 'salad', 'sushi', 'burrito', 'bowl', 'biscuit', 'burger', 'sub', 'hero', 'grilled', 'panini', 'taco', 'hoagie'];
   const productIsFresh = FRESH_FOOD_KW.some(k => productName.toLowerCase().includes(k));
