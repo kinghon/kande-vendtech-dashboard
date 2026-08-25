@@ -405,6 +405,7 @@
   let filterMode = 'all';
   let editingId = null;
   let addStockHistory = [];
+  let replacingPlId = null; // pick list that opened the Add/Replace modal
   const SANDSTAR_CDN = 'https://image-us.sandstar.com/images/';
   function getPicUrl(pic) {
     if (!pic) return '';
@@ -532,7 +533,8 @@
     } catch(e) {}
   }
 
-  function openReplaceModal() {
+  function openReplaceModal(plId) {
+    replacingPlId = plId || null;
     const opts = inventory.map(i => `<option value="${esc(i.id)}">${esc(i.name)}</option>`).join('');
     document.getElementById('newItemSelect').innerHTML = opts;
     document.getElementById('replaceTarget').innerHTML = '<option value="">— None —</option>' + opts;
@@ -554,6 +556,16 @@
         const target = inventory.find(i => i.id === targetId);
         if (!target) { toast('Target item not found'); return; }
         await api('PUT', `/api/office-inventory/${targetId}`, { ...target, name: newItem.name, quantity: qty, note: note || undefined });
+        // Auto-add to Manually Added section of the current pick list
+        if (replacingPlId) {
+          const updated = await api('POST', `/api/pick-lists/${replacingPlId}/manual-items`, {
+            name: newItem.name, qty: qty || 1, replaces: target.name
+          }).catch(() => null);
+          if (updated) {
+            const idx = pickLists.findIndex(l => l.id === replacingPlId);
+            if (idx >= 0) pickLists[idx] = { ...pickLists[idx], manual_items: updated.manual_items };
+          }
+        }
         toast(`✓ Replaced "${target.name}" with "${newItem.name}"`);
       } else {
         await api('PUT', `/api/office-inventory/${newId}`, { ...newItem, quantity: qty, note: note || undefined });
@@ -564,7 +576,6 @@
       renderInventory();
       loadUnmatched();
       // Refresh pick lists so the new item appears immediately
-      toast('Refreshing pick lists...');
       const plRes = await api('POST', '/api/pick-lists/refresh-all').catch(() => null);
       if (plRes?.lists) { pickLists = plRes.lists; renderPickLists(); }
     } catch(e) { toast('Save failed'); console.error(e); }
@@ -795,7 +806,7 @@
     return `
       ${missingHtml}
       <div class="pl-actions" style="margin-bottom:8px;">
-        <button onclick="openReplaceModal()" style="width:100%;padding:8px;background:#dcfce7;border:1px solid #86efac;border-radius:8px;font-size:0.8rem;font-weight:600;color:#166534;cursor:pointer;">+ Add / Replace Item</button>
+        <button onclick="openReplaceModal('${pl.id}')" style="width:100%;padding:8px;background:#dcfce7;border:1px solid #86efac;border-radius:8px;font-size:0.8rem;font-weight:600;color:#166534;cursor:pointer;">+ Add / Replace Item</button>
       </div>
       <div class="pl-items">
         ${pl.items.map(it => {
