@@ -1456,24 +1456,54 @@ app.get('/api/crm/popped-in-today', (req, res) => {
   res.json({ prospect_ids: Array.from(popped) });
 });
 
-// Daily cleanup: remove todos that were auto-completed by pop-in yesterday (PDT)
-// Call this from GET /api/todos and GET /api/crm-tasks so it runs on every page load
+// Daily cleanup: remove todos + clear CRM prospect action_needed for pop-ins logged before today
 function cleanupPoppedInTodos() {
   const todayStr = getPdtDateStr();
-  let deleted = 0;
+  let changed = 0;
+
+  // 1. Clean db.todos auto-completed by pop-in on a previous day
   db.todos = (db.todos || []).filter(t => {
     if (t.auto_completed_by === 'pop-in' && t.completed_at) {
       const completedDate = getPdtDateStr(new Date(t.completed_at));
-      if (completedDate !== todayStr) {
-        deleted++;
-        return false; // remove this todo
-      }
+      if (completedDate !== todayStr) { changed++; return false; }
     }
     return true;
   });
-  if (deleted > 0) {
+
+  // 2. Clear 'Pop In Needed' action on CRM prospects that were visited before today
+  // Find all prospect IDs with a pop-in activity from a PREVIOUS day (not today)
+  const prevDayPoppedIds = new Set();
+  (db.activities || []).forEach(a => {
+    const type = (a.type || '').toLowerCase();
+    const isPopIn = type.includes('pop') || type.includes('visit');
+    if (!isPopIn || !a.prospect_id) return;
+    const actDate = getPdtDateStr(new Date(a.created_at || a.date || a.activity_date));
+    if (actDate !== todayStr) prevDayPoppedIds.add(a.prospect_id);
+  });
+
+  // Clear action_needed for those prospects if it's 'Pop In Needed'
+  (db.prospects || []).forEach(p => {
+    if (!prevDayPoppedIds.has(p.id)) return;
+    const action = (p.action_needed || p.next_action || '').toLowerCase();
+    if (action.includes('pop in') || action.includes('pop-in') || action.includes('popin')) {
+      // Only clear if no pop-in was also logged TODAY (don't clear if visited today too)
+      const hasPopInToday = (db.activities || []).some(a => {
+        const t = (a.type || '').toLowerCase();
+        return (t.includes('pop') || t.includes('visit')) &&
+               a.prospect_id === p.id &&
+               getPdtDateStr(new Date(a.created_at || a.date || a.activity_date)) === todayStr;
+      });
+      if (!hasPopInToday) {
+        if (p.action_needed) p.action_needed = null;
+        if (p.next_action && (p.next_action.toLowerCase().includes('pop in') || p.next_action.toLowerCase().includes('pop-in'))) p.next_action = null;
+        changed++;
+      }
+    }
+  });
+
+  if (changed > 0) {
     saveDB(db);
-    console.log(`[cleanupPoppedInTodos] Removed ${deleted} auto-completed pop-in todo(s) from previous day(s)`);
+    console.log(`[cleanupPoppedInTodos] Cleaned ${changed} item(s) — prev-day pop-ins cleared from CRM to-do list`);
   }
 }
 
