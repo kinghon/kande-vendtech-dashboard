@@ -995,7 +995,17 @@
       }
     } catch (e) {
       const msg = e.message || '';
-      if (msg.includes('Insufficient')) toast('Insufficient stock');
+      if (msg.includes('Insufficient')) {
+        let detail = 'Insufficient stock — unknown item';
+        try {
+          const jsonStr = msg.replace(/^\d+:\s*/, '');
+          const parsed = JSON.parse(jsonStr);
+          if (parsed.details && parsed.details.length) {
+            detail = 'Insufficient stock:\n\n' + parsed.details.join('\n');
+          }
+        } catch(_) {}
+        alert(detail);
+      }
       else if (msg.includes('No items checked')) toast('Check all items first');
       else toast('Finalize failed');
     }
