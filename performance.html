@@ -192,6 +192,15 @@
     .sales-badge-stale { background: var(--amber-light); color: var(--amber); border: 1px solid rgba(245,158,11,.2); }
     .sales-badge-ok { background: var(--green-light); color: var(--green); border: 1px solid rgba(34,197,94,.2); }
 
+    /* Data Tables */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .data-table th { text-align: left; padding: 6px 10px; background: var(--bg); color: var(--muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.3px; border-bottom: 2px solid var(--border); }
+    .data-table td { padding: 4px 10px; border-bottom: 1px solid var(--border); }
+    .data-table tr:nth-child(even) td { background: #f8fafc; }
+    .data-table tr:hover td { background: var(--accent-light); }
+    .alert-section { margin-top: 16px; }
+    .alert-section h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 8px; }
+
     /* Loading */
     .skeleton { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
@@ -225,6 +234,33 @@
       <h1 class="page-title">📊 Performance Dashboard</h1>
       <div class="last-updated">Last updated: <span id="last-updated">Loading...</span></div>
     </div>
+  </div>
+  
+  <!-- Sales Trends -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+      <span class="card-title">📈 Sales Trends</span>
+    </div>
+    <div class="sales-trends-controls">
+      <select id="salesMachineFilter"><option value="">All Machines</option></select>
+      <select id="salesWeeksFilter" onchange="loadSalesTrends()">
+        <option value="4">Last 4 Weeks</option>
+        <option value="8" selected>Last 8 Weeks</option>
+        <option value="12">Last 12 Weeks</option>
+      </select>
+      <button onclick="loadSalesTrends()">🔄 Refresh</button>
+    </div>
+    <div class="sales-chart-grid">
+      <div class="card" style="padding: 16px;">
+        <div class="card-title" style="font-size: 0.9rem; margin-bottom: 12px;">🏆 Top 10 Best Sellers</div>
+        <div class="chart-container"><canvas id="top10Chart"></canvas></div>
+      </div>
+      <div class="card" style="padding: 16px;">
+        <div class="card-title" style="font-size: 0.9rem; margin-bottom: 12px;">📉 Bottom 10 Worst Sellers</div>
+        <div id="bottom10Table" style="overflow-x:auto;"></div>
+      </div>
+    </div>
+    <div id="salesAlerts"></div>
   </div>
   
   <!-- Top KPI Cards -->
@@ -388,33 +424,6 @@
     </div>
   </div>
   
-  <!-- Sales Trends -->
-  <div class="card" style="margin-bottom: 24px;">
-    <div class="card-header">
-      <span class="card-title">📈 Sales Trends</span>
-    </div>
-    <div class="sales-trends-controls">
-      <select id="salesMachineFilter"><option value="">All Machines</option></select>
-      <select id="salesWeeksFilter" onchange="loadSalesTrends()">
-        <option value="4">Last 4 Weeks</option>
-        <option value="8" selected>Last 8 Weeks</option>
-        <option value="12">Last 12 Weeks</option>
-      </select>
-      <button onclick="loadSalesTrends()">🔄 Refresh</button>
-    </div>
-    <div class="sales-chart-grid">
-      <div class="card" style="padding: 16px;">
-        <div class="card-title" style="font-size: 0.9rem; margin-bottom: 12px;">🏆 Top 10 Best Sellers</div>
-        <div class="chart-container"><canvas id="top10Chart"></canvas></div>
-      </div>
-      <div class="card" style="padding: 16px;">
-        <div class="card-title" style="font-size: 0.9rem; margin-bottom: 12px;">📉 Bottom 10 Worst Sellers</div>
-        <div class="chart-container"><canvas id="bottom10Chart"></canvas></div>
-      </div>
-    </div>
-    <div id="salesAlerts"></div>
-  </div>
-
   <!-- Wins/Losses + Goal Tracking -->
   <div class="grid-2">
     <!-- Wins & Losses -->
@@ -1197,7 +1206,6 @@ loadData();
 
 // ===== SALES TRENDS =====
 let top10ChartInst = null;
-let bottom10ChartInst = null;
 
 async function loadMachines() {
   try {
@@ -1231,6 +1239,7 @@ function renderSalesTrends(data) {
     const d = new Date(w + 'T00:00:00');
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   });
+  const weekCount = data.weeks.length || 1;
 
   const colors = [
     '#3b82f6','#8b5cf6','#f59e0b','#ec4899','#14b8a6',
@@ -1256,41 +1265,48 @@ function renderSalesTrends(data) {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
+      plugins: { legend: { position: 'right', labels: { boxWidth: 8, font: { size: 10 }, padding: 8 } } },
       scales: { y: { beginAtZero: true, title: { display: true, text: 'Units Sold' } } }
     }
   });
 
-  if (bottom10ChartInst) bottom10ChartInst.destroy();
-  bottom10ChartInst = new Chart(document.getElementById('bottom10Chart'), {
-    type: 'line',
-    data: { labels, datasets: makeDataset(data.bottom_10_series, 5) },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
-      scales: { y: { beginAtZero: true, title: { display: true, text: 'Units Sold' } } }
-    }
-  });
+  // Bottom 10 as HTML table
+  const bottom10Container = document.getElementById('bottom10Table');
+  if (data.bottom_10_series && data.bottom_10_series.length > 0) {
+    let tableHtml = '<table class="data-table"><thead><tr><th>Product</th><th>Machine(s)</th><th>Avg/wk</th><th>Last Sold</th><th>Zero-Sales Weeks</th></tr></thead><tbody>';
+    data.bottom_10_series.forEach(s => {
+      const avg = s.total_qty ? (s.total_qty / weekCount).toFixed(1) : '0.0';
+      const machines = s.machines && s.machines.length ? s.machines.join(', ') : '—';
+      const lastSold = s.last_sold_date || '—';
+      tableHtml += `<tr><td>${s.name}</td><td>${machines}</td><td>${avg}</td><td>${lastSold}</td><td>${s.zero_weeks || 0}</td></tr>`;
+    });
+    tableHtml += '</tbody></table>';
+    bottom10Container.innerHTML = tableHtml;
+  } else {
+    bottom10Container.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:20px 0;text-align:center;">No bottom 10 data</div>';
+  }
 
+  // Alerts as tables
   let alertHtml = '';
   if (data.fast_selling && data.fast_selling.length > 0) {
-    alertHtml += `<div class="sales-alert-badges">`;
+    alertHtml += `<div class="alert-section"><h4>🔥 Fast-Selling Items</h4><table class="data-table"><thead><tr><th>Product</th><th>Machine</th><th>Avg/wk</th><th>% of capacity</th></tr></thead><tbody>`;
     data.fast_selling.forEach(item => {
-      alertHtml += `<span class="sales-badge sales-badge-fast">🔥 ${item.name} — ${item.avg_weekly_velocity}/wk (${item.pct_of_capacity}% cap)</span>`;
+      const machine = item.machines && item.machines.length ? item.machines[0] : '—';
+      alertHtml += `<tr><td>${item.name}</td><td>${machine}</td><td>${item.avg_weekly_velocity}</td><td>${item.pct_of_capacity}%</td></tr>`;
     });
-    alertHtml += `</div>`;
+    alertHtml += '</tbody></table></div>';
   }
   if (data.stale && data.stale.length > 0) {
-    alertHtml += `<div class="sales-alert-badges">`;
+    alertHtml += `<div class="alert-section"><h4>🥶 Not Moving (3+ weeks)</h4><table class="data-table"><thead><tr><th>Product</th><th>Machine</th><th>Weeks No Sales</th><th>Last Sold</th></tr></thead><tbody>`;
     data.stale.forEach(item => {
-      alertHtml += `<span class="sales-badge sales-badge-stale">🥶 ${item.name} — ${item.consecutive_zero_weeks} wks no sales</span>`;
+      const machine = item.machines && item.machines.length ? item.machines[0] : '—';
+      const lastSold = item.last_sold_date || '—';
+      alertHtml += `<tr><td>${item.name}</td><td>${machine}</td><td>${item.consecutive_zero_weeks}</td><td>${lastSold}</td></tr>`;
     });
-    alertHtml += `</div>`;
+    alertHtml += '</tbody></table></div>';
   }
   if (alertHtml === '') {
-    alertHtml = `<div class="sales-alert-badges"><span class="sales-badge sales-badge-ok">✅ No alerts — all items moving normally</span></div>`;
+    alertHtml = '<div class="alert-section"><h4>✅ All items moving</h4><p style="color:var(--muted);font-size:0.85rem;">No fast-selling or stale alerts for this period.</p></div>';
   }
   document.getElementById('salesAlerts').innerHTML = alertHtml;
 }

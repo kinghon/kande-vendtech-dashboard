@@ -28090,6 +28090,7 @@ app.get('/api/sales-analytics/weekly', (req, res) => {
     const productTotalQty = {}; // product -> total qty in period
     const productEverSold = new Set();
     const productByMachine = {}; // product -> Set of machines
+    const productLastSoldDate = {}; // product -> most recent sale date YYYY-MM-DD
 
     filtered.forEach(s => {
       const saleDate = (s.sale_date || '').substring(0, 10);
@@ -28114,6 +28115,9 @@ app.get('/api/sales-analytics/weekly', (req, res) => {
         }
         weeklyData[weekStart][name].machines[s.machine_name] += item.qty || 1;
         productTotalQty[name] = (productTotalQty[name] || 0) + (item.qty || 1);
+        if (!productLastSoldDate[name] || saleDate > productLastSoldDate[name]) {
+          productLastSoldDate[name] = saleDate;
+        }
       });
     });
 
@@ -28128,7 +28132,16 @@ app.get('/api/sales-analytics/weekly', (req, res) => {
       .filter(([name]) => productEverSold.has(name))
       .sort((a, b) => a[1] - b[1])
       .slice(0, 10)
-      .map(([name, qty]) => ({ name, total_qty: qty }));
+      .map(([name, qty]) => {
+        const zeroWeeks = weekStarts.filter(ws => !(weeklyData[ws]?.[name]?.qty > 0)).length;
+        return {
+          name,
+          total_qty: qty,
+          machines: Array.from(productByMachine[name] || []),
+          last_sold_date: productLastSoldDate[name] || null,
+          zero_weeks: zeroWeeks
+        };
+      });
 
     // Capacity lookup: prefer office_sandstar_stock, fall back to sandstar_inventory
     const capacityMap = {}; // product_name -> total capacity
@@ -28152,7 +28165,7 @@ app.get('/api/sales-analytics/weekly', (req, res) => {
       const avgVelocity = qty / weeks;
       const threshold = cap * 0.6;
       if (avgVelocity > threshold) {
-        fastSelling.push({ name, avg_weekly_velocity: Math.round(avgVelocity * 10) / 10, capacity: cap, pct_of_capacity: Math.round((avgVelocity / cap) * 100) });
+        fastSelling.push({ name, avg_weekly_velocity: Math.round(avgVelocity * 10) / 10, capacity: cap, pct_of_capacity: Math.round((avgVelocity / cap) * 100), machines: Array.from(productByMachine[name] || []) });
       }
     });
 
@@ -28173,7 +28186,7 @@ app.get('/api/sales-analytics/weekly', (req, res) => {
         }
       }
       if (maxConsecutiveZero >= 3) {
-        stale.push({ name, consecutive_zero_weeks: maxConsecutiveZero });
+        stale.push({ name, consecutive_zero_weeks: maxConsecutiveZero, machines: Array.from(productByMachine[name] || []), last_sold_date: productLastSoldDate[name] || null });
       }
     });
 
@@ -28184,7 +28197,11 @@ app.get('/api/sales-analytics/weekly', (req, res) => {
     }));
     const bottom10Series = bottom10.map(p => ({
       name: p.name,
-      data: weekStarts.map(ws => weeklyData[ws]?.[p.name]?.qty || 0)
+      data: weekStarts.map(ws => weeklyData[ws]?.[p.name]?.qty || 0),
+      total_qty: p.total_qty,
+      machines: p.machines,
+      last_sold_date: p.last_sold_date,
+      zero_weeks: p.zero_weeks
     }));
 
     res.json({
