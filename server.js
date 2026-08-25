@@ -3500,10 +3500,10 @@ app.post('/api/pick-lists/:id/rollback', requireAuth, (req, res) => {
 app.post('/api/pick-lists/:id/manual-items', requireAuth, (req, res) => {
   const list = db.pick_lists.find(l => l.id === req.params.id);
   if (!list) return res.status(404).json({ error: 'Not found' });
-  const { name, qty } = req.body;
+  const { name, qty, replaces } = req.body;
   if (!name || !qty) return res.status(400).json({ error: 'name and qty required' });
   if (!list.manual_items) list.manual_items = [];
-  list.manual_items.push({ id: crypto.randomUUID(), name, qty: parseInt(qty), checked: false, added_at: new Date().toISOString() });
+  list.manual_items.push({ id: crypto.randomUUID(), name, qty: parseInt(qty), replaces: replaces || null, checked: false, added_at: new Date().toISOString() });
   saveDB(db);
   res.json(list);
 });
