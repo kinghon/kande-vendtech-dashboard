@@ -544,6 +544,10 @@
       inventory = await api('GET', '/api/office-inventory');
       renderInventory();
       loadUnmatched();
+      // Refresh pick lists so the new item appears immediately
+      toast('Refreshing pick lists...');
+      const plRes = await api('POST', '/api/pick-lists/refresh-all').catch(() => null);
+      if (plRes?.lists) { pickLists = plRes.lists; renderPickLists(); }
     } catch(e) { toast('Save failed'); console.error(e); }
   }
 
