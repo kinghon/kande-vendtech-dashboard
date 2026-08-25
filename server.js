@@ -3296,15 +3296,7 @@ app.post('/api/pick-lists/refresh-all', requireAuth, (req, res) => {
       return true;
     });
 
-    // Skip machines with nothing to pick
-    if (dedupedItems.length === 0 && missing.length === 0) {
-      // Remove existing draft pick list for this machine if it exists and is now empty
-      if (db.pick_lists) {
-        db.pick_lists = db.pick_lists.filter(l =>
-          !(l.machine_names?.[0] === mname && l.status === 'draft'));
-      }
-      continue;
-    }
+    // Always create/update pick list for every machine, even if fully stocked
 
     // Find existing pick list for this machine (draft/active only) or create new
     const existingIdx = (db.pick_lists || []).findIndex(l =>
