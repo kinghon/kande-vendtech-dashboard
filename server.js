@@ -3103,10 +3103,33 @@ app.get('/api/sandstar/machines', requireAuth, (req, res) => {
 app.get('/api/pick-lists', requireAuth, (req, res) => res.json(db.pick_lists || []));
 
 // Refresh all machine pick lists from cached Sandstar stock
+// Capacity overrides — persist real max quantities per machine+product across syncs
+if (!db.capacity_overrides) db.capacity_overrides = {};
+app.get('/api/capacity-overrides', requireAuth, (req, res) => {
+  res.json(db.capacity_overrides || {});
+});
+app.post('/api/capacity-overrides', requireAuth, (req, res) => {
+  const { machine_name, product_name, capacity } = req.body;
+  if (!machine_name || !product_name || !Number.isInteger(capacity) || capacity < 0)
+    return res.status(400).json({ error: 'machine_name, product_name, capacity (int) required' });
+  if (!db.capacity_overrides) db.capacity_overrides = {};
+  const key = `${machine_name}|${product_name}`;
+  db.capacity_overrides[key] = capacity;
+  saveDB(db);
+  res.json({ ok: true, key, capacity });
+});
+app.delete('/api/capacity-overrides/:key', requireAuth, (req, res) => {
+  const key = decodeURIComponent(req.params.key);
+  if (db.capacity_overrides) delete db.capacity_overrides[key];
+  saveDB(db);
+  res.json({ ok: true });
+});
+
 app.post('/api/pick-lists/refresh-all', requireAuth, (req, res) => {
   const stock = db.office_sandstar_stock || [];
   const syncedAt = db.office_sandstar_stock_synced_at || null;
   const machines = db.sandstar_machines || [];
+  const capOverrides = db.capacity_overrides || {};
 
   if (stock.length === 0) {
     return res.status(503).json({ error: 'No stock data yet. Sync runs daily at 6am PT.' });
@@ -3115,18 +3138,23 @@ app.post('/api/pick-lists/refresh-all', requireAuth, (req, res) => {
   // For each machine, regenerate or update its pick list
   for (const machine of machines) {
     const mname = machine.name;
-    const machineRecs = stock.filter(r => r.machine_name === mname && (r.current_quantity || 0) < (r.capacity || 0));
+    const machineRecs = stock.filter(r => r.machine_name === mname);
     const items = [];
     const missing = [];
 
     for (const rec of machineRecs) {
-      const needed = (rec.capacity || 0) - (rec.current_quantity || 0);
+      // Apply capacity override if set for this machine+product
+      const overrideKey = `${mname}|${rec.product_name}`;
+      const capacity = capOverrides[overrideKey] ?? (rec.capacity || 0);
+      const current = rec.current_quantity || 0;
+      if (current >= capacity) continue; // fully stocked
+      const needed = capacity - current;
       if (needed <= 0) continue;
       const match = findOfficeInventoryMatch(rec.product_name);
       if (match) {
         items.push({ id: match.id, name: match.name, qty: needed, machine_name: mname,
-          sandstar_product_name: rec.product_name, current_qty: rec.current_quantity,
-          capacity: rec.capacity, picture: rec.picture || '', checked: false });
+          sandstar_product_name: rec.product_name, current_qty: current,
+          capacity, picture: rec.picture || '', checked: false });
       } else {
         missing.push({ machine_name: mname, product_name: rec.product_name, needed });
       }

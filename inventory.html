@@ -400,6 +400,7 @@
   let pickLists = [];
   let machines = [];
   let stockData = [];
+  let capacityOverrides = {};
   let selectedMachines = new Set();
   let filterMode = 'all';
   let editingId = null;
@@ -756,10 +757,10 @@
     ` : '';
 
     return `
-      <div class="pl-actions" style="margin-bottom:8px;">
-        <button onclick="openReplaceModal()" style="width:100%;padding:8px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:0.8rem;font-weight:600;color:var(--text);cursor:pointer;">+ Add / Replace Item</button>
-      </div>
       ${missingHtml}
+      <div class="pl-actions" style="margin-bottom:8px;">
+        <button onclick="openReplaceModal()" style="width:100%;padding:8px;background:#dcfce7;border:1px solid #86efac;border-radius:8px;font-size:0.8rem;font-weight:600;color:#166534;cursor:pointer;">+ Add / Replace Item</button>
+      </div>
       <div class="pl-items">
         ${pl.items.map(it => {
           const inv = inventory.find(i => i.id === it.id);
@@ -773,7 +774,7 @@
                 onchange="togglePacked('${pl.id}', '${it.id}', this.checked)">
               ${thumb}
               <span class="name">${esc(it.name)}</span>
-              <span style="color:var(--muted);font-size:0.75rem;">${it.current_qty}/${it.capacity}</span>
+              <span style="color:var(--muted);font-size:0.75rem;cursor:pointer;text-decoration:underline dotted;" title="Tap to set real max capacity" onclick="editCapacity(event,'${pl.id}','${it.id}','${esc(it.sandstar_product_name||it.name)}','${esc(pl.machine_names?.[0]||pl.label)}',${ it.capacity})">${it.current_qty}/<strong>${it.capacity}</strong></span>
               <div style="display:flex;align-items:center;gap:3px;">
                 <button onclick="adjNeed(event,'${pl.id}','${it.id}',-1)" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--card);font-size:0.9rem;line-height:1;cursor:pointer;padding:0;">−</button>
                 <span class="need ${cantFulfill ? 'warn' : ''}" id="need-${pl.id}-${it.id}">${it.qty}</span>
@@ -798,6 +799,23 @@
   function togglePl(id) {
     const pl = pickLists.find(l => l.id === id);
     if (pl) { pl._expanded = !pl._expanded; renderPickLists(); }
+  }
+
+  async function editCapacity(e, plId, itemId, productName, machineName, currentCap) {
+    e.stopPropagation();
+    const newCap = prompt(`Set real max capacity for "${productName}" at ${machineName}:`, currentCap);
+    if (newCap === null) return;
+    const cap = parseInt(newCap);
+    if (isNaN(cap) || cap < 0) { toast('Invalid capacity'); return; }
+    try {
+      await api('POST', '/api/capacity-overrides', { machine_name: machineName, product_name: productName, capacity: cap });
+      capacityOverrides[`${machineName}|${productName}`] = cap;
+      toast(`Max set to ${cap} — refreshing pick list...`);
+      // Refresh pick lists to apply new capacity
+      const r = await api('POST', '/api/pick-lists/refresh-all');
+      pickLists = r.lists || pickLists;
+      renderPickLists();
+    } catch(err) { toast('Save failed'); }
   }
 
   async function adjNeed(e, plId, itemId, delta) {
