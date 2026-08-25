@@ -699,19 +699,37 @@ function dashApi(method, path, body, cookies) {
     Object.entries(sandstarNeedsRestock).forEach(([mn, products]) => {
       const plSet = pickListItems[mn] || new Set();
       products.forEach(p => {
+        // Skip fresh food — intentionally excluded from pick list matching
+        if (isFresh(p)) return;
         if (!plSet.has(p.toLowerCase().trim())) {
-          missingFromPickList.push(`${mn}: "${p}" (in Sandstar, not in pick list)`);
+          missingFromPickList.push(`${mn}: "${p}"`);
         }
       });
     });
-    if (missingFromPickList.length > 0) validationIssues.push(`⚠️ Items below capacity in Sandstar but missing from pick list:\n${missingFromPickList.slice(0,10).join('\n')}${missingFromPickList.length > 10 ? `\n…+${missingFromPickList.length-10} more` : ''}`);
+    if (missingFromPickList.length > 0) validationIssues.push(`⚠️ In Sandstar but not matched to office inventory (add to inventory.kandedash.com to track):\n${missingFromPickList.slice(0,8).join('\n')}${missingFromPickList.length > 8 ? `\n…+${missingFromPickList.length-8} more` : ''}`);
 
-    if (validationIssues.length > 0) {
-      const alertMsg = `🔍 Pick list validation issues (${new Date().toLocaleString('en-US', {timeZone:'America/Los_Angeles'})}):\n${validationIssues.join('\n\n')}`;
-      log(`VALIDATION ALERT: ${alertMsg}`);
-      sendTelegram(alertMsg);
-    } else {
+    // Deduplicate alerts — only fire if issues changed since last alert
+    const issueHash = require('crypto').createHash('md5').update(validationIssues.join('|')).digest('hex');
+    const lastHash = state.lastValidationHash || '';
+    if (validationIssues.length > 0 && issueHash !== lastHash) {
+      // Only alert on actionable issues (skip pure "not in office inventory" if that's all there is)
+      const actionableIssues = validationIssues.filter(v =>
+        !v.startsWith('⚠️ In Sandstar but not matched'));
+      if (actionableIssues.length > 0) {
+        const alertMsg = `🔍 Pick list validation (${new Date().toLocaleString('en-US', {timeZone:'America/Los_Angeles'})}):\n${actionableIssues.join('\n\n')}`;
+        log(`VALIDATION ALERT: ${alertMsg}`);
+        sendTelegram(alertMsg);
+      } else {
+        log(`Validation: ${missingFromPickList.length} unmatched non-fresh items (not alerting — add to inventory to track)`);
+      }
+      state.lastValidationHash = issueHash;
+      saveState(state);
+    } else if (validationIssues.length === 0) {
       log(`Validation OK — ${pickListData.length} machines, no issues found`);
+      state.lastValidationHash = '';
+      saveState(state);
+    } else {
+      log(`Validation: same issues as last run — suppressing repeat alert`);
     }
 
     // Auto-generate pick list from machine inventory levels (below 50% capacity)

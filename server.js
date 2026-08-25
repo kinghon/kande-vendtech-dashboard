@@ -3271,7 +3271,7 @@ app.put('/api/pick-lists/:id/pack', requireAuth, (req, res) => {
   if (!list) return res.status(404).json({ error: 'Pick list not found' });
   if (list.status !== 'draft') return res.status(400).json({ error: 'Can only pack draft lists' });
 
-  const { packed_items } = req.body; // [{id, checked}]
+  const { packed_items, qty_overrides } = req.body; // packed_items: [{id, checked}], qty_overrides: [{id, qty}]
   if (!Array.isArray(packed_items)) {
     return res.status(400).json({ error: 'packed_items array required' });
   }
@@ -3283,6 +3283,16 @@ app.put('/api/pick-lists/:id/pack', requireAuth, (req, res) => {
       item.checked = !!pi.checked;
       if (item.checked && !item.packed_at) item.packed_at = new Date().toISOString();
       if (!item.checked) delete item.packed_at;
+    }
+  }
+
+  // Apply qty overrides (user-adjusted "need" quantities)
+  if (Array.isArray(qty_overrides)) {
+    for (const qo of qty_overrides) {
+      const item = list.items.find(it => it.id === qo.id);
+      if (item && Number.isInteger(qo.qty) && qo.qty >= 0) {
+        item.qty = qo.qty;
+      }
     }
   }
 

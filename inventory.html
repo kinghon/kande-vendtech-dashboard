@@ -774,7 +774,11 @@
               ${thumb}
               <span class="name">${esc(it.name)}</span>
               <span style="color:var(--muted);font-size:0.75rem;">${it.current_qty}/${it.capacity}</span>
-              <span class="need ${cantFulfill ? 'warn' : ''}">need ${it.qty}</span>
+              <div style="display:flex;align-items:center;gap:3px;">
+                <button onclick="adjNeed(event,'${pl.id}','${it.id}',-1)" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--card);font-size:0.9rem;line-height:1;cursor:pointer;padding:0;">−</button>
+                <span class="need ${cantFulfill ? 'warn' : ''}" id="need-${pl.id}-${it.id}">${it.qty}</span>
+                <button onclick="adjNeed(event,'${pl.id}','${it.id}',1)" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--card);font-size:0.9rem;line-height:1;cursor:pointer;padding:0;">+</button>
+              </div>
               ${it.packed_at ? `<span class="packed-at">Packed ${new Date(it.packed_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</span>` : ''}
             </div>
           `;
@@ -794,6 +798,23 @@
   function togglePl(id) {
     const pl = pickLists.find(l => l.id === id);
     if (pl) { pl._expanded = !pl._expanded; renderPickLists(); }
+  }
+
+  async function adjNeed(e, plId, itemId, delta) {
+    e.stopPropagation();
+    const pl = pickLists.find(l => l.id === plId);
+    if (!pl) return;
+    const item = pl.items.find(it => it.id === itemId);
+    if (!item) return;
+    item.qty = Math.max(0, (item.qty || 0) + delta);
+    const el = document.getElementById(`need-${plId}-${itemId}`);
+    if (el) el.textContent = item.qty;
+    try {
+      await api('PUT', `/api/pick-lists/${plId}/pack`, {
+        packed_items: pl.items.map(it => ({ id: it.id, checked: !!it.checked })),
+        qty_overrides: [{ id: itemId, qty: item.qty }]
+      });
+    } catch(e2) { toast('Save failed'); }
   }
 
   async function togglePacked(plId, itemId, checked) {
