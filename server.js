@@ -6703,7 +6703,7 @@ app.get('/activities', (req, res) => res.sendFile(path.join(__dirname, 'activiti
 app.get('/map', (req, res) => res.redirect('/crm'));
 app.get('/machines', (req, res) => res.redirect('/locations'));
 app.get('/locations', (req, res) => res.sendFile(path.join(__dirname, 'locations.html')));
-app.get('/inventory', (req, res) => res.sendFile(path.join(__dirname, 'inventory.html')));
+app.get('/officeinventory', (req, res) => res.sendFile(path.join(__dirname, 'inventory.html'))); // pick list page
 app.get('/pricing', (req, res) => res.sendFile(path.join(__dirname, 'pricing.html')));
 app.get('/finance', (req, res) => res.sendFile(path.join(__dirname, 'finance.html')));
 app.get('/restock', (req, res) => res.sendFile(path.join(__dirname, 'restock.html')));
@@ -15406,8 +15406,13 @@ app.get('/email-templates', (req, res) => {
   res.sendFile(path.join(__dirname, 'email-templates.html'));
 });
 
-// ===== INVENTORY PAGE =====
+// ===== INVENTORY PAGES =====
+// /inventory = original product inventory page with pricing
 app.get('/inventory', (req, res) => {
+  res.sendFile(path.join(__dirname, 'product-inventory.html'));
+});
+// /officeinventory = office pick list / stock tracking page
+app.get('/officeinventory', (req, res) => {
   res.sendFile(path.join(__dirname, 'inventory.html'));
 });
 
