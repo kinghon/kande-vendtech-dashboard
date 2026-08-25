@@ -984,6 +984,7 @@
 
     let todoExpanded = false;
     let completedToday = JSON.parse(localStorage.getItem('completedToday') || '[]');
+    let poppedInToday = new Set(); // prospect IDs with a pop-in logged today (PDT)
     
     // Clean up items older than 24 hours
     function cleanupCompletedToday() {
@@ -1220,6 +1221,13 @@
     async function renderTodoList() {
       const today = new Date().toISOString().split('T')[0];
       
+      // Fetch popped-in-today from server (independent of todo completion state)
+      try {
+        const popRes = await fetch('/api/crm/popped-in-today');
+        const popData = await popRes.json();
+        poppedInToday = new Set(popData.prospect_ids || []);
+      } catch(e) { poppedInToday = new Set(); }
+      
       // Fetch API todos
       let apiTodos = [];
       try {
@@ -1325,13 +1333,13 @@
         const isFollowUp = p._isFollowUp;
         const displayAction = isFollowUp ? 'Follow up?' : p.next_action;
         const isApi = p._fromApi;
-        const isAutoCompleted = p._completedToday;
+        const isVisitedToday = p._completedToday || poppedInToday.has(p.id);
         return `
-        <div class="todo-item" style="position:relative;display:flex;align-items:center;gap:5px;padding:4px 8px;padding-bottom:20px;background:${isAutoCompleted ? 'rgba(22,163,74,0.05)' : 'var(--bg)'};border-radius:6px;border:1px solid ${isAutoCompleted ? 'rgba(22,163,74,0.3)' : isFollowUp ? 'rgba(16,185,129,0.3)' : 'var(--border)'};flex-wrap:wrap;opacity:${isAutoCompleted ? '0.7' : '1'};">
-          ${isAutoCompleted ? '<span style="font-size:0.85rem;">✅</span>' : `<input type="checkbox" onclick="${isApi ? `completeApiTodo(${p._todoId})` : `completeTodo(${p.id}, '${isFollowUp ? 'Follow up' : p.next_action}')`}" style="width:14px;height:14px;cursor:pointer;">`}
-          <span style="font-size:0.85rem;">${isAutoCompleted ? '' : actionIcon(p.next_action, isFollowUp)}</span>
-          <span style="font-weight:600;font-size:0.82rem;color:${isAutoCompleted ? 'var(--muted)' : 'var(--accent)'};cursor:pointer;text-decoration:${isAutoCompleted ? 'line-through' : 'underline'};" onclick="openProspectModal(${p.id})">${esc(p.name)}</span>
-          ${isAutoCompleted ? `<span style="font-size:0.7rem;font-weight:600;padding:2px 7px;border-radius:6px;background:rgba(22,163,74,0.15);color:#16a34a;border:1px solid rgba(22,163,74,0.3);">✓ ${p._autoCompletedByPopIn ? 'Visited' : 'Completed'}</span>` : ''}
+        <div class="todo-item" style="position:relative;display:flex;align-items:center;gap:5px;padding:4px 8px;padding-bottom:20px;background:${isVisitedToday ? 'rgba(22,163,74,0.05)' : 'var(--bg)'};border-radius:6px;border:1px solid ${isVisitedToday ? 'rgba(22,163,74,0.3)' : isFollowUp ? 'rgba(16,185,129,0.3)' : 'var(--border)'};flex-wrap:wrap;opacity:${isVisitedToday ? '0.5' : '1'};">
+          ${isVisitedToday ? '<span style="font-size:0.85rem;">✅</span>' : `<input type="checkbox" onclick="${isApi ? `completeApiTodo(${p._todoId})` : `completeTodo(${p.id}, '${isFollowUp ? 'Follow up' : p.next_action}')`}" style="width:14px;height:14px;cursor:pointer;">`}
+          <span style="font-size:0.85rem;">${isVisitedToday ? '' : actionIcon(p.next_action, isFollowUp)}</span>
+          <span style="font-weight:600;font-size:0.82rem;color:${isVisitedToday ? 'var(--muted)' : 'var(--accent)'};cursor:pointer;text-decoration:${isVisitedToday ? 'line-through' : 'underline'};" onclick="openProspectModal(${p.id})">${esc(p.name)}</span>
+          ${isVisitedToday ? `<span style="font-size:0.7rem;font-weight:600;padding:2px 7px;border-radius:6px;background:rgba(22,163,74,0.15);color:#16a34a;border:1px solid rgba(22,163,74,0.3);">✓ Visited Today</span>` : ''}
           ${p.property_type ? `<span style="font-size:0.65rem;color:var(--muted);background:var(--border);padding:1px 4px;border-radius:3px;">${esc(p.property_type)}</span>` : ''}
           ${getBadgeLabel(p) ? `<span class="prospect-badge badge-${getBadgeClass(p)}" style="font-size:0.65rem;padding:2px 8px;">${getBadgeLabel(p)}</span>` : ''}
           <span style="font-size:0.8rem;color:var(--muted);">${isFollowUp ? 'Follow up?' : 'Action Needed:'}</span>

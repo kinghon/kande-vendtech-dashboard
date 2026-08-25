@@ -1435,6 +1435,48 @@ app.post('/api/prospects/:id/activities', (req, res) => {
   res.json(activity);
 });
 
+// Helper: get date string in America/Los_Angeles timezone
+function getPdtDateStr(date = new Date()) {
+  return date.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+}
+
+// GET /api/crm/popped-in-today — prospect IDs with a pop-in activity logged today (PDT)
+app.get('/api/crm/popped-in-today', (req, res) => {
+  const todayStr = getPdtDateStr();
+  const popped = new Set();
+  (db.activities || []).forEach(a => {
+    const type = (a.type || '').toLowerCase();
+    const isPopIn = type.includes('pop') || type.includes('pop-in') || type.includes('pop_in') || type.includes('visit');
+    if (!isPopIn) return;
+    const actDate = getPdtDateStr(new Date(a.created_at || a.date || a.activity_date));
+    if (actDate === todayStr && a.prospect_id) {
+      popped.add(a.prospect_id);
+    }
+  });
+  res.json({ prospect_ids: Array.from(popped) });
+});
+
+// Daily cleanup: remove todos that were auto-completed by pop-in yesterday (PDT)
+// Call this from GET /api/todos and GET /api/crm-tasks so it runs on every page load
+function cleanupPoppedInTodos() {
+  const todayStr = getPdtDateStr();
+  let deleted = 0;
+  db.todos = (db.todos || []).filter(t => {
+    if (t.auto_completed_by === 'pop-in' && t.completed_at) {
+      const completedDate = getPdtDateStr(new Date(t.completed_at));
+      if (completedDate !== todayStr) {
+        deleted++;
+        return false; // remove this todo
+      }
+    }
+    return true;
+  });
+  if (deleted > 0) {
+    saveDB(db);
+    console.log(`[cleanupPoppedInTodos] Removed ${deleted} auto-completed pop-in todo(s) from previous day(s)`);
+  }
+}
+
 app.get('/api/activities', (req, res) => {
   res.json(db.activities || []);
 });
@@ -6856,6 +6898,7 @@ app.delete('/api/todos/all', requireAuth, (req, res) => {
 });
 
 app.get('/api/todos', (req, res) => {
+  cleanupPoppedInTodos();
   res.json(db.todos || []);
 });
 
@@ -10522,6 +10565,7 @@ app.get('/api/pipeline/stats', (req, res) => {
 
 // ===== CRM TASKS API =====
 app.get('/api/crm-tasks', (req, res) => {
+  cleanupPoppedInTodos();
   const { prospect_id, assigned_to, status, priority, stage, overdue } = req.query;
   let tasks = db.crmTasks || [];
 
@@ -27976,6 +28020,150 @@ app.post('/api/admin/geocode-missing', async (req, res) => {
       }
     }
     res.json(results);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ===== WEEKLY SALES ANALYTICS API =====
+app.get('/api/sales-analytics/weekly', (req, res) => {
+  try {
+    const machineFilter = req.query.machine || null;
+    const weeks = parseInt(req.query.weeks) || 8;
+    const sales = db.sandstar_sales || [];
+
+    // Build week boundaries (Monday-based, Pacific time)
+    const now = new Date();
+    const pacificNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+    const weekStarts = [];
+    for (let i = weeks - 1; i >= 0; i--) {
+      const d = new Date(pacificNow);
+      d.setDate(d.getDate() - ((d.getDay() + 6) % 7) - (i * 7));
+      const str = d.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+      weekStarts.push(str);
+    }
+
+    // Filter sales by machine and date range
+    const cutoffDate = weekStarts[0];
+    let filtered = sales.filter(s => (s.sale_date || '').substring(0, 10) >= cutoffDate);
+    if (machineFilter) {
+      filtered = filtered.filter(s => s.machine_name === machineFilter || String(s.machine_id) === machineFilter);
+    }
+
+    // Per-week per-product per-machine aggregation
+    const weeklyData = {}; // week -> product -> { qty, machine }
+    const productTotalQty = {}; // product -> total qty in period
+    const productEverSold = new Set();
+    const productByMachine = {}; // product -> Set of machines
+
+    filtered.forEach(s => {
+      const saleDate = (s.sale_date || '').substring(0, 10);
+      // Find which week this sale falls into
+      let weekStart = weekStarts[weekStarts.length - 1];
+      for (let i = weekStarts.length - 1; i >= 0; i--) {
+        if (saleDate >= weekStarts[i]) {
+          weekStart = weekStarts[i];
+          break;
+        }
+      }
+      (s.items || []).forEach(item => {
+        const name = item.name || 'Unknown';
+        productEverSold.add(name);
+        if (!productByMachine[name]) productByMachine[name] = new Set();
+        productByMachine[name].add(s.machine_name || 'Unknown');
+        if (!weeklyData[weekStart]) weeklyData[weekStart] = {};
+        if (!weeklyData[weekStart][name]) weeklyData[weekStart][name] = { qty: 0, machines: {} };
+        weeklyData[weekStart][name].qty += item.qty || 1;
+        if (!weeklyData[weekStart][name].machines[s.machine_name]) {
+          weeklyData[weekStart][name].machines[s.machine_name] = 0;
+        }
+        weeklyData[weekStart][name].machines[s.machine_name] += item.qty || 1;
+        productTotalQty[name] = (productTotalQty[name] || 0) + (item.qty || 1);
+      });
+    });
+
+    // Top 10 best sellers
+    const top10 = Object.entries(productTotalQty)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([name, qty]) => ({ name, total_qty: qty }));
+
+    // Bottom 10 worst sellers (must have at least 1 sale ever)
+    const bottom10 = Object.entries(productTotalQty)
+      .filter(([name]) => productEverSold.has(name))
+      .sort((a, b) => a[1] - b[1])
+      .slice(0, 10)
+      .map(([name, qty]) => ({ name, total_qty: qty }));
+
+    // Capacity lookup: prefer office_sandstar_stock, fall back to sandstar_inventory
+    const capacityMap = {}; // product_name -> total capacity
+    const stockRecords = db.office_sandstar_stock || [];
+    const invRecords = db.sandstar_inventory || [];
+    const allStock = stockRecords.length > 0 ? stockRecords : invRecords;
+
+    allStock.forEach(rec => {
+      const pname = rec.product_name || '';
+      if (!pname) return;
+      if (machineFilter && rec.machine_name !== machineFilter) return;
+      if (!capacityMap[pname]) capacityMap[pname] = 0;
+      capacityMap[pname] += parseInt(rec.capacity || 0);
+    });
+
+    // fast_selling: avg weekly velocity > 60% of capacity
+    const fastSelling = [];
+    Object.entries(productTotalQty).forEach(([name, qty]) => {
+      const cap = capacityMap[name] || 0;
+      if (cap <= 0) return;
+      const avgVelocity = qty / weeks;
+      const threshold = cap * 0.6;
+      if (avgVelocity > threshold) {
+        fastSelling.push({ name, avg_weekly_velocity: Math.round(avgVelocity * 10) / 10, capacity: cap, pct_of_capacity: Math.round((avgVelocity / cap) * 100) });
+      }
+    });
+
+    // stale: 0 sales for 3+ consecutive weeks
+    const stale = [];
+    const allProductsInPeriod = new Set(Object.keys(productTotalQty));
+    allProductsInPeriod.forEach(name => {
+      let consecutiveZero = 0;
+      let maxConsecutiveZero = 0;
+      for (let i = weekStarts.length - 1; i >= 0; i--) {
+        const ws = weekStarts[i];
+        const qty = weeklyData[ws]?.[name]?.qty || 0;
+        if (qty === 0) {
+          consecutiveZero++;
+          maxConsecutiveZero = Math.max(maxConsecutiveZero, consecutiveZero);
+        } else {
+          consecutiveZero = 0;
+        }
+      }
+      if (maxConsecutiveZero >= 3) {
+        stale.push({ name, consecutive_zero_weeks: maxConsecutiveZero });
+      }
+    });
+
+    // Build chart-ready series
+    const top10Series = top10.map(p => ({
+      name: p.name,
+      data: weekStarts.map(ws => weeklyData[ws]?.[p.name]?.qty || 0)
+    }));
+    const bottom10Series = bottom10.map(p => ({
+      name: p.name,
+      data: weekStarts.map(ws => weeklyData[ws]?.[p.name]?.qty || 0)
+    }));
+
+    res.json({
+      weeks: weekStarts,
+      machine: machineFilter,
+      top_10: top10,
+      bottom_10: bottom10,
+      top_10_series: top10Series,
+      bottom_10_series: bottom10Series,
+      fast_selling: fastSelling,
+      stale: stale,
+      total_sales_in_period: filtered.length,
+      total_items_sold: Object.values(productTotalQty).reduce((a, b) => a + b, 0)
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
