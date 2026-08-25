@@ -265,30 +265,15 @@ function dashApi(method, path, body, cookies) {
       return { list, rowcount: data.rowcount || data.total || 0 };
     }
 
-    // Helper: fetch ALL pages for a given machine (handles pagination)
-    async function fetchAllMachineInv(ep, freezerId) {
-      const PAGE_SIZE = 100;
-      const all = [];
-      let pageNum = 1;
-      while (true) {
-        const { list, rowcount } = await fetchInvPage(ep, { freezerId, pageSize: PAGE_SIZE, pageNum });
-        if (!list || list.length === 0) break;
-        all.push(...list);
-        // Stop if we have all records or got fewer than a full page
-        if (all.length >= rowcount || list.length < PAGE_SIZE) break;
-        pageNum++;
-        if (pageNum > 50) break; // safety cap
-      }
-      return all;
-    }
-
-    // Discover working endpoint with a single probe (no freezerId)
+    // Discover working endpoint + learn actual page size from probe
+    let apiPageSize = 10; // default; updated from probe response
     for (const ep of INVENTORY_ENDPOINTS) {
       try {
-        const { list } = await fetchInvPage(ep, {});
+        const { list } = await fetchInvPage(ep, { pageSize: 500, pageNum: 1 });
         if (list && list.length > 0) {
           inventoryEndpointUsed = ep.path;
-          log(`  Inventory endpoint: ${ep.method} ${ep.path} — probe OK (${list.length} records)`);
+          apiPageSize = list.length; // actual page size returned by API
+          log(`  Inventory endpoint: ${ep.method} ${ep.path} — probe OK (actual page size: ${apiPageSize})`);
           break;
         }
         log(`  Tried ${ep.method} ${ep.path} — no records`);
@@ -298,23 +283,35 @@ function dashApi(method, path, body, cookies) {
     }
 
     if (inventoryEndpointUsed) {
-      // Fetch ALL slots per-machine with full pagination
-      const allMachines = machineData?.data?.resultList || [];
+      // Fetch ALL records across all machines without freezerId filter
+      // Use the actual page size the API returns to control pagination
       const workingEp = INVENTORY_ENDPOINTS.find(ep => ep.path === inventoryEndpointUsed);
-      for (const m of allMachines) {
+      let pageNum = 1;
+      const seenIds = new Set();
+      let consecutiveEmpty = 0;
+      while (true) {
         try {
-          const recs = await fetchAllMachineInv(workingEp, m.freezerId);
-          if (recs.length > 0) {
-            allInventoryRecords.push(...recs);
-            log(`  ${m.freezerName}: ${recs.length} stock records`);
-          } else {
-            log(`  ${m.freezerName}: no records`);
-          }
-        } catch (e) {
-          log(`  ${m.freezerName}: error — ${e.message}`);
-        }
+          const { list, rowcount } = await fetchInvPage(workingEp, { pageSize: 500, pageNum });
+          if (!list || list.length === 0) { consecutiveEmpty++; if (consecutiveEmpty >= 2) break; pageNum++; continue; }
+          consecutiveEmpty = 0;
+          let newCount = 0;
+          list.forEach(r => {
+            const uid = `${r.freezerId||''}|${r.id||r.skuid||''}|${r.sbbh||r.laneNo||''}`;
+            if (!seenIds.has(uid)) { seenIds.add(uid); allInventoryRecords.push(r); newCount++; }
+          });
+          log(`  Page ${pageNum}: ${list.length} records (+${newCount} new, ${allInventoryRecords.length} total)`);
+          // Stop if we have all records per rowcount, or page returned fewer than actual page size
+          if (rowcount > 0 && allInventoryRecords.length >= rowcount) break;
+          if (list.length < apiPageSize) break;
+          pageNum++;
+          if (pageNum > 100) { log('  Safety cap reached'); break; }
+        } catch(e) { log(`  Page ${pageNum} error: ${e.message}`); break; }
       }
-      log(`  Total inventory: ${allInventoryRecords.length} records across ${allMachines.length} machines`);
+      // Log per-machine breakdown
+      const byMachine = {};
+      allInventoryRecords.forEach(r => { const mn=r.freezerName||'?'; byMachine[mn]=(byMachine[mn]||0)+1; });
+      Object.entries(byMachine).forEach(([mn, cnt]) => log(`  ${mn}: ${cnt} records`));
+      log(`  Total inventory: ${allInventoryRecords.length} records across ${Object.keys(byMachine).length} machines`);
     } else {
       log('  No working inventory endpoint found');
     }
