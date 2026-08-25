@@ -774,7 +774,13 @@
                 onchange="togglePacked('${pl.id}', '${it.id}', this.checked)">
               ${thumb}
               <span class="name">${esc(it.name)}</span>
-              <span style="color:var(--muted);font-size:0.75rem;">${it.current_qty}/${it.capacity}</span><button onclick="editCapacity(event,'${pl.id}','${it.id}','${esc(it.sandstar_product_name||it.name)}','${esc(pl.machine_names?.[0]||pl.label)}',${it.max_qty||it.capacity})" style="margin-left:3px;padding:2px 6px;font-size:0.65rem;border-radius:5px;${it.max_qty && it.max_qty !== it.capacity ? 'border:1px solid #3b82f6;background:#dbeafe;color:#1e40af;' : 'border:1px solid #86efac;background:#dcfce7;color:#166534;'}cursor:pointer;font-weight:600;">${it.max_qty && it.max_qty !== it.capacity ? 'max:'+it.max_qty : 'max'}</button>
+              <span style="color:var(--muted);font-size:0.75rem;">${it.current_qty}/${it.capacity}</span><button
+                data-plid="${esc(pl.id)}" data-itemid="${esc(it.id)}"
+                data-product="${esc(it.sandstar_product_name||it.name)}"
+                data-machine="${esc(pl.machine_names?.[0]||pl.label)}"
+                data-cap="${it.max_qty||it.capacity}"
+                onclick="editCapacityBtn(event,this)"
+                style="margin-left:3px;padding:2px 6px;font-size:0.65rem;border-radius:5px;${it.max_qty && it.max_qty !== it.capacity ? 'border:1px solid #3b82f6;background:#dbeafe;color:#1e40af;' : 'border:1px solid #86efac;background:#dcfce7;color:#166534;'}cursor:pointer;font-weight:600;">${it.max_qty && it.max_qty !== it.capacity ? 'max:'+it.max_qty : 'max'}</button>
               <div style="display:flex;align-items:center;gap:3px;">
                 <button onclick="adjNeed(event,'${pl.id}','${it.id}',-1)" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--card);font-size:0.9rem;line-height:1;cursor:pointer;padding:0;">−</button>
                 <span class="need ${cantFulfill ? 'warn' : ''}" id="need-${pl.id}-${it.id}">${it.qty}</span>
@@ -799,6 +805,10 @@
   function togglePl(id) {
     const pl = pickLists.find(l => l.id === id);
     if (pl) { pl._expanded = !pl._expanded; renderPickLists(); }
+  }
+
+  function editCapacityBtn(e, btn) {
+    editCapacity(e, btn.dataset.plid, btn.dataset.itemid, btn.dataset.product, btn.dataset.machine, parseFloat(btn.dataset.cap)||0);
   }
 
   async function editCapacity(e, plId, itemId, productName, machineName, currentCap) {
