@@ -3143,18 +3143,20 @@ app.post('/api/pick-lists/refresh-all', requireAuth, (req, res) => {
     const missing = [];
 
     for (const rec of machineRecs) {
-      // Apply capacity override if set for this machine+product
       const overrideKey = `${mname}|${rec.product_name}`;
-      const capacity = capOverrides[overrideKey] ?? (rec.capacity || 0);
+      const sandstarCapacity = rec.capacity || 0;          // raw from ops — display only
+      const maxQty = capOverrides[overrideKey] ?? sandstarCapacity; // override drives need math
       const current = rec.current_quantity || 0;
-      if (current >= capacity) continue; // fully stocked
-      const needed = capacity - current;
+      if (current >= maxQty) continue; // fully stocked per max
+      const needed = maxQty - current;
       if (needed <= 0) continue;
       const match = findOfficeInventoryMatch(rec.product_name);
       if (match) {
         items.push({ id: match.id, name: match.name, qty: needed, machine_name: mname,
           sandstar_product_name: rec.product_name, current_qty: current,
-          capacity, picture: rec.picture || '', checked: false });
+          capacity: sandstarCapacity,  // always raw Sandstar — never overwritten
+          max_qty: maxQty,             // override or sandstar — used for need only
+          picture: rec.picture || '', checked: false });
       } else {
         missing.push({ machine_name: mname, product_name: rec.product_name, needed });
       }
