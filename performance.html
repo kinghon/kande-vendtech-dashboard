@@ -179,7 +179,19 @@
     .goal-input:focus { outline: none; border-color: var(--accent); }
     .goal-save-btn { background: var(--accent); color: #fff; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
     .goal-save-btn:hover { background: #2563eb; }
-    
+
+    /* Sales Trends */
+    .sales-trends-controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; align-items: center; }
+    .sales-trends-controls select { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); font-size: 0.82rem; color: var(--text); }
+    .sales-trends-controls button { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+    .sales-trends-controls button:hover { border-color: var(--accent); color: var(--accent); }
+    .sales-chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    .sales-alert-badges { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+    .sales-badge { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; }
+    .sales-badge-fast { background: var(--red-light); color: var(--red); border: 1px solid rgba(239,68,68,.2); }
+    .sales-badge-stale { background: var(--amber-light); color: var(--amber); border: 1px solid rgba(245,158,11,.2); }
+    .sales-badge-ok { background: var(--green-light); color: var(--green); border: 1px solid rgba(34,197,94,.2); }
+
     /* Loading */
     .skeleton { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
@@ -376,6 +388,33 @@
     </div>
   </div>
   
+  <!-- Sales Trends -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+      <span class="card-title">📈 Sales Trends</span>
+    </div>
+    <div class="sales-trends-controls">
+      <select id="salesMachineFilter"><option value="">All Machines</option></select>
+      <select id="salesWeeksFilter" onchange="loadSalesTrends()">
+        <option value="4">Last 4 Weeks</option>
+        <option value="8" selected>Last 8 Weeks</option>
+        <option value="12">Last 12 Weeks</option>
+      </select>
+      <button onclick="loadSalesTrends()">🔄 Refresh</button>
+    </div>
+    <div class="sales-chart-grid">
+      <div class="card" style="padding: 16px;">
+        <div class="card-title" style="font-size: 0.9rem; margin-bottom: 12px;">🏆 Top 10 Best Sellers</div>
+        <div class="chart-container"><canvas id="top10Chart"></canvas></div>
+      </div>
+      <div class="card" style="padding: 16px;">
+        <div class="card-title" style="font-size: 0.9rem; margin-bottom: 12px;">📉 Bottom 10 Worst Sellers</div>
+        <div class="chart-container"><canvas id="bottom10Chart"></canvas></div>
+      </div>
+    </div>
+    <div id="salesAlerts"></div>
+  </div>
+
   <!-- Wins/Losses + Goal Tracking -->
   <div class="grid-2">
     <!-- Wins & Losses -->
@@ -1155,6 +1194,108 @@ document.querySelectorAll('.modal-overlay').forEach(modal => {
 
 // Initialize
 loadData();
+
+// ===== SALES TRENDS =====
+let top10ChartInst = null;
+let bottom10ChartInst = null;
+
+async function loadMachines() {
+  try {
+    const machines = await fetch('/api/office-machines').then(r => r.json());
+    const sel = document.getElementById('salesMachineFilter');
+    sel.innerHTML = '<option value="">All Machines</option>';
+    machines.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.name;
+      opt.textContent = m.name;
+      sel.appendChild(opt);
+    });
+    sel.onchange = loadSalesTrends;
+  } catch (e) { console.error('Failed to load machines', e); }
+}
+
+async function loadSalesTrends() {
+  const machine = document.getElementById('salesMachineFilter').value;
+  const weeks = document.getElementById('salesWeeksFilter').value;
+  const qs = `?weeks=${weeks}${machine ? '&machine=' + encodeURIComponent(machine) : ''}`;
+  try {
+    const data = await fetch('/api/sales-analytics/weekly' + qs).then(r => r.json());
+    renderSalesTrends(data);
+  } catch (e) {
+    document.getElementById('salesAlerts').innerHTML = `<div class="cold-alert"><div class="cold-alert-header">⚠️ Error Loading Sales Data</div><div class="cold-alert-text">${e.message}</div></div>`;
+  }
+}
+
+function renderSalesTrends(data) {
+  const labels = data.weeks.map(w => {
+    const d = new Date(w + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  });
+
+  const colors = [
+    '#3b82f6','#8b5cf6','#f59e0b','#ec4899','#14b8a6',
+    '#22c55e','#ef4444','#06b6d4','#f97316','#6366f1'
+  ];
+
+  const makeDataset = (series, idxOffset) => series.map((s, i) => ({
+    label: s.name,
+    data: s.data,
+    borderColor: colors[(i + idxOffset) % colors.length],
+    backgroundColor: colors[(i + idxOffset) % colors.length] + '20',
+    tension: 0.3,
+    fill: false,
+    pointRadius: 3,
+    pointHoverRadius: 5
+  }));
+
+  if (top10ChartInst) top10ChartInst.destroy();
+  top10ChartInst = new Chart(document.getElementById('top10Chart'), {
+    type: 'line',
+    data: { labels, datasets: makeDataset(data.top_10_series, 0) },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
+      scales: { y: { beginAtZero: true, title: { display: true, text: 'Units Sold' } } }
+    }
+  });
+
+  if (bottom10ChartInst) bottom10ChartInst.destroy();
+  bottom10ChartInst = new Chart(document.getElementById('bottom10Chart'), {
+    type: 'line',
+    data: { labels, datasets: makeDataset(data.bottom_10_series, 5) },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
+      scales: { y: { beginAtZero: true, title: { display: true, text: 'Units Sold' } } }
+    }
+  });
+
+  let alertHtml = '';
+  if (data.fast_selling && data.fast_selling.length > 0) {
+    alertHtml += `<div class="sales-alert-badges">`;
+    data.fast_selling.forEach(item => {
+      alertHtml += `<span class="sales-badge sales-badge-fast">🔥 ${item.name} — ${item.avg_weekly_velocity}/wk (${item.pct_of_capacity}% cap)</span>`;
+    });
+    alertHtml += `</div>`;
+  }
+  if (data.stale && data.stale.length > 0) {
+    alertHtml += `<div class="sales-alert-badges">`;
+    data.stale.forEach(item => {
+      alertHtml += `<span class="sales-badge sales-badge-stale">🥶 ${item.name} — ${item.consecutive_zero_weeks} wks no sales</span>`;
+    });
+    alertHtml += `</div>`;
+  }
+  if (alertHtml === '') {
+    alertHtml = `<div class="sales-alert-badges"><span class="sales-badge sales-badge-ok">✅ No alerts — all items moving normally</span></div>`;
+  }
+  document.getElementById('salesAlerts').innerHTML = alertHtml;
+}
+
+loadMachines().then(loadSalesTrends);
 </script>
 </body>
 </html>
