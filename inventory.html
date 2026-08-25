@@ -827,6 +827,23 @@
           `;
         }).join('')}
       </div>
+      <!-- Manually Added section -->
+      <div style="margin-top:12px;padding-top:10px;border-top:2px dashed var(--border);">
+        <div style="font-size:0.75rem;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:0.04em;">MANUALLY ADDED</div>
+        ${(pl.manual_items||[]).map(mi => `
+          <div class="pl-item">
+            <input type="checkbox" class="chk" ${mi.checked?'checked':''} onchange="toggleManualItem('${pl.id}','${mi.id}',this.checked)">
+            <span class="name">${esc(mi.name)}</span>
+            <span style="color:var(--muted);font-size:0.75rem;">need ${mi.qty}</span>
+            <button onclick="removeManualItem('${pl.id}','${mi.id}')" style="margin-left:4px;padding:2px 6px;font-size:0.65rem;border-radius:5px;border:1px solid #fca5a5;background:#fee2e2;color:#dc2626;cursor:pointer;">✕</button>
+          </div>
+        `).join('')}
+        <div style="display:flex;gap:6px;margin-top:6px;">
+          <input id="mi-name-${pl.id}" type="text" placeholder="Item name" style="flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.8rem;">
+          <input id="mi-qty-${pl.id}" type="number" min="1" value="1" style="width:52px;padding:6px 4px;border:1px solid var(--border);border-radius:7px;font-size:0.8rem;text-align:center;">
+          <button onclick="addManualItem('${pl.id}')" style="padding:6px 10px;background:#dcfce7;border:1px solid #86efac;border-radius:7px;font-size:0.8rem;font-weight:700;color:#166534;cursor:pointer;">+ Add</button>
+        </div>
+      </div>
       <div class="pl-actions">
         <button class="done-btn" onclick="donePacking('${pl.id}')" ${allPacked ? '' : 'disabled'}>
           ${allPacked ? '✓ DONE PACKING' : `Packed ${pl.items.filter(it=>it.checked).length}/${pl.items.length}`}
@@ -841,6 +858,39 @@
   function togglePl(id) {
     const pl = pickLists.find(l => l.id === id);
     if (pl) { pl._expanded = !pl._expanded; renderPickLists(); }
+  }
+
+  async function addManualItem(plId) {
+    const nameEl = document.getElementById(`mi-name-${plId}`);
+    const qtyEl = document.getElementById(`mi-qty-${plId}`);
+    const name = nameEl?.value?.trim();
+    const qty = parseInt(qtyEl?.value || 1);
+    if (!name) { toast('Enter item name'); return; }
+    try {
+      const updated = await api('POST', `/api/pick-lists/${plId}/manual-items`, { name, qty });
+      const idx = pickLists.findIndex(l => l.id === plId);
+      if (idx >= 0) pickLists[idx] = { ...pickLists[idx], manual_items: updated.manual_items };
+      if (nameEl) nameEl.value = '';
+      if (qtyEl) qtyEl.value = '1';
+      renderPickLists();
+      toast(`Added: ${name}`);
+    } catch(e) { toast('Failed to add'); }
+  }
+  async function removeManualItem(plId, itemId) {
+    try {
+      await api('DELETE', `/api/pick-lists/${plId}/manual-items/${itemId}`);
+      const pl = pickLists.find(l => l.id === plId);
+      if (pl) pl.manual_items = (pl.manual_items || []).filter(i => i.id !== itemId);
+      renderPickLists();
+    } catch(e) { toast('Remove failed'); }
+  }
+  async function toggleManualItem(plId, itemId, checked) {
+    try {
+      const updated = await api('PUT', `/api/pick-lists/${plId}/manual-items/${itemId}`, { checked });
+      const pl = pickLists.find(l => l.id === plId);
+      if (pl) pl.manual_items = updated.manual_items;
+      renderPickLists();
+    } catch(e) {}
   }
 
   function editCapacityBtn(e, btn) {

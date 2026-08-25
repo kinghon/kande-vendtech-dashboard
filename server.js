@@ -3495,6 +3495,35 @@ app.post('/api/pick-lists/:id/rollback', requireAuth, (req, res) => {
   res.json({ ...list, sheet_synced: sheetErrors.length === 0, sheet_errors: sheetErrors });
 });
 
+// Manual items — products not in Sandstar that need to be packed
+app.post('/api/pick-lists/:id/manual-items', requireAuth, (req, res) => {
+  const list = db.pick_lists.find(l => l.id === req.params.id);
+  if (!list) return res.status(404).json({ error: 'Not found' });
+  const { name, qty } = req.body;
+  if (!name || !qty) return res.status(400).json({ error: 'name and qty required' });
+  if (!list.manual_items) list.manual_items = [];
+  list.manual_items.push({ id: crypto.randomUUID(), name, qty: parseInt(qty), checked: false, added_at: new Date().toISOString() });
+  saveDB(db);
+  res.json(list);
+});
+app.put('/api/pick-lists/:id/manual-items/:itemId', requireAuth, (req, res) => {
+  const list = db.pick_lists.find(l => l.id === req.params.id);
+  if (!list) return res.status(404).json({ error: 'Not found' });
+  const item = (list.manual_items || []).find(i => i.id === req.params.itemId);
+  if (!item) return res.status(404).json({ error: 'Item not found' });
+  if (req.body.checked !== undefined) item.checked = !!req.body.checked;
+  if (req.body.qty !== undefined) item.qty = parseInt(req.body.qty);
+  saveDB(db);
+  res.json(list);
+});
+app.delete('/api/pick-lists/:id/manual-items/:itemId', requireAuth, (req, res) => {
+  const list = db.pick_lists.find(l => l.id === req.params.id);
+  if (!list) return res.status(404).json({ error: 'Not found' });
+  list.manual_items = (list.manual_items || []).filter(i => i.id !== req.params.itemId);
+  saveDB(db);
+  res.json({ ok: true });
+});
+
 app.delete('/api/pick-lists/:id', requireAuth, (req, res) => {
   const idx = db.pick_lists.findIndex(l => l.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Pick list not found' });
