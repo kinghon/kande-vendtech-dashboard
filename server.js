@@ -3194,6 +3194,7 @@ app.post('/api/pick-lists/refresh-all', requireAuth, (req, res) => {
       synced_at: new Date().toISOString(),
       created_at: existingIdx >= 0 ? db.pick_lists[existingIdx].created_at : new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      manual_items: existingIdx >= 0 ? (db.pick_lists[existingIdx].manual_items || []) : [], // preserve manual adds
     };
 
     if (!db.pick_lists) db.pick_lists = [];
