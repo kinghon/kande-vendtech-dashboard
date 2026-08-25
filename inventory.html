@@ -362,8 +362,22 @@
   <!-- Tab: Pick Lists -->
   <div id="tab-picklists" class="tab-panel">
     <div id="pickListView">
-      <button class="btn-primary" onclick="refreshAllPickLists()" id="refreshBtn" style="margin-bottom:12px;width:100%;">&#8635; Refresh Stock</button>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button class="btn-primary" onclick="refreshAllPickLists()" id="refreshBtn" style="flex:1;">&#8635; Refresh Stock</button>
+        <button class="btn-secondary" onclick="showPlHistory()" style="flex:1;">&#128203; Submission History</button>
+      </div>
       <div id="pickListsContainer"></div>
+    </div>
+  </div>
+
+  <!-- Pick List History Modal -->
+  <div id="plHistoryModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;padding:16px;">
+    <div style="background:#fff;border-radius:12px;max-width:600px;margin:0 auto;padding:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h2 style="margin:0;font-size:1.1rem;font-weight:700;">&#128203; Submission History</h2>
+        <button onclick="document.getElementById('plHistoryModal').style.display='none'" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted);">&times;</button>
+      </div>
+      <div id="plHistoryContent">Loading...</div>
     </div>
   </div>
 </div>
@@ -1029,6 +1043,47 @@
       renderPickLists();
       toast('Deleted');
     } catch (e) { toast('Delete failed'); console.error(e); }
+  }
+
+  // ---- Pick List History ----
+  async function showPlHistory() {
+    const modal = document.getElementById('plHistoryModal');
+    const content = document.getElementById('plHistoryContent');
+    modal.style.display = 'block';
+    content.innerHTML = 'Loading...';
+    try {
+      const history = await api('GET', '/api/pick-list-history');
+      if (!history.length) {
+        content.innerHTML = '<p style="color:var(--muted);text-align:center;">No submissions yet.</p>';
+        return;
+      }
+      content.innerHTML = history.map(h => {
+        const dt = new Date(h.completed_at);
+        const dateStr = dt.toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'});
+        const timeStr = dt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+        const totalItems = (h.items||[]).length;
+        const totalUnits = (h.items||[]).reduce((s,i)=>s+(i.qty_deducted||0),0);
+        return `
+          <div style="border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden;">
+            <div style="background:var(--bg);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-weight:700;font-size:0.95rem;">${esc(h.label)}</div>
+                <div style="font-size:0.75rem;color:var(--muted);margin-top:2px;">${dateStr} at ${timeStr} &nbsp;·&nbsp; ${totalItems} items &nbsp;·&nbsp; ${totalUnits} units</div>
+              </div>
+              <span style="font-size:0.75rem;background:#dcfce7;color:#166534;padding:3px 8px;border-radius:20px;font-weight:600;">✓ Submitted</span>
+            </div>
+            <div style="padding:10px 14px;">
+              ${(h.items||[]).map(it=>`
+                <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:0.82rem;">
+                  <span>${esc(it.name)}</span>
+                  <span style="color:var(--muted);">-${it.qty_deducted} &nbsp;<span style="color:#6b7280;">(${it.old_qty}→${it.new_qty})</span></span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    } catch(e) { content.innerHTML = '<p style="color:var(--red);">Failed to load history.</p>'; }
   }
 
   // ---- Toast ----

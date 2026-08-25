@@ -3227,6 +3227,10 @@ app.get('/api/sandstar/machines', requireAuth, (req, res) => {
 });
 
 app.get('/api/pick-lists', requireAuth, (req, res) => res.json(db.pick_lists || []));
+app.get('/api/pick-list-history', requireAuth, (req, res) => {
+  const history = (db.pick_list_history || []).slice().reverse(); // newest first
+  res.json(history);
+});
 
 // Refresh all machine pick lists from cached Sandstar stock
 // Capacity overrides — persist real max quantities per machine+product across syncs
