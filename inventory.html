@@ -810,15 +810,16 @@
       </div>
       <div class="pl-items">
         ${(() => {
-          // Build set of replaced product names (from manual items) — hide them from auto list
-          const replacedNames = new Set(
-            (pl.manual_items||[]).filter(m => m.replaces).map(m => m.replaces.toLowerCase().trim())
-          );
-          const isReplaced = it => {
+          // Build map of replaced product names → replacement item name
+          const replacedBy = {};
+          (pl.manual_items||[]).filter(m => m.replaces).forEach(m => {
+            replacedBy[m.replaces.toLowerCase().trim()] = m.name;
+          });
+          const getReplacedBy = it => {
             const n = (it.sandstar_product_name||it.name||'').toLowerCase().trim();
-            return [...replacedNames].some(r => n.includes(r) || r.includes(n));
+            return Object.entries(replacedBy).find(([r]) => n.includes(r) || r.includes(n))?.[1] || null;
           };
-          return pl.items.filter(it => !isReplaced(it));
+          return pl.items.map(it => ({ ...it, _replacedBy: getReplacedBy(it) }));
         })().map(it => {
           const inv = inventory.find(i => i.id === it.id);
           const officeQty = inv ? inv.quantity : null;
@@ -826,11 +827,14 @@
           const picUrl = getPicUrl(it.picture);
           const thumb = thumbHtml(picUrl, 32);
           return `
-            <div class="pl-item">
-              <input type="checkbox" class="chk" ${it.checked ? 'checked' : ''}
+            <div class="pl-item" style="${it._replacedBy ? 'opacity:0.5;' : ''}">
+              <input type="checkbox" class="chk" ${it.checked ? 'checked' : ''} ${it._replacedBy ? 'disabled' : ''}
                 onchange="togglePacked('${pl.id}', '${it.id}', this.checked)">
               ${thumb}
-              <span class="name">${esc(it.name)}</span>
+              <div style="flex:1;min-width:0;">
+                <span class="name" style="${it._replacedBy ? 'text-decoration:line-through;color:var(--muted);' : ''}">${esc(it.name)}</span>
+                ${it._replacedBy ? `<div style="font-size:0.68rem;color:#f97316;margin-top:1px;">→ being replaced by ${esc(it._replacedBy)}</div>` : ''}
+              </div>
               <span style="color:var(--muted);font-size:0.75rem;">${it.current_qty}/${it.capacity}</span><button
                 data-plid="${esc(pl.id)}" data-itemid="${esc(it.id)}"
                 data-product="${esc(it.sandstar_product_name||it.name)}"
