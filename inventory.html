@@ -585,8 +585,7 @@
       if (targetId) {
         const target = inventory.find(i => i.id === targetId);
         if (!target) { toast('Target item not found'); return; }
-        await api('PUT', `/api/office-inventory/${targetId}`, { ...target, name: newItem.name, quantity: qty, note: note || undefined });
-        // Auto-add to Manually Added section of the current pick list
+        // DO NOT touch office inventory — replace only adds to the pick list manual items
         if (replacingPlId) {
           const updated = await api('POST', `/api/pick-lists/${replacingPlId}/manual-items`, {
             name: newItem.name, qty: qty || 1, replaces: target.name
