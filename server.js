@@ -3009,8 +3009,21 @@ app.get('/api/office-unmatched', (req, res) => {
 app.put('/api/office-inventory/:id', requireAuth, (req, res) => {
   const item = db.office_inventory.find(i => i.id === req.params.id);
   if (!item) return res.status(404).json({ error: 'Item not found' });
-  const { quantity, min_qty, distributor, size, link } = req.body;
-  if (typeof quantity === 'number') item.quantity = quantity;
+  const { quantity, min_qty, distributor, size, link, note } = req.body;
+  // Log quantity change to history if qty actually changed
+  if (typeof quantity === 'number' && quantity !== item.quantity) {
+    const delta = quantity - item.quantity;
+    if (!item.history) item.history = [];
+    item.history.push({
+      id: crypto.randomUUID(),
+      delta,
+      old_qty: item.quantity,
+      new_qty: quantity,
+      reason: note || 'Direct update',
+      created_at: new Date().toISOString()
+    });
+    item.quantity = quantity;
+  }
   if (typeof min_qty === 'number') item.min_qty = min_qty;
   if (distributor !== undefined) item.distributor = distributor;
   if (size !== undefined) item.size = size;
