@@ -3062,6 +3062,7 @@ app.post('/api/office-inventory/adjust', requireAuth, (req, res) => {
 const SANDSTAR_ALIASES = {
   'redbull energy drink': 'Red Bull Energy Drink',
   'red bull energy drink, white peach, 12 fl. oz': 'Red Bull Energy Drink White Peach',
+  'redbull summer sf': 'Red Bull Energy Drink White Peach Sugarfree', // confirmed Kurtis 2026-08-25
   'coca-cola zero sugar': 'Coca-Cola Zero Sugar',
   'diet coke': 'Diet Coke',
   'sprite': 'Sprite',
