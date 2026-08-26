@@ -683,15 +683,22 @@
     const item = inventory.find(i => i.id === id);
     if (!item) return;
     const delta = val - item.quantity;
+    const oldQty = item.quantity;
+    // Optimistic update — show change instantly, revert on failure
+    item.quantity = val;
+    editingId = null;
+    renderInventory();
     try {
       await api('POST', '/api/office-inventory/adjust', { id, delta, reason: 'Manual adjustment' });
-      item.quantity = val;
       if (!item.history) item.history = [];
-      item.history.push({ delta, old_qty: val - delta, new_qty: val, reason: 'Manual adjustment', created_at: new Date().toISOString() });
-      editingId = null;
-      renderInventory();
+      item.history.push({ delta, old_qty: oldQty, new_qty: val, reason: 'Manual adjustment', created_at: new Date().toISOString() });
       toast('Saved');
-    } catch (e) { toast('Save failed'); }
+    } catch (e) {
+      // Revert on failure
+      item.quantity = oldQty;
+      renderInventory();
+      toast('Save failed');
+    }
   }
   function quickPick(id) {
     toast('Use Pick Lists tab for machine picks');
