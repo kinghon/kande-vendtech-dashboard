@@ -852,19 +852,8 @@
         currentRep = authData.rep || null;
         // Auto-set region filter for rep logins
         if (currentRep) {
-          // authData.rep is already capitalized ('Stuart', 'Vanessa', 'Jordan')
-          currentRepFilter = currentRep; // e.g. 'Stuart'
-          // Lock both filter dropdowns — reps cannot switch to another territory
-          const lockDropdown = (el) => {
-            if (!el) return;
-            el.value = currentRepFilter;
-            el.disabled = true;
-            el.style.pointerEvents = 'none';
-            el.style.opacity = '0.6';
-            el.style.cursor = 'not-allowed';
-          };
-          lockDropdown(document.getElementById('repRegionFilter'));
-          lockDropdown(document.getElementById('repFilterBar'));
+          // Reps can see all locations — leave currentRepFilter as 'all'
+          currentRepFilter = 'all';
           const repDisplayName = currentRep.charAt(0).toUpperCase() + currentRep.slice(1);
           const todoTitleEl = document.getElementById('todoTitle');
           if (todoTitleEl) todoTitleEl.textContent = repDisplayName + "'s To-Do List";
@@ -1000,7 +989,7 @@
       return prospects.filter(p => {
         const d = p.next_action_date || p.follow_up_date;
         if (!d || p.status === 'signed' || p.status === 'closed') return false;
-        return repName ? (p.assigned_rep||'').toLowerCase() === repName.toLowerCase() : true;
+        return true; // reps can see all locations
       }).sort((a, b) => new Date(a.next_action_date||a.follow_up_date) - new Date(b.next_action_date||b.follow_up_date));
     }
 
@@ -1277,14 +1266,7 @@
       // Combine prospect-based and API-based items
       let allItems = [...withActions, ...apiItems];
       
-      // Rep filtering: when logged in as rep, only show their items
-      if (currentRep) {
-        const repName = currentRep.charAt(0).toUpperCase() + currentRep.slice(1);
-        allItems = allItems.filter(item => {
-          const itemRep = (item.rep || item.assigned_rep || '');
-          return itemRep.toLowerCase() === repName.toLowerCase();
-        });
-      }
+      // Reps can see all items — no rep filter applied
       
       // Update count badge
       document.getElementById('todoCount').textContent = allItems.length > 0 ? `(${allItems.length})` : '';
