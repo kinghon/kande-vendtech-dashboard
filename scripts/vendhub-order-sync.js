@@ -196,17 +196,20 @@ async function scrapeOrderDetails(page, orderId) {
   const page = await ctx.newPage();
 
   try {
-    // Login flow — use Enter key to avoid clicking Google SSO button by mistake
+    // Login flow — email + password on same page (updated 2026-08-28)
+    // Use type() not fill() so input events fire and enable the submit button
     await page.goto('https://www.vendhubhq.com/sign-in', { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('input[placeholder="Enter your email address"]', { timeout: 10000 });
-    await page.fill('input[placeholder="Enter your email address"]', VENDHUB_EMAIL);
-    await page.press('input[placeholder="Enter your email address"]', 'Enter');
-    await page.waitForURL('**/factor-one**', { timeout: 10000 });
-    await page.waitForSelector('input[placeholder="Enter your password"]', { timeout: 10000 });
-    await page.waitForTimeout(500);
-    await page.fill('input[placeholder="Enter your password"]', VENDHUB_PASS);
-    await page.press('input[placeholder="Enter your password"]', 'Enter');
-    await page.waitForURL(url => !url.includes('sign-in'), { timeout: 15000 }).catch(() => {});
+    await page.waitForSelector('input[type="email"], input[placeholder*="company"], input[placeholder*="email"]', { timeout: 15000 });
+    await page.waitForTimeout(800);
+    const emailInput = page.locator('input[type="email"], input[placeholder*="company"], input[placeholder*="email"]').first();
+    await emailInput.click();
+    await emailInput.type(VENDHUB_EMAIL, { delay: 40 });
+    const passInput = page.locator('input[type="password"]').first();
+    await passInput.click();
+    await passInput.type(VENDHUB_PASS, { delay: 40 });
+    // Press Enter to submit — avoids needing button to be enabled
+    await passInput.press('Enter');
+    await page.waitForURL(url => !url.includes('sign-in'), { timeout: 20000 }).catch(() => {});
     await page.waitForTimeout(2000);
     log('Logged in to VendHub');
 

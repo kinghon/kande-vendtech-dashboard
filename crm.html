@@ -1986,10 +1986,12 @@
           <div class="notes-box">
             <label class="sales">📝 Sales Notes</label>
             <div style="position:relative;">
-              <div style="position:absolute;top:6px;left:6px;display:flex;gap:6px;z-index:1;">
+              <div style="display:flex;gap:6px;margin-bottom:6px;">
                 <button onclick="addTimestampedNote(${p.id},'notes')" style="font-size:0.7rem;padding:2px 8px;background:var(--accent);color:white;border:none;border-radius:4px;cursor:pointer;">+ Add Entry</button>
+                <button onclick="toggleNotesEdit(${p.id},'notes')" id="notes-edit-btn-${p.id}" style="font-size:0.7rem;padding:2px 8px;background:#e2e8f0;color:#4a5568;border:none;border-radius:4px;cursor:pointer;">✏️ Edit</button>
               </div>
-              <textarea id="notes-${p.id}" onchange="updateField(${p.id},'notes',this.value)" oninput="autoResize(this)" onfocus="autoResize(this)" style="padding-top:30px;">${esc(p.notes || '')}</textarea>
+              <div id="notes-preview-${p.id}" style="min-height:40px;">${renderNoteEntries(p.notes || '')}</div>
+              <textarea id="notes-${p.id}" onchange="updateField(${p.id},'notes',this.value);rerenderNotes(${p.id},'notes')" oninput="autoResize(this)" style="display:none;margin-top:6px;">${esc(p.notes || '')}</textarea>
             </div>
           </div>
 
@@ -1998,8 +2000,11 @@
           <div class="notes-box kurtis">
             <label class="kurtis">👤 Kurtis Notes</label>
             <div style="position:relative;">
-              ${currentRep === null ? `<button onclick="addTimestampedNote(${p.id},'kurtis_notes')" style="position:absolute;top:6px;left:6px;font-size:0.7rem;padding:2px 8px;background:#805ad5;color:white;border:none;border-radius:4px;cursor:pointer;z-index:1;">+ Add Entry</button>` : ''}
-              <textarea id="kurtis_notes-${p.id}" ${currentRep !== null ? 'readonly style="padding:10px;background:#f8f5ff;color:#4a4a4a;cursor:default;"' : 'onchange="updateField(' + p.id + ',\'kurtis_notes\',this.value)" oninput="autoResize(this)" onfocus="autoResize(this)" style="padding-top:30px;"'}>${esc(p.kurtis_notes || '')}</textarea>
+              <div style="display:flex;gap:6px;margin-bottom:6px;">
+                ${currentRep === null ? `<button onclick="addTimestampedNote(${p.id},'kurtis_notes')" style="font-size:0.7rem;padding:2px 8px;background:#805ad5;color:white;border:none;border-radius:4px;cursor:pointer;">+ Add Entry</button><button onclick="toggleNotesEdit(${p.id},'kurtis_notes')" id="kurtis_notes-edit-btn-${p.id}" style="font-size:0.7rem;padding:2px 8px;background:#e2e8f0;color:#4a5568;border:none;border-radius:4px;cursor:pointer;">✏️ Edit</button>` : ''}
+              </div>
+              <div id="kurtis_notes-preview-${p.id}" style="min-height:40px;">${renderNoteEntries(p.kurtis_notes || '')}</div>
+              <textarea id="kurtis_notes-${p.id}" ${currentRep !== null ? 'readonly style="display:none;padding:10px;background:#f8f5ff;color:#4a4a4a;cursor:default;"' : 'onchange="updateField(' + p.id + ',\'kurtis_notes\',this.value);rerenderNotes(' + p.id + ',\'kurtis_notes\')" oninput="autoResize(this)" style="display:none;margin-top:6px;"'}>${esc(p.kurtis_notes || '')}</textarea>
             </div>
           </div>` : ''}
 
@@ -2629,18 +2634,80 @@
     }
     // ── End photo upload ──────────────────────────────
 
+    function renderNoteEntries(text) {
+      if (!text || !text.trim()) return '<em style="color:#aaa;font-size:0.85rem;">No entries yet — click + Add Entry</em>';
+      const chunks = text.split(/\n\n+/).map(c => c.trim()).filter(Boolean);
+      // Format: [MM/DD/YY, H:MM AM/PM - RepName] or [MM/DD/YY, H:MM AM/PM]
+      const tsRe = /^\[([^\]]+)\]\s*/;
+      return chunks.map(chunk => {
+        const m = chunk.match(tsRe);
+        if (m) {
+          const header = m[1]; // e.g. "09/06/26, 3:38 PM - Stuart"
+          const body = chunk.slice(m[0].length).trim();
+          // Split date from author
+          const dashIdx = header.lastIndexOf(' - ');
+          const dateStr = dashIdx >= 0 ? header.slice(0, dashIdx).trim() : header.trim();
+          const author = dashIdx >= 0 ? header.slice(dashIdx + 3).trim() : 'Kurtis';
+          return `<div style="margin-bottom:8px;border-left:3px solid var(--accent);padding:5px 10px;background:#f8fafc;border-radius:0 6px 6px 0;">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:3px;">
+              <span style="font-size:0.7rem;font-weight:700;color:var(--accent);">📅 ${esc(dateStr)}</span>
+              <span style="font-size:0.7rem;background:#e2e8f0;color:#4a5568;padding:1px 6px;border-radius:10px;font-weight:600;">👤 ${esc(author)}</span>
+            </div>
+            <div style="font-size:0.85rem;color:#2d3748;white-space:pre-wrap;">${esc(body)}</div>
+          </div>`;
+        }
+        // No timestamp — legacy note
+        return `<div style="margin-bottom:8px;border-left:3px solid #cbd5e0;padding:5px 10px;background:#f8fafc;border-radius:0 6px 6px 0;">
+          <div style="font-size:0.7rem;color:#aaa;margin-bottom:3px;">📅 Legacy entry (no date)</div>
+          <div style="font-size:0.85rem;color:#2d3748;white-space:pre-wrap;">${esc(chunk)}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function rerenderNotes(id, field) {
+      const textarea = document.getElementById(`${field}-${id}`);
+      const preview = document.getElementById(`${field}-preview-${id}`);
+      if (textarea && preview) preview.innerHTML = renderNoteEntries(textarea.value);
+    }
+
+    function toggleNotesEdit(id, field) {
+      const textarea = document.getElementById(`${field}-${id}`);
+      const preview = document.getElementById(`${field}-preview-${id}`);
+      const btn = document.getElementById(`${field}-edit-btn-${id}`);
+      if (!textarea || !preview) return;
+      const editing = textarea.style.display !== 'none';
+      if (editing) {
+        preview.innerHTML = renderNoteEntries(textarea.value);
+        preview.style.display = 'block';
+        textarea.style.display = 'none';
+        if (btn) btn.textContent = '✏️ Edit';
+      } else {
+        preview.style.display = 'none';
+        textarea.style.display = 'block';
+        autoResize(textarea);
+        textarea.focus();
+        if (btn) btn.textContent = '✅ Done';
+      }
+    }
+
     function addTimestampedNote(id, field) {
       const textarea = document.getElementById(`${field}-${id}`);
+      const preview = document.getElementById(`${field}-preview-${id}`);
+      const btn = document.getElementById(`${field}-edit-btn-${id}`);
       if (!textarea) return;
-      
+      // Show textarea if hidden
+      if (textarea.style.display === 'none') {
+        if (preview) preview.style.display = 'none';
+        textarea.style.display = 'block';
+        if (btn) btn.textContent = '✅ Done';
+      }
       const timestamp = new Date().toLocaleString('en-US', {
         month: '2-digit', day: '2-digit', year: '2-digit',
         hour: '2-digit', minute: '2-digit', hour12: true
       });
-      
-      // Include rep name if logged in as a rep
-      const repLabel = currentRep ? ' - ' + currentRep.charAt(0).toUpperCase() + currentRep.slice(1) : '';
-      const entry = `[${timestamp}${repLabel}] `;
+      // Include rep name; admin shows as 'Kurtis'
+      const repName = currentRep ? currentRep.charAt(0).toUpperCase() + currentRep.slice(1) : 'Kurtis';
+      const entry = `[${timestamp} - ${repName}] `;
       const existingText = textarea.value;
       textarea.value = entry + (existingText ? '\n\n' + existingText : '');
       textarea.focus();
