@@ -196,6 +196,9 @@
     .pl-card.pl-finalized .pl-meta {
       color: #fff !important;
     }
+    .pl-card.pl-new-draft {
+      background: #fef3c7; border-color: #f59e0b;
+    }
     .pl-header {
       display: flex; justify-content: space-between; align-items: center;
     }
@@ -782,17 +785,36 @@
 
   function renderPickLists() {
     const el = document.getElementById('pickListsContainer');
+    const now = Date.now();
+    const MS_24H = 24 * 60 * 60 * 1000;
+
     // Dedupe within each status group by machine name (keep most recently updated)
     const byKey = {};
     for (const pl of pickLists) {
       const machineKey = pl.label || pl.machine_names?.[0] || pl.id;
-      const key = `${machineKey}::${pl.status}`; // draft and finalized coexist
+      const key = `${machineKey}::${pl.status}`;
       const existing = byKey[key];
       if (!existing || (pl.updated_at || pl.synced_at || '') > (existing.updated_at || existing.synced_at || '')) {
         byKey[key] = pl;
       }
     }
-    // Sort: drafts first (alphabetical), then finalized (alphabetical), then rolled_back
+
+    // Drop finalized cards older than 24 hrs
+    for (const key of Object.keys(byKey)) {
+      const pl = byKey[key];
+      if (pl.status === 'finalized' && pl.finalized_at) {
+        if (now - new Date(pl.finalized_at).getTime() > MS_24H) delete byKey[key];
+      }
+    }
+
+    // Build set of machine names that still have a visible finalized card
+    const recentlyFinalized = new Set(
+      Object.values(byKey)
+        .filter(pl => pl.status === 'finalized')
+        .map(pl => pl.label || pl.machine_names?.[0])
+    );
+
+    // Sort: drafts first (alphabetical), then finalized, then rolled_back
     const statusOrder = { draft: 0, finalized: 1, rolled_back: 2 };
     const lists = Object.values(byKey).sort((a, b) => {
       const so = (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9);
@@ -805,24 +827,33 @@
       const isExpanded = pl._expanded;
       const allPacked = pl.items.length > 0 && pl.items.every(it => it.checked);
       const packedCount = pl.items.filter(it => it.checked).length;
+      const machineKey = pl.label || pl.machine_names?.[0];
 
       const isFinalized = pl.status === 'finalized';
       const isRolledBack = pl.status === 'rolled_back';
+      // Draft is "new" (yellow) if a recently-submitted green card still exists for same machine
+      const isNewDraft = pl.status === 'draft' && recentlyFinalized.has(machineKey);
+
       const metaText = isFinalized
         ? `✓ Submitted ${pl.finalized_at ? new Date(pl.finalized_at).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : ''}`
         : isRolledBack
         ? `↩ Rolled back`
         : `${pl.items.length} items · ${packedCount}/${pl.items.length} packed · updated ${pl.synced_at ? new Date(pl.synced_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : 'never'}`;
 
+      const cardClass = isFinalized ? ' pl-finalized' : isNewDraft ? ' pl-new-draft' : '';
+      const titleStyle = isFinalized ? '' : isNewDraft ? 'color:#78350f;' : '';
+      const metaStyle = isFinalized ? 'color:#15803d;font-weight:600;' : isNewDraft ? 'color:#92400e;' : '';
+
       return `
-        <div class="pl-card${isFinalized ? ' pl-finalized' : ''}">
+        <div class="pl-card${cardClass}">
           <div class="pl-header" onclick="togglePl('${pl.id}')">
             <div style="flex:1">
-              <div class="pl-title" style="display:flex;align-items:center;gap:6px;">
+              <div class="pl-title" style="display:flex;align-items:center;gap:6px;${titleStyle}">
                 ${esc(pl.label)}
                 ${isFinalized ? '<span style="font-size:0.7rem;background:#16a34a;color:#fff;padding:2px 7px;border-radius:10px;font-weight:700;">✓ DONE</span>' : ''}
+                ${isNewDraft ? '<span style="font-size:0.7rem;background:#d97706;color:#fff;padding:2px 7px;border-radius:10px;font-weight:700;">NEW</span>' : ''}
               </div>
-              <div class="pl-meta" style="${isFinalized ? 'color:#15803d;font-weight:600;' : ''}">${metaText}</div>
+              <div class="pl-meta" style="${metaStyle}">${metaText}</div>
             </div>
             <span style="color:var(--muted);font-size:1.1rem;">›</span>
           </div>
