@@ -3364,7 +3364,7 @@ app.post('/api/pick-lists/refresh-all', requireAuth, (req, res) => {
   );
 
   saveDB(db);
-  res.json({ ok: true, synced_at: syncedAt, lists: db.pick_lists.filter(l => l.status !== 'finalized') });
+  res.json({ ok: true, synced_at: syncedAt, lists: db.pick_lists });
 });
 
 app.post('/api/pick-lists/generate', requireAuth, async (req, res) => {
