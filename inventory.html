@@ -189,6 +189,9 @@
       background: var(--card); border: 1px solid var(--border);
       border-radius: var(--radius); padding: 12px; margin-bottom: 8px;
     }
+    .pl-card.pl-finalized {
+      background: #f0fdf4; border-color: #86efac;
+    }
     .pl-header {
       display: flex; justify-content: space-between; align-items: center;
     }
@@ -796,13 +799,25 @@
       const allPacked = pl.items.length > 0 && pl.items.every(it => it.checked);
       const packedCount = pl.items.filter(it => it.checked).length;
 
+      const isFinalized = pl.status === 'finalized';
+      const isRolledBack = pl.status === 'rolled_back';
+      const metaText = isFinalized
+        ? `✓ Submitted ${pl.finalized_at ? new Date(pl.finalized_at).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : ''}`
+        : isRolledBack
+        ? `↩ Rolled back`
+        : `${pl.items.length} items · ${packedCount}/${pl.items.length} packed · updated ${pl.synced_at ? new Date(pl.synced_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : 'never'}`;
+
       return `
-        <div class="pl-card">
+        <div class="pl-card${isFinalized ? ' pl-finalized' : ''}">
           <div class="pl-header" onclick="togglePl('${pl.id}')">
-            <div>
-              <div class="pl-title">${esc(pl.label)}</div>
-              <div class="pl-meta">${pl.items.length} items · ${packedCount}/${pl.items.length} packed · updated ${pl.synced_at ? new Date(pl.synced_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : 'never'}</div>
+            <div style="flex:1">
+              <div class="pl-title" style="display:flex;align-items:center;gap:6px;">
+                ${esc(pl.label)}
+                ${isFinalized ? '<span style="font-size:0.7rem;background:#16a34a;color:#fff;padding:2px 7px;border-radius:10px;font-weight:700;">✓ DONE</span>' : ''}
+              </div>
+              <div class="pl-meta" style="${isFinalized ? 'color:#15803d;font-weight:600;' : ''}">${metaText}</div>
             </div>
+            <span style="color:var(--muted);font-size:1.1rem;">›</span>
           </div>
           ${isExpanded ? renderPlItems(pl) : ''}
         </div>
