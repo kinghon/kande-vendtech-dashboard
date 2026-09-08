@@ -3350,17 +3350,16 @@ app.post('/api/pick-lists/refresh-all', requireAuth, (req, res) => {
     // Always create/update pick list for every machine, even if fully stocked
 
     // Grace period: don't create/update a draft within 2 hours of last submission.
-    // After 2hrs the finalized card is hidden in the UI and a fresh draft can appear.
+    // Use pick_list_history (always written on finalize) — more reliable than pick_lists status.
     const GRACE_MS = 2 * 60 * 60 * 1000;
-    const recentFinalized = (db.pick_lists || []).find(l =>
-      l.status === 'finalized' &&
-      (l.machine_names?.[0] === mname || l.label === mname) &&
-      l.finalized_at && (Date.now() - new Date(l.finalized_at).getTime()) < GRACE_MS
+    const recentHistory = (db.pick_list_history || []).find(h =>
+      h.label === mname &&
+      h.completed_at && (Date.now() - new Date(h.completed_at).getTime()) < GRACE_MS
     );
-    if (recentFinalized) {
-      // Remove any stale draft that snuck in before this fix (skip if being actively picked)
+    if (recentHistory) {
+      // Remove any stale draft that snuck in (skip if actively being picked)
       const staleDraftIdx = (db.pick_lists || []).findIndex(l =>
-        l.machine_names?.[0] === mname && l.status === 'draft');
+        (l.machine_names?.[0] === mname || l.label === mname) && l.status === 'draft');
       if (staleDraftIdx >= 0) {
         const d = db.pick_lists[staleDraftIdx];
         const active = (d.items || []).some(it => it.checked) || (d.manual_items || []).some(it => it.checked);
