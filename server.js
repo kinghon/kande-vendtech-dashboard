@@ -416,7 +416,7 @@ if (!db._machinesSeededV6) {
     { id: '128790', sandstar_id: 128790, name: 'VRK The Watermark', online: true },
     { id: '128010', sandstar_id: 128010, name: 'CVM13 Regus 3753 Howard Hughes Parkway, Suite 200', online: true },
     { id: '127763', sandstar_id: 127763, name: 'VRK All In Aviation Academy', online: true },
-    { id: '127761', sandstar_id: 127761, name: 'VRK Regus 3753 Howard Hughes Parkway, Suite 500', online: true },
+    { id: '127761', sandstar_id: 127761, name: 'VRK The Wyatt', online: true },
   ];
   db._machinesSeededV6 = true;
   saveDB(db);
@@ -2970,7 +2970,7 @@ app.post('/api/office-machines-reset', (req, res) => {
 app.post('/api/office-machines-fix', (req, res) => {
   const fixes = {
     127763: 'VRK All In Aviation Academy',
-    127761: 'VRK Regus 3753 Howard Hughes Parkway, Suite 500',
+    127761: 'VRK The Wyatt',
     128010: 'CVM13 Regus 3753 Howard Hughes Parkway, Suite 200',
   };
   (db.sandstar_machines || []).forEach(m => {
@@ -27309,7 +27309,7 @@ app.get('/api/sandstar/completed-restocks', async (req, res) => {
     const MACHINES = [
       { id: 128002, name: 'ARK 28 PRO C-2914' },
       { id: 127763, name: 'VRK All In Aviation Academy' },
-      { id: 127761, name: 'VRK Regus 3753 Howard Hughes Pkwy' }
+      { id: 127761, name: 'VRK The Wyatt' }
     ];
 
     const results = [];
