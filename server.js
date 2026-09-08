@@ -3388,6 +3388,24 @@ app.post('/api/pick-lists/refresh-all', requireAuth, (req, res) => {
     else db.pick_lists.push(list);
   }
 
+  // Deduplicate drafts — for each machine keep only the draft with the most items
+  const seenDraft = new Map();
+  const dropIdx = new Set();
+  for (let i = 0; i < db.pick_lists.length; i++) {
+    const pl = db.pick_lists[i];
+    if (pl.status !== 'draft') continue;
+    const key = pl.machine_names?.[0] || pl.label;
+    const count = (pl.items?.length || 0) + (pl.manual_items?.length || 0);
+    if (!seenDraft.has(key)) {
+      seenDraft.set(key, { idx: i, count });
+    } else {
+      const prev = seenDraft.get(key);
+      if (count > prev.count) { dropIdx.add(prev.idx); seenDraft.set(key, { idx: i, count }); }
+      else { dropIdx.add(i); }
+    }
+  }
+  if (dropIdx.size) db.pick_lists = db.pick_lists.filter((_, i) => !dropIdx.has(i));
+
   // Remove stale pick lists whose machine no longer exists in current machine list
   const validNames = new Set(machines.map(m => m.name));
   db.pick_lists = db.pick_lists.filter(l =>

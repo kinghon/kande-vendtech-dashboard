@@ -805,6 +805,10 @@
       if (pl.status === 'finalized' && pl.finalized_at) {
         if (now - new Date(pl.finalized_at).getTime() > MS_24H) delete byKey[key];
       }
+      // Drop draft cards with 0 items (safety net for stale/duplicate drafts)
+      if (pl.status === 'draft' && (pl.items?.length || 0) === 0 && (pl.manual_items?.length || 0) === 0) {
+        delete byKey[key];
+      }
     }
 
     // Build set of machine names that still have a visible finalized card
