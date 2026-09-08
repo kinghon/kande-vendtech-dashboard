@@ -3349,6 +3349,27 @@ app.post('/api/pick-lists/refresh-all', requireAuth, (req, res) => {
 
     // Always create/update pick list for every machine, even if fully stocked
 
+    // Grace period: don't auto-create a NEW draft within 2 hours of last submission.
+    // Gives Sandstar time to register the restock before generating new pick lists.
+    const GRACE_MS = 2 * 60 * 60 * 1000; // 2 hours
+    const recentFinalized = (db.pick_lists || []).find(l =>
+      l.status === 'finalized' &&
+      (l.machine_names?.[0] === mname || l.label === mname) &&
+      l.finalized_at && (Date.now() - new Date(l.finalized_at).getTime()) < GRACE_MS
+    );
+    if (recentFinalized) {
+      // Within grace period — remove any existing stale draft (unless someone is actively picking it)
+      const staleDraftIdx = (db.pick_lists || []).findIndex(l =>
+        l.machine_names?.[0] === mname && l.status === 'draft');
+      if (staleDraftIdx >= 0) {
+        const staleDraft = db.pick_lists[staleDraftIdx];
+        const activelyPicking = (staleDraft.items || []).some(it => it.checked) ||
+                                (staleDraft.manual_items || []).some(it => it.checked);
+        if (!activelyPicking) db.pick_lists.splice(staleDraftIdx, 1);
+      }
+      continue; // skip creating/updating draft during grace period
+    }
+
     // Find existing pick list for this machine (draft/active only) or create new
     const existingIdx = (db.pick_lists || []).findIndex(l =>
       l.machine_names?.[0] === mname && l.status !== 'finalized' && l.status !== 'rolled_back');
