@@ -421,6 +421,32 @@ if (!db._machinesSeededV7) {
   db._machinesSeededV7 = true;
   saveDB(db);
 }
+
+// Migration: rename all old Suite 500 / Regus 500 references to VRK The Wyatt
+if (!db._migratedWyattV1) {
+  const OLD_NAMES = [
+    'VRK Regus 3753 Howard Hughes Parkway, Suite 500',
+    'VRK Regus Suite 500',
+    'VRK Regus Ste 500',
+    'VRK Regus 3753 Howard Hughes Pkwy',
+  ];
+  const NEW_NAME = 'VRK The Wyatt';
+  let changed = false;
+  // Fix pick_lists
+  for (const pl of (db.pick_lists || [])) {
+    if (OLD_NAMES.includes(pl.label)) { pl.label = NEW_NAME; changed = true; }
+    if (pl.machine_names) pl.machine_names = pl.machine_names.map(n => OLD_NAMES.includes(n) ? NEW_NAME : n);
+    for (const it of (pl.items || [])) {
+      if (OLD_NAMES.includes(it.machine_name)) { it.machine_name = NEW_NAME; changed = true; }
+    }
+  }
+  // Fix stock records
+  for (const r of (db.office_sandstar_stock || [])) {
+    if (OLD_NAMES.includes(r.machine_name)) { r.machine_name = NEW_NAME; changed = true; }
+  }
+  db._migratedWyattV1 = true;
+  if (changed) saveDB(db);
+}
 if (!db.micromarkets) db.micromarkets = [];
 if (!db.smartMachines) db.smartMachines = [];
 if (!db.machineTelemetry) db.machineTelemetry = [];
