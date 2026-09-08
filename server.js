@@ -3353,6 +3353,11 @@ app.post('/api/pick-lists/refresh-all', requireAuth, (req, res) => {
     };
 
     if (!db.pick_lists) db.pick_lists = [];
+    if (dedupedItems.length === 0) {
+      // No items to pick — remove any existing empty draft, don't create a new one
+      if (existingIdx >= 0) db.pick_lists.splice(existingIdx, 1);
+      continue;
+    }
     if (existingIdx >= 0) db.pick_lists[existingIdx] = list;
     else db.pick_lists.push(list);
   }
