@@ -407,7 +407,7 @@ if (!db.sandstar_sales) db.sandstar_sales = [];
 if (!db.sandstar_machines) db.sandstar_machines = [];
 // Always replace with canonical 8 machines (dedup/clean)
 // V6: correct full Sandstar machine names — bump version to force re-apply
-if (!db._machinesSeededV6) {
+if (!db._machinesSeededV7) {
   db.sandstar_machines = [
     { id: '131520', sandstar_id: 131520, name: 'ARK Prelude At The Park', online: true },
     { id: '128836', sandstar_id: 128836, name: 'CVM13 Dig This', online: true },
@@ -418,7 +418,7 @@ if (!db._machinesSeededV6) {
     { id: '127763', sandstar_id: 127763, name: 'VRK All In Aviation Academy', online: true },
     { id: '127761', sandstar_id: 127761, name: 'VRK The Wyatt', online: true },
   ];
-  db._machinesSeededV6 = true;
+  db._machinesSeededV7 = true;
   saveDB(db);
 }
 if (!db.micromarkets) db.micromarkets = [];
