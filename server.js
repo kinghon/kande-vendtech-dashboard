@@ -27771,7 +27771,7 @@ app.get('/api/sandstar/summary', (req, res) => {
     daily_by_machine,
     machine_count: (db.sandstar_machines || []).length,
     active_machines: (() => { const sevenDaysAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString().slice(0,10); return new Set(sales.filter(s => (s.sale_date||'') >= sevenDaysAgo).map(s => s.machine_name)).size; })(),
-    last_sync: sales.length > 0 ? sales.reduce((a,b) => ((a.synced_at||'') > (b.synced_at||'') ? a : b)).synced_at : null
+    last_sync: (() => { const all = db.sandstar_sales || []; return all.length > 0 ? all.reduce((a,b) => ((a.synced_at||'') > (b.synced_at||'') ? a : b)).synced_at : null; })()
   });
 });
 
@@ -32490,7 +32490,7 @@ app.get('/api/sandstar/summary', (req, res) => {
     daily_by_machine,
     machine_count: (db.sandstar_machines || []).length,
     active_machines: (() => { const sevenDaysAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString().slice(0,10); return new Set(sales.filter(s => (s.sale_date||'') >= sevenDaysAgo).map(s => s.machine_name)).size; })(),
-    last_sync: sales.length > 0 ? sales.reduce((a,b) => ((a.synced_at||'') > (b.synced_at||'') ? a : b)).synced_at : null
+    last_sync: (() => { const all = db.sandstar_sales || []; return all.length > 0 ? all.reduce((a,b) => ((a.synced_at||'') > (b.synced_at||'') ? a : b)).synced_at : null; })()
   });
 });
 
