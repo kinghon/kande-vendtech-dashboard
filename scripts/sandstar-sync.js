@@ -746,6 +746,10 @@ function dashApi(method, path, body, cookies) {
 
     // Reset consecutive error count on success
     if (state.consecutiveErrors) { state.consecutiveErrors = 0; saveState(state); }
+    // Update last_sync timestamp on Railway so UI shows correct time
+    try {
+      await dashApi('POST', '/api/sandstar/sync-ping', {}, dashCookies);
+    } catch(e) { log(`sync-ping failed: ${e.message}`); }
     log('===== Sandstar sync complete =====');
 
   } catch (e) {

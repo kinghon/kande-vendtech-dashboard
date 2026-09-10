@@ -27352,6 +27352,15 @@ app.post('/api/sandstar/sales/batch', (req, res) => {
 });
 
 
+// POST /api/sandstar/sync-ping — called at end of each sync to update last_sync timestamp
+app.post('/api/sandstar/sync-ping', express.json(), (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+  db.sandstar_last_sync_at = new Date().toISOString();
+  saveDB(db);
+  res.json({ ok: true, last_sync: db.sandstar_last_sync_at });
+});
+
 // POST /api/sandstar/auth — store Sandstar token from sync script
 app.post('/api/sandstar/auth', express.json(), (req, res) => {
   const apiKey = req.headers['x-api-key'];
@@ -27771,7 +27780,7 @@ app.get('/api/sandstar/summary', (req, res) => {
     daily_by_machine,
     machine_count: (db.sandstar_machines || []).length,
     active_machines: (() => { const sevenDaysAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString().slice(0,10); return new Set(sales.filter(s => (s.sale_date||'') >= sevenDaysAgo).map(s => s.machine_name)).size; })(),
-    last_sync: (() => { const all = db.sandstar_sales || []; return all.length > 0 ? all.reduce((a,b) => ((a.synced_at||'') > (b.synced_at||'') ? a : b)).synced_at : null; })()
+    last_sync: db.sandstar_last_sync_at || (() => { const all = db.sandstar_sales || []; return all.length > 0 ? all.reduce((a,b) => ((a.synced_at||'') > (b.synced_at||'') ? a : b)).synced_at : null; })()
   });
 });
 
@@ -32490,7 +32499,7 @@ app.get('/api/sandstar/summary', (req, res) => {
     daily_by_machine,
     machine_count: (db.sandstar_machines || []).length,
     active_machines: (() => { const sevenDaysAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString().slice(0,10); return new Set(sales.filter(s => (s.sale_date||'') >= sevenDaysAgo).map(s => s.machine_name)).size; })(),
-    last_sync: (() => { const all = db.sandstar_sales || []; return all.length > 0 ? all.reduce((a,b) => ((a.synced_at||'') > (b.synced_at||'') ? a : b)).synced_at : null; })()
+    last_sync: db.sandstar_last_sync_at || (() => { const all = db.sandstar_sales || []; return all.length > 0 ? all.reduce((a,b) => ((a.synced_at||'') > (b.synced_at||'') ? a : b)).synced_at : null; })()
   });
 });
 
