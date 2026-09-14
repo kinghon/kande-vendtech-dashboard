@@ -7045,7 +7045,7 @@ app.get('/api/todos', (req, res) => {
   // Admin (no rep on session) sees all todos; reps only see their own
   const todos = db.todos || [];
   if (sessionRep) {
-    return res.json(todos.filter(t => !t.rep || t.rep.toLowerCase() === sessionRep.toLowerCase()));
+    return res.json(todos.filter(t => t.rep && t.rep.toLowerCase() === sessionRep.toLowerCase()));
   }
   res.json(todos);
 });

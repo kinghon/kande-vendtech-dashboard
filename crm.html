@@ -1266,7 +1266,13 @@
       // Combine prospect-based and API-based items
       let allItems = [...withActions, ...apiItems];
       
-      // Reps can see all items — no rep filter applied
+      // Reps only see their own items
+      if (currentRep) {
+        allItems = allItems.filter(item => {
+          const itemRep = (item.rep || item.assigned_rep || '').toLowerCase();
+          return itemRep === currentRep.toLowerCase();
+        });
+      }
       
       // Update count badge
       document.getElementById('todoCount').textContent = allItems.length > 0 ? `(${allItems.length})` : '';
