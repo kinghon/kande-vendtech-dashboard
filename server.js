@@ -7037,7 +7037,17 @@ app.delete('/api/todos/all', requireAuth, (req, res) => {
 
 app.get('/api/todos', (req, res) => {
   cleanupPoppedInTodos();
-  res.json(db.todos || []);
+  const cookies = parseCookies(req);
+  const sessionToken = cookies['vendtech_session'];
+  const sessions = getActiveSessions();
+  const entry = sessionToken ? sessions[sessionToken] : null;
+  const sessionRep = entry && typeof entry === 'object' ? entry.rep : null;
+  // Admin (no rep on session) sees all todos; reps only see their own
+  const todos = db.todos || [];
+  if (sessionRep) {
+    return res.json(todos.filter(t => !t.rep || t.rep.toLowerCase() === sessionRep.toLowerCase()));
+  }
+  res.json(todos);
 });
 
 app.post('/api/todos', (req, res) => {
