@@ -37,7 +37,7 @@ function getActiveSessions() {
   const now = Date.now();
   for (const [token, entry] of Object.entries(db.sessions)) {
     const created = typeof entry === 'object' ? entry.created : entry;
-    if (now - created > 30 * 24 * 60 * 60 * 1000) {
+    if (now - created > 90 * 24 * 60 * 60 * 1000) {
       delete db.sessions[token];
     } else if (typeof entry === 'object' && entry.rep && entry.rep !== entry.rep.charAt(0).toUpperCase() + entry.rep.slice(1)) {
       // Normalize lowercase rep names (jordan → Jordan) from old sessions
@@ -166,7 +166,7 @@ app.post('/api/auth/login', (req, res) => {
     saveDB(db);
     
     // Set cookie (30 days)
-    res.setHeader('Set-Cookie', `vendtech_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${30 * 24 * 60 * 60}`);
+    res.setHeader('Set-Cookie', `vendtech_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${90 * 24 * 60 * 60}`);
     loginAttempts.delete(ip); // Clear attempts on success
     res.json({ success: true, rep });
   } else {
