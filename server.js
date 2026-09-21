@@ -7053,6 +7053,24 @@ app.get('/api/todos', (req, res) => {
   res.json(todos);
 });
 
+app.post('/api/todos/bulk', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey && apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
+  const { items, title, category, priority, added_by } = req.body;
+  if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'items array required' });
+  if (!db.todos) db.todos = [];
+  const created = [];
+  for (const item of items) {
+    const prospectId = item.prospect_id ? parseInt(item.prospect_id) : null;
+    const p = prospectId ? db.prospects.find(pr => pr.id === prospectId) : null;
+    const todo = { id: nextId(), title: title || 'Pop In Needed', description: '', category: category || 'Other', priority: priority || 'medium', due_date: null, status: 'pending', completed: false, completed_at: null, notes: '', prospect_id: prospectId, rep: item.rep || null, added_by: added_by || 'admin', created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+    db.todos.push(todo);
+    created.push({ id: todo.id, prospect_id: prospectId, rep: item.rep });
+  }
+  saveDB(db);
+  res.json({ created: created.length });
+});
+
 app.post('/api/todos', (req, res) => {
   // Support both legacy generic todos and new prospect-linked todos
   const prospectId = req.body.prospect_id ? parseInt(req.body.prospect_id) : null;
