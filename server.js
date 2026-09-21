@@ -1157,6 +1157,9 @@ app.put('/api/prospects/:id/wellness', (req, res) => {
 
 // ===== BULK LEAD IMPORT =====
 app.post('/api/prospects/import', async (req, res) => {
+  // Allow programmatic access via API key (same pattern as GET /api/prospects)
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey && apiKey !== 'kande2026') return res.status(401).json({ error: 'Unauthorized' });
   const { leads, geocode } = req.body;
   if (!leads || !Array.isArray(leads) || leads.length === 0) {
     return res.status(400).json({ error: 'No leads provided' });
