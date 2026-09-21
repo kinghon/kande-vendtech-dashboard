@@ -269,11 +269,18 @@ app.get('/api/health', (req, res) => {
 // Simple JSON file database
 // Use local ./data/ for development, /data/ for Railway production
 const DB_FILE = process.env.DB_PATH || (process.env.RAILWAY_ENVIRONMENT ? '/data/data.json' : path.join(__dirname, 'data', 'data.json'));
+// Photos stored separately so the main DB stays lean (base64 blobs were bloating data.json to 100MB)
+const PHOTOS_FILE = process.env.RAILWAY_ENVIRONMENT ? '/data/prospect_photos.json' : path.join(__dirname, 'data', 'prospect_photos.json');
 
 function loadDB() {
   try {
     if (fs.existsSync(DB_FILE)) {
-      return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+      const db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+      // Load photos from separate file if it exists (migration: photos were previously in main DB)
+      if (fs.existsSync(PHOTOS_FILE)) {
+        try { db.prospect_photos = JSON.parse(fs.readFileSync(PHOTOS_FILE, 'utf8')); } catch(e) {}
+      }
+      return db;
     }
   } catch (e) {
     console.error('Error loading DB:', e);
@@ -311,9 +318,17 @@ function saveDB(db) {
       }
     }
   } catch(e) { /* if we can't read current, allow write */ }
+  // Save photos to separate file so main DB stays lean
+  try {
+    if (db.prospect_photos && db.prospect_photos.length > 0) {
+      fs.writeFileSync(PHOTOS_FILE, JSON.stringify(db.prospect_photos));
+    }
+  } catch(e) { console.error('[saveDB] photos write failed:', e.message); }
+  // Strip photos before writing main DB (they live in PHOTOS_FILE now)
+  const { prospect_photos: _photos, ...dbWithoutPhotos } = db;
   // Atomic write: write to temp file then rename so a crash mid-write never corrupts the DB
   const tmpFile = DB_FILE + '.tmp';
-  fs.writeFileSync(tmpFile, JSON.stringify(db, null, 2));
+  fs.writeFileSync(tmpFile, JSON.stringify(dbWithoutPhotos, null, 2));
   fs.renameSync(tmpFile, DB_FILE);
   // Live backup — only update if prospect count is >= previous backup (prevents bulk-delete from wiping backup)
   try {
@@ -334,6 +349,17 @@ function saveDB(db) {
 }
 
 let db = loadDB();
+
+// [migration] Extract prospect_photos out of main data.json into separate photos file (one-time)
+try {
+  if (!fs.existsSync(PHOTOS_FILE) && db.prospect_photos && db.prospect_photos.length > 0) {
+    fs.writeFileSync(PHOTOS_FILE, JSON.stringify(db.prospect_photos));
+    console.log(`[migration] Extracted ${db.prospect_photos.length} photos to ${PHOTOS_FILE}`);
+    // Save DB without photos to shrink main file
+    saveDB(db);
+    console.log('[migration] Main DB saved without photos — should now be ~18MB instead of 100MB');
+  }
+} catch(e) { console.error('[migration] Photo extraction failed:', e.message); }
 
 // [migration] NLV Warehouse Prospect todos — one-time creation on boot
 try {
