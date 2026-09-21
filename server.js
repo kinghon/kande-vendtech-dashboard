@@ -306,18 +306,13 @@ function saveDB(db) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
-  // Safety guard — refuse to write if prospect count dropped by more than 50 vs current file
-  try {
-    if (fs.existsSync(DB_FILE)) {
-      const current = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-      const currentCount = (current.prospects||[]).length;
-      const newCount = (db.prospects||[]).length;
-      if (currentCount > 50 && newCount < currentCount - 50) {
-        console.error(`[saveDB] ⛔ BLOCKED — prospect count would drop ${currentCount} → ${newCount}. Refusing to write.`);
-        return;
-      }
-    }
-  } catch(e) { /* if we can't read current, allow write */ }
+  // Safety guard — use in-memory count only (avoids re-reading 15MB file on every write)
+  const newCount = (db.prospects||[]).length;
+  if (typeof saveDB._lastKnownCount === 'number' && saveDB._lastKnownCount > 50 && newCount < saveDB._lastKnownCount - 50) {
+    console.error(`[saveDB] ⛔ BLOCKED — prospect count would drop ${saveDB._lastKnownCount} → ${newCount}. Refusing to write.`);
+    return;
+  }
+  saveDB._lastKnownCount = newCount;
   // Photos are written to PHOTOS_FILE only when explicitly changed (add/delete photo)
   // NOT on every saveDB call — avoids writing 81MB on every write
   // Strip photos before writing main DB (they live in PHOTOS_FILE now)
