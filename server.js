@@ -318,12 +318,8 @@ function saveDB(db) {
       }
     }
   } catch(e) { /* if we can't read current, allow write */ }
-  // Save photos to separate file so main DB stays lean
-  try {
-    if (db.prospect_photos && db.prospect_photos.length > 0) {
-      fs.writeFileSync(PHOTOS_FILE, JSON.stringify(db.prospect_photos));
-    }
-  } catch(e) { console.error('[saveDB] photos write failed:', e.message); }
+  // Photos are written to PHOTOS_FILE only when explicitly changed (add/delete photo)
+  // NOT on every saveDB call — avoids writing 81MB on every write
   // Strip photos before writing main DB (they live in PHOTOS_FILE now)
   const { prospect_photos: _photos, ...dbWithoutPhotos } = db;
   // Atomic write: write to temp file then rename so a crash mid-write never corrupts the DB
