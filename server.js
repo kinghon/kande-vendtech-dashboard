@@ -350,14 +350,17 @@ function saveDB(db) {
 
 let db = loadDB();
 
-// [migration] Extract prospect_photos out of main data.json into separate photos file (one-time)
+// [migration] Extract prospect_photos into separate file — runs every boot until main DB is lean
 try {
-  if (!fs.existsSync(PHOTOS_FILE) && db.prospect_photos && db.prospect_photos.length > 0) {
+  const mainFileSize = fs.existsSync(DB_FILE) ? fs.statSync(DB_FILE).size : 0;
+  if (db.prospect_photos && db.prospect_photos.length > 0) {
     fs.writeFileSync(PHOTOS_FILE, JSON.stringify(db.prospect_photos));
-    console.log(`[migration] Extracted ${db.prospect_photos.length} photos to ${PHOTOS_FILE}`);
-    // Save DB without photos to shrink main file
+    console.log(`[migration] Photos saved to separate file (${db.prospect_photos.length} items)`);
+  }
+  if (mainFileSize > 20 * 1024 * 1024) {
     saveDB(db);
-    console.log('[migration] Main DB saved without photos — should now be ~18MB instead of 100MB');
+    const newSize = fs.existsSync(DB_FILE) ? fs.statSync(DB_FILE).size : 0;
+    console.log(`[migration] DB shrunk: ${(mainFileSize/1024/1024).toFixed(1)}MB -> ${(newSize/1024/1024).toFixed(1)}MB`);
   }
 } catch(e) { console.error('[migration] Photo extraction failed:', e.message); }
 
