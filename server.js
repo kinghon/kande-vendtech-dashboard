@@ -465,6 +465,25 @@ if (!db.office_inventory) db.office_inventory = [];
 if (!db.pick_lists) db.pick_lists = [];
 if (!db.pick_list_history) db.pick_list_history = [];
 
+// Dedup NLV todos — remove extras created by partial runs
+if (!db._nlvTodosDedupV1) {
+  if (db.todos) {
+    const nlv = db.todos.filter(t => t.prospect_id >= 3153657 && t.prospect_id <= 3153741 && t.title === 'Pop In Needed');
+    const seen = {};
+    const toRemove = new Set();
+    for (const t of nlv.sort((a,b) => a.id - b.id)) {
+      if (seen[t.prospect_id]) { toRemove.add(t.id); } else { seen[t.prospect_id] = true; }
+    }
+    if (toRemove.size > 0) {
+      db.todos = db.todos.filter(t => !toRemove.has(t.id));
+      saveDB(db);
+      console.log(`[nlv-dedup] Removed ${toRemove.size} duplicate todos`);
+    }
+  }
+  db._nlvTodosDedupV1 = true;
+  saveDB(db);
+}
+
 // One-time migration: seed NLV Warehouse Prospect todos (Sep 2026)
 if (!db._nlvTodosSeededV1) {
   if (!db.todos) db.todos = [];
