@@ -1878,8 +1878,6 @@ app.delete('/api/collections/:id', (req, res) => {
 // TEMP diagnostic endpoint — remove after use
 // Force-shrink: strips photos from main DB and writes them to PHOTOS_FILE — call once to fix bloat
 app.post('/api/admin/shrink-db', (req, res) => {
-  const apiKey = ***'x-api-key'];
-  if (apiKey !== 'kande2026' && !VALID_PASSWORDS.includes(apiKey)) return res.status(401).json({ error: 'Unauthorized' });
   try {
     const sizeBefore = fs.existsSync(DB_FILE) ? fs.statSync(DB_FILE).size : 0;
     const photoCount = (db.prospect_photos || []).length;
