@@ -341,7 +341,8 @@ function saveDB(db) {
       } catch(e) {}
     }
     if (currentCount >= prevCount) {
-      fs.writeFileSync(LIVE_BACKUP_FILE, JSON.stringify(db));
+      const { prospect_photos: _lbPhotos, ...lbWithoutPhotos } = db;
+      fs.writeFileSync(LIVE_BACKUP_FILE, JSON.stringify(lbWithoutPhotos));
     } else {
       console.log(`[live-backup] Skipped — count dropped ${prevCount} → ${currentCount} (delete op, not overwriting backup)`);
     }
