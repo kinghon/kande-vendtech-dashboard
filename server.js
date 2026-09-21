@@ -1876,6 +1876,25 @@ app.delete('/api/collections/:id', (req, res) => {
 
 // ===== ADMIN HEALTH CHECK =====
 // TEMP diagnostic endpoint — remove after use
+// Force-shrink: strips photos from main DB and writes them to PHOTOS_FILE — call once to fix bloat
+app.post('/api/admin/shrink-db', (req, res) => {
+  const apiKey = ***'x-api-key'];
+  if (apiKey !== 'kande2026' && !VALID_PASSWORDS.includes(apiKey)) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const sizeBefore = fs.existsSync(DB_FILE) ? fs.statSync(DB_FILE).size : 0;
+    const photoCount = (db.prospect_photos || []).length;
+    if (photoCount > 0) {
+      fs.writeFileSync(PHOTOS_FILE, JSON.stringify(db.prospect_photos));
+    }
+    const { prospect_photos: _p, ...lean } = db;
+    const tmpFile = DB_FILE + '.tmp';
+    fs.writeFileSync(tmpFile, JSON.stringify(lean));
+    fs.renameSync(tmpFile, DB_FILE);
+    const sizeAfter = fs.statSync(DB_FILE).size;
+    res.json({ ok: true, photosFile: PHOTOS_FILE, photoCount, sizeBefore, sizeAfter, savedMB: +((sizeBefore-sizeAfter)/1024/1024).toFixed(1) });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/diag', (req, res) => {
   const backupPath = path.join(__dirname, 'restore-backup.json');
   res.json({
