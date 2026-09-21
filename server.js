@@ -335,6 +335,56 @@ function saveDB(db) {
 
 let db = loadDB();
 
+// [migration] NLV Warehouse Prospect todos — one-time creation on boot
+try {
+  const NLV_TODOS_KEY = 'nlv_warehouse_todos_2026_09_21';
+  if (!db.migrations) db.migrations = {};
+  if (!db.migrations[NLV_TODOS_KEY]) {
+    const nlvItems = [
+      {id:3153658,rep:'Stuart'},{id:3153659,rep:'Stuart'},{id:3153661,rep:'Stuart'},
+      {id:3153664,rep:'Stuart'},{id:3153665,rep:'Stuart'},{id:3153666,rep:'Stuart'},
+      {id:3153667,rep:'Stuart'},{id:3153669,rep:'Stuart'},{id:3153670,rep:'Stuart'},
+      {id:3153671,rep:'Stuart'},{id:3153672,rep:'Stuart'},{id:3153673,rep:'Stuart'},
+      {id:3153674,rep:'Stuart'},{id:3153681,rep:'Stuart'},{id:3153689,rep:'Stuart'},
+      {id:3153693,rep:'Stuart'},{id:3153694,rep:'Stuart'},{id:3153695,rep:'Stuart'},
+      {id:3153696,rep:'Stuart'},{id:3153698,rep:'Stuart'},{id:3153699,rep:'Stuart'},
+      {id:3153700,rep:'Stuart'},{id:3153703,rep:'Stuart'},{id:3153704,rep:'Stuart'},
+      {id:3153707,rep:'Stuart'},{id:3153708,rep:'Stuart'},{id:3153710,rep:'Stuart'},
+      {id:3153711,rep:'Stuart'},{id:3153714,rep:'Stuart'},{id:3153717,rep:'Stuart'},
+      {id:3153718,rep:'Stuart'},{id:3153721,rep:'Stuart'},{id:3153722,rep:'Stuart'},
+      {id:3153725,rep:'Stuart'},{id:3153726,rep:'Stuart'},{id:3153729,rep:'Stuart'},
+      {id:3153730,rep:'Stuart'},{id:3153732,rep:'Stuart'},{id:3153737,rep:'Stuart'},
+      {id:3153739,rep:'Stuart'},{id:3153740,rep:'Stuart'},
+      {id:3153657,rep:'Vanessa'},{id:3153660,rep:'Vanessa'},{id:3153662,rep:'Vanessa'},
+      {id:3153663,rep:'Vanessa'},{id:3153668,rep:'Vanessa'},{id:3153675,rep:'Vanessa'},
+      {id:3153676,rep:'Vanessa'},{id:3153677,rep:'Vanessa'},{id:3153678,rep:'Vanessa'},
+      {id:3153679,rep:'Vanessa'},{id:3153680,rep:'Vanessa'},{id:3153682,rep:'Vanessa'},
+      {id:3153683,rep:'Vanessa'},{id:3153684,rep:'Vanessa'},{id:3153685,rep:'Vanessa'},
+      {id:3153686,rep:'Vanessa'},{id:3153687,rep:'Vanessa'},{id:3153688,rep:'Vanessa'},
+      {id:3153690,rep:'Vanessa'},{id:3153691,rep:'Vanessa'},{id:3153692,rep:'Vanessa'},
+      {id:3153697,rep:'Vanessa'},{id:3153701,rep:'Vanessa'},{id:3153702,rep:'Vanessa'},
+      {id:3153705,rep:'Vanessa'},{id:3153706,rep:'Vanessa'},{id:3153709,rep:'Vanessa'},
+      {id:3153712,rep:'Vanessa'},{id:3153713,rep:'Vanessa'},{id:3153715,rep:'Vanessa'},
+      {id:3153716,rep:'Vanessa'},{id:3153719,rep:'Vanessa'},{id:3153720,rep:'Vanessa'},
+      {id:3153723,rep:'Vanessa'},{id:3153724,rep:'Vanessa'},{id:3153727,rep:'Vanessa'},
+      {id:3153728,rep:'Vanessa'},{id:3153731,rep:'Vanessa'},{id:3153733,rep:'Vanessa'},
+      {id:3153734,rep:'Vanessa'},{id:3153735,rep:'Vanessa'},{id:3153736,rep:'Vanessa'},
+      {id:3153738,rep:'Vanessa'},{id:3153741,rep:'Vanessa'}
+    ];
+    if (!db.todos) db.todos = [];
+    const existingProspectIds = new Set(db.todos.filter(t => t.prospect_id).map(t => t.prospect_id));
+    let added = 0;
+    for (const item of nlvItems) {
+      if (existingProspectIds.has(item.id)) continue;
+      db.todos.push({ id: nextId(), title: 'Pop In Needed', description: '', category: 'Other', priority: 'medium', due_date: null, status: 'pending', completed: false, completed_at: null, notes: '', prospect_id: item.id, rep: item.rep, added_by: 'admin', created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+      added++;
+    }
+    db.migrations[NLV_TODOS_KEY] = { ran_at: new Date().toISOString(), added };
+    saveDB(db);
+    console.log(`[migration] NLV todos: added ${added} todos`);
+  }
+} catch(e) { console.error('[migration] NLV todos failed:', e.message); }
+
 // Auto-restore from backup if DB is missing products or prospects
 try {
   const backupPath = path.join(__dirname, 'restore-backup.json');
