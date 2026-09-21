@@ -166,7 +166,7 @@ app.post('/api/auth/login', (req, res) => {
     saveDB(db);
     
     // Set cookie (30 days)
-    res.setHeader('Set-Cookie', `vendtech_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${90 * 24 * 60 * 60}`);
+    res.setHeader('Set-Cookie', `vendtech_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${90 * 24 * 60 * 60}`);
     loginAttempts.delete(ip); // Clear attempts on success
     res.json({ success: true, rep });
   } else {
@@ -189,7 +189,7 @@ app.get('/api/auth/refresh', (req, res) => {
   if (token && sessions[token]) {
     sessions[token] = Date.now(); // bump timestamp
     saveDB(db);
-    res.setHeader('Set-Cookie', `vendtech_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${21 * 24 * 60 * 60}`);
+    res.setHeader('Set-Cookie', `vendtech_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${90 * 24 * 60 * 60}`);
     return res.json({ ok: true });
   }
   res.status(401).json({ ok: false });
