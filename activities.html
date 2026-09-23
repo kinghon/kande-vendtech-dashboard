@@ -391,7 +391,7 @@
       const cutoff14d = new Date(now - 14 * 86400000);
 
       // Filter by category and search
-      let filtered = allEvents.filter(e => e.timestamp >= cutoff14d);
+      let filtered = allEvents; // show all activities (no cutoff)
       // Hide auto-logged "Proposal sent" activities from the display (data stays in DB for tracking)
       filtered = filtered.filter(e => !e.text?.toLowerCase().includes('proposal sent'));
       // Hide all activities about sending emails to leads (both email-type and notes mentioning email sends)
@@ -418,7 +418,7 @@
       document.getElementById('sumNotes').textContent = filtered.filter(e => e.category === 'note').length;
 
       if (filtered.length === 0) {
-        document.getElementById('activityList').innerHTML = '<div class="empty-state"><h3>No activity found</h3><p style="margin-top:8px;">No activity in the last 14 days.</p></div>';
+        document.getElementById('activityList').innerHTML = '<div class="empty-state"><h3>No activity found</h3><p style="margin-top:8px;">No activity yet.</p></div>';
         return;
       }
 
@@ -426,6 +426,7 @@
       const recent = filtered.filter(e => e.timestamp >= cutoff48h);
       const week = filtered.filter(e => e.timestamp < cutoff48h && e.timestamp >= cutoff7d);
       const older = filtered.filter(e => e.timestamp < cutoff7d && e.timestamp >= cutoff14d);
+      const allPrevious = filtered.filter(e => e.timestamp < cutoff14d);
 
       let html = '';
 
@@ -459,6 +460,17 @@
         </div>`;
         html += `<div class="time-section-content" id="sec-older">`;
         html += renderLocationGroups(older, false);
+        html += `</div>`;
+      }
+
+      // Section 4: All Previous Activities — collapsed
+      if (allPrevious.length > 0) {
+        html += `<div class="time-section-header" style="background:linear-gradient(135deg,#4a5568,#2d3748);" onclick="toggleSection('sec-all')">
+          <span><span class="arrow" id="arrow-sec-all">▶</span> All Previous Activities</span>
+          <span style="font-size:0.8rem;opacity:0.85;">${allPrevious.length} event${allPrevious.length > 1 ? 's' : ''}</span>
+        </div>`;
+        html += `<div class="time-section-content" id="sec-all">`;
+        html += renderLocationGroups(allPrevious, false);
         html += `</div>`;
       }
 
