@@ -1151,8 +1151,11 @@ app.post('/api/prospects', (req, res) => {
   saveDB(db);
   // Auto-create pipeline card for new prospect (CRM→Pipeline sync)
   ensurePipelineCard(prospect.id);
-  res.json(prospect);
-  geocodeProspect(prospect).then(updated => { if (updated) saveDB(db); });
+  // Geocode before responding so lat/lng + See on Map button are always present on first add
+  geocodeProspect(prospect).then(updated => {
+    if (updated) saveDB(db);
+    res.json(prospect);
+  }).catch(() => res.json(prospect));
 });
 
 app.post('/api/prospects/bulk-update', (req, res) => {
