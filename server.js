@@ -1223,6 +1223,12 @@ app.put('/api/prospects/:id', (req, res) => {
   }
 
   db.prospects[index] = { ...old, ...req.body, updated_at: new Date().toISOString() };
+  // Auto-sync todos to new rep when assigned_rep changes
+  if (req.body.assigned_rep && req.body.assigned_rep !== old.assigned_rep) {
+    (db.todos || []).forEach(t => {
+      if (t.prospect_id === id) t.rep = req.body.assigned_rep;
+    });
+  }
   // Sync ALL prospect changes to pipeline card
   const pipeCard = (db.pipelineCards || []).find(c => c.prospect_id === id);
   if (pipeCard) {
