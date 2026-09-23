@@ -860,6 +860,8 @@
         }
       } catch(e) {}
       await Promise.all([loadStats(), loadProspects()]);
+      // Auto-refresh map data every 5 min so black rings + new activity appear without manual reload
+      setInterval(async () => { await loadProspects(); }, 5 * 60 * 1000);
     }
 
     async function loadStats() {
