@@ -493,20 +493,43 @@ if (!db.revenue) db.revenue = [];
 if (!db.sandstar_sales) db.sandstar_sales = [];
 if (!db.sandstar_machines) db.sandstar_machines = [];
 // Always replace with canonical 8 machines (dedup/clean)
-// V6: correct full Sandstar machine names — bump version to force re-apply
-if (!db._machinesSeededV7) {
+// V8: Regus Green Valley → Aveda Institute
+if (!db._machinesSeededV8) {
   db.sandstar_machines = [
     { id: '131520', sandstar_id: 131520, name: 'ARK Prelude At The Park', online: true },
     { id: '128836', sandstar_id: 128836, name: 'CVM13 Dig This', online: true },
     { id: '128837', sandstar_id: 128837, name: 'CVM13 Regus Arroyo', online: true },
-    { id: '128794', sandstar_id: 128794, name: 'VRK Regus Green Valley', online: true },
+    { id: '128794', sandstar_id: 128794, name: 'VRK Aveda Institute', online: true },
     { id: '128790', sandstar_id: 128790, name: 'VRK The Watermark', online: true },
     { id: '128010', sandstar_id: 128010, name: 'CVM13 Regus 3753 Howard Hughes Parkway, Suite 200', online: true },
     { id: '127763', sandstar_id: 127763, name: 'VRK All In Aviation Academy', online: true },
     { id: '127761', sandstar_id: 127761, name: 'VRK The Wyatt', online: true },
   ];
-  db._machinesSeededV7 = true;
+  db._machinesSeededV8 = true;
   saveDB(db);
+}
+
+// Migration: rename VRK Regus Green Valley → VRK Aveda Institute across pick lists + stock
+if (!db._migratedAvedaV1) {
+  const OLD = 'VRK Regus Green Valley';
+  const NEW = 'VRK Aveda Institute';
+  let changed = false;
+  for (const pl of (db.pick_lists || [])) {
+    if (pl.label === OLD) { pl.label = NEW; changed = true; }
+    if (pl.machine_names) pl.machine_names = pl.machine_names.map(n => n === OLD ? NEW : n);
+    for (const it of (pl.items || [])) {
+      if (it.machine_name === OLD) { it.machine_name = NEW; changed = true; }
+    }
+  }
+  for (const r of (db.office_sandstar_stock || [])) {
+    if (r.machine_name === OLD) { r.machine_name = NEW; changed = true; }
+  }
+  for (const r of (db.sandstar_restock_events || [])) {
+    if (r.machine_name === OLD) { r.machine_name = NEW; changed = true; }
+  }
+  db._migratedAvedaV1 = true;
+  if (changed) saveDB(db);
+  console.log(`[migration] Aveda rename: updated pick lists + stock (changed=${changed})`);
 }
 
 // Migration: rename all old Suite 500 / Regus 500 references to VRK The Wyatt
