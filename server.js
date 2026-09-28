@@ -1916,6 +1916,33 @@ app.delete('/api/collections/:id', (req, res) => {
 
 // ===== ADMIN HEALTH CHECK =====
 // TEMP diagnostic endpoint — remove after use
+// Rename machine across all data collections (stock, pick_lists, restock_events, capacity_overrides)
+app.post('/api/admin/rename-machine', (req, res) => {
+  const { old_name, new_name } = req.body;
+  if (!old_name || !new_name) return res.status(400).json({ error: 'old_name and new_name required' });
+  let counts = { stock: 0, pick_list_machine_names: 0, pick_list_items: 0, restock_events: 0, capacity_overrides: 0 };
+  for (const r of (db.office_sandstar_stock || [])) {
+    if (r.machine_name === old_name) { r.machine_name = new_name; counts.stock++; }
+  }
+  for (const pl of (db.pick_lists || [])) {
+    if (pl.label === old_name) pl.label = new_name;
+    if (pl.machine_names) pl.machine_names = pl.machine_names.map(n => { if(n===old_name){counts.pick_list_machine_names++;return new_name;}return n; });
+    for (const it of (pl.items || [])) { if (it.machine_name === old_name) { it.machine_name = new_name; counts.pick_list_items++; } }
+  }
+  for (const r of (db.sandstar_restock_events || [])) {
+    if (r.machine_name === old_name) { r.machine_name = new_name; counts.restock_events++; }
+  }
+  const newOverrides = {};
+  for (const [k, v] of Object.entries(db.capacity_overrides || {})) {
+    const newKey = k.startsWith(old_name + '|') ? new_name + '|' + k.slice(old_name.length + 1) : k;
+    if (newKey !== k) counts.capacity_overrides++;
+    newOverrides[newKey] = v;
+  }
+  db.capacity_overrides = newOverrides;
+  saveDB(db);
+  res.json({ ok: true, old_name, new_name, counts });
+});
+
 // Force-shrink: strips photos from main DB and writes them to PHOTOS_FILE — call once to fix bloat
 app.post('/api/admin/shrink-db', (req, res) => {
   try {
