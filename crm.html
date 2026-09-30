@@ -2436,7 +2436,7 @@
     }
     scheduleFollowUpMidnightClear();
 
-    function completeFollowUp(prospectId) {
+    async function completeFollowUp(prospectId) {
       const p = prospects.find(x => x.id === prospectId);
       if (!p) return;
       // Save display info before clearing
@@ -2446,17 +2446,34 @@
         action: p.next_action || '',
         assignedRep: p.assigned_rep || ''
       });
+      // Clear in memory and re-render immediately so it disappears
       p.next_action_date = '';
       p.follow_up_date = '';
       p.next_action = '';
       p.needs_action = false;
-      fetch(`/api/prospects/${prospectId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ next_action_date: '', follow_up_date: '', next_action: '', needs_action: false })
-      });
       renderFollowUps();
       renderFollowUpCount();
+      // Await the server write — if it fails, restore so the item reappears honestly
+      try {
+        const res = await fetch(`/api/prospects/${prospectId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ next_action_date: '', follow_up_date: '', next_action: '', needs_action: false })
+        });
+        if (!res.ok) throw new Error('PUT failed');
+      } catch (e) {
+        // Server write failed — restore values so the rep knows to try again
+        const saved = completedFollowUpMap.get(prospectId);
+        if (saved && p) {
+          p.next_action_date = saved.date || '';
+          p.follow_up_date = saved.date || '';
+          p.next_action = saved.action || '';
+          p.needs_action = true;
+        }
+        renderFollowUps();
+        renderFollowUpCount();
+        alert('Could not save — please try again.');
+      }
     }
 
     function updateProspectField(prospectId, field, value) {
