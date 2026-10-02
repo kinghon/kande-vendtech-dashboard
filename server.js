@@ -787,7 +787,11 @@ async function geocodeProspect(prospect) {
     // Auto-assign rep based on zone if not already assigned
     if (!prospect.assigned_rep) {
       const rep = getRepForCoords(coords.lat, coords.lng);
-      if (rep) prospect.assigned_rep = rep;
+      if (rep) {
+        prospect.assigned_rep = rep;
+        // Keep todos in sync with the rep assignment
+        if (db.todos) db.todos.forEach(t => { if (t.prospect_id === prospect.id) t.rep = rep; });
+      }
     }
     return true;
   }
