@@ -1480,7 +1480,13 @@ app.post('/api/prospects/:id/activities', (req, res) => {
   }
   // Also capitalize rep if passed directly in body (normalize case)
   const bodyRep = req.body.rep ? req.body.rep.charAt(0).toUpperCase() + req.body.rep.slice(1) : null;
-  const activity = { id: nextId(), prospect_id, ...req.body, rep: sessionRep || bodyRep || null, created_at: new Date().toISOString() };
+  // For pop-in activities: rep = prospect's assigned_rep (whoever owns the location gets credited)
+  const incomingActType = (req.body.type || '').toLowerCase();
+  const isPopInActivity = incomingActType.includes('pop') || incomingActType.includes('visit');
+  const prospectForRep = db.prospects.find(p => p.id === prospect_id);
+  const assignedRep = prospectForRep?.assigned_rep ? prospectForRep.assigned_rep.charAt(0).toUpperCase() + prospectForRep.assigned_rep.slice(1) : null;
+  const finalRep = isPopInActivity && assignedRep ? assignedRep : (sessionRep || bodyRep || null);
+  const activity = { id: nextId(), prospect_id, ...req.body, rep: finalRep, created_at: new Date().toISOString() };
   db.activities.push(activity);
   const prospect = db.prospects.find(p => p.id === prospect_id);
   if (prospect) {
