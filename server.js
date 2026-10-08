@@ -1252,6 +1252,10 @@ app.put('/api/prospects/:id', (req, res) => {
     }
   }
 
+  // Guard: never allow assigned_rep to be cleared to empty — it would trigger zone auto-assign
+  if (req.body.assigned_rep === '' || req.body.assigned_rep === null || req.body.assigned_rep === undefined) {
+    delete req.body.assigned_rep;
+  }
   db.prospects[index] = { ...old, ...req.body, updated_at: new Date().toISOString() };
   // Auto-sync todos to new rep when assigned_rep changes
   if (req.body.assigned_rep && req.body.assigned_rep !== old.assigned_rep) {
@@ -1480,9 +1484,15 @@ app.post('/api/prospects/:id/activities', (req, res) => {
   }
   // Also capitalize rep if passed directly in body (normalize case)
   const bodyRep = req.body.rep ? req.body.rep.charAt(0).toUpperCase() + req.body.rep.slice(1) : null;
-  // Rep = whoever is logged in (session) — not the prospect's assigned_rep
-  // The assigned_rep badge on the prospect card is separate from who logged the activity
-  const activity = { id: nextId(), prospect_id, ...req.body, rep: sessionRep || bodyRep || null, created_at: new Date().toISOString() };
+  // Pop-in notes: always credit the location's assigned rep (Kurtis confirmed Oct 2 + Oct 8)
+  const incomingActType = (req.body.type || '').toLowerCase();
+  const isPopInActivity = incomingActType.includes('pop') || incomingActType.includes('visit');
+  const prospectForRep = db.prospects.find(p => p.id === prospect_id);
+  const prospectAssignedRep = prospectForRep?.assigned_rep
+    ? prospectForRep.assigned_rep.charAt(0).toUpperCase() + prospectForRep.assigned_rep.slice(1)
+    : null;
+  const finalRep = isPopInActivity && prospectAssignedRep ? prospectAssignedRep : (sessionRep || bodyRep || null);
+  const activity = { id: nextId(), prospect_id, ...req.body, rep: finalRep, created_at: new Date().toISOString() };
   db.activities.push(activity);
   const prospect = db.prospects.find(p => p.id === prospect_id);
   if (prospect) {
