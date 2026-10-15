@@ -221,3 +221,23 @@
 - **No new posts, no new video replays** since last successful scrape on 2026-03-30 (510 posts captured).
 - **Action needed:** Kurtis needs to re-login to the Vendingpreneurs community to assess whether it has migrated to a new platform or if the authentication flow has changed. The iOS/Android apps may still work via Mighty Networks backend.
 - **Kande takeaway:** All existing playbook insights remain valid. No new intel to integrate until access is restored. Prioritize re-establishing community access or finding alternative intel sources (e.g., direct operator relationships, other communities, NAMA events).
+
+## Vendingpreneurs: 6 Seasonal Vending Items with INSANE Profit Margins (2026-10-15)
+- **Seasonal items = higher margins via emotional buying**: People don't comparison-shop seasonal products; they buy the "feeling of the season." This removes price sensitivity and allows 52-67% margins.
+- **Six proven seasonal items with real P&L**:
+  - Alani Witch's Brew (Halloween): $2.15 cost → $4.49 sell, 52% margin, $2.34 profit
+  - Starbucks Pumpkin Spice Frappuccino (Fall): $2.76 cost → $6.99 sell, 60% margin, $4.23 profit
+  - Firecracker popsicles (Summer): $1.32 cost → $3.99 sell, 67% margin, $2.67 profit
+  - Christmas theme Coke bottles: $1.57 cost → $3.99 sell, ~61% margin, $2.42 profit
+  - Celsius Pina Colada (Summer): $1.92 cost → $4.49 sell, ~57% margin, $2.57 profit
+  - Starbucks Peppermint Mocha Frappuccino (Winter): $2.76 cost → $6.99 sell, 60% margin, $4.23 profit
+- **Universal timing advantage**: Seasonal demand hits all location types simultaneously (gyms, warehouses, apartments, hospitals). No need to customize by location type.
+- **Layer, don't replace**: Seasonal items sit on top of the core planogram. Swap in during relevant weeks, swap out when the season ends.
+- **Perceived novelty = pure profit**: Christmas Coke is the exact same product with different packaging. Customers pay premium for the seasonal experience.
+- **Kande takeaway**: Build a seasonal rotation calendar for all locations. Prioritize freezer-capable machines for summer popsicle programs. The 60%+ margins on seasonal beverages (especially Starbucks Frappuccinos at $4.23 profit/bottle) justify dedicated shelf space. Train stockers on swap schedules so seasonal items don't sit past their window.
+
+## Vendingpreneurs: What your first vending machine really costs (2026-10-15)
+- **Machine price is just the headline**: First-time operators consistently underestimate total startup cost by focusing only on the equipment sticker price.
+- **Hidden first-machine costs to budget for**: Delivery/freight, card reader/payment system, insurance, initial inventory, restocking cash (float/working capital).
+- **Cash flow planning matters**: "Restocking cash" implies you need working capital beyond the first fill — ongoing inventory replenishment requires cash reserves.
+- **Kande takeaway**: When pitching financing or ROI calculators to prospects, explicitly surface these hidden costs. Kande's full-service model should bundle/describe these clearly so operators know their true first-machine investment. Consider creating a "True Cost of First Machine" one-pager that lists equipment + delivery + card reader + insurance + inventory + 90-day restocking reserve.
