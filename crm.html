@@ -1594,9 +1594,10 @@
     async function addToTodo(prospectId) {
       const p = prospects.find(pr => pr.id === prospectId);
       if (!p) return;
-      const repName = currentRep
-        ? currentRep.charAt(0).toUpperCase() + currentRep.slice(1)
-        : (p.assigned_rep || 'Stuart');
+      // Prefer the prospect's real assigned_rep; only default to the logged-in rep when unassigned
+      const repName = p.assigned_rep
+        ? p.assigned_rep
+        : (currentRep ? currentRep.charAt(0).toUpperCase() + currentRep.slice(1) : 'Stuart');
 
       // Optimistic update — instant feedback
       activeTodoProspectIds.add(prospectId);
