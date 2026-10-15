@@ -3204,6 +3204,36 @@ app.get('/api/inventory/audit', (req, res) => {
 
 // ===== OFFICE INVENTORY API =====
 app.get('/api/office-inventory', requireAuth, (req, res) => res.json(db.office_inventory || []));
+app.post('/api/office-inventory', requireAuth, (req, res) => {
+  const { name, quantity, min_qty, distributor, size, link } = req.body || {};
+  if (!name || !String(name).trim()) return res.status(400).json({ error: 'name is required' });
+  const trimmed = String(name).trim();
+  const dupe = (db.office_inventory || []).find(i => (i.name || '').toLowerCase() === trimmed.toLowerCase());
+  if (dupe) return res.status(409).json({ error: 'Item already exists', item: dupe });
+  const qty = Math.max(0, parseInt(quantity) || 0);
+  const item = {
+    id: crypto.randomUUID(),
+    name: trimmed,
+    quantity: qty,
+    min_qty: Math.max(0, parseInt(min_qty) || 0),
+    distributor: distributor || '',
+    size: size || '',
+    link: link || '',
+    history: [{
+      id: crypto.randomUUID(),
+      delta: qty,
+      old_qty: 0,
+      new_qty: qty,
+      reason: 'Item created',
+      created_at: new Date().toISOString()
+    }],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  db.office_inventory.push(item);
+  saveDB(db);
+  res.json(item);
+});
 app.get('/api/office-machines', (req, res) => res.json(db.sandstar_machines || []));
 app.post('/api/office-machines-reset', (req, res) => {
   db.sandstar_machines = [];

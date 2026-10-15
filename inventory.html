@@ -339,7 +339,10 @@
     <div class="search-wrap">
       <input type="text" id="invSearch" placeholder="Search items..." oninput="renderInventory()">
     </div>
-    <button class="btn-secondary" onclick="showInvHistory()" style="width:100%;margin-bottom:10px;padding:8px;">&#128203; Inventory Change History</button>
+    <div style="display:flex;gap:6px;margin-bottom:10px;">
+      <button class="btn-secondary" onclick="showInvHistory()" style="flex:1;padding:8px;">&#128203; Inventory Change History</button>
+      <button onclick="openNewItemModal()" style="padding:8px 14px;background:#dcfce7;border:1px solid #86efac;border-radius:8px;font-size:0.8rem;font-weight:700;color:#166534;cursor:pointer;white-space:nowrap;">+ New Item</button>
+    </div>
 
     <!-- Main inventory list -->
     <div id="inventoryMain">
@@ -413,6 +416,37 @@
 <!-- Lightbox -->
 <div id="lightbox" onclick="closeLightbox()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;align-items:center;justify-content:center;padding:24px;">
   <img id="lightboxImg" src="" style="max-width:100%;max-height:90vh;border-radius:10px;object-fit:contain;">
+</div>
+
+<!-- New Item Modal -->
+<div id="newItemModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:var(--card);border-radius:16px;padding:20px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;">
+    <div style="font-weight:700;font-size:1rem;margin-bottom:14px;">+ New Inventory Item</div>
+    <label style="font-size:0.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">Item Name *</label>
+    <input id="niName" type="text" placeholder="e.g. Takis Fuego" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;margin-bottom:12px;">
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <div style="flex:1;">
+        <label style="font-size:0.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">Starting Qty</label>
+        <input id="niQty" type="number" min="0" value="0" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;">
+      </div>
+      <div style="flex:1;">
+        <label style="font-size:0.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">Min Qty (par)</label>
+        <input id="niMinQty" type="number" min="0" value="0" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;">
+      </div>
+    </div>
+    <label style="font-size:0.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">Distributor</label>
+    <select id="niDist" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;margin-bottom:12px;">
+      <option>Vistar</option><option>Costco</option><option>Amazon</option><option>Faire</option><option>Other</option>
+    </select>
+    <label style="font-size:0.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">Size (optional)</label>
+    <input id="niSize" type="text" placeholder="e.g. 20oz" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;margin-bottom:12px;">
+    <label style="font-size:0.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;">Order Link (optional)</label>
+    <input id="niLink" type="url" placeholder="https://..." style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;margin-bottom:16px;">
+    <div style="display:flex;gap:8px;">
+      <button onclick="closeNewItemModal()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:0.9rem;cursor:pointer;">Cancel</button>
+      <button onclick="submitNewItem()" id="niSubmit" style="flex:2;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;font-size:0.9rem;cursor:pointer;">Add Item</button>
+    </div>
+  </div>
 </div>
 
 <!-- Add/Replace Item Modal -->
@@ -571,6 +605,45 @@
         </div>`
       ).join('');
     } catch(e) {}
+  }
+
+  function openNewItemModal() {
+    document.getElementById('niName').value = '';
+    document.getElementById('niQty').value = '0';
+    document.getElementById('niMinQty').value = '0';
+    document.getElementById('niDist').value = 'Vistar';
+    document.getElementById('niSize').value = '';
+    document.getElementById('niLink').value = '';
+    document.getElementById('newItemModal').style.display = 'flex';
+    setTimeout(() => document.getElementById('niName').focus(), 50);
+  }
+  function closeNewItemModal() { document.getElementById('newItemModal').style.display = 'none'; }
+  async function submitNewItem() {
+    const name = document.getElementById('niName').value.trim();
+    if (!name) { toast('Enter an item name'); return; }
+    const btn = document.getElementById('niSubmit');
+    btn.disabled = true;
+    try {
+      const item = await api('POST', '/api/office-inventory', {
+        name,
+        quantity: parseInt(document.getElementById('niQty').value) || 0,
+        min_qty: parseInt(document.getElementById('niMinQty').value) || 0,
+        distributor: document.getElementById('niDist').value,
+        size: document.getElementById('niSize').value.trim(),
+        link: document.getElementById('niLink').value.trim()
+      });
+      inventory.push(item);
+      renderInventory();
+      renderAddStock();
+      loadUnmatched();
+      closeNewItemModal();
+      toast(`✓ Added "${item.name}"`);
+    } catch(e) {
+      const msg = e.message || '';
+      if (msg.includes('409')) toast('Item already exists');
+      else toast('Failed to add item');
+      console.error(e);
+    } finally { btn.disabled = false; }
   }
 
   function openReplaceModal(plId) {
