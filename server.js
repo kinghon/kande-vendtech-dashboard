@@ -813,6 +813,10 @@ async function geocodeAll() {
 }
 
 geocodeAll();
+// Retry geocoding periodically (every 15 min) so any location that failed to
+// geocode at creation time (bad address, API hiccup) still gets lat/lng + an
+// auto-assigned rep without waiting for the next server restart.
+setInterval(geocodeAll, 15 * 60 * 1000);
 
 app.use(express.json({ limit: '20mb' })); // Increased for site survey photo uploads
 
@@ -1125,6 +1129,9 @@ const { qualifyLead, logRejection } = require('./scripts/qual-gate.js');
 app.post('/api/prospects', (req, res) => {
   if (!req.body.name || !req.body.name.trim()) {
     return res.status(400).json({ error: 'name is required' });
+  }
+  if (!req.body.lat && !req.body.lng && (!req.body.address || !req.body.address.trim())) {
+    return res.status(400).json({ error: 'address is required so the location can be placed on the map and assigned a rep' });
   }
   // Lead qualification gate — reject/stage low-quality leads before CRM entry
   const qualResult = qualifyLead(req.body);
