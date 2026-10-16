@@ -627,7 +627,7 @@ function dashApi(method, path, body, cookies) {
     const expectedMachines = (machineData?.data?.resultList || []).map(m => m.freezerName);
     const syncedMachines = Object.keys(machineRecordCounts);
     const missingFromSync = expectedMachines.filter(m => !syncedMachines.includes(m));
-    if (missingFromSync.length > 0) validationIssues.push(`⚠️ Machines missing from inventory sync: ${missingFromSync.join(', ')}`);
+    if (missingFromSync.length > 0) log(`Machines missing from inventory sync (not alerting — persistent/expected, not actionable): ${missingFromSync.join(', ')}`);
     // Check 2: capacity=0 slots (broken slot data)
     const zeroCap = allInventoryRecords.filter(r => !parseInt(r.capacityNum || r.stockInitial || r.capacity || 0));
     if (zeroCap.length > 5) validationIssues.push(`⚠️ ${zeroCap.length} slots with capacity=0 (slot data may be stale)`);
@@ -677,7 +677,7 @@ function dashApi(method, path, body, cookies) {
         }
       });
     });
-    if (qtyMismatches.length > 0) validationIssues.push(`⚠️ Qty/capacity mismatch vs Sandstar raw:\n${qtyMismatches.join('\n')}`);
+    if (qtyMismatches.length > 0) log(`Qty/capacity mismatch vs Sandstar raw (not alerting — expected due to live stock drift):\n${qtyMismatches.join('\n')}`);
 
     // Check 6: slots in Sandstar that are below capacity but missing from pick list
     const sandstarNeedsRestock = {};
