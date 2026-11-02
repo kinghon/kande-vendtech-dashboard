@@ -177,6 +177,17 @@
       <button class="rep-filter-btn" data-rep="Kurtis" style="border-color:#805ad5;color:#805ad5;">👤 Kurtis</button>
     </div>
 
+    <div class="location-group" id="popinNotesGroup" style="margin-bottom:16px;">
+      <div class="location-header" onclick="togglePopinNotes()" style="background:rgba(56,161,105,0.08);">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="arrow" id="popinNotesArrow">▶</span>
+          <span class="location-name" style="color:var(--success);">🚶 All Pop-In Notes</span>
+        </div>
+        <span class="event-count" id="popinNotesCount">-</span>
+      </div>
+      <div class="location-events" id="popinNotesContent"></div>
+    </div>
+
     <div id="activityList">
       <div class="empty-state">Loading...</div>
     </div>
@@ -417,6 +428,8 @@
       document.getElementById('sumEmails').textContent = filtered.filter(e => e.category === 'email').length;
       document.getElementById('sumNotes').textContent = filtered.filter(e => e.category === 'note').length;
 
+      renderPopinNotes(search);
+
       if (filtered.length === 0) {
         document.getElementById('activityList').innerHTML = '<div class="empty-state"><h3>No activity found</h3><p style="margin-top:8px;">No activity yet.</p></div>';
         return;
@@ -601,6 +614,49 @@
 
     function toggleLocation(pid) {
       document.getElementById('loc-' + pid)?.classList.toggle('open');
+    }
+
+    function togglePopinNotes() {
+      const group = document.getElementById('popinNotesGroup');
+      const arrow = document.getElementById('popinNotesArrow');
+      group.classList.toggle('open');
+      arrow.textContent = group.classList.contains('open') ? '▼' : '▶';
+    }
+
+    function renderPopinNotes(search) {
+      const isPopin = e => {
+        const cat = (e.category || '').toLowerCase();
+        const txt = (e.text || '').toLowerCase();
+        return cat === 'pop-in' || cat === 'pop_in' || cat === 'visit' || (cat === 'note' && /pop[\s-]?in/.test(txt));
+      };
+      let notes = allEvents.filter(isPopin);
+      notes = notes.filter(e => !(e.text || '').toLowerCase().includes('proposal sent'));
+      if (search) notes = notes.filter(e => e.prospectName.toLowerCase().includes(search) || e.text.toLowerCase().includes(search));
+      if (currentRepFilter !== 'all') notes = notes.filter(e => e.rep === currentRepFilter);
+      notes.sort((a, b) => b.timestamp - a.timestamp);
+
+      document.getElementById('popinNotesCount').textContent = notes.length + ' note' + (notes.length === 1 ? '' : 's');
+
+      const content = document.getElementById('popinNotesContent');
+      if (notes.length === 0) {
+        content.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:0.85rem;">No pop-in notes found.</div>';
+        return;
+      }
+      let html = '';
+      notes.forEach(e => {
+        const eRepColor = REP_COLORS[e.rep] || '';
+        html += `<div class="event-row">
+          <div class="event-body">
+            <div class="event-text">
+              <span class="event-badge badge-pop-in">🚶 ${esc(e.prospectName)}</span>
+              ${eRepColor ? `<span style="font-size:0.7rem;font-weight:700;padding:1px 7px;border-radius:9px;background:${eRepColor};color:#fff;margin-right:6px;">${esc(e.rep)}</span>` : ''}
+              ${esc(e.text)}
+            </div>
+            <div class="event-time">${getTimeAgo(e.timestamp)}</div>
+          </div>
+        </div>`;
+      });
+      content.innerHTML = html;
     }
 
     function toggleSection(id) {
