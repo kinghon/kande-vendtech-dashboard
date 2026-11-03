@@ -349,7 +349,7 @@
       <div class="inv-grid" style="padding-top:2px;padding-bottom:4px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--muted);">
         <span>Item</span>
         <span style="text-align:center;">Dist</span>
-        <span style="text-align:right;">Qty</span>
+        <span style="text-align:right;cursor:pointer;user-select:none;" id="qtySortHeader" onclick="toggleQtySort()">Qty <span id="qtySortArrow"></span></span>
         <span style="text-align:right;">Surplus</span>
       </div>
       <div id="inventoryList"></div>
@@ -477,6 +477,7 @@
   let capacityOverrides = {};
   let selectedMachines = new Set();
   let filterMode = 'all';
+  let qtySort = null; // null | 'asc' | 'desc'
   let editingId = null;
   let addStockHistory = [];
   let replacingPlId = null; // pick list that opened the Add/Replace modal
@@ -703,6 +704,10 @@
   }
 
   // ---- Inventory ----
+  function toggleQtySort() {
+    qtySort = qtySort === 'desc' ? 'asc' : qtySort === 'asc' ? null : 'desc';
+    renderInventory();
+  }
   function setFilter(m) {
     filterMode = m;
     ['all','low','out'].forEach(k => document.getElementById('sc-'+k)?.classList.toggle('active', k === m));
@@ -733,6 +738,14 @@
     document.getElementById('sTotal').textContent = total;
     document.getElementById('sLow').textContent = low;
     document.getElementById('sOut').textContent = out;
+
+    if (qtySort === 'asc') filtered.sort((a, b) => a.quantity - b.quantity);
+    else if (qtySort === 'desc') filtered.sort((a, b) => b.quantity - a.quantity);
+
+    const arrowEl = document.getElementById('qtySortArrow');
+    if (arrowEl) arrowEl.textContent = qtySort === 'asc' ? '▲' : qtySort === 'desc' ? '▼' : '';
+    const headerEl = document.getElementById('qtySortHeader');
+    if (headerEl) headerEl.style.color = qtySort ? 'var(--accent)' : '';
 
     const el = document.getElementById('inventoryList');
     if (!filtered.length) { el.innerHTML = '<div class="empty">No items match</div>'; return; }
