@@ -347,7 +347,7 @@
     <!-- Main inventory list -->
     <div id="inventoryMain">
       <div class="inv-grid" style="padding-top:2px;padding-bottom:4px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--muted);">
-        <span>Item</span>
+        <span style="cursor:pointer;user-select:none;color:var(--accent);font-weight:700;text-decoration:underline;text-decoration-style:dotted;" id="nameSortHeader" onclick="toggleNameSort()">Item <span id="nameSortArrow">⇅</span></span>
         <span style="text-align:center;">Dist</span>
         <span style="text-align:right;cursor:pointer;user-select:none;color:var(--accent);font-weight:700;text-decoration:underline;text-decoration-style:dotted;" id="qtySortHeader" onclick="toggleQtySort()">Qty <span id="qtySortArrow">⇅</span></span>
         <span style="text-align:right;">Surplus</span>
@@ -478,6 +478,7 @@
   let selectedMachines = new Set();
   let filterMode = 'all';
   let qtySort = null; // null | 'asc' | 'desc'
+  let nameSort = null; // null | 'asc' | 'desc'
   let editingId = null;
   let addStockHistory = [];
   let replacingPlId = null; // pick list that opened the Add/Replace modal
@@ -706,6 +707,12 @@
   // ---- Inventory ----
   function toggleQtySort() {
     qtySort = qtySort === 'desc' ? 'asc' : qtySort === 'asc' ? null : 'desc';
+    nameSort = null;
+    renderInventory();
+  }
+  function toggleNameSort() {
+    nameSort = nameSort === 'asc' ? 'desc' : nameSort === 'desc' ? null : 'asc';
+    qtySort = null;
     renderInventory();
   }
   function setFilter(m) {
@@ -741,9 +748,13 @@
 
     if (qtySort === 'asc') filtered.sort((a, b) => a.quantity - b.quantity);
     else if (qtySort === 'desc') filtered.sort((a, b) => b.quantity - a.quantity);
+    else if (nameSort === 'asc') filtered.sort((a, b) => a.name.localeCompare(b.name));
+    else if (nameSort === 'desc') filtered.sort((a, b) => b.name.localeCompare(a.name));
 
     const arrowEl = document.getElementById('qtySortArrow');
     if (arrowEl) arrowEl.textContent = qtySort === 'asc' ? '▲' : qtySort === 'desc' ? '▼' : '⇅';
+    const nameArrowEl = document.getElementById('nameSortArrow');
+    if (nameArrowEl) nameArrowEl.textContent = nameSort === 'asc' ? '▲' : nameSort === 'desc' ? '▼' : '⇅';
 
     const el = document.getElementById('inventoryList');
     if (!filtered.length) { el.innerHTML = '<div class="empty">No items match</div>'; return; }
