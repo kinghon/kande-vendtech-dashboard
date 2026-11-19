@@ -3212,7 +3212,7 @@ app.get('/api/inventory/audit', (req, res) => {
 // ===== OFFICE INVENTORY API =====
 app.get('/api/office-inventory', requireAuth, (req, res) => res.json(db.office_inventory || []));
 app.post('/api/office-inventory', requireAuth, (req, res) => {
-  const { name, quantity, min_qty, distributor, size, link } = req.body || {};
+  const { name, quantity, min_qty, distributor, size, link, picture } = req.body || {};
   if (!name || !String(name).trim()) return res.status(400).json({ error: 'name is required' });
   const trimmed = String(name).trim();
   const dupe = (db.office_inventory || []).find(i => (i.name || '').toLowerCase() === trimmed.toLowerCase());
@@ -3226,6 +3226,7 @@ app.post('/api/office-inventory', requireAuth, (req, res) => {
     distributor: distributor || '',
     size: size || '',
     link: link || '',
+    picture: picture || '',
     history: [{
       id: crypto.randomUUID(),
       delta: qty,
@@ -3289,7 +3290,7 @@ app.get('/api/office-unmatched', (req, res) => {
 app.put('/api/office-inventory/:id', requireAuth, (req, res) => {
   const item = db.office_inventory.find(i => i.id === req.params.id);
   if (!item) return res.status(404).json({ error: 'Item not found' });
-  const { quantity, min_qty, distributor, size, link, note } = req.body;
+  const { name, quantity, min_qty, distributor, size, link, note, picture } = req.body;
   // Log quantity change to history if qty actually changed
   if (typeof quantity === 'number' && quantity !== item.quantity) {
     const delta = quantity - item.quantity;
@@ -3304,10 +3305,12 @@ app.put('/api/office-inventory/:id', requireAuth, (req, res) => {
     });
     item.quantity = quantity;
   }
+  if (name !== undefined && String(name).trim()) item.name = String(name).trim();
   if (typeof min_qty === 'number') item.min_qty = min_qty;
   if (distributor !== undefined) item.distributor = distributor;
   if (size !== undefined) item.size = size;
   if (link !== undefined) item.link = link;
+  if (picture !== undefined) item.picture = picture;
   item.updated_at = new Date().toISOString();
   saveDB(db);
   res.json(item);
